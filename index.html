@@ -1,4 +1,10 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Light Plan</title>
 <style>
   /* ============================================================
@@ -25,6 +31,15 @@
   @media (max-width: 500px) {
     body { align-items: stretch; }
     .device { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+    /* Standalone на iOS: black-translucent пускает статус-бар на контент.
+       Разводим воздухом по safe-area, у системы уже есть свой home-индикатор. */
+    .header { padding-top: calc(env(safe-area-inset-top) + 14px); }
+    .tabbar { padding-bottom: calc(env(safe-area-inset-bottom) + 12px); }
+    /* низ экранов считается из измеренных --tabh / --dockh (уже с safe-area) */
+    .overlay { padding-top: calc(env(safe-area-inset-top) + 14px); }
+    .sheet, .device .overlay { padding-bottom: calc(34px + env(safe-area-inset-bottom)); }
+    .notif { top: calc(env(safe-area-inset-top) + 6px); }
+    .home { display: none; }
   }
 
   /* ---------- Экраны ---------- */
@@ -32,8 +47,10 @@
     position: absolute; inset: 0 0 0 0;
     display: none; flex-direction: column;
     overflow-y: auto; scrollbar-width: none;
-    padding-bottom: 92px;
+    padding-bottom: calc(var(--tabh, 74px) + 16px);
   }
+  /* «Сегодня» и «Карта» освобождают место под закреплённый ползунок */
+  #s-today, #s-map { padding-bottom: calc(var(--dockh, 156px) + 8px); }
   .screen::-webkit-scrollbar { display: none; }
   .screen.active { display: flex; animation: rise 0.45s cubic-bezier(0.25,1,0.4,1); }
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -110,16 +127,33 @@
   .p-row .v.none { color: #55504A; font-weight: 400; }
 
   /* ---------- Управление временем ---------- */
-  .controls { margin-top: auto; padding: 16px 24px 20px; display: flex; flex-direction: column; gap: 14px; }
+  /* Закреплён над таб-баром, вне потока экрана — не прыгает при переходе,
+     всегда под большим пальцем. Один элемент на «Сегодня» и «Карту». */
+  .timebar {
+    position: absolute; left: 0; right: 0; bottom: var(--tabh, 74px); z-index: 25;
+    padding: 12px 24px 14px;
+    background: #0F0E0C; border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  body[data-tab="s-plan"] .timebar, body[data-tab="s-set"] .timebar { display: none; }
+  .screen-action { margin: auto 24px 4px; }
   .edges {
     display: flex; justify-content: space-between;
     font-size: 11px; color: #8A8478; font-weight: 500; font-variant-numeric: tabular-nums;
   }
   .track-wrap { position: relative; padding-bottom: 16px; }
+  /* Появляется, только когда отмотал время от текущего. Тап → возврат к «сейчас». */
   .now-tick {
-    position: absolute; bottom: 0; transform: translateX(-50%);
-    font-size: 9px; letter-spacing: 1px; color: #635E54; font-weight: 600;
-    pointer-events: none; white-space: nowrap;
+    position: absolute; bottom: -6px; transform: translateX(-50%);
+    display: none; align-items: center; background: none; border: none;
+    cursor: pointer; font-family: inherit; line-height: 1;
+    font-size: 11px; letter-spacing: 0.4px; color: #C9853F; font-weight: 600;
+    white-space: nowrap; padding: 8px 12px;
+  }
+  .now-tick.show { display: inline-flex; }
+  .now-tick::before {
+    content: ""; position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
+    width: 2px; height: 7px; border-radius: 1px; background: #C9853F;
   }
   .scrub {
     -webkit-appearance: none; appearance: none; width: 100%; height: 36px;
@@ -415,6 +449,8 @@
     background: #fff; opacity: 0.14; z-index: 90; pointer-events: none;
   }
 </style>
+</head>
+<body>
 
 <div class="device">
 
@@ -471,18 +507,9 @@
       <div class="pro-body" id="proBody"></div>
     </div>
 
-    <div class="controls">
-      <div class="edges">
-        <span id="edgeRise">восход —</span><span id="edgeSet">закат —</span>
-      </div>
-      <div class="track-wrap">
-        <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
-        <div class="now-tick" id="nowTick">СЕЙЧАС</div>
-      </div>
-      <button class="action" id="planToday">
-        Запланировать съёмку<span class="sub" id="actionSub">—</span>
-      </button>
-    </div>
+    <button class="action screen-action" id="planToday">
+      Запланировать съёмку<span class="sub" id="actionSub">—</span>
+    </button>
   </section>
 
   <!-- ============ КАРТА ============ -->
@@ -509,15 +536,6 @@
       <div class="pro-body" id="mProBody"></div>
     </div>
 
-    <div class="controls">
-      <div class="edges">
-        <span id="mEdgeRise">восход —</span><span id="mEdgeSet">закат —</span>
-      </div>
-      <div class="track-wrap">
-        <input type="range" class="scrub" id="mScrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
-        <div class="now-tick" id="mNowTick">СЕЙЧАС</div>
-      </div>
-    </div>
   </section>
 
   <!-- ============ СЪЁМКИ ============ -->
@@ -600,6 +618,15 @@
   </section>
 
   <!-- ============ ТАБ-БАР ============ -->
+  <!-- Единый ползунок времени: один на «Сегодня» и «Карту», закреплён над таб-баром -->
+  <div class="timebar" id="timebar">
+    <div class="edges"><span id="edgeRise">восход —</span><span id="edgeSet">закат —</span></div>
+    <div class="track-wrap">
+      <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
+      <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
+    </div>
+  </div>
+
   <nav class="tabbar">
     <button class="tab active" data-go="s-today">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
@@ -1502,32 +1529,34 @@
 
     viewMin = clamp(keepTime !== undefined ? keepTime : (nowMin !== null ? nowMin : solarNoon), MINT, MAXT);
 
-    [$("scrub"), $("mScrub")].forEach(function (s) {
-      s.min = Math.round(MINT); s.max = Math.round(MAXT); s.value = viewMin;
-    });
+    var s = $("scrub"); s.min = Math.round(MINT); s.max = Math.round(MAXT); s.value = viewMin;
 
     var label = WD[selDate.getDay()] + " · " + selDate.getDate() + " " + MONTHS[selDate.getMonth()];
     $("hDate").textContent = label;
     $("hNote").textContent = nowMin !== null ? "сегодня"
       : (selDate > n ? "прогноз" : "архив");
-    $("edgeRise").textContent = $("mEdgeRise").textContent = "восход " + fmt(SUN.rise);
-    $("edgeSet").textContent = $("mEdgeSet").textContent = "закат " + fmt(SUN.set);
+    $("edgeRise").textContent = "восход " + fmt(SUN.rise);
+    $("edgeSet").textContent = "закат " + fmt(SUN.set);
 
-    [$("nowTick"), $("mNowTick")].forEach(function (tick) {
-      if (nowMin !== null) { tick.style.display = ""; tick.style.left = ((nowMin - MINT) / (MAXT - MINT) * 100) + "%"; }
-      else tick.style.display = "none";
-    });
+    updateNowTick();
 
     renderToday(); renderMap();
   }
   function setView(t) {
     viewMin = t;
-    $("scrub").value = t; $("mScrub").value = t;
-    renderToday(); renderMap();
+    $("scrub").value = t;
+    renderToday(); renderMap(); updateNowTick();
+  }
+  /* Метка «сейчас» видна только когда смотрим сегодня и отмотали от текущего момента */
+  function updateNowTick() {
+    var tick = $("nowTick");
+    if (nowMin === null) { tick.classList.remove("show"); return; }
+    tick.style.left = ((nowMin - MINT) / (MAXT - MINT) * 100) + "%";
+    tick.classList.toggle("show", Math.abs(viewMin - nowMin) > 2);
   }
 
   $("scrub").addEventListener("input", function () { setView(+this.value); });
-  $("mScrub").addEventListener("input", function () { setView(+this.value); });
+  $("nowTick").addEventListener("click", function () { if (nowMin !== null) setView(nowMin); });
 
   $("readout").addEventListener("click", function () {
     openPicker({
@@ -1591,12 +1620,26 @@
   function go(id) {
     tabs.forEach(function (t) { t.classList.toggle("active", t.dataset.go === id); });
     screens.forEach(function (s) { $(s).classList.toggle("active", s === id); });
+    document.body.dataset.tab = id;      // прячет закреплённый ползунок на Съёмках/Настройках
     $(id).scrollTop = 0;
   }
   tabs.forEach(function (t) { t.addEventListener("click", function () { go(t.dataset.go); }); });
 
+  /* Реальная высота дока (таб-бар + ползунок) — с учётом safe-area устройства */
+  function measureDock() {
+    var tabh = document.querySelector(".tabbar").offsetHeight;
+    var barh = $("timebar").offsetHeight;
+    document.documentElement.style.setProperty("--tabh", tabh + "px");
+    document.documentElement.style.setProperty("--dockh", (tabh + barh) + "px");
+  }
+
   /* ---------- Старт ---------- */
+  document.body.dataset.tab = "s-today";
   applyDate();
   renderCal(); renderDayPanel(); renderSessions();
+  measureDock();
+  window.addEventListener("resize", measureDock);
 })();
 </script>
+</body>
+</html>
