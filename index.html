@@ -91,33 +91,46 @@
   /* ---------- Сводка ---------- */
   .telemetry { padding: 2px 24px 0; }
   .t-row {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; justify-content: space-between; align-items: center;
     padding: 12px 0 11px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px;
   }
   .t-label { color: #8A8478; flex-shrink: 0; }
-  .t-value { font-weight: 500; letter-spacing: 0.1px; white-space: nowrap; text-align: right; }
+  .t-value { font-weight: 500; letter-spacing: 0.1px; white-space: nowrap; text-align: right;
+    display: inline-flex; align-items: center; }
   .t-value.rec { color: #E2A44C; font-weight: 600; transition: color 0.4s ease; }
-  .t-value.rec::before {
-    content: ""; display: inline-block; width: 6px; height: 6px;
-    border-radius: 50%; background: currentColor; margin-right: 8px; vertical-align: 1px;
-  }
+  /* Экспонометр качества света — читается быстрее слов */
+  .meter { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; margin-right: 9px; }
+  .meter i { display: inline-block; width: 3px; border-radius: 1px; }
+  .meter i:nth-child(1) { height: 6px; }
+  .meter i:nth-child(2) { height: 8px; }
+  .meter i:nth-child(3) { height: 10px; }
+  .meter i:nth-child(4) { height: 12px; }
+  .meter i:nth-child(5) { height: 14px; }
+  /* Погодные пиктограммы */
+  .wx { width: 17px; height: 17px; margin-right: 8px; flex-shrink: 0; }
 
   /* ---------- Инженерный режим ---------- */
   .pro { display: none; padding: 0 24px; }
   body.pro-mode .pro { display: block; }
+  /* Заметная кнопка-пилюля: на тестах текстовая строка терялась */
   .spoiler {
-    width: 100%; background: none; border: none; cursor: pointer;
-    color: #8A8478; font-family: inherit; font-size: 13px; font-weight: 500;
-    padding: 14px 0; display: flex; justify-content: space-between; align-items: center;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; margin: 12px 0 0; padding: 14px;
+    background: #1B1916; border: 1px solid rgba(255,255,255,0.10); border-radius: 12px;
+    color: #C9C2B6; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
   }
-  .spoiler .chev { transition: transform 0.35s ease; font-size: 11px; }
+  .spoiler:active { background: #221F19; }
+  .spoiler svg { width: 17px; height: 17px; stroke: #8A8478; fill: none; stroke-width: 1.6; }
+  .spoiler .chev { transition: transform 0.35s ease; font-size: 12px; }
   .spoiler.open .chev { transform: rotate(180deg); }
   .pro-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.25,1,0.4,1); }
   .pro-body.open { max-height: 1600px; }
   .pro-group {
+    display: flex; align-items: center; gap: 8px;
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
-    color: #55504A; font-weight: 600; margin: 18px 0 2px;
+    color: #55504A; font-weight: 600; margin: 20px 0 4px;
   }
+  .pro-group svg { width: 15px; height: 15px; stroke: #8A8478; fill: none; stroke-width: 1.6; flex-shrink: 0; }
   .p-row {
     display: flex; justify-content: space-between; align-items: baseline;
     padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03);
@@ -136,7 +149,7 @@
     display: flex; flex-direction: column; gap: 8px;
   }
   body[data-tab="s-plan"] .timebar, body[data-tab="s-set"] .timebar { display: none; }
-  .screen-action { margin: auto 24px 4px; }
+  .screen-action { margin: auto 24px 0; }
   .edges {
     display: flex; justify-content: space-between;
     font-size: 11px; color: #8A8478; font-weight: 500; font-variant-numeric: tabular-nums;
@@ -173,15 +186,16 @@
     box-shadow: 0 0 0 1px rgba(239,234,224,0.22), 0 4px 12px rgba(0,0,0,0.55);
   }
 
+  /* Действие — часть композиции, а не плашка-CTA: строка со сводочным ритмом */
   .action {
-    background: #1B1916; border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 16px; padding: 16px; text-align: center;
-    font-size: 15px; font-weight: 600; color: #EFEAE0; font-family: inherit; cursor: pointer;
+    display: flex; align-items: center; gap: 13px;
+    background: none; border: none; border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 16px 0 4px; color: #EFEAE0; font-family: inherit; cursor: pointer; text-align: left;
   }
-  .action .sub {
-    display: block; font-size: 12px; font-weight: 450;
-    color: #8A8478; margin-top: 3px; font-variant-numeric: tabular-nums;
-  }
+  .action .ic { width: 22px; height: 22px; stroke: #E2A44C; fill: none; stroke-width: 1.6; flex-shrink: 0; }
+  .action .lbl { flex: 1; font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .action .sub { font-size: 13px; font-weight: 450; color: #8A8478; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .action:active { opacity: 0.55; }
   .ghost {
     background: none; border: none; color: #8A8478; font-family: inherit;
     font-size: 14px; padding: 14px; cursor: pointer; width: 100%; text-align: center;
@@ -254,7 +268,9 @@
   .s-title { font-size: 15px; font-weight: 600; }
   .s-sub { font-size: 13px; color: #8A8478; margin-top: 2px; }
   .s-sync { font-size: 11px; color: #635E54; margin-top: 4px; }
-  .s-time { font-size: 16px; font-variant-numeric: tabular-nums; color: #E2A44C; font-weight: 500; }
+  .s-time { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+  .s-time .st { font-size: 16px; color: #E2A44C; font-weight: 500; }
+  .s-time .en { font-size: 12px; color: #8A8478; margin-top: 2px; }
   .empty { color: #55504A; font-size: 14px; padding: 4px 24px 0; }
 
   /* ---------- Настройки ---------- */
@@ -503,12 +519,14 @@
     </div>
 
     <div class="pro">
-      <button class="spoiler" id="spoilerBtn"><span>Подробно</span><span class="chev">▾</span></button>
+      <button class="spoiler" id="spoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
       <div class="pro-body" id="proBody"></div>
     </div>
 
     <button class="action screen-action" id="planToday">
-      Запланировать съёмку<span class="sub" id="actionSub">—</span>
+      <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
+      <span class="lbl">Запланировать съёмку</span>
+      <span class="sub" id="actionSub">—</span>
     </button>
   </section>
 
@@ -532,7 +550,7 @@
     </div>
 
     <div class="pro">
-      <button class="spoiler" id="mSpoilerBtn"><span>Подробно</span><span class="chev">▾</span></button>
+      <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
       <div class="pro-body" id="mProBody"></div>
     </div>
 
@@ -571,7 +589,11 @@
       <div class="dp-window" id="dpWindow">—</div>
       <div class="dp-trust" id="dpTrust">—</div>
       <div class="dp-actions">
-        <button class="action" id="planDay">Запланировать съёмку<span class="sub" id="planDayHint">—</span></button>
+        <button class="action" id="planDay">
+          <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
+          <span class="lbl">Запланировать съёмку</span>
+          <span class="sub" id="planDayHint">—</span>
+        </button>
         <button class="ghost" id="seeLight">Посмотреть свет этого дня →</button>
       </div>
     </div>
@@ -695,8 +717,13 @@
           <div class="p-name" id="fWhenName">—</div>
           <div class="p-coords" id="fWhenHint">—</div>
         </div>
-        <span class="p-change">Изменить</span>
+        <span class="p-change">Начало</span>
       </button>
+    </div>
+
+    <div class="field">
+      <span class="f-label">Сколько снимаем</span>
+      <div class="chips" id="fDur"></div>
     </div>
 
     <div class="field">
@@ -841,10 +868,10 @@
     };
   }
   var QUAL = {
-    excellent: { dot: "#E2A44C", verdict: "Стоит ехать", vcol: "#E2A44C", why: "Чистое небо, золотой закат", sky: "Ясно", cloud: 12 },
-    good:      { dot: "#A8B49B", verdict: "Можно ехать", vcol: "#A8B49B", why: "Переменная облачность",      sky: "Облачно с прояснениями", cloud: 45 },
-    fog:       { dot: "#7C9CC4", verdict: "Стоит ехать", vcol: "#7C9CC4", why: "Туман на рассвете",          sky: "Туман утром", cloud: 30 },
-    poor:      { dot: "#3A352E", verdict: "Не стоит",    vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cloud: 92 }
+    excellent: { dot: "#E2A44C", verdict: "Отличный день", vcol: "#E2A44C", why: "Чистое небо, золотой закат", sky: "Ясно", cloud: 12 },
+    good:      { dot: "#A8B49B", verdict: "Хороший день",  vcol: "#A8B49B", why: "Переменная облачность",      sky: "Облачно с прояснениями", cloud: 45 },
+    fog:       { dot: "#7C9CC4", verdict: "Туманный рассвет", vcol: "#7C9CC4", why: "Туман на рассвете",       sky: "Туман утром", cloud: 30 },
+    poor:      { dot: "#3A352E", verdict: "Пасмурно",      vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cloud: 92 }
   };
   var qCache = {};
   function qualityOf(d) {
@@ -876,42 +903,63 @@
   var rgb = function (c) { return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; };
   var rgba = function (c, a) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; };
 
+  /* Пиктограммы: экспонометр света, звёзды и погода */
+  function meterHTML(level, color) {
+    var b = "";
+    for (var i = 1; i <= 5; i++) b += '<i style="background:' + (i <= level ? color : "#3A352E") + '"></i>';
+    return '<span class="meter">' + b + "</span>";
+  }
+  function starGlyph() {
+    return '<svg class="wx" viewBox="0 0 24 24" fill="currentColor" stroke="none">' +
+      '<path d="M12 3.5l1.7 4.3 4.6.3-3.5 3 1.1 4.5-3.9-2.4-3.9 2.4 1.1-4.5-3.5-3 4.6-.3z"/></svg>';
+  }
+  function skyIcon(q) {
+    var o = '<svg class="wx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">', e = "</svg>";
+    if (q === "excellent")
+      return o + '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.6M12 19v2.6M2.4 12h2.6M19 12h2.6M5.1 5.1l1.8 1.8M17.1 17.1l1.8 1.8M18.9 5.1l-1.8 1.8M6.9 17.1l-1.8 1.8"/>' + e;
+    if (q === "good")
+      return o + '<path d="M7.5 18h8.5a3.6 3.6 0 0 0 .4-7.2 5 5 0 0 0-9.6-1.3A3.7 3.7 0 0 0 7.5 18z"/>' + e;
+    if (q === "fog")
+      return o + '<path d="M4 8.5h13M7 12.5h13M4 16.5h11"/>' + e;
+    return o + '<path d="M7.5 14.5h8.5a3.6 3.6 0 0 0 .4-7.2 5 5 0 0 0-9.6-1.3A3.7 3.7 0 0 0 7.5 14.5z"/><path d="M9 18l-1 2.2M13 18l-1 2.2M17 18l-1 2.2"/>' + e;
+  }
+
   function stateAt(t) {
     var e = elevAt(t), morning = t < solarNoon;
     if (e >= -0.833) {
       if (e > 40) return { c: SILVER, glow: 0.05, label: "Полдень", sense: "солнце в зените — свет жёсткий",
-        light: "Жёсткий и яркий", rec: "Жёсткий свет · ждите вечера", tone: "neutral" };
+        light: "Жёсткий и яркий", rec: "Жёсткий свет", level: 2, tone: "neutral" };
       if (e > 20) return { c: lerp(AMBER, SILVER, 0.6), glow: 0.08, label: morning ? "Утро" : "День",
         sense: morning ? "свет прохладный, контраст растёт" : "свет ещё жёсткий",
         light: morning ? "Прохладный, довольно жёсткий" : "Довольно жёсткий",
-        rec: "Можно снимать · свет средний", tone: "good" };
+        rec: "Ровный свет", level: 3, tone: "good" };
       // Допуск: граница золотого часа считается по +6°, и на самом стыке
       // погрешность float иначе показывает «Вечереет» вместо золотого часа
       if (e > 6.05) return { c: AMBER, glow: 0.16, label: morning ? "Утро" : "Вечереет",
         sense: "свет теплеет, тени растут", light: "Тёплый, мягчает",
-        rec: "Можно снимать · свет мягчает", tone: "good" };
+        rec: "Мягкий свет", level: 4, tone: "good" };
       return { c: GOLD, glow: 0.34, label: "Золотой час", sense: "тёплый мягкий свет, длинные тени",
-        light: "Тёплый и мягкий", rec: "Стоит ехать · лучший свет", tone: "excellent" };
+        light: "Тёплый и мягкий", rec: "Отличный свет", level: 5, tone: "excellent" };
     }
     var d = -e;
     if (d < 1.8) return { c: lerp(GOLD, SCARLET, d/1.8), glow: 0.34, label: morning ? "Рассвет" : "Закат",
       sense: "небо алеет у горизонта", light: "Алый, уходит быстро",
-      rec: "Стоит ехать · небо горит", tone: "excellent" };
+      rec: "Отличный свет", level: 5, tone: "excellent" };
     if (d < 4) return { c: lerp(SCARLET, PINK, (d-1.8)/2.2), glow: 0.28, label: morning ? "Светает" : "Сумерки",
       sense: morning ? "небо теплеет розовым" : "закат догорает розовым",
-      light: "Мягкий, розовый", rec: "Стоит ехать · мягкий свет", tone: "excellent" };
+      light: "Мягкий, розовый", rec: "Мягкий свет", level: 4, tone: "excellent" };
     if (d < 6) return { c: lerp(PINK, BLUE, (d-4)/2), glow: 0.24, label: "Синий час",
       sense: "глубокое синее небо", light: "Синий и ровный",
-      rec: "Стоит ехать · синий час", tone: "excellent" };
+      rec: "Отличный свет", level: 5, tone: "excellent" };
     if (d < 12) return { c: lerp(BLUE, DEEP, (d-6)/6), glow: 0.13, label: "Глубокие сумерки",
       sense: "света мало, небо ещё светлое", light: "Очень слабый",
-      rec: "Слабый свет · нужен штатив", tone: "neutral" };
+      rec: "Слабый свет", level: 1, tone: "neutral" };
     if (d < 18) return { c: lerp(DEEP, NIGHT, (d-12)/6), glow: 0.06, label: "Астрономические сумерки",
       sense: morning ? "звёзды гаснут, скоро рассвет" : "проступают яркие звёзды",
       light: "Темно, видны яркие звёзды",
-      rec: morning ? "Звёзды уходят · снимайте" : "Видны яркие звёзды", tone: "stars" };
+      rec: "Звёздное небо", stars: true, tone: "stars" };
     return { c: NIGHT, glow: 0.04, label: "Астрономическая ночь", sense: "небо полностью тёмное",
-      light: "Темно, звёздное небо", rec: "Лучшее время для звёзд", tone: "stars" };
+      light: "Темно, звёздное небо", rec: "Звёздная ночь", stars: true, tone: "stars" };
   }
   function shadowWord(t) {
     var e = elevAt(t);
@@ -963,10 +1011,10 @@
     var t = viewMin, p = posAt(t), e = elevAt(t), st = stateAt(t);
     var q = qualityOf(selDate);
 
-    // Плохая погода перебивает лучший свет — иначе сводка врёт
-    if (q === "poor" && st.tone === "excellent") {
+    // Плохая погода перебивает свет: небо закрыто — экспонометр падает в самый низ
+    if (q === "poor") {
       st = { c: st.c, glow: st.glow, label: st.label, sense: st.sense, light: st.light,
-             rec: "Не стоит · плотная облачность", tone: "neutral" };
+             rec: "Небо закрыто", level: 1, tone: "neutral" };
     }
     var col = rgb(st.c);
 
@@ -996,15 +1044,16 @@
     $("drPhase").style.color = col;
     $("drSense").textContent = st.sense;
 
-    $("tRec").textContent = st.rec;
-    $("tRec").style.color = st.tone === "excellent" ? col : TONE[st.tone];
+    var qcol = st.tone === "excellent" ? col : TONE[st.tone];
+    $("tRec").style.color = qcol;
+    $("tRec").innerHTML = (st.stars ? starGlyph() : meterHTML(st.level, qcol)) + '<span>' + st.rec + '</span>';
     $("tLight").textContent = st.light;
     $("tShadow").textContent = shadowWord(t);
-    $("tSky").textContent = QUAL[q].sky;
+    $("tSky").innerHTML = skyIcon(q) + '<span>' + QUAL[q].sky + '</span>';
 
     $("actionSub").textContent = st.tone === "stars"
-      ? (SUN.astB !== null ? "астрономическая ночь " + range(SUN.astB, SUN.astA + 1440) : "белая ночь · небо не темнеет")
-      : "золотой час " + range(SUN.goldB, SUN.blueB);
+      ? (SUN.astB !== null ? range(SUN.astB, SUN.astA + 1440) : "белая ночь")
+      : range(SUN.goldB, SUN.blueB);
 
     var ring = $("nowRing");
     if (nowMin !== null && elevAt(nowMin) > 0.5) {
@@ -1016,11 +1065,24 @@
     renderPro(t, q);
   }
 
+  function groupIcon(k) {
+    var m = {
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2.5 12h2M19.5 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/>',
+      clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.7l3 1.8"/>',
+      sunset: '<path d="M3 18h18M7.5 18a4.5 4.5 0 0 1 9 0"/><path d="M12 3.5v3.4M5.5 8l1.5 1.5M18.5 8l-1.5 1.5"/>',
+      moon: '<path d="M19 13.5A7.5 7.5 0 1 1 10.5 5a6 6 0 0 0 8.5 8.5z"/>',
+      cloud: '<path d="M7.5 18h8.5a3.6 3.6 0 0 0 .4-7.2 5 5 0 0 0-9.6-1.3A3.7 3.7 0 0 0 7.5 18z"/>',
+      compass: '<circle cx="12" cy="12" r="8.5"/><path d="M15 9l-2 5-4 1 2-5z"/>',
+      obstacle: '<path d="M3 20h18"/><rect x="4.5" y="9.5" width="5.5" height="10.5"/><rect x="12" y="5.5" width="6" height="14.5"/>'
+    };
+    return '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + (m[k] || "") + "</svg>";
+  }
+
   function proHTML(groups) {
     var html = "";
     groups.forEach(function (grp) {
-      html += '<div class="pro-group">' + grp[0] + "</div>";
-      grp[1].forEach(function (row) {
+      html += '<div class="pro-group">' + groupIcon(grp[0]) + "<span>" + grp[1] + "</span></div>";
+      grp[2].forEach(function (row) {
         var v = row[1], none = (v === null || v === "—");
         html += '<div class="p-row"><span class="k">' + row[0] + '</span><span class="v' +
                 (none ? " none" : "") + '">' +
@@ -1034,30 +1096,30 @@
   function renderPro(t, q) {
     var e = elevAt(t), az = azAt(t), sh = shadowAt(t);
     $("proBody").innerHTML = proHTML([
-      ["Солнце в этот момент", [
+      ["sun", "Солнце в этот момент", [
         ["Азимут", az.toFixed(1) + "° · " + dirOf(az)],
         ["Высота", (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°"],
         ["Длина тени", sh ? "×" + (sh < 10 ? sh.toFixed(2) : sh.toFixed(1)) + " роста" : "—"]
       ]],
-      ["Ход дня", [
+      ["clock", "Ход дня", [
         ["Восход", fmt(SUN.rise) + " · " + azAt(SUN.rise).toFixed(0) + "°"],
         ["Солнечный полдень", fmt(solarNoon) + " · " + SUN.maxElev.toFixed(1) + "°"],
         ["Закат", fmt(SUN.set) + " · " + azAt(SUN.set).toFixed(0) + "°"],
         ["Длина дня", fmt(SUN.set - SUN.rise).replace(":", " ч ") + " м"]
       ]],
-      ["Золотой и синий час", [
+      ["sunset", "Золотой и синий час", [
         ["Золотой час утром", range(SUN.blueA, SUN.goldA)],
         ["Золотой час вечером", range(SUN.goldB, SUN.blueB)],
         ["Синий час утром", range(SUN.civA, SUN.blueA)],
         ["Синий час вечером", range(SUN.blueB, SUN.civB)]
       ]],
-      ["Сумерки", [
+      ["moon", "Сумерки", [
         ["Гражданские", range(SUN.set, SUN.civB)],
         ["Навигационные", range(SUN.civB, SUN.nauB)],
         ["Астрономические", SUN.astB !== null ? range(SUN.nauB, SUN.astB) : range(SUN.nauB, SUN.nauA + 1440)],
         ["Астрономическая ночь", SUN.astB !== null ? range(SUN.astB, SUN.astA + 1440) : null]
       ]],
-      ["Погода", [
+      ["cloud", "Погода", [
         ["Небо", QUAL[q].sky],
         ["Облачность", QUAL[q].cloud + "%"],
         ["Температура", "19 °C · ощущается 18 °C"],
@@ -1195,17 +1257,17 @@
     $("mPoint").style.color = e > 0 ? "#E2A44C" : "#8A8478";
 
     $("mProBody").innerHTML = proHTML([
-      ["Солнце в этот момент", [
+      ["sun", "Солнце в этот момент", [
         ["Азимут", az.toFixed(1) + "° · " + dirOf(az)],
         ["Высота", (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°"],
         ["Тень падает на", ((az + 180) % 360).toFixed(1) + "° · " + dirOf((az + 180) % 360)]
       ]],
-      ["Азимуты дня", [
+      ["compass", "Азимуты дня", [
         ["Восход", azAt(SUN.rise).toFixed(1) + "° · " + dirOf(azAt(SUN.rise))],
         ["Закат", azAt(SUN.set).toFixed(1) + "° · " + dirOf(azAt(SUN.set))],
         ["Сектор за день", (azAt(SUN.set) - azAt(SUN.rise)).toFixed(0) + "°"]
       ]],
-      ["Препятствия", [
+      ["obstacle", "Препятствия", [
         ["Здание", BUILD.height + " м · тень " + (sh ? (BUILD.height * sh).toFixed(1) + " м" : "—")],
         ["Деревья", TREES[0].height + " м · тень " + (sh ? (TREES[0].height * sh).toFixed(1) + " м" : "—")]
       ]]
@@ -1263,7 +1325,7 @@
       : "Лучшее окно · " + w.label + ' <span class="t">' + range(w.a, w.b) + "</span>";
     $("dpTrust").textContent = trustOf(calSel);
     $("planDay").style.display = q === "poor" ? "none" : "block";
-    $("planDayHint").textContent = calSel.getDate() + " " + MONTHS[calSel.getMonth()] + " · начало " + fmt(w.a);
+    $("planDayHint").textContent = "начало " + fmt(w.a);
   }
 
   function renderSessions() {
@@ -1284,7 +1346,8 @@
         '<div class="s-sub">' + s.place + (s.wish && s.wish !== "Неважно" ? " · жду: " + s.wish.toLowerCase() : "") + "</div>" +
         (s.warn ? '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>"
                 : s.synced ? '<div class="s-sync">→ в календаре ' + (s.synced === "google" ? "Google" : "Apple") + "</div>" : "") +
-        "</div><div class=\"s-time\">" + fmt(s.min) + "</div>";
+        '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">до ' +
+        fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + "</span></div>";
       list.appendChild(c);
     });
   }
@@ -1373,7 +1436,24 @@
   /* ============================================================
      ФОРМА СЪЁМКИ
      ============================================================ */
-  var fDate = new Date(), fMin = 1200, shootType = "Портрет", wish = "Неважно";
+  var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет", wish = "Неважно";
+  var DURS = [30, 60, 90, 120, 180];
+  function durLabel(m) {
+    var h = Math.floor(m / 60), mm = m % 60;
+    if (h === 0) return mm + " мин";
+    return h + (mm === 30 ? "½" : "") + " ч" + (mm && mm !== 30 ? " " + mm + " м" : "");
+  }
+  function nearestDur(m) {
+    return DURS.reduce(function (a, b) { return Math.abs(b - m) < Math.abs(a - m) ? b : a; });
+  }
+  function renderDur() {
+    $("fDur").innerHTML = DURS.map(function (m) {
+      return '<button class="chip' + (m === fDur ? " active" : "") + '">' + durLabel(m) + "</button>";
+    }).join("");
+    $("fDur").querySelectorAll(".chip").forEach(function (ch, i) {
+      ch.addEventListener("click", function () { fDur = DURS[i]; renderDur(); refreshForm(); });
+    });
+  }
   var places = [
     { name: "Северный объезд", coords: "56.021 N · 37.482 E", city: true },
     { name: "Старая пристань", coords: "56.008 N · 37.455 E", city: true },
@@ -1432,7 +1512,8 @@
     var keep = new Date(selDate);
     computeSun(fDate);
     var w = dayWindow(fDate);
-    $("fWhenName").textContent = WD[fDate.getDay()] + " " + fDate.getDate() + " " + MONTHS[fDate.getMonth()] + " · " + fmt(fMin);
+    $("fWhenName").textContent = WD[fDate.getDay()] + " " + fDate.getDate() + " " + MONTHS[fDate.getMonth()]
+      + " · " + fmt(fMin) + " – " + fmt(fMin + fDur);
     $("fWhenHint").textContent = w.q === "poor" ? "в этот день окна света нет"
       : "окно света · " + w.label + " " + range(w.a, w.b);
     $("formSub").innerHTML = w.q === "poor"
@@ -1446,8 +1527,11 @@
   }
   function openForm(d, startMin) {
     fDate = new Date(d); fMin = startMin;
+    // по умолчанию длительность ≈ длине светового окна этого дня
+    var w = dayWindow(fDate);
+    fDur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
     $("savedNote").textContent = "";
-    renderGenres(); renderWishes(); refreshForm();
+    renderGenres(); renderWishes(); renderDur(); refreshForm();
     $("formOverlay").classList.add("open");
   }
 
@@ -1501,7 +1585,7 @@
   $("fSave").addEventListener("click", function () {
     var warn = wishCheck(wish, fDate);
     sessions.push({
-      date: new Date(fDate), min: fMin, type: shootType,
+      date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
       contact: $("fContact").value.trim(), place: places[placeIdx].name,
       wish: wish, warn: warn,
       synced: syncTarget === "off" ? null : syncTarget
@@ -1598,7 +1682,7 @@
     $(p[0]).addEventListener("click", function () {
       this.classList.toggle("open");
       $(p[1]).classList.toggle("open");
-      this.firstChild.textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
+      this.querySelector(".lbl").textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
     });
   });
   document.querySelectorAll("#calSync button").forEach(function (b) {
