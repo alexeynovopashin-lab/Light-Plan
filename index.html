@@ -66,19 +66,23 @@
     letter-spacing: 0.6px; margin-top: 3px; font-weight: 500;
   }
   .head-note { font-size: 11px; color: #635E54; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 500; }
-  /* Погода в шапке — в духе виджета Apple: температура + иконка */
-  .head-wx { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  /* Погода в шапке — как виджет Apple: иконка + температура, состояние, мин/макс */
+  .head-wx { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
   .hw-top { display: flex; align-items: center; gap: 7px; }
-  .hw-top svg { width: 20px; height: 20px; stroke: #C9C2B6; fill: none; stroke-width: 1.5; }
-  .hw-top .temp { font-size: 20px; font-weight: 500; color: #EFEAE0; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
+  .hw-top svg { width: 22px; height: 22px; stroke: #EFEAE0; fill: none; stroke-width: 1.5; }
+  .hw-top .temp { font-size: 24px; font-weight: 600; color: #EFEAE0; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+  .hw-cond { font-size: 14px; color: #C9C2B6; }
+  .hw-hilo { display: flex; gap: 10px; font-size: 13px; color: #8A8478; font-variant-numeric: tabular-nums; }
+  .head-note { margin-top: 4px; }
 
   .title { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; padding: 26px 24px 0; }
 
   /* ---------- Купол ---------- */
-  .dome { position: relative; width: 100%; height: 264px; margin-top: 10px; flex-shrink: 0; }
+  /* height = высоте viewBox (240): раньше 24px уходило в мёртвый зазор */
+  .dome { position: relative; width: 100%; height: 240px; margin-top: 0; flex-shrink: 0; }
   .dome svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .dome-readout {
-    position: absolute; top: 136px; left: 50%; transform: translate(-50%, -50%);
+    position: absolute; top: 124px; left: 50%; transform: translate(-50%, -50%);
     text-align: center; width: 100%; cursor: pointer;
     background: none; border: none; color: inherit; font-family: inherit; padding: 8px 0;
   }
@@ -94,18 +98,18 @@
   .dr-sense { font-size: 12px; color: #8A8478; margin-top: 4px; }
 
   /* ---------- Отсчёт до следующего света (заполняет место под дугой) ---------- */
-  .next-light { text-align: center; padding: 6px 24px 2px; }
+  .next-light { text-align: center; padding: 2px 24px 0; }
   .nl-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: #8A8478; font-weight: 600; }
-  .nl-value { font-size: 34px; font-weight: 300; letter-spacing: -0.5px; line-height: 1.05; margin-top: 4px;
+  .nl-value { font-size: 30px; font-weight: 300; letter-spacing: -0.5px; line-height: 1.05; margin-top: 3px;
     font-variant-numeric: tabular-nums; color: #E2A44C; transition: color 0.4s ease; }
-  .nl-trend { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; color: #8A8478; font-size: 12px; }
+  .nl-trend { display: inline-flex; align-items: center; gap: 8px; margin-top: 5px; color: #8A8478; font-size: 12px; }
   .nl-spark { width: 42px; height: 14px; display: block; }
 
   /* ---------- Сводка ---------- */
-  .telemetry { padding: 2px 24px 0; }
+  .telemetry { padding: 0 24px; }
   .t-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 0 11px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px;
+    padding: 9px 0 8px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px;
   }
   .t-label { color: #8A8478; flex-shrink: 0; }
   .t-value { font-weight: 500; letter-spacing: 0.1px; white-space: nowrap; text-align: right;
@@ -203,7 +207,7 @@
   .action {
     display: flex; align-items: center; gap: 13px;
     background: none; border: none; border-top: 1px solid rgba(255,255,255,0.07);
-    padding: 16px 0 4px; color: #EFEAE0; font-family: inherit; cursor: pointer; text-align: left;
+    padding: 13px 0 2px; color: #EFEAE0; font-family: inherit; cursor: pointer; text-align: left;
   }
   .action .ic { width: 22px; height: 22px; stroke: #E2A44C; fill: none; stroke-width: 1.6; flex-shrink: 0; }
   .action .lbl { flex: 1; font-size: 16px; font-weight: 600; white-space: nowrap; }
@@ -244,16 +248,37 @@
   }
   .cal .d.past { color: #4A453E; }
   .cal .d.today { color: #E2A44C; font-weight: 650; }
-  .cal .d.sel { background: #221F19; }
+  /* Выбранный день — кольцом, как в календаре Apple */
+  .cal .d.sel { background: none; box-shadow: inset 0 0 0 1.5px rgba(239,234,224,0.85); }
   .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 4px; background: transparent; }
+  /* Занятый день: заполненная светлая метка — «это твоя съёмка», в отличие
+     от цветных точек качества света */
   .cal .d .mark {
-    position: absolute; top: 5px; right: 7px; width: 5px; height: 5px;
-    border-radius: 50%; border: 1px solid #8A8478;
+    position: absolute; top: 5px; right: 6px; width: 6px; height: 6px;
+    border-radius: 50%; background: #EFEAE0;
   }
   .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
   .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8A8478; }
   .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .legend .ring { border: 1px solid #8A8478; background: none; }
+  .legend .ring { background: #EFEAE0; border: none; }
+
+  /* Съёмки выбранного дня — записи клиентов */
+  .bookings { margin-top: 12px; }
+  .booking {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    background: #17150F; border: none; border-radius: 14px;
+    padding: 12px 15px; margin-bottom: 8px; cursor: pointer;
+    color: #EFEAE0; font-family: inherit; text-align: left;
+  }
+  .booking:active { background: #201C15; }
+  .bk-time { display: flex; flex-direction: column; min-width: 58px; font-variant-numeric: tabular-nums; }
+  .bk-start { font-size: 16px; color: #E2A44C; font-weight: 550; }
+  .bk-to { font-size: 11px; color: #8A8478; margin-top: 2px; }
+  .bk-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .bk-title, .bk-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bk-title { font-size: 15px; font-weight: 600; }
+  .bk-sub { font-size: 12px; color: #8A8478; margin-top: 2px; }
+  .bk-edit { color: #635E54; font-size: 20px; line-height: 1; }
 
   .day-panel { padding: 26px 24px 0; }
   .dp-date { font-size: 11px; color: #8A8478; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
@@ -278,6 +303,7 @@
   .s-date .n { font-size: 24px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
   .s-date .m { font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; color: #635E54; margin-top: 3px; }
   .s-body { flex: 1; min-width: 0; }
+  .s-title, .s-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .s-title { font-size: 15px; font-weight: 600; }
   .s-sub { font-size: 13px; color: #8A8478; margin-top: 2px; }
   .s-sync { font-size: 11px; color: #635E54; margin-top: 4px; }
@@ -437,6 +463,12 @@
     color: #0F0E0C; font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
   }
   .saved-note { text-align: center; font-size: 13px; color: #8A8478; margin-top: 14px; min-height: 18px; }
+  .danger {
+    display: block; width: 100%; margin-top: 10px; padding: 15px;
+    background: none; border: none; color: #B9603D;
+    font-family: inherit; font-size: 15px; cursor: pointer;
+  }
+  .danger[hidden] { display: none; }
 
   /* Прогноз против замысла — предупреждаем спокойно, без красного */
   .wish-warn {
@@ -489,10 +521,12 @@
       <div class="loc">
         <div class="name">Северный объезд</div>
         <div class="date" id="hDate">ЧТ · 16 июля</div>
+        <div class="head-note" id="hNote">сегодня</div>
       </div>
       <div class="head-wx">
         <div class="hw-top"><span id="hwIcon"></span><span class="temp" id="hwTemp">—</span></div>
-        <div class="head-note" id="hNote">сегодня</div>
+        <div class="hw-cond" id="hwCond">—</div>
+        <div class="hw-hilo"><span id="hwLo">↓ —</span><span id="hwHi">↑ —</span></div>
       </div>
     </div>
 
@@ -607,6 +641,7 @@
 
     <div class="day-panel">
       <div class="dp-date" id="dpDate">—</div>
+      <div class="bookings" id="dpSessions"></div>
       <div class="dp-verdict" id="dpVerdict">—</div>
       <div class="dp-why" id="dpWhy">—</div>
       <div class="dp-window" id="dpWindow">—</div>
@@ -727,7 +762,7 @@
         </svg>
       </button>
     </div>
-    <h2 class="form-title">Новая съёмка</h2>
+    <h2 class="form-title" id="formTitle">Новая съёмка</h2>
     <p class="form-sub" id="formSub">—</p>
 
     <!-- Подписи «где», «кто», «заметки» убраны: содержимое поля говорит само за себя.
@@ -777,6 +812,7 @@
     </div>
 
     <button class="save" id="fSave">Сохранить съёмку</button>
+    <button class="danger" id="fDelete" hidden>Удалить съёмку</button>
     <div class="saved-note" id="savedNote"></div>
   </div>
 
@@ -894,10 +930,10 @@
     };
   }
   var QUAL = {
-    excellent: { dot: "#E2A44C", verdict: "Отличный день", vcol: "#E2A44C", why: "Чистое небо, золотой закат", sky: "Ясно", cloud: 12 },
-    good:      { dot: "#A8B49B", verdict: "Хороший день",  vcol: "#A8B49B", why: "Переменная облачность",      sky: "Облачно с прояснениями", cloud: 45 },
-    fog:       { dot: "#7C9CC4", verdict: "Туманный рассвет", vcol: "#7C9CC4", why: "Туман на рассвете",       sky: "Туман утром", cloud: 30 },
-    poor:      { dot: "#3A352E", verdict: "Пасмурно",      vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cloud: 92 }
+    excellent: { dot: "#E2A44C", verdict: "Отличный день", vcol: "#E2A44C", why: "Чистое небо, золотой закат", sky: "Ясно", cond: "Ясно", cloud: 12 },
+    good:      { dot: "#A8B49B", verdict: "Хороший день",  vcol: "#A8B49B", why: "Переменная облачность",      sky: "Облачно с прояснениями", cond: "Облачно", cloud: 45 },
+    fog:       { dot: "#7C9CC4", verdict: "Туманный рассвет", vcol: "#7C9CC4", why: "Туман на рассвете",       sky: "Туман утром", cond: "Туман", cloud: 30 },
+    poor:      { dot: "#3A352E", verdict: "Пасмурно",      vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cond: "Дождь", cloud: 92 }
   };
   var qCache = {};
   function qualityOf(d) {
@@ -1122,9 +1158,12 @@
     $("tSky").innerHTML = skyIcon(q) + '<span>' + QUAL[q].sky + " · " + wx.cloud + "%</span>";
     $("tWind").textContent = wx.wind + " м/с · " + windWord(wx.wind);
 
-    // Шапка: температура + иконка (в духе виджета Apple)
+    // Шапка: как виджет Apple — иконка, температура, состояние, мин/макс за день
     $("hwIcon").innerHTML = skyIcon(q);
     $("hwTemp").textContent = tempAt(wx.tempBase, t) + "°";
+    $("hwCond").textContent = QUAL[q].cond;
+    $("hwLo").textContent = "↓ " + tempAt(wx.tempBase, 240) + "°";
+    $("hwHi").textContent = "↑ " + tempAt(wx.tempBase, 960) + "°";
 
     // Отсчёт до следующего света + тренд облачности к окну
     var nl = nextLight(t);
@@ -1408,8 +1447,26 @@
       ? '<span style="color:#55504A">Окна света нет</span>'
       : "Лучшее окно · " + w.label + ' <span class="t">' + range(w.a, w.b) + "</span>";
     $("dpTrust").textContent = trustOf(calSel);
-    $("planDay").style.display = q === "poor" ? "none" : "block";
+    $("planDay").style.display = q === "poor" ? "none" : "flex";
     $("planDayHint").textContent = "начало " + fmt(w.a);
+
+    // Записи клиентов на этот день — сразу под датой
+    var idxs = [];
+    sessions.forEach(function (s, i) { if (sameDay(s.date, calSel)) idxs.push(i); });
+    var box = $("dpSessions");
+    box.innerHTML = idxs.map(function (i) {
+      var s = sessions[i];
+      return '<button class="booking" data-i="' + i + '">' +
+        '<span class="bk-time"><span class="bk-start">' + fmt(s.min) + '</span>' +
+        '<span class="bk-to">до ' + fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + '</span></span>' +
+        '<span class="bk-body"><span class="bk-title">' + s.type + (s.contact ? " · " + s.contact : "") + "</span>" +
+        '<span class="bk-sub">' + s.place + (s.notes ? " · есть заметки" : "") + "</span></span>" +
+        '<span class="bk-edit">›</span></button>';
+    }).join("");
+    box.querySelectorAll(".booking").forEach(function (b) {
+      b.addEventListener("click", function () { openForm(null, null, +b.dataset.i); });
+    });
+    $("planDay").querySelector(".lbl").textContent = idxs.length ? "Добавить съёмку" : "Запланировать съёмку";
   }
 
   function renderSessions() {
@@ -1421,19 +1478,24 @@
       e.textContent = "Пока пусто. Выберите день с хорошим светом.";
       list.appendChild(e); return;
     }
-    sessions.slice().sort(function (a, b) { return a.date - b.date || a.min - b.min; }).forEach(function (s) {
-      var c = document.createElement("div");
-      c.className = "session";
-      c.innerHTML =
-        '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
-        '<div class="s-body"><div class="s-title">' + s.type + (s.contact ? " · " + s.contact : "") + "</div>" +
-        '<div class="s-sub">' + s.place + (s.wish && s.wish !== "Неважно" ? " · жду: " + s.wish.toLowerCase() : "") + "</div>" +
-        (s.warn ? '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>"
-                : s.synced ? '<div class="s-sync">→ в календаре ' + (s.synced === "google" ? "Google" : "Apple") + "</div>" : "") +
-        '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">до ' +
-        fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + "</span></div>";
-      list.appendChild(c);
-    });
+    // сортируем, но помним исходный индекс — по нему открываем запись на правку
+    sessions.map(function (s, i) { return { s: s, i: i }; })
+      .sort(function (a, b) { return a.s.date - b.s.date || a.s.min - b.s.min; })
+      .forEach(function (p) {
+        var s = p.s;
+        var c = document.createElement("div");
+        c.className = "session";
+        c.innerHTML =
+          '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
+          '<div class="s-body"><div class="s-title">' + s.type + (s.contact ? " · " + s.contact : "") + "</div>" +
+          '<div class="s-sub">' + s.place + (s.wish && s.wish !== "Неважно" ? " · жду: " + s.wish.toLowerCase() : "") + "</div>" +
+          (s.warn ? '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>"
+                  : s.synced ? '<div class="s-sync">→ в календаре ' + (s.synced === "google" ? "Google" : "Apple") + "</div>" : "") +
+          '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">до ' +
+          fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + "</span></div>";
+        c.addEventListener("click", function () { openForm(null, null, p.i); });
+        list.appendChild(c);
+      });
   }
 
   /* ============================================================
@@ -1609,15 +1671,43 @@
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
   }
-  function openForm(d, startMin) {
-    fDate = new Date(d); fMin = startMin;
-    // по умолчанию длительность ≈ длине светового окна этого дня
-    var w = dayWindow(fDate);
-    fDur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
+  /* idx !== null — правим существующую запись клиента */
+  var editIdx = null;
+  function openForm(d, startMin, idx) {
+    editIdx = (idx === undefined || idx === null) ? null : idx;
+    if (editIdx !== null) {
+      var s = sessions[editIdx];
+      fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
+      shootType = s.type; wish = s.wish || "Неважно";
+      var pi = -1;
+      places.forEach(function (p, i) { if (p.name === s.place) pi = i; });
+      placeIdx = pi < 0 ? 0 : pi;
+      $("fContact").value = s.contact || "";
+      $("fNotes").value = s.notes || "";
+    } else {
+      fDate = new Date(d); fMin = startMin;
+      // по умолчанию длительность ≈ длине светового окна этого дня
+      var w = dayWindow(fDate);
+      fDur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
+      $("fContact").value = ""; $("fNotes").value = "";
+    }
+    $("fPlaceName").textContent = places[placeIdx].name;
+    $("fPlaceCoords").textContent = places[placeIdx].coords + (places[placeIdx].city ? " · в городе" : " · за городом");
+    $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
+    $("fSave").textContent = editIdx !== null ? "Сохранить изменения" : "Сохранить съёмку";
+    $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
     renderGenres(); renderWishes(); renderDur(); refreshForm();
     $("formOverlay").classList.add("open");
   }
+  $("fDelete").addEventListener("click", function () {
+    if (editIdx === null) return;
+    sessions.splice(editIdx, 1);
+    editIdx = null;
+    renderSessions(); renderCal(); renderDayPanel();
+    $("formOverlay").classList.remove("open");
+    go("s-plan");
+  });
 
   /* Лист «Мои жанры» */
   function renderGenreList() {
@@ -1668,14 +1758,19 @@
   });
   $("fSave").addEventListener("click", function () {
     var warn = wishCheck(wish, fDate);
-    sessions.push({
+    var rec = {
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
-      contact: $("fContact").value.trim(), place: places[placeIdx].name,
+      contact: $("fContact").value.trim(), notes: $("fNotes").value.trim(),
+      place: places[placeIdx].name,
       wish: wish, warn: warn,
       synced: syncTarget === "off" ? null : syncTarget
-    });
-    renderSessions(); renderCal();
-    $("savedNote").textContent = syncTarget === "off" ? "Сохранено"
+    };
+    if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
+    var wasEdit = editIdx !== null;
+    editIdx = null;
+    renderSessions(); renderCal(); renderDayPanel();
+    $("savedNote").textContent = wasEdit ? "Изменения сохранены"
+      : syncTarget === "off" ? "Сохранено"
       : "Сохранено · добавлено в " + (syncTarget === "google" ? "Google Календарь" : "Календарь Apple");
     setTimeout(function () {
       $("formOverlay").classList.remove("open"); go("s-plan");
