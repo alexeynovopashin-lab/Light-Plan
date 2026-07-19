@@ -248,19 +248,26 @@
   }
   .cal .d.past { color: #4A453E; }
   .cal .d.today { color: #E2A44C; font-weight: 650; }
-  /* Выбранный день — кольцом, как в календаре Apple */
-  .cal .d.sel { background: none; box-shadow: inset 0 0 0 1.5px rgba(239,234,224,0.85); }
-  .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 4px; background: transparent; }
-  /* Занятый день: заполненная светлая метка — «это твоя съёмка», в отличие
-     от цветных точек качества света */
-  .cal .d .mark {
-    position: absolute; top: 5px; right: 6px; width: 6px; height: 6px;
-    border-radius: 50%; background: #EFEAE0;
+  .cal .d.sel { background: #221F19; }
+  /* Кольцо вокруг числа = есть съёмка. Цвет кольца = срочность сдачи материала:
+     белое (предстоит) → жёлтое → янтарное → терракота (просрочено) */
+  .d-n {
+    position: relative; width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
   }
+  .d-n::before {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    border: 1.5px solid var(--ring, transparent);
+  }
+  .d-n.breath::before { animation: ringBreath 3.6s ease-in-out infinite; }
+  @keyframes ringBreath { 0%, 100% { opacity: 1; } 50% { opacity: 0.28; } }
+  @media (prefers-reduced-motion: reduce) { .d-n.breath::before { animation: none; } }
+  .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; background: transparent; }
   .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
   .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8A8478; }
   .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .legend .ring { background: #EFEAE0; border: none; }
+  .legend .ring { background: none; border: 1.5px solid #EFEAE0; }
+  .legend .ring.due { border-color: #C9663D; }
 
   /* Съёмки выбранного дня — записи клиентов */
   .bookings { margin-top: 12px; }
@@ -637,6 +644,7 @@
       <span><i style="background:#A8B49B"></i>Хороший</span>
       <span><i style="background:#7C9CC4"></i>Туман</span>
       <span><i class="ring"></i>Съёмка</span>
+      <span><i class="ring due"></i>Горит сдача</span>
     </div>
 
     <div class="day-panel">
@@ -680,6 +688,15 @@
       <button data-sync="google">Google</button>
     </div>
     <p class="seg-note" id="syncNote">Съёмки хранятся только в Light Atlas.</p>
+
+    <div class="sec-label">Сдача материала</div>
+    <div class="seg" id="delvSeg">
+      <button class="active" data-mode="genre">По жанру</button>
+      <button data-mode="single">Единый</button>
+      <button data-mode="none">Без срока</button>
+    </div>
+    <div class="chips" id="delvDays" style="padding: 12px 24px 0;"></div>
+    <p class="seg-note" id="delvNote">Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней.</p>
 
     <div class="sec-label">Отклик</div>
     <div class="item"><span class="k">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
@@ -785,6 +802,18 @@
     <div class="field">
       <span class="f-label">Сколько снимаем</span>
       <div class="chips" id="fDur"></div>
+    </div>
+
+    <div class="field">
+      <span class="f-label">Сдать материал</span>
+      <div class="chips" id="fDelv"></div>
+      <div class="f-hint" id="fDelvHint">—</div>
+    </div>
+
+    <div class="field" id="fDoneRow">
+      <div class="item" style="padding: 0;">
+        <span class="k">Материал сдан</span><span class="toggle" id="fDone"></span>
+      </div>
     </div>
 
     <div class="field">
@@ -1098,8 +1127,83 @@
   var viewMin = 0;                       // просматриваемое время
   var calMonth = new Date();             // месяц в календаре
   var calSel = new Date();               // выбранный день в календаре
-  var sessions = [];
-  var syncTarget = "off";
+  /* ---------- Локальное хранение: записи живут на устройстве ---------- */
+  var STORE = "lightplan.v1";
+  function saveAll() {
+    try {
+      localStorage.setItem(STORE, JSON.stringify({
+        sessions: sessions.map(function (s) {
+          var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
+          return o;
+        }),
+        delivery: delivery, genres: genresOn, sync: syncTarget
+      }));
+    } catch (e) {}
+  }
+  function loadAll() {
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (o.sessions) o.sessions.forEach(function (s) { s.date = new Date(s.date); });
+      return o;
+    } catch (e) { return null; }
+  }
+  var saved = loadAll();
+
+  var sessions = saved && saved.sessions ? saved.sessions : [];
+  var syncTarget = saved && saved.sync ? saved.sync : "off";
+
+  /* ---------- Сдача материала ---------- */
+  var GENRE_DEADLINE = { "Свадьбы": 90, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
+    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5 };
+  var DELV_DAYS = [3, 7, 14, 30, 90];
+  var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
+
+  /* deadlineChoice: "auto" | число дней | null (без срока) */
+  function resolveDeadlineDays(s) {
+    if (s.deadlineChoice === null) return null;
+    if (typeof s.deadlineChoice === "number") return s.deadlineChoice;
+    if (delivery.mode === "none") return null;
+    if (delivery.mode === "single") return delivery.days;
+    return GENRE_DEADLINE[s.type] != null ? GENRE_DEADLINE[s.type] : 7;
+  }
+  function deadlineDate(s) {
+    var d = resolveDeadlineDays(s);
+    if (d === null) return null;
+    var x = new Date(s.date); x.setDate(x.getDate() + d); return x;
+  }
+  /* Непрерывная шкала срочности: белое → жёлтое → янтарное → терракота */
+  function urgencyColor(p) {
+    var st = [[0, [239,234,224]], [0.5, [232,208,122]], [0.8, [226,164,76]], [1, [201,102,61]]];
+    p = clamp(p, 0, 1);
+    for (var i = 1; i < st.length; i++) {
+      if (p <= st[i][0]) return rgb(lerp(st[i-1][1], st[i][1], (p - st[i-1][0]) / (st[i][0] - st[i-1][0])));
+    }
+    return rgb(st[st.length-1][1]);
+  }
+  var GREY = "#6B655B";
+  function deliveryState(s) {
+    var now = Date.now(), shot = s.date.getTime();
+    if (s.delivered) return { rank: 0, color: GREY, breath: false, label: "материал сдан" };
+    if (shot > now) return { rank: 1, color: "#EFEAE0", breath: false, label: "предстоит" };
+    var dd = deadlineDate(s);
+    if (!dd) return { rank: 1, color: GREY, breath: false, label: "без срока" };
+    var p = (now - shot) / (dd.getTime() - shot);
+    var left = Math.ceil((dd.getTime() - now) / 86400000);
+    if (p >= 1) return { rank: 3, color: "#C9663D", breath: true,
+      label: "просрочено на " + Math.abs(left) + " дн." };
+    return { rank: 2, color: urgencyColor(p), breath: false, label: "сдать за " + left + " дн." };
+  }
+  function dayRing(d) {
+    var best = null;
+    sessions.forEach(function (s) {
+      if (!sameDay(s.date, d)) return;
+      var st = deliveryState(s);
+      if (!best || st.rank > best.rank) best = st;
+    });
+    return best;
+  }
   var nowMin = null;
   var curWeather = null;                  // погода просматриваемого дня
 
@@ -1429,8 +1533,9 @@
         + (sameDay(d, today) ? " today" : "")
         + (sameDay(d, calSel) ? " sel" : "");
       var q = qualityOf(d);
-      var has = sessions.some(function (s) { return sameDay(s.date, d); });
-      b.innerHTML = n + (has ? '<span class="mark"></span>' : "")
+      var ring = dayRing(d);
+      b.innerHTML = '<span class="d-n' + (ring && ring.breath ? " breath" : "") + '"'
+        + (ring ? ' style="--ring:' + ring.color + '"' : "") + ">" + n + "</span>"
         + '<span class="dot" style="background:' + QUAL[q].dot + '"></span>';
       (function (dd) { b.addEventListener("click", function () { calSel = dd; renderCal(); renderDayPanel(); }); })(d);
       grid.appendChild(b);
@@ -1489,8 +1594,13 @@
           '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
           '<div class="s-body"><div class="s-title">' + s.type + (s.contact ? " · " + s.contact : "") + "</div>" +
           '<div class="s-sub">' + s.place + (s.wish && s.wish !== "Неважно" ? " · жду: " + s.wish.toLowerCase() : "") + "</div>" +
-          (s.warn ? '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>"
-                  : s.synced ? '<div class="s-sync">→ в календаре ' + (s.synced === "google" ? "Google" : "Apple") + "</div>" : "") +
+          (function () {
+            var ds = deliveryState(s);
+            if (ds.rank >= 2) return '<div class="s-sync" style="color:' + ds.color + '">' + ds.label + "</div>";
+            if (s.delivered) return '<div class="s-sync">материал сдан</div>';
+            if (s.warn) return '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>";
+            return s.synced ? '<div class="s-sync">→ в календаре ' + (s.synced === "google" ? "Google" : "Apple") + "</div>" : "";
+          })() +
           '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">до ' +
           fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + "</span></div>";
         c.addEventListener("click", function () { openForm(null, null, p.i); });
@@ -1583,6 +1693,22 @@
      ФОРМА СЪЁМКИ
      ============================================================ */
   var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет", wish = "Неважно";
+  var fDelvChoice = "auto";     // "auto" | число дней | null
+  var DELV_OPTS = [["auto", "По жанру"], [3, "3 дня"], [7, "Неделя"], [14, "2 недели"],
+                   [30, "Месяц"], [90, "3 месяца"], [null, "Без срока"]];
+  function renderDelv() {
+    $("fDelv").innerHTML = DELV_OPTS.map(function (o, i) {
+      return '<button class="chip' + (o[0] === fDelvChoice ? " active" : "") + '" data-i="' + i + '">' + o[1] + "</button>";
+    }).join("");
+    $("fDelv").querySelectorAll(".chip").forEach(function (ch) {
+      ch.addEventListener("click", function () { fDelvChoice = DELV_OPTS[+ch.dataset.i][0]; renderDelv(); });
+    });
+    var probe = { date: fDate, type: shootType, deadlineChoice: fDelvChoice };
+    var dd = deadlineDate(probe);
+    $("fDelvHint").textContent = dd
+      ? "сдать до " + dd.getDate() + " " + MONTHS[dd.getMonth()]
+      : "срок не отслеживается";
+  }
   var DURS = [30, 60, 90, 120, 180];
   function durLabel(m) {
     var h = Math.floor(m / 60), mm = m % 60;
@@ -1609,7 +1735,7 @@
 
   /* Жанры: пользователь оставляет только свои */
   var ALL_GENRES = ["Портрет","Свадьбы","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
-  var genresOn = { "Портрет": 1, "Свадьбы": 1, "Пейзаж": 1, "Архитектура": 1, "Стрит": 1 };
+  var genresOn = (saved && saved.genres) || { "Портрет": 1, "Свадьбы": 1, "Пейзаж": 1, "Архитектура": 1, "Стрит": 1 };
   var WISHES = ["Неважно", "Ясно", "Облачно", "Туман", "Звёзды"];
   var WANT = { "Ясно": "excellent", "Облачно": "good", "Туман": "fog" };
 
@@ -1679,6 +1805,8 @@
       var s = sessions[editIdx];
       fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
       shootType = s.type; wish = s.wish || "Неважно";
+      fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
+      $("fDone").classList.toggle("on", !!s.delivered);
       var pi = -1;
       places.forEach(function (p, i) { if (p.name === s.place) pi = i; });
       placeIdx = pi < 0 ? 0 : pi;
@@ -1689,21 +1817,26 @@
       // по умолчанию длительность ≈ длине светового окна этого дня
       var w = dayWindow(fDate);
       fDur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
+      fDelvChoice = "auto";
+      $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
     }
+    $("fDoneRow").style.display = editIdx !== null ? "block" : "none";
     $("fPlaceName").textContent = places[placeIdx].name;
     $("fPlaceCoords").textContent = places[placeIdx].coords + (places[placeIdx].city ? " · в городе" : " · за городом");
     $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
     $("fSave").textContent = editIdx !== null ? "Сохранить изменения" : "Сохранить съёмку";
     $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
-    renderGenres(); renderWishes(); renderDur(); refreshForm();
+    renderGenres(); renderWishes(); renderDur(); renderDelv(); refreshForm();
     $("formOverlay").classList.add("open");
   }
+  $("fDone").addEventListener("click", function () { this.classList.toggle("on"); });
   $("fDelete").addEventListener("click", function () {
     if (editIdx === null) return;
     sessions.splice(editIdx, 1);
     editIdx = null;
+    saveAll();
     renderSessions(); renderCal(); renderDayPanel();
     $("formOverlay").classList.remove("open");
     go("s-plan");
@@ -1763,9 +1896,11 @@
       contact: $("fContact").value.trim(), notes: $("fNotes").value.trim(),
       place: places[placeIdx].name,
       wish: wish, warn: warn,
+      deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       synced: syncTarget === "off" ? null : syncTarget
     };
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
+    saveAll();
     var wasEdit = editIdx !== null;
     editIdx = null;
     renderSessions(); renderCal(); renderDayPanel();
@@ -1899,6 +2034,33 @@
       this.querySelector(".lbl").textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
     });
   });
+  /* Настройки сдачи материала */
+  function renderDelvSettings() {
+    document.querySelectorAll("#delvSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.mode === delivery.mode);
+    });
+    $("delvDays").style.display = delivery.mode === "single" ? "flex" : "none";
+    $("delvDays").innerHTML = DELV_DAYS.map(function (d) {
+      return '<button class="chip' + (d === delivery.days ? " active" : "") + '" data-d="' + d + '">' +
+        (d < 30 ? d + " дн." : d === 30 ? "Месяц" : "3 месяца") + "</button>";
+    }).join("");
+    $("delvDays").querySelectorAll(".chip").forEach(function (ch) {
+      ch.addEventListener("click", function () {
+        delivery.days = +ch.dataset.d; saveAll(); renderDelvSettings(); renderCal(); renderDayPanel();
+      });
+    });
+    $("delvNote").textContent = delivery.mode === "genre"
+      ? "Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней."
+      : delivery.mode === "single" ? "Один срок для всех съёмок. У каждой можно переопределить."
+      : "Сроки сдачи не отслеживаются.";
+  }
+  document.querySelectorAll("#delvSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      delivery.mode = b.dataset.mode; saveAll();
+      renderDelvSettings(); renderCal(); renderDayPanel();
+    });
+  });
+
   document.querySelectorAll("#calSync button").forEach(function (b) {
     b.addEventListener("click", function () {
       document.querySelectorAll("#calSync button").forEach(function (x) { x.classList.remove("active"); });
@@ -1934,6 +2096,7 @@
   /* ---------- Старт ---------- */
   document.body.dataset.tab = "s-today";
   applyDate();
+  renderDelvSettings();
   renderCal(); renderDayPanel(); renderSessions();
   measureDock();
   window.addEventListener("resize", measureDock);
