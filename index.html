@@ -66,6 +66,11 @@
     letter-spacing: 0.6px; margin-top: 3px; font-weight: 500;
   }
   .head-note { font-size: 11px; color: #635E54; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 500; }
+  /* Погода в шапке — в духе виджета Apple: температура + иконка */
+  .head-wx { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .hw-top { display: flex; align-items: center; gap: 7px; }
+  .hw-top svg { width: 20px; height: 20px; stroke: #C9C2B6; fill: none; stroke-width: 1.5; }
+  .hw-top .temp { font-size: 20px; font-weight: 500; color: #EFEAE0; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
 
   .title { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; padding: 26px 24px 0; }
 
@@ -87,6 +92,14 @@
     letter-spacing: 1.4px; font-weight: 600; margin-top: 7px; transition: color 0.4s ease;
   }
   .dr-sense { font-size: 12px; color: #8A8478; margin-top: 4px; }
+
+  /* ---------- Отсчёт до следующего света (заполняет место под дугой) ---------- */
+  .next-light { text-align: center; padding: 6px 24px 2px; }
+  .nl-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: #8A8478; font-weight: 600; }
+  .nl-value { font-size: 34px; font-weight: 300; letter-spacing: -0.5px; line-height: 1.05; margin-top: 4px;
+    font-variant-numeric: tabular-nums; color: #E2A44C; transition: color 0.4s ease; }
+  .nl-trend { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; color: #8A8478; font-size: 12px; }
+  .nl-spark { width: 42px; height: 14px; display: block; }
 
   /* ---------- Сводка ---------- */
   .telemetry { padding: 2px 24px 0; }
@@ -477,7 +490,10 @@
         <div class="name">Северный объезд</div>
         <div class="date" id="hDate">ЧТ · 16 июля</div>
       </div>
-      <div class="head-note" id="hNote">сегодня</div>
+      <div class="head-wx">
+        <div class="hw-top"><span id="hwIcon"></span><span class="temp" id="hwTemp">—</span></div>
+        <div class="head-note" id="hNote">сегодня</div>
+      </div>
     </div>
 
     <div class="dome">
@@ -511,11 +527,18 @@
       </button>
     </div>
 
+    <div class="next-light">
+      <div class="nl-label" id="nlLabel">До золотого часа</div>
+      <div class="nl-value" id="nlValue">—</div>
+      <div class="nl-trend" id="nlTrend"><span id="nlSpark"></span><span id="nlWord"></span></div>
+    </div>
+
     <div class="telemetry">
       <div class="t-row"><span class="t-label">Условия</span><span class="t-value rec" id="tRec">—</span></div>
       <div class="t-row"><span class="t-label">Свет</span><span class="t-value" id="tLight">—</span></div>
       <div class="t-row"><span class="t-label">Тени</span><span class="t-value" id="tShadow">—</span></div>
-      <div class="t-row"><span class="t-label">Погода</span><span class="t-value" id="tSky">—</span></div>
+      <div class="t-row"><span class="t-label">Небо</span><span class="t-value" id="tSky">—</span></div>
+      <div class="t-row"><span class="t-label">Ветер</span><span class="t-value" id="tWind">—</span></div>
     </div>
 
     <div class="pro">
@@ -889,6 +912,38 @@
     return "уверенность низкая · пока ориентир";
   }
 
+  /* Детали погоды дня: температура, ветер, тренд облачности к окну съёмки */
+  var wCache = {};
+  function dayWeather(d) {
+    var key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+    if (wCache[key]) return wCache[key];
+    var q = qualityOf(d);
+    var r = mulberry32(d.getFullYear() * 131 + (d.getMonth() + 1) * 17 + d.getDate());
+    var tempBase = 15 + Math.round(r() * 12);        // 15..27 °C — дневной ориентир
+    var wind = Math.round(r() * 8);                  // 0..8 м/с
+    var c0 = QUAL[q].cloud, dir = r() > 0.55 ? -1 : 1;
+    var trend = [];
+    for (var i = 0; i < 6; i++) trend.push(clamp(Math.round(c0 + dir * (i - 3) * 7 + (r() - 0.5) * 8), 3, 100));
+    var w = { q: q, cloud: c0, tempBase: tempBase, wind: wind, trend: trend };
+    wCache[key] = w; return w;
+  }
+  function tempAt(base, t) { return Math.round(base + 5 * Math.sin((t - 600) / 1440 * 2 * Math.PI)); }
+  function windWord(w) { return w <= 1 ? "штиль" : w <= 3 ? "слабый" : w <= 6 ? "умеренный" : "сильный"; }
+  function durShort(m) {
+    m = Math.max(0, Math.round(m));
+    if (m < 60) return m + " мин";
+    var h = Math.floor(m / 60), mm = m % 60;
+    return h + " ч" + (mm ? " " + mm + " м" : "");
+  }
+  function sparkline(vals) {
+    var n = vals.length, W = 42, H = 14;
+    var pts = vals.map(function (v, i) {
+      return (i / (n - 1) * W).toFixed(1) + "," + (H - v / 100 * (H - 2) - 1).toFixed(1);
+    }).join(" ");
+    return '<svg class="nl-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+      '<polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
   /* ============================================================
      СОСТОЯНИЕ СВЕТА
      ============================================================ */
@@ -969,6 +1024,15 @@
     if (e > 10) return "Длинные";
     return "Очень длинные";
   }
+  /* Ближайшее «хорошее» световое событие относительно показанного времени */
+  function nextLight(t) {
+    if (t < SUN.rise)  return { l: "До рассвета",      m: SUN.rise - t };
+    if (t < SUN.goldA) return { l: "Золотой час, ещё", m: SUN.goldA - t };
+    if (t < SUN.goldB) return { l: "До золотого часа", m: SUN.goldB - t };
+    if (t < SUN.set)   return { l: "До заката",        m: SUN.set - t };
+    if (t < SUN.civB)  return { l: "Синий час, ещё",   m: SUN.civB - t };
+    return { l: "До рассвета", m: SUN.rise + 1440 - t };
+  }
 
   /* ============================================================
      ЗВЁЗДЫ
@@ -998,6 +1062,7 @@
   var sessions = [];
   var syncTarget = "off";
   var nowMin = null;
+  var curWeather = null;                  // погода просматриваемого дня
 
   function posAt(t) {
     var th = rad(180 - (t - SUN.rise) / (SUN.set - SUN.rise) * 180);
@@ -1049,7 +1114,23 @@
     $("tRec").innerHTML = (st.stars ? starGlyph() : meterHTML(st.level, qcol)) + '<span>' + st.rec + '</span>';
     $("tLight").textContent = st.light;
     $("tShadow").textContent = shadowWord(t);
-    $("tSky").innerHTML = skyIcon(q) + '<span>' + QUAL[q].sky + '</span>';
+
+    var wx = curWeather;
+    $("tSky").innerHTML = skyIcon(q) + '<span>' + QUAL[q].sky + " · " + wx.cloud + "%</span>";
+    $("tWind").textContent = wx.wind + " м/с · " + windWord(wx.wind);
+
+    // Шапка: температура + иконка (в духе виджета Apple)
+    $("hwIcon").innerHTML = skyIcon(q);
+    $("hwTemp").textContent = tempAt(wx.tempBase, t) + "°";
+
+    // Отсчёт до следующего света + тренд облачности к окну
+    var nl = nextLight(t);
+    $("nlLabel").textContent = nl.l;
+    $("nlValue").textContent = durShort(nl.m);
+    $("nlValue").style.color = qcol;
+    var c0 = wx.trend[0], c1 = wx.trend[wx.trend.length - 1];
+    $("nlWord").textContent = c1 < c0 - 12 ? "проясняется" : c1 > c0 + 12 ? "затягивает" : "без изменений";
+    $("nlSpark").innerHTML = sparkline(wx.trend);
 
     $("actionSub").textContent = st.tone === "stars"
       ? (SUN.astB !== null ? range(SUN.astB, SUN.astA + 1440) : "белая ночь")
@@ -1607,6 +1688,7 @@
      ============================================================ */
   function applyDate(keepTime) {
     computeSun(selDate);
+    curWeather = dayWeather(selDate);
     var n = new Date();
     nowMin = sameDay(selDate, n) ? n.getHours() * 60 + n.getMinutes() : null;
     if (nowMin !== null && nowMin < MINT) nowMin += 1440;
