@@ -125,14 +125,14 @@
   /* ---------- Инженерный режим ---------- */
   .pro { display: none; padding: 0 24px; }
   body.pro-mode .pro { display: block; }
-  /* Заметная кнопка-пилюля: на тестах текстовая строка терялась */
+  /* Заметная, но лёгкая: иконка + текст + стрелка, без обводки и заливки */
   .spoiler {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; margin: 12px 0 0; padding: 14px;
-    background: #1B1916; border: 1px solid rgba(255,255,255,0.10); border-radius: 12px;
+    width: 100%; margin: 6px 0 0; padding: 13px;
+    background: none; border: none;
     color: #C9C2B6; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
   }
-  .spoiler:active { background: #221F19; }
+  .spoiler:active { color: #EFEAE0; }
   .spoiler svg { width: 17px; height: 17px; stroke: #8A8478; fill: none; stroke-width: 1.6; }
   .spoiler .chev { transition: transform 0.35s ease; font-size: 12px; }
   .spoiler.open .chev { transform: rotate(180deg); }
@@ -645,6 +645,9 @@
       <button data-sync="google">Google</button>
     </div>
     <p class="seg-note" id="syncNote">Съёмки хранятся только в Light Atlas.</p>
+
+    <div class="sec-label">Отклик</div>
+    <div class="item"><span class="k">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
 
     <div class="sec-label">Уведомления</div>
     <div class="item"><span class="k">Вечерний брифинг</span><span class="toggle on" data-toggle></span></div>
@@ -1721,7 +1724,41 @@
     tick.classList.toggle("show", Math.abs(viewMin - nowMin) > 2);
   }
 
-  $("scrub").addEventListener("input", function () { setView(+this.value); });
+  /* ---------- Тактильный отклик: щелчки на детентах слайдера ----------
+     На iOS Safari нет доступа к Taptic Engine, поэтому отклик — звуковой
+     (Web Audio), вибрация добавляется там, где поддерживается (Android). */
+  var audioCtx = null, TICK_MIN = 15, lastTick = null;
+  function initAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    lastTick = Math.round(+$("scrub").value / TICK_MIN);
+  }
+  function tickClick() {
+    if (!$("soundToggle").classList.contains("on")) return;
+    if (navigator.vibrate) { try { navigator.vibrate(2); } catch (e) {} }
+    if (!audioCtx || audioCtx.state !== "running") return;
+    var ctx = audioCtx, dur = 0.026;
+    var buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = 1.1;
+    var g = ctx.createGain(); g.gain.value = 0.5;
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+    src.start();
+  }
+  $("scrub").addEventListener("pointerdown", initAudio);
+  $("scrub").addEventListener("touchstart", initAudio, { passive: true });
+  $("soundToggle").addEventListener("click", function () {
+    this.classList.toggle("on");
+    if (this.classList.contains("on")) { initAudio(); tickClick(); }
+  });
+
+  $("scrub").addEventListener("input", function () {
+    var v = +this.value, tk = Math.round(v / TICK_MIN);
+    if (tk !== lastTick) { lastTick = tk; tickClick(); }
+    setView(v);
+  });
   $("nowTick").addEventListener("click", function () { if (nowMin !== null) setView(nowMin); });
 
   $("readout").addEventListener("click", function () {
