@@ -46,9 +46,12 @@
   .screen {
     position: absolute; inset: 0 0 0 0;
     display: none; flex-direction: column;
-    overflow-y: auto; scrollbar-width: none;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
     padding-bottom: calc(var(--tabh, 74px) + 16px);
   }
+  /* В колоночном флексе iOS сжимает содержимое вместо того, чтобы дать прокрутку.
+     Сжиматься не должен никто — тогда экран честно становится длиннее и скроллится */
+  .screen > * { flex-shrink: 0; }
   /* «Сегодня» и «Карта» освобождают место под закреплённый ползунок */
   #s-today, #s-map { padding-bottom: calc(var(--dockh, 156px) + 8px); }
   .screen::-webkit-scrollbar { display: none; }
@@ -234,7 +237,52 @@
     color: #EFEAE0; font-size: 22px; font-weight: 600; letter-spacing: -0.3px;
     padding: 6px 4px; display: flex; align-items: center; gap: 8px;
   }
-  .plan-acts { display: flex; gap: 4px; }
+  .plan-acts { display: flex; gap: 4px; align-items: center; }
+
+  /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
+     появляется только при отмотке, тап возвращает */
+  .now-back {
+    display: none; align-items: center; gap: 5px;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 11px; letter-spacing: 0.4px; color: #C9853F; font-weight: 600;
+    white-space: nowrap; padding: 8px 10px;
+  }
+  .now-back.show { display: inline-flex; }
+
+  /* ---------- Год ---------- */
+  /* Ниже таб-бара: из года видно, где ты в приложении, и можно уйти на другой раздел */
+  #yearOverlay { z-index: 25; padding-bottom: calc(var(--tabh, 84px) + 16px); }
+  .year-nav {
+    display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
+  }
+  .year-nav .y { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+  .year-nav button {
+    background: none; border: none; color: #8A8478; font-family: inherit;
+    font-size: 22px; cursor: pointer; padding: 6px 14px; line-height: 1;
+  }
+  .year-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    column-gap: 8px; row-gap: 26px; margin-top: 28px;
+  }
+  .year-sum {
+    margin-top: 34px; padding-top: 18px; font-size: 13px; color: #635E54;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .year-sum b { color: #A8A093; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ym {
+    background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
+    padding: 12px 10px; border-radius: 12px; color: #EFEAE0;
+  }
+  .ym:active { background: #17150F; }
+  .ym.now .n { color: #E2A44C; }
+  .ym.empty .n { color: #55504A; }
+  .ym .n { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+  /* Строка под именем месяца: точка срочности и число съёмок. Пусто — значит пусто */
+  .ym .c {
+    display: flex; align-items: center; gap: 6px; margin-top: 7px; min-height: 14px;
+    font-size: 12px; color: #8A8478; font-variant-numeric: tabular-nums;
+  }
+  .ym .c i { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
   .icon-btn {
     background: none; border: none; cursor: pointer; padding: 8px;
     display: flex; color: #E2A44C;
@@ -271,6 +319,33 @@
   .pr-who { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pr-due { margin-left: auto; font-size: 12px; white-space: nowrap; }
   .plan-empty { color: #55504A; font-size: 14px; padding: 6px 0 2px; }
+
+  /* Свайп влево по строке — как в родных списках iOS.
+     Удаление обратимо: под списком остаётся «Вернуть» */
+  .swipe { position: relative; overflow: hidden; }
+  .swipe-del {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 92px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; cursor: pointer;
+    font-family: inherit; font-size: 14px; color: #C9663D;
+  }
+  .swipe .plan-row {
+    position: relative; background: #0F0E0C;
+    transition: transform 0.32s cubic-bezier(0.25,1,0.4,1);
+    touch-action: pan-y;
+  }
+  .swipe.dragging .plan-row { transition: none; }
+  .swipe.open .plan-row { transform: translateX(-92px); }
+  .undo {
+    display: none; align-items: center; justify-content: space-between;
+    margin: 8px 24px 0; padding: 11px 14px;
+    background: #17150F; border-radius: 12px; font-size: 13px; color: #8A8478;
+  }
+  .undo.show { display: flex; }
+  .undo button {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 600; color: #E2A44C; padding: 2px 0;
+  }
 
   .cal-nav {
     display: flex; align-items: center; justify-content: space-between;
@@ -734,6 +809,7 @@
     <div class="plan-top">
       <button class="year-back" id="yearBack">‹ <span id="calYear">2026</span></button>
       <div class="plan-acts">
+        <button class="now-back" id="calNow">↺ сегодня</button>
         <button class="icon-btn" id="planAdd" aria-label="Новая съёмка">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
         </button>
@@ -781,6 +857,7 @@
 
     <div class="sec-label" id="plannedLabel">Запланировано</div>
     <div class="plan-list" id="dpSessions"></div>
+    <div class="undo" id="undoBar"><span id="undoText">Съёмка удалена</span><button id="undoBtn">Вернуть</button></div>
     <button class="action" id="planDay" style="margin: 4px 24px 0;">
       <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
       <span class="lbl">Запланировать съёмку</span>
@@ -971,6 +1048,24 @@
     </div>
 
     <button class="danger" id="fDelete" hidden>Удалить съёмку</button>
+  </div>
+
+  <!-- ============ ГОД ============ -->
+  <!-- Тот же календарь в меньшем масштабе: год — это масштаб, а не шаг назад -->
+  <div class="overlay pad" id="yearOverlay">
+    <div class="form-top">
+      <button class="back" id="yearClose">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span id="yearCloseLbl">Июль</span>
+      </button>
+      <button class="now-back" id="yearNow">↺ <span id="yearNowLbl">2026</span></button>
+    </div>
+    <div class="year-nav">
+      <button id="yPrev" aria-label="Прошлый год">‹</button>
+      <span class="y" id="yTitle">2026</span>
+      <button id="yNext" aria-label="Следующий год">›</button>
+    </div>
+    <div class="year-grid" id="yearGrid"></div>
+    <div class="year-sum" id="yearSum">—</div>
   </div>
 
   <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
@@ -1698,6 +1793,67 @@
     }
     // Легенда объясняет точки — без съёмок объяснять нечего
     document.querySelector(".legend").style.display = monthHasShoots ? "flex" : "none";
+    // Метка возврата — только когда ушли из текущего месяца
+    var now = new Date();
+    $("calNow").classList.toggle("show",
+      calMonth.getFullYear() !== now.getFullYear() || calMonth.getMonth() !== now.getMonth());
+  }
+
+  /* ---------- Год: тот же календарь в меньшем масштабе ---------- */
+  var yearShown = calMonth.getFullYear();
+  function monthStat(y, m) {
+    var n = 0, worst = null;
+    sessions.forEach(function (s) {
+      if (s.date.getFullYear() !== y || s.date.getMonth() !== m) return;
+      n++;
+      var st = deliveryState(s);
+      if (!worst || st.rank > worst.rank) worst = st;
+    });
+    return { n: n, color: worst ? worst.color : null };
+  }
+  function renderYear() {
+    var now = new Date();
+    $("yTitle").textContent = yearShown;
+    $("yearNow").classList.toggle("show", yearShown !== now.getFullYear());
+    $("yearNowLbl").textContent = now.getFullYear();
+    $("yearCloseLbl").textContent = MONTHS_N[calMonth.getMonth()];
+    var grid = $("yearGrid"); grid.innerHTML = "";
+    for (var m = 0; m < 12; m++) {
+      var st = monthStat(yearShown, m);
+      var b = document.createElement("button");
+      b.className = "ym" + (st.n ? "" : " empty")
+        + (yearShown === now.getFullYear() && m === now.getMonth() ? " now" : "");
+      b.innerHTML = '<div class="n">' + MONTHS_N[m] + "</div><div class=\"c\">"
+        + (st.n ? '<i style="background:' + st.color + '"></i>' + st.n : "") + "</div>";
+      (function (mm) {
+        b.addEventListener("click", function () {
+          calMonth = new Date(yearShown, mm, 1);
+          // выбранным становится сегодня, если оно в этом месяце, иначе первое число
+          calSel = (yearShown === now.getFullYear() && mm === now.getMonth())
+            ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+            : new Date(yearShown, mm, 1);
+          $("yearOverlay").classList.remove("open");
+          renderCal(); renderDayPanel();
+        });
+      })(m);
+      grid.appendChild(b);
+    }
+    // Год одной строкой: сколько съёмок и когда ближайшая впереди
+    var all = sessions.filter(function (s) { return s.date.getFullYear() === yearShown; });
+    var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var ahead = all.filter(function (s) { return s.date >= midnight; })   // сегодняшняя — ещё впереди
+      .sort(function (a, b) { return a.date - b.date; })[0];
+    $("yearSum").innerHTML = all.length
+      ? "<b>" + all.length + "</b> " + shootWord(all.length)
+        + (ahead ? " · ближайшая <b>" + ahead.date.getDate() + " " + MONTHS[ahead.date.getMonth()] + "</b>" : "")
+      : "Съёмок в этом году нет";
+  }
+  function shootWord(n) {
+    var t = n % 100, o = n % 10;
+    if (t >= 11 && t <= 14) return "съёмок";
+    if (o === 1) return "съёмка";
+    if (o >= 2 && o <= 4) return "съёмки";
+    return "съёмок";
   }
 
   function renderDayPanel() {
@@ -1729,18 +1885,85 @@
     box.innerHTML = idxs.length ? idxs.map(function (i) {
       var s = sessions[i], ds = deliveryState(s);
       var end = s.end != null ? s.end : s.min + (s.dur || 90);
-      return '<button class="plan-row" data-i="' + i + '">' +
+      return '<div class="swipe"><button class="swipe-del" data-i="' + i + '">Удалить</button>' +
+        '<button class="plan-row" data-i="' + i + '">' +
         '<span class="pr-time">' + fmt(s.min) + " – " + fmt(end) + "</span>" +
         '<span class="pr-who">' + (s.contact || s.type) + "</span>" +
         (ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
-        "</button>";
+        "</button></div>";
     }).join("") : "";   // пустой список и есть «нет событий» — лишняя строка не нужна
     box.querySelectorAll(".plan-row").forEach(function (b) {
-      b.addEventListener("click", function () { openForm(null, null, +b.dataset.i); });
+      b.addEventListener("click", function () {
+        if (b._moved) return;                      // это был свайп, а не тап
+        if (closeSwipes()) return;                 // открытая кнопка сначала закрывается
+        openForm(null, null, +b.dataset.i);
+      });
+      attachSwipe(b);
+    });
+    box.querySelectorAll(".swipe-del").forEach(function (b) {
+      b.addEventListener("click", function () { removeSession(+b.dataset.i); });
     });
     $("plannedLabel").textContent = idxs.length ? "Запланировано" : "Свободный день";
     $("planDay").querySelector(".lbl").textContent = idxs.length ? "Добавить съёмку" : "Запланировать съёмку";
   }
+
+  /* ---------- Свайп влево по строке съёмки ---------- */
+  var SWIPE_W = 92;
+  function closeSwipes() {
+    var open = document.querySelectorAll("#dpSessions .swipe.open");
+    open.forEach(function (s) { s.classList.remove("open"); });
+    return open.length > 0;
+  }
+  function attachSwipe(row) {
+    var box = row.parentNode, x0 = 0, y0 = 0, dragging = false;
+    row.addEventListener("pointerdown", function (e) {
+      x0 = e.clientX; y0 = e.clientY; dragging = false; row._moved = false;
+    });
+    row.addEventListener("pointermove", function (e) {
+      if (e.buttons === 0 && e.pointerType === "mouse") return;
+      var dx = e.clientX - x0, dy = e.clientY - y0;
+      // вертикальное движение принадлежит прокрутке, горизонтальное — свайпу
+      if (!dragging && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+        dragging = true; row._moved = true; box.classList.add("dragging");
+        row.setPointerCapture && row.setPointerCapture(e.pointerId);
+      }
+      if (!dragging) return;
+      var open = box.classList.contains("open") ? -SWIPE_W : 0;
+      row.style.transform = "translateX(" + clamp(open + dx, -SWIPE_W, 0) + "px)";
+    });
+    function end(e) {
+      if (!dragging) return;
+      var dx = e.clientX - x0, open = box.classList.contains("open") ? -SWIPE_W : 0;
+      var at = clamp(open + dx, -SWIPE_W, 0);
+      box.classList.remove("dragging");
+      row.style.transform = "";
+      box.classList.toggle("open", at < -SWIPE_W / 2);
+      dragging = false;
+      setTimeout(function () { row._moved = false; }, 0);
+    }
+    row.addEventListener("pointerup", end);
+    row.addEventListener("pointercancel", end);
+  }
+  /* Удаление обратимо: запись держим в руке, пока не истечёт «Вернуть» */
+  var trash = null, trashTimer = null;
+  function removeSession(i) {
+    trash = { rec: sessions[i], at: i };
+    sessions.splice(i, 1);
+    saveAll();
+    renderSessions(); renderCal(); renderDayPanel();
+    $("undoText").textContent = (trash.rec.contact || trash.rec.type) + " · съёмка удалена";
+    $("undoBar").classList.add("show");
+    clearTimeout(trashTimer);
+    trashTimer = setTimeout(hideUndo, 6000);
+  }
+  function hideUndo() { $("undoBar").classList.remove("show"); trash = null; }
+  $("undoBtn").addEventListener("click", function () {
+    if (!trash) return;
+    sessions.splice(Math.min(trash.at, sessions.length), 0, trash.rec);
+    saveAll();
+    hideUndo();
+    renderSessions(); renderCal(); renderDayPanel();
+  });
 
   function renderSessions() {
     var list = $("sessionList");
@@ -2362,9 +2585,24 @@
   $("calNext").addEventListener("click", function () {
     calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); renderCal();
   });
-  /* Год назад — как в календаре Apple: шаг вверх по иерархии */
+  /* Год — масштаб, а не шаг назад: открываем календарь целиком */
   $("yearBack").addEventListener("click", function () {
-    calMonth = new Date(calMonth.getFullYear() - 1, calMonth.getMonth(), 1); renderCal();
+    yearShown = calMonth.getFullYear();
+    renderYear();
+    $("yearOverlay").classList.add("open");
+  });
+  $("yearClose").addEventListener("click", function () { $("yearOverlay").classList.remove("open"); });
+  $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); });
+  $("yNext").addEventListener("click", function () { yearShown++; renderYear(); });
+  $("yearNow").addEventListener("click", function () {
+    yearShown = new Date().getFullYear(); renderYear();
+  });
+  /* Вернуться в сегодня из любой отмотки */
+  $("calNow").addEventListener("click", function () {
+    var now = new Date();
+    calMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    calSel = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    renderCal(); renderDayPanel();
   });
   $("planAdd").addEventListener("click", function () {
     openForm(calSel, Math.round(dayWindow(calSel).a));
