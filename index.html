@@ -1609,6 +1609,7 @@
     var offset = (first.getDay() + 6) % 7;               // неделя с понедельника
     var days = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
     var today = new Date(); today.setHours(0,0,0,0);
+    var monthHasShoots = false;
 
     for (var i = 0; i < offset; i++) grid.appendChild(document.createElement("div"));
     for (var n = 1; n <= days; n++) {
@@ -1621,12 +1622,17 @@
       var q = qualityOf(d);
       var mk = dayMark(d);
       var lit = mk && mk.fill;
+      // Точка = съёмка (нет съёмки — нет точки), её цвет = какой свет достанется
+      var dotCol = mk ? (QUAL[q].dot || "#A8B49B") : null;
+      if (dotCol) monthHasShoots = true;
       b.innerHTML = '<span class="d-n' + (lit && mk.breath ? " breath" : "") + '"'
         + (lit ? ' style="--mark:' + mk.fill + '"' : "") + ">" + n + "</span>"
-        + (QUAL[q].dot ? '<span class="dot" style="background:' + QUAL[q].dot + '"></span>' : "");
+        + (dotCol ? '<span class="dot" style="background:' + dotCol + '"></span>' : "");
       (function (dd) { b.addEventListener("click", function () { calSel = dd; renderCal(); renderDayPanel(); }); })(d);
       grid.appendChild(b);
     }
+    // Легенда объясняет точки — без съёмок объяснять нечего
+    document.querySelector(".legend").style.display = monthHasShoots ? "flex" : "none";
   }
 
   function renderDayPanel() {
@@ -1639,8 +1645,8 @@
       ? '<span style="color:#55504A">Окна света нет</span>'
       : "Лучшее окно · " + w.label + ' <span class="t">' + range(w.a, w.b) + "</span>";
     $("dpTrust").textContent = trustOf(calSel);
-    $("planDay").style.display = q === "poor" ? "none" : "flex";
-    $("planDayHint").textContent = "начало " + fmt(w.a);
+    // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
+    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(w.a);
 
     // Погода дня — в сводке, как на главном экране
     var wx = dayWeather(calSel);
@@ -1662,7 +1668,7 @@
         '<span class="pr-who">' + (s.contact || s.type) + "</span>" +
         (ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
         "</button>";
-    }).join("") : '<div class="plan-empty">На этот день съёмок нет.</div>';
+    }).join("") : "";   // пустой список и есть «нет событий» — лишняя строка не нужна
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () { openForm(null, null, +b.dataset.i); });
     });
