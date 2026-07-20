@@ -224,9 +224,57 @@
   .map-frame svg { width: 100%; height: auto; display: block; }
 
   /* ---------- Календарь ---------- */
+  /* Шапка планировщика: год назад · добавить · поиск */
+  .plan-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 58px 20px 0; flex-shrink: 0;
+  }
+  .year-back {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    color: #EFEAE0; font-size: 22px; font-weight: 600; letter-spacing: -0.3px;
+    padding: 6px 4px; display: flex; align-items: center; gap: 8px;
+  }
+  .plan-acts { display: flex; gap: 4px; }
+  .icon-btn {
+    background: none; border: none; cursor: pointer; padding: 8px;
+    display: flex; color: #E2A44C;
+  }
+  .icon-btn svg { width: 25px; height: 25px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .icon-btn#planSearch { color: #EFEAE0; }
+
+  /* Спойлер сводки дня */
+  .day-toggle {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; margin-top: 18px; padding: 6px 0;
+    background: none; border: none; border-top: 1px solid rgba(226,164,76,0.35);
+    color: #8A8478; cursor: pointer; font-family: inherit;
+  }
+  .day-toggle .chev { transition: transform 0.35s ease; font-size: 13px; margin-top: -2px; }
+  .day-toggle.open .chev { transform: rotate(180deg); }
+  /* паддинг внутри, иначе свёрнутая панель всё равно занимает место */
+  .day-panel { max-height: 0; overflow: hidden; padding: 0 24px; flex-shrink: 0;
+    transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
+  .day-panel.open { max-height: 420px; }
+  .dp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-top: 16px; }
+  #plannedLabel { padding-top: 16px; }
+
+  /* Компактный список съёмок дня */
+  .plan-list { padding: 0 24px; flex-shrink: 0; }
+  .cal, .cal-head, .legend, .sec-label { flex-shrink: 0; }
+  .plan-row {
+    display: flex; align-items: baseline; gap: 12px; width: 100%;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    padding: 9px 0; text-align: left; color: #EFEAE0;
+  }
+  .plan-row:active { opacity: 0.6; }
+  .pr-time { color: #E2A44C; font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pr-who { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pr-due { margin-left: auto; font-size: 12px; white-space: nowrap; }
+  .plan-empty { color: #55504A; font-size: 14px; padding: 6px 0 2px; }
+
   .cal-nav {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 24px 0;
+    padding: 14px 24px 0;
   }
   .cal-nav .m { font-size: 17px; font-weight: 600; }
   .cal-nav button {
@@ -252,22 +300,25 @@
   /* Кольцо вокруг числа = есть съёмка. Цвет кольца = срочность сдачи материала:
      белое (предстоит) → жёлтое → янтарное → терракота (просрочено) */
   .d-n {
-    position: relative; width: 30px; height: 30px;
+    position: relative; z-index: 0;   /* свой контекст, иначе подложка уходит за фон */
+    width: 30px; height: 30px;
     display: flex; align-items: center; justify-content: center;
   }
+  /* Подложка, а не кольцо: тонкая окружность вокруг двузначных чисел
+     требует оптической компенсации и всегда кажется кривой */
   .d-n::before {
     content: ""; position: absolute; inset: 0; border-radius: 50%;
-    border: 1.5px solid var(--ring, transparent);
+    background: var(--mark, transparent); z-index: -1;
   }
   .d-n.breath::before { animation: ringBreath 3.6s ease-in-out infinite; }
-  @keyframes ringBreath { 0%, 100% { opacity: 1; } 50% { opacity: 0.28; } }
+  @keyframes ringBreath { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   @media (prefers-reduced-motion: reduce) { .d-n.breath::before { animation: none; } }
   .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; background: transparent; }
   .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
   .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8A8478; }
   .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .legend .ring { background: none; border: 1.5px solid #EFEAE0; }
-  .legend .ring.due { border-color: #C9663D; }
+  .legend .ring { background: rgba(239,234,224,0.24); border: none; }
+  .legend .ring.due { background: rgba(201,102,61,0.34); }
 
   /* Съёмки выбранного дня — записи клиентов */
   .bookings { margin-top: 12px; }
@@ -287,7 +338,7 @@
   .bk-sub { font-size: 12px; color: #8A8478; margin-top: 2px; }
   .bk-edit { color: #635E54; font-size: 20px; line-height: 1; }
 
-  .day-panel { padding: 26px 24px 0; }
+  /* паддинг задан выше, внутри свёртываемого блока */
   .dp-date { font-size: 11px; color: #8A8478; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
   .dp-verdict { font-size: 26px; font-weight: 650; letter-spacing: -0.4px; margin-top: 6px; }
   .dp-why { color: #8A8478; font-size: 14px; margin-top: 5px; }
@@ -622,16 +673,21 @@
 
   <!-- ============ СЪЁМКИ ============ -->
   <section class="screen" id="s-plan">
-    <div class="header">
-      <div class="loc">
-        <div class="name">Съёмки</div>
-        <div class="date">Северный объезд</div>
+    <div class="plan-top">
+      <button class="year-back" id="yearBack">‹ <span id="calYear">2026</span></button>
+      <div class="plan-acts">
+        <button class="icon-btn" id="planAdd" aria-label="Новая съёмка">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
+        </button>
+        <button class="icon-btn" id="planSearch" aria-label="Поиск">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+        </button>
       </div>
     </div>
 
     <div class="cal-nav">
       <button id="calPrev">‹</button>
-      <span class="m" id="calMonth">Июль 2026</span>
+      <span class="m" id="calMonth">Июль</span>
       <button id="calNext">›</button>
     </div>
     <div class="cal-head">
@@ -642,30 +698,37 @@
     <div class="legend">
       <span><i style="background:#E2A44C"></i>Отличный свет</span>
       <span><i style="background:#A8B49B"></i>Хороший</span>
-      <span><i style="background:#7C9CC4"></i>Туман</span>
-      <span><i class="ring"></i>Съёмка</span>
-      <span><i class="ring due"></i>Горит сдача</span>
+      <span><i style="background:#7C9CC4"></i>Плохая погода</span>
     </div>
 
-    <div class="day-panel">
-      <div class="dp-date" id="dpDate">—</div>
-      <div class="bookings" id="dpSessions"></div>
-      <div class="dp-verdict" id="dpVerdict">—</div>
-      <div class="dp-why" id="dpWhy">—</div>
+    <!-- Сводка дня спрятана под спойлер: планировщик ведёт съёмками, а не погодой -->
+    <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
+    <div class="day-panel" id="dayPanel">
+      <div class="dp-head">
+        <div>
+          <div class="dp-date" id="dpDate">—</div>
+          <div class="dp-verdict" id="dpVerdict">—</div>
+          <div class="dp-why" id="dpWhy">—</div>
+        </div>
+        <div class="head-wx">
+          <div class="hw-top"><span id="dpIcon"></span><span class="temp" id="dpTemp">—</span></div>
+          <div class="hw-cond" id="dpCond">—</div>
+          <div class="hw-hilo"><span id="dpLo">↓ —</span><span id="dpHi">↑ —</span></div>
+        </div>
+      </div>
       <div class="dp-window" id="dpWindow">—</div>
       <div class="dp-trust" id="dpTrust">—</div>
-      <div class="dp-actions">
-        <button class="action" id="planDay">
-          <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
-          <span class="lbl">Запланировать съёмку</span>
-          <span class="sub" id="planDayHint">—</span>
-        </button>
-        <button class="ghost" id="seeLight">Посмотреть свет этого дня →</button>
-      </div>
+      <button class="ghost" id="seeLight">Посмотреть свет этого дня →</button>
     </div>
 
-    <div class="sec-label">Запланировано</div>
-    <div id="sessionList"></div>
+    <div class="sec-label" id="plannedLabel">Запланировано</div>
+    <div class="plan-list" id="dpSessions"></div>
+    <button class="action" id="planDay" style="margin: 4px 24px 0;">
+      <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
+      <span class="lbl">Запланировать съёмку</span>
+      <span class="sub" id="planDayHint">—</span>
+    </button>
+    <div id="sessionList" hidden></div>
   </section>
 
   <!-- ============ НАСТРОЙКИ ============ -->
@@ -845,6 +908,17 @@
     <div class="saved-note" id="savedNote"></div>
   </div>
 
+  <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
+  <div class="overlay" id="searchOverlay">
+    <button class="back" id="searchBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Назад
+    </button>
+    <div class="field" style="margin-top:14px;">
+      <input type="text" id="searchInput" placeholder="Клиент, тип съёмки или место"/>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
   <!-- ============ МОИ ЖАНРЫ ============ -->
   <div class="scrim" id="gScrim"></div>
   <div class="sheet" id="gSheet">
@@ -959,17 +1033,20 @@
     };
   }
   var QUAL = {
+    /* dot: null — обычный день, точку не рисуем. В легенде всего три варианта */
     excellent: { dot: "#E2A44C", verdict: "Отличный день", vcol: "#E2A44C", why: "Чистое небо, золотой закат", sky: "Ясно", cond: "Ясно", cloud: 12 },
+    fog:       { dot: "#E2A44C", verdict: "Туманный рассвет", vcol: "#E2A44C", why: "Туман на рассвете",       sky: "Туман утром", cond: "Туман", cloud: 30 },
     good:      { dot: "#A8B49B", verdict: "Хороший день",  vcol: "#A8B49B", why: "Переменная облачность",      sky: "Облачно с прояснениями", cond: "Облачно", cloud: 45 },
-    fog:       { dot: "#7C9CC4", verdict: "Туманный рассвет", vcol: "#7C9CC4", why: "Туман на рассвете",       sky: "Туман утром", cond: "Туман", cloud: 30 },
-    poor:      { dot: "#3A352E", verdict: "Пасмурно",      vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cond: "Дождь", cloud: 92 }
+    plain:     { dot: null,      verdict: "Обычный день",  vcol: "#8A8478", why: "Ничего примечательного",     sky: "Переменно", cond: "Переменно", cloud: 60 },
+    poor:      { dot: "#7C9CC4", verdict: "Пасмурно",      vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cond: "Дождь", cloud: 92 }
   };
   var qCache = {};
   function qualityOf(d) {
     var key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
     if (qCache[key]) return qCache[key];
     var r = mulberry32(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate())();
-    var q = r > 0.76 ? "excellent" : r > 0.44 ? "good" : r > 0.27 ? "fog" : "poor";
+    var q = r > 0.80 ? "excellent" : r > 0.62 ? "good" : r > 0.38 ? "plain"
+          : r > 0.22 ? "fog" : "poor";
     qCache[key] = q; return q;
   }
   function trustOf(d) {
@@ -1174,28 +1251,36 @@
     var x = new Date(s.date); x.setDate(x.getDate() + d); return x;
   }
   /* Непрерывная шкала срочности: белое → жёлтое → янтарное → терракота */
-  function urgencyColor(p) {
+  function urgencyRGB(p) {
     var st = [[0, [239,234,224]], [0.5, [232,208,122]], [0.8, [226,164,76]], [1, [201,102,61]]];
     p = clamp(p, 0, 1);
     for (var i = 1; i < st.length; i++) {
-      if (p <= st[i][0]) return rgb(lerp(st[i-1][1], st[i][1], (p - st[i-1][0]) / (st[i][0] - st[i-1][0])));
+      if (p <= st[i][0]) return lerp(st[i-1][1], st[i][1], (p - st[i-1][0]) / (st[i][0] - st[i-1][0]));
     }
-    return rgb(st[st.length-1][1]);
+    return st[st.length-1][1];
   }
-  var GREY = "#6B655B";
+  var GREY = [107, 101, 91];
   function deliveryState(s) {
-    var now = Date.now(), shot = s.date.getTime();
-    if (s.delivered) return { rank: 0, color: GREY, breath: false, label: "материал сдан" };
-    if (shot > now) return { rank: 1, color: "#EFEAE0", breath: false, label: "предстоит" };
-    var dd = deadlineDate(s);
-    if (!dd) return { rank: 1, color: GREY, breath: false, label: "без срока" };
-    var p = (now - shot) / (dd.getTime() - shot);
-    var left = Math.ceil((dd.getTime() - now) / 86400000);
-    if (p >= 1) return { rank: 3, color: "#C9663D", breath: true,
-      label: "просрочено на " + Math.abs(left) + " дн." };
-    return { rank: 2, color: urgencyColor(p), breath: false, label: "сдать за " + left + " дн." };
+    var now = Date.now(), shot = s.date.getTime(), r;
+    if (s.delivered)   r = { rank: 0, c: GREY, breath: false, label: "материал сдан" };
+    else if (shot > now) r = { rank: 1, c: [239,234,224], breath: false, label: "предстоит" };
+    else {
+      var dd = deadlineDate(s);
+      if (!dd) r = { rank: 1, c: GREY, breath: false, label: "без срока" };
+      else {
+        var p = (now - shot) / (dd.getTime() - shot);
+        var left = Math.ceil((dd.getTime() - now) / 86400000);
+        r = p >= 1
+          ? { rank: 3, c: [201,102,61], breath: true, label: "просрочено на " + Math.abs(left) + " дн." }
+          : { rank: 2, c: urgencyRGB(p), breath: false, label: "сдать за " + left + " дн." };
+      }
+    }
+    r.color = rgb(r.c);
+    // Подложка только у просрочки — остальные дни не пестрят
+    r.fill = r.rank >= 3 ? rgba(r.c, 0.32) : null;
+    return r;
   }
-  function dayRing(d) {
+  function dayMark(d) {
     var best = null;
     sessions.forEach(function (s) {
       if (!sameDay(s.date, d)) return;
@@ -1517,7 +1602,8 @@
 
   function renderCal() {
     var grid = $("cal"); grid.innerHTML = "";
-    $("calMonth").textContent = MONTHS_N[calMonth.getMonth()] + " " + calMonth.getFullYear();
+    $("calMonth").textContent = MONTHS_N[calMonth.getMonth()];
+    $("calYear").textContent = calMonth.getFullYear();
 
     var first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
     var offset = (first.getDay() + 6) % 7;               // неделя с понедельника
@@ -1533,10 +1619,11 @@
         + (sameDay(d, today) ? " today" : "")
         + (sameDay(d, calSel) ? " sel" : "");
       var q = qualityOf(d);
-      var ring = dayRing(d);
-      b.innerHTML = '<span class="d-n' + (ring && ring.breath ? " breath" : "") + '"'
-        + (ring ? ' style="--ring:' + ring.color + '"' : "") + ">" + n + "</span>"
-        + '<span class="dot" style="background:' + QUAL[q].dot + '"></span>';
+      var mk = dayMark(d);
+      var lit = mk && mk.fill;
+      b.innerHTML = '<span class="d-n' + (lit && mk.breath ? " breath" : "") + '"'
+        + (lit ? ' style="--mark:' + mk.fill + '"' : "") + ">" + n + "</span>"
+        + (QUAL[q].dot ? '<span class="dot" style="background:' + QUAL[q].dot + '"></span>' : "");
       (function (dd) { b.addEventListener("click", function () { calSel = dd; renderCal(); renderDayPanel(); }); })(d);
       grid.appendChild(b);
     }
@@ -1555,22 +1642,31 @@
     $("planDay").style.display = q === "poor" ? "none" : "flex";
     $("planDayHint").textContent = "начало " + fmt(w.a);
 
-    // Записи клиентов на этот день — сразу под датой
+    // Погода дня — в сводке, как на главном экране
+    var wx = dayWeather(calSel);
+    $("dpIcon").innerHTML = skyIcon(q);
+    $("dpTemp").textContent = tempAt(wx.tempBase, 900) + "°";
+    $("dpCond").textContent = QUAL[q].cond;
+    $("dpLo").textContent = "↓ " + tempAt(wx.tempBase, 240) + "°";
+    $("dpHi").textContent = "↑ " + tempAt(wx.tempBase, 960) + "°";
+
+    // Съёмки дня — компактной строкой: время, кто, статус сдачи
     var idxs = [];
     sessions.forEach(function (s, i) { if (sameDay(s.date, calSel)) idxs.push(i); });
     var box = $("dpSessions");
-    box.innerHTML = idxs.map(function (i) {
-      var s = sessions[i];
-      return '<button class="booking" data-i="' + i + '">' +
-        '<span class="bk-time"><span class="bk-start">' + fmt(s.min) + '</span>' +
-        '<span class="bk-to">до ' + fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + '</span></span>' +
-        '<span class="bk-body"><span class="bk-title">' + s.type + (s.contact ? " · " + s.contact : "") + "</span>" +
-        '<span class="bk-sub">' + s.place + (s.notes ? " · есть заметки" : "") + "</span></span>" +
-        '<span class="bk-edit">›</span></button>';
-    }).join("");
-    box.querySelectorAll(".booking").forEach(function (b) {
+    box.innerHTML = idxs.length ? idxs.map(function (i) {
+      var s = sessions[i], ds = deliveryState(s);
+      var end = s.end != null ? s.end : s.min + (s.dur || 90);
+      return '<button class="plan-row" data-i="' + i + '">' +
+        '<span class="pr-time">' + fmt(s.min) + " – " + fmt(end) + "</span>" +
+        '<span class="pr-who">' + (s.contact || s.type) + "</span>" +
+        (ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
+        "</button>";
+    }).join("") : '<div class="plan-empty">На этот день съёмок нет.</div>';
+    box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () { openForm(null, null, +b.dataset.i); });
     });
+    $("plannedLabel").textContent = idxs.length ? "Запланировано" : "Свободный день";
     $("planDay").querySelector(".lbl").textContent = idxs.length ? "Добавить съёмку" : "Запланировать съёмку";
   }
 
@@ -2018,6 +2114,47 @@
   $("calNext").addEventListener("click", function () {
     calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); renderCal();
   });
+  /* Год назад — как в календаре Apple: шаг вверх по иерархии */
+  $("yearBack").addEventListener("click", function () {
+    calMonth = new Date(calMonth.getFullYear() - 1, calMonth.getMonth(), 1); renderCal();
+  });
+  $("planAdd").addEventListener("click", function () {
+    openForm(calSel, Math.round(dayWindow(calSel).a));
+  });
+  $("dayToggle").addEventListener("click", function () {
+    this.classList.toggle("open");
+    $("dayPanel").classList.toggle("open");
+  });
+
+  /* Поиск по съёмкам: клиент, тип, место */
+  function renderSearch() {
+    var qs = $("searchInput").value.trim().toLowerCase();
+    var box = $("searchResults");
+    if (!qs) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">Начните вводить имя клиента.</div>'; return; }
+    var hits = sessions.map(function (s, i) { return { s: s, i: i }; }).filter(function (p) {
+      return ((p.s.contact || "") + " " + p.s.type + " " + p.s.place).toLowerCase().indexOf(qs) > -1;
+    }).sort(function (a, b) { return b.s.date - a.s.date; });
+    if (!hits.length) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">Ничего не найдено.</div>'; return; }
+    box.innerHTML = hits.map(function (p) {
+      var s = p.s, end = s.end != null ? s.end : s.min + (s.dur || 90);
+      return '<button class="plan-row" data-i="' + p.i + '" style="border-bottom:1px solid rgba(255,255,255,0.04)">' +
+        '<span class="pr-time">' + s.date.getDate() + " " + MON_S[s.date.getMonth()] + "</span>" +
+        '<span class="pr-who">' + (s.contact || s.type) + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
+    }).join("");
+    box.querySelectorAll(".plan-row").forEach(function (b) {
+      b.addEventListener("click", function () {
+        $("searchOverlay").classList.remove("open");
+        openForm(null, null, +b.dataset.i);
+      });
+    });
+  }
+  $("planSearch").addEventListener("click", function () {
+    $("searchInput").value = ""; renderSearch();
+    $("searchOverlay").classList.add("open");
+    setTimeout(function () { $("searchInput").focus(); }, 350);
+  });
+  $("searchBack").addEventListener("click", function () { $("searchOverlay").classList.remove("open"); });
+  $("searchInput").addEventListener("input", renderSearch);
 
   // Режим и спойлеры
   document.querySelectorAll("#modeSeg button").forEach(function (b) {
