@@ -734,7 +734,7 @@
   <!-- ============ НАСТРОЙКИ ============ -->
   <section class="screen" id="s-set">
     <div class="header">
-      <div class="loc"><div class="name">Light Atlas</div><div class="date">v3 · прототип</div></div>
+      <div class="loc"><div class="name">Light Plan</div><div class="date">v3 · прототип</div></div>
     </div>
 
     <div class="sec-label">Режим</div>
@@ -750,7 +750,7 @@
       <button data-sync="apple">Apple</button>
       <button data-sync="google">Google</button>
     </div>
-    <p class="seg-note" id="syncNote">Съёмки хранятся только в Light Atlas.</p>
+    <p class="seg-note" id="syncNote">Съёмки хранятся только в Light Plan.</p>
 
     <div class="sec-label">Сдача материала</div>
     <div class="seg" id="delvSeg">
@@ -777,7 +777,7 @@
     <div class="item"><span class="k">Температура</span><span class="v">°C ›</span></div>
     <div class="item"><span class="k">Язык</span><span class="v">Русский ›</span></div>
 
-    <div class="foot">Light Atlas · прибор для света</div>
+    <div class="foot">Light Plan · прибор для света</div>
   </section>
 
   <!-- ============ ТАБ-БАР ============ -->
@@ -937,7 +937,7 @@
       </svg>
     </div>
     <div class="n-body">
-      <div class="n-head"><span class="n-app">Light Atlas</span><span class="n-time">сейчас</span></div>
+      <div class="n-head"><span class="n-app">Light Plan</span><span class="n-time">сейчас</span></div>
       <div class="n-title" id="notifTitle">—</div>
       <div class="n-text" id="notifText">—</div>
     </div>
@@ -2209,7 +2209,7 @@
       document.querySelectorAll("#calSync button").forEach(function (x) { x.classList.remove("active"); });
       b.classList.add("active");
       syncTarget = b.dataset.sync;
-      $("syncNote").textContent = syncTarget === "off" ? "Съёмки хранятся только в Light Atlas."
+      $("syncNote").textContent = syncTarget === "off" ? "Съёмки хранятся только в Light Plan."
         : syncTarget === "apple" ? "Новые съёмки будут появляться в Календаре Apple."
         : "Новые съёмки будут появляться в Google Календаре.";
     });

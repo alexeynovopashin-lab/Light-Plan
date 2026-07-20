@@ -68,17 +68,14 @@ UX Principles, Calm Interaction: «мы не используем мигающи
 
 ## Практические грабли
 
-**Название.** В репозитории `<title>Light Plan</title>`, в локальном файле —
-`Light Atlas`. При выкладке заголовок надо сохранять:
+**Название.** Продукт называется **Light Plan** — везде: документы, заголовок
+страницы, тексты внутри приложения. Прежнее имя Light Atlas выведено из
+употребления, подмена заголовка при выкладке больше не нужна:
 
 ```bash
 cp "<локальный>/index.html" "<репо>/index.html"
-perl -i -pe 's{<title>Light Atlas</title>}{<title>Light Plan</title>}' index.html
 git add index.html && git commit && git push origin main
 ```
-
-Внутри приложения текст пока «Light Atlas» (шапка настроек, подвал,
-уведомление) — единое имя не наводили.
 
 **Локальный файл не под git**: `/Users/alexey/Documents/Light Atlas/Light Atlas 2/index.html`.
 Репозиторий клонируется отдельно.
