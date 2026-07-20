@@ -185,7 +185,17 @@
     display: flex; justify-content: space-between;
     font-size: 11px; color: #8A8478; font-weight: 500; font-variant-numeric: tabular-nums;
   }
+  /* Пиктограмма вместо слова: восход и закат читаются направлением стрелки */
+  .edge { display: inline-flex; align-items: center; gap: 6px; }
+  .edge svg { width: 15px; height: 15px; stroke: #C9853F; fill: none; stroke-width: 1.5; }
   .track-wrap { position: relative; padding-bottom: 16px; }
+  /* Гравировка: риски каждый час, крупные каждые шесть — под дорожкой ползунка */
+  .ruler {
+    position: absolute; left: 13px; right: 13px; top: 24px; height: 10px;
+    width: calc(100% - 26px); pointer-events: none;
+  }
+  .ruler line { stroke: #3A352E; stroke-width: 1; }
+  .ruler line.major { stroke: #55504A; }
   /* Появляется, только когда отмотал время от текущего. Тап → возврат к «сейчас». */
   .now-tick {
     position: absolute; bottom: -6px; transform: translateX(-50%);
@@ -551,6 +561,55 @@
     padding: 10px 15px; cursor: pointer;
   }
   .chip.active { background: #33291A; color: #E2A44C; font-weight: 600; }
+
+  /* Инструмент вместо чипсов: пиктограмма с подписью, как кнопки режимов у камеры */
+  .tool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tool {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: none; border: none; border-radius: 12px; cursor: pointer;
+    padding: 11px 2px 9px; font-family: inherit; font-size: 10px;
+    color: #6B6559; letter-spacing: 0.2px;
+    transition: color 0.25s ease, background 0.25s ease;
+  }
+  .tool svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  .tool.active { color: #E2A44C; background: #221D14; }
+  .tool.off { opacity: 0.4; }
+
+  /* Шкала с детентами: срок сдачи выбирается стрелкой по гравировке, а не кнопками */
+  .dial-wrap { position: relative; padding: 2px 0 20px; }
+  .dial {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 32px;
+    background: transparent; outline: none; cursor: pointer; display: block; margin: 0;
+  }
+  .dial::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: #2B2822; }
+  .dial::-moz-range-track { height: 3px; border-radius: 2px; background: #2B2822; }
+  .dial::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 11px; height: 24px; border-radius: 5px;
+    background: #EFEAE0; border: 2px solid #0F0E0C;
+    box-shadow: 0 0 0 1px rgba(239,234,224,0.2), 0 3px 8px rgba(0,0,0,0.5);
+    margin-top: -10.5px;
+  }
+  .dial::-moz-range-thumb {
+    width: 11px; height: 24px; border-radius: 5px;
+    background: #EFEAE0; border: 2px solid #0F0E0C;
+    box-shadow: 0 0 0 1px rgba(239,234,224,0.2), 0 3px 8px rgba(0,0,0,0.5);
+  }
+  .dial-ticks {
+    position: absolute; left: 6px; right: 6px; top: 24px; height: 7px;
+    pointer-events: none;
+  }
+  .dial-ticks i {
+    position: absolute; top: 0; width: 1px; height: 6px;
+    background: #3A352E; transform: translateX(-0.5px);
+  }
+  .dial-labels { position: absolute; left: 6px; right: 6px; top: 33px; height: 13px; pointer-events: none; }
+  .dial-labels span {
+    position: absolute; transform: translateX(-50%);
+    font-size: 9.5px; letter-spacing: 0.3px; color: #55504A; white-space: nowrap;
+    font-variant-numeric: tabular-nums; transition: color 0.25s ease;
+  }
+  .dial-labels span.lit { color: #E2A44C; font-weight: 600; }
   .sheet-done {
     width: 100%; margin-top: 20px; padding: 16px;
     background: #EFEAE0; border: none; border-radius: 14px;
@@ -953,8 +1012,13 @@
   <!-- ============ ТАБ-БАР ============ -->
   <!-- Единый ползунок времени: один на «Сегодня» и «Карту», закреплён над таб-баром -->
   <div class="timebar" id="timebar">
-    <div class="edges"><span id="edgeRise">восход —</span><span id="edgeSet">закат —</span></div>
+    <div class="edges">
+      <span class="edge" id="edgeRise"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M8.2 13a3.8 3.8 0 0 1 7.6 0M12 3.5v4M9.8 5.7L12 3.5l2.2 2.2"/></svg><span>—</span></span>
+      <span class="edge" id="edgeSet"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M8.2 13a3.8 3.8 0 0 1 7.6 0M12 7.5v-4M9.8 5.3L12 7.5l2.2-2.2"/></svg><span>—</span></span>
+    </div>
     <div class="track-wrap">
+      <!-- Гравировка прибора: час — риска, шесть часов — риска выше -->
+      <svg class="ruler" id="ruler" viewBox="0 0 342 10" preserveAspectRatio="none" aria-hidden="true"></svg>
       <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
       <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
     </div>
@@ -1060,7 +1124,11 @@
     <div class="g-label" id="fDelvLabel">Сдать материал</div>
     <div class="group" id="fDelvGroup">
       <div class="g-chips">
-        <div class="chips" id="fDelv"></div>
+        <div class="dial-wrap">
+          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
+          <div class="dial-ticks" id="fDelvTicks"></div>
+          <div class="dial-labels" id="fDelvLabels"></div>
+        </div>
         <div class="f-hint" id="fDelvHint">—</div>
       </div>
       <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
@@ -2295,25 +2363,41 @@
      Как только фотограф покрутил барабан начала — время его, не наше */
   var fAuto = true;
   var fDelvChoice = "auto";     // "auto" | число дней | null
-  var DELV_OPTS = [["auto", "По жанру"], [3, "3 дня"], [7, "Неделя"], [14, "2 недели"],
-                   [30, "Месяц"], [90, "3 месяца"], [null, "Без срока"]];
+  /* Крайние деления шкалы — состояния, середина — ручной срок */
+  var DELV_OPTS = [["auto", "жанр"], [3, "3 дн"], [7, "нед"], [14, "2 нед"],
+                   [30, "мес"], [90, "3 мес"], [null, "∞"]];
+  (function buildDelvDial() {
+    var ticks = "", labels = "";
+    for (var i = 0; i < DELV_OPTS.length; i++) {
+      var x = (i / (DELV_OPTS.length - 1) * 100).toFixed(2) + "%";
+      ticks += '<i style="left:' + x + '"></i>';
+      labels += '<span style="left:' + x + '">' + DELV_OPTS[i][1] + "</span>";
+    }
+    $("fDelvTicks").innerHTML = ticks;
+    $("fDelvLabels").innerHTML = labels;
+  })();
   function renderDelv() {
-    $("fDelv").innerHTML = DELV_OPTS.map(function (o, i) {
-      return '<button class="chip' + (o[0] === fDelvChoice ? " active" : "") + '" data-i="' + i + '">' + o[1] + "</button>";
-    }).join("");
-    $("fDelv").querySelectorAll(".chip").forEach(function (ch) {
-      ch.addEventListener("click", function () {
-        fDelvChoice = DELV_OPTS[+ch.dataset.i][0];
-        rememberGenre("delv", fDelvChoice);
-        renderDelv();
-      });
+    var idx = 0;
+    DELV_OPTS.forEach(function (o, i) { if (o[0] === fDelvChoice) idx = i; });
+    $("fDelvDial").value = idx;
+    $("fDelvLabels").querySelectorAll("span").forEach(function (s, i) {
+      s.classList.toggle("lit", i === idx);
     });
     var probe = { date: fDate, type: shootType, deadlineChoice: fDelvChoice };
     var dd = deadlineDate(probe);
+    // Первое деление — автомат: подсказка объясняет, что жанр решил сам
     $("fDelvHint").textContent = dd
-      ? "сдать до " + dd.getDate() + " " + MONTHS[dd.getMonth()]
+      ? (fDelvChoice === "auto" ? "по жанру · " : "") + "сдать до " + dd.getDate() + " " + MONTHS[dd.getMonth()]
       : "срок не отслеживается";
   }
+  $("fDelvDial").addEventListener("input", function () {
+    var v = +this.value;
+    if (DELV_OPTS[v][0] === fDelvChoice) return;
+    fDelvChoice = DELV_OPTS[v][0];
+    rememberGenre("delv", fDelvChoice);
+    if (typeof tickClick === "function") tickClick();   // тот же щелчок, что у ползунка времени
+    renderDelv();
+  });
   var DURS = [30, 60, 90, 120, 180];
   /* По-русски пишем «1,5 часа», а не «1½ ч» */
   function hourWord(n) {
@@ -2429,6 +2513,30 @@
   /* Жанры: пользователь оставляет только свои */
   var ALL_GENRES = ["Портрет","Свадьбы","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
 
+  /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
+  var GENRE_IC = {
+    "Портрет":     '<circle cx="12" cy="8.3" r="3.4"/><path d="M5.6 20a6.4 6.4 0 0 1 12.8 0"/>',
+    "Свадьбы":     '<circle cx="9.2" cy="13.4" r="4.9"/><circle cx="14.8" cy="13.4" r="4.9"/><path d="M10.2 5.2h3.6L12 7.4z"/>',
+    "Семья":       '<circle cx="8.4" cy="7.6" r="2.7"/><path d="M3.6 19.8a4.8 4.8 0 0 1 9.6 0"/><circle cx="16.8" cy="10.4" r="2.1"/><path d="M13.4 19.8a3.5 3.5 0 0 1 6.9 0"/>',
+    "Пейзаж":      '<path d="M3 18.5l5.4-8.2 3.9 5.9 2.9-4.3 5.8 6.6z"/><circle cx="16.9" cy="6.7" r="2.1"/>',
+    "Архитектура": '<path d="M4 20.5h16"/><path d="M6.5 20.5V4.5h11v16"/><path d="M9.6 8h1.6M12.8 8h1.6M9.6 11.5h1.6M12.8 11.5h1.6M9.6 15h1.6M12.8 15h1.6"/>',
+    "Стрит":       '<path d="M4.8 20.5h4.8"/><path d="M7.2 20.5V6a3 3 0 0 1 3-3h3.2"/><path d="M12.6 1.9h4.8l-1.1 3.6h-2.6z"/><path d="M15 7v1.8"/>',
+    "Репортаж":    '<path d="M13.2 2.5L6 13.2h4.8L9.4 21.5 17.9 10h-4.8z"/>',
+    "Предметка":   '<path d="M12 3.2l7.3 4.2v8.9L12 20.5l-7.3-4.2V7.4z"/><path d="M12 11.7L4.7 7.4M12 11.7l7.3-4.2M12 11.7v8.8"/>'
+  };
+  var WISH_IC = {
+    "Неважно": '<circle cx="12" cy="12" r="8.3"/><path d="M8.2 12h7.6"/>',
+    "Ясно":    '<circle cx="12" cy="12" r="4"/><path d="M12 2.6v2M12 19.4v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.6 12h2M19.4 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    "Облачно": '<path d="M7.3 18.5h9a3.7 3.7 0 0 0 .4-7.4 5.1 5.1 0 0 0-9.8-1.3 3.8 3.8 0 0 0 .4 8.7z"/>',
+    "Туман":   '<path d="M4 8.5h16M6.5 12.5h13M4 16.5h11.5"/>',
+    "Звёзды":  '<path d="M12 3.6l1.7 4.9 4.9 1.7-4.9 1.7-1.7 4.9-1.7-4.9-4.9-1.7 4.9-1.7z"/><path d="M18.4 16.6l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
+  };
+  function toolBtn(name, icon, cls) {
+    return '<button class="tool' + (cls ? " " + cls : "") + '" data-v="' + name + '">'
+      + '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + icon + "</svg>"
+      + "<span>" + name + "</span></button>";
+  }
+
   /* Жанр — пресет формы, а не профиль фотографа: свадебщик снимает и семью тоже.
      delivery — есть ли кому сдавать материал, client — есть ли заказчик,
      dur — обычная длительность в минутах (null: сколько длится свет) */
@@ -2493,13 +2601,14 @@
     // жанр могли выключить в «Моих жанрах» — форму надо перестроить под подменённый
     var swapped = list.indexOf(shootType) === -1;
     if (swapped) shootType = list[0];
+    $("fType").className = "tool-grid";
     $("fType").innerHTML = list.map(function (g) {
-      return '<button class="chip' + (g === shootType ? " active" : "") + '">' + g + "</button>";
+      return toolBtn(g, GENRE_IC[g], g === shootType ? "active" : "");
     }).join("");
-    $("fType").querySelectorAll(".chip").forEach(function (ch) {
+    $("fType").querySelectorAll(".tool").forEach(function (ch) {
       ch.addEventListener("click", function () {
-        if (ch.textContent === shootType) return;
-        shootType = ch.textContent;
+        if (ch.dataset.v === shootType) return;
+        shootType = ch.dataset.v;
         applyGenrePreset();          // жанр перестраивает форму под себя
         renderGenres(); refreshForm();
       });
@@ -2508,11 +2617,12 @@
     if (swapped && editIdx === null) { applyGenrePreset(); refreshForm(); }
   }
   function renderWishes() {
+    $("fWish").className = "tool-grid";
     $("fWish").innerHTML = WISHES.map(function (w) {
-      return '<button class="chip' + (w === wish ? " active" : "") + '">' + w + "</button>";
+      return toolBtn(w, WISH_IC[w], w === wish ? "active" : "");
     }).join("");
-    $("fWish").querySelectorAll(".chip").forEach(function (ch) {
-      ch.addEventListener("click", function () { wish = ch.textContent; renderWishes(); refreshForm(); });
+    $("fWish").querySelectorAll(".tool").forEach(function (ch) {
+      ch.addEventListener("click", function () { wish = ch.dataset.v; renderWishes(); refreshForm(); });
     });
   }
 
@@ -2613,12 +2723,13 @@
 
   /* Лист «Мои жанры» */
   function renderGenreList() {
+    $("gList").className = "tool-grid";
     $("gList").innerHTML = ALL_GENRES.map(function (g) {
-      return '<button class="chip' + (genresOn[g] ? " active" : "") + '">' + g + "</button>";
+      return toolBtn(g, GENRE_IC[g], genresOn[g] ? "active" : "off");
     }).join("");
-    $("gList").querySelectorAll(".chip").forEach(function (ch) {
+    $("gList").querySelectorAll(".tool").forEach(function (ch) {
       ch.addEventListener("click", function () {
-        var g = ch.textContent;
+        var g = ch.dataset.v;
         var on = ALL_GENRES.filter(function (x) { return genresOn[x]; });
         if (genresOn[g] && on.length === 1) return;   // последний жанр не отключаем
         genresOn[g] = genresOn[g] ? 0 : 1;
@@ -2700,8 +2811,8 @@
     $("hDate").textContent = label;
     $("hNote").textContent = nowMin !== null ? "сегодня"
       : (selDate > n ? "прогноз" : "архив");
-    $("edgeRise").textContent = "восход " + fmt(SUN.rise);
-    $("edgeSet").textContent = "закат " + fmt(SUN.set);
+    updateEdges();
+    drawRuler();
 
     updateNowTick();
 
@@ -2757,6 +2868,41 @@
   });
   $("nowTick").addEventListener("click", function () { if (nowMin !== null) setView(nowMin); });
 
+  /* Кромки шкалы: чьё светило — того и восход. Стрелка говорит вверх или вниз */
+  var EDGE_IC = {
+    up:   '<path d="M4 17h16M8.2 13a3.8 3.8 0 0 1 7.6 0M12 3.5v4M9.8 5.7L12 3.5l2.2 2.2"/>',
+    down: '<path d="M4 17h16M8.2 13a3.8 3.8 0 0 1 7.6 0M12 7.5v-4M9.8 5.3L12 7.5l2.2-2.2"/>',
+    mup:  '<path d="M4 17h16M15.5 13.5A4.2 4.2 0 0 1 8 11a4.2 4.2 0 0 1 .4-1.8 4.2 4.2 0 0 0 7.1 4.3zM17 3.5v4M14.8 5.7L17 3.5l2.2 2.2"/>',
+    mdown:'<path d="M4 17h16M15.5 13.5A4.2 4.2 0 0 1 8 11a4.2 4.2 0 0 1 .4-1.8 4.2 4.2 0 0 0 7.1 4.3zM17 7.5v-4M14.8 5.3L17 7.5l2.2-2.2"/>'
+  };
+  function edgeHTML(icon, t) {
+    return '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">'
+      + EDGE_IC[icon] + "</svg><span>" + fmt(t) + "</span>";
+  }
+  function updateEdges() {
+    if (skyMode === "moon") {
+      var arc = moonArc(selDate, viewMin);
+      $("edgeRise").innerHTML = edgeHTML("mup", arc.rise);
+      $("edgeSet").innerHTML = edgeHTML("mdown", arc.set);
+    } else {
+      $("edgeRise").innerHTML = edgeHTML("up", SUN.rise);
+      $("edgeSet").innerHTML = edgeHTML("down", SUN.set);
+    }
+  }
+  /* Риски перерисовываются с датой: солнечный полдень плывёт, и часы вместе с ним */
+  function drawRuler() {
+    var out = "";
+    for (var h = 0; h < 48; h++) {
+      var t = h * 60;
+      if (t < MINT || t > MAXT) continue;
+      var x = ((t - MINT) / 1440 * 342).toFixed(1);
+      var major = h % 6 === 0;
+      out += '<line x1="' + x + '" y1="' + (major ? 0 : 4) + '" x2="' + x + '" y2="10"'
+        + (major ? ' class="major"' : "") + "/>";
+    }
+    $("ruler").innerHTML = out;
+  }
+
   /* Солнце или луна — один и тот же купол, разные светила */
   $("modeSw").querySelectorAll(".ms").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -2765,6 +2911,7 @@
       $("modeSw").querySelectorAll(".ms").forEach(function (x) {
         x.classList.toggle("on", x.dataset.m === skyMode);
       });
+      updateEdges();
       renderToday();
     });
   });
