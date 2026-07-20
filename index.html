@@ -471,13 +471,81 @@
   /* ---------- Форма съёмки ---------- */
   .overlay {
     position: absolute; inset: 0; background: #0F0E0C; z-index: 80;
-    padding: 56px 24px 40px; overflow-y: auto; scrollbar-width: none;
+    padding: 0 24px 40px; overflow-y: auto; scrollbar-width: none;
     transform: translateY(101%); transition: transform 0.42s cubic-bezier(0.25,1,0.4,1);
     visibility: hidden;
   }
   .overlay::-webkit-scrollbar { display: none; }
   .overlay.open { transform: none; visibility: visible; }
+  .overlay.pad { padding-top: 56px; }
   .form-top { display: flex; justify-content: space-between; align-items: center; }
+
+  /* Шапка формы: отменить и подтвердить. Кружки не кричат цветом,
+     подтверждение отличается светлой заливкой — размером и положением, не CTA */
+  .form-bar {
+    position: sticky; top: 0; z-index: 3; background: #0F0E0C;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 46px 0 8px;
+  }
+  .round {
+    width: 32px; height: 32px; border-radius: 50%; border: none; padding: 0;
+    background: #221F19; color: #A8A093; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .round svg {
+    width: 15px; height: 15px; stroke: currentColor; fill: none;
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .round.ok { background: #EFEAE0; color: #0F0E0C; }
+  .round:active { opacity: 0.65; }
+
+  /* Группы вместо плоской ленты полей. Групп мало, между ними — воздух;
+     внутри группы строки разделяет шов цвета фона, а не нарисованная линия */
+  .g-label {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: #55504A; font-weight: 600; margin: 30px 4px 9px;
+  }
+  .group { background: #17150F; border-radius: 14px; overflow: hidden; }
+  .group .sep { box-shadow: inset 0 1px 0 #0F0E0C; }
+  .g-chips { padding: 13px 15px 15px; }
+  .g-chips .chips { margin-top: 0; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    width: 100%; padding: 14px 15px; min-height: 52px; text-align: left;
+    background: none; border: none; font-family: inherit; font-size: 16px;
+    color: #EFEAE0; cursor: pointer;
+  }
+  .row .rv { color: #A8A093; font-variant-numeric: tabular-nums; text-align: right; }
+  .row .sub, .row .sub2 {
+    display: block; font-size: 11px; color: #635E54; margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .row .rv .sub { max-width: 190px; }
+  .row .rv.act { font-size: 14px; }   /* подсказка о действии не спорит с содержимым строки */
+  .row.open > .rv { color: #E2A44C; }
+
+  /* Барабан живёт под своей строкой — шторка больше не закрывает форму */
+  .inline {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.34s cubic-bezier(0.25,1,0.4,1);
+  }
+  .inline.open { max-height: 136px; }
+  .ip { position: relative; display: flex; height: 136px; }
+  .ip.time { justify-content: center; }
+  .ip .pick-band { top: 51px; }
+  .ip .wheel { height: 136px; padding: 51px 0; }
+  .ip .wheel.narrow { flex: 0 0 66px; }
+  .ip .wheel[data-w="date"] .w-item { justify-content: center; padding-right: 0; }
+
+  .group input[type="text"], .group textarea {
+    display: block; width: 100%; background: none; border: none;
+    color: #EFEAE0; font-family: inherit; font-size: 16px;
+    padding: 15px; outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .group input::placeholder, .group textarea::placeholder { color: #4A453E; }
+  .group textarea { resize: none; min-height: 92px; line-height: 1.5; }
+
   .back {
     background: none; border: none; color: #8A8478; cursor: pointer;
     font-family: inherit; font-size: 15px; padding: 8px 0;
@@ -507,22 +575,9 @@
   .field input:focus, .field textarea:focus { background: #221F19; }
   .field textarea { resize: none; min-height: 84px; line-height: 1.5; }
   .f-hint { font-size: 12px; color: #635E54; margin-top: 8px; }
-  .pick-row {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #17150F; border-radius: 12px; padding: 14px 15px; cursor: pointer;
-    border: none; width: 100%; font-family: inherit; color: #EFEAE0; text-align: left;
-  }
-  .pick-row .p-name { font-size: 16px; font-variant-numeric: tabular-nums; }
-  .pick-row .p-coords { font-size: 11px; color: #635E54; margin-top: 2px; font-variant-numeric: tabular-nums; }
-  .pick-row .p-change { color: #8A8478; font-size: 14px; }
-  .save {
-    display: block; width: 100%; margin-top: 30px; padding: 17px;
-    background: #EFEAE0; border: none; border-radius: 14px;
-    color: #0F0E0C; font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
-  }
-  .saved-note { text-align: center; font-size: 13px; color: #8A8478; margin-top: 14px; min-height: 18px; }
+  .saved-note { font-size: 13px; color: #8A8478; margin-top: 8px; min-height: 0; }
   .danger {
-    display: block; width: 100%; margin-top: 10px; padding: 15px;
+    display: block; width: 100%; margin-top: 26px; padding: 15px;
     background: none; border: none; color: #B9603D;
     font-family: inherit; font-size: 15px; cursor: pointer;
   }
@@ -831,10 +886,21 @@
 
   <!-- ============ ФОРМА СЪЁМКИ ============ -->
   <div class="overlay" id="formOverlay">
-    <div class="form-top">
-      <button class="back" id="formBack">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Назад
+    <div class="form-bar">
+      <button class="round" id="formBack" aria-label="Отменить">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
+      <button class="round ok" id="fSave" aria-label="Сохранить">
+        <svg viewBox="0 0 24 24"><polyline points="5 12.5 10 17.5 19 6.5"/></svg>
+      </button>
+    </div>
+    <h2 class="form-title" id="formTitle">Новая съёмка</h2>
+    <p class="form-sub" id="formSub">—</p>
+    <div class="saved-note" id="savedNote"></div>
+
+    <!-- Съёмка: что и когда. Барабаны раскрываются под своей строкой,
+         так форма остаётся на виду и не теряется контекст. -->
+    <div class="g-label">Съёмка
       <button class="gear" id="fGear" aria-label="Мои жанры">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3.2"/>
@@ -842,74 +908,69 @@
         </svg>
       </button>
     </div>
-    <h2 class="form-title" id="formTitle">Новая съёмка</h2>
-    <p class="form-sub" id="formSub">—</p>
+    <div class="group">
+      <div class="g-chips"><div class="chips" id="fType"></div></div>
 
-    <!-- Подписи «где», «кто», «заметки» убраны: содержимое поля говорит само за себя.
-         Остались только там, где два ряда чипсов иначе не различить. -->
-    <div class="field">
-      <span class="f-label">Что снимаем</span>
-      <div class="chips" id="fType"></div>
-    </div>
-
-    <div class="field">
-      <button class="pick-row" id="fWhen">
-        <div>
-          <div class="p-name" id="fWhenName">—</div>
-          <div class="p-coords" id="fWhenHint">—</div>
-        </div>
-        <span class="p-change">Начало</span>
+      <button class="row sep" id="fWhen">Дата
+        <span class="rv"><span id="fWhenName">—</span><span class="sub" id="fWhenHint">—</span></span>
       </button>
-    </div>
+      <div class="inline" id="fWhenPick">
+        <div class="ip"><div class="pick-band"></div>
+          <div class="wheel" data-w="date" id="fwDate"></div>
+        </div>
+      </div>
 
-    <div class="field">
-      <span class="f-label">Сколько снимаем</span>
-      <div class="chips" id="fDur"></div>
-    </div>
+      <button class="row sep" id="fStart">Начало
+        <span class="rv" id="fStartVal">—</span>
+      </button>
+      <div class="inline" id="fStartPick">
+        <div class="ip time"><div class="pick-band"></div>
+          <div class="wheel narrow" data-w="hour" id="fwSH"></div>
+          <div class="wheel narrow" data-w="min" id="fwSM"></div>
+        </div>
+      </div>
 
-    <div class="field">
-      <span class="f-label">Сдать материал</span>
-      <div class="chips" id="fDelv"></div>
-      <div class="f-hint" id="fDelvHint">—</div>
-    </div>
-
-    <div class="field" id="fDoneRow">
-      <div class="item" style="padding: 0;">
-        <span class="k">Материал сдан</span><span class="toggle" id="fDone"></span>
+      <button class="row sep" id="fEnd">Конец
+        <span class="rv"><span id="fEndVal">—</span><span class="sub" id="fDurVal">—</span></span>
+      </button>
+      <div class="inline" id="fEndPick">
+        <div class="ip time"><div class="pick-band"></div>
+          <div class="wheel narrow" data-w="hour" id="fwEH"></div>
+          <div class="wheel narrow" data-w="min" id="fwEM"></div>
+        </div>
       </div>
     </div>
 
-    <div class="field">
-      <span class="f-label">Нужна погода</span>
-      <div class="chips" id="fWish"></div>
-      <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
+    <div class="g-label">Сдать материал</div>
+    <div class="group">
+      <div class="g-chips">
+        <div class="chips" id="fDelv"></div>
+        <div class="f-hint" id="fDelvHint">—</div>
+      </div>
+      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
     </div>
 
-    <div class="field">
-      <button class="pick-row" id="fPlace">
-        <div>
-          <div class="p-name" id="fPlaceName">Северный объезд</div>
-          <div class="p-coords" id="fPlaceCoords">56.021 N · 37.482 E</div>
-        </div>
-        <span class="p-change">Изменить</span>
+    <div class="g-label">Нужна погода</div>
+    <div class="group">
+      <div class="g-chips"><div class="chips" id="fWish"></div></div>
+    </div>
+    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
+
+    <div class="g-label">Место и клиент</div>
+    <div class="group">
+      <button class="row" id="fPlace">
+        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
+        <span class="rv act">Изменить</span>
       </button>
+      <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
+      <textarea class="sep" id="fNotes" placeholder="Референсы, оборудование, договорённости"></textarea>
     </div>
 
-    <div class="field">
-      <input type="text" id="fContact" placeholder="Имя или телефон клиента"/>
-    </div>
-
-    <div class="field">
-      <textarea id="fNotes" placeholder="Референсы, оборудование, договорённости"></textarea>
-    </div>
-
-    <button class="save" id="fSave">Сохранить съёмку</button>
     <button class="danger" id="fDelete" hidden>Удалить съёмку</button>
-    <div class="saved-note" id="savedNote"></div>
   </div>
 
   <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
-  <div class="overlay" id="searchOverlay">
+  <div class="overlay pad" id="searchOverlay">
     <button class="back" id="searchBack">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Назад
     </button>
@@ -1753,12 +1814,17 @@
     if (smooth) el2.scrollTo({ top: i * ITEM, behavior: "smooth" });
     else { el2.scrollTop = i * ITEM; styleWheel(el2); }
   }
-  [wDate, wHour, wMin].forEach(function (el2) {
+  /* Перспектива пересчитывается на каждый кадр прокрутки;
+     onSettle — значение снимается, когда барабан остановился */
+  function attachWheel(el2, onSettle) {
     el2.addEventListener("scroll", function () {
-      if (el2._raf) return;
-      el2._raf = requestAnimationFrame(function () { el2._raf = null; styleWheel(el2); });
+      if (!el2._raf) el2._raf = requestAnimationFrame(function () { el2._raf = null; styleWheel(el2); });
+      if (!onSettle) return;
+      clearTimeout(el2._settle);
+      el2._settle = setTimeout(function () { if (!el2._quiet) onSettle(); }, 150);
     }, { passive: true });
-  });
+  }
+  [wDate, wHour, wMin].forEach(function (el2) { attachWheel(el2); });
 
   function openPicker(opts) {
     $("sheetTitle").textContent = opts.title;
@@ -1820,14 +1886,90 @@
   function nearestDur(m) {
     return DURS.reduce(function (a, b) { return Math.abs(b - m) < Math.abs(a - m) ? b : a; });
   }
-  function renderDur() {
-    $("fDur").innerHTML = DURS.map(function (m) {
-      return '<button class="chip' + (m === fDur ? " active" : "") + '">' + durLabel(m) + "</button>";
-    }).join("");
-    $("fDur").querySelectorAll(".chip").forEach(function (ch, i) {
-      ch.addEventListener("click", function () { fDur = DURS[i]; renderDur(); refreshForm(); });
-    });
+
+  /* ---------- Барабаны внутри формы ---------- */
+  var fwDate = $("fwDate"), fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
+  var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
+  var MINS = Array.apply(null, Array(60)).map(function (_, i) { return pad(i); });
+  fill(fwDate, dateList.map(function (x) { return x.label; }));
+  [fwSH, fwEH].forEach(function (el2) { fill(el2, HOURS); });
+  [fwSM, fwEM].forEach(function (el2) { fill(el2, MINS); });
+
+  /* Программная установка не должна выглядеть как выбор пользователя.
+     Барабан раскрывается анимацией высоты, и снап по дороге уводит позицию —
+     поэтому на время раскрытия снап выключен, а позиция ставится ещё раз в конце */
+  function syncWheel(el2, i) {
+    el2._quiet = true;
+    el2.style.scrollSnapType = "none";
+    var apply = function () { setWheel(el2, i); };
+    apply();
+    requestAnimationFrame(apply);
+    clearTimeout(el2._q);
+    el2._q = setTimeout(function () {
+      apply();
+      el2.style.scrollSnapType = "";
+      el2._quiet = false;
+    }, 380);
   }
+  function dateIndex(d) {
+    for (var i = 0; i < dateList.length; i++) if (sameDay(dateList[i].date, d)) return i;
+    return BACK;
+  }
+  /* Значение снимается только с раскрытого барабана: иначе остановка,
+     догнавшая закрытие формы, дописала бы время в чужую съёмку */
+  attachWheel(fwDate, function () {
+    if (openRow !== "fWhen") return;
+    fDate = new Date(dateList[wheelIndex(fwDate)].date);
+    refreshForm();
+  });
+  attachWheel(fwSH, onStartWheel); attachWheel(fwSM, onStartWheel);
+  attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
+  function onStartWheel() {
+    if (openRow !== "fStart") return;
+    fMin = wheelIndex(fwSH) * 60 + wheelIndex(fwSM);   // длительность сохраняется, конец едет следом
+    refreshForm();
+  }
+  function onEndWheel() {
+    if (openRow !== "fEnd") return;
+    var end = wheelIndex(fwEH) * 60 + wheelIndex(fwEM);
+    var d = ((end - fMin) % 1440 + 1440) % 1440;        // ночная съёмка переходит через полночь
+    if (d < 15) d = 15;
+    if (d > 720) d = 720;   // конец раньше начала — это описка, а не сутки съёмки
+    fDur = d;
+    var back = (((fMin + fDur) % 1440) + 1440) % 1440;
+    if (back !== end) { syncWheel(fwEH, Math.floor(back / 60)); syncWheel(fwEM, back % 60); }
+    refreshForm();
+  }
+
+  /* Раскрыт всегда один барабан: один жест — один результат */
+  var ROWS = [["fWhen", "fWhenPick"], ["fStart", "fStartPick"], ["fEnd", "fEndPick"]];
+  var openRow = null;
+  function closeRows() {
+    ROWS.forEach(function (r) { $(r[0]).classList.remove("open"); $(r[1]).classList.remove("open"); });
+    openRow = null;
+  }
+  function toggleRow(id) {
+    var was = openRow;
+    closeRows();
+    if (was === id) return;
+    var r = ROWS.filter(function (x) { return x[0] === id; })[0];
+    openRow = id;
+    $(r[0]).classList.add("open");
+    $(r[1]).classList.add("open");
+    if (id === "fWhen") syncWheel(fwDate, dateIndex(fDate));
+    if (id === "fStart") {
+      var s = ((fMin % 1440) + 1440) % 1440;
+      syncWheel(fwSH, Math.floor(s / 60)); syncWheel(fwSM, s % 60);
+    }
+    if (id === "fEnd") {
+      var e = (((fMin + fDur) % 1440) + 1440) % 1440;
+      syncWheel(fwEH, Math.floor(e / 60)); syncWheel(fwEM, e % 60);
+    }
+  }
+  ROWS.forEach(function (r) {
+    $(r[0]).addEventListener("click", function () { toggleRow(r[0]); });
+  });
+
   var places = [
     { name: "Северный объезд", coords: "56.021 N · 37.482 E", city: true },
     { name: "Старая пристань", coords: "56.008 N · 37.455 E", city: true },
@@ -1886,15 +2028,18 @@
     var keep = new Date(selDate);
     computeSun(fDate);
     var w = dayWindow(fDate);
-    $("fWhenName").textContent = WD[fDate.getDay()] + " " + fDate.getDate() + " " + MONTHS[fDate.getMonth()]
-      + " · " + fmt(fMin) + " – " + fmt(fMin + fDur);
-    $("fWhenHint").textContent = w.q === "poor" ? "в этот день окна света нет"
-      : "окно света · " + w.label + " " + range(w.a, w.b);
+    $("fWhenName").textContent = WD[fDate.getDay()] + " " + fDate.getDate() + " " + MONTHS[fDate.getMonth()];
+    $("fWhenHint").textContent = w.q === "poor" ? "окна света нет"
+      : w.label + " " + range(w.a, w.b);
+    $("fStartVal").textContent = fmt(fMin);
+    $("fEndVal").textContent = fmt(fMin + fDur);
+    $("fDurVal").textContent = durLabel(fDur);
     $("formSub").innerHTML = w.q === "poor"
       ? "В этот день окна света нет — время на ваше усмотрение"
       : 'Свет подсказал время — <span class="t">начало ' + fmt(w.a) + "</span>";
     computeSun(keep);
 
+    renderDelv();   // срок сдачи отсчитывается от даты съёмки
     var warn = wishCheck(wish, fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
@@ -1923,14 +2068,15 @@
       $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
     }
-    $("fDoneRow").style.display = editIdx !== null ? "block" : "none";
+    $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     $("fPlaceName").textContent = places[placeIdx].name;
     $("fPlaceCoords").textContent = places[placeIdx].coords + (places[placeIdx].city ? " · в городе" : " · за городом");
     $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
-    $("fSave").textContent = editIdx !== null ? "Сохранить изменения" : "Сохранить съёмку";
     $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
-    renderGenres(); renderWishes(); renderDur(); renderDelv(); refreshForm();
+    closeRows();
+    renderGenres(); renderWishes(); renderDelv(); refreshForm();
+    $("formOverlay").scrollTop = 0;
     $("formOverlay").classList.add("open");
   }
   $("fDone").addEventListener("click", function () { this.classList.toggle("on"); });
@@ -1940,6 +2086,7 @@
     editIdx = null;
     saveAll();
     renderSessions(); renderCal(); renderDayPanel();
+    closeRows();
     $("formOverlay").classList.remove("open");
     go("s-plan");
   });
@@ -1977,12 +2124,8 @@
     notifTimer = setTimeout(function () { $("notif").classList.remove("show"); }, 5200);
   }
   $("notif").addEventListener("click", function () { this.classList.remove("show"); });
-  $("formBack").addEventListener("click", function () { $("formOverlay").classList.remove("open"); });
-  $("fWhen").addEventListener("click", function () {
-    openPicker({
-      title: "Когда снимаем", sub: "Время съёмки", date: fDate, min: fMin,
-      onDone: function (d, t) { fDate = d; fMin = t; refreshForm(); }
-    });
+  $("formBack").addEventListener("click", function () {
+    closeRows(); $("formOverlay").classList.remove("open");
   });
   $("fPlace").addEventListener("click", function () {
     placeIdx = (placeIdx + 1) % places.length;
@@ -2010,6 +2153,7 @@
       : syncTarget === "off" ? "Сохранено"
       : "Сохранено · добавлено в " + (syncTarget === "google" ? "Google Календарь" : "Календарь Apple");
     setTimeout(function () {
+      closeRows();
       $("formOverlay").classList.remove("open"); go("s-plan");
       // Прогноз против замысла — так это придёт пушем накануне
       if (warn) setTimeout(function () {
