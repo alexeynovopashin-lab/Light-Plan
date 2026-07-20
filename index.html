@@ -427,6 +427,9 @@
     transform: translateY(101%); transition: transform 0.38s cubic-bezier(0.25,1,0.4,1);
   }
   .sheet.open { transform: none; }
+  /* «Мои жанры» вызываются из формы, а форма лежит выше обычных листов (80) */
+  #gScrim { z-index: 84; }
+  #gSheet { z-index: 86; }
   .grip { width: 38px; height: 4px; border-radius: 3px; background: #38332B; margin: 0 auto 18px; }
   .sheet-title { font-size: 19px; font-weight: 650; letter-spacing: -0.2px; }
   .sheet-sub { font-size: 13px; color: #8A8478; margin-top: 5px; }
@@ -1708,7 +1711,8 @@
       : "Лучшее окно · " + w.label + ' <span class="t">' + range(w.a, w.b) + "</span>";
     $("dpTrust").textContent = trustOf(calSel);
     // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
-    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(w.a);
+    // обещание кнопки должно совпадать с тем, что откроется в форме
+    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(snapMin(w.a));
 
     // Погода дня — в сводке, как на главном экране
     var wx = dayWeather(calSel);
@@ -1862,6 +1866,12 @@
      ФОРМА СЪЁМКИ
      ============================================================ */
   var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет", wish = "Неважно";
+  /* Съёмку назначают на ровное время. Шаг тот же, что у детентов ползунка, — 15 минут */
+  var SNAP = 15;
+  function snapMin(m) { return Math.round(m / SNAP) * SNAP; }
+  /* Пока время предложено светом, смена жанра вправе его переставить.
+     Как только фотограф покрутил барабан начала — время его, не наше */
+  var fAuto = true;
   var fDelvChoice = "auto";     // "auto" | число дней | null
   var DELV_OPTS = [["auto", "По жанру"], [3, "3 дня"], [7, "Неделя"], [14, "2 недели"],
                    [30, "Месяц"], [90, "3 месяца"], [null, "Без срока"]];
@@ -1883,10 +1893,20 @@
       : "срок не отслеживается";
   }
   var DURS = [30, 60, 90, 120, 180];
+  /* По-русски пишем «1,5 часа», а не «1½ ч» */
+  function hourWord(n) {
+    var t = n % 100, o = n % 10;
+    if (t >= 11 && t <= 14) return "часов";
+    if (o === 1) return "час";
+    if (o >= 2 && o <= 4) return "часа";
+    return "часов";
+  }
   function durLabel(m) {
     var h = Math.floor(m / 60), mm = m % 60;
     if (h === 0) return mm + " мин";
-    return h + (mm === 30 ? "½" : "") + " ч" + (mm && mm !== 30 ? " " + mm + " м" : "");
+    if (mm === 0) return h + " " + hourWord(h);
+    if (mm === 30) return h + ",5 часа";   // при дробном числительном — всегда «часа»
+    return h + " ч " + mm + " мин";
   }
   function nearestDur(m) {
     return DURS.reduce(function (a, b) { return Math.abs(b - m) < Math.abs(a - m) ? b : a; });
@@ -1931,6 +1951,7 @@
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
   function onStartWheel() {
     if (openRow !== "fStart") return;
+    fAuto = false;
     fMin = wheelIndex(fwSH) * 60 + wheelIndex(fwSM);   // длительность сохраняется, конец едет следом
     refreshForm();
   }
@@ -2032,9 +2053,12 @@
        Двигаем начало назад, чтобы золотой час пришёлся на конец съёмки.
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
     var w = dayWindow(fDate);
-    if (w.q !== "poor" && Math.abs(fMin - w.a) < 1 && fDur > w.b - w.a) {
-      fMin = Math.round(w.b) - fDur;
-      if (fMin < 0) fMin += 1440;
+    if (fAuto && w.q !== "poor") {
+      fMin = snapMin(w.a);
+      if (fDur > w.b - w.a) {
+        fMin = snapMin(w.b) - fDur;      // длиннее света: золотой час уходит в конец
+        if (fMin < 0) fMin += 1440;
+      }
     }
     applyGenreShape();
   }
@@ -2044,7 +2068,9 @@
 
   function renderGenres() {
     var list = ALL_GENRES.filter(function (g) { return genresOn[g]; });
-    if (list.indexOf(shootType) === -1) shootType = list[0];
+    // жанр могли выключить в «Моих жанрах» — форму надо перестроить под подменённый
+    var swapped = list.indexOf(shootType) === -1;
+    if (swapped) shootType = list[0];
     $("fType").innerHTML = list.map(function (g) {
       return '<button class="chip' + (g === shootType ? " active" : "") + '">' + g + "</button>";
     }).join("");
@@ -2056,6 +2082,8 @@
         renderGenres(); refreshForm();
       });
     });
+    // подмена на лету касается только новой съёмки: сохранённой время не переписываем
+    if (swapped && editIdx === null) { applyGenrePreset(); refreshForm(); }
   }
   function renderWishes() {
     $("fWish").innerHTML = WISHES.map(function (w) {
@@ -2101,9 +2129,9 @@
     /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку */
     $("formSub").innerHTML = w.q === "poor"
       ? "В этот день окна света нет — время на ваше усмотрение"
-      : Math.abs(fMin - w.a) < 1
-        ? 'Свет подсказал время — <span class="t">начало ' + fmt(w.a) + "</span>"
-        : Math.abs(fMin + fDur - w.b) < 1
+      : fMin === snapMin(w.a)
+        ? 'Свет подсказал время — <span class="t">начало ' + fmt(fMin) + "</span>"
+        : fMin + fDur === snapMin(w.b)
           ? 'Съёмка длиннее света — <span class="t">золотой час в конце</span>'
           : 'Окно света — <span class="t">' + range(w.a, w.b) + "</span>";
     computeSun(keep);
@@ -2119,6 +2147,7 @@
     editIdx = (idx === undefined || idx === null) ? null : idx;
     if (editIdx !== null) {
       var s = sessions[editIdx];
+      fAuto = false;                     // время сохранённой съёмки принадлежит фотографу
       fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
       shootType = s.type; wish = s.wish || "Неважно";
       fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
@@ -2129,7 +2158,8 @@
       $("fContact").value = s.contact || "";
       $("fNotes").value = s.notes || "";
     } else {
-      fDate = new Date(d); fMin = startMin;
+      fAuto = true;
+      fDate = new Date(d); fMin = snapMin(startMin);
       $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
     }
