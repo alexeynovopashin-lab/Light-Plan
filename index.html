@@ -941,8 +941,9 @@
       </div>
     </div>
 
-    <div class="g-label">Сдать материал</div>
-    <div class="group">
+    <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
+    <div class="g-label" id="fDelvLabel">Сдать материал</div>
+    <div class="group" id="fDelvGroup">
       <div class="g-chips">
         <div class="chips" id="fDelv"></div>
         <div class="f-hint" id="fDelvHint">—</div>
@@ -956,7 +957,7 @@
     </div>
     <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
-    <div class="g-label">Место и клиент</div>
+    <div class="g-label" id="fWhoLabel">Место и клиент</div>
     <div class="group">
       <button class="row" id="fPlace">
         <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
@@ -1274,7 +1275,7 @@
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
         }),
-        delivery: delivery, genres: genresOn, sync: syncTarget
+        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, sync: syncTarget
       }));
     } catch (e) {}
   }
@@ -1869,7 +1870,11 @@
       return '<button class="chip' + (o[0] === fDelvChoice ? " active" : "") + '" data-i="' + i + '">' + o[1] + "</button>";
     }).join("");
     $("fDelv").querySelectorAll(".chip").forEach(function (ch) {
-      ch.addEventListener("click", function () { fDelvChoice = DELV_OPTS[+ch.dataset.i][0]; renderDelv(); });
+      ch.addEventListener("click", function () {
+        fDelvChoice = DELV_OPTS[+ch.dataset.i][0];
+        rememberGenre("delv", fDelvChoice);
+        renderDelv();
+      });
     });
     var probe = { date: fDate, type: shootType, deadlineChoice: fDelvChoice };
     var dd = deadlineDate(probe);
@@ -1936,6 +1941,7 @@
     if (d < 15) d = 15;
     if (d > 720) d = 720;   // конец раньше начала — это описка, а не сутки съёмки
     fDur = d;
+    rememberGenre("dur", fDur);
     var back = (((fMin + fDur) % 1440) + 1440) % 1440;
     if (back !== end) { syncWheel(fwEH, Math.floor(back / 60)); syncWheel(fwEM, back % 60); }
     refreshForm();
@@ -1979,6 +1985,59 @@
 
   /* Жанры: пользователь оставляет только свои */
   var ALL_GENRES = ["Портрет","Свадьбы","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
+
+  /* Жанр — пресет формы, а не профиль фотографа: свадебщик снимает и семью тоже.
+     delivery — есть ли кому сдавать материал, client — есть ли заказчик,
+     dur — обычная длительность в минутах (null: сколько длится свет) */
+  var GENRE = {
+    "Портрет":     { delivery: true,  client: true,  dur: 90 },
+    "Свадьбы":     { delivery: true,  client: true,  dur: 480 },
+    "Семья":       { delivery: true,  client: true,  dur: 90 },
+    "Пейзаж":      { delivery: false, client: false, dur: null },
+    "Архитектура": { delivery: true,  client: true,  dur: 120 },
+    "Стрит":       { delivery: false, client: false, dur: 180 },
+    "Репортаж":    { delivery: true,  client: true,  dur: 180 },
+    "Предметка":   { delivery: true,  client: true,  dur: 180 }
+  };
+  function genreSpec(g) { return GENRE[g] || { delivery: true, client: true, dur: 90 }; }
+
+  /* Правка внутри жанра запоминается и в следующий раз перебивает пресет */
+  var genrePrefs = (saved && saved.genrePrefs) || {};
+  function rememberGenre(key, val) {
+    if (!genrePrefs[shootType]) genrePrefs[shootType] = {};
+    genrePrefs[shootType][key] = val;
+    saveAll();
+  }
+  /* Показываем только то, что этому жанру нужно */
+  function applyGenreShape() {
+    var sp = genreSpec(shootType);
+    var d = sp.delivery ? "" : "none";
+    $("fDelvLabel").style.display = d;
+    $("fDelvGroup").style.display = d;
+    $("fContact").style.display = sp.client ? "" : "none";
+    $("fWhoLabel").textContent = sp.client ? "Место и клиент" : "Место";
+    if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
+  }
+  /* Смена жанра в форме подставляет его обычные значения */
+  function applyGenrePreset() {
+    var sp = genreSpec(shootType), pref = genrePrefs[shootType] || {};
+    fDelvChoice = sp.delivery ? (pref.delv !== undefined ? pref.delv : "auto") : null;
+    var dur = pref.dur !== undefined ? pref.dur : sp.dur;
+    if (dur === null || dur === undefined) {
+      var w = dayWindow(fDate);
+      dur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
+    }
+    fDur = dur;
+    /* Свадьба длиннее светового окна: начинать её на закате бессмысленно.
+       Двигаем начало назад, чтобы золотой час пришёлся на конец съёмки.
+       Трогаем только подсказанное светом время — выставленное руками не переставляем */
+    var w = dayWindow(fDate);
+    if (w.q !== "poor" && Math.abs(fMin - w.a) < 1 && fDur > w.b - w.a) {
+      fMin = Math.round(w.b) - fDur;
+      if (fMin < 0) fMin += 1440;
+    }
+    applyGenreShape();
+  }
   var genresOn = (saved && saved.genres) || { "Портрет": 1, "Свадьбы": 1, "Пейзаж": 1, "Архитектура": 1, "Стрит": 1 };
   var WISHES = ["Неважно", "Ясно", "Облачно", "Туман", "Звёзды"];
   var WANT = { "Ясно": "excellent", "Облачно": "good", "Туман": "fog" };
@@ -1990,7 +2049,12 @@
       return '<button class="chip' + (g === shootType ? " active" : "") + '">' + g + "</button>";
     }).join("");
     $("fType").querySelectorAll(".chip").forEach(function (ch) {
-      ch.addEventListener("click", function () { shootType = ch.textContent; renderGenres(); });
+      ch.addEventListener("click", function () {
+        if (ch.textContent === shootType) return;
+        shootType = ch.textContent;
+        applyGenrePreset();          // жанр перестраивает форму под себя
+        renderGenres(); refreshForm();
+      });
     });
   }
   function renderWishes() {
@@ -2034,9 +2098,14 @@
     $("fStartVal").textContent = fmt(fMin);
     $("fEndVal").textContent = fmt(fMin + fDur);
     $("fDurVal").textContent = durLabel(fDur);
+    /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку */
     $("formSub").innerHTML = w.q === "poor"
       ? "В этот день окна света нет — время на ваше усмотрение"
-      : 'Свет подсказал время — <span class="t">начало ' + fmt(w.a) + "</span>";
+      : Math.abs(fMin - w.a) < 1
+        ? 'Свет подсказал время — <span class="t">начало ' + fmt(w.a) + "</span>"
+        : Math.abs(fMin + fDur - w.b) < 1
+          ? 'Съёмка длиннее света — <span class="t">золотой час в конце</span>'
+          : 'Окно света — <span class="t">' + range(w.a, w.b) + "</span>";
     computeSun(keep);
 
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
@@ -2061,10 +2130,6 @@
       $("fNotes").value = s.notes || "";
     } else {
       fDate = new Date(d); fMin = startMin;
-      // по умолчанию длительность ≈ длине светового окна этого дня
-      var w = dayWindow(fDate);
-      fDur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
-      fDelvChoice = "auto";
       $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
     }
@@ -2075,7 +2140,10 @@
     $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
     closeRows();
-    renderGenres(); renderWishes(); renderDelv(); refreshForm();
+    renderGenres();                              // жанр может смениться: список настраивается
+    if (editIdx !== null) applyGenreShape();     // у записи свои значения, трогаем только состав блоков
+    else applyGenrePreset();                     // новая съёмка начинается с обычной для жанра
+    renderWishes(); renderDelv(); refreshForm();
     $("formOverlay").scrollTop = 0;
     $("formOverlay").classList.add("open");
   }
