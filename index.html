@@ -372,6 +372,16 @@
     font-size: 13px; font-weight: 600; color: #E2A44C; padding: 2px 0;
   }
 
+  /* Переключатель масштаба — текстовый, без плашки: навигация не спорит с контентом */
+  .scope { display: flex; justify-content: center; gap: 4px; padding: 16px 24px 0; }
+  .scope button {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.2px;
+    color: #55504A; padding: 5px 12px; border-radius: 8px;
+    transition: color 0.25s ease, background 0.25s ease;
+  }
+  .scope button.active { color: #E2A44C; background: #221D14; }
+
   .cal-nav {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 24px 0;
@@ -387,6 +397,8 @@
     letter-spacing: 0.6px; text-transform: uppercase; padding-bottom: 8px; font-weight: 600;
   }
   .cal { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; padding: 0 20px; }
+  /* display в CSS перебивает атрибут hidden — прячем масштабы явно */
+  .cal[hidden], .cal-head[hidden], .week[hidden] { display: none; }
   .cal .d {
     aspect-ratio: 1/1; border: none; background: none; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -414,6 +426,42 @@
   @keyframes ringBreath { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   @media (prefers-reduced-motion: reduce) { .d-n.breath::before { animation: none; } }
   .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; background: transparent; }
+  /* ---------- Недельный вид: семь световых лент ---------- */
+  .week { padding: 4px 20px 0; }
+  .wk-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    padding: 7px 4px; border-radius: 10px; text-align: left;
+    transition: background 0.2s ease;
+  }
+  .wk-row.sel { background: #1A1712; }
+  .wk-row:active { background: #17150F; }
+  /* День недели над числом — узкая колонка, числа как объекты композиции */
+  .wk-day { flex-shrink: 0; width: 34px; text-align: center; }
+  .wk-day .wd { font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase; color: #55504A; font-weight: 600; }
+  .wk-day .dn { font-size: 18px; color: #EFEAE0; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .wk-row.today .wk-day .wd, .wk-row.today .wk-day .dn { color: #E2A44C; }
+  .wk-row.past .wk-day .dn { color: #4A453E; }
+  /* Лента суток 0–24 ч: ночь тёмная, день светлее, золотые окна латунью */
+  .wk-track {
+    position: relative; flex: 1; height: 26px; border-radius: 6px;
+    background: #131110; overflow: hidden;
+  }
+  .wk-track .zday { position: absolute; top: 0; bottom: 0; background: #201C15; }
+  .wk-track .zgold { position: absolute; top: 0; bottom: 0; background: rgba(226,164,76,0.32); }
+  /* Восход и закат — тонкие латунные риски: гравировка прибора */
+  .wk-track .edge { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(226,164,76,0.5); }
+  /* Полдень — ориентир, едва заметная риска */
+  .wk-track .noon { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.06); }
+  /* Съёмка на ленте: сегмент начало–конец, цвет — срочность сдачи */
+  .wk-track .shoot {
+    position: absolute; top: 6px; height: 14px; min-width: 3px; border-radius: 3px;
+    background: #EFEAE0; box-shadow: 0 0 0 1px #131110;
+  }
+  .wk-sum { flex-shrink: 0; width: 30px; text-align: right; font-size: 12px;
+    color: #8A8478; font-variant-numeric: tabular-nums; }
+  .wk-sum.poor { color: #55504A; }
+
   .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
   .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8A8478; }
   .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
@@ -918,15 +966,24 @@
       </div>
     </div>
 
+    <!-- Масштаб временной линии: месяц или ближний недельный горизонт -->
+    <div class="scope" id="scopeSeg">
+      <button class="active" data-scope="month">Месяц</button>
+      <button data-scope="week">Неделя</button>
+    </div>
+
     <div class="cal-nav">
       <button id="calPrev">‹</button>
       <span class="m" id="calMonth">Июль</span>
       <button id="calNext">›</button>
     </div>
-    <div class="cal-head">
+    <div class="cal-head" id="calHead">
       <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
     </div>
     <div class="cal" id="cal"></div>
+
+    <!-- Неделя как семь световых лент: то, чего не знает календарь телефона -->
+    <div class="week" id="week" hidden></div>
 
     <div class="legend">
       <span><i style="background:#E2A44C"></i>Отличный свет</span>
@@ -1603,6 +1660,7 @@
   var viewMin = 0;                       // просматриваемое время
   var calMonth = new Date();             // месяц в календаре
   var calSel = new Date();               // выбранный день в календаре
+  var calScope = "month";                // масштаб: месяц или недельный горизонт
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
   var STORE = "lightplan.v1";
   function saveAll() {
@@ -2073,6 +2131,12 @@
   }
 
   function renderCal() {
+    var week = calScope === "week";
+    $("calHead").hidden = week;
+    $("cal").hidden = week;
+    $("week").hidden = !week;
+    if (week) { renderWeek(); return; }
+
     var grid = $("cal"); grid.innerHTML = "";
     $("calMonth").textContent = MONTHS_N[calMonth.getMonth()];
     $("calYear").textContent = calMonth.getFullYear();
@@ -2111,6 +2175,67 @@
       calMonth.getFullYear() !== now.getFullYear() || calMonth.getMonth() !== now.getMonth());
   }
 
+  /* ---------- Неделя: семь световых лент ---------- */
+  function addDays(d, n) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+  function weekStart(d) { return addDays(d, -(((d.getDay() + 6) % 7))); }   // понедельник
+  /* Свет дня без порчи текущего состояния купола */
+  function daySky(d) {
+    var keep = new Date(selDate);
+    computeSun(d);
+    var o = { rise: SUN.rise, set: SUN.set, blueA: SUN.blueA, goldA: SUN.goldA, goldB: SUN.goldB, blueB: SUN.blueB };
+    computeSun(keep);
+    return o;
+  }
+  function weekLabel(a, b) {
+    return a.getMonth() === b.getMonth()
+      ? a.getDate() + "–" + b.getDate() + " " + MONTHS[a.getMonth()]
+      : a.getDate() + " " + MON_S[a.getMonth()] + " – " + b.getDate() + " " + MON_S[b.getMonth()];
+  }
+  function renderWeek() {
+    var host = $("week"); host.innerHTML = "";
+    var start = weekStart(calSel), end = addDays(start, 6);
+    var today = new Date(); today.setHours(0,0,0,0);
+    $("calMonth").textContent = weekLabel(start, end);
+    $("calYear").textContent = start.getFullYear();
+    document.querySelector(".legend").style.display = "none";
+
+    var span = function (min) { return (clamp(min, 0, 1440) / 1440 * 100).toFixed(2) + "%"; };
+    var seg = function (a, b) {
+      return "left:" + span(a) + ";width:"
+        + ((clamp(b, 0, 1440) - clamp(a, 0, 1440)) / 1440 * 100).toFixed(2) + "%";
+    };
+    for (var i = 0; i < 7; i++) {
+      var d = addDays(start, i), sky = daySky(d), q = qualityOf(d);
+      var t = "";
+      t += '<span class="zday" style="' + seg(sky.rise, sky.set) + '"></span>';
+      if (q !== "poor") {   // золотые окна утром и вечером; в дождь их нет
+        t += '<span class="zgold" style="' + seg(sky.blueA, sky.goldA) + '"></span>';
+        t += '<span class="zgold" style="' + seg(sky.goldB, sky.blueB) + '"></span>';
+      }
+      t += '<span class="edge" style="left:' + span(sky.rise) + '"></span>';
+      t += '<span class="edge" style="left:' + span(sky.set) + '"></span>';
+      t += '<span class="noon" style="left:50%"></span>';
+      var shoots = sessions.filter(function (s) { return sameDay(s.date, d); })
+        .sort(function (a, b) { return a.min - b.min; });
+      shoots.forEach(function (s) {
+        var e = s.end != null ? s.end : s.min + (s.dur || 90);
+        t += '<span class="shoot" style="' + seg(s.min, e) + ";background:" + deliveryState(s).color + '"></span>';
+      });
+      var row = document.createElement("button");
+      row.className = "wk-row"
+        + (sameDay(d, today) ? " today" : "")
+        + (d < today ? " past" : "")
+        + (sameDay(d, calSel) ? " sel" : "");
+      row.innerHTML =
+        '<span class="wk-day"><span class="wd">' + WD[d.getDay()] + '</span><span class="dn">' + d.getDate() + "</span></span>"
+        + '<span class="wk-track">' + t + "</span>"
+        + '<span class="wk-sum' + (q === "poor" ? " poor" : "") + '">' + (shoots.length || "") + "</span>";
+      (function (dd) { row.addEventListener("click", function () { calSel = dd; renderCal(); renderDayPanel(); }); })(d);
+      host.appendChild(row);
+    }
+    $("calNow").classList.toggle("show", !sameDay(weekStart(calSel), weekStart(today)));
+  }
+
   /* ---------- Год: тот же календарь в меньшем масштабе ---------- */
   var yearShown = calMonth.getFullYear();
   function monthStat(y, m) {
@@ -2144,6 +2269,8 @@
           calSel = (yearShown === now.getFullYear() && mm === now.getMonth())
             ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
             : new Date(yearShown, mm, 1);
+          // из года попадаем в месяц — шаг вниз по масштабу, а не в чью-то неделю
+          setScope("month");
           $("yearOverlay").classList.remove("open");
           renderCal(); renderDayPanel();
         });
@@ -2979,12 +3106,34 @@
     go("s-today");
   });
 
-  $("calPrev").addEventListener("click", function () {
-    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1); renderCal();
+  /* Переключатель масштаба: месяц ⇄ ближний недельный горизонт */
+  function setScope(s) {
+    calScope = s;
+    $("scopeSeg").querySelectorAll("button").forEach(function (x) {
+      x.classList.toggle("active", x.dataset.scope === s);
+    });
+  }
+  $("scopeSeg").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (calScope === b.dataset.scope) return;
+      setScope(b.dataset.scope);
+      calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);   // масштабы синхронны по выбранному дню
+      renderCal();
+    });
   });
-  $("calNext").addEventListener("click", function () {
-    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); renderCal();
-  });
+  /* Стрелки листают месяцами или неделями — смотря какой масштаб открыт */
+  function stepCal(dir) {
+    if (calScope === "week") {
+      calSel = addDays(calSel, dir * 7);
+      calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
+      renderCal(); renderDayPanel();
+    } else {
+      calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + dir, 1);
+      renderCal();
+    }
+  }
+  $("calPrev").addEventListener("click", function () { stepCal(-1); });
+  $("calNext").addEventListener("click", function () { stepCal(1); });
   /* Год — масштаб, а не шаг назад: открываем календарь целиком */
   $("yearBack").addEventListener("click", function () {
     yearShown = calMonth.getFullYear();
