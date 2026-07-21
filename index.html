@@ -1498,9 +1498,13 @@
     plain:     { dot: null,      verdict: "Обычный день",  vcol: "#8A8478", why: "Ничего примечательного",     sky: "Переменно", cond: "Переменно", cloud: 60 },
     poor:      { dot: "#7C9CC4", verdict: "Пасмурно",      vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cond: "Дождь", cloud: 92 }
   };
+  /* Реальная погода Open-Meteo перекрывает мок; ключ как у мока: Y-M(0..11)-D */
+  var wxReal = {};
+  function dkey(d) { return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
   var qCache = {};
   function qualityOf(d) {
-    var key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+    var key = dkey(d);
+    if (wxReal[key]) return wxReal[key].q;    // настоящий прогноз, если загружен
     if (qCache[key]) return qCache[key];
     var r = mulberry32(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate())();
     var q = r > 0.80 ? "excellent" : r > 0.62 ? "good" : r > 0.38 ? "plain"
@@ -1518,7 +1522,8 @@
   /* Детали погоды дня: температура, ветер, тренд облачности к окну съёмки */
   var wCache = {};
   function dayWeather(d) {
-    var key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+    var key = dkey(d);
+    if (wxReal[key]) return wxReal[key];         // настоящий прогноз, если загружен
     if (wCache[key]) return wCache[key];
     var q = qualityOf(d);
     var r = mulberry32(d.getFullYear() * 131 + (d.getMonth() + 1) * 17 + d.getDate());
@@ -1530,6 +1535,69 @@
     var w = { q: q, cloud: c0, tempBase: tempBase, wind: wind, trend: trend };
     wCache[key] = w; return w;
   }
+
+  /* ============================================================
+     ПОГОДА OPEN-METEO — заменяет выдумку, когда есть сеть
+     Синхронный интерфейс сохранён: qualityOf/dayWeather читают wxReal.
+     Офлайн или вне 16-дневного окна — тихий откат на мок выше.
+     ============================================================ */
+  var wxKey = null, wxLive = false, wxTimer = null;
+  /* Качество дня из облачности, кода погоды и осадков */
+  function deriveQ(cloud, code, precip, fogAM) {
+    if (fogAM) return "fog";
+    if (precip > 0.5 || code >= 51) return "poor";   // морось, дождь, снег, гроза
+    if (cloud < 25) return "excellent";
+    if (cloud < 55) return "good";
+    return "plain";
+  }
+  function buildWx(h) {
+    var days = {};
+    for (var i = 0; i < h.time.length; i++) {
+      var dt = h.time[i], date = dt.slice(0, 10), hh = +dt.slice(11, 13);
+      var day = days[date] || (days[date] = { cSum: 0, cN: 0, precip: 0, winds: [], temps: [], byHour: {}, fogAM: false });
+      if (hh >= 8 && hh <= 20) { day.cSum += h.cloud_cover[i]; day.cN++; day.winds.push(h.wind_speed_10m[i]); }
+      day.precip += h.precipitation[i] || 0;
+      day.temps.push(h.temperature_2m[i]);
+      day.byHour[hh] = { cloud: h.cloud_cover[i], code: h.weather_code[i] };
+      if (hh >= 5 && hh <= 9 && (h.weather_code[i] === 45 || h.weather_code[i] === 48)) day.fogAM = true;
+    }
+    var mean = function (a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; };
+    var out = {};
+    for (var date in days) {
+      var d = days[date];
+      var cloud = d.cN ? Math.round(d.cSum / d.cN) : 50;
+      var code = (d.byHour[15] || d.byHour[12] || { code: 0 }).code;
+      var p = date.split("-");
+      out[(+p[0]) + "-" + (+p[1] - 1) + "-" + (+p[2])] = {
+        q: deriveQ(cloud, code, d.precip, d.fogAM),
+        cloud: cloud,
+        tempBase: Math.round(mean(d.temps)),
+        wind: Math.round(mean(d.winds)),
+        trend: [16, 17, 18, 19, 20, 21].map(function (hh) { return (d.byHour[hh] || { cloud: cloud }).cloud; }),
+        real: true
+      };
+    }
+    return out;
+  }
+  function fetchWeather() {
+    if (typeof fetch === "undefined") return;
+    var key = LAT.toFixed(3) + "," + LON.toFixed(3);
+    if (key === wxKey && wxLive) return;         // это место уже загружено
+    wxKey = key;
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + LAT + "&longitude=" + LON
+      + "&hourly=cloud_cover,temperature_2m,wind_speed_10m,precipitation,weather_code"
+      + "&forecast_days=16&past_days=5&timezone=auto&windspeed_unit=ms";
+    fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.hourly || key !== wxKey) return;    // место успело смениться — ответ уже неактуален
+      wxReal = buildWx(j.hourly);
+      if (isFinite(j.utc_offset_seconds)) TZ = j.utc_offset_seconds / 3600;   // настоящий пояс — бонусом
+      wxLive = true;
+      qCache = {}; wCache = {};                   // мок для этих дат больше не нужен
+      applyDate(viewMin); renderCal(); renderDayPanel();
+    }).catch(function () { wxLive = false; });     // офлайн — молча остаётся мок
+  }
+  /* При таскании карты moveend сыплется часто — не дёргаем сервер на каждый кадр */
+  function scheduleWeather() { clearTimeout(wxTimer); wxTimer = setTimeout(fetchWeather, 500); }
   function tempAt(base, t) { return Math.round(base + 5 * Math.sin((t - 600) / 1440 * 2 * Math.PI)); }
   function windWord(w) { return w <= 1 ? "штиль" : w <= 3 ? "слабый" : w <= 6 ? "умеренный" : "сильный"; }
   function durShort(m) {
@@ -2011,11 +2079,10 @@
       ]],
       ["cloud", "Погода", [
         ["Небо", QUAL[q].sky],
-        ["Облачность", QUAL[q].cloud + "%"],
-        ["Температура", "19 °C · ощущается 18 °C"],
-        ["Влажность", "62% · точка росы 11 °C"],
-        ["Ветер", "3 м/с · " + dirOf(az)],
-        ["Видимость", "24 км"]
+        ["Облачность", (curWeather ? curWeather.cloud : QUAL[q].cloud) + "%"],
+        ["Температура", tempAt((curWeather || { tempBase: 19 }).tempBase, t) + " °C"],
+        ["Ветер", (curWeather ? curWeather.wind : 3) + " м/с · " + windWord(curWeather ? curWeather.wind : 3)],
+        ["Источник", wxLive ? "Open-Meteo · прогноз" : "прогноз имитируется"]
       ]]
     ]));
   }
@@ -2135,6 +2202,7 @@
     $("mLocName").textContent = nameLabel || nearPlaceName(lat, lon);
     saveAll();                 // место переживает перезапуск
     applyDate(viewMin);        // весь свет пересчитывается на новое место
+    scheduleWeather();         // и погода нового места подтянется
   }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
@@ -3328,6 +3396,7 @@
   renderCal(); renderDayPanel(); renderSessions();
   measureDock();
   window.addEventListener("resize", measureDock);
+  fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
 })();
 </script>
 </body>
