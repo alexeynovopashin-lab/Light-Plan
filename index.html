@@ -67,7 +67,11 @@
     padding: 60px 24px 0; display: flex;
     justify-content: space-between; align-items: flex-start; flex-shrink: 0;
   }
-  .loc .name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+  /* Место — кнопка: тап открывает выбор координат */
+  .loc { background: none; border: none; padding: 0; margin: 0; font-family: inherit; text-align: left; cursor: pointer; color: inherit; }
+  .loc .name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; display: inline-flex; align-items: center; gap: 5px; }
+  .loc-pin { width: 13px; height: 13px; stroke: #635E54; fill: none; stroke-width: 1.6; }
+  .loc:active .loc-pin { stroke: #E2A44C; }
   .loc .date {
     font-size: 11px; color: #8A8478; text-transform: uppercase;
     letter-spacing: 0.6px; margin-top: 3px; font-weight: 500;
@@ -221,8 +225,15 @@
     -webkit-appearance: none; appearance: none; width: 100%; height: 36px;
     background: transparent; outline: none; cursor: pointer; display: block; margin: 0;
   }
-  .scrub::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #2B2822; }
-  .scrub::-moz-range-track { height: 4px; border-radius: 2px; background: #2B2822; }
+  /* Скромный градиент: тёплые края — рассвет и закат, нейтральный полдень */
+  .scrub::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(201,133,63,0.55), #2B2822 26%, #2B2822 74%, rgba(201,133,63,0.55));
+  }
+  .scrub::-moz-range-track {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(201,133,63,0.55), #2B2822 26%, #2B2822 74%, rgba(201,133,63,0.55));
+  }
   .scrub::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 26px; height: 26px; border-radius: 50%;
@@ -610,6 +621,28 @@
   /* «Мои жанры» вызываются из формы, а форма лежит выше обычных листов (80) */
   #gScrim { z-index: 84; }
   #gSheet { z-index: 86; }
+
+  /* Лист выбора места */
+  .loc-detect {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    width: 100%; margin-top: 18px; padding: 14px;
+    background: #221D14; border: none; border-radius: 12px; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 600; color: #E2A44C;
+  }
+  .loc-detect svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .loc-detect:active { opacity: 0.6; }
+  .loc-fields { display: flex; gap: 10px; margin-top: 12px; }
+  .loc-fields label {
+    flex: 1; display: flex; flex-direction: column; gap: 6px;
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #55504A; font-weight: 600;
+  }
+  .loc-fields input {
+    background: #17150F; border: none; border-radius: 12px; padding: 13px 14px;
+    color: #EFEAE0; font-family: inherit; font-size: 16px; outline: none;
+    -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
+  }
+  .loc-fields input:focus { background: #221F19; }
+  .loc-err { min-height: 16px; margin-top: 8px; font-size: 12px; color: #C9663D; }
   .grip { width: 38px; height: 4px; border-radius: 3px; background: #38332B; margin: 0 auto 18px; }
   .sheet-title { font-size: 19px; font-weight: 650; letter-spacing: -0.2px; }
   .sheet-sub { font-size: 13px; color: #8A8478; margin-top: 5px; }
@@ -863,11 +896,11 @@
   <!-- ============ СЕГОДНЯ ============ -->
   <section class="screen active" id="s-today">
     <div class="header">
-      <div class="loc">
-        <div class="name">Северный объезд</div>
+      <button class="loc" id="todayLoc" aria-label="Сменить место">
+        <div class="name"><span id="hLocName">Северный объезд</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
         <div class="date" id="hDate">ЧТ · 16 июля</div>
         <div class="head-note" id="hNote">сегодня</div>
-      </div>
+      </button>
       <div class="head-wx">
         <div class="hw-top"><span id="hwIcon"></span><span class="temp" id="hwTemp">—</span></div>
         <div class="hw-cond" id="hwCond">—</div>
@@ -939,6 +972,7 @@
 
     <div class="telemetry">
       <div class="t-row"><span class="t-label">Условия</span><span class="t-value rec" id="tRec">—</span></div>
+      <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="tGolden">—</span></div>
       <div class="t-row"><span class="t-label">Свет</span><span class="t-value" id="tLight">—</span></div>
       <div class="t-row"><span class="t-label">Тени</span><span class="t-value" id="tShadow">—</span></div>
       <div class="t-row"><span class="t-label">Небо</span><span class="t-value" id="tSky">—</span></div>
@@ -1283,6 +1317,24 @@
     <div id="searchResults"></div>
   </div>
 
+  <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
+  <div class="scrim" id="locScrim"></div>
+  <div class="sheet" id="locSheet">
+    <div class="grip"></div>
+    <div class="sheet-title">Где снимаем</div>
+    <div class="sheet-sub">Определить по геолокации или ввести координаты</div>
+    <button class="loc-detect" id="locDetect">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      <span id="locDetectLbl">Определить моё место</span>
+    </button>
+    <div class="loc-fields">
+      <label>Широта<input id="locLat" type="text" inputmode="decimal" placeholder="56.021"/></label>
+      <label>Долгота<input id="locLon" type="text" inputmode="decimal" placeholder="37.482"/></label>
+    </div>
+    <div class="loc-err" id="locErr"></div>
+    <button class="sheet-done" id="locDone">Готово</button>
+  </div>
+
   <!-- ============ МОИ ЖАНРЫ ============ -->
   <div class="scrim" id="gScrim"></div>
   <div class="sheet" id="gSheet">
@@ -1549,7 +1601,26 @@
      Офлайн или вне 16-дневного окна — тихий откат на мок выше.
      ============================================================ */
   var wxKey = null, wxLive = false, wxTimer = null;
-  /* Качество дня из облачности, кода погоды и осадков */
+
+  /* ---- Закатный балл по трём ярусам облаков ----
+     Низкий ярус (0–2 км) — блокиратор: закрывает горизонт, свет не пробьётся выше.
+     Средний (2–7 км) — текстура: ловит объём, лиловый и оранжевый.
+     Верхний (>7 км) — экран: перистые держат afterglow, дают красный и розовый.
+     Влажность — дымка (рассеяние Ми), гасит чистый цвет. */
+  function bell(x, c, w) { var z = (x - c) / w; return Math.exp(-z * z); }   // 0..1, пик в c
+  function sunsetScore(low, mid, high, hum) {
+    var hi = bell(high, 50, 30);            // экран afterglow: лучший около 50%
+    var md = bell(mid, 45, 30);             // текстура: лучшая около 45%
+    var canvas = 30 + hi * 45 + md * 25;    // чистое небо — приятно, но не шедевр
+    // Зазор на горизонте — множитель, а не вычитание: низкие гасят весь путь света
+    var gap = low <= 20 ? 1 : low >= 70 ? 0.05 : 1 - (low - 20) / 50 * 0.95;
+    var score = canvas * gap;
+    if (hum > 70) score -= (hum - 70) * 0.6;   // дымка от влаги
+    return clamp(Math.round(score), 0, 100);
+  }
+  function scoreCat(s) { return s >= 75 ? "excellent" : s >= 50 ? "good" : s >= 28 ? "plain" : "poor"; }
+
+  /* Качество дня без ярусов (полярный день/ночь, откат) — по общей облачности */
   function deriveQ(cloud, code, precip, fogAM) {
     if (fogAM) return "fog";
     if (precip > 0.5 || code >= 51) return "poor";   // морось, дождь, снег, гроза
@@ -1558,6 +1629,7 @@
     return "plain";
   }
   function buildWx(h) {
+    var has = function (k) { return h[k] && h[k].length; };
     var days = {};
     for (var i = 0; i < h.time.length; i++) {
       var dt = h.time[i], date = dt.slice(0, 10), hh = +dt.slice(11, 13);
@@ -1565,19 +1637,38 @@
       if (hh >= 8 && hh <= 20) { day.cSum += h.cloud_cover[i]; day.cN++; day.winds.push(h.wind_speed_10m[i]); }
       day.precip += h.precipitation[i] || 0;
       day.temps.push(h.temperature_2m[i]);
-      day.byHour[hh] = { cloud: h.cloud_cover[i], code: h.weather_code[i] };
+      day.byHour[hh] = {
+        cloud: h.cloud_cover[i], code: h.weather_code[i],
+        low: has("cloud_cover_low") ? h.cloud_cover_low[i] : h.cloud_cover[i],
+        mid: has("cloud_cover_mid") ? h.cloud_cover_mid[i] : 0,
+        high: has("cloud_cover_high") ? h.cloud_cover_high[i] : 0,
+        hum: has("relative_humidity_2m") ? h.relative_humidity_2m[i] : 50
+      };
       if (hh >= 5 && hh <= 9 && (h.weather_code[i] === 45 || h.weather_code[i] === 48)) day.fogAM = true;
     }
     var mean = function (a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; };
+    var nearHour = function (bh, hr) {
+      for (var o = 0; o <= 3; o++) { if (bh[hr - o]) return bh[hr - o]; if (bh[hr + o]) return bh[hr + o]; }
+      return null;
+    };
     var out = {};
     for (var date in days) {
-      var d = days[date];
+      var d = days[date], p = date.split("-");
       var cloud = d.cN ? Math.round(d.cSum / d.cN) : 50;
       var code = (d.byHour[15] || d.byHour[12] || { code: 0 }).code;
-      var p = date.split("-");
+      // Ярусы облаков в час заката — там и решается, каким будет закат
+      computeSun(new Date(+p[0], +p[1] - 1, +p[2]));   // applyDate ниже вернёт SUN на selDate
+      var q, score = null, layers = null;
+      var lay = SUN.set !== null ? nearHour(d.byHour, clamp(Math.round(SUN.set / 60), 0, 23)) : null;
+      // Балл считаем всегда, когда есть ярусы — даже в дождь честнее показать низкий
+      if (lay) { score = sunsetScore(lay.low, lay.mid, lay.high, lay.hum); layers = lay; }
+      // Дождь и туман перебивают категорию дня; иначе категория из балла
+      if (d.fogAM) q = "fog";
+      else if (d.precip > 0.5 || code >= 51) q = "poor";
+      else if (score !== null) q = scoreCat(score);
+      else q = deriveQ(cloud, code, d.precip, d.fogAM);
       out[(+p[0]) + "-" + (+p[1] - 1) + "-" + (+p[2])] = {
-        q: deriveQ(cloud, code, d.precip, d.fogAM),
-        cloud: cloud,
+        q: q, cloud: cloud, sunset: score, layers: layers,
         tempBase: Math.round(mean(d.temps)),
         wind: Math.round(mean(d.winds)),
         trend: [16, 17, 18, 19, 20, 21].map(function (hh) { return (d.byHour[hh] || { cloud: cloud }).cloud; }),
@@ -1592,7 +1683,7 @@
     if (key === wxKey && wxLive) return;         // это место уже загружено
     wxKey = key;
     var url = "https://api.open-meteo.com/v1/forecast?latitude=" + LAT + "&longitude=" + LON
-      + "&hourly=cloud_cover,temperature_2m,wind_speed_10m,precipitation,weather_code"
+      + "&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,temperature_2m,wind_speed_10m,precipitation,weather_code"
       + "&forecast_days=16&past_days=5&timezone=auto&windspeed_unit=ms";
     fetch(url).then(function (r) { return r.json(); }).then(function (j) {
       if (!j.hourly || key !== wxKey) return;    // место успело смениться — ответ уже неактуален
@@ -1979,6 +2070,9 @@
     var qcol = st.tone === "excellent" ? col : TONE[st.tone];
     $("tRec").style.color = qcol;
     $("tRec").innerHTML = (st.stars ? starGlyph() : meterHTML(st.level, qcol)) + '<span>' + st.rec + '</span>';
+    // Золотой час — окно, не момент: чтобы не спутать его с закатом
+    $("tGolden").textContent = (SUN.goldB === null || SUN.set === null)
+      ? "—" : range(SUN.goldB, SUN.blueB) + " · до заката " + fmt(SUN.set);
     $("tLight").textContent = st.light;
     $("tShadow").textContent = shadowWord(t);
 
@@ -2094,7 +2188,21 @@
         ["Ветер", (curWeather ? curWeather.wind : 3) + " м/с · " + windWord(curWeather ? curWeather.wind : 3)],
         ["Источник", wxLive ? "Open-Meteo · прогноз" : "прогноз имитируется"]
       ]]
-    ]));
+    ])) + (
+      // Прогноз заката по ярусам — только когда есть настоящие данные
+      (curWeather && curWeather.sunset !== null && curWeather.layers) ? proHTML([
+        ["sunset", "Прогноз заката", [
+          ["Оценка", curWeather.sunset + " / 100 · " + sunsetWord(curWeather.sunset)],
+          ["Нижний ярус", Math.round(curWeather.layers.low) + "% · экран горизонта"],
+          ["Средний ярус", Math.round(curWeather.layers.mid) + "% · текстура"],
+          ["Верхний ярус", Math.round(curWeather.layers.high) + "% · afterglow"],
+          ["Влажность", Math.round(curWeather.layers.hum) + "%"]
+        ]]
+      ]) : "");
+  }
+  function sunsetWord(s) {
+    return s >= 75 ? "закат обещает быть красивым" : s >= 50 ? "закат с цветом"
+      : s >= 28 ? "спокойный закат" : "цвета почти не будет";
   }
 
   /* ============================================================
@@ -2206,13 +2314,28 @@
   function nearPlaceName(lat, lon) {
     return (Math.abs(lat - 56.02) < 0.02 && Math.abs(lon - 37.48) < 0.02) ? "Северный объезд" : "Своя точка";
   }
+  function locDisplay(lat, lon, nameLabel) {
+    var n = nameLabel || nearPlaceName(lat, lon);
+    return n === "Своя точка" ? coordText(lat, lon) : n;   // «Своя точка» — покажем координаты
+  }
   function setLocation(lat, lon, nameLabel) {
     LAT = lat; LON = lon; TZ = tzFor(lon);
+    var disp = locDisplay(lat, lon, nameLabel);
     $("mCoords").textContent = coordText(lat, lon);
     $("mLocName").textContent = nameLabel || nearPlaceName(lat, lon);
+    if ($("hLocName")) $("hLocName").textContent = disp;   // место обновляется и на «Сегодня»
     saveAll();                 // место переживает перезапуск
     applyDate(viewMin);        // весь свет пересчитывается на новое место
     scheduleWeather();         // и погода нового места подтянется
+  }
+  /* Сменить место и подвинуть под него карту — общий путь для «Сегодня» и геолокации */
+  function gotoLocation(lat, lon, nameLabel) {
+    if (lmap) {
+      mapQuiet = true;
+      lmap.setView([lat, lon], lmap.getZoom() || 13, { animate: false });
+      setTimeout(function () { mapQuiet = false; }, 300);
+    }
+    setLocation(lat, lon, nameLabel);
   }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
@@ -3374,14 +3497,43 @@
     t.addEventListener("click", function () { t.classList.toggle("on"); });
   });
 
-  /* «Моё место» — по геолокации браузера, только по запросу пользователя */
-  $("mapHere").addEventListener("click", function () {
-    if (!navigator.geolocation) { $("mLocName").textContent = "Геолокация недоступна"; return; }
+  /* Геолокация браузера — общий помощник; only по запросу пользователя */
+  function detectLocation(onDone, onFail) {
+    if (!navigator.geolocation) { if (onFail) onFail("Геолокация недоступна"); return; }
     navigator.geolocation.getCurrentPosition(function (p) {
-      var la = p.coords.latitude, lo = p.coords.longitude;
-      if (lmap) { mapQuiet = true; lmap.setView([la, lo], 15, { animate: true }); setTimeout(function () { mapQuiet = false; }, 500); }
-      setLocation(la, lo, "Моё место");
-    }, function () { $("mLocName").textContent = "Место не определено"; }, { enableHighAccuracy: true, timeout: 8000 });
+      gotoLocation(p.coords.latitude, p.coords.longitude, "Моё место");
+      if (onDone) onDone();
+    }, function () { if (onFail) onFail("Место не определено"); }, { enableHighAccuracy: true, timeout: 8000 });
+  }
+  $("mapHere").addEventListener("click", function () {
+    detectLocation(null, function (m) { $("mLocName").textContent = m; });
+  });
+
+  /* Лист «Где снимаем» — открывается кнопкой места на «Сегодня» */
+  function openLocSheet() {
+    $("locLat").value = LAT.toFixed(4);
+    $("locLon").value = LON.toFixed(4);
+    $("locErr").textContent = "";
+    $("locDetectLbl").textContent = "Определить моё место";
+    $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
+  }
+  function closeLocSheet() { $("locSheet").classList.remove("open"); $("locScrim").classList.remove("open"); }
+  $("todayLoc").addEventListener("click", openLocSheet);
+  $("locScrim").addEventListener("click", closeLocSheet);
+  $("locDetect").addEventListener("click", function () {
+    $("locDetectLbl").textContent = "Определяю…";
+    detectLocation(function () {
+      $("locLat").value = LAT.toFixed(4); $("locLon").value = LON.toFixed(4);
+      closeLocSheet();
+    }, function (m) { $("locErr").textContent = m; $("locDetectLbl").textContent = "Определить моё место"; });
+  });
+  $("locDone").addEventListener("click", function () {
+    var la = parseFloat(($("locLat").value || "").replace(",", "."));
+    var lo = parseFloat(($("locLon").value || "").replace(",", "."));
+    if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = "Широта — число от −90 до 90"; return; }
+    if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = "Долгота — число от −180 до 180"; return; }
+    gotoLocation(la, lo, null);
+    closeLocSheet();
   });
 
   var tabs = document.querySelectorAll(".tab");
@@ -3405,6 +3557,7 @@
 
   /* ---------- Старт ---------- */
   document.body.dataset.tab = "s-today";
+  $("hLocName").textContent = locDisplay(LAT, LON);   // имя восстановленного места
   applyDate();
   renderDelvSettings();
   renderCal(); renderDayPanel(); renderSessions();
