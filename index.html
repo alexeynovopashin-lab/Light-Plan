@@ -592,7 +592,8 @@
     border-radius: 50%; background: #fff; transition: transform 0.3s ease;
   }
   .toggle.on::after { transform: translateX(20px); }
-  .foot { text-align: center; color: #45403A; font-size: 12px; padding: 36px 0 12px; }
+  .foot { text-align: center; color: #45403A; font-size: 12px; padding: 36px 0 12px; line-height: 1.7; }
+  #buildInfo { color: #38332B; font-variant-numeric: tabular-nums; }
 
   /* ---------- Таб-бар ---------- */
   .tabbar {
@@ -1148,7 +1149,7 @@
     <div class="item"><span class="k">Температура</span><span class="v">°C ›</span></div>
     <div class="item"><span class="k">Язык</span><span class="v">Русский ›</span></div>
 
-    <div class="foot">Light Plan · прибор для света</div>
+    <div class="foot">Light Plan · прибор для света<br><span id="buildInfo">сборка —</span></div>
   </section>
 
   <!-- ============ ТАБ-БАР ============ -->
@@ -3346,18 +3347,27 @@
       if (tk !== lastTick) { lastTick = tk; tickClick(); }
       setView(t);
     }
+    /* Ось решается по первому движению: горизонталь — тянем солнце, вертикаль —
+       отдаём странице скролл. Касание само по себе солнце не двигает — только
+       осознанный горизонтальный жест. Так пропадает и рывок, и драка со скроллом. */
+    var startX = 0, startY = 0, pid = null, pending = false, THRESH = 6;
     dome.addEventListener("pointerdown", function (e) {
-      if (e.target.closest("#readout") || e.target.closest("#skySwap")) return;   // их собственные клики
-      var t = pointToTime(e); if (t === null) return;
-      dragging = true; initAudio();
-      try { dome.setPointerCapture(e.pointerId); } catch (x) {}
-      apply(t);
+      if (e.target.closest("#readout") || e.target.closest("#skySwap")) return;
+      if (pointToTime(e) === null) return;   // ниже горизонта — не наша зона
+      startX = e.clientX; startY = e.clientY; pid = e.pointerId; pending = true; dragging = false;
     });
     dome.addEventListener("pointermove", function (e) {
-      if (!dragging) return;
+      if (!pending && !dragging) return;
+      if (!dragging) {
+        var dx = e.clientX - startX, dy = e.clientY - startY;
+        if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) return;   // жест ещё не определился
+        if (Math.abs(dx) <= Math.abs(dy)) { pending = false; return; } // вертикаль — это скролл, не наше
+        dragging = true; pending = false; initAudio();
+        try { dome.setPointerCapture(pid); } catch (x) {}
+      }
       var t = pointToTime(e); if (t !== null) apply(t);
     });
-    function end() { dragging = false; }
+    function end() { pending = false; dragging = false; }
     dome.addEventListener("pointerup", end);
     dome.addEventListener("pointercancel", end);
   })();
@@ -3640,6 +3650,12 @@
   /* ---------- Старт ---------- */
   document.body.dataset.tab = "s-today";
   applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
+  // Номер сборки — из даты файла (Last-Modified на Pages), без ручного счётчика
+  (function () {
+    var d = new Date(document.lastModified), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    var s = isNaN(d) ? "—" : p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    $("buildInfo").textContent = "сборка " + s;
+  })();
   applyDate();
   renderDelvSettings();
   renderCal(); renderDayPanel(); renderSessions();
