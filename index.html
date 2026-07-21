@@ -342,6 +342,14 @@
     border-top: 1px solid rgba(255,255,255,0.05);
   }
   .year-sum b { color: #A8A093; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .year-profit {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    margin-top: 12px; padding: 0; font-size: 13px; color: #8A8478;
+  }
+  .year-profit:active { color: #E2A44C; }
+  .year-profit-val { margin-top: 12px; font-size: 13px; color: #635E54; font-variant-numeric: tabular-nums; }
+  .year-profit-val b { color: #E2A44C; font-weight: 650; font-size: 20px; letter-spacing: -0.3px; }
+  .year-profit-val b.neg { color: #C9663D; }
   .ym {
     background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
     padding: 12px 10px; border-radius: 12px; color: #EFEAE0;
@@ -817,6 +825,27 @@
   .group input::placeholder, .group textarea::placeholder { color: #4A453E; }
   .group textarea { resize: none; min-height: 92px; line-height: 1.5; }
 
+  /* Оплата: строка «подпись — поле», число прижато вправо и в моно */
+  .pay-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 13px 15px; min-height: 50px;
+  }
+  .pay-row .k { font-size: 15px; color: #EFEAE0; flex-shrink: 0; white-space: nowrap; }
+  .pay-in {
+    background: none; border: none; text-align: right; flex: 1; min-width: 0;
+    color: #EFEAE0; font-family: inherit; font-size: 16px; outline: none;
+    -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
+  }
+  .pay-in::placeholder { color: #4A453E; }
+  .pay-in:focus { color: #E2A44C; }
+  .pay-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 14px 15px; font-variant-numeric: tabular-nums;
+  }
+  .pay-total .lbl { font-size: 13px; color: #8A8478; }
+  .pay-total .val { font-size: 18px; font-weight: 650; color: #E2A44C; }
+  .pay-total .val.neg { color: #C9663D; }
+
   .back {
     background: none; border: none; color: #8A8478; cursor: pointer;
     font-family: inherit; font-size: 15px; padding: 8px 0;
@@ -1283,6 +1312,25 @@
     </div>
     <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
+    <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
+    <div class="g-label" id="fPayLabel">Оплата</div>
+    <div class="group" id="fPayGroup">
+      <div class="g-chips"><div class="chips" id="fPayType"></div></div>
+      <div class="pay-row sep">
+        <span class="k" id="fRateLabel">Ставка, ₽/час</span>
+        <input class="pay-in" type="text" inputmode="numeric" id="fRate" placeholder="0"/>
+      </div>
+      <div class="pay-row sep" id="fUnitsRow" hidden>
+        <span class="k" id="fUnitsLabel">Сколько объектов</span>
+        <input class="pay-in" type="text" inputmode="numeric" id="fUnits" placeholder="1"/>
+      </div>
+      <div class="pay-row sep">
+        <span class="k">Расходы, ₽</span>
+        <input class="pay-in" type="text" inputmode="numeric" id="fExpense" placeholder="0"/>
+      </div>
+      <div class="pay-total sep" id="fPayTotal">—</div>
+    </div>
+
     <div class="g-label" id="fWhoLabel">Место и клиент</div>
     <div class="group">
       <button class="row" id="fPlace">
@@ -1312,6 +1360,9 @@
     </div>
     <div class="year-grid" id="yearGrid"></div>
     <div class="year-sum" id="yearSum">—</div>
+    <!-- Прибыль под скрытой кнопкой: деньги не первое, что видишь (Anti-Goals) -->
+    <button class="year-profit" id="yearProfitBtn" hidden>Показать прибыль за год ›</button>
+    <div class="year-profit-val" id="yearProfitVal" hidden></div>
   </div>
 
   <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
@@ -1350,6 +1401,15 @@
     <div class="sheet-title">Мои жанры</div>
     <div class="sheet-sub">Оставьте только то, что снимаете — остальное уйдёт из формы</div>
     <div class="chips" id="gList" style="margin-top:18px;"></div>
+
+    <div class="g-label" style="margin: 22px 4px 9px;">Гонорар</div>
+    <div class="group">
+      <div class="pay-row">
+        <span class="k">Стоимость часа по умолчанию, ₽</span>
+        <input class="pay-in" type="text" inputmode="numeric" id="gRate" placeholder="0"/>
+      </div>
+    </div>
+
     <button class="sheet-done" id="gDone">Готово</button>
   </div>
 
@@ -1889,7 +1949,7 @@
           return o;
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, sync: syncTarget,
-        loc: { lat: LAT, lon: LON }
+        defaultRate: defaultRate, loc: { lat: LAT, lon: LON }
       }));
     } catch (e) {}
   }
@@ -1911,6 +1971,22 @@
 
   var sessions = saved && saved.sessions ? saved.sessions : [];
   var syncTarget = saved && saved.sync ? saved.sync : "off";
+  var defaultRate = saved && saved.defaultRate ? saved.defaultRate : 0;   // ставка ₽/час по умолчанию
+
+  /* ---------- Деньги: доход, расходы, прибыль ---------- */
+  function money(n) {
+    n = Math.round(n || 0);
+    return n.toLocaleString("ru-RU") + " ₽";
+  }
+  function sessionIncome(s) {
+    if (!s || !s.pay) return 0;
+    var mech = PAY[s.pay] ? PAY[s.pay].m : s.pay;   // s.pay — ключ способа, из него механика
+    var r = +s.rate || 0;
+    if (mech === "hourly") return r * ((s.dur || 0) / 60);   // ставка × часы
+    if (mech === "unit")   return r * (+s.units || 0);        // цена × количество
+    return r;                                                // flat: сдельно / пакет
+  }
+  function sessionNet(s) { return sessionIncome(s) - (+(s && s.expense) || 0); }
 
   /* ---------- Сдача материала ---------- */
   var GENRE_DEADLINE = { "Свадьбы": 90, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
@@ -2569,7 +2645,13 @@
       ? "<b>" + all.length + "</b> " + shootWord(all.length)
         + (ahead ? " · ближайшая <b>" + ahead.date.getDate() + " " + MONTHS[ahead.date.getMonth()] + "</b>" : "")
       : "Съёмок в этом году нет";
+    // Прибыль — под скрытой кнопкой; при перерисовке года прячем снова
+    yearProfitAmt = all.reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
+    $("yearProfitBtn").hidden = !all.length;
+    $("yearProfitBtn").textContent = "Показать прибыль за год ›";
+    $("yearProfitVal").hidden = true;
   }
+  var yearProfitAmt = 0;
   function shootWord(n) {
     var t = n % 100, o = n % 10;
     if (t >= 11 && t <= 14) return "съёмок";
@@ -2817,6 +2899,9 @@
   /* Пока время предложено светом, смена жанра вправе его переставить.
      Как только фотограф покрутил барабан начала — время его, не наше */
   var fAuto = true;
+  /* Оплата в форме: ключ способа (hourly/flat/pack/object/item), ставка/сумма/цена,
+     количество единиц, расходы */
+  var fPay = "hourly", fRate = 0, fUnits = 1, fExpense = 0;
   var fDelvChoice = "auto";     // "auto" | число дней | null
   /* Крайние деления шкалы — состояния, середина — ручной срок */
   var DELV_OPTS = [["auto", "жанр"], [3, "3 дн"], [7, "нед"], [14, "2 нед"],
@@ -2853,6 +2938,45 @@
     if (typeof tickClick === "function") tickClick();   // тот же щелчок, что у ползунка времени
     renderDelv();
   });
+
+  /* ---------- Оплата в форме ---------- */
+  function payProbe() { return { pay: fPay, rate: fRate, units: fUnits, dur: fDur, expense: fExpense }; }
+  function renderPay() {
+    var keys = genreSpec(shootType).pay;
+    if (keys.indexOf(fPay) === -1) fPay = keys[0];   // способ не из этого жанра — берём первый
+    var mech = PAY[fPay].m;
+    $("fPayType").innerHTML = keys.map(function (k) {
+      return '<button class="chip' + (k === fPay ? " active" : "") + '" data-k="' + k + '">' + PAY[k].label + "</button>";
+    }).join("");
+    $("fPayType").querySelectorAll(".chip").forEach(function (ch) {
+      ch.addEventListener("click", function () {
+        if (ch.dataset.k === fPay) return;
+        fPay = ch.dataset.k; rememberGenre("pay", fPay);
+        renderPay();
+      });
+    });
+    // Подпись поля ставки под механику
+    $("fRateLabel").textContent = mech === "hourly" ? "Ставка, ₽/час"
+      : mech === "unit" ? "Цена, ₽" : "Сумма, ₽";
+    // Количество — только для «за единицу»
+    $("fUnitsRow").hidden = mech !== "unit";
+    $("fUnitsLabel").textContent = PAY[fPay].unit ? (PAY[fPay].unit[0].toUpperCase() + PAY[fPay].unit.slice(1)) : "Количество";
+    // Итог: доход и прибыль
+    var inc = sessionIncome(payProbe()), net = inc - fExpense;
+    var hrs = mech === "hourly" ? " · " + durLabel(fDur) : "";
+    $("fPayTotal").innerHTML =
+      '<span class="lbl">Доход ' + money(inc) + hrs + (fExpense ? " − расход " + money(fExpense) : "") + "</span>"
+      + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net) + "</span>";
+  }
+  function bindPayInput(id, setter) {
+    $(id).addEventListener("input", function () {
+      setter(parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0);
+      renderPay();
+    });
+  }
+  bindPayInput("fRate", function (v) { fRate = v; });
+  bindPayInput("fUnits", function (v) { fUnits = v; });
+  bindPayInput("fExpense", function (v) { fExpense = v; });
   var DURS = [30, 60, 90, 120, 180];
   /* По-русски пишем «1,5 часа», а не «1½ ч» */
   function hourWord(n) {
@@ -2995,17 +3119,27 @@
   /* Жанр — пресет формы, а не профиль фотографа: свадебщик снимает и семью тоже.
      delivery — есть ли кому сдавать материал, client — есть ли заказчик,
      dur — обычная длительность в минутах (null: сколько длится свет) */
-  var GENRE = {
-    "Портрет":     { delivery: true,  client: true,  dur: 90 },
-    "Свадьбы":     { delivery: true,  client: true,  dur: 480 },
-    "Семья":       { delivery: true,  client: true,  dur: 90 },
-    "Пейзаж":      { delivery: false, client: false, dur: null },
-    "Архитектура": { delivery: true,  client: true,  dur: 120 },
-    "Стрит":       { delivery: false, client: false, dur: 180 },
-    "Репортаж":    { delivery: true,  client: true,  dur: 180 },
-    "Предметка":   { delivery: true,  client: true,  dur: 180 }
+  /* pay — способы оплаты жанра в порядке приоритета (первый — по умолчанию).
+     Три механики под названиями жанра: hourly (ставка×часы), flat (плоская сумма:
+     сдельно/пакет), unit (цена×количество: за объект/за предмет). */
+  var PAY = {
+    hourly: { m: "hourly", label: "Почасово" },
+    flat:   { m: "flat",   label: "Сдельно" },
+    pack:   { m: "flat",   label: "Пакет" },
+    object: { m: "unit",   label: "За объект", unit: "объектов" },
+    item:   { m: "unit",   label: "За предмет", unit: "предметов" }
   };
-  function genreSpec(g) { return GENRE[g] || { delivery: true, client: true, dur: 90 }; }
+  var GENRE = {
+    "Портрет":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
+    "Свадьбы":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"] },
+    "Семья":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
+    "Пейзаж":      { delivery: false, client: false, dur: null, pay: ["flat"] },
+    "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
+    "Стрит":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
+    "Репортаж":    { delivery: true,  client: true,  dur: 180, pay: ["hourly", "flat"] },
+    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] }
+  };
+  function genreSpec(g) { return GENRE[g] || { delivery: true, client: true, dur: 90, pay: ["hourly", "flat"] }; }
 
   /* Правка внутри жанра запоминается и в следующий раз перебивает пресет */
   var genrePrefs = (saved && saved.genrePrefs) || {};
@@ -3034,6 +3168,10 @@
       dur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
     }
     fDur = dur;
+    // Оплата: способ из памяти жанра или первый; почасовая ставка — из общей по умолчанию
+    fPay = (pref.pay && sp.pay.indexOf(pref.pay) >= 0) ? pref.pay : sp.pay[0];
+    fRate = PAY[fPay].m === "hourly" ? defaultRate : 0;
+    fUnits = 1; fExpense = 0;
     /* Свадьба длиннее светового окна: начинать её на закате бессмысленно.
        Двигаем начало назад, чтобы золотой час пришёлся на конец съёмки.
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
@@ -3124,6 +3262,9 @@
     computeSun(keep);
 
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
+    // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
+    $("fRate").value = fRate || ""; $("fUnits").value = fUnits || ""; $("fExpense").value = fExpense || "";
+    renderPay();
     var warn = wishCheck(wish, fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
@@ -3144,6 +3285,9 @@
       placeIdx = pi < 0 ? 0 : pi;
       $("fContact").value = s.contact || "";
       $("fNotes").value = s.notes || "";
+      // Оплата сохранённой съёмки
+      fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
+      fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
     } else {
       fAuto = true;
       fDate = new Date(d); fMin = snapMin(startMin);
@@ -3194,11 +3338,17 @@
   }
   $("fGear").addEventListener("click", function () {
     renderGenreList();
+    $("gRate").value = defaultRate || "";
     $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
   });
   function closeGenres() { $("gSheet").classList.remove("open"); $("gScrim").classList.remove("open"); }
   $("gDone").addEventListener("click", closeGenres);
   $("gScrim").addEventListener("click", closeGenres);
+  // Ставка по умолчанию: применяется к новым почасовым съёмкам
+  $("gRate").addEventListener("input", function () {
+    defaultRate = parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
+    saveAll();
+  });
 
   /* Уведомление */
   var notifTimer = null;
@@ -3228,6 +3378,7 @@
       place: places[placeIdx].name,
       wish: wish, warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
+      pay: fPay, rate: fRate, units: fUnits, expense: fExpense,
       synced: syncTarget === "off" ? null : syncTarget
     };
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
@@ -3481,6 +3632,12 @@
   $("yNext").addEventListener("click", function () { yearShown++; renderYear(); });
   $("yearNow").addEventListener("click", function () {
     yearShown = new Date().getFullYear(); renderYear();
+  });
+  // Скрытая кнопка прибыли: раскрывает сумму за просматриваемый год
+  $("yearProfitBtn").addEventListener("click", function () {
+    this.hidden = true;
+    var v = $("yearProfitVal"); v.hidden = false;
+    v.innerHTML = "Прибыль за " + yearShown + " · <b" + (yearProfitAmt < 0 ? ' class="neg"' : "") + ">" + money(yearProfitAmt) + "</b>";
   });
   /* Вернуться в сегодня из любой отмотки */
   $("calNow").addEventListener("click", function () {
