@@ -6,6 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Light Plan</title>
+<!-- Настоящая карта: единственная внешняя зависимость, только при сети.
+     Тайлы — тёмные без подписей (CARTO), держат монохром и «карту-холст». -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   /* ============================================================
      LIGHT ATLAS — ЦЕЛЬНЫЙ ПРОТОТИП V3
@@ -248,8 +252,36 @@
   .ghost:active { color: #EFEAE0; }
 
   /* ---------- Карта ---------- */
-  .map-frame { margin: 18px 16px 0; border-radius: 18px; overflow: hidden; background: #14110E; }
-  .map-frame svg { width: 100%; height: auto; display: block; }
+  .map-frame {
+    position: relative; margin: 18px 16px 0; height: 300px;
+    border-radius: 18px; overflow: hidden; background: #14110E;
+  }
+  #lmap { position: absolute; inset: 0; background: #14110E; }
+  /* Слой света поверх тайлов — компас не перехватывает жесты карты */
+  #mapLight { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 450; }
+  /* Точка съёмки — в центре кадра; карта ездит под ней */
+  .map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 460; }
+  .map-pin i { display: block; width: 13px; height: 13px; border-radius: 50%;
+    background: #EFEAE0; box-shadow: 0 0 0 2px #14110E, 0 0 0 3px rgba(239,234,224,0.4); }
+  /* «Моё место» — единственный элемент управления, тихий кружок */
+  .map-here {
+    position: absolute; right: 12px; bottom: 12px; z-index: 470;
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(23,21,15,0.86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; color: #A8A093;
+  }
+  .map-here svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .map-here:active { color: #E2A44C; }
+
+  /* Тёмный Leaflet: карта — холст, а не интерфейс */
+  .leaflet-container { background: #14110E; font-family: inherit; outline: none; }
+  .leaflet-control-zoom { display: none; }
+  .leaflet-control-attribution {
+    background: rgba(15,14,12,0.6) !important; color: #4A453E !important;
+    font-size: 9px !important; padding: 1px 5px !important;
+  }
+  .leaflet-control-attribution a { color: #6B6559 !important; }
+  .leaflet-tile { filter: saturate(0.85); }
 
   /* ---------- Календарь ---------- */
   /* Шапка планировщика: год назад · добавить · поиск */
@@ -929,18 +961,25 @@
   <section class="screen" id="s-map">
     <div class="header">
       <div class="loc">
-        <div class="name">Северный объезд</div>
+        <div class="name" id="mLocName">Северный объезд</div>
         <div class="date" id="mDate">ЧТ · 16 июля</div>
       </div>
-      <div class="head-note">56.02 N · 37.48 E</div>
+      <div class="head-note" id="mCoords">56.02 N · 37.48 E</div>
     </div>
 
-    <div class="map-frame"><svg id="map" viewBox="0 0 358 300"></svg></div>
+    <div class="map-frame">
+      <div id="lmap"></div>
+      <svg id="mapLight" viewBox="0 0 358 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      <div class="map-pin"><i></i></div>
+      <button class="map-here" id="mapHere" aria-label="Моё место">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </button>
+    </div>
 
     <div class="telemetry" style="margin-top:14px;">
       <div class="t-row"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
-      <div class="t-row"><span class="t-label">Тень здания</span><span class="t-value" id="mShadowB">—</span></div>
-      <div class="t-row"><span class="t-label">Тень деревьев</span><span class="t-value" id="mShadowT">—</span></div>
+      <div class="t-row"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
+      <div class="t-row"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
       <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
     </div>
 
@@ -1278,6 +1317,9 @@
   var NS = "http://www.w3.org/2000/svg";
   var $ = function (id) { return document.getElementById(id); };
   var LAT = 56.02, LON = 37.48, TZ = 3;
+  // Дом — якорь часового пояса. От него отсчитываем пояс любой точки по долготе:
+  // дом остаётся точным (MSK), а путешествие на восток/запад честно сдвигает время.
+  var HOME_LON = 37.48, HOME_TZ = 3;
   var rad = function (d) { return d * Math.PI / 180; };
   var deg = function (r) { return r * 180 / Math.PI; };
   var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -1670,7 +1712,8 @@
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
         }),
-        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, sync: syncTarget
+        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, sync: syncTarget,
+        loc: { lat: LAT, lon: LON }
       }));
     } catch (e) {}
   }
@@ -1684,6 +1727,11 @@
     } catch (e) { return null; }
   }
   var saved = loadAll();
+  // Восстанавливаем место до первого расчёта света
+  if (saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon)) {
+    LAT = saved.loc.lat; LON = saved.loc.lon;
+    TZ = Math.max(-12, Math.min(14, HOME_TZ + Math.round((LON - HOME_LON) / 15)));
+  }
 
   var sessions = saved && saved.sessions ? saved.sessions : [];
   var syncTarget = saved && saved.sync ? saved.sync : "off";
@@ -1975,7 +2023,7 @@
   /* ============================================================
      ЭКРАН «КАРТА»
      ============================================================ */
-  var MW = 358, MH = 300, MPX = 179, MPY = 150, MR = 112, MSCALE = 2.0;
+  var MPX = 179, MPY = 150, MR = 112;   // центр и радиус компаса в системе viewBox 358×300
 
   function el(name, attrs) {
     var e = document.createElementNS(NS, name);
@@ -1986,56 +2034,14 @@
     var a = rad(az);
     return [MPX + r * Math.sin(a), MPY - r * Math.cos(a)];
   }
-  var BUILD = { x: 108, y: 104, w: 26, h: 40, height: 12 };
-  var TREES = [{ x: 232, y: 196, r: 10, height: 8 }, { x: 214, y: 208, r: 7, height: 6 }];
-
-  function shadowPoly(cxp, cyp, w, az, lenPx) {
-    var a = rad(az);
-    var vx = lenPx * Math.sin(a), vy = -lenPx * Math.cos(a);
-    var L = Math.sqrt(vx*vx + vy*vy) || 1;
-    var px = -vy / L * (w / 2), py = vx / L * (w / 2);
-    return [
-      (cxp+px).toFixed(1)+","+(cyp+py).toFixed(1),
-      (cxp-px).toFixed(1)+","+(cyp-py).toFixed(1),
-      (cxp-px+vx).toFixed(1)+","+(cyp-py+vy).toFixed(1),
-      (cxp+px+vx).toFixed(1)+","+(cyp+py+vy).toFixed(1)
-    ].join(" ");
-  }
-
+  /* Компас света рисуется поверх реальной карты, центр — точка съёмки */
   function renderMap() {
-    var svg = $("map"); svg.innerHTML = "";
+    var svg = $("mapLight"); if (!svg) return; svg.innerHTML = "";
     var t = viewMin, e = elevAt(t), az = azAt(t), sh = shadowAt(t);
 
-    svg.appendChild(el("rect", { x: 0, y: 0, width: MW, height: MH, fill: "#14110E" }));
-    [[10,10,92,66],[116,10,108,50],[238,10,110,66],
-     [10,92,66,88],[238,92,110,58],[10,196,92,58],
-     [116,222,108,68],[238,166,110,56],[238,236,110,54]].forEach(function (b) {
-      svg.appendChild(el("rect", { x: b[0], y: b[1], width: b[2], height: b[3], rx: 3, fill: "#1E1A15" }));
-    });
-    svg.appendChild(el("rect", { x: 116, y: 76, width: 108, height: 132, rx: 4, fill: "#191E15" }));
-    [[0,84,MW,84],[0,188,MW,188],[0,214,MW,214]].forEach(function (l) {
-      svg.appendChild(el("line", { x1: l[0], y1: l[1], x2: l[2], y2: l[3], stroke: "#2B251E", "stroke-width": 7 }));
-    });
-    [[106,0,106,MH],[230,0,230,MH]].forEach(function (l) {
-      svg.appendChild(el("line", { x1: l[0], y1: l[1], x2: l[2], y2: l[3], stroke: "#2B251E", "stroke-width": 7 }));
-    });
-
-    // Тени: длина и направление считаются из модели
-    if (sh) {
-      var shAz = (az + 180) % 360;
-      svg.appendChild(el("polygon", {
-        points: shadowPoly(BUILD.x + BUILD.w/2, BUILD.y + BUILD.h/2, BUILD.w, shAz, BUILD.height * sh * MSCALE),
-        fill: "rgba(92,119,160,0.15)"
-      }));
-      TREES.forEach(function (tr) {
-        svg.appendChild(el("polygon", {
-          points: shadowPoly(tr.x, tr.y, tr.r * 1.6, shAz, tr.height * sh * MSCALE),
-          fill: "rgba(92,119,160,0.13)"
-        }));
-      });
-    }
-    svg.appendChild(el("rect", { x: BUILD.x, y: BUILD.y, width: BUILD.w, height: BUILD.h, fill: "#262019", stroke: "#332B22", "stroke-width": 1 }));
-    TREES.forEach(function (tr) { svg.appendChild(el("circle", { cx: tr.x, cy: tr.y, r: tr.r, fill: "#20241B" })); });
+    // Азимутальное кольцо — прибор поверх холста
+    svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: MR, fill: "none",
+      stroke: "rgba(239,234,224,0.10)", "stroke-width": 1 }));
 
     // Путь солнца по азимуту — от восхода к закату
     var d = "", first = true;
@@ -2044,10 +2050,10 @@
       d += (first ? "M" : "L") + pt[0].toFixed(1) + " " + pt[1].toFixed(1) + " ";
       first = false;
     }
-    svg.appendChild(el("path", { d: d.trim(), fill: "none", stroke: "rgba(226,164,76,0.3)",
+    if (d) svg.appendChild(el("path", { d: d.trim(), fill: "none", stroke: "rgba(226,164,76,0.32)",
       "stroke-width": 1.5, "stroke-dasharray": "1 6", "stroke-linecap": "round" }));
 
-    // Золотые окна прямо на азимутальном круге
+    // Золотые окна на азимутальном круге
     function azArc(t1, t2) {
       if (t1 === null || t2 === null) return;
       var dd = "", f = true;
@@ -2061,59 +2067,98 @@
     azArc(SUN.rise, SUN.goldA);
     azArc(SUN.goldB, SUN.set);
 
-    // Восход и закат
+    // Восход и закат — метки с временем
     [[SUN.rise, "start", 9], [SUN.set, "end", -9]].forEach(function (m) {
+      if (m[0] === null) return;
       var pt = A(azAt(m[0]), MR);
-      svg.appendChild(el("circle", { cx: pt[0], cy: pt[1], r: 3.5, fill: "none", stroke: "#E2A44C", "stroke-width": 1.5 }));
-      var tx = el("text", { x: pt[0] + m[2], y: pt[1] + 4, fill: "#8A8274", "font-size": 11,
-        "text-anchor": m[1], "font-family": "-apple-system, sans-serif", "font-weight": 500 });
+      svg.appendChild(el("circle", { cx: pt[0], cy: pt[1], r: 3.5, fill: "#14110E", stroke: "#E2A44C", "stroke-width": 1.5 }));
+      var tx = el("text", { x: pt[0] + m[2], y: pt[1] + 4, fill: "#A89C86", "font-size": 11,
+        "text-anchor": m[1], "font-family": "-apple-system, sans-serif", "font-weight": 600 });
       tx.textContent = fmt(m[0]); svg.appendChild(tx);
     });
 
-    // Солнце и луч
+    // Луч и солнце
     if (e > -6) {
-      var sp = A(az, MR);
+      var sp = A(az, MR), sc = e > 0 ? "#E2A44C" : "#7C9CC4";
       svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
-        stroke: e > 0 ? "rgba(226,164,76,0.5)" : "rgba(124,156,196,0.4)", "stroke-width": 1.5 }));
-      var sc = e > 0 ? "#E2A44C" : "#7C9CC4";
-      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 10, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
-      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5, fill: sc, stroke: "#14110E", "stroke-width": 2 }));
+        stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
+      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 11, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
+      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: "#14110E", "stroke-width": 2 }));
     }
 
-    // Точка съёмки
-    svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: 7, fill: "none", stroke: "#EFEAE0", "stroke-width": 2 }));
-    svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: 2, fill: "#EFEAE0" }));
-
-    var n = el("text", { x: MW - 14, y: 26, fill: "#635E54", "font-size": 12, "text-anchor": "end",
-      "font-family": "-apple-system, sans-serif", "font-weight": 600 });
+    // Север
+    var n = el("text", { x: MPX, y: MPY - MR - 6, fill: "#8A8478", "font-size": 11, "text-anchor": "middle",
+      "font-family": "-apple-system, sans-serif", "font-weight": 700 });
     n.textContent = "С"; svg.appendChild(n);
-    svg.appendChild(el("line", { x1: MW - 18, y1: 32, x2: MW - 18, y2: 46, stroke: "#635E54", "stroke-width": 1.5 }));
 
-    // Сводка карты
+    // Сводка карты — честная физика, без выдуманных зданий
     $("mDate").textContent = WD[selDate.getDay()] + " · " + selDate.getDate() + " " + MONTHS[selDate.getMonth()];
-    // Свет идёт со стороны солнца; тень падает в противоположную
-    $("mDir").textContent = e > 0 ? "С " + dirOf(az) : "Солнце под горизонтом";
-    $("mShadowB").textContent = sh ? Math.round(BUILD.height * sh) + " м на " + dirOf((az + 180) % 360) : "Теней нет";
-    $("mShadowT").textContent = sh ? Math.round(TREES[0].height * sh) + " м на " + dirOf((az + 180) % 360) : "Теней нет";
-    $("mPoint").textContent = e > 0 ? "На свету" : "В тени";
+    $("mDir").textContent = e > 0 ? "с " + dirOf(az) + " · " + az.toFixed(0) + "°" : "солнце под горизонтом";
+    $("mElev").textContent = (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°";
+    $("mShadow").textContent = sh ? "×" + (sh < 10 ? sh.toFixed(1) : Math.round(sh)) + " роста · на " + dirOf((az + 180) % 360) : "теней нет";
+    $("mPoint").textContent = e > 0 ? "на свету" : "в тени";
     $("mPoint").style.color = e > 0 ? "#E2A44C" : "#8A8478";
 
     $("mProBody").innerHTML = proHTML([
       ["sun", "Солнце в этот момент", [
         ["Азимут", az.toFixed(1) + "° · " + dirOf(az)],
         ["Высота", (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°"],
+        ["Длина тени", sh ? "×" + (sh < 10 ? sh.toFixed(2) : sh.toFixed(1)) + " роста" : "—"],
         ["Тень падает на", ((az + 180) % 360).toFixed(1) + "° · " + dirOf((az + 180) % 360)]
       ]],
       ["compass", "Азимуты дня", [
         ["Восход", azAt(SUN.rise).toFixed(1) + "° · " + dirOf(azAt(SUN.rise))],
         ["Закат", azAt(SUN.set).toFixed(1) + "° · " + dirOf(azAt(SUN.set))],
-        ["Сектор за день", (azAt(SUN.set) - azAt(SUN.rise)).toFixed(0) + "°"]
+        ["Сектор за день", Math.abs(azAt(SUN.set) - azAt(SUN.rise)).toFixed(0) + "°"]
       ]],
-      ["obstacle", "Препятствия", [
-        ["Здание", BUILD.height + " м · тень " + (sh ? (BUILD.height * sh).toFixed(1) + " м" : "—")],
-        ["Деревья", TREES[0].height + " м · тень " + (sh ? (TREES[0].height * sh).toFixed(1) + " м" : "—")]
+      ["compass", "Место", [
+        ["Широта", Math.abs(LAT).toFixed(4) + "° " + (LAT >= 0 ? "N" : "S")],
+        ["Долгота", Math.abs(LON).toFixed(4) + "° " + (LON >= 0 ? "E" : "W")],
+        ["Часовой пояс", "UTC" + (TZ >= 0 ? "+" : "") + TZ + " · оценка по долготе"]
       ]]
     ]);
+  }
+
+  /* ---------- Настоящая карта: Leaflet + тёмные тайлы ---------- */
+  var lmap = null, mapQuiet = false;
+  function tzFor(lon) { return Math.max(-12, Math.min(14, HOME_TZ + Math.round((lon - HOME_LON) / 15))); }
+  function coordText(lat, lon) {
+    return Math.abs(lat).toFixed(3) + " " + (lat >= 0 ? "N" : "S")
+      + " · " + Math.abs(lon).toFixed(3) + " " + (lon >= 0 ? "E" : "W");
+  }
+  function nearPlaceName(lat, lon) {
+    return (Math.abs(lat - 56.02) < 0.02 && Math.abs(lon - 37.48) < 0.02) ? "Северный объезд" : "Своя точка";
+  }
+  function setLocation(lat, lon, nameLabel) {
+    LAT = lat; LON = lon; TZ = tzFor(lon);
+    $("mCoords").textContent = coordText(lat, lon);
+    $("mLocName").textContent = nameLabel || nearPlaceName(lat, lon);
+    saveAll();                 // место переживает перезапуск
+    applyDate(viewMin);        // весь свет пересчитывается на новое место
+  }
+  function initMap() {
+    if (lmap || typeof L === "undefined") return;
+    lmap = L.map("lmap", { zoomControl: false, attributionControl: true }).setView([LAT, LON], 15);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd", maxZoom: 19, attribution: "© OpenStreetMap · CARTO"
+    }).addTo(lmap);
+    // Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место
+    lmap.on("moveend", function () {
+      if (mapQuiet) return;
+      var c = lmap.getCenter();
+      setLocation(c.lat, c.lng);
+    });
+    $("mCoords").textContent = coordText(LAT, LON);
+    $("mLocName").textContent = nearPlaceName(LAT, LON);
+  }
+  /* Экран карты показывается — Leaflet должен пересчитать размер и встать на место */
+  function showMap() {
+    initMap();
+    if (!lmap) return;
+    mapQuiet = true;
+    lmap.invalidateSize();
+    lmap.setView([LAT, LON], lmap.getZoom() || 15, { animate: false });
+    setTimeout(function () { mapQuiet = false; }, 300);
   }
 
   /* ============================================================
@@ -3247,6 +3292,16 @@
     t.addEventListener("click", function () { t.classList.toggle("on"); });
   });
 
+  /* «Моё место» — по геолокации браузера, только по запросу пользователя */
+  $("mapHere").addEventListener("click", function () {
+    if (!navigator.geolocation) { $("mLocName").textContent = "Геолокация недоступна"; return; }
+    navigator.geolocation.getCurrentPosition(function (p) {
+      var la = p.coords.latitude, lo = p.coords.longitude;
+      if (lmap) { mapQuiet = true; lmap.setView([la, lo], 15, { animate: true }); setTimeout(function () { mapQuiet = false; }, 500); }
+      setLocation(la, lo, "Моё место");
+    }, function () { $("mLocName").textContent = "Место не определено"; }, { enableHighAccuracy: true, timeout: 8000 });
+  });
+
   var tabs = document.querySelectorAll(".tab");
   var screens = ["s-today", "s-map", "s-plan", "s-set"];
   function go(id) {
@@ -3254,6 +3309,7 @@
     screens.forEach(function (s) { $(s).classList.toggle("active", s === id); });
     document.body.dataset.tab = id;      // прячет закреплённый ползунок на Съёмках/Настройках
     $(id).scrollTop = 0;
+    if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
   }
   tabs.forEach(function (t) { t.addEventListener("click", function () { go(t.dataset.go); }); });
 
