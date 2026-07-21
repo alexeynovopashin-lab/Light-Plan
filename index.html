@@ -72,6 +72,8 @@
   .loc .name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; display: inline-flex; align-items: center; gap: 5px; }
   .loc-pin { width: 13px; height: 13px; stroke: #635E54; fill: none; stroke-width: 1.6; }
   .loc:active .loc-pin { stroke: #E2A44C; }
+  /* Мелко — более точное место под крупным городом */
+  .head-sub { font-size: 11px; color: #8A8478; margin-top: 1px; letter-spacing: 0.1px; }
   .loc .date {
     font-size: 11px; color: #8A8478; text-transform: uppercase;
     letter-spacing: 0.6px; margin-top: 3px; font-weight: 500;
@@ -90,7 +92,10 @@
 
   /* ---------- Купол ---------- */
   /* height = высоте viewBox (240): раньше 24px уходило в мёртвый зазор */
-  .dome { position: relative; width: 100%; height: 240px; margin-top: 0; flex-shrink: 0; }
+  /* touch-action: pan-y — вертикальный скролл страницы живёт, горизонтальный
+     жест ловит перетаскивание светила по дуге */
+  .dome { position: relative; width: 100%; height: 240px; margin-top: 0; flex-shrink: 0; cursor: grab; touch-action: pan-y; }
+  .dome:active { cursor: grabbing; }
   /* только сам купол — иконки переключателя внутри .dome не должны растягиваться */
   .dome > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   /* Переключатель светила: две иконки без подписей и без плашки —
@@ -897,7 +902,8 @@
   <section class="screen active" id="s-today">
     <div class="header">
       <button class="loc" id="todayLoc" aria-label="Сменить место">
-        <div class="name"><span id="hLocName">Северный объезд</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+        <div class="name"><span id="hLocName">—</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+        <div class="head-sub" id="hLocSub">—</div>
         <div class="date" id="hDate">ЧТ · 16 июля</div>
         <div class="head-note" id="hNote">сегодня</div>
       </button>
@@ -972,6 +978,7 @@
 
     <div class="telemetry">
       <div class="t-row"><span class="t-label">Условия</span><span class="t-value rec" id="tRec">—</span></div>
+      <div class="t-row"><span class="t-label">Закат</span><span class="t-value" id="tSunset">—</span></div>
       <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="tGolden">—</span></div>
       <div class="t-row"><span class="t-label">Свет</span><span class="t-value" id="tLight">—</span></div>
       <div class="t-row"><span class="t-label">Тени</span><span class="t-value" id="tShadow">—</span></div>
@@ -2070,6 +2077,15 @@
     var qcol = st.tone === "excellent" ? col : TONE[st.tone];
     $("tRec").style.color = qcol;
     $("tRec").innerHTML = (st.stars ? starGlyph() : meterHTML(st.level, qcol)) + '<span>' + st.rec + '</span>';
+    // Прогноз заката — вынесен наверх, чтобы не искать его в астро-деталях
+    if (curWeather && curWeather.sunset !== null) {
+      var sc = curWeather.sunset;
+      $("tSunset").textContent = sunsetShort(sc) + " · " + sc + " / 100";
+      $("tSunset").style.color = sc >= 75 ? "#E2A44C" : sc >= 50 ? "#A8B49B" : sc >= 28 ? "#C0B8AA" : "#7C9CC4";
+    } else {
+      $("tSunset").textContent = wxLive ? "нет данных на этот день" : "прогноз имитируется";
+      $("tSunset").style.color = "#8A8478";
+    }
     // Золотой час — окно, не момент: чтобы не спутать его с закатом
     $("tGolden").textContent = (SUN.goldB === null || SUN.set === null)
       ? "—" : range(SUN.goldB, SUN.blueB) + " · до заката " + fmt(SUN.set);
@@ -2204,6 +2220,7 @@
     return s >= 75 ? "закат обещает быть красивым" : s >= 50 ? "закат с цветом"
       : s >= 28 ? "спокойный закат" : "цвета почти не будет";
   }
+  function sunsetShort(s) { return s >= 75 ? "красивый" : s >= 50 ? "с цветом" : s >= 28 ? "спокойный" : "серый"; }
 
   /* ============================================================
      ЭКРАН «КАРТА»
@@ -2311,31 +2328,50 @@
     return Math.abs(lat).toFixed(3) + " " + (lat >= 0 ? "N" : "S")
       + " · " + Math.abs(lon).toFixed(3) + " " + (lon >= 0 ? "E" : "W");
   }
-  function nearPlaceName(lat, lon) {
-    return (Math.abs(lat - 56.02) < 0.02 && Math.abs(lon - 37.48) < 0.02) ? "Северный объезд" : "Своя точка";
+  /* Имя места — обратное геокодирование: крупно город, мелко более точное место.
+     BigDataCloud: без ключа, с CORS, по-русски. Офлайн — остаются координаты. */
+  var geoCity = "", geoSub = "", geoKey = null, geoTimer = null;
+  function applyGeoNames() {
+    var coords = coordText(LAT, LON);
+    var city = geoCity || coords;
+    if ($("hLocName")) $("hLocName").textContent = city;
+    if ($("hLocSub")) $("hLocSub").textContent = geoSub || coords;
+    $("mLocName").textContent = city;
   }
-  function locDisplay(lat, lon, nameLabel) {
-    var n = nameLabel || nearPlaceName(lat, lon);
-    return n === "Своя точка" ? coordText(lat, lon) : n;   // «Своя точка» — покажем координаты
+  function fetchGeoName() {
+    if (typeof fetch === "undefined") return;
+    var key = LAT.toFixed(3) + "," + LON.toFixed(3);
+    if (key === geoKey && geoCity) return;
+    geoKey = key;
+    fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + LAT + "&longitude=" + LON + "&localityLanguage=ru")
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) return;   // место успело смениться
+        var city = j.city || j.locality || j.principalSubdivision || "";
+        geoCity = city;
+        geoSub = (j.locality && j.locality !== city) ? j.locality : (j.principalSubdivision || j.countryName || "");
+        applyGeoNames();
+      }).catch(function () {});   // офлайн — остаются координаты
   }
-  function setLocation(lat, lon, nameLabel) {
+  function scheduleGeoName() { clearTimeout(geoTimer); geoTimer = setTimeout(fetchGeoName, 400); }
+
+  function setLocation(lat, lon) {
     LAT = lat; LON = lon; TZ = tzFor(lon);
-    var disp = locDisplay(lat, lon, nameLabel);
     $("mCoords").textContent = coordText(lat, lon);
-    $("mLocName").textContent = nameLabel || nearPlaceName(lat, lon);
-    if ($("hLocName")) $("hLocName").textContent = disp;   // место обновляется и на «Сегодня»
-    saveAll();                 // место переживает перезапуск
-    applyDate(viewMin);        // весь свет пересчитывается на новое место
-    scheduleWeather();         // и погода нового места подтянется
+    geoCity = ""; geoSub = "";     // прежнее имя недействительно
+    applyGeoNames();               // сразу координаты, город подтянется следом
+    saveAll();                     // место переживает перезапуск
+    applyDate(viewMin);            // весь свет пересчитывается на новое место
+    scheduleWeather();             // погода нового места
+    scheduleGeoName();             // и его название
   }
   /* Сменить место и подвинуть под него карту — общий путь для «Сегодня» и геолокации */
-  function gotoLocation(lat, lon, nameLabel) {
+  function gotoLocation(lat, lon) {
     if (lmap) {
       mapQuiet = true;
       lmap.setView([lat, lon], lmap.getZoom() || 13, { animate: false });
       setTimeout(function () { mapQuiet = false; }, 300);
     }
-    setLocation(lat, lon, nameLabel);
+    setLocation(lat, lon);
   }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
@@ -2350,7 +2386,7 @@
       setLocation(c.lat, c.lng);
     });
     $("mCoords").textContent = coordText(LAT, LON);
-    $("mLocName").textContent = nearPlaceName(LAT, LON);
+    applyGeoNames();
   }
   /* Экран карты показывается — Leaflet должен пересчитать размер и встать на место */
   function showMap() {
@@ -3286,6 +3322,46 @@
   });
   $("nowTick").addEventListener("click", function () { if (nowMin !== null) setView(nowMin); });
 
+  /* Перетаскивание светила по дуге — тестировщики тянутся к солнцу, а не к слайдеру.
+     Купол даёт прямое управление; слайдер остаётся для точности одной рукой. */
+  (function domeDrag() {
+    var dome = document.querySelector(".dome"), svg = dome.querySelector("svg");
+    var dragging = false;
+    function pointToTime(e) {
+      var rect = svg.getBoundingClientRect();
+      if (!rect.width) return null;
+      var vx = (e.clientX - rect.left) / rect.width * 390;
+      var vy = (e.clientY - rect.top) / rect.height * 240;
+      if (vy > cy + 8) return null;                          // ниже горизонта — не дуга
+      var th = Math.atan2((cy - vy) / ry, (vx - cx) / rx);   // 0 = закат справа, π = восход слева
+      var frac = clamp((180 - clamp(th * 180 / Math.PI, 0, 180)) / 180, 0, 1);
+      var a, b;
+      if (skyMode === "moon") { var arc = moonArc(selDate, viewMin); a = arc.rise; b = arc.set; }
+      else { a = SUN.arcA; b = SUN.arcB; }
+      if (a === null || b === null) return null;
+      return clamp(Math.round(a + frac * (b - a)), MINT, MAXT);
+    }
+    function apply(t) {
+      var tk = Math.round(t / TICK_MIN);
+      if (tk !== lastTick) { lastTick = tk; tickClick(); }
+      setView(t);
+    }
+    dome.addEventListener("pointerdown", function (e) {
+      if (e.target.closest("#readout") || e.target.closest("#skySwap")) return;   // их собственные клики
+      var t = pointToTime(e); if (t === null) return;
+      dragging = true; initAudio();
+      try { dome.setPointerCapture(e.pointerId); } catch (x) {}
+      apply(t);
+    });
+    dome.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var t = pointToTime(e); if (t !== null) apply(t);
+    });
+    function end() { dragging = false; }
+    dome.addEventListener("pointerup", end);
+    dome.addEventListener("pointercancel", end);
+  })();
+
   /* Кромки шкалы: чьё светило — того и восход. Стрелка говорит вверх или вниз */
   /* Половинка солнца на горизонте, лучи в стороны, стрелка по центру */
   var EDGE_IC = {
@@ -3501,7 +3577,7 @@
   function detectLocation(onDone, onFail) {
     if (!navigator.geolocation) { if (onFail) onFail("Геолокация недоступна"); return; }
     navigator.geolocation.getCurrentPosition(function (p) {
-      gotoLocation(p.coords.latitude, p.coords.longitude, "Моё место");
+      gotoLocation(p.coords.latitude, p.coords.longitude);
       if (onDone) onDone();
     }, function () { if (onFail) onFail("Место не определено"); }, { enableHighAccuracy: true, timeout: 8000 });
   }
@@ -3516,6 +3592,12 @@
     $("locErr").textContent = "";
     $("locDetectLbl").textContent = "Определить моё место";
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
+    // Первый тап по месту — сразу спрашиваем разрешение на геоданные
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: "geolocation" }).then(function (p) {
+        if (p.state === "prompt") $("locDetect").click();
+      }).catch(function () {});
+    }
   }
   function closeLocSheet() { $("locSheet").classList.remove("open"); $("locScrim").classList.remove("open"); }
   $("todayLoc").addEventListener("click", openLocSheet);
@@ -3532,7 +3614,7 @@
     var lo = parseFloat(($("locLon").value || "").replace(",", "."));
     if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = "Широта — число от −90 до 90"; return; }
     if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = "Долгота — число от −180 до 180"; return; }
-    gotoLocation(la, lo, null);
+    gotoLocation(la, lo);
     closeLocSheet();
   });
 
@@ -3557,7 +3639,7 @@
 
   /* ---------- Старт ---------- */
   document.body.dataset.tab = "s-today";
-  $("hLocName").textContent = locDisplay(LAT, LON);   // имя восстановленного места
+  applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
   applyDate();
   renderDelvSettings();
   renderCal(); renderDayPanel(); renderSessions();
