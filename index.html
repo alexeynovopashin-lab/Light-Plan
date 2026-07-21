@@ -1362,6 +1362,13 @@
     SUN.nauA = tAtElev(-12, true);     SUN.nauB = tAtElev(-12, false);
     SUN.astA = tAtElev(-18, true);     SUN.astB = tAtElev(-18, false);
     SUN.maxElev = elevAt(solarNoon);
+    // Полярный день/ночь: солнце не пересекает горизонт — восхода/заката нет.
+    // polar: 0 — обычные сутки, 1 — солнце не заходит, −1 — солнце не восходит.
+    SUN.polar = (SUN.rise === null && SUN.set === null) ? (SUN.maxElev >= -0.833 ? 1 : -1) : 0;
+    // Дуга для размещения светила на куполе: восход→закат, а в полярном — целые сутки,
+    // чтобы солнце не превращалось в NaN, а честно ехало по кругу
+    SUN.arcA = SUN.rise !== null ? SUN.rise : MINT;
+    SUN.arcB = SUN.set !== null ? SUN.set : MAXT;
   }
   function elevAt(t) {
     var ha = rad((t - solarNoon) * 0.25);
@@ -1697,6 +1704,8 @@
   }
   /* Ближайшее «хорошее» световое событие относительно показанного времени */
   function nextLight(t) {
+    if (SUN.polar === 1)  return { l: "Полярный день",  m: null };   // солнце не заходит
+    if (SUN.polar === -1) return { l: "Полярная ночь",  m: null };   // солнце не восходит
     if (t < SUN.rise)  return { l: "До рассвета",      m: SUN.rise - t };
     if (t < SUN.goldA) return { l: "Золотой час, ещё", m: SUN.goldA - t };
     if (t < SUN.goldB) return { l: "До золотого часа", m: SUN.goldB - t };
@@ -1869,7 +1878,7 @@
     var th = rad(180 - (t - rise) / (set - rise) * 180);
     return [cx + rx * Math.cos(th), cy - ry * Math.sin(th)];
   }
-  function posAt(t) { return posOn(t, SUN.rise, SUN.set); }
+  function posAt(t) { return posOn(t, SUN.arcA, SUN.arcB); }
 
   /* Освещённая доля диска: правая половина плюс-минус половина эллипса-терминатора */
   function litPath(f, r) {
@@ -1988,7 +1997,8 @@
     if (!moon) {
       var nl = nextLight(t);
       $("nlLabel").textContent = nl.l;
-      $("nlValue").textContent = durShort(nl.m);
+      // В полярном дне/ночи обратного отсчёта нет — вместо числа честная подпись
+      $("nlValue").textContent = nl.m === null ? (SUN.polar === 1 ? "не заходит" : "не восходит") : durShort(nl.m);
       $("nlValue").style.color = qcol;
     }
     var c0 = wx.trend[0], c1 = wx.trend[wx.trend.length - 1];
@@ -2110,9 +2120,9 @@
     svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: MR, fill: "none",
       stroke: "rgba(239,234,224,0.10)", "stroke-width": 1 }));
 
-    // Путь солнца по азимуту — от восхода к закату
+    // Путь солнца по азимуту — от восхода к закату (в полярном дне — полный круг за сутки)
     var d = "", first = true;
-    for (var tt = SUN.rise; tt <= SUN.set; tt += 10) {
+    for (var tt = SUN.arcA; tt <= SUN.arcB; tt += 10) {
       var pt = A(azAt(tt), MR);
       d += (first ? "M" : "L") + pt[0].toFixed(1) + " " + pt[1].toFixed(1) + " ";
       first = false;
@@ -3170,6 +3180,10 @@
       var arc = moonArc(selDate, viewMin);
       $("edgeRise").innerHTML = edgeHTML("mup", arc.rise);
       $("edgeSet").innerHTML = edgeHTML("mdown", arc.set);
+    } else if (SUN.polar !== 0) {
+      // Полярный день/ночь: восхода и заката нет — честная подпись вместо «—»
+      $("edgeRise").innerHTML = '<span>' + (SUN.polar === 1 ? "солнце не заходит" : "солнце не восходит") + "</span>";
+      $("edgeSet").innerHTML = "";
     } else {
       $("edgeRise").innerHTML = edgeHTML("up", SUN.rise);
       $("edgeSet").innerHTML = edgeHTML("down", SUN.set);
