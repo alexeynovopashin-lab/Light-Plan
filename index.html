@@ -16,7 +16,7 @@
      Сегодня · Карта · Съёмки · Настройки
      Одна солнечная модель (NOAA) кормит все экраны.
      ============================================================ */
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
   body {
     display: flex; justify-content: center; align-items: center;
@@ -111,10 +111,12 @@
   .sky-swap #swSun.on { stroke: #E2A44C; }
   .sky-swap #swMoon.on { stroke: #A8BDD8; }
   .sky-swap:active { opacity: 0.65; }
+  /* Зона нажатия — только текст, не вся ширина купола: иначе низкое солнце
+     попадает в невидимую полосу читалки, и тап по нему открывает шторку */
   .dome-readout {
     position: absolute; top: 124px; left: 50%; transform: translate(-50%, -50%);
-    text-align: center; width: 100%; cursor: pointer;
-    background: none; border: none; color: inherit; font-family: inherit; padding: 8px 0;
+    text-align: center; width: max-content; max-width: 320px; cursor: pointer;
+    background: none; border: none; color: inherit; font-family: inherit; padding: 8px 14px;
   }
   .dr-time {
     font-size: 46px; font-weight: 200; letter-spacing: -0.5px;
