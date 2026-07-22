@@ -344,6 +344,9 @@
     border-top: 1px solid rgba(255,255,255,0.05);
   }
   .year-sum b { color: #A8A093; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .year-stat { margin-top: 12px; font-size: 13px; color: #635E54; line-height: 2; }
+  .year-stat b { color: #A8A093; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .year-stat .ys-k { color: #55504A; font-size: 10px; letter-spacing: 1.1px; text-transform: uppercase; font-weight: 600; margin-right: 8px; }
   .year-profit {
     background: none; border: none; cursor: pointer; font-family: inherit;
     margin-top: 12px; padding: 0; font-size: 13px; color: #8A8478;
@@ -847,6 +850,26 @@
   .pay-total .lbl { font-size: 13px; color: #8A8478; }
   .pay-total .val { font-size: 18px; font-weight: 650; color: #E2A44C; }
   .pay-total .val.neg { color: #C9663D; }
+  /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
+  .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
+  /* Количество вводится степпером, не клавиатурой */
+  .stepper { display: inline-flex; align-items: center; gap: 2px; }
+  .stepper button {
+    width: 38px; height: 34px; border: none; border-radius: 10px;
+    background: #221F19; color: #A8A093; font-family: inherit; font-size: 19px;
+    cursor: pointer; line-height: 1;
+  }
+  .stepper button:active { background: #33291A; color: #E2A44C; }
+  .stepper b {
+    min-width: 34px; text-align: center; font-size: 16px; font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  #fPayFold .chev { display: inline-block; transition: transform 0.3s ease; color: #8A8478; }
+  #fPayFold.open .chev { transform: rotate(180deg); }
+  #fPaySumm { font-size: 15px; }
+  #fPaySumm b { color: #E2A44C; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .packs { display: flex; gap: 8px; flex: 1; min-width: 0; justify-content: flex-end; }
+  .packs .pay-in { flex: 0 1 76px; background: #17150F; border-radius: 10px; padding: 8px 10px; text-align: center; }
 
   .back {
     background: none; border: none; color: #8A8478; cursor: pointer;
@@ -1317,20 +1340,34 @@
     <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
     <div class="g-label" id="fPayLabel">Оплата</div>
     <div class="group" id="fPayGroup">
-      <div class="g-chips"><div class="chips" id="fPayType"></div></div>
-      <div class="pay-row sep">
-        <span class="k" id="fRateLabel">Ставка, ₽/час</span>
-        <input class="pay-in" type="text" inputmode="numeric" id="fRate" placeholder="0"/>
+      <!-- Спойлер: свёрнутая оплата показывает способ и итог одной строкой -->
+      <button class="row" id="fPayFold">
+        <span id="fPaySumm">—</span>
+        <span class="rv"><span class="chev" id="fPayChev">▾</span></span>
+      </button>
+      <div id="fPayBody" hidden>
+        <div class="g-chips sep">
+          <div class="chips" id="fPayType"></div>
+          <div class="chips" id="fPackChips" hidden style="margin-top:8px;"></div>
+        </div>
+        <div class="pay-row sep">
+          <span class="k" id="fRateLabel">Ставка, ₽/час</span>
+          <input class="pay-in" type="text" inputmode="numeric" id="fRate" placeholder="0"/>
+        </div>
+        <div class="pay-row sep" id="fUnitsRow" hidden>
+          <span class="k" id="fUnitsLabel">Объектов</span>
+          <span class="stepper">
+            <button type="button" id="fUnitsMinus" aria-label="Меньше">−</button>
+            <b id="fUnitsVal">1</b>
+            <button type="button" id="fUnitsPlus" aria-label="Больше">+</button>
+          </span>
+        </div>
+        <div class="pay-row sep">
+          <span class="k">Расходы, ₽</span>
+          <input class="pay-in" type="text" inputmode="numeric" id="fExpense" placeholder="0"/>
+        </div>
+        <div class="pay-total sep" id="fPayTotal">—</div>
       </div>
-      <div class="pay-row sep" id="fUnitsRow" hidden>
-        <span class="k" id="fUnitsLabel">Сколько объектов</span>
-        <input class="pay-in" type="text" inputmode="numeric" id="fUnits" placeholder="1"/>
-      </div>
-      <div class="pay-row sep">
-        <span class="k">Расходы, ₽</span>
-        <input class="pay-in" type="text" inputmode="numeric" id="fExpense" placeholder="0"/>
-      </div>
-      <div class="pay-total sep" id="fPayTotal">—</div>
     </div>
 
     <div class="g-label" id="fWhoLabel">Место и клиент</div>
@@ -1362,6 +1399,8 @@
     </div>
     <div class="year-grid" id="yearGrid"></div>
     <div class="year-sum" id="yearSum">—</div>
+    <!-- Год по жанрам: что отснято и что предстоит -->
+    <div class="year-stat" id="yearStat"></div>
     <!-- Прибыль под скрытой кнопкой: деньги не первое, что видишь (Anti-Goals) -->
     <button class="year-profit" id="yearProfitBtn" hidden>Показать прибыль за год ›</button>
     <div class="year-profit-val" id="yearProfitVal" hidden></div>
@@ -1409,6 +1448,15 @@
       <div class="pay-row">
         <span class="k">Стоимость часа по умолчанию, ₽</span>
         <input class="pay-in" type="text" inputmode="numeric" id="gRate" placeholder="0"/>
+      </div>
+      <!-- Пакеты: до трёх плоских сумм, пустое поле — пакета нет -->
+      <div class="pay-row sep packs-row">
+        <span class="k">Пакеты, ₽</span>
+        <span class="packs">
+          <input class="pay-in" type="text" inputmode="numeric" data-pack="0" placeholder="—"/>
+          <input class="pay-in" type="text" inputmode="numeric" data-pack="1" placeholder="—"/>
+          <input class="pay-in" type="text" inputmode="numeric" data-pack="2" placeholder="—"/>
+        </span>
       </div>
     </div>
 
@@ -1951,7 +1999,7 @@
           return o;
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, sync: syncTarget,
-        defaultRate: defaultRate, loc: { lat: LAT, lon: LON }
+        defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
       }));
     } catch (e) {}
   }
@@ -1974,6 +2022,7 @@
   var sessions = saved && saved.sessions ? saved.sessions : [];
   var syncTarget = saved && saved.sync ? saved.sync : "off";
   var defaultRate = saved && saved.defaultRate ? saved.defaultRate : 0;   // ставка ₽/час по умолчанию
+  var packs = (saved && saved.packs) ? saved.packs.filter(function (p) { return p > 0; }).slice(0, 3) : [];
 
   /* ---------- Деньги: доход, расходы, прибыль ---------- */
   function money(n) {
@@ -2290,7 +2339,7 @@
           ["Оценка", curWeather.sunset + " / 100 · " + sunsetWord(curWeather.sunset)],
           ["Нижний ярус", Math.round(curWeather.layers.low) + "% · экран горизонта"],
           ["Средний ярус", Math.round(curWeather.layers.mid) + "% · текстура"],
-          ["Верхний ярус", Math.round(curWeather.layers.high) + "% · afterglow"],
+          ["Верхний ярус", Math.round(curWeather.layers.high) + "% · догорание зари"],
           ["Влажность", Math.round(curWeather.layers.hum) + "%"]
         ]]
       ]) : "");
@@ -2646,7 +2695,13 @@
     $("yearSum").innerHTML = all.length
       ? "<b>" + all.length + "</b> " + shootWord(all.length)
         + (ahead ? " · ближайшая <b>" + ahead.date.getDate() + " " + MONTHS[ahead.date.getMonth()] + "</b>" : "")
-      : "Съёмок в этом году нет";
+      : "Год пока свободен — время планировать";
+    // Год по жанрам: отснятое и предстоящее — двумя строками
+    var shot = all.filter(function (s) { return s.date < midnight; });
+    var todo = all.filter(function (s) { return s.date >= midnight; });
+    $("yearStat").innerHTML =
+      (shot.length ? '<div><span class="ys-k">Отснято</span>' + genreLine(shot) + "</div>" : "")
+      + (todo.length ? '<div><span class="ys-k">Предстоит</span>' + genreLine(todo) + "</div>" : "");
     // Прибыль — под скрытой кнопкой; при перерисовке года прячем снова
     yearProfitAmt = all.reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
     $("yearProfitBtn").hidden = !all.length;
@@ -2654,6 +2709,33 @@
     $("yearProfitVal").hidden = true;
   }
   var yearProfitAmt = 0;
+  /* «5 свадеб · 8 портретов» — жанры со счётом и склонением, по убыванию */
+  var GENRE_PLURAL = {
+    "Портрет": ["портрет", "портрета", "портретов"],
+    "Свадьбы": ["свадьба", "свадьбы", "свадеб"],
+    "Семья": ["семья", "семьи", "семей"],
+    "Пейзаж": ["пейзаж", "пейзажа", "пейзажей"],
+    "Архитектура": ["архитектура", "архитектуры", "архитектур"],
+    "Стрит": ["стрит", "стрита", "стритов"],
+    "Репортаж": ["репортаж", "репортажа", "репортажей"],
+    "Предметка": ["предметка", "предметки", "предметок"]
+  };
+  function plural(n, forms) {
+    var t = n % 100, o = n % 10;
+    if (t >= 11 && t <= 14) return forms[2];
+    if (o === 1) return forms[0];
+    if (o >= 2 && o <= 4) return forms[1];
+    return forms[2];
+  }
+  function genreLine(list) {
+    var byType = {};
+    list.forEach(function (s) { byType[s.type] = (byType[s.type] || 0) + 1; });
+    return Object.keys(byType)
+      .sort(function (a, b) { return byType[b] - byType[a]; })
+      .map(function (t) {
+        return "<b>" + byType[t] + "</b> " + plural(byType[t], GENRE_PLURAL[t] || [t, t, t]);
+      }).join(" · ");
+  }
   function shootWord(n) {
     var t = n % 100, o = n % 10;
     if (t >= 11 && t <= 14) return "съёмок";
@@ -2963,13 +3045,42 @@
     // Количество — только для «за единицу»
     $("fUnitsRow").hidden = mech !== "unit";
     $("fUnitsLabel").textContent = PAY[fPay].unit ? (PAY[fPay].unit[0].toUpperCase() + PAY[fPay].unit.slice(1)) : "Количество";
+    $("fUnitsVal").textContent = fUnits;
+    // Пакеты — готовые суммы чипсами; «＋ свой» ведёт в настройку
+    var isPack = fPay === "pack";
+    $("fPackChips").hidden = !isPack;
+    if (isPack) {
+      $("fPackChips").innerHTML = packs.map(function (p, i) {
+        return '<button class="chip' + (p === fRate ? " active" : "") + '" data-p="' + i + '">' + money(p) + "</button>";
+      }).join("") + '<button class="chip" data-p="new">＋ свой</button>';
+      $("fPackChips").querySelectorAll(".chip").forEach(function (ch) {
+        ch.addEventListener("click", function () {
+          if (ch.dataset.p === "new") {           // настроить свой пакет — в «Мои жанры»
+            renderGenreList(); fillPackInputs();
+            $("gRate").value = defaultRate || "";
+            $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
+            return;
+          }
+          fRate = packs[+ch.dataset.p];
+          $("fRate").value = fRate;
+          renderPay();
+        });
+      });
+    }
     // Итог: доход и прибыль
     var inc = sessionIncome(payProbe()), net = inc - fExpense;
     var hrs = mech === "hourly" ? " · " + durLabel(fDur) : "";
     $("fPayTotal").innerHTML =
       '<span class="lbl">Доход ' + money(inc) + hrs + (fExpense ? " − расход " + money(fExpense) : "") + "</span>"
       + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net) + "</span>";
+    // Сводка спойлера: способ и итог одной строкой
+    $("fPaySumm").innerHTML = PAY[fPay].label + " · <b>" + money(net) + "</b>";
+    $("fPayBody").hidden = payFolded;
+    $("fPayFold").classList.toggle("open", !payFolded);
   }
+  /* Свёрнутая оплата раскрывается тапом по сводке */
+  var payFolded = true;
+  $("fPayFold").addEventListener("click", function () { payFolded = !payFolded; renderPay(); });
   function bindPayInput(id, setter) {
     $(id).addEventListener("input", function () {
       setter(parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0);
@@ -2977,8 +3088,10 @@
     });
   }
   bindPayInput("fRate", function (v) { fRate = v; });
-  bindPayInput("fUnits", function (v) { fUnits = v; });
   bindPayInput("fExpense", function (v) { fExpense = v; });
+  /* Количество — степпером: в поле пальцем цифры вводить неудобно */
+  $("fUnitsMinus").addEventListener("click", function () { fUnits = Math.max(1, fUnits - 1); renderPay(); });
+  $("fUnitsPlus").addEventListener("click", function () { fUnits = Math.min(99, fUnits + 1); renderPay(); });
   var DURS = [30, 60, 90, 120, 180];
   /* По-русски пишем «1,5 часа», а не «1½ ч» */
   function hourWord(n) {
@@ -3174,6 +3287,8 @@
     fPay = (pref.pay && sp.pay.indexOf(pref.pay) >= 0) ? pref.pay : sp.pay[0];
     fRate = PAY[fPay].m === "hourly" ? defaultRate : 0;
     fUnits = 1; fExpense = 0;
+    // Спойлер: если ставка уже настроена и доход считается сам — сворачиваем
+    payFolded = sessionIncome(payProbe()) > 0;
     /* Свадьба длиннее светового окна: начинать её на закате бессмысленно.
        Двигаем начало назад, чтобы золотой час пришёлся на конец съёмки.
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
@@ -3265,7 +3380,7 @@
 
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
-    $("fRate").value = fRate || ""; $("fUnits").value = fUnits || ""; $("fExpense").value = fExpense || "";
+    $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
     renderPay();
     var warn = wishCheck(wish, fDate);
     $("wishWarn").classList.toggle("show", !!warn);
@@ -3287,9 +3402,10 @@
       placeIdx = pi < 0 ? 0 : pi;
       $("fContact").value = s.contact || "";
       $("fNotes").value = s.notes || "";
-      // Оплата сохранённой съёмки
+      // Оплата сохранённой съёмки — свёрнута: данные уже введены
       fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
       fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
+      payFolded = true;
     } else {
       fAuto = true;
       fDate = new Date(d); fMin = snapMin(startMin);
@@ -3338,12 +3454,32 @@
       });
     });
   }
+  function fillPackInputs() {
+    document.querySelectorAll("[data-pack]").forEach(function (inp, i) {
+      inp.value = packs[i] || "";
+    });
+  }
+  document.querySelectorAll("[data-pack]").forEach(function (inp) {
+    inp.addEventListener("input", function () {
+      var out = [];
+      document.querySelectorAll("[data-pack]").forEach(function (x) {
+        var v = parseFloat((x.value || "").replace(/[^\d.,]/g, "").replace(",", "."));
+        if (v > 0) out.push(v);
+      });
+      packs = out.slice(0, 3);
+      saveAll();
+    });
+  });
   $("fGear").addEventListener("click", function () {
     renderGenreList();
     $("gRate").value = defaultRate || "";
+    fillPackInputs();
     $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
   });
-  function closeGenres() { $("gSheet").classList.remove("open"); $("gScrim").classList.remove("open"); }
+  function closeGenres() {
+    $("gSheet").classList.remove("open"); $("gScrim").classList.remove("open");
+    if ($("formOverlay").classList.contains("open")) renderPay();   // свежие пакеты — сразу в чипсы
+  }
   $("gDone").addEventListener("click", closeGenres);
   $("gScrim").addEventListener("click", closeGenres);
   // Ставка по умолчанию: применяется к новым почасовым съёмкам
