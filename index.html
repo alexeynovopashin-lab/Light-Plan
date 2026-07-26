@@ -635,7 +635,14 @@
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 70;
     background: #17150F; border-radius: 24px 24px 0 0; padding: 10px 24px 34px;
     transform: translateY(101%); transition: transform 0.38s cubic-bezier(0.25,1,0.4,1);
+    /* Список пакетов растёт — лист не должен вылезать за экран */
+    max-height: 86vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Закрытый лист прячем совсем: одного translateY мало, когда высота ограничена */
+    visibility: hidden;
   }
+  .sheet.open { visibility: visible; }
+  .sheet::-webkit-scrollbar { display: none; }
   .sheet.open { transform: none; }
   /* «Мои жанры» вызываются из формы, а форма лежит выше обычных листов (80) */
   #gScrim { z-index: 84; }
@@ -868,8 +875,30 @@
   #fPayFold.open .chev { transform: rotate(180deg); }
   #fPaySumm { font-size: 15px; }
   #fPaySumm b { color: #E2A44C; font-weight: 650; font-variant-numeric: tabular-nums; }
-  .packs { display: flex; gap: 8px; flex: 1; min-width: 0; justify-content: flex-end; }
-  .packs .pay-in { flex: 0 1 76px; background: #17150F; border-radius: 10px; padding: 8px 10px; text-align: center; }
+  /* Редактор пакетов: название · часы · цена · убрать */
+  .pack-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px 9px; }
+  .pack-head .k { font-size: 15px; color: #EFEAE0; }
+  .pack-add {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 600; color: #E2A44C; padding: 4px 0;
+  }
+  .pack-item { display: flex; gap: 6px; align-items: center; padding: 0 15px 10px; }
+  .pack-item input {
+    background: #17150F; border: none; border-radius: 10px; padding: 10px 10px;
+    color: #EFEAE0; font-family: inherit; font-size: 14px; outline: none;
+    -webkit-appearance: none; appearance: none; min-width: 0;
+  }
+  .pack-item input::placeholder { color: #4A453E; }
+  .pack-item .pk-n { flex: 1 1 auto; }
+  .pack-item .pk-h { flex: 0 0 46px; text-align: center; font-variant-numeric: tabular-nums; }
+  .pack-item .pk-p { flex: 0 0 82px; text-align: right; font-variant-numeric: tabular-nums; }
+  .pack-item .pk-x {
+    flex: 0 0 26px; height: 26px; border: none; border-radius: 50%;
+    background: none; color: #635E54; cursor: pointer; font-size: 15px; line-height: 1;
+    font-family: inherit; padding: 0;
+  }
+  .pack-item .pk-x:active { color: #C9663D; }
+  .pack-empty { padding: 0 15px 12px; font-size: 12px; color: #635E54; }
 
   .back {
     background: none; border: none; color: #8A8478; cursor: pointer;
@@ -1449,15 +1478,12 @@
         <span class="k">Стоимость часа по умолчанию, ₽</span>
         <input class="pay-in" type="text" inputmode="numeric" id="gRate" placeholder="0"/>
       </div>
-      <!-- Пакеты: до трёх плоских сумм, пустое поле — пакета нет -->
-      <div class="pay-row sep packs-row">
-        <span class="k">Пакеты, ₽</span>
-        <span class="packs">
-          <input class="pay-in" type="text" inputmode="numeric" data-pack="0" placeholder="—"/>
-          <input class="pay-in" type="text" inputmode="numeric" data-pack="1" placeholder="—"/>
-          <input class="pay-in" type="text" inputmode="numeric" data-pack="2" placeholder="—"/>
-        </span>
+      <!-- Пакеты: именованные продукты свадебщика. Название · часы · цена -->
+      <div class="pack-head sep">
+        <span class="k">Пакеты</span>
+        <button type="button" class="pack-add" id="packAdd">＋ пакет</button>
       </div>
+      <div id="packList"></div>
     </div>
 
     <button class="sheet-done" id="gDone">Готово</button>
@@ -2022,7 +2048,12 @@
   var sessions = saved && saved.sessions ? saved.sessions : [];
   var syncTarget = saved && saved.sync ? saved.sync : "off";
   var defaultRate = saved && saved.defaultRate ? saved.defaultRate : 0;   // ставка ₽/час по умолчанию
-  var packs = (saved && saved.packs) ? saved.packs.filter(function (p) { return p > 0; }).slice(0, 3) : [];
+  /* Пакет — именованный продукт: «Загс и прогулка · 3 ч · 14 000 ₽».
+     n — название, p — цена, h — часы (null: длительность не задаёт).
+     Старый формат (голые числа) мигрируется в безымянные пакеты. */
+  var packs = ((saved && saved.packs) || []).map(function (p, i) {
+    return (typeof p === "number") ? { n: "Пакет " + (i + 1), p: p, h: null } : p;
+  }).filter(function (p) { return p && p.p > 0; }).slice(0, 6);
 
   /* ---------- Деньги: доход, расходы, прибыль ---------- */
   function money(n) {
@@ -2040,7 +2071,7 @@
   function sessionNet(s) { return sessionIncome(s) - (+(s && s.expense) || 0); }
 
   /* ---------- Сдача материала ---------- */
-  var GENRE_DEADLINE = { "Свадьбы": 90, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
+  var GENRE_DEADLINE = { "Свадьбы": 90, "Лавстори": 14, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
     "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5 };
   var DELV_DAYS = [3, 7, 14, 30, 90];
   var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
@@ -2713,6 +2744,7 @@
   var GENRE_PLURAL = {
     "Портрет": ["портрет", "портрета", "портретов"],
     "Свадьбы": ["свадьба", "свадьбы", "свадеб"],
+    "Лавстори": ["лавстори", "лавстори", "лавстори"],
     "Семья": ["семья", "семьи", "семей"],
     "Пейзаж": ["пейзаж", "пейзажа", "пейзажей"],
     "Архитектура": ["архитектура", "архитектуры", "архитектур"],
@@ -2872,7 +2904,10 @@
         c.innerHTML =
           '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
           '<div class="s-body"><div class="s-title">' + s.type + (s.contact ? " · " + s.contact : "") + "</div>" +
-          '<div class="s-sub">' + s.place + (s.wish && s.wish !== "Неважно" ? " · жду: " + s.wish.toLowerCase() : "") + "</div>" +
+          '<div class="s-sub">' + s.place + (function (w) {
+            var list = Array.isArray(w) ? w : (w && w !== "Неважно" ? [w] : []);
+            return list.length ? " · жду: " + list.join(", ").toLowerCase() : "";
+          })(s.wish) + "</div>" +
           (function () {
             var ds = deliveryState(s);
             if (ds.rank >= 2) return '<div class="s-sync" style="color:' + ds.color + '">' + ds.label + "</div>";
@@ -2976,7 +3011,8 @@
   /* ============================================================
      ФОРМА СЪЁМКИ
      ============================================================ */
-  var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет", wish = "Неважно";
+  var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет";
+  var wishes = [];   // пожелания к погоде; пусто = «неважно». Мультивыбор: облака+закат
   /* Съёмку назначают на ровное время. Шаг тот же, что у детентов ползунка, — 15 минут */
   var SNAP = 15;
   function snapMin(m) { return Math.round(m / SNAP) * SNAP; }
@@ -3047,23 +3083,27 @@
     $("fUnitsLabel").textContent = PAY[fPay].unit ? (PAY[fPay].unit[0].toUpperCase() + PAY[fPay].unit.slice(1)) : "Количество";
     $("fUnitsVal").textContent = fUnits;
     // Пакеты — готовые суммы чипсами; «＋ свой» ведёт в настройку
-    var isPack = fPay === "pack";
+    var isPack = fPay === "pack", live = usablePacks();
     $("fPackChips").hidden = !isPack;
     if (isPack) {
-      $("fPackChips").innerHTML = packs.map(function (p, i) {
-        return '<button class="chip' + (p === fRate ? " active" : "") + '" data-p="' + i + '">' + money(p) + "</button>";
+      // Пакет подставляет цену, а если в нём заданы часы — и длительность съёмки
+      $("fPackChips").innerHTML = live.map(function (p, i) {
+        var lbl = p.n ? p.n + " · " + money(p.p) : money(p.p);
+        return '<button class="chip' + (p.p === fRate ? " active" : "") + '" data-p="' + i + '">' + lbl + "</button>";
       }).join("") + '<button class="chip" data-p="new">＋ свой</button>';
       $("fPackChips").querySelectorAll(".chip").forEach(function (ch) {
         ch.addEventListener("click", function () {
           if (ch.dataset.p === "new") {           // настроить свой пакет — в «Мои жанры»
-            renderGenreList(); fillPackInputs();
+            renderGenreList(); renderPackEditor();
             $("gRate").value = defaultRate || "";
             $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
             return;
           }
-          fRate = packs[+ch.dataset.p];
+          var p = live[+ch.dataset.p];
+          fRate = p.p;
           $("fRate").value = fRate;
-          renderPay();
+          if (p.h) { fDur = Math.round(p.h * 60); refreshForm(); }   // часы пакета двигают конец съёмки
+          else renderPay();
         });
       });
     }
@@ -3205,12 +3245,13 @@
   var placeIdx = 0;
 
   /* Жанры: пользователь оставляет только свои */
-  var ALL_GENRES = ["Портрет","Свадьбы","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
+  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
 
   /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
   var GENRE_IC = {
     "Портрет":     '<circle cx="12" cy="8.3" r="3.4"/><path d="M5.6 20a6.4 6.4 0 0 1 12.8 0"/>',
     "Свадьбы":     '<circle cx="9.2" cy="13.4" r="4.9"/><circle cx="14.8" cy="13.4" r="4.9"/><path d="M10.2 5.2h3.6L12 7.4z"/>',
+    "Лавстори":    '<path d="M12 20.2C7.2 16.4 4.2 13.2 4.2 9.9c0-2.4 1.9-4.3 4.2-4.3 1.4 0 2.7.7 3.6 1.8.9-1.1 2.2-1.8 3.6-1.8 2.3 0 4.2 1.9 4.2 4.3 0 3.3-3 6.5-7.8 10.3z"/>',
     "Семья":       '<circle cx="8.4" cy="7.6" r="2.7"/><path d="M3.6 19.8a4.8 4.8 0 0 1 9.6 0"/><circle cx="16.8" cy="10.4" r="2.1"/><path d="M13.4 19.8a3.5 3.5 0 0 1 6.9 0"/>',
     "Пейзаж":      '<path d="M3 18.5l5.4-8.2 3.9 5.9 2.9-4.3 5.8 6.6z"/><circle cx="16.9" cy="6.7" r="2.1"/>',
     "Архитектура": '<path d="M4 20.5h16"/><path d="M6.5 20.5V4.5h11v16"/><path d="M9.6 8h1.6M12.8 8h1.6M9.6 11.5h1.6M12.8 11.5h1.6M9.6 15h1.6M12.8 15h1.6"/>',
@@ -3223,6 +3264,9 @@
     "Ясно":    '<circle cx="12" cy="12" r="4"/><path d="M12 2.6v2M12 19.4v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.6 12h2M19.4 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     "Облачно": '<path d="M7.3 18.5h9a3.7 3.7 0 0 0 .4-7.4 5.1 5.1 0 0 0-9.8-1.3 3.8 3.8 0 0 0 .4 8.7z"/>',
     "Туман":   '<path d="M4 8.5h16M6.5 12.5h13M4 16.5h11.5"/>',
+    "Закат":   '<path d="M2.5 17h19M7.4 17a4.6 4.6 0 0 1 9.2 0M4.6 9.9l1.7 1.7M19.4 9.9l-1.7 1.7M12 4.5v4"/>',
+    "Осадки":  '<path d="M7.3 13.5h9a3.7 3.7 0 0 0 .4-7.4 5.1 5.1 0 0 0-9.8-1.3 3.8 3.8 0 0 0 .4 8.7z"/><path d="M8.5 16.5l-1 3M12.5 16.5l-1 3M16.5 16.5l-1 3"/>',
+    "Луна":    '<path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/>',
     "Звёзды":  '<path d="M12 3.6l1.7 4.9 4.9 1.7-4.9 1.7-1.7 4.9-1.7-4.9-4.9-1.7 4.9-1.7z"/><path d="M18.4 16.6l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
   };
   function toolBtn(name, icon, cls) {
@@ -3247,6 +3291,7 @@
   var GENRE = {
     "Портрет":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
     "Свадьбы":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"] },
+    "Лавстори":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
     "Семья":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
     "Пейзаж":      { delivery: false, client: false, dur: null, pay: ["flat"] },
     "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
@@ -3302,8 +3347,8 @@
     }
     applyGenreShape();
   }
-  var genresOn = (saved && saved.genres) || { "Портрет": 1, "Свадьбы": 1, "Пейзаж": 1, "Архитектура": 1, "Стрит": 1 };
-  var WISHES = ["Неважно", "Ясно", "Облачно", "Туман", "Звёзды"];
+  var genresOn = (saved && saved.genres) || { "Портрет": 1, "Свадьбы": 1, "Лавстори": 1, "Пейзаж": 1, "Архитектура": 1, "Стрит": 1 };
+  var WISHES = ["Неважно", "Ясно", "Закат", "Облачно", "Туман", "Осадки", "Луна", "Звёзды"];
   var WANT = { "Ясно": "excellent", "Облачно": "good", "Туман": "fog" };
 
   function renderGenres() {
@@ -3329,10 +3374,19 @@
   function renderWishes() {
     $("fWish").className = "tool-grid";
     $("fWish").innerHTML = WISHES.map(function (w) {
-      return toolBtn(w, WISH_IC[w], w === wish ? "active" : "");
+      var on = w === "Неважно" ? wishes.length === 0 : wishes.indexOf(w) >= 0;
+      return toolBtn(w, WISH_IC[w], on ? "active" : "");
     }).join("");
     $("fWish").querySelectorAll(".tool").forEach(function (ch) {
-      ch.addEventListener("click", function () { wish = ch.dataset.v; renderWishes(); refreshForm(); });
+      ch.addEventListener("click", function () {
+        var w = ch.dataset.v;
+        if (w === "Неважно") wishes = [];               // сбрасывает все пожелания
+        else {
+          var i = wishes.indexOf(w);
+          if (i >= 0) wishes.splice(i, 1); else wishes.push(w);
+        }
+        renderWishes(); refreshForm();
+      });
     });
   }
 
@@ -3353,8 +3407,38 @@
         m: "Точка в черте города — Млечный Путь не проявится. Выберите место за городом." };
       return null;
     }
+    if (w === "Закат") {
+      var wx = dayWeather(d);
+      if (wx.sunset != null) {
+        if (wx.sunset < 50) return { t: "Закат не обещает цвета",
+          m: "Балл заката " + wx.sunset + " из 100. Ярусы облаков против — попробуйте соседний день." };
+      } else if (q === "poor") return { t: "Заката не будет",
+        m: "Прогноз: " + QUAL[q].sky.toLowerCase() + " — горизонт будет закрыт." };
+      return null;
+    }
+    if (w === "Осадки") {
+      if (q !== "poor") return { t: "Осадков не обещают",
+        m: "Прогноз на этот день: " + QUAL[q].sky.toLowerCase() + ". Дождевых кадров не выйдет." };
+      return null;
+    }
+    if (w === "Луна") {
+      var ph = moonPhase(d, 1320);
+      if (ph.fraction < 0.25) return { t: "Луна почти новая",
+        m: "Освещена на " + Math.round(ph.fraction * 100) + "% — света не даст. Полнолуние ищите в астро-деталях." };
+      if (q === "poor") return { t: "Луну закроют облака",
+        m: "Прогноз: " + QUAL[q].sky.toLowerCase() + "." };
+      return null;
+    }
     if (q !== WANT[w]) return { t: "Погода не та",
       m: "Вы ждёте: " + w.toLowerCase() + ". Прогноз на этот день: " + QUAL[q].sky.toLowerCase() + "." };
+    return null;
+  }
+  /* Пожеланий может быть несколько — первое несбывшееся и показываем */
+  function wishesCheck(d) {
+    for (var i = 0; i < wishes.length; i++) {
+      var warn = wishCheck(wishes[i], d);
+      if (warn) return warn;
+    }
     return null;
   }
 
@@ -3382,7 +3466,7 @@
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
     $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
     renderPay();
-    var warn = wishCheck(wish, fDate);
+    var warn = wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
   }
@@ -3394,7 +3478,9 @@
       var s = sessions[editIdx];
       fAuto = false;                     // время сохранённой съёмки принадлежит фотографу
       fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
-      shootType = s.type; wish = s.wish || "Неважно";
+      shootType = s.type;
+      // старые записи хранили строку — поднимаем в массив
+      wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
       fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
       $("fDone").classList.toggle("on", !!s.delivered);
       var pi = -1;
@@ -3454,26 +3540,39 @@
       });
     });
   }
-  function fillPackInputs() {
-    document.querySelectorAll("[data-pack]").forEach(function (inp, i) {
-      inp.value = packs[i] || "";
+  /* Пакеты с ценой > 0 — рабочие; недозаполненные строки живут только в редакторе */
+  function usablePacks() { return packs.filter(function (p) { return p.p > 0; }); }
+  function numVal(el) { return parseFloat((el.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0; }
+  function renderPackEditor() {
+    var host = $("packList");
+    host.innerHTML = packs.map(function (p, i) {
+      return '<div class="pack-item" data-i="' + i + '">'
+        + '<input class="pk-n" type="text" placeholder="Загс и прогулка" value="' + (p.n || "").replace(/"/g, "&quot;") + '"/>'
+        + '<input class="pk-h" type="text" inputmode="numeric" placeholder="ч" value="' + (p.h || "") + '"/>'
+        + '<input class="pk-p" type="text" inputmode="numeric" placeholder="₽" value="' + (p.p || "") + '"/>'
+        + '<button type="button" class="pk-x" aria-label="Убрать">✕</button></div>';
+    }).join("") || '<div class="pack-empty">Например: «Загс и прогулка» · 3 ч · 14 000 ₽</div>';
+    host.querySelectorAll(".pack-item").forEach(function (row) {
+      var i = +row.dataset.i, p = packs[i];
+      row.querySelector(".pk-n").addEventListener("input", function () { p.n = this.value; saveAll(); });
+      row.querySelector(".pk-h").addEventListener("input", function () { p.h = numVal(this) || null; saveAll(); });
+      row.querySelector(".pk-p").addEventListener("input", function () { p.p = numVal(this); saveAll(); });
+      row.querySelector(".pk-x").addEventListener("click", function () {
+        packs.splice(i, 1); saveAll(); renderPackEditor();
+      });
     });
   }
-  document.querySelectorAll("[data-pack]").forEach(function (inp) {
-    inp.addEventListener("input", function () {
-      var out = [];
-      document.querySelectorAll("[data-pack]").forEach(function (x) {
-        var v = parseFloat((x.value || "").replace(/[^\d.,]/g, "").replace(",", "."));
-        if (v > 0) out.push(v);
-      });
-      packs = out.slice(0, 3);
-      saveAll();
-    });
+  $("packAdd").addEventListener("click", function () {
+    if (packs.length >= 6) return;
+    packs.push({ n: "", p: 0, h: null });
+    renderPackEditor();
+    var last = $("packList").querySelector(".pack-item:last-child .pk-n");
+    if (last) last.focus();
   });
   $("fGear").addEventListener("click", function () {
     renderGenreList();
     $("gRate").value = defaultRate || "";
-    fillPackInputs();
+    renderPackEditor();
     $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
   });
   function closeGenres() {
@@ -3509,12 +3608,12 @@
     refreshForm();
   });
   $("fSave").addEventListener("click", function () {
-    var warn = wishCheck(wish, fDate);
+    var warn = wishesCheck(fDate);
     var rec = {
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
       contact: $("fContact").value.trim(), notes: $("fNotes").value.trim(),
       place: places[placeIdx].name,
-      wish: wish, warn: warn,
+      wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense,
       synced: syncTarget === "off" ? null : syncTarget
