@@ -675,6 +675,30 @@
   }
   .loc-fields input:focus { background: #221F19; }
   .loc-err { min-height: 16px; margin-top: 8px; font-size: 12px; color: #C9663D; }
+  /* Поиск места по названию */
+  .loc-search {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    background: #17150F; border-radius: 12px; padding: 0 14px;
+  }
+  .loc-search svg { width: 17px; height: 17px; stroke: #635E54; fill: none; stroke-width: 1.8; flex-shrink: 0; }
+  .loc-search input {
+    flex: 1; min-width: 0; background: none; border: none; padding: 14px 0;
+    color: #EFEAE0; font-family: inherit; font-size: 16px; outline: none;
+    -webkit-appearance: none; appearance: none;
+  }
+  .loc-search input::placeholder { color: #4A453E; }
+  .loc-results:empty { display: none; }
+  .loc-results { margin-top: 8px; max-height: 168px; overflow-y: auto; scrollbar-width: none; }
+  .loc-results::-webkit-scrollbar { display: none; }
+  .loc-hit {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    background: none; border: none; font-family: inherit; color: #EFEAE0;
+    padding: 11px 2px; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
+  }
+  .loc-hit:active { opacity: 0.6; }
+  .loc-hit .n { font-size: 15px; }
+  .loc-hit .a { display: block; font-size: 12px; color: #8A8478; margin-top: 2px; }
+  .loc-note { padding: 10px 2px; font-size: 13px; color: #635E54; }
   .grip { width: 38px; height: 4px; border-radius: 3px; background: #38332B; margin: 0 auto 18px; }
   .sheet-title { font-size: 19px; font-weight: 650; letter-spacing: -0.2px; }
   .sheet-sub { font-size: 13px; color: #8A8478; margin-top: 5px; }
@@ -1456,12 +1480,18 @@
   <div class="scrim" id="locScrim"></div>
   <div class="sheet" id="locSheet">
     <div class="grip"></div>
-    <div class="sheet-title">Где снимаем</div>
-    <div class="sheet-sub">Определить по геолокации или ввести координаты</div>
+    <div class="sheet-title" id="locTitle">Где снимаем</div>
+    <div class="sheet-sub">Найти по названию, определить по геолокации или ввести координаты</div>
     <button class="loc-detect" id="locDetect">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       <span id="locDetectLbl">Определить моё место</span>
     </button>
+    <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
+    <div class="loc-search">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+      <input id="locQuery" type="text" placeholder="Лагерный сад, Томск" autocomplete="off"/>
+    </div>
+    <div class="loc-results" id="locResults"></div>
     <div class="loc-fields">
       <label>Широта<input id="locLat" type="text" inputmode="decimal" placeholder="56.021"/></label>
       <label>Долгота<input id="locLon" type="text" inputmode="decimal" placeholder="37.482"/></label>
@@ -3093,9 +3123,10 @@
     $("fPackChips").hidden = !isPack;
     if (isPack) {
       // Пакет подставляет цену, а если в нём заданы часы — и длительность съёмки
+      // На чипсе только имя пакета — сумма и так стоит в строке дохода
       $("fPackChips").innerHTML = live.map(function (p, i) {
-        var lbl = p.n ? p.n + " · " + money(p.p) : money(p.p);
-        return '<button class="chip' + (p.p === fRate ? " active" : "") + '" data-p="' + i + '">' + lbl + "</button>";
+        return '<button class="chip' + (p.p === fRate ? " active" : "") + '" data-p="' + i + '">'
+          + (p.n || money(p.p)) + "</button>";
       }).join("") + '<button class="chip" data-p="new">＋ свой</button>';
       $("fPackChips").querySelectorAll(".chip").forEach(function (ch) {
         ch.addEventListener("click", function () {
@@ -3243,12 +3274,27 @@
     $(r[0]).addEventListener("click", function () { toggleRow(r[0]); });
   });
 
-  var places = [
-    { name: "Северный объезд", coords: "56.021 N · 37.482 E", city: true },
-    { name: "Старая пристань", coords: "56.008 N · 37.455 E", city: true },
-    { name: "Поле у Лугового", coords: "56.047 N · 37.510 E", city: false }
-  ];
-  var placeIdx = 0;
+  /* Место съёмки живёт в самой съёмке: имя, координаты и «в городе» для засветки.
+     По умолчанию — текущее место приложения, дальше правится вручную. */
+  var sessionPlace = { name: "", lat: LAT, lon: LON, city: true };
+  /* Город рядом = засветка. Считаем по данным геокодера: он знает про населённый пункт */
+  function setSessionPlace(lat, lon, name) {
+    sessionPlace = { name: name || "", lat: lat, lon: lon, city: sessionPlace.city };
+    renderSessionPlace();
+    // Имя и признак города уточняем обратным геокодированием
+    fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=ru")
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;
+        sessionPlace.city = !!(j.city || j.locality);
+        if (!sessionPlace.name) sessionPlace.name = j.locality || j.city || "";
+        renderSessionPlace();
+      }).catch(function () {});
+  }
+  function renderSessionPlace() {
+    $("fPlaceName").textContent = sessionPlace.name || coordText(sessionPlace.lat, sessionPlace.lon);
+    $("fPlaceCoords").textContent = coordText(sessionPlace.lat, sessionPlace.lon)
+      + (sessionPlace.city ? " · в городе" : " · за городом");
+  }
 
   /* Жанры: пользователь оставляет только свои */
   var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
@@ -3409,7 +3455,7 @@
         m: "Небо здесь не темнеет до конца августа. Оставайтесь дома — подскажу первую тёмную ночь." };
       if (q !== "excellent") return { t: "Звёзд не будет",
         m: "Прогноз: " + QUAL[q].sky.toLowerCase() + ". Оставайтесь дома — предложу ближайшую ясную ночь." };
-      if (places[placeIdx].city) return { t: "Засветка города",
+      if (sessionPlace.city) return { t: "Засветка города",
         m: "Точка в черте города — Млечный Путь не проявится. Выберите место за городом." };
       return null;
     }
@@ -3489,9 +3535,9 @@
       wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
       fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
       $("fDone").classList.toggle("on", !!s.delivered);
-      var pi = -1;
-      places.forEach(function (p, i) { if (p.name === s.place) pi = i; });
-      placeIdx = pi < 0 ? 0 : pi;
+      sessionPlace = (s.placeLat != null)
+        ? { name: s.place || "", lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
+        : { name: s.place || "", lat: LAT, lon: LON, city: true };   // старые записи знали только имя
       $("fContact").value = s.contact || "";
       $("fNotes").value = s.notes || "";
       // Оплата сохранённой съёмки — свёрнута: данные уже введены
@@ -3503,10 +3549,11 @@
       fDate = new Date(d); fMin = snapMin(startMin);
       $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
+      // Новая съёмка начинается там, где сейчас смотрим свет
+      sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
     }
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
-    $("fPlaceName").textContent = places[placeIdx].name;
-    $("fPlaceCoords").textContent = places[placeIdx].coords + (places[placeIdx].city ? " · в городе" : " · за городом");
+    renderSessionPlace();
     $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
     $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
@@ -3607,18 +3654,14 @@
     closeRows(); $("formOverlay").classList.remove("open");
   });
   $("fPlace").addEventListener("click", function () {
-    placeIdx = (placeIdx + 1) % places.length;
-    $("fPlaceName").textContent = places[placeIdx].name;
-    $("fPlaceCoords").textContent = places[placeIdx].coords
-      + (places[placeIdx].city ? " · в городе" : " · за городом");
-    refreshForm();
+    openLocSheet("session");
   });
   $("fSave").addEventListener("click", function () {
     var warn = wishesCheck(fDate);
     var rec = {
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
       contact: $("fContact").value.trim(), notes: $("fNotes").value.trim(),
-      place: places[placeIdx].name,
+      place: sessionPlace.name, placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense,
@@ -3995,36 +4038,110 @@
     detectLocation(null, function (m) { $("mLocName").textContent = m; });
   });
 
-  /* Лист «Где снимаем» — открывается кнопкой места на «Сегодня» */
-  function openLocSheet() {
-    $("locLat").value = LAT.toFixed(4);
-    $("locLon").value = LON.toFixed(4);
+  /* Лист «Где снимаем». Два режима: место приложения (с «Сегодня» и карты)
+     и место съёмки (из карточки) — тогда результат уходит в форму, а не в свет. */
+  var locTarget = "app", locPickName = "";
+  function openLocSheet(mode) {
+    locTarget = mode === "session" ? "session" : "app";
+    var isSession = locTarget === "session";
+    $("locTitle").textContent = isSession ? "Место съёмки" : "Где снимаем";
+    var base = isSession ? sessionPlace : { lat: LAT, lon: LON, name: "" };
+    $("locLat").value = (+base.lat).toFixed(4);
+    $("locLon").value = (+base.lon).toFixed(4);
+    $("locQuery").value = ""; $("locResults").innerHTML = "";
+    locPickName = isSession ? (base.name || "") : "";
     $("locErr").textContent = "";
     $("locDetectLbl").textContent = "Определить моё место";
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
-    // Первый тап по месту — сразу спрашиваем разрешение на геоданные
-    if (navigator.permissions && navigator.permissions.query) {
+    // Первый тап по месту на «Сегодня» — сразу спрашиваем разрешение на геоданные
+    if (!isSession && navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: "geolocation" }).then(function (p) {
         if (p.state === "prompt") $("locDetect").click();
       }).catch(function () {});
     }
   }
   function closeLocSheet() { $("locSheet").classList.remove("open"); $("locScrim").classList.remove("open"); }
-  $("todayLoc").addEventListener("click", openLocSheet);
+  $("todayLoc").addEventListener("click", function () { openLocSheet("app"); });
   $("locScrim").addEventListener("click", closeLocSheet);
   $("locDetect").addEventListener("click", function () {
+    if (locTarget === "session") {          // для съёмки геолокация только заполняет поля
+      if (!navigator.geolocation) { $("locErr").textContent = "Геолокация недоступна"; return; }
+      $("locDetectLbl").textContent = "Определяю…";
+      navigator.geolocation.getCurrentPosition(function (p) {
+        $("locLat").value = p.coords.latitude.toFixed(4);
+        $("locLon").value = p.coords.longitude.toFixed(4);
+        locPickName = ""; $("locDetectLbl").textContent = "Определить моё место";
+      }, function () {
+        $("locErr").textContent = "Место не определено";
+        $("locDetectLbl").textContent = "Определить моё место";
+      }, { enableHighAccuracy: true, timeout: 8000 });
+      return;
+    }
     $("locDetectLbl").textContent = "Определяю…";
     detectLocation(function () {
       $("locLat").value = LAT.toFixed(4); $("locLon").value = LON.toFixed(4);
       closeLocSheet();
     }, function (m) { $("locErr").textContent = m; $("locDetectLbl").textContent = "Определить моё место"; });
   });
+
+  /* Поиск места по названию: человек думает «Лагерный сад», а не координатами.
+     Nominatim (OpenStreetMap): без ключа, с CORS. Пауза, чтобы не долбить сервис. */
+  var locSearchTimer = null, locSearchSeq = 0;
+  function renderHits(list) {
+    var box = $("locResults");
+    if (!list.length) { box.innerHTML = '<div class="loc-note">Ничего не нашлось</div>'; return; }
+    box.innerHTML = list.map(function (h, i) {
+      return '<button class="loc-hit" data-i="' + i + '"><span class="n">' + h.name
+        + '</span><span class="a">' + h.area + "</span></button>";
+    }).join("");
+    box.querySelectorAll(".loc-hit").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var h = list[+b.dataset.i];
+        $("locLat").value = h.lat.toFixed(4);
+        $("locLon").value = h.lon.toFixed(4);
+        locPickName = h.name;
+        $("locQuery").value = h.name;
+        box.innerHTML = "";
+        $("locErr").textContent = "";
+      });
+    });
+  }
+  function searchPlace(q) {
+    var seq = ++locSearchSeq;
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=ru&q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (seq !== locSearchSeq) return;      // пришёл ответ на устаревший запрос
+        renderHits((j || []).map(function (x) {
+          var parts = (x.display_name || "").split(",").map(function (s) { return s.trim(); });
+          return {
+            name: x.name || parts[0] || "Место",
+            area: parts.slice(1, 3).join(", "),
+            lat: +x.lat, lon: +x.lon
+          };
+        }));
+      })
+      .catch(function () {
+        if (seq === locSearchSeq) $("locResults").innerHTML = '<div class="loc-note">Поиск недоступен без сети</div>';
+      });
+  }
+  $("locQuery").addEventListener("input", function () {
+    var q = this.value.trim();
+    clearTimeout(locSearchTimer);
+    if (q.length < 3) { $("locResults").innerHTML = ""; return; }
+    locSearchTimer = setTimeout(function () { searchPlace(q); }, 450);
+  });
+
   $("locDone").addEventListener("click", function () {
     var la = parseFloat(($("locLat").value || "").replace(",", "."));
     var lo = parseFloat(($("locLon").value || "").replace(",", "."));
     if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = "Широта — число от −90 до 90"; return; }
     if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = "Долгота — число от −180 до 180"; return; }
-    gotoLocation(la, lo);
+    if (locTarget === "session") {
+      setSessionPlace(la, lo, locPickName);
+    } else {
+      gotoLocation(la, lo);
+    }
     closeLocSheet();
   });
 
