@@ -607,6 +607,19 @@
   }
   .seg button.active { background: #2A2724; color: #EFEAE0; }
   .seg-note { font-size: 12px; color: #635E54; padding: 10px 24px 0; line-height: 1.5; }
+
+  /* Работа с копией данных: действие, а не плашка-CTA */
+  .data-btn {
+    display: flex; align-items: center; gap: 11px; width: calc(100% - 48px);
+    margin: 10px 24px 0; padding: 13px 15px;
+    background: #221D14; border: none; border-radius: 12px; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 600; color: #E2A44C;
+  }
+  .data-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.7; flex-shrink: 0; }
+  .data-btn:active { opacity: 0.6; }
+  .data-btn.ghost-btn { background: #17150F; color: #A8A093; }
+  #storeState.risk { color: #C9853F; }
+  #storeState.safe { color: #A8B49B; }
   .item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 24px; font-size: 15px;
@@ -1273,6 +1286,22 @@
     <div class="sec-label">Места</div>
     <div class="item"><span class="k">Мои точки съёмки</span><span class="v">3 ›</span></div>
     <div class="item"><span class="k">Дорога до точки</span><span class="v">40 мин ›</span></div>
+
+    <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
+    <div class="sec-label">Данные</div>
+    <div class="item"><span class="k">Хранилище</span><span class="v" id="storeState">—</span></div>
+    <div class="item"><span class="k">Записей</span><span class="v" id="storeCount">—</span></div>
+    <div class="item"><span class="k">Последняя копия</span><span class="v" id="backupWhen">не делали</span></div>
+    <button class="data-btn" id="backupSave">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 11l4 4 4-4M4.5 19.5h15"/></svg>
+      <span>Сохранить копию</span>
+    </button>
+    <button class="data-btn ghost-btn" id="backupLoad">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5v-11M8 13l4-4 4 4M4.5 4.5h15"/></svg>
+      <span>Восстановить из копии</span>
+    </button>
+    <input type="file" id="backupFile" accept="application/json,.json" hidden>
+    <p class="seg-note" id="backupNote">Копия — обычный файл. Положите его в Яндекс.Диск, iCloud или отправьте себе — из него всё восстановится.</p>
 
     <div class="sec-label">Единицы и язык</div>
     <div class="item"><span class="k">Температура</span><span class="v">°C ›</span></div>
@@ -2081,8 +2110,86 @@
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, sync: syncTarget,
         defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
       }));
+      if (typeof renderStorageInfo === "function") renderStorageInfo();
     } catch (e) {}
   }
+  /* ---------- Копия данных ----------
+     Браузер вправе очистить localStorage: iOS стирает хранилище сайтов, которыми
+     давно не пользовались. Единственная настоящая защита — файл на руках. */
+  var BACKUP_KEY = "lightplan.backup";
+  function backupPayload() {
+    var raw = localStorage.getItem(STORE);
+    return JSON.stringify({
+      app: "Light Plan", format: 1,
+      exported: new Date().toISOString(),
+      data: raw ? JSON.parse(raw) : null
+    }, null, 1);
+  }
+  function backupName() {
+    var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return "light-plan-" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + ".json";
+  }
+  function doBackup() {
+    var blob = new Blob([backupPayload()], { type: "application/json" });
+    var name = backupName();
+    // На iPhone «Поделиться» кладёт файл в Файлы, Яндекс.Диск или почту — куда удобнее
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type: "application/json" })] })) {
+      navigator.share({ files: [new File([blob], name, { type: "application/json" })], title: "Light Plan · копия" })
+        .then(markBackup).catch(function () {});
+      return;
+    }
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    markBackup();
+  }
+  function markBackup() {
+    try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch (e) {}
+    renderStorageInfo();
+  }
+  /* Восстановление: содержимое файла заменяет базу целиком */
+  function restoreBackup(text) {
+    var o;
+    try { o = JSON.parse(text); } catch (e) { return "Файл не читается"; }
+    var data = (o && o.data) ? o.data : o;                       // терпим и «голый» дамп
+    if (!data || typeof data !== "object" || !("sessions" in data)) return "Это не копия Light Plan";
+    try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) { return "Не удалось записать"; }
+    return null;
+  }
+  function renderStorageInfo() {
+    var raw = localStorage.getItem(STORE) || "";
+    var n = 0;
+    try { n = (JSON.parse(raw || "{}").sessions || []).length; } catch (e) {}
+    if ($("storeCount")) $("storeCount").textContent = n + " · " + Math.max(1, Math.round(raw.length / 1024)) + " КБ";
+    var when = localStorage.getItem(BACKUP_KEY);
+    if ($("backupWhen")) {
+      if (!when) $("backupWhen").textContent = "не делали";
+      else {
+        var d = new Date(when), days = Math.floor((Date.now() - d) / 86400000);
+        $("backupWhen").textContent = days === 0 ? "сегодня" : days === 1 ? "вчера" : days + " дн. назад";
+      }
+    }
+    if (!$("storeState")) return;
+    if (navigator.storage && navigator.storage.persisted) {
+      navigator.storage.persisted().then(function (ok) {
+        $("storeState").textContent = ok ? "постоянное" : "может быть очищено";
+        $("storeState").className = "v " + (ok ? "safe" : "risk");
+      }).catch(function () {});
+    } else {
+      $("storeState").textContent = "обычное";
+      $("storeState").className = "v risk";
+    }
+  }
+  /* Просим у браузера постоянное хранилище — заметно снижает риск очистки */
+  function askPersistence() {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    navigator.storage.persisted().then(function (already) {
+      if (already) return renderStorageInfo();
+      navigator.storage.persist().then(renderStorageInfo).catch(function () {});
+    }).catch(function () {});
+  }
+
   function loadAll() {
     try {
       var raw = localStorage.getItem(STORE);
@@ -2306,7 +2413,7 @@
     $("tRec").style.color = qcol;
     $("tRec").innerHTML = (st.stars ? starGlyph() : meterHTML(st.level, qcol)) + '<span>' + st.rec + '</span>';
     // Прогноз заката — вынесен наверх, чтобы не искать его в астро-деталях
-    if (curWeather && curWeather.sunset !== null) {
+    if (curWeather && isFinite(curWeather.sunset) && curWeather.sunset !== null) {
       var sc = curWeather.sunset;
       $("tSunset").textContent = sunsetShort(sc) + " · " + sc + " / 100";
       $("tSunset").style.color = sc >= 75 ? "#E2A44C" : sc >= 50 ? "#A8B49B" : sc >= 28 ? "#C0B8AA" : "#7C9CC4";
@@ -2434,7 +2541,7 @@
       ]]
     ])) + (
       // Прогноз заката по ярусам — только когда есть настоящие данные
-      (curWeather && curWeather.sunset !== null && curWeather.layers) ? skySwatch(curWeather) + proHTML([
+      (curWeather && isFinite(curWeather.sunset) && curWeather.sunset !== null && curWeather.layers) ? skySwatch(curWeather) + proHTML([
         ["sunset", "Прогноз заката", [
           ["Оценка", curWeather.sunset + " / 100 · " + sunsetWord(curWeather.sunset)],
           ["Нижний ярус", Math.round(curWeather.layers.low) + "% · экран горизонта"],
@@ -2462,7 +2569,7 @@
   };
   var SKY_DEAD = [92, 92, 96];  // «свинец»: цвета не будет
   function skyPalette(w) {
-    if (!w || w.sunset === null || !w.layers) return null;
+    if (!w || !isFinite(w.sunset) || w.sunset === null || !w.layers) return null;
     var s = w.sunset / 100, L = w.layers;
     // Чем ниже балл, тем ближе к свинцу; влажность добавляет дымки
     var wash = clamp((L.hum - 65) / 45, 0, 0.45);
@@ -3858,6 +3965,26 @@
   }
   $("scrub").addEventListener("pointerdown", initAudio);
   $("scrub").addEventListener("touchstart", initAudio, { passive: true });
+  /* Копия данных: сохранить и восстановить */
+  $("backupSave").addEventListener("click", function () {
+    doBackup();
+    $("backupNote").textContent = "Копия готова. Сохраните её в Яндекс.Диск, iCloud или отправьте себе — из неё всё восстановится.";
+  });
+  $("backupLoad").addEventListener("click", function () { $("backupFile").click(); });
+  $("backupFile").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var err = restoreBackup(String(rd.result));
+      if (err) { $("backupNote").textContent = err + ". Данные не тронуты."; return; }
+      $("backupNote").textContent = "Восстановлено. Перезапускаю…";
+      setTimeout(function () { location.reload(); }, 700);
+    };
+    rd.readAsText(f);
+    this.value = "";
+  });
+
   $("soundToggle").addEventListener("click", function () {
     this.classList.toggle("on");
     if (this.classList.contains("on")) { initAudio(); tickClick(); }
@@ -4295,6 +4422,7 @@
   measureDock();
   window.addEventListener("resize", measureDock);
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
+  askPersistence(); renderStorageInfo();   // просим у браузера не стирать наши записи
 })();
 </script>
 </body>
