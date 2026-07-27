@@ -1148,6 +1148,9 @@
       <div class="t-row"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
       <div class="t-row"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
       <div class="t-row"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
+      <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
+      <div class="t-row"><span class="t-label">Синий час</span><span class="t-value" id="mBlue">—</span></div>
+      <div class="t-row"><span class="t-label">Луна</span><span class="t-value" id="mMoon">—</span></div>
       <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
     </div>
 
@@ -1705,7 +1708,8 @@
      поэтому ищем в окне ±сутки и берём дугу, в которой находится просматриваемое время */
   var moonCache = {};
   function moonArc(date, t) {
-    var key = date.toDateString();
+    // Место — часть ключа: восход луны на Шпицбергене и в Москве разный
+    var key = date.toDateString() + "@" + LAT.toFixed(2) + "," + LON.toFixed(2);
     var arcs = moonCache[key];
     if (!arcs) {
       arcs = []; moonCache[key] = arcs;
@@ -1721,7 +1725,8 @@
     }
     for (var i = 0; i < arcs.length; i++) if (t >= arcs[i].rise && t <= arcs[i].set) return arcs[i];
     for (var j = 0; j < arcs.length; j++) if (arcs[j].rise > t) return arcs[j];
-    return arcs.length ? arcs[arcs.length - 1] : { rise: 0, set: 1440 };
+    // За полярным кругом луна может вовсе не всходить — говорим об этом честно
+    return arcs.length ? arcs[arcs.length - 1] : { rise: null, set: null, none: true };
   }
   function moonCross(date, a, b) {
     for (var i = 0; i < 9; i++) {
@@ -2198,7 +2203,8 @@
   function paintMoon(t) {
     var arc = moonArc(selDate, t);
     var m = moonAt(selDate, t), ph = moonPhase(selDate, t);
-    var p = posOn(t, arc.rise, arc.set);
+    // За полярным кругом дуги может не быть вовсе — рисуем светило по горизонту
+    var p = arc.none ? posOn(t, MINT, MAXT) : posOn(t, arc.rise, arc.set);
     var vis = m.alt < 0 ? Math.max(0, 1 + m.alt / 3) : 1;
 
     $("moonDisc").setAttribute("transform", "translate(" + p[0].toFixed(1) + " " + p[1].toFixed(1) + ")");
@@ -2213,10 +2219,14 @@
     var pct = Math.round(ph.fraction * 100) + "%";
     $("drSense").textContent = m.alt > 0
       ? "освещена на " + pct + " · высота " + m.alt.toFixed(0) + "°"
+      : arc.none ? "сегодня не восходит · " + pct
       : "под горизонтом · взойдёт в " + fmt(arc.rise) + " · " + pct;
 
     // Отсчёт: сколько луне осталось над горизонтом или сколько ждать восхода
-    if (m.alt > 0) {
+    if (arc.none) {
+      $("nlLabel").textContent = "Луна";
+      $("nlValue").textContent = "не восходит";
+    } else if (m.alt > 0) {
       $("nlLabel").textContent = "Луна зайдёт через";
       $("nlValue").textContent = durShort(arc.set - t);
     } else {
@@ -2503,29 +2513,40 @@
     svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: MR, fill: "none",
       stroke: "rgba(239,234,224,0.10)", "stroke-width": 1 }));
 
-    // Путь солнца по азимуту — от восхода к закату (в полярном дне — полный круг за сутки)
-    var d = "", first = true;
-    for (var tt = SUN.arcA; tt <= SUN.arcB; tt += 10) {
-      var pt = A(azAt(tt), MR);
-      d += (first ? "M" : "L") + pt[0].toFixed(1) + " " + pt[1].toFixed(1) + " ";
-      first = false;
-    }
-    if (d) svg.appendChild(el("path", { d: d.trim(), fill: "none", stroke: "rgba(226,164,76,0.32)",
-      "stroke-width": 1.5, "stroke-dasharray": "1 6", "stroke-linecap": "round" }));
-
-    // Золотые окна на азимутальном круге
-    function azArc(t1, t2) {
-      if (t1 === null || t2 === null) return;
+    /* Полный круг суток. Солнце не исчезает ночью — оно уходит под горизонт,
+       и это должно читаться: день сплошной нитью, ночь редким пунктиром. */
+    function azPath(t1, t2, r, step) {
+      if (t1 === null || t2 === null) return "";
       var dd = "", f = true;
-      for (var x = t1; x <= t2; x += 4) {
-        var pp = A(azAt(x), MR);
+      for (var x = t1; x <= t2; x += (step || 6)) {
+        var pp = A(azAt(x), r);
         dd += (f ? "M" : "L") + pp[0].toFixed(1) + " " + pp[1].toFixed(1) + " ";
         f = false;
       }
-      svg.appendChild(el("path", { d: dd.trim(), fill: "none", stroke: "#E2A44C", "stroke-width": 3.5, "stroke-linecap": "round" }));
+      return dd.trim();
     }
-    azArc(SUN.rise, SUN.goldA);
-    azArc(SUN.goldB, SUN.set);
+    // Ночная часть: от заката до восхода следующего дня — солнце под землёй
+    if (SUN.set !== null && SUN.rise !== null) {
+      var night = azPath(SUN.set, SUN.rise + 1440, MR, 10);
+      if (night) svg.appendChild(el("path", { d: night, fill: "none", stroke: "rgba(124,156,196,0.30)",
+        "stroke-width": 1.2, "stroke-dasharray": "1 7", "stroke-linecap": "round" }));
+    }
+    // Дневная часть — сплошная тонкая нить
+    var day = azPath(SUN.arcA, SUN.arcB, MR, 8);
+    if (day) svg.appendChild(el("path", { d: day, fill: "none", stroke: "rgba(226,164,76,0.42)",
+      "stroke-width": 1.6, "stroke-linecap": "round" }));
+
+    /* Окна света на азимутальном круге: синий час снаружи, золотой внутри —
+       два разных отрезка, а не один. Фотограф видит, куда смотреть и когда. */
+    function azBand(t1, t2, r, color, w) {
+      var dd = azPath(t1, t2, r, 4);
+      if (dd) svg.appendChild(el("path", { d: dd, fill: "none", stroke: color,
+        "stroke-width": w, "stroke-linecap": "round" }));
+    }
+    azBand(SUN.civA, SUN.blueA, MR + 7, "rgba(124,156,196,0.75)", 3);   // синий час утром
+    azBand(SUN.blueB, SUN.civB, MR + 7, "rgba(124,156,196,0.75)", 3);   // синий час вечером
+    azBand(SUN.blueA, SUN.goldA, MR, "#E2A44C", 4);                     // золотой час утром
+    azBand(SUN.goldB, SUN.blueB, MR, "#E2A44C", 4);                     // золотой час вечером
 
     // Восход и закат — метки с временем
     [[SUN.rise, "start", 9], [SUN.set, "end", -9]].forEach(function (m) {
@@ -2536,6 +2557,24 @@
         "text-anchor": m[1], "font-family": "-apple-system, sans-serif", "font-weight": 600 });
       tx.textContent = fmt(m[0]); svg.appendChild(tx);
     });
+
+    /* Луна: её путь и текущее положение — на куполе она есть, на карте должна быть тоже */
+    var mArc = moonArc(selDate, t), mNow = moonAt(selDate, t);
+    if (mArc && !mArc.none && mArc.rise !== null && mArc.set !== null) {
+      var mp = "", mf = true;
+      for (var mt = mArc.rise; mt <= mArc.set; mt += 10) {
+        var mpt = A(moonAt(selDate, mt).az, MR - 16);
+        mp += (mf ? "M" : "L") + mpt[0].toFixed(1) + " " + mpt[1].toFixed(1) + " ";
+        mf = false;
+      }
+      if (mp) svg.appendChild(el("path", { d: mp.trim(), fill: "none", stroke: "rgba(207,214,222,0.28)",
+        "stroke-width": 1.2, "stroke-dasharray": "4 5", "stroke-linecap": "round" }));
+    }
+    if (mNow.alt > -3) {
+      var mpos = A(mNow.az, MR - 16);
+      svg.appendChild(el("circle", { cx: mpos[0], cy: mpos[1], r: 4.5,
+        fill: mNow.alt > 0 ? "#CFD6DE" : "rgba(207,214,222,0.45)", stroke: "#14110E", "stroke-width": 1.5 }));
+    }
 
     // Луч и солнце
     if (e > -6) {
@@ -2556,6 +2595,14 @@
     $("mDir").textContent = e > 0 ? "с " + dirOf(az) + " · " + az.toFixed(0) + "°" : "солнце под горизонтом";
     $("mElev").textContent = (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°";
     $("mShadow").textContent = sh ? "×" + (sh < 10 ? sh.toFixed(1) : Math.round(sh)) + " роста · на " + dirOf((az + 180) % 360) : "теней нет";
+    // Окна света: время и азимут — куда смотреть, а не только когда
+    $("mGolden").textContent = (SUN.goldB === null || SUN.blueB === null) ? "—"
+      : range(SUN.goldB, SUN.blueB) + " · " + dirOf(azAt(SUN.goldB));
+    $("mBlue").textContent = (SUN.blueB === null || SUN.civB === null) ? "—"
+      : range(SUN.blueB, SUN.civB) + " · " + dirOf(azAt(SUN.blueB));
+    $("mMoon").textContent = mNow.alt > 0
+      ? dirOf(mNow.az) + " · " + mNow.alt.toFixed(0) + "° · " + Math.round(moonPhase(selDate, t).fraction * 100) + "%"
+      : mArc.none ? "сегодня не восходит" : "под горизонтом · взойдёт " + fmt(mArc.rise);
     $("mPoint").textContent = e > 0 ? "на свету" : "в тени";
     $("mPoint").style.color = e > 0 ? "#E2A44C" : "#8A8478";
 
@@ -3837,7 +3884,8 @@
       var th = Math.atan2((cy - vy) / ry, (vx - cx) / rx);   // 0 = закат справа, π = восход слева
       var frac = clamp((180 - clamp(th * 180 / Math.PI, 0, 180)) / 180, 0, 1);
       var a, b;
-      if (skyMode === "moon") { var arc = moonArc(selDate, viewMin); a = arc.rise; b = arc.set; }
+      if (skyMode === "moon") { var arc = moonArc(selDate, viewMin);
+        a = arc.none ? MINT : arc.rise; b = arc.none ? MAXT : arc.set; }
       else { a = SUN.arcA; b = SUN.arcB; }
       if (a === null || b === null) return null;
       return clamp(Math.round(a + frac * (b - a)), MINT, MAXT);
@@ -3887,8 +3935,13 @@
   function updateEdges() {
     if (skyMode === "moon") {
       var arc = moonArc(selDate, viewMin);
-      $("edgeRise").innerHTML = edgeHTML("mup", arc.rise);
-      $("edgeSet").innerHTML = edgeHTML("mdown", arc.set);
+      if (arc.none) {   // луна сегодня не всходит — кромки молчат
+        $("edgeRise").innerHTML = edgeHTML("mup", null);
+        $("edgeSet").innerHTML = edgeHTML("mdown", null);
+      } else {
+        $("edgeRise").innerHTML = edgeHTML("mup", arc.rise);
+        $("edgeSet").innerHTML = edgeHTML("mdown", arc.set);
+      }
     } else if (SUN.polar !== 0) {
       // Полярный день/ночь: восхода и заката нет — честная подпись вместо «—»
       $("edgeRise").innerHTML = '<span>' + (SUN.polar === 1 ? "солнце не заходит" : "солнце не восходит") + "</span>";
