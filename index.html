@@ -192,6 +192,19 @@
   }
   .p-row .k { color: #8A8478; }
   .p-row .v { font-variant-numeric: tabular-nums; color: #C9C2B6; font-weight: 500; text-align: right; }
+
+  /* Палитра предсказанного неба: не картинка заката, а его температура.
+     Переход — только когда меняется прогноз или день; вечной петли нет. */
+  .sky-swatch {
+    position: relative; height: 92px; border-radius: 14px; margin-top: 20px;
+    display: flex; align-items: flex-end; padding: 12px 14px;
+    transition: background 1.2s ease;
+  }
+  .sky-swatch span {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.2px;
+    color: rgba(18,16,14,0.82); text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+  }
+  @media (prefers-reduced-motion: reduce) { .sky-swatch { transition: none; } }
   .p-row .v.none { color: #55504A; font-weight: 400; }
 
   /* ---------- Управление временем ---------- */
@@ -2255,9 +2268,19 @@
       drop.setAttribute("y1", p[1].toFixed(1)); drop.setAttribute("y2", cy);
     } else drop.style.display = "none";
 
+    /* Зарево у горизонта красится предсказанной палитрой — прогноз становится
+       настроением, а не цифрой. Действует только у горизонта и только по солнцу;
+       серое небо честно даёт тусклое зарево. */
+    var glowCol = st.c, glowAmt = st.glow;
+    var pal = moon ? null : skyPalette(curWeather);
+    if (pal && e < 8) {
+      var near = clamp((8 - e) / 14, 0, 1);          // чем ниже солнце, тем сильнее палитра
+      glowCol = lerp(st.c, pal.horizonRGB, near * 0.75);
+      glowAmt = st.glow * (0.35 + pal.life * 0.85);  // цвета не будет — зарева почти нет
+    }
     $("glow").setAttribute("cx", clamp(p[0], 60, 330).toFixed(1));
-    $("glowStop0").setAttribute("stop-color", col);
-    $("glowStop0").setAttribute("stop-opacity", st.glow.toFixed(2));
+    $("glowStop0").setAttribute("stop-color", rgb(glowCol));
+    $("glowStop0").setAttribute("stop-opacity", clamp(glowAmt, 0, 1).toFixed(2));
 
     $("stars").setAttribute("opacity", clamp((-e - 8) / 8, 0, 1).toFixed(3));
     $("stars").setAttribute("transform", "rotate(" + ((t - MINT) * 0.25).toFixed(2) + " " + cx + " " + cy + ")");
@@ -2401,7 +2424,7 @@
       ]]
     ])) + (
       // Прогноз заката по ярусам — только когда есть настоящие данные
-      (curWeather && curWeather.sunset !== null && curWeather.layers) ? proHTML([
+      (curWeather && curWeather.sunset !== null && curWeather.layers) ? skySwatch(curWeather) + proHTML([
         ["sunset", "Прогноз заката", [
           ["Оценка", curWeather.sunset + " / 100 · " + sunsetWord(curWeather.sunset)],
           ["Нижний ярус", Math.round(curWeather.layers.low) + "% · экран горизонта"],
@@ -2414,6 +2437,46 @@
   function sunsetWord(s) {
     return s >= 75 ? "закат обещает быть красивым" : s >= 50 ? "закат с цветом"
       : s >= 28 ? "спокойный закат" : "цвета почти не будет";
+  }
+
+  /* ---------- Палитра предсказанного неба ----------
+     Не рисуем закат (08_VISUAL_LANGUAGE запрещает буквальную картинку) — показываем
+     его температуру. Цвета выводятся из тех же ярусов, что дали балл:
+     верхний ярус держит розовое догорание, средний даёт алый и оранжевый,
+     нижний глушит всё, влажность выбеливает. */
+  var SKY_STOPS = {
+    zenith: [56, 62, 82],       // холодный верх неба
+    high:   [214, 124, 148],    // розовое послесвечение перистых
+    mid:    [226, 116, 74],     // алый и оранжевый средних облаков
+    horizon:[247, 196, 118]     // тёплая полоса у самого горизонта
+  };
+  var SKY_DEAD = [92, 92, 96];  // «свинец»: цвета не будет
+  function skyPalette(w) {
+    if (!w || w.sunset === null || !w.layers) return null;
+    var s = w.sunset / 100, L = w.layers;
+    // Чем ниже балл, тем ближе к свинцу; влажность добавляет дымки
+    var wash = clamp((L.hum - 65) / 45, 0, 0.45);
+    var life = clamp(s * 1.15, 0, 1) * (1 - wash * 0.6);
+    var mixDead = function (c, k) { return lerp(SKY_DEAD, c, clamp(k, 0, 1)); };
+    // Верхний и средний ярусы работают только если нижний не закрыл горизонт
+    var gap = clamp(1 - L.low / 70, 0, 1);
+    var horizonRGB = mixDead(SKY_STOPS.horizon, life * gap);
+    return {
+      zenith: rgb(mixDead(SKY_STOPS.zenith, 0.35 + life * 0.4)),
+      high: rgb(mixDead(SKY_STOPS.high, life * clamp(L.high / 55, 0.25, 1) * gap)),
+      mid: rgb(mixDead(SKY_STOPS.mid, life * clamp(L.mid / 55, 0.3, 1) * gap)),
+      horizon: rgb(horizonRGB),
+      horizonRGB: horizonRGB,
+      life: life * gap
+    };
+  }
+  /* Плашка палитры: вертикальный градиент неба от зенита к горизонту */
+  function skySwatch(w) {
+    var p = skyPalette(w);
+    if (!p) return "";
+    return '<div class="sky-swatch" style="background:linear-gradient(180deg,'
+      + p.zenith + ' 0%,' + p.high + ' 38%,' + p.mid + ' 72%,' + p.horizon + ' 100%)">'
+      + '<span>' + sunsetWord(w.sunset) + "</span></div>";
   }
   function sunsetShort(s) { return s >= 75 ? "красивый" : s >= 50 ? "с цветом" : s >= 28 ? "спокойный" : "серый"; }
 
