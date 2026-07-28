@@ -916,6 +916,56 @@
   .pay-total .lbl { font-size: 13px; color: #8A8478; }
   .pay-total .val { font-size: 18px; font-weight: 650; color: #E2A44C; }
   .pay-total .val.neg { color: #C9663D; }
+
+  /* ---------- Референсы: картинки и ссылки ---------- */
+  .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 12px 15px 0; }
+  .ref-grid:empty { display: none; }
+  .ref-card {
+    position: relative; aspect-ratio: 1/1; border-radius: 10px; overflow: hidden;
+    background: #17150F; border: none; padding: 0; cursor: pointer; display: block;
+  }
+  .ref-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Ссылка вместо картинки: домен и хвост адреса, без картинки-заглушки */
+  .ref-card.link {
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 10px 10px 10px 10px; text-align: left; aspect-ratio: 1/1;
+    background: #1A1712;
+  }
+  .ref-card.link .host {
+    font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase;
+    color: #E2A44C; font-weight: 700; padding-right: 22px;   /* место под крестик */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ref-card.link .path {
+    font-size: 11px; color: #8A8478; line-height: 1.35; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; word-break: break-word;
+  }
+  .ref-card .kill {
+    position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(15,14,12,0.75); border: none; color: #EFEAE0; cursor: pointer;
+    font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .ref-card .wait {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(15,14,12,0.6); font-size: 11px; color: #A8A093;
+  }
+  .ref-add { display: flex; gap: 8px; padding: 12px 15px; }
+  .ref-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+    background: #17150F; border: none; border-radius: 10px; padding: 11px;
+    color: #A8A093; font-family: inherit; font-size: 14px; cursor: pointer;
+  }
+  .ref-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .ref-btn:active { color: #E2A44C; }
+  .ref-note { padding: 0 15px 12px; font-size: 12px; color: #8A8478; line-height: 1.45; }
+  .ref-note[hidden] { display: none; }
+  /* Просмотр картинки во весь экран */
+  .ref-view {
+    position: absolute; inset: 0; z-index: 95; background: rgba(8,7,6,0.94);
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .ref-view.open { display: flex; }
+  .ref-view img { max-width: 100%; max-height: 100%; border-radius: 12px; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
   /* Количество вводится степпером, не клавиатурой */
@@ -1498,7 +1548,25 @@
         <span class="rv act">Изменить</span>
       </button>
       <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
-      <textarea class="sep" id="fNotes" placeholder="Референсы, оборудование, договорённости"></textarea>
+      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
+    </div>
+
+    <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
+    <div class="g-label">Референсы</div>
+    <div class="group">
+      <div class="ref-grid" id="refGrid"></div>
+      <div class="ref-add sep">
+        <button type="button" class="ref-btn" id="refPhoto">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+          Фото
+        </button>
+        <button type="button" class="ref-btn" id="refLink">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
+          Ссылка
+        </button>
+      </div>
+      <input type="file" id="refFile" accept="image/*" multiple hidden>
+      <div class="ref-note" id="refNote" hidden></div>
     </div>
 
     <button class="danger" id="fDelete" hidden>Удалить съёмку</button>
@@ -1588,6 +1656,9 @@
   </div>
 
   <!-- ============ УВЕДОМЛЕНИЕ ============ -->
+  <!-- Референс во весь экран: тап закрывает -->
+  <div class="ref-view" id="refView"><img id="refViewImg" alt="Референс"></div>
+
   <div class="notif" id="notif">
     <div class="n-icon">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -2217,6 +2288,35 @@
       .catch(function (e) { $("yaNote").textContent = "Не вышло: " + e.message; });
   }
   /* Запись изменилась — выгружаем, но не на каждое нажатие */
+  /* Загрузка произвольного файла в папку приложения на Диске */
+  function yaUpload(path, blob) {
+    if (!yaToken) return Promise.reject(new Error("Диск не подключён"));
+    return fetch("https://cloud-api.yandex.net/v1/disk/resources/upload?overwrite=true&path="
+        + encodeURIComponent(path), { headers: yaHeaders() })
+      .then(yaCheck).then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.href) throw new Error("нет ссылки на загрузку");
+        return fetch(j.href, { method: "PUT", body: blob });
+      })
+      .then(function (r) {
+        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error("не загрузилось");
+        return path;
+      });
+  }
+  /* Ссылка на скачивание живёт недолго — берём её в момент показа */
+  function yaDownloadUrl(path) {
+    if (!yaToken) return Promise.reject(new Error("Диск не подключён"));
+    return fetch("https://cloud-api.yandex.net/v1/disk/resources/download?path=" + encodeURIComponent(path),
+        { headers: yaHeaders() })
+      .then(yaCheck).then(function (r) { return r.json(); })
+      .then(function (j) { if (!j.href) throw new Error("файла нет"); return j.href; });
+  }
+  function yaDelete(path) {
+    if (!yaToken) return Promise.resolve();
+    return fetch("https://cloud-api.yandex.net/v1/disk/resources?permanently=true&path=" + encodeURIComponent(path),
+      { method: "DELETE", headers: yaHeaders() }).catch(function () {});
+  }
+
   function yaSchedule() {
     if (!yaToken) return;
     clearTimeout(yaTimer);
@@ -3400,6 +3500,9 @@
   /* Оплата в форме: ключ способа (hourly/flat/pack/object/item), ставка/сумма/цена,
      количество единиц, расходы */
   var fPay = "hourly", fRate = 0, fUnits = 1, fExpense = 0;
+  /* Референсы съёмки: {k:"img", path, thumb} — оригинал на Диске, миниатюра рядом;
+     {k:"link", url} — ссылка на Pinterest или что угодно ещё */
+  var fRefs = [];
   var fDelvChoice = "auto";     // "auto" | число дней | null
   /* Крайние деления шкалы — состояния, середина — ручной срок */
   var DELV_OPTS = [["auto", "жанр"], [3, "3 дн"], [7, "нед"], [14, "2 нед"],
@@ -3439,6 +3542,108 @@
 
   /* ---------- Оплата в форме ---------- */
   function payProbe() { return { pay: fPay, rate: fRate, units: fUnits, dur: fDur, expense: fExpense }; }
+  /* ---------- Референсы ----------
+     Оригинал уезжает на Диск фотографа, рядом с ним локально живёт маленькая
+     миниатюра: лента открывается мгновенно и работает без сети. */
+  function refThumb(file, side) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var k = Math.min(side / img.width, side / img.height, 1);
+        var c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL("image/jpeg", 0.72));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error("не картинка")); };
+      img.src = url;
+    });
+  }
+  function refHost(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return "ссылка"; }
+  }
+  function refTail(url) {
+    try {
+      var u = new URL(url);
+      return decodeURIComponent(u.pathname).replace(/^\/|\/$/g, "").slice(0, 42) || u.hostname;
+    } catch (e) { return url.slice(0, 42); }
+  }
+  function renderRefs() {
+    var box = $("refGrid");
+    box.innerHTML = fRefs.map(function (r, i) {
+      if (r.k === "link") {
+        return '<button type="button" class="ref-card link" data-i="' + i + '">'
+          + '<span class="host">' + refHost(r.url) + "</span>"
+          + '<span class="path">' + refTail(r.url) + "</span>"
+          + '<span class="kill" data-kill="' + i + '">✕</span></button>';
+      }
+      return '<button type="button" class="ref-card" data-i="' + i + '">'
+        + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "")
+        + (r.pending ? '<span class="wait">…</span>' : "")
+        + '<span class="kill" data-kill="' + i + '">✕</span></button>';
+    }).join("");
+    box.querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        var kill = e.target.closest("[data-kill]");
+        if (kill) { removeRef(+kill.dataset.kill); return; }
+        openRef(fRefs[+b.dataset.i]);
+      });
+    });
+  }
+  function removeRef(i) {
+    var r = fRefs[i];
+    if (!r) return;
+    if (r.k === "img" && r.path) yaDelete(r.path);   // с Диска тоже убираем
+    fRefs.splice(i, 1);
+    renderRefs();
+  }
+  /* Картинка открывается во весь экран, ссылка — в браузере */
+  function openRef(r) {
+    if (!r) return;
+    if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
+    if (!r.path) return;
+    $("refViewImg").src = r.thumb || "";
+    $("refView").classList.add("open");
+    yaDownloadUrl(r.path).then(function (href) { $("refViewImg").src = href; })
+      .catch(function () {});   // без сети остаётся миниатюра
+  }
+  function addRefFiles(files) {
+    if (!yaToken) {
+      $("refNote").hidden = false;
+      $("refNote").textContent = "Чтобы хранить фото, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
+      return;
+    }
+    Array.prototype.slice.call(files).forEach(function (file) {
+      if (!/^image\//.test(file.type)) return;
+      var rec = { k: "img", path: null, thumb: null, pending: true };
+      fRefs.push(rec); renderRefs();
+      var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [".jpg"])[0];
+      refThumb(file, 320)
+        .then(function (thumb) { rec.thumb = thumb; renderRefs(); return yaUpload("app:/refs/" + stamp + ext, file); })
+        .then(function (path) { rec.path = path; rec.pending = false; renderRefs(); })
+        .catch(function (e) {
+          fRefs.splice(fRefs.indexOf(rec), 1); renderRefs();
+          $("refNote").hidden = false;
+          $("refNote").textContent = "Фото не загрузилось: " + e.message;
+        });
+    });
+  }
+  $("refPhoto").addEventListener("click", function () { $("refFile").click(); });
+  $("refFile").addEventListener("change", function () { addRefFiles(this.files || []); this.value = ""; });
+  $("refLink").addEventListener("click", function () {
+    var url = prompt("Ссылка на референс (Pinterest, Instagram, что угодно)");
+    if (!url) return;
+    url = url.trim();
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    fRefs.push({ k: "link", url: url });
+    renderRefs();
+  });
+  $("refView").addEventListener("click", function () {
+    this.classList.remove("open"); $("refViewImg").src = "";
+  });
+
   function renderPay() {
     var keys = genreSpec(shootType).pay;
     if (keys.indexOf(fPay) === -1) fPay = keys[0];   // способ не из этого жанра — берём первый
@@ -3859,7 +4064,8 @@
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
     $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
-    renderPay();
+    renderPay(); renderRefs();
+    $("refNote").hidden = true;
     var warn = wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
@@ -3885,6 +4091,7 @@
       // Оплата сохранённой съёмки — свёрнута: данные уже введены
       fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
       fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
+      fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
       payFolded = true;
     } else {
       fAuto = true;
@@ -3893,6 +4100,7 @@
       $("fContact").value = ""; $("fNotes").value = "";
       // Новая съёмка начинается там, где сейчас смотрим свет
       sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
+      fRefs = [];
     }
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
@@ -4007,6 +4215,7 @@
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense,
+      refs: fRefs.filter(function (r) { return r.k === "link" || r.path; }),
       synced: syncTarget === "off" ? null : syncTarget
     };
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
