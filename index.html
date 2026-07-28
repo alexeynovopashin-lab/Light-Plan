@@ -620,6 +620,9 @@
   .data-btn.ghost-btn { background: #17150F; color: #A8A093; }
   #storeState.risk { color: #C9853F; }
   #storeState.safe { color: #A8B49B; }
+  #yaState.safe { color: #A8B49B; }
+  /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
+  .data-btn[hidden], .item[hidden] { display: none; }
   .item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 24px; font-size: 15px;
@@ -1302,6 +1305,20 @@
     </button>
     <input type="file" id="backupFile" accept="application/json,.json" hidden>
     <p class="seg-note" id="backupNote">Копия — обычный файл. Положите его в Яндекс.Диск, iCloud или отправьте себе — из него всё восстановится.</p>
+
+    <!-- Автокопия в облако фотографа. Права — только на папку приложения -->
+    <div class="sec-label">Яндекс.Диск</div>
+    <div class="item"><span class="k">Подключение</span><span class="v" id="yaState">не подключён</span></div>
+    <div class="item" id="yaSyncRow" hidden><span class="k">Последняя выгрузка</span><span class="v" id="yaWhen">—</span></div>
+    <button class="data-btn" id="yaConnect">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 19.5h11a4 4 0 0 0 .5-8 6 6 0 0 0-11.6-1.6A4.2 4.2 0 0 0 6.5 19.5z"/></svg>
+      <span id="yaConnectLbl">Подключить Яндекс.Диск</span>
+    </button>
+    <button class="data-btn ghost-btn" id="yaPull" hidden>
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5v-11M8 13l4-4 4 4M4.5 4.5h15"/></svg>
+      <span>Восстановить с Диска</span>
+    </button>
+    <p class="seg-note" id="yaNote">Копия будет уходить в папку «Приложения · Light Plan». Остальной Диск приложению не виден.</p>
 
     <div class="sec-label">Единицы и язык</div>
     <div class="item"><span class="k">Температура</span><span class="v">°C ›</span></div>
@@ -2111,12 +2128,120 @@
         defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
+      if (typeof yaSchedule === "function") yaSchedule();   // копия уедет на Диск через пару секунд
     } catch (e) {}
   }
   /* ---------- Копия данных ----------
      Браузер вправе очистить localStorage: iOS стирает хранилище сайтов, которыми
      давно не пользовались. Единственная настоящая защита — файл на руках. */
   var BACKUP_KEY = "lightplan.backup";
+
+  /* ---------- Яндекс.Диск: автокопия в облако фотографа ----------
+     Права — только на папку приложения (cloud_api:disk.app_folder), остальной
+     Диск приложению не виден. Токен живёт на устройстве и хранится отдельно от
+     данных, чтобы восстановление из копии не выбрасывало подключение.
+     Секрет приложения не используется вовсе: implicit flow его не требует. */
+  var YA_ID = "ed341287e18d46aeb66b9af257355725";
+  var YA_TOKEN_KEY = "lightplan.ya.token", YA_SYNC_KEY = "lightplan.ya.synced";
+  var YA_PATH = "app:/light-plan.json";
+  var yaToken = null, yaTimer = null, yaBusy = false;
+
+  function yaLoadToken() {
+    try { yaToken = localStorage.getItem(YA_TOKEN_KEY) || null; } catch (e) { yaToken = null; }
+  }
+  /* Токен приходит в hash после возврата от Яндекса — забираем и чистим адрес */
+  function yaCatchToken() {
+    if (!location.hash || location.hash.indexOf("access_token=") < 0) return;
+    var p = new URLSearchParams(location.hash.slice(1));
+    var t = p.get("access_token");
+    if (t) {
+      try { localStorage.setItem(YA_TOKEN_KEY, t); } catch (e) {}
+      yaToken = t;
+    }
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  function yaConnect() {
+    var back = location.origin + location.pathname;
+    location.href = "https://oauth.yandex.ru/authorize?response_type=token"
+      + "&client_id=" + YA_ID + "&redirect_uri=" + encodeURIComponent(back)
+      + "&force_confirm=yes";
+  }
+  function yaForget() {
+    try { localStorage.removeItem(YA_TOKEN_KEY); localStorage.removeItem(YA_SYNC_KEY); } catch (e) {}
+    yaToken = null; renderYaInfo();
+  }
+  function yaHeaders() { return { Authorization: "OAuth " + yaToken }; }
+  /* Токен протух или отозван — молча забываем, чтобы не долбить сервис */
+  function yaCheck(r) {
+    if (r.status === 401 || r.status === 403) { yaForget(); throw new Error("нет доступа"); }
+    return r;
+  }
+  function yaPush() {
+    if (!yaToken || yaBusy) return Promise.resolve();
+    yaBusy = true;
+    var body = backupPayload();
+    return fetch("https://cloud-api.yandex.net/v1/disk/resources/upload?overwrite=true&path="
+        + encodeURIComponent(YA_PATH), { headers: yaHeaders() })
+      .then(yaCheck).then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.href) throw new Error("нет ссылки на загрузку");
+        return fetch(j.href, { method: "PUT", body: new Blob([body], { type: "application/json" }) });
+      })
+      .then(function (r) {
+        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error("загрузка не прошла");
+        try { localStorage.setItem(YA_SYNC_KEY, new Date().toISOString()); } catch (e) {}
+        renderYaInfo();
+      })
+      .catch(function (e) {
+        $("yaNote").textContent = "Не удалось выгрузить: " + e.message + ". Копия файлом по-прежнему работает.";
+      })
+      .then(function () { yaBusy = false; });
+  }
+  function yaPull() {
+    if (!yaToken) return;
+    $("yaNote").textContent = "Читаю копию с Диска…";
+    fetch("https://cloud-api.yandex.net/v1/disk/resources/download?path=" + encodeURIComponent(YA_PATH),
+        { headers: yaHeaders() })
+      .then(yaCheck).then(function (r) {
+        if (r.status === 404) throw new Error("на Диске ещё нет копии");
+        return r.json();
+      })
+      .then(function (j) { return fetch(j.href); })
+      .then(function (r) { return r.text(); })
+      .then(function (text) {
+        var err = restoreBackup(text);
+        if (err) throw new Error(err);
+        $("yaNote").textContent = "Восстановлено с Диска. Перезапускаю…";
+        setTimeout(function () { location.reload(); }, 700);
+      })
+      .catch(function (e) { $("yaNote").textContent = "Не вышло: " + e.message; });
+  }
+  /* Запись изменилась — выгружаем, но не на каждое нажатие */
+  function yaSchedule() {
+    if (!yaToken) return;
+    clearTimeout(yaTimer);
+    yaTimer = setTimeout(yaPush, 4000);
+  }
+  function yaWhenText() {
+    var iso = localStorage.getItem(YA_SYNC_KEY);
+    if (!iso) return "ещё не выгружали";
+    var d = new Date(iso), mins = Math.round((Date.now() - d) / 60000);
+    if (mins < 1) return "только что";
+    if (mins < 60) return mins + " мин назад";
+    var days = Math.floor(mins / 1440);
+    return days < 1 ? Math.floor(mins / 60) + " ч назад" : days === 1 ? "вчера" : days + " дн. назад";
+  }
+  function renderYaInfo() {
+    if (!$("yaState")) return;
+    var on = !!yaToken;
+    $("yaState").textContent = on ? "подключён" : "не подключён";
+    $("yaState").className = "v " + (on ? "safe" : "");
+    $("yaConnectLbl").textContent = on ? "Отключить Яндекс.Диск" : "Подключить Яндекс.Диск";
+    $("yaConnect").classList.toggle("ghost-btn", on);
+    $("yaPull").hidden = !on;
+    $("yaSyncRow").hidden = !on;
+    if (on) $("yaWhen").textContent = yaWhenText();
+  }
   function backupPayload() {
     var raw = localStorage.getItem(STORE);
     return JSON.stringify({
@@ -3971,6 +4096,17 @@
     $("backupNote").textContent = "Копия готова. Сохраните её в Яндекс.Диск, iCloud или отправьте себе — из неё всё восстановится.";
   });
   $("backupLoad").addEventListener("click", function () { $("backupFile").click(); });
+
+  /* Яндекс.Диск: подключение, отключение, восстановление */
+  $("yaConnect").addEventListener("click", function () {
+    if (yaToken) {
+      yaForget();
+      $("yaNote").textContent = "Отключено. Данные на устройстве и копия на Диске остались нетронутыми.";
+    } else {
+      yaConnect();
+    }
+  });
+  $("yaPull").addEventListener("click", yaPull);
   $("backupFile").addEventListener("change", function () {
     var f = this.files && this.files[0];
     if (!f) return;
@@ -4423,6 +4559,7 @@
   window.addEventListener("resize", measureDock);
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
   askPersistence(); renderStorageInfo();   // просим у браузера не стирать наши записи
+  yaCatchToken(); yaLoadToken(); renderYaInfo();   // вернулись от Яндекса — забираем токен
 })();
 </script>
 </body>
