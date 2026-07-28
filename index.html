@@ -24,11 +24,10 @@
      ============================================================ */
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-  /* Документ целиком не двигается и не пружинит — экраны и шторки скроллятся
-     каждый в своей рамке (.screen/.sheet/.overlay ниже), а не странице в целом.
-     Иначе таб-бар «уезжает» вместе с резиновым оттягиванием body на iOS. */
-  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
-  body { position: fixed; inset: 0; width: 100%; }
+  /* Сам документ не пружинит: тянуть его некуда, приложение ровно в экран.
+     Оттягивался именно он — и уводил за собой всю коробку вместе с таб-баром.
+     Прокрутка живёт внутри: у экранов, шторок и формы своя рамка. */
+  html, body { overscroll-behavior: none; }
 
   body {
     display: flex; justify-content: center; align-items: center;
@@ -36,10 +35,9 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     user-select: none; -webkit-user-select: none;
-    /* Щипок и двойной тап не масштабируют приложение: это интерфейс, а не
-       страница. Карте это не мешает — Leaflet зумит сам, из JS. Панорамирование
-       разрешаем только там, где реально есть чем прокручивать (см. ниже). */
-    touch-action: none;
+    /* Только щипок и двойной тап, не прокрутка: touch-action у предка режет
+       жесты всем потомкам, и none здесь глушил скролл во всём приложении. */
+    touch-action: pan-x pan-y;
   }
 
   .device {
@@ -50,6 +48,9 @@
   }
   @media (max-width: 500px) {
     body { align-items: stretch; }
+    /* На телефоне коробка ровно в экран — двигать документ незачем и нечем.
+       На большом мониторе прототип выше окна, там страница листается как была. */
+    html, body { height: 100%; overflow: hidden; }
     .device { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
     /* Standalone на iOS: black-translucent пускает статус-бар на контент.
        Разводим воздухом по safe-area, у системы уже есть свой home-индикатор. */
