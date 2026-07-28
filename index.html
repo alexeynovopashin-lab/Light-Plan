@@ -2289,17 +2289,25 @@
   }
   /* Запись изменилась — выгружаем, но не на каждое нажатие */
   /* Загрузка произвольного файла в папку приложения на Диске */
+  /* Вложенные папки Яндекс сам не создаёт: без этого загрузка в app:/refs/…
+     возвращает ошибку вместо ссылки. 409 значит «уже есть» — это не беда. */
+  function yaEnsureDir(path) {
+    if (!yaToken) return Promise.resolve();
+    return fetch("https://cloud-api.yandex.net/v1/disk/resources?path=" + encodeURIComponent(path),
+      { method: "PUT", headers: yaHeaders() }).catch(function () {});
+  }
   function yaUpload(path, blob) {
     if (!yaToken) return Promise.reject(new Error("Диск не подключён"));
     return fetch("https://cloud-api.yandex.net/v1/disk/resources/upload?overwrite=true&path="
         + encodeURIComponent(path), { headers: yaHeaders() })
       .then(yaCheck).then(function (r) { return r.json(); })
       .then(function (j) {
-        if (!j.href) throw new Error("нет ссылки на загрузку");
+        // Яндекс объясняет причину сам — показываем её, а не общую фразу
+        if (!j.href) throw new Error(j.message || j.description || "Диск не дал ссылку");
         return fetch(j.href, { method: "PUT", body: blob });
       })
       .then(function (r) {
-        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error("не загрузилось");
+        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error("не загрузилось (" + r.status + ")");
         return path;
       });
   }
@@ -3614,6 +3622,7 @@
       $("refNote").textContent = "Чтобы хранить фото, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
       return;
     }
+    var dirReady = yaEnsureDir("app:/refs");   // папку создаём один раз перед загрузкой
     Array.prototype.slice.call(files).forEach(function (file) {
       if (!/^image\//.test(file.type)) return;
       var rec = { k: "img", path: null, thumb: null, pending: true };
@@ -3621,7 +3630,12 @@
       var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
       var ext = (file.name.match(/\.[a-z0-9]+$/i) || [".jpg"])[0];
       refThumb(file, 320)
-        .then(function (thumb) { rec.thumb = thumb; renderRefs(); return yaUpload("app:/refs/" + stamp + ext, file); })
+        .then(function (thumb) {
+          rec.thumb = thumb; renderRefs();
+          return dirReady.then(function () { return yaUpload("app:/refs/" + stamp + ext, file); })
+            // Подпапка не далась — кладём рядом с копией, лишь бы фото не потерялось
+            .catch(function () { return yaUpload("app:/ref-" + stamp + ext, file); });
+        })
         .then(function (path) { rec.path = path; rec.pending = false; renderRefs(); })
         .catch(function (e) {
           fRefs.splice(fRefs.indexOf(rec), 1); renderRefs();
