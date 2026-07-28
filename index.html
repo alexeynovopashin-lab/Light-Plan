@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Light Plan">
@@ -30,6 +30,9 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     user-select: none; -webkit-user-select: none;
+    /* Щипок и двойной тап не масштабируют приложение: это интерфейс, а не
+       страница. Карте это не мешает — Leaflet зумит сам, из JS. */
+    touch-action: pan-x pan-y;
   }
 
   .device {
@@ -2137,6 +2140,23 @@
       g.appendChild(s);
     }
   })();
+
+  /* ---------- Щипок живёт только на карте ----------
+     touch-action и метатег держат оборону в большинстве мест, но Safari на iOS
+     умеет свой жест: gesturestart/gesturechange масштабируют страницу мимо CSS.
+     Гасим их везде, кроме поля карты — там зум нужен, и делает его Leaflet. */
+  function onMap(el) {
+    return !!(el && el.closest && el.closest("#lmap"));
+  }
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) {
+      if (!onMap(e.target)) e.preventDefault();
+    }, { passive: false });
+  });
+  /* Второй палец вне карты не делает ничего: страница не разъезжается. */
+  document.addEventListener("touchmove", function (e) {
+    if (e.touches.length > 1 && !onMap(e.target)) e.preventDefault();
+  }, { passive: false });
 
   /* ---------- Пасхалка: тишина под звёздами ----------
      Если прибор докручен до звёзд и его несколько секунд не трогают,
