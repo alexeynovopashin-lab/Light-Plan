@@ -679,9 +679,9 @@
   .sheet.open { visibility: visible; }
   .sheet::-webkit-scrollbar { display: none; }
   .sheet.open { transform: none; }
-  /* «Мои жанры» вызываются из формы, а форма лежит выше обычных листов (80) */
-  #gScrim { z-index: 84; }
-  #gSheet { z-index: 86; }
+  /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
+  #gScrim, #locScrim { z-index: 84; }
+  #gSheet, #locSheet { z-index: 86; }
 
   /* Лист выбора места */
   .loc-detect {
