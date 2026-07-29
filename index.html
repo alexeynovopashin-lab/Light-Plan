@@ -3638,14 +3638,23 @@
     renderRefs();
   }
   /* Картинка открывается во весь экран, ссылка — в браузере */
+  var refViewSeq = 0;
   function openRef(r) {
     if (!r) return;
     if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
     if (!r.path) return;
-    $("refViewImg").src = r.thumb || "";
+    var img = $("refViewImg"), mine = ++refViewSeq;
+    img.src = r.thumb || "";
     $("refView").classList.add("open");
-    yaDownloadUrl(r.path).then(function (href) { $("refViewImg").src = href; })
-      .catch(function () {});   // без сети остаётся миниатюра
+    yaDownloadUrl(r.path).then(function (href) {
+      /* Ссылка с Диска живёт недолго и иногда не открывается вовсе. Раньше мы
+         подставляли её сразу — миниатюра стиралась, оригинал не приходил, и
+         картинка пропадала через секунду. Меняем только на загруженный кадр,
+         и только если экран за это время не закрыли и не открыли другой. */
+      var full = new Image();
+      full.onload = function () { if (mine === refViewSeq) img.src = href; };
+      full.src = href;
+    }).catch(function () {});   // без сети остаётся миниатюра
   }
   function addRefFiles(files) {
     if (!yaToken) {
@@ -3686,6 +3695,7 @@
     renderRefs();
   });
   $("refView").addEventListener("click", function () {
+    refViewSeq++;                       // отменяем ещё летящую подмену кадра
     this.classList.remove("open"); $("refViewImg").src = "";
   });
 
