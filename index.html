@@ -831,6 +831,41 @@
     color: #0F0E0C; font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
   }
 
+  /* ---------- Карточка съёмки ----------
+     Слоем ниже формы: «Изменить» открывает форму поверх карточки, и по ✕
+     фотограф возвращается на карточку, а не вылетает в календарь. */
+  #cardOverlay { z-index: 78; }
+  /* Строки карточки только читаются — палец не должен ждать отклика */
+  #cardOverlay .row { cursor: default; }
+  .card-edit {
+    background: none; border: none; padding: 6px 2px; font-family: inherit;
+    font-size: 16px; color: #E2A44C; cursor: pointer;
+  }
+  .card-edit:active { opacity: 0.6; }
+  .card-trust { font-size: 11px; color: #55504A; margin: 9px 4px 0; }
+  /* Прогноз испортился — единственное, чего не умеет обычный календарь */
+  .card-warn {
+    font-size: 13px; color: #C9663D; margin: 10px 4px 0; line-height: 1.45;
+  }
+  .card-notes {
+    font-size: 15px; color: #C9C2B6; line-height: 1.5;
+    background: #17150F; border-radius: 14px; padding: 14px 15px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .card-money {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; margin-top: 30px; padding: 14px 15px; min-height: 52px;
+    background: #17150F; border: none; border-radius: 14px;
+    font-family: inherit; font-size: 16px; color: #EFEAE0; cursor: pointer;
+  }
+  .card-money.open { border-radius: 14px 14px 0 0; }
+  .card-money.open + .group { border-radius: 0 0 14px 14px; }
+  /* display перебивает hidden — прячем явно (грабли из DECISIONS) */
+  .card-money[hidden], #cardOverlay .group[hidden], #cardOverlay .row[hidden],
+  .card-notes[hidden], .g-label[hidden], .card-warn[hidden] { display: none; }
+  /* В карточке референсы только смотрят: удаление живёт в форме */
+  #cdRefs .kill { display: none; }
+
   /* ---------- Форма съёмки ---------- */
   .overlay {
     position: absolute; inset: 0; background: #0F0E0C; z-index: 80;
@@ -1443,6 +1478,62 @@
       <button class="chip" data-days="30">Через месяц</button>
     </div>
     <button class="sheet-done" id="pDone">Готово</button>
+  </div>
+
+  <!-- ============ КАРТОЧКА СЪЁМКИ ============
+       Верхний уровень: съёмка для чтения. Отвечает «что меня ждёт», а не
+       «что изменить» — настройки жанров, цен и пакетов живут этажом ниже,
+       в форме, и открываются только кнопкой «Изменить». -->
+  <div class="overlay" id="cardOverlay">
+    <div class="form-bar">
+      <button class="round" id="cardBack" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <button class="card-edit" id="cardEdit">Изменить</button>
+    </div>
+    <h2 class="form-title" id="cardTitle">Съёмка</h2>
+    <p class="form-sub" id="cardSub">—</p>
+
+    <div class="g-label">Когда</div>
+    <div class="group">
+      <div class="row">Дата<span class="rv" id="cdDate">—</span></div>
+      <div class="row sep">Время
+        <span class="rv"><span id="cdTime">—</span><span class="sub" id="cdDur">—</span></span>
+      </div>
+      <div class="row sep" id="cdPlaceLine">Место<span class="rv" id="cdPlace">—</span></div>
+    </div>
+
+    <!-- Ради этого блока планировщик и существует: обычный календарь
+         знает время, но не знает, какой свет в это время будет -->
+    <div class="g-label">Свет и погода</div>
+    <div class="group">
+      <div class="row">Свет<span class="rv" id="cdLight">—</span></div>
+      <div class="row sep">Тени<span class="rv" id="cdShadow">—</span></div>
+      <div class="row sep">Небо<span class="rv" id="cdSky">—</span></div>
+      <div class="row sep" id="cdSunsetRow">Закат<span class="rv" id="cdSunset">—</span></div>
+      <div class="row">Золотой час<span class="rv" id="cdGold">—</span></div>
+    </div>
+    <p class="card-trust" id="cdTrust">—</p>
+    <p class="card-warn" id="cdWarn" hidden></p>
+
+    <div class="g-label" id="cdDelvLabel">Сдача материала</div>
+    <div class="group" id="cdDelvGroup">
+      <div class="row" id="cdDelvRow">Статус<span class="rv" id="cdDelv">—</span></div>
+    </div>
+
+    <div class="g-label" id="cdRefsLabel">Референсы</div>
+    <div class="ref-grid" id="cdRefs"></div>
+
+    <div class="g-label" id="cdNotesLabel">Заметки</div>
+    <p class="card-notes" id="cdNotes"></p>
+
+    <!-- Деньги не первое, что видишь: строка сворачивается (04_ANTI_GOALS) -->
+    <button class="card-money" id="cdMoneyBtn" hidden>Деньги<span class="rv" id="cdMoneySum">—</span></button>
+    <div class="group" id="cdMoneyGroup" hidden>
+      <div class="row sep">Доход<span class="rv" id="cdIncome">—</span></div>
+      <div class="row sep">Расходы<span class="rv" id="cdExpense">—</span></div>
+      <div class="row">Прибыль<span class="rv" id="cdProfit">—</span></div>
+    </div>
   </div>
 
   <!-- ============ ФОРМА СЪЁМКИ ============ -->
@@ -3333,7 +3424,7 @@
       b.addEventListener("click", function () {
         if (b._moved) return;                      // это был свайп, а не тап
         if (closeSwipes()) return;                 // открытая кнопка сначала закрывается
-        openForm(null, null, +b.dataset.i);
+        openCard(+b.dataset.i);
       });
       attachSwipe(b);
     });
@@ -3434,7 +3525,7 @@
           })() +
           '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">до ' +
           fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + "</span></div>";
-        c.addEventListener("click", function () { openForm(null, null, p.i); });
+        c.addEventListener("click", function () { openCard(p.i); });
         list.appendChild(c);
       });
   }
@@ -4125,6 +4216,141 @@
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
   }
+  /* ============================================================
+     КАРТОЧКА СЪЁМКИ
+     Тап по съёмке открывает её для чтения. Правка — этажом ниже:
+     04_ANTI_GOALS, «подробности живут глубже и открываются по желанию».
+     ============================================================ */
+  var cardIdx = null;
+
+  /* Солнце считается для места самой съёмки, а не для того, куда сейчас
+     смотрит приложение: у выездной съёмки свой горизонт и своё время света. */
+  function cardSun(s) {
+    var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate), out = {};
+    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzFor(s.placeLon); }
+    computeSun(s.date);
+    out.st = stateAt(s.min);
+    out.shadow = shadowWord(s.min);
+    out.goldB = SUN.goldB; out.blueB = SUN.blueB; out.set = SUN.set;
+    LAT = kLat; LON = kLon; TZ = kTz;
+    computeSun(kDate);
+    return out;
+  }
+  /* Погода приходит на место, выбранное в приложении, а не на место съёмки:
+     прогноз тянется одной точкой. Если точки разъехались — говорим об этом,
+     а не выдаём чужую облачность за здешнюю. */
+  function placeFar(s) {
+    if (s.placeLat == null) return false;
+    return Math.abs(s.placeLat - LAT) > 0.35 || Math.abs(s.placeLon - LON) > 0.6;
+  }
+
+  /* keepScroll — возврат из правки: карточка остаётся там, где её читали */
+  function openCard(idx, keepScroll) {
+    var s = sessions[idx];
+    if (!s) return;
+    cardIdx = idx;
+    var wasAt = keepScroll ? $("cardOverlay").scrollTop : 0;
+    var spec = genreSpec(s.type), sun = cardSun(s);
+    var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
+
+    $("cardTitle").textContent = s.type;
+    $("cardSub").textContent = s.contact || "без клиента";
+
+    $("cdDate").textContent = WD[s.date.getDay()] + " · " + s.date.getDate() + " " + MONTHS[s.date.getMonth()];
+    $("cdTime").textContent = range(s.min, end);
+    $("cdDur").textContent = durLabel(dur);
+    $("cdPlaceLine").hidden = !s.place;
+    $("cdPlace").textContent = s.place || "";
+
+    // Свет на время съёмки: характер, тени, небо
+    $("cdLight").textContent = sun.st.label + " · " + sun.st.light;
+    $("cdShadow").textContent = sun.shadow;
+
+    var q = qualityOf(s.date), wx = dayWeather(s.date), real = wxReal[dkey(s.date)];
+    $("cdSky").textContent = QUAL[q].cond + " · " + wx.cloud + "%";
+
+    var sc = real ? real.sunset : null;
+    if (isFinite(sc) && sc !== null) {
+      $("cdSunset").textContent = sunsetShort(sc) + " · " + sc + " / 100";
+      $("cdSunset").style.color = sc >= 75 ? "#E2A44C" : sc >= 50 ? "#A8B49B" : sc >= 28 ? "#C0B8AA" : "#7C9CC4";
+    } else {
+      $("cdSunset").textContent = wxLive ? "нет данных на этот день" : "прогноз имитируется";
+      $("cdSunset").style.color = "#8A8478";
+    }
+    $("cdGold").textContent = (sun.goldB === null || sun.set === null) ? "—" : range(sun.goldB, sun.blueB);
+
+    $("cdTrust").textContent = trustOf(s.date)
+      + (placeFar(s) ? " · погода показана для места, выбранного в приложении" : "");
+
+    // Съёмка ждала свет, а прогноз обещает другое — сказать заранее, не постфактум
+    // (имя не wishes: так называется рабочий набор формы, затирать его нельзя)
+    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
+    var bad = want.length && (q === "poor" || q === "fog");
+    $("cdWarn").hidden = !bad;
+    if (bad) $("cdWarn").textContent = "Съёмка ждала: " + want.join(", ").toLowerCase()
+      + ". Прогноз на этот день — " + QUAL[q].cond.toLowerCase() + ".";
+
+    // Сдача материала — только у жанров, где есть что сдавать
+    var hasDelv = spec.delivery !== false;
+    $("cdDelvLabel").hidden = !hasDelv;
+    $("cdDelvGroup").hidden = !hasDelv;
+    if (hasDelv) {
+      var ds = deliveryState(s), dd = deadlineDate(s);
+      $("cdDelv").textContent = ds.label + (dd && !s.delivered
+        ? " · до " + dd.getDate() + " " + MONTHS[dd.getMonth()] : "");
+      $("cdDelv").style.color = ds.color;
+    }
+
+    // Референсы — те же карточки, что в форме, но без крестика удаления
+    var refs = Array.isArray(s.refs) ? s.refs : [];
+    $("cdRefsLabel").hidden = !refs.length;
+    $("cdRefs").innerHTML = refs.map(function (r, i) {
+      if (r.k === "link") {
+        return '<button type="button" class="ref-card link" data-i="' + i + '">'
+          + '<span class="host">' + refHost(r.url) + "</span>"
+          + '<span class="path">' + refTail(r.url) + "</span></button>";
+      }
+      return '<button type="button" class="ref-card" data-i="' + i + '">'
+        + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "") + "</button>";
+    }).join("");
+    $("cdRefs").querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function () { openRef(refs[+b.dataset.i]); });
+    });
+
+    $("cdNotesLabel").hidden = !s.notes;
+    $("cdNotes").hidden = !s.notes;
+    $("cdNotes").textContent = s.notes || "";
+
+    // Деньги — свёрнуты и появляются, только если суммы заданы
+    var inc = sessionIncome(s), exp = +s.expense || 0;
+    var hasMoney = inc > 0 || exp > 0;
+    $("cdMoneyBtn").hidden = !hasMoney;
+    $("cdMoneyGroup").hidden = true;
+    $("cdMoneyBtn").classList.remove("open");
+    if (hasMoney) {
+      $("cdMoneySum").textContent = money(inc - exp);
+      $("cdIncome").textContent = money(inc);
+      $("cdExpense").textContent = exp ? money(exp) : "нет";
+      $("cdProfit").textContent = money(inc - exp);
+    }
+
+    $("cardOverlay").scrollTop = wasAt;
+    $("cardOverlay").classList.add("open");
+  }
+  function closeCard() {
+    cardIdx = null;
+    $("cardOverlay").classList.remove("open");
+  }
+  $("cardBack").addEventListener("click", closeCard);
+  $("cardEdit").addEventListener("click", function () {
+    if (cardIdx !== null) openForm(null, null, cardIdx);
+  });
+  $("cdMoneyBtn").addEventListener("click", function () {
+    var open = $("cdMoneyGroup").hidden;
+    $("cdMoneyGroup").hidden = !open;
+    this.classList.toggle("open", open);
+  });
+
   /* idx !== null — правим существующую запись клиента */
   var editIdx = null;
   function openForm(d, startMin, idx) {
@@ -4179,6 +4405,7 @@
     renderSessions(); renderCal(); renderDayPanel();
     closeRows();
     $("formOverlay").classList.remove("open");
+    closeCard();     // записи больше нет: карточка под формой указывала бы в пустоту
     go("s-plan");
   });
 
@@ -4275,7 +4502,7 @@
     };
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
     saveAll();
-    var wasEdit = editIdx !== null;
+    var wasEdit = editIdx !== null, savedIdx = editIdx;
     editIdx = null;
     renderSessions(); renderCal(); renderDayPanel();
     $("savedNote").textContent = wasEdit ? "Изменения сохранены"
@@ -4283,7 +4510,11 @@
       : "Сохранено · добавлено в " + (syncTarget === "google" ? "Google Календарь" : "Календарь Apple");
     setTimeout(function () {
       closeRows();
-      $("formOverlay").classList.remove("open"); go("s-plan");
+      $("formOverlay").classList.remove("open");
+      // Правку начинали с карточки — на неё и возвращаемся, уже с новыми
+      // данными. В календарь вылетает только запись, созданной заново.
+      if (cardIdx !== null && wasEdit && savedIdx === cardIdx) openCard(cardIdx, true);
+      else { closeCard(); go("s-plan"); }
       // Прогноз против замысла — так это придёт пушем накануне
       if (warn) setTimeout(function () {
         notify(fDate.getDate() + " " + MONTHS[fDate.getMonth()] + " · " + warn.t.toLowerCase(), warn.m);
@@ -4601,7 +4832,7 @@
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
         $("searchOverlay").classList.remove("open");
-        openForm(null, null, +b.dataset.i);
+        openCard(+b.dataset.i);
       });
     });
   }
