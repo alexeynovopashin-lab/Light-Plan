@@ -1063,6 +1063,30 @@
   .ord-reset { background: #17150F; color: #A8A093; }
   .ord-done { background: #EFEAE0; color: #0F0E0C; font-weight: 650; }
 
+  /* Стопка карточек дня: как окна в многозадачности — соседние выглядывают
+     шапками, тап поднимает нужную наверх. Свадьба лежит первой всегда */
+  .stack {
+    display: flex; flex-direction: column; gap: 0; margin-top: 16px;
+  }
+  .stack[hidden] { display: none; }
+  .stk {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 14px; border: none; border-radius: 14px;
+    background: #17150F; font-family: inherit; color: #A8A093;
+    cursor: pointer; text-align: left;
+    margin-top: -5px;                      /* карточки наезжают друг на друга */
+    box-shadow: 0 -5px 14px rgba(0,0,0,0.5);
+  }
+  .stk:first-child { margin-top: 0; }
+  .stk-n { color: inherit; }
+  .stk .badge { width: 30px; height: 30px; border-radius: 9px; }
+  .stk .badge svg { width: 16px; height: 16px; }
+  .stk-n { flex: 1; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stk-t { font-size: 13px; color: #8A8478; font-variant-numeric: tabular-nums; }
+  /* Открытая карточка приподнята и светлее: видно, какая из стопки наверху */
+  .stk.now { background: #221F19; color: #EFEAE0; position: relative; z-index: 2; }
+  .stk:active { opacity: 0.8; }
+
   /* Реплика навигатора: одна строка о том, что делать */
   .say { display: flex; gap: 9px; align-items: flex-start; margin-top: 9px;
     padding: 11px 14px; border-radius: 14px; background: #17150F;
@@ -1789,6 +1813,9 @@
         <span data-ic="phone"></span>
       </a>
     </div>
+
+    <!-- Стопка дня: соседние съёмки лежат каскадом внизу, видны их шапки -->
+    <div class="stack" id="cdStack" hidden></div>
 
     <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
     <div id="cdOrderList" class="ord-list" hidden></div>
@@ -4912,9 +4939,14 @@
     var asks = want.some(function (w) { return LIGHT_WISH.test(w); });
     if (!asks || sun.goldB === null || sun.blueB === null) return null;
 
-    // Ближайшая к золотому окну точка дня: попадает ли, и насколько мимо
+    // Ближайшая к золотому окну точка дня: попадает ли, и насколько мимо.
+    // Без точек роль точки играет сама съёмка — её начало и конец
+    var pts = route.length ? route : (function () {
+      var end = s.end != null ? s.end : s.min + (s.dur || 90);
+      return [{ t: s.min, n: "Съёмка" }, { t: end, n: "Съёмка" }];
+    })();
     var hit = null, near = null, gap = 1e9;
-    route.forEach(function (r) {
+    pts.forEach(function (r) {
       if (r.t >= sun.goldB - 10 && r.t <= sun.blueB) { if (!hit) hit = r; return; }
       var d = Math.min(Math.abs(r.t - sun.goldB), Math.abs(r.t - sun.blueB));
       if (d < gap) { gap = d; near = r; }
@@ -4929,12 +4961,14 @@
       return { bad: false, text: "«" + hit.n + "» попадает в золотой час: "
         + range(sun.goldB, sun.blueB) + ". Свет тёплый и мягкий." };
     }
-    if (near) {
+    /* Мимо на час — стоит сказать, мимо на полдня — нет: утренняя съёмка
+       не имеет отношения к вечернему золотому часу */
+    if (near && gap <= 180) {
       return { bad: false, text: "Золотой час " + range(sun.goldB, sun.blueB)
         + " — ближайшая точка «" + near.n + "» мимо на " + durLabel(Math.round(gap))
         + ". Сдвиньте, если свет важен." };
     }
-    return { bad: false, text: "Золотой час " + range(sun.goldB, sun.blueB) + "." };
+    return null;
   }
 
   /* ---------- Порядок блоков ----------
@@ -5051,24 +5085,15 @@
 
   function renderEventCard(s) {
     paintIcons($("cardOverlay"));
-    var on = hasRoute(s.type);
-    var route = on ? routeOf(s) : [];
-    var ids = CARD_BLOCKS.map(function (b) { return b.el; }).concat(["cdEvHead"]);
-    $("cardOrder").hidden = !on;
-    if (!on) {
-      // Обычная съёмка приходит после событийной: возвращаем то, что та прятала
-      ids.forEach(function (i) { $(i).hidden = true; });
-      $("cardTitle").hidden = false; $("cardSub").hidden = false;
-      $("cdWhenLabel").hidden = false; $("cdWhenGroup").hidden = false;
-      $("cdLightLabel").hidden = false; $("cdLightGroup").hidden = false;
-      $("cdTrust").hidden = false;
-      return;
-    }
+    /* Карточка одна на все жанры: у свадьбы точки дня свои, у остальных —
+       световые вехи. Разный набор блоков, один язык (docs/11_EVENT_CARD.md) */
+    var route = routeOf(s);
     var phase = eventPhase(s, route);
     var sun = cardSun(s);
     var light = phase === "after" ? null : lightCase(s, route, sun);
 
-    // Всё, что карточка события говорит своим языком, списками не дублируется
+    $("cardOrder").hidden = false;
+    // Старый вид карточки — списки «ярлык — значение» — не показывается нигде
     $("cardTitle").hidden = true; $("cardSub").hidden = true;
     $("cdWhenLabel").hidden = true; $("cdWhenGroup").hidden = true;
     $("cdLightLabel").hidden = true; $("cdLightGroup").hidden = true;
@@ -5084,19 +5109,65 @@
     renderWxPane(s, route, phase);
     renderRouteFold(s, route, phase);
     renderRefFold(s, route, phase);
+    renderStack(s);
     applyOrder(s.type);
+  }
+
+  /* ---------- Стопка карточек дня ----------
+     В дне бывает три съёмки, и возвращаться в список ради соседней — лишний
+     шаг. Соседи лежат каскадом внизу и видны шапками: жанр и время.
+     Порядок: свадьба всегда первой, остальные по времени начала. */
+  function dayStack(s) {
+    return sessions.map(function (x, i) { return { s: x, i: i }; })
+      .filter(function (p) { return sameDay(p.s.date, s.date); })
+      .sort(function (a, b) {
+        var aw = hasRoute(a.s.type) ? 0 : 1, bw = hasRoute(b.s.type) ? 0 : 1;
+        return aw - bw || a.s.min - b.s.min;
+      });
+  }
+  function renderStack(s) {
+    var list = dayStack(s);
+    $("cdStack").hidden = list.length < 2;
+    if (list.length < 2) return;
+    $("cdStack").innerHTML = list.map(function (p) {
+      var spec = genreSpec(p.s.type);
+      var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
+      return '<button type="button" class="stk' + (p.i === cardIdx ? " now" : "") + '" data-i="' + p.i + '">'
+        + '<span class="badge">' + (IC.svg(GENRE_SIGN[p.s.type] || "rings")) + "</span>"
+        + '<span class="stk-n">' + esc(spec.ev || p.s.type)
+        + (clientName(p.s) ? " · " + esc(clientName(p.s)) : "") + "</span>"
+        + '<span class="stk-t">' + range(p.s.min, end) + "</span></button>";
+    }).join("");
+    $("cdStack").querySelectorAll(".stk").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = +b.dataset.i;
+        if (i !== cardIdx) openCard(i);      // соседняя карточка выходит вперёд
+      });
+    });
   }
 
   /* Шапка: знак события, имена, счёт, телефон */
   var EV_SIGN = { "Свадьбы": IC.svg("rings", null, 24), "Лавстори": IC.svg("heart", null, 24) };
   function renderEvHead(s, phase) {
     $("cdEvHead").hidden = false;
-    $("cdEvSign").innerHTML = EV_SIGN[s.type] || "";
-    $("cdEvNames").textContent = clientName(s) || genreSpec(s.type).ev || s.type;
+    var spec = genreSpec(s.type), gr = groupSpec(s.type);
+    $("cdEvSign").innerHTML = EV_SIGN[s.type] || IC.svg(GENRE_SIGN[s.type] || "camera");
 
-    var ev = genreSpec(s.type).ev || s.type, when = whenWord(s.date).replace(/^ · /, "");
-    $("cdEvWhen").textContent = phase === "after" ? ev + " прошла" + afterWord(s.date)
-      : when ? ev + " " + when : ev;
+    /* Крупно — то, чем съёмка называется: пара, клиент, организация.
+       Нет клиента — крупно жанр, он и есть имя съёмки */
+    var name = clientName(s);
+    $("cdEvNames").textContent = name || (spec.ev || s.type);
+
+    /* Строка под именем обязана содержать жанр, дату и время — это первое,
+       что человек ищет в карточке (замечание с тестов) */
+    var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
+    var when = whenWord(s.date).replace(/^ · /, "");
+    var bits = [];
+    if (name) bits.push(spec.ev || s.type);
+    bits.push(s.date.getDate() + " " + MONTHS[s.date.getMonth()]);
+    bits.push(range(s.min, end));
+    $("cdEvWhen").textContent = bits.join(" · ")
+      + (phase === "after" ? afterWord(s.date) : (when && when !== "сегодня" ? " · " + when : ""));
     $("cdEvWhen").classList.toggle("past", phase === "after");
 
     var tel = firstPhone(s);
@@ -5106,6 +5177,12 @@
       $("cdEvTel").href = "tel:" + tel.replace(/[^\d+]/g, "");
     }
   }
+  /* Знак жанра в шапке: свадьба и лавстори рисуются крупным знаком события,
+     остальные берут свою пиктограмму из библиотеки */
+  var GENRE_SIGN = {
+    "Портрет": "camera", "Семья": "family", "Пейзаж": "park", "Архитектура": "city",
+    "Стрит": "street", "Репортаж": "mic", "Предметка": "lens", "Реклама": "flash"
+  };
   function afterWord(d) {
     var n = new Date();
     var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate())
@@ -5129,9 +5206,20 @@
     $("cdDayClock").textContent = today ? fmt(nowMin2) : "";
     $("cdDayDot").style.display = phase === "during" ? "" : "none";
 
+    var dur = s.dur || 90, endMin = s.end != null ? s.end : s.min + dur;
     if (!route.length) {
-      $("cdDayNow").textContent = "Точки дня не заданы";
-      $("cdDayLeft").innerHTML = "«Изменить» → Таймлайн дня";
+      /* Съёмка без точек — это отрезок: когда начинается и сколько идёт */
+      if (phase === "during") {
+        $("cdDayNow").textContent = "Идёт съёмка";
+        $("cdDayLeft").innerHTML = "осталось <b>" + durLabel(Math.max(0, endMin - nowMin2)) + "</b> · до " + fmt(endMin);
+      } else if (phase === "after") {
+        $("cdDayNow").textContent = "Съёмка отработана";
+        $("cdDayLeft").textContent = range(s.min, endMin) + " · " + durLabel(dur);
+      } else {
+        $("cdDayNow").textContent = range(s.min, endMin);
+        $("cdDayLeft").textContent = durLabel(dur)
+          + (today ? " · через " + durLabel(Math.max(0, s.min - nowMin2)) : "");
+      }
     } else if (phase === "during" && cur >= 0) {
       var nx = route[cur + 1];
       $("cdDayNow").textContent = "Сейчас: " + route[cur].n;
@@ -5180,10 +5268,17 @@
     return c;
   }
   function lanePoints(s, route, light) {
-    var pts = route.map(function (r) { return { t: r.t, n: r.n, light: false }; });
+    var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
+    var pts = route.length
+      ? route.map(function (r) { return { t: r.t, n: r.n, light: false }; })
+      /* Без своих точек день всё равно имеет форму: начало и конец съёмки.
+         Это делает ленту одинаковой у свадьбы и у портрета */
+      : [{ t: s.min, n: "Начало", light: false }, { t: end, n: "Конец", light: false }];
     if (light && !light.bad) {
       var g = cardSun(s).goldB;
-      if (g !== null && !pts.some(function (p) { return Math.abs(p.t - g) < 20; })) {
+      var from = pts[0].t - 60, to = pts[pts.length - 1].t + 60;
+      if (g !== null && g >= from && g <= to
+          && !pts.some(function (p) { return Math.abs(p.t - g) < 20; })) {
         pts.push({ t: Math.round(g), n: "Золотой", light: true });
         pts.sort(function (a, b) { return a.t - b.t; });
       }
