@@ -1086,6 +1086,27 @@
   /* Открытая карточка приподнята и светлее: видно, какая из стопки наверху */
   .stk.now { background: #221F19; color: #EFEAE0; position: relative; z-index: 2; }
   .stk:active { opacity: 0.8; }
+  /* Уехали: карточки схлопываются вверх, а не исчезают рывком */
+  .stack.gone { max-height: 0; opacity: 0; margin-top: 0; overflow: hidden; pointer-events: none; }
+  .stack {
+    max-height: 320px; opacity: 1; overflow: visible;
+    transition: max-height 0.34s cubic-bezier(0.25,1,0.4,1), opacity 0.22s ease, margin-top 0.34s ease;
+  }
+  .stack-chip {
+    display: block; margin: 12px auto 0; padding: 7px 14px; border: none;
+    border-radius: 12px; background: #17150F; color: #A8A093;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+  }
+  .stack-chip[hidden] { display: none; }
+  .stack-chip:active { opacity: 0.6; }
+
+  /* Смена карточки: содержимое подъезжает снизу, чтобы подмена была видна */
+  @keyframes cardSwap {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .swap { animation: cardSwap 0.28s cubic-bezier(0.25,1,0.4,1); }
+  @media (prefers-reduced-motion: reduce) { .swap { animation: none; } }
 
   /* Реплика навигатора: одна строка о том, что делать */
   .say { display: flex; gap: 9px; align-items: flex-start; margin-top: 9px;
@@ -1792,10 +1813,8 @@
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
       <div class="card-bar-r">
-        <button class="card-edit" id="cardEdit">Изменить</button>
-        <button class="round" id="cardOrder" aria-label="Изменить порядок" hidden>
-          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
+        <button class="card-edit" id="cardEdit">Заполнить</button>
+        <button class="round" id="cardOrder" aria-label="Настроить карточку" hidden data-ic="sliders"></button>
       </div>
     </div>
     <h2 class="form-title" id="cardTitle">Съёмка</h2>
@@ -1814,8 +1833,10 @@
       </a>
     </div>
 
-    <!-- Стопка дня: соседние съёмки лежат каскадом внизу, видны их шапки -->
+    <!-- Стопка дня: соседние съёмки лежат каскадом, видны их шапки.
+         Выбрал одну — остальные уезжают, остаётся чип возврата -->
     <div class="stack" id="cdStack" hidden></div>
+    <button class="stack-chip" id="cdStackChip" hidden></button>
 
     <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
     <div id="cdOrderList" class="ord-list" hidden></div>
@@ -5125,10 +5146,17 @@
         return aw - bw || a.s.min - b.s.min;
       });
   }
+  var stackOpen = true;                  // при открытии дня стопка видна целиком
   function renderStack(s) {
     var list = dayStack(s);
-    $("cdStack").hidden = list.length < 2;
-    if (list.length < 2) return;
+    var many = list.length > 1;
+    $("cdStack").hidden = !many;
+    $("cdStackChip").hidden = !many || stackOpen;
+    $("cdStack").classList.toggle("gone", many && !stackOpen);
+    if (!many) return;
+
+    $("cdStackChip").textContent = "ещё " + (list.length - 1) + " "
+      + plural(list.length - 1, ["съёмка", "съёмки", "съёмок"]) + " в этот день";
     $("cdStack").innerHTML = list.map(function (p) {
       var spec = genreSpec(p.s.type);
       var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
@@ -5141,10 +5169,18 @@
     $("cdStack").querySelectorAll(".stk").forEach(function (b) {
       b.addEventListener("click", function () {
         var i = +b.dataset.i;
-        if (i !== cardIdx) openCard(i);      // соседняя карточка выходит вперёд
+        /* Выбрал карточку — остальные уезжают. Иначе шапка и содержимое
+           расходятся: человек забывает, какую карточку сейчас читает */
+        stackOpen = false;
+        if (i !== cardIdx) openCard(i, false, true);
+        else renderStack(sessions[cardIdx]);
       });
     });
   }
+  $("cdStackChip").addEventListener("click", function () {
+    stackOpen = true;
+    if (cardIdx !== null) renderStack(sessions[cardIdx]);
+  });
 
   /* Шапка: знак события, имена, счёт, телефон */
   var EV_SIGN = { "Свадьбы": IC.svg("rings", null, 24), "Лавстори": IC.svg("heart", null, 24) };
@@ -5508,9 +5544,10 @@
   }
 
   /* keepScroll — возврат из правки: карточка остаётся там, где её читали */
-  function openCard(idx, keepScroll) {
+  function openCard(idx, keepScroll, swap) {
     var s = sessions[idx];
     if (!s) return;
+    if (!swap && !keepScroll) stackOpen = true;   // из списка дня стопка видна
     cardIdx = idx;
     var wasAt = keepScroll ? $("cardOverlay").scrollTop : 0;
     var spec = genreSpec(s.type), sun = cardSun(s);
@@ -5599,6 +5636,13 @@
 
     // Событийная карточка перекрывает решения обычной: считается последней
     renderEventCard(s);
+    /* Подмена карточки внутри дня видна движением: содержимое подъезжает */
+    if (swap) {
+      var host = $("cdEventBlocks");
+      host.classList.remove("swap"); void host.offsetWidth; host.classList.add("swap");
+      var head = $("cdEvHead");
+      head.classList.remove("swap"); void head.offsetWidth; head.classList.add("swap");
+    }
 
     $("cardOverlay").scrollTop = wasAt;
     $("cardOverlay").classList.add("open");
