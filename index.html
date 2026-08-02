@@ -1072,6 +1072,10 @@
   .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; border: 1px solid #221F19;
     background: none; font-family: inherit; font-size: 13px; color: #A8A093; cursor: pointer; }
   .rf-tag.on { background: #E2A44C; border-color: #E2A44C; color: #17150F; }
+  .rf-tag .n { color: #635E54; margin-left: 5px; font-variant-numeric: tabular-nums; }
+  .rf-tag.on .n { color: rgba(23,21,15,0.6); }
+  /* В настройках папок немного, и они должны быть видны все сразу */
+  .rf-tags.wrap { flex-wrap: wrap; overflow: visible; padding: 12px 13px 6px; }
   .rf-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 6px; padding: 0 16px 30px; align-content: start; scrollbar-width: none; }
   .rf-grid::-webkit-scrollbar { display: none; }
@@ -1104,6 +1108,8 @@
     box-shadow: inset 0 1px 0 #0F0E0C; text-align: left;
     font-family: inherit; font-size: 15px; color: #A8A093; cursor: pointer; }
   .rt-empty { padding: 14px 15px; font-size: 13px; color: #4A453E; }
+  /* Подсказка внутри сетки — во всю ширину: колонка ломала её по слову */
+  .ref-grid .rt-empty { grid-column: 1 / -1; line-height: 1.5; }
 
   .card-money {
     display: flex; justify-content: space-between; align-items: center;
@@ -2083,7 +2089,7 @@
          что ещё снять, когда мысль встала (NEEDS: «затуп без сценария») -->
     <div class="g-label" style="margin: 22px 4px 9px;">Набор референсов <span id="gRefGenre" style="text-transform:none;letter-spacing:0;color:#8A8478;"></span></div>
     <div class="group">
-      <div class="rf-tags" id="gRefTags" style="padding:12px 13px 4px;"></div>
+      <div class="rf-tags wrap" id="gRefTags"></div>
       <div class="ref-grid" id="gRefGrid" style="padding:0 13px 4px;"></div>
       <div class="ref-add sep">
         <button type="button" class="ref-btn" id="gRefPhoto">
@@ -5525,8 +5531,9 @@
     var g = shootType, list = genreRefList(g);
     $("gRefGenre").textContent = "· " + g.toLowerCase();
     $("gRefTags").innerHTML = REF_TAGS.map(function (t) {
+      var n = list.filter(function (r) { return r.tag === t; }).length;
       return '<button type="button" class="rf-tag' + (gRefTag === t ? " on" : "") + '" data-t="' + t + '">'
-        + t + " " + list.filter(function (r) { return r.tag === t; }).length + "</button>";
+        + t + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
     }).join("");
     $("gRefTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
