@@ -335,18 +335,6 @@
   .leaflet-tile { filter: saturate(0.85); }
 
   /* ---------- Календарь ---------- */
-  /* Шапка планировщика: год назад · добавить · поиск */
-  .plan-top {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 58px 20px 0; flex-shrink: 0;
-  }
-  .year-back {
-    background: none; border: none; cursor: pointer; font-family: inherit;
-    color: #EFEAE0; font-size: 22px; font-weight: 600; letter-spacing: -0.3px;
-    padding: 6px 4px; display: flex; align-items: center; gap: 8px;
-  }
-  .plan-acts { display: flex; gap: 4px; align-items: center; }
-
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
      появляется только при отмотке, тап возвращает */
   .now-back {
@@ -410,6 +398,8 @@
   .icon-btn#planSearch { color: #EFEAE0; }
 
   /* Спойлер сводки дня */
+  /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
+  .day-toggle[hidden] { display: none; }
   .day-toggle {
     display: flex; align-items: center; justify-content: center;
     width: 100%; margin-top: 18px; padding: 6px 0;
@@ -467,23 +457,39 @@
   }
 
   /* Переключатель масштаба — текстовый, без плашки: навигация не спорит с контентом */
-  .scope { display: flex; justify-content: center; gap: 4px; padding: 16px 24px 0; }
-  .scope button {
-    background: none; border: none; cursor: pointer; font-family: inherit;
-    font-size: 13px; font-weight: 600; letter-spacing: 0.2px;
-    color: #55504A; padding: 5px 12px; border-radius: 8px;
-    transition: color 0.25s ease, background 0.25s ease;
+  /* Шапка планировщика: виды, заголовок, действия — одной строкой.
+     Три яруса (год, переключатель, навигация месяца) съедали 150 pt */
+  .plan-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 52px 20px 6px; flex-shrink: 0;
   }
-  .scope button.active { color: #E2A44C; background: #221D14; }
-
-  .cal-nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 24px 0;
+  .scope-ic { display: flex; gap: 2px; flex-shrink: 0; }
+  .scope-ic button {
+    width: 30px; height: 30px; padding: 0; border: none; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; border-radius: 8px;
   }
-  .cal-nav .m { font-size: 17px; font-weight: 600; }
-  .cal-nav button {
-    background: none; border: none; color: #8A8478; font-family: inherit;
-    font-size: 20px; cursor: pointer; padding: 6px 14px; line-height: 1;
+  .scope-ic svg {
+    width: 19px; height: 19px; fill: none; stroke: #55504A; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .scope-ic button.active svg { stroke: #E2A44C; }
+  .plan-title {
+    flex: 1; min-width: 0; background: none; border: none; padding: 4px;
+    font-family: inherit; font-size: 19px; font-weight: 650; color: #EFEAE0;
+    letter-spacing: -0.3px; text-align: center; cursor: pointer; white-space: nowrap;
+  }
+  .plan-title #calYear { color: #8A8478; font-weight: 500; }
+  .plan-title:active { opacity: 0.6; }
+  .plan-acts { display: flex; gap: 4px; align-items: center; }
+  .icon-btn {
+    background: none; border: none; padding: 6px; cursor: pointer; color: #E2A44C;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+  .now-back { display: none; }
+  .now-back.show {
+    display: block; margin: 0 auto 4px; background: none; border: none;
+    font-family: inherit; font-size: 12.5px; color: #E2A44C; cursor: pointer;
   }
   .cal-head { display: grid; grid-template-columns: repeat(7,1fr); padding: 14px 20px 0; }
   .cal-head span {
@@ -1551,10 +1557,19 @@
 
   <!-- ============ СЪЁМКИ ============ -->
   <section class="screen" id="s-plan">
+    <!-- Шапка в одну строку: виды слева, заголовок по центру, действия справа.
+         Три яруса (год, переключатель, навигация месяца) съедали 150 pt —
+         календарь начинался ниже середины экрана -->
     <div class="plan-top">
-      <button class="year-back" id="yearBack">‹ <span id="calYear">2026</span></button>
+      <div class="scope-ic" id="scopeSeg">
+        <button data-scope="month" class="active" aria-label="Месяц" data-ic="view_month"></button>
+        <button data-scope="week" aria-label="Неделя" data-ic="view_week"></button>
+        <button data-scope="day" aria-label="День" data-ic="view_day"></button>
+      </div>
+      <button class="plan-title" id="planTitle">
+        <span id="calYear">2026</span> <span id="calMonth">Август</span>
+      </button>
       <div class="plan-acts">
-        <button class="now-back" id="calNow">↺ сегодня</button>
         <button class="icon-btn" id="planAdd" aria-label="Новая съёмка">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
         </button>
@@ -1563,18 +1578,8 @@
         </button>
       </div>
     </div>
+    <button class="now-back" id="calNow">↺ сегодня</button>
 
-    <!-- Масштаб временной линии: месяц или ближний недельный горизонт -->
-    <div class="scope" id="scopeSeg">
-      <button class="active" data-scope="month">Месяц</button>
-      <button data-scope="week">Неделя</button>
-    </div>
-
-    <div class="cal-nav">
-      <button id="calPrev">‹</button>
-      <span class="m" id="calMonth">Июль</span>
-      <button id="calNext">›</button>
-    </div>
     <div class="cal-head" id="calHead">
       <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
     </div>
@@ -2697,7 +2702,8 @@
   var viewMin = 0;                       // просматриваемое время
   var calMonth = new Date();             // месяц в календаре
   var calSel = new Date();               // выбранный день в календаре
-  var calScope = "month";                // масштаб: месяц или недельный горизонт
+  var calScope = "month";                // масштаб: месяц, неделя или один день
+  var dayPanelOpen = false;              // сводка дня под спойлером: состояние ведёт человек
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
   /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
      значит, и на одном localStorage. Ключ разводим по каналу, иначе
@@ -3580,20 +3586,52 @@
     return { q: q, a: win.a, b: win.b, label: win.label };
   }
 
+  /* Заголовок сам говорит, что открыто: месяц, неделя или день */
+  function setPlanTitle() {
+    var y = $("calYear"), m = $("calMonth"), nowY = new Date().getFullYear();
+    if (calScope === "day") {
+      y.textContent = calSel.getFullYear() === nowY ? "" : calSel.getFullYear();
+      m.textContent = calSel.getDate() + " " + MONTHS[calSel.getMonth()];
+    } else if (calScope === "week") {
+      var a = weekStart(calSel), b = addDays(a, 6);
+      y.textContent = a.getFullYear() === nowY ? "" : a.getFullYear();
+      m.textContent = a.getDate() + " " + MONTHS[a.getMonth()] + " – " + b.getDate() + " " + MONTHS[b.getMonth()];
+    } else {
+      y.textContent = calMonth.getFullYear();
+      m.textContent = MONTHS_N[calMonth.getMonth()];
+    }
+  }
+  /* Метка возврата — только когда ушли от сегодняшнего дня */
+  function markScopeNow() {
+    var now = new Date();
+    var away = calScope === "day" || calScope === "week"
+      ? !sameDay(calSel, now)
+      : (calMonth.getFullYear() !== now.getFullYear() || calMonth.getMonth() !== now.getMonth());
+    $("calNow").classList.toggle("show", away);
+  }
+
   /* В клетке помещается одно слово: жанр в именительном и без хвоста */
   var SHORT_GENRE = { "Свадьбы": "Свадьба", "Архитектура": "Архитект.", "Предметка": "Предметка" };
   function shortGenre(t) { return SHORT_GENRE[t] || t; }
 
   function renderCal() {
-    var week = calScope === "week";
-    $("calHead").hidden = week;
-    $("cal").hidden = week;
+    if (window.ICONS) paintIcons(document);      // знаки видов в шапке
+    var week = calScope === "week", day = calScope === "day";
+    $("calHead").hidden = week || day;
+    $("cal").hidden = week || day;
     $("week").hidden = !week;
-    if (week) { renderWeek(); return; }
+    document.querySelector(".legend").style.display = (day || week) ? "none" : "";
+    /* В сводке дня календарной сетки нет вовсе, а панель дня раскрыта всегда:
+       весь экран отвечает на один вопрос — что за день */
+    $("dayToggle").hidden = day;
+    /* В сводке дня панель раскрыта всегда; в остальных видах — как оставил
+       пользователь, иначе автоматическое раскрытие остаётся навсегда */
+    $("dayPanel").classList.toggle("open", day || dayPanelOpen);
+    setPlanTitle();
+    if (day) { renderDayPanel(); markScopeNow(); return; }
+    if (week) { renderWeek(); markScopeNow(); return; }
 
     var grid = $("cal"); grid.innerHTML = "";
-    $("calMonth").textContent = MONTHS_N[calMonth.getMonth()];
-    $("calYear").textContent = calMonth.getFullYear();
 
     var first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
     var offset = (first.getDay() + 6) % 7;               // неделя с понедельника
@@ -3652,10 +3690,7 @@
 
     // Легенда объясняет точки — без съёмок объяснять нечего
     document.querySelector(".legend").style.display = monthHasShoots ? "flex" : "none";
-    // Метка возврата — только когда ушли из текущего месяца
-    var now = new Date();
-    $("calNow").classList.toggle("show",
-      calMonth.getFullYear() !== now.getFullYear() || calMonth.getMonth() !== now.getMonth());
+    markScopeNow();
   }
 
   /* ---------- Неделя: семь световых лент ---------- */
@@ -3678,8 +3713,7 @@
     var host = $("week"); host.innerHTML = "";
     var start = weekStart(calSel), end = addDays(start, 6);
     var today = new Date(); today.setHours(0,0,0,0);
-    $("calMonth").textContent = weekLabel(start, end);
-    $("calYear").textContent = start.getFullYear();
+    setPlanTitle();                      // заголовок ведёт одна функция, иначе они спорят
     document.querySelector(".legend").style.display = "none";
 
     var span = function (min) { return (clamp(min, 0, 1440) / 1440 * 100).toFixed(2) + "%"; };
@@ -5974,7 +6008,11 @@
   });
   /* Стрелки листают месяцами или неделями — смотря какой масштаб открыт */
   function stepCal(dir) {
-    if (calScope === "week") {
+    if (calScope === "day") {
+      calSel = addDays(calSel, dir);
+      calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
+      renderCal(); renderDayPanel();
+    } else if (calScope === "week") {
       calSel = addDays(calSel, dir * 7);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
       renderCal(); renderDayPanel();
@@ -5983,10 +6021,24 @@
       renderCal();
     }
   }
-  $("calPrev").addEventListener("click", function () { stepCal(-1); });
-  $("calNext").addEventListener("click", function () { stepCal(1); });
+  /* Стрелки убраны вместе с ярусом навигации: месяц листается свайпом по
+     сетке, а соседние дни в углах сетки кликабельны и тоже перелистывают */
+  (function () {
+    var host = $("s-plan"), x0 = null, y0 = null;
+    host.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1) { x0 = null; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    }, { passive: true });
+    host.addEventListener("touchend", function (e) {
+      if (x0 === null) return;
+      var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) < 60 || Math.abs(dy) > 40) return;   // вертикальную прокрутку не трогаем
+      stepCal(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  })();
   /* Год — масштаб, а не шаг назад: открываем календарь целиком */
-  $("yearBack").addEventListener("click", function () {
+  $("planTitle").addEventListener("click", function () {
     yearShown = calMonth.getFullYear();
     renderYear();
     $("yearOverlay").classList.add("open");
@@ -6014,8 +6066,9 @@
     openForm(calSel, Math.round(dayWindow(calSel).a));
   });
   $("dayToggle").addEventListener("click", function () {
-    this.classList.toggle("open");
-    $("dayPanel").classList.toggle("open");
+    dayPanelOpen = !dayPanelOpen;
+    this.classList.toggle("open", dayPanelOpen);
+    $("dayPanel").classList.toggle("open", dayPanelOpen);
   });
 
   /* Поиск по съёмкам: клиент, тип, место */
