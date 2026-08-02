@@ -986,6 +986,12 @@
   .lane-p.light .lane-t { color: #E2A44C; }
 
   /* Погода: знак и градус слева, часы точек — справа */
+  .pn-wx { display: flex; align-items: center; gap: 9px; margin-left: auto; flex-shrink: 0; }
+  .pn-wx svg { width: 30px; height: 27px; fill: none; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .pn-wx .pn-s { text-align: right; }
+  .pn-wx .pn-t { text-align: right; }
+  .wx-hours.wide { margin-left: 0; justify-content: space-between; width: 100%; }
   .wx-pane { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
     background: #17150F; border-radius: 16px; margin-top: 9px; }
   .wx-pane[hidden] { display: none; }
@@ -5299,12 +5305,20 @@
   function renderPanes(s, route, phase, sun) {
     var top = [], bottom = [], spec = genreSpec(s.type);
 
+    /* Место и погода — один блок: булавка сама говорит, что можно нажать,
+       а правая половина пустовала. Кнопка «На карте» была лишней */
     if (s.place && phase !== "after") {
-      top.push('<button type="button" class="pane" data-act="map"><div class="pane-row">'
+      var q = qualityOf(s.date), wx = dayWeather(s.date);
+      var sub = firstScenePlace(route);
+      top.push('<button type="button" class="pane wide" data-act="map"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.pin + "</span>"
         + '<span class="pn-body"><span class="pn-t">' + esc(shortPlace(s.place)) + "</span>"
-        + '<span class="pn-s">' + esc(firstScenePlace(route) || s.place) + "</span></span></div>"
-        + '<span class="go-btn">На карте <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></button>');
+        + (sub && sub !== shortPlace(s.place) ? '<span class="pn-s">' + esc(sub) + "</span>" : "")
+        + "</span>"
+        + '<span class="pn-wx">' + wxSign(q)
+        + '<span><span class="pn-t" style="font-size:19px">' + tempAt(wx.tempBase, s.min) + "°</span>"
+        + '<span class="pn-s">' + QUAL[q].cond + "</span></span></span>"
+        + "</div></button>");
     }
     // Следующая точка — то, ради чего в телефон и заглядывают
     var nx = nextPoint(s, route, phase);
@@ -5381,19 +5395,28 @@
   /* Погода: знак и градус, рядом — часы точек дня. Только словами и знаками */
   function renderWxPane(s, route, phase) {
     if (phase === "after") { $("cdWx").hidden = true; return; }
-    $("cdWx").hidden = false;
     var q = qualityOf(s.date), wx = dayWeather(s.date);
-    var hours = (route.length ? route : [{ t: s.min }]).slice(0, 5);
-    $("cdWx").innerHTML = '<div class="wx-now"><span class="big">' + wxSign(q) + "</span>"
-      + '<span><span class="wx-t">' + tempAt(wx.tempBase, 900) + "°</span>"
-      + '<span class="wx-c">' + QUAL[q].cond + "</span></span></div>"
-      + '<div class="wx-hours">' + hours.map(function (r) {
-        return '<div class="wx-h"><div class="hh">' + fmt(r.t) + "</div>"
-          + wxSign(q)
-          + '<div class="tt">' + tempAt(wx.tempBase, r.t) + "°</div>"
-          + '<div class="pp">' + wx.cloud + "%</div></div>";
-      }).join("") + "</div>";
+    /* Погода по часам: точки дня, если они есть, иначе шаг по два часа
+       от начала до конца съёмки. Текущая погода уехала в блок места */
+    var hours = route.length
+      ? route.map(function (r) { return r.t; })
+      : (function () {
+          var end = s.end != null ? s.end : s.min + (s.dur || 90), out = [], t = s.min;
+          while (t <= end) { out.push(t); t += 120; }
+          if (out[out.length - 1] !== end) out.push(end);
+          return out;
+        })();
+    hours = hours.slice(0, 6);
+    $("cdWx").hidden = hours.length < 2;
+    if (hours.length < 2) return;
+    $("cdWx").innerHTML = '<div class="wx-hours wide">' + hours.map(function (t) {
+      return '<div class="wx-h"><div class="hh">' + fmt(t) + "</div>"
+        + wxSign(q)
+        + '<div class="tt">' + tempAt(wx.tempBase, t) + "°</div>"
+        + '<div class="pp">' + wx.cloud + "%</div></div>";
+    }).join("") + "</div>";
   }
+
   /* Знак погоды: части (солнце, облако, осадки) красит CSS, не разметка */
   function wxSign(q) {
     var name = q === "poor" ? "rain" : q === "fog" ? "cloud" : q === "good" ? "part" : "clear";
