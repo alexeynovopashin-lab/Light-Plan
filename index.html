@@ -2635,7 +2635,12 @@
   var calSel = new Date();               // выбранный день в календаре
   var calScope = "month";                // масштаб: месяц или недельный горизонт
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
-  var STORE = "lightplan.v1";
+  /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
+     значит, и на одном localStorage. Ключ разводим по каналу, иначе
+     стабильная версия при сохранении выбросит поля, которых не знает
+     (маршрут точек, наборы референсов). */
+  var CHANNEL = /\/beta\//.test(location.pathname) ? "beta" : "main";
+  var STORE = CHANNEL === "beta" ? "lightplan.beta.v1" : "lightplan.v1";
   function saveAll() {
     try {
       localStorage.setItem(STORE, JSON.stringify({
@@ -2653,7 +2658,7 @@
   /* ---------- Копия данных ----------
      Браузер вправе очистить localStorage: iOS стирает хранилище сайтов, которыми
      давно не пользовались. Единственная настоящая защита — файл на руках. */
-  var BACKUP_KEY = "lightplan.backup";
+  var BACKUP_KEY = CHANNEL === "beta" ? "lightplan.beta.backup" : "lightplan.backup";
 
   /* ---------- Яндекс.Диск: автокопия в облако фотографа ----------
      Права — только на папку приложения (cloud_api:disk.app_folder), остальной
@@ -2661,8 +2666,13 @@
      данных, чтобы восстановление из копии не выбрасывало подключение.
      Секрет приложения не используется вовсе: implicit flow его не требует. */
   var YA_ID = "ed341287e18d46aeb66b9af257355725";
-  var YA_TOKEN_KEY = "lightplan.ya.token", YA_SYNC_KEY = "lightplan.ya.synced";
-  var YA_PATH = "app:/light-plan.json";
+  /* Токен Диска общий: подключаться дважды с одного телефона незачем.
+     Отметка о выгрузке — своя у каждого канала */
+  var YA_TOKEN_KEY = "lightplan.ya.token";
+  var YA_SYNC_KEY = CHANNEL === "beta" ? "lightplan.beta.ya.synced" : "lightplan.ya.synced";
+  /* Копия на Диске тоже своя: иначе бета перезаписала бы резервный файл
+     стабильной версии, и восстановление вернуло бы тестовые данные */
+  var YA_PATH = CHANNEL === "beta" ? "app:/light-plan-beta.json" : "app:/light-plan.json";
   var yaToken = null, yaTimer = null, yaBusy = false;
 
   function yaLoadToken() {
