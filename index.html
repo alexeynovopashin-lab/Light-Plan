@@ -16,6 +16,8 @@
      Тайлы — тёмные без подписей (CARTO), держат монохром и «карту-холст». -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Словарь знаков: одно место, где живут все SVG приложения (icons.js) -->
+<script src="icons.js"></script>
 <style>
   /* ============================================================
      LIGHT ATLAS — ЦЕЛЬНЫЙ ПРОТОТИП V3
@@ -852,6 +854,257 @@
     background: #17150F; border-radius: 14px; padding: 14px 15px;
     white-space: pre-wrap; word-break: break-word;
   }
+  /* ---------- Карточка события ----------
+     docs/11_EVENT_CARD.md. Плотные плитки со знаками: фотограф ловит глазом
+     на ходу, а не читает строки. Маршрут и референсы разворачиваются. */
+
+  .ev-head { margin: 2px 0 0; text-align: center; }
+  .ev-head[hidden] { display: none; }
+  .ev-sign { display: block; margin: 0 auto; }
+  .ev-sign { line-height: 0; }
+  .ev-sign svg { width: 62px; height: 46px; fill: none; stroke: #E2A44C; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .ev-names { font-size: 29px; font-weight: 700; color: #EFEAE0; letter-spacing: -0.7px;
+    line-height: 1.1; margin-top: 8px; }
+  .ev-when { font-size: 13px; color: #A8B49B; margin-top: 5px; }
+  .ev-when.past { color: #635E54; }
+  .ev-tel { display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
+    padding: 9px 10px; font-size: 19px; color: #E2A44C; text-decoration: none;
+    font-variant-numeric: tabular-nums; }
+  .ev-tel[hidden] { display: none; }
+  .ev-tel:active { opacity: 0.6; }
+  .ev-tel svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+
+  /* Общая плитка: знак слева, содержимое справа. Ни ярлыков, ни пустот */
+  .ev-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 9px; }
+  .ev-grid[hidden] { display: none; }
+  .pane {
+    display: block; width: 100%; text-align: left; padding: 13px 14px;
+    background: #17150F; border: none; border-radius: 16px; min-width: 0;
+    font-family: inherit; color: #EFEAE0; cursor: pointer;
+  }
+  .pane.wide { grid-column: 1 / -1; }
+  .pane:active { opacity: 0.75; }
+  .badge {
+    width: 38px; height: 38px; border-radius: 12px; background: #221F19;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .badge svg { width: 19px; height: 19px; fill: none; stroke: #E2A44C; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .badge.blue svg { stroke: #7C9CC4; }
+  .pane-row { display: flex; align-items: center; gap: 12px; }
+  .pn-t { display: block; font-size: 15px; color: #EFEAE0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pn-s { display: block; font-size: 12px; color: #635E54; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pn-k { display: block; font-size: 11px; color: #635E54; letter-spacing: 0.2px; }
+  .pn-v { display: block; font-size: 17px; color: #EFEAE0; margin-top: 2px;
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pn-v.gold { color: #E2A44C; }
+  .pn-body { display: block; min-width: 0; flex: 1; }
+  .go-btn { display: inline-flex; }
+  .chev { flex-shrink: 0; }
+  .chev svg { width: 8px; height: 14px; fill: none; stroke: #4A453E; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .go-btn {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
+    background: #221F19; border-radius: 11px; padding: 8px 10px;
+    font-size: 13.5px; color: #E2A44C; border: none; font-family: inherit;
+  }
+  .go-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Плитка дня */
+  .day-tile {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px;
+    margin-top: 14px; padding: 14px 12px; background: #17150F; border-radius: 18px;
+  }
+  .day-tile[hidden] { display: none; }
+  .dt-date { text-align: center; align-self: center; padding-right: 11px; border-right: 1px solid #0F0E0C; }
+  .dt-d { font-size: 42px; font-weight: 700; color: #E2A44C; line-height: 0.92;
+    letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
+  .dt-m { font-size: 12px; color: #EFEAE0; margin-top: 5px; letter-spacing: 0.3px; }
+  .dt-w { font-size: 11px; color: #635E54; margin-top: 2px; }
+  .dt-main { min-width: 0; }
+  .dt-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .dt-now { font-size: 15px; color: #EFEAE0; display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .dt-now .dot { width: 6px; height: 6px; border-radius: 50%; background: #A8B49B; flex-shrink: 0; }
+  .dt-now .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dt-clock { font-size: 13.5px; color: #A8A093; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .dt-left { font-size: 12.5px; color: #8A8478; margin-top: 3px; }
+  .dt-left b { color: #A8B49B; font-weight: 400; }
+
+  /* Лента точек: знаки сверху, латунная нить, время и подпись снизу */
+  .lane { display: flex; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+  .lane::-webkit-scrollbar { display: none; }
+  .lane-p { flex: 1 0 44px; min-width: 44px; display: flex; flex-direction: column;
+    align-items: center; text-align: center; }
+  .lane-ic { height: 26px; display: flex; align-items: center; justify-content: center;
+    width: 26px; border-radius: 50%; }
+  .lane-ic svg { width: 20px; height: 20px; fill: none; stroke: #6E6558; stroke-width: 1.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .lane-rail { position: relative; width: 100%; height: 14px; }
+  .lane-rail::before, .lane-rail::after { content: ""; position: absolute; top: 50%; height: 1.4px;
+    transform: translateY(-50%); background: #2A261E; }
+  .lane-rail::before { left: 0; right: 50%; }
+  .lane-rail::after { left: 50%; right: 0; }
+  .lane-p:first-child .lane-rail::before, .lane-p:last-child .lane-rail::after { background: none; }
+  .lane-dot { position: absolute; left: 50%; top: 50%; z-index: 2; width: 8px; height: 8px;
+    margin: -4px 0 0 -4px; border-radius: 50%; background: #4A453E; }
+  .lane-t { font-size: 11px; color: #A8A093; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .lane-n { font-size: 9.5px; color: #55504A; margin-top: 2px; letter-spacing: -0.2px;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lane-p.past .lane-ic svg { stroke: #E2A44C; }
+  .lane-p.past .lane-dot { background: #E2A44C; }
+  .lane-p.past .lane-rail::before, .lane-p.past .lane-rail::after { background: #E2A44C; }
+  .lane-p.now .lane-ic { box-shadow: inset 0 0 0 1.4px #A8B49B; }
+  .lane-p.now .lane-ic svg { stroke: #EFEAE0; }
+  .lane-p.now .lane-dot { background: #A8B49B; }
+  .lane-p.now .lane-rail::before { background: #E2A44C; }
+  .lane-p.now .lane-t { color: #EFEAE0; }
+  .lane-p.light .lane-ic svg { stroke: #E2A44C; }
+  .lane-p.light .lane-t { color: #E2A44C; }
+
+  /* Погода: знак и градус слева, часы точек — справа */
+  .wx-pane { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    background: #17150F; border-radius: 16px; margin-top: 9px; }
+  .wx-pane[hidden] { display: none; }
+  .wx-now { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+  /* Погодный знак собран из частей: солнце латунное, облако серое, дождь синий */
+  .i-wx .i-sun { stroke: #D9AC6B; }
+  .i-wx .i-cloud { stroke: #8A8478; }
+  .i-wx .i-rain { stroke: #7C9CC4; }
+  .wx-now .big svg { width: 38px; height: 34px; fill: none; stroke: #8A8478; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .wx-t { display: block; font-size: 22px; font-weight: 600; color: #EFEAE0; letter-spacing: -0.5px; }
+  .wx-c { display: block; font-size: 11.5px; color: #635E54; margin-top: 1px; }
+  .wx-hours { display: flex; gap: 10px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+  .wx-hours::-webkit-scrollbar { display: none; }
+  .wx-h { text-align: center; flex: 0 0 auto; }
+  .wx-h .hh { font-size: 10.5px; color: #8A8478; font-variant-numeric: tabular-nums; }
+  .wx-h svg { width: 20px; height: 20px; margin: 4px 0; fill: none; stroke: #8A8478; stroke-width: 1.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .wx-h .tt { font-size: 11.5px; color: #EFEAE0; font-variant-numeric: tabular-nums; }
+  .wx-h .pp { font-size: 10px; color: #55504A; }
+
+  /* Разворачиваемое: маршрут и референсы. Свёрнуто — знак и суть одной строкой */
+  .fold { margin-top: 9px; background: #17150F; border-radius: 16px; overflow: hidden; }
+  .fold[hidden] { display: none; }
+  .fold-head { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    padding: 13px 14px; background: none; border: none; font-family: inherit; cursor: pointer; }
+  .fold-body { display: none; padding: 0 14px 13px; }
+  .fold.open .fold-body { display: block; }
+  .fold.open .chev svg { transform: rotate(90deg); transform-origin: center; }
+  .strip { display: flex; gap: 6px; margin-top: 2px; }
+  .strip img { width: 46px; height: 60px; object-fit: cover; border-radius: 9px; flex-shrink: 0; }
+  .strip .ph { width: 46px; height: 60px; border-radius: 9px; flex-shrink: 0;
+    background: repeating-linear-gradient(135deg, #1C1A14 0 7px, #17150F 7px 14px); }
+
+  /* Точки маршрута в развёрнутом виде */
+  .sc-item { display: grid; grid-template-columns: 26px 50px 1fr; align-items: center;
+    column-gap: 10px; padding: 9px 0; }
+  .sc-item + .sc-item { box-shadow: inset 0 1px 0 #0F0E0C; }
+  .sc-ic svg { width: 18px; height: 18px; fill: none; stroke: #6E6558; stroke-width: 1.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .sc-t { font-size: 14px; color: #A8A093; font-variant-numeric: tabular-nums; }
+  .sc-n { font-size: 15px; color: #C9C2B6; }
+  .sc-p { display: block; font-size: 11.5px; color: #55504A; margin-top: 1px; }
+  .sc-item.past { opacity: 0.45; }
+  .sc-item.now .sc-n { color: #EFEAE0; }
+  .sc-item.now .sc-ic svg { stroke: #A8B49B; }
+
+  /* Бюджет */
+  .bar { height: 6px; border-radius: 3px; background: #221F19; overflow: hidden; margin-top: 8px; }
+  .bar span { display: block; height: 100%; background: #A8B49B; border-radius: 3px; }
+
+  /* Перестановка блоков: карточка сворачивается в список заголовков */
+  .card-bar-r { display: flex; align-items: center; gap: 10px; }
+  .ord-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .ord-list[hidden] { display: none; }
+  .ord-row {
+    display: flex; align-items: center; gap: 12px; padding: 14px;
+    background: #17150F; border-radius: 14px; touch-action: none; user-select: none;
+  }
+  .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; }
+  .ord-row .badge svg { width: 17px; height: 17px; }
+  .ord-n { flex: 1; font-size: 15.5px; color: #EFEAE0; }
+  .ord-grip svg {
+    width: 20px; height: 20px; fill: none; stroke: #55504A; stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+  .ord-row.drag { background: #221F19; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  .ord-row.off { opacity: 0.4; }              /* блока нет в этой съёмке */
+  .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
+  .ord-foot[hidden] { display: none; }
+  .ord-reset, .ord-done {
+    flex: 1; padding: 14px; border-radius: 14px; border: none;
+    font-family: inherit; font-size: 15px; cursor: pointer;
+  }
+  .ord-reset { background: #17150F; color: #A8A093; }
+  .ord-done { background: #EFEAE0; color: #0F0E0C; font-weight: 650; }
+
+  /* Реплика навигатора: одна строка о том, что делать */
+  .say { display: flex; gap: 9px; align-items: flex-start; margin-top: 9px;
+    padding: 11px 14px; border-radius: 14px; background: #17150F;
+    font-size: 13.5px; line-height: 1.45; color: #A8A093; }
+  .say[hidden] { display: none; }
+  .say .s-ic { flex-shrink: 0; margin-top: 1px; }
+  .say .s-ic svg { width: 16px; height: 16px; fill: none; stroke: #E2A44C; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .say b { color: #E2A44C; font-weight: 400; }
+  .say.bad { background: #1D1512; color: #D9A08A; }
+  .say.bad .s-ic svg { stroke: #C9663D; }
+
+  /* Референсы во весь экран: думаю о кадрах — не нужно ничего больше */
+  .refs-full {
+    position: absolute; inset: 0; z-index: 92; background: #0F0E0C;
+    display: flex; flex-direction: column; transform: translateY(101%);
+    transition: transform 0.36s cubic-bezier(0.25,1,0.4,1); visibility: hidden;
+  }
+  .refs-full.open { transform: none; visibility: visible; }
+  .rf-bar { display: flex; align-items: center; justify-content: space-between;
+    padding: 46px 16px 10px; flex-shrink: 0; }
+  .rf-title { font-size: 17px; color: #EFEAE0; }
+  .rf-title span { font-size: 12px; color: #635E54; display: block; margin-top: 2px; }
+  .rf-tags { display: flex; gap: 7px; overflow-x: auto; padding: 0 16px 10px;
+    flex-shrink: 0; scrollbar-width: none; }
+  .rf-tags::-webkit-scrollbar { display: none; }
+  .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; border: 1px solid #221F19;
+    background: none; font-family: inherit; font-size: 13px; color: #A8A093; cursor: pointer; }
+  .rf-tag.on { background: #E2A44C; border-color: #E2A44C; color: #17150F; }
+  .rf-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px; padding: 0 16px 30px; align-content: start; scrollbar-width: none; }
+  .rf-grid::-webkit-scrollbar { display: none; }
+  .rf-cell { aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; border: none;
+    padding: 0; background: #17150F; cursor: pointer; position: relative; }
+  .rf-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rf-cell.link { display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 8px; text-align: left; }
+  .rf-cell .host { font-size: 11px; color: #E2A44C; }
+  .rf-cell .path { font-size: 10px; color: #55504A; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: #55504A; line-height: 1.5; }
+
+  /* Редактор точек в форме */
+  .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
+  .rt-row + .rt-row { box-shadow: inset 0 1px 0 #0F0E0C; }
+  .rt-row input {
+    background: #0F0E0C; border: none; border-radius: 9px; padding: 10px 11px;
+    color: #EFEAE0; font-family: inherit; font-size: 15px; outline: none;
+    -webkit-appearance: none; appearance: none; min-width: 0;
+  }
+  .rt-row .rt-in-t { flex: 0 0 78px; text-align: center; font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px; }
+  .rt-row .rt-in-n { flex: 1; }
+  .rt-row .rt-in-p { flex: 1 0 100%; font-size: 13.5px; padding: 8px 11px; }
+  .rt-row input::placeholder { color: #4A453E; }
+  .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: #55504A;
+    font-size: 15px; padding: 6px; cursor: pointer; }
+  .rt-add { width: 100%; padding: 13px 15px; background: none; border: none;
+    box-shadow: inset 0 1px 0 #0F0E0C; text-align: left;
+    font-family: inherit; font-size: 15px; color: #A8A093; cursor: pointer; }
+  .rt-empty { padding: 14px 15px; font-size: 13px; color: #4A453E; }
+
   .card-money {
     display: flex; justify-content: space-between; align-items: center;
     width: 100%; margin-top: 30px; padding: 14px 15px; min-height: 52px;
@@ -1489,13 +1742,88 @@
       <button class="round" id="cardBack" aria-label="Закрыть">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <button class="card-edit" id="cardEdit">Изменить</button>
+      <div class="card-bar-r">
+        <button class="card-edit" id="cardEdit">Изменить</button>
+        <button class="round" id="cardOrder" aria-label="Изменить порядок" hidden>
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
     </div>
     <h2 class="form-title" id="cardTitle">Съёмка</h2>
     <p class="form-sub" id="cardSub">—</p>
 
-    <div class="g-label">Когда</div>
-    <div class="group">
+    <!-- ===== Карточка события: docs/11_EVENT_CARD.md =====
+         Знак события, имена, счёт, телефон. Дальше — плитки со знаками:
+         глаз цепляется за пиктограмму, а не читает строку. -->
+    <div class="ev-head" id="cdEvHead" hidden>
+      <div class="ev-sign" id="cdEvSign"></div>
+      <div class="ev-names" id="cdEvNames">—</div>
+      <div class="ev-when" id="cdEvWhen">—</div>
+      <a class="ev-tel" id="cdEvTel" href="tel:" hidden>
+        <span id="cdEvTelN">—</span>
+        <span data-ic="phone"></span>
+      </a>
+    </div>
+
+    <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
+    <div id="cdOrderList" class="ord-list" hidden></div>
+    <div class="ord-foot" id="cdOrderFoot" hidden>
+      <button type="button" class="ord-reset" id="cdOrderReset">Вернуть наш порядок</button>
+      <button type="button" class="ord-done" id="cdOrderDone">Готово</button>
+    </div>
+
+    <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
+    <div id="cdEventBlocks">
+    <div class="day-tile" id="cdDay" hidden>
+      <div class="dt-date">
+        <div class="dt-d" id="cdDayD">30</div>
+        <div class="dt-m" id="cdDayM">июля</div>
+        <div class="dt-w" id="cdDayW">четверг</div>
+      </div>
+      <div class="dt-main">
+        <div class="dt-top">
+          <div class="dt-now"><span class="dot" id="cdDayDot"></span><span class="nm" id="cdDayNow">—</span></div>
+          <div class="dt-clock" id="cdDayClock"></div>
+        </div>
+        <div class="dt-left" id="cdDayLeft"></div>
+        <div class="lane" id="cdLane"></div>
+      </div>
+    </div>
+
+    <div class="say" id="cdSay" hidden><span class="s-ic" id="cdSayIc"></span><span id="cdSayT"></span></div>
+
+    <!-- Место и следующее событие — парой, как в наброске -->
+    <div class="ev-grid" id="cdPanes" hidden></div>
+
+    <div class="wx-pane" id="cdWx" hidden></div>
+
+    <!-- Маршрут: свёрнут до строки, разворачивается тапом -->
+    <div class="fold" id="cdRouteFold" hidden>
+      <button type="button" class="fold-head" id="cdRouteHead">
+        <span class="badge" data-ic="route"></span>
+        <span class="pn-body"><span class="pn-t" id="cdRouteT">Маршрут дня</span><span class="pn-s" id="cdRouteS">—</span></span>
+        <span class="chev" data-ic="chevron"></span>
+      </button>
+      <div class="fold-body" id="cdRouteBody"></div>
+    </div>
+
+    <!-- Референсы: тап разворачивает на весь экран -->
+    <div class="fold" id="cdRefFold" hidden>
+      <button type="button" class="fold-head" id="cdRefHead">
+        <span class="badge" data-ic="camera"></span>
+        <span class="pn-body"><span class="pn-t" id="cdRefT">Референсы</span><span class="pn-s" id="cdRefS">—</span></span>
+        <span class="chev" data-ic="chevron"></span>
+      </button>
+      <div class="fold-body"><div class="strip" id="cdRefStrip"></div></div>
+    </div>
+
+    <div class="ev-grid" id="cdNotesBlk" hidden></div>
+    <div class="ev-grid" id="cdDelvBlk" hidden></div>
+    <div class="ev-grid" id="cdMoneyBlk" hidden></div>
+    </div>
+
+    <div class="g-label" id="cdWhenLabel">Когда</div>
+    <div class="group" id="cdWhenGroup">
       <div class="row">Дата<span class="rv" id="cdDate">—</span></div>
       <div class="row sep">Время
         <span class="rv"><span id="cdTime">—</span><span class="sub" id="cdDur">—</span></span>
@@ -1505,8 +1833,8 @@
 
     <!-- Ради этого блока планировщик и существует: обычный календарь
          знает время, но не знает, какой свет в это время будет -->
-    <div class="g-label">Свет и погода</div>
-    <div class="group">
+    <div class="g-label" id="cdLightLabel">Свет и погода</div>
+    <div class="group" id="cdLightGroup">
       <div class="row">Свет<span class="rv" id="cdLight">—</span></div>
       <div class="row sep">Тени<span class="rv" id="cdShadow">—</span></div>
       <div class="row sep">Небо<span class="rv" id="cdSky">—</span></div>
@@ -1594,26 +1922,17 @@
     </div>
 
     <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
-    <div class="g-label" id="fDelvLabel">Сдать материал</div>
-    <div class="group" id="fDelvGroup">
-      <div class="g-chips">
-        <div class="dial-wrap">
-          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
-          <div class="dial-ticks" id="fDelvTicks"></div>
-          <div class="dial-labels" id="fDelvLabels"></div>
-        </div>
-        <div class="f-hint" id="fDelvHint">—</div>
-      </div>
-      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
-    </div>
-
-    <div class="g-label">Нужна погода</div>
+    <div class="g-label" id="fWhoLabel">Место и клиент</div>
     <div class="group">
-      <div class="g-chips"><div class="chips" id="fWish"></div></div>
+      <button class="row" id="fPlace">
+        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
+        <span class="rv act">Изменить</span>
+      </button>
+      <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
+      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
     </div>
-    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
-    <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
+    <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
     <div class="g-label" id="fPayLabel">Оплата</div>
     <div class="group" id="fPayGroup">
       <!-- Спойлер: свёрнутая оплата показывает способ и итог одной строкой -->
@@ -1646,17 +1965,34 @@
       </div>
     </div>
 
-    <div class="g-label" id="fWhoLabel">Место и клиент</div>
-    <div class="group">
-      <button class="row" id="fPlace">
-        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
-        <span class="rv act">Изменить</span>
-      </button>
-      <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
-      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
+    <div class="g-label" id="fDelvLabel">Сдать материал</div>
+    <div class="group" id="fDelvGroup">
+      <div class="g-chips">
+        <div class="dial-wrap">
+          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
+          <div class="dial-ticks" id="fDelvTicks"></div>
+          <div class="dial-labels" id="fDelvLabels"></div>
+        </div>
+        <div class="f-hint" id="fDelvHint">—</div>
+      </div>
+      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
     </div>
 
-    <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
+    <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
+         ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
+    <div class="g-label" id="fRouteLabel" hidden>Таймлайн дня</div>
+    <div class="group" id="fRouteGroup" hidden>
+      <div id="fRouteList"></div>
+      <button type="button" class="rt-add" id="fRouteAdd">+ Сцена</button>
+    </div>
+
+    <div class="g-label">Нужна погода</div>
+    <div class="group">
+      <div class="g-chips"><div class="chips" id="fWish"></div></div>
+    </div>
+    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
+
+    <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
     <div class="g-label">Референсы</div>
     <div class="group">
       <div class="ref-grid" id="refGrid"></div>
@@ -1743,6 +2079,25 @@
     <div class="sheet-sub">Оставьте только то, что снимаете — остальное уйдёт из формы</div>
     <div class="chips" id="gList" style="margin-top:18px;"></div>
 
+    <!-- Набор референсов жанра: сценарий съёмки. На площадке подсказывает,
+         что ещё снять, когда мысль встала (NEEDS: «затуп без сценария») -->
+    <div class="g-label" style="margin: 22px 4px 9px;">Набор референсов <span id="gRefGenre" style="text-transform:none;letter-spacing:0;color:#8A8478;"></span></div>
+    <div class="group">
+      <div class="rf-tags" id="gRefTags" style="padding:12px 13px 4px;"></div>
+      <div class="ref-grid" id="gRefGrid" style="padding:0 13px 4px;"></div>
+      <div class="ref-add sep">
+        <button type="button" class="ref-btn" id="gRefPhoto">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+          Фото
+        </button>
+        <button type="button" class="ref-btn" id="gRefLink">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
+          Ссылка
+        </button>
+      </div>
+      <div class="ref-note" id="gRefNote" hidden></div>
+    </div>
+
     <div class="g-label" style="margin: 22px 4px 9px;">Гонорар</div>
     <div class="group">
       <div class="pay-row">
@@ -1758,6 +2113,20 @@
     </div>
 
     <button class="sheet-done" id="gDone">Готово</button>
+  </div>
+
+  <!-- ============ РЕФЕРЕНСЫ ВО ВЕСЬ ЭКРАН ============
+       Думаю о кадрах — на экране только кадры. Набор жанра и референсы
+       съёмки лежат вместе, фильтр по папкам. -->
+  <div class="refs-full" id="refsFull">
+    <div class="rf-bar">
+      <div class="rf-title">Референсы<span id="rfSub">—</span></div>
+      <button class="round" id="rfClose" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="rf-tags" id="rfTags"></div>
+    <div class="rf-grid" id="rfGrid"></div>
   </div>
 
   <!-- ============ УВЕДОМЛЕНИЕ ============ -->
@@ -1798,6 +2167,7 @@
   var MONTHS_N = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
   var MON_S = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
   var WD = ["ВС","ПН","ВТ","СР","ЧТ","ПТ","СБ"];
+  var WD_FULL = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
 
   function fmt(m) {
     if (m === null || m === undefined || isNaN(m)) return "—";
@@ -2309,7 +2679,12 @@
   var calSel = new Date();               // выбранный день в календаре
   var calScope = "month";                // масштаб: месяц или недельный горизонт
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
-  var STORE = "lightplan.v1";
+  /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
+     значит, и на одном localStorage. Ключ разводим по каналу, иначе
+     стабильная версия при сохранении выбросит поля, которых не знает
+     (маршрут точек, наборы референсов). */
+  var CHANNEL = /\/beta\//.test(location.pathname) ? "beta" : "main";
+  var STORE = CHANNEL === "beta" ? "lightplan.beta.v1" : "lightplan.v1";
   function saveAll() {
     try {
       localStorage.setItem(STORE, JSON.stringify({
@@ -2317,7 +2692,8 @@
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
         }),
-        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, sync: syncTarget,
+        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
+        cardOrder: cardOrder, sync: syncTarget,
         defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
@@ -2327,7 +2703,7 @@
   /* ---------- Копия данных ----------
      Браузер вправе очистить localStorage: iOS стирает хранилище сайтов, которыми
      давно не пользовались. Единственная настоящая защита — файл на руках. */
-  var BACKUP_KEY = "lightplan.backup";
+  var BACKUP_KEY = CHANNEL === "beta" ? "lightplan.beta.backup" : "lightplan.backup";
 
   /* ---------- Яндекс.Диск: автокопия в облако фотографа ----------
      Права — только на папку приложения (cloud_api:disk.app_folder), остальной
@@ -2335,8 +2711,13 @@
      данных, чтобы восстановление из копии не выбрасывало подключение.
      Секрет приложения не используется вовсе: implicit flow его не требует. */
   var YA_ID = "ed341287e18d46aeb66b9af257355725";
-  var YA_TOKEN_KEY = "lightplan.ya.token", YA_SYNC_KEY = "lightplan.ya.synced";
-  var YA_PATH = "app:/light-plan.json";
+  /* Токен Диска общий: подключаться дважды с одного телефона незачем.
+     Отметка о выгрузке — своя у каждого канала */
+  var YA_TOKEN_KEY = "lightplan.ya.token";
+  var YA_SYNC_KEY = CHANNEL === "beta" ? "lightplan.beta.ya.synced" : "lightplan.ya.synced";
+  /* Копия на Диске тоже своя: иначе бета перезаписала бы резервный файл
+     стабильной версии, и восстановление вернуло бы тестовые данные */
+  var YA_PATH = CHANNEL === "beta" ? "app:/light-plan-beta.json" : "app:/light-plan.json";
   var yaToken = null, yaTimer = null, yaBusy = false;
 
   function yaLoadToken() {
@@ -2588,7 +2969,7 @@
 
   /* ---------- Сдача материала ---------- */
   var GENRE_DEADLINE = { "Свадьбы": 90, "Лавстори": 14, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
-    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5 };
+    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5, "Реклама": 10 };
   var DELV_DAYS = [3, 7, 14, 30, 90];
   var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
 
@@ -3747,44 +4128,60 @@
       full.src = href;
     }).catch(function () {});   // без сети остаётся миниатюра
   }
+  /* Референсы добавляются в двух местах: в съёмку и в набор жанра.
+     Механика одна, различаются только список, папка на Диске и отрисовка. */
+  var refCtx = { list: null, render: null, note: "refNote", dir: "refs", tag: null };
+  function useRefCtx(list, render, note, dir, tag) {
+    refCtx = { list: list, render: render, note: note, dir: dir, tag: tag || null };
+  }
   function addRefFiles(files) {
+    var list = refCtx.list || fRefs, render = refCtx.render || renderRefs, note = refCtx.note;
     if (!yaToken) {
-      $("refNote").hidden = false;
-      $("refNote").textContent = "Чтобы хранить фото, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
+      $(note).hidden = false;
+      $(note).textContent = "Чтобы хранить фото, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
       return;
     }
-    var dirReady = yaEnsureDir("app:/refs");   // папку создаём один раз перед загрузкой
+    var dir = "app:/" + (refCtx.dir || "refs");
+    var dirReady = yaEnsureDir(dir);          // папку создаём один раз перед загрузкой
     Array.prototype.slice.call(files).forEach(function (file) {
       if (!/^image\//.test(file.type)) return;
-      var rec = { k: "img", path: null, thumb: null, pending: true };
-      fRefs.push(rec); renderRefs();
+      var rec = { k: "img", path: null, thumb: null, pending: true, tag: refCtx.tag };
+      list.push(rec); render();
       var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
       var ext = (file.name.match(/\.[a-z0-9]+$/i) || [".jpg"])[0];
       refThumb(file, 320)
         .then(function (thumb) {
-          rec.thumb = thumb; renderRefs();
-          return dirReady.then(function () { return yaUpload("app:/refs/" + stamp + ext, file); })
+          rec.thumb = thumb; render();
+          return dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
             // Подпапка не далась — кладём рядом с копией, лишь бы фото не потерялось
             .catch(function () { return yaUpload("app:/ref-" + stamp + ext, file); });
         })
-        .then(function (path) { rec.path = path; rec.pending = false; renderRefs(); })
+        .then(function (path) { rec.path = path; rec.pending = false; render(); saveAll(); })
         .catch(function (e) {
-          fRefs.splice(fRefs.indexOf(rec), 1); renderRefs();
-          $("refNote").hidden = false;
-          $("refNote").textContent = "Фото не загрузилось: " + e.message;
+          list.splice(list.indexOf(rec), 1); render();
+          $(note).hidden = false;
+          $(note).textContent = "Фото не загрузилось: " + e.message;
         });
     });
   }
-  $("refPhoto").addEventListener("click", function () { $("refFile").click(); });
+  $("refPhoto").addEventListener("click", function () {
+    useRefCtx(fRefs, renderRefs, "refNote", "refs", null);
+    $("refFile").click();
+  });
   $("refFile").addEventListener("change", function () { addRefFiles(this.files || []); this.value = ""; });
   $("refLink").addEventListener("click", function () {
-    var url = prompt("Ссылка на референс (Pinterest, Instagram, что угодно)");
+    var url = askLink();
     if (!url) return;
-    url = url.trim();
-    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
     fRefs.push({ k: "link", url: url });
     renderRefs();
   });
+  function askLink() {
+    var url = prompt("Ссылка на референс (Pinterest, Instagram, что угодно)");
+    if (!url) return null;
+    url = url.trim();
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    return url;
+  }
   $("refView").addEventListener("click", function () {
     refViewSeq++;                       // отменяем ещё летящую подмену кадра
     this.classList.remove("open"); $("refViewImg").src = "";
@@ -3990,30 +4387,11 @@
   }
 
   /* Жанры: пользователь оставляет только свои */
-  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
+  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка","Реклама"];
 
   /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
-  var GENRE_IC = {
-    "Портрет":     '<circle cx="12" cy="8.3" r="3.4"/><path d="M5.6 20a6.4 6.4 0 0 1 12.8 0"/>',
-    "Свадьбы":     '<circle cx="9.2" cy="13.4" r="4.9"/><circle cx="14.8" cy="13.4" r="4.9"/><path d="M10.2 5.2h3.6L12 7.4z"/>',
-    "Лавстори":    '<path d="M12 20.2C7.2 16.4 4.2 13.2 4.2 9.9c0-2.4 1.9-4.3 4.2-4.3 1.4 0 2.7.7 3.6 1.8.9-1.1 2.2-1.8 3.6-1.8 2.3 0 4.2 1.9 4.2 4.3 0 3.3-3 6.5-7.8 10.3z"/>',
-    "Семья":       '<circle cx="8.4" cy="7.6" r="2.7"/><path d="M3.6 19.8a4.8 4.8 0 0 1 9.6 0"/><circle cx="16.8" cy="10.4" r="2.1"/><path d="M13.4 19.8a3.5 3.5 0 0 1 6.9 0"/>',
-    "Пейзаж":      '<path d="M3 18.5l5.4-8.2 3.9 5.9 2.9-4.3 5.8 6.6z"/><circle cx="16.9" cy="6.7" r="2.1"/>',
-    "Архитектура": '<path d="M4 20.5h16"/><path d="M6.5 20.5V4.5h11v16"/><path d="M9.6 8h1.6M12.8 8h1.6M9.6 11.5h1.6M12.8 11.5h1.6M9.6 15h1.6M12.8 15h1.6"/>',
-    "Стрит":       '<path d="M4.8 20.5h4.8"/><path d="M7.2 20.5V6a3 3 0 0 1 3-3h3.2"/><path d="M12.6 1.9h4.8l-1.1 3.6h-2.6z"/><path d="M15 7v1.8"/>',
-    "Репортаж":    '<path d="M13.2 2.5L6 13.2h4.8L9.4 21.5 17.9 10h-4.8z"/>',
-    "Предметка":   '<path d="M12 3.2l7.3 4.2v8.9L12 20.5l-7.3-4.2V7.4z"/><path d="M12 11.7L4.7 7.4M12 11.7l7.3-4.2M12 11.7v8.8"/>'
-  };
-  var WISH_IC = {
-    "Неважно": '<circle cx="12" cy="12" r="8.3"/><path d="M8.2 12h7.6"/>',
-    "Ясно":    '<circle cx="12" cy="12" r="4"/><path d="M12 2.6v2M12 19.4v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.6 12h2M19.4 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-    "Облачно": '<path d="M7.3 18.5h9a3.7 3.7 0 0 0 .4-7.4 5.1 5.1 0 0 0-9.8-1.3 3.8 3.8 0 0 0 .4 8.7z"/>',
-    "Туман":   '<path d="M4 8.5h16M6.5 12.5h13M4 16.5h11.5"/>',
-    "Закат":   '<path d="M2.5 17h19M7.4 17a4.6 4.6 0 0 1 9.2 0M4.6 9.9l1.7 1.7M19.4 9.9l-1.7 1.7M12 4.5v4"/>',
-    "Осадки":  '<path d="M7.3 13.5h9a3.7 3.7 0 0 0 .4-7.4 5.1 5.1 0 0 0-9.8-1.3 3.8 3.8 0 0 0 .4 8.7z"/><path d="M8.5 16.5l-1 3M12.5 16.5l-1 3M16.5 16.5l-1 3"/>',
-    "Луна":    '<path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/>',
-    "Звёзды":  '<path d="M12 3.6l1.7 4.9 4.9 1.7-4.9 1.7-1.7 4.9-1.7-4.9-4.9-1.7 4.9-1.7z"/><path d="M18.4 16.6l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
-  };
+  var GENRE_IC = window.ICONS.genres;
+  var WISH_IC = window.ICONS.wishes;
   function toolBtn(name, icon, cls) {
     return '<button class="tool' + (cls ? " " + cls : "") + '" data-v="' + name + '">'
       + '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + icon + "</svg>"
@@ -4035,19 +4413,50 @@
   };
   var GENRE = {
     "Портрет":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
-    "Свадьбы":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"] },
+    "Свадьбы":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
     "Лавстори":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
     "Семья":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
     "Пейзаж":      { delivery: false, client: false, dur: null, pay: ["flat"] },
     "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
     "Стрит":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
     "Репортаж":    { delivery: true,  client: true,  dur: 180, pay: ["hourly", "flat"] },
-    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] }
+    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] },
+    "Реклама":     { delivery: true,  client: true,  dur: 240, pay: ["flat", "hourly"] }
   };
-  function genreSpec(g) { return GENRE[g] || { delivery: true, client: true, dur: 90, pay: ["hourly", "flat"] }; }
+  /* ---------- Группы жанров ----------
+     docs/12_CARD_ARCHITECTURE.md. Группа задаёт состав и подписи, жанр
+     правит поверх. Девять описаний сжимаются в четыре. */
+  var GENRE_GROUP = {
+    "Свадьбы": "event",
+    "Портрет": "people", "Лавстори": "people", "Семья": "people",
+    "Предметка": "client", "Реклама": "client", "Архитектура": "client", "Репортаж": "client",
+    "Пейзаж": "own", "Стрит": "own"
+  };
+  var GROUP = {
+    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true },
+    people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "off" },
+    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: true },
+    own:    { who: null,           whoHint: "",                              route: "off" }
+  };
+  function groupOf(type) { return GENRE_GROUP[type] || "people"; }
+  function groupSpec(type) { return GROUP[groupOf(type)] || GROUP.people; }
+
+  function genreSpec(g) {
+    var base = GENRE[g] || { delivery: true, client: true, dur: 90, pay: ["hourly", "flat"] };
+    var gr = GROUP[GENRE_GROUP[g] || "people"] || GROUP.people;
+    /* Таймлайн — свойство группы, а не жанра: у события он всегда,
+       у заказчика доступен, у частной съёмки и своих его нет */
+    if (base.route === undefined) base.route = gr.route === "always";
+    base.routeOpt = gr.route === "opt";
+    return base;
+  }
 
   /* Правка внутри жанра запоминается и в следующий раз перебивает пресет */
   var genrePrefs = (saved && saved.genrePrefs) || {};
+  /* Набор референсов жанра — сценарий съёмки. Лежит по жанрам, папки внутри
+     жанра размечены тегом: пара, невеста, детали. Хранится на Диске фотографа */
+  var genreRefs = (saved && saved.genreRefs) || {};
+  var REF_TAGS = ["Пара", "Невеста", "Жених", "Прогулка", "Вечер", "Детали"];
   function rememberGenre(key, val) {
     if (!genrePrefs[shootType]) genrePrefs[shootType] = {};
     genrePrefs[shootType][key] = val;
@@ -4060,9 +4469,90 @@
     $("fDelvLabel").style.display = d;
     $("fDelvGroup").style.display = d;
     $("fContact").style.display = sp.client ? "" : "none";
-    $("fWhoLabel").textContent = sp.client ? "Место и клиент" : "Место";
+    /* Таймлайн: у события всегда, у заказчика — доступен и молчит,
+       пока точек не завели (docs/12_CARD_ARCHITECTURE.md) */
+    var showRoute = sp.route || sp.routeOpt;
+    $("fRouteLabel").hidden = !showRoute;
+    $("fRouteGroup").hidden = !showRoute;
+    if (sp.route && editIdx === null && !fRoute.length) {
+      fRoute = seedRoute(fMin);
+      renderRouteEditor();
+    }
+    /* Подпись и подсказка — от группы: у события это пара, у коммерции
+       организация, у своих съёмок клиента нет вовсе */
+    var gr = groupSpec(shootType);
+    $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
+    $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
   }
+  /* ---------- Маршрут в форме ----------
+     Черновик живёт в fRoute: строки редактируются свободно, а в запись
+     уезжают только заполненные (время разобралось и этап назван). */
+  var fRoute = [];
+  function renderRouteEditor() {
+    var host = $("fRouteList");
+    host.innerHTML = fRoute.map(function (r, i) {
+      return '<div class="rt-row" data-i="' + i + '">'
+        + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
+        + '<input class="rt-in-n" type="text" placeholder="' + esc(SCENE_HINT[i % SCENE_HINT.length]) + '" value="' + esc(r.n || "") + '"/>'
+        + '<button type="button" class="rt-x" aria-label="Убрать">✕</button>'
+        + '<input class="rt-in-p" type="text" placeholder="Место — необязательно" value="' + esc(r.p || "") + '"/></div>';
+    }).join("") || '<div class="rt-empty">Точки дня: сборы, ЗАГС, прогулка, банкет</div>';
+    host.querySelectorAll(".rt-row").forEach(function (row) {
+      var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
+      /* Время набирается цифрами и складывается в часы на лету: «1000» → «10:00».
+         Раньше это была просто строка, и в записи оставался номер как телефон */
+      t.addEventListener("input", function () {
+        var d = this.value.replace(/\D/g, "").slice(0, 4);
+        if (d.length > 2) d = d.slice(0, 2) + ":" + d.slice(2);
+        this.value = d; r.t = d;
+      });
+      /* Неполный набор досчитывается по цифрам: «9» → 09:00, «935» → 09:35,
+         «2130» → 21:30. Что не складывается во время — стирается */
+      t.addEventListener("blur", function () {
+        var d = this.value.replace(/\D/g, ""), h, m;
+        if (!d) { this.value = r.t = ""; return; }
+        if (d.length <= 2) { h = +d; m = 0; }
+        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
+        else { h = +d.slice(0, 2); m = +d.slice(2); }
+        this.value = r.t = (h > 23 || m > 59) ? "" : fmt(h * 60 + m);
+      });
+      row.querySelector(".rt-in-n").addEventListener("input", function () { r.n = this.value; });
+      row.querySelector(".rt-in-p").addEventListener("input", function () { r.p = this.value; });
+      row.querySelector(".rt-x").addEventListener("click", function () {
+        fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
+      });
+    });
+  }
+  /* Подсказки в пустых строках идут по ходу дня, а не повторяют одно слово */
+  var SCENE_HINT = ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"];
+
+  /* Свадьба почти всегда начинается с росписи и прогулки — предлагаем их сразу.
+     Шаг зависит от начала: утренняя съёмка разворачивается на весь день,
+     вечерняя укладывается в пару часов, иначе точки уезжают за полночь */
+  function seedRoute(startMin) {
+    var wide = startMin < 900;                       // начали до 15:00 — день впереди
+    var a = snapMin(startMin + (wide ? 120 : 30));
+    var b = snapMin(startMin + (wide ? 240 : 90));
+    return [
+      { t: fmt(Math.min(a, 1410)), n: "ЗАГС", p: "" },
+      { t: fmt(Math.min(b, 1410)), n: "Прогулка", p: "" }
+    ];
+  }
+  $("fRouteAdd").addEventListener("click", function () {
+    if (fRoute.length >= 10) return;          // день из одиннадцати сцен планируют не здесь
+    fRoute.push({ t: "", n: "", p: "" });
+    renderRouteEditor();
+    var last = $("fRouteList").querySelector(".rt-row:last-child .rt-in-t");
+    if (last) last.focus();
+  });
+  /* Черновик → запись: время в минуты, порядок по времени */
+  function routeFromEditor() {
+    return fRoute.map(function (r) { return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim() }; })
+      .filter(function (r) { return r.t !== null && r.n; })
+      .sort(function (a, b) { return a.t - b.t; });
+  }
+
   /* Смена жанра в форме подставляет его обычные значения */
   function applyGenrePreset() {
     var sp = genreSpec(shootType), pref = genrePrefs[shootType] || {};
@@ -4244,6 +4734,597 @@
     return Math.abs(s.placeLat - LAT) > 0.35 || Math.abs(s.placeLon - LON) > 0.6;
   }
 
+  /* ---------- Маршрут дня ----------
+     Свадьба — не полтора часа, а день из этапов, и у каждого этапа свой свет.
+     Жанр решает, существует ли маршрут вообще: у портрета его нет и быть
+     не должно (04_ANTI_GOALS: функция обязана уметь исчезнуть). */
+  function hasRoute(type) { return genreSpec(type).route === true; }
+  function esc(t) {
+    return String(t).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function parseHM(v) {
+    var m = /^\s*(\d{1,2})[:.\s]?(\d{2})\s*$/.exec(v || "");
+    if (!m) return null;
+    var h = +m[1], mm = +m[2];
+    return (h > 23 || mm > 59) ? null : h * 60 + mm;
+  }
+  /* «Свадьбы · через 2 дня» — счёт дней вместо даты: до неё живут заботами,
+     а не календарём. Дальше недели дни уже не считают. */
+  function whenWord(d) {
+    var n = new Date();
+    var days = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate())
+      - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
+    if (days === 0) return " · сегодня";
+    if (days === 1) return " · завтра";
+    if (days > 1 && days <= 7) return " · через " + days + " " + plural(days, ["день", "дня", "дней"]);
+    return "";
+  }
+  function routeOf(s) {
+    return (Array.isArray(s.route) ? s.route : [])
+      .filter(function (r) { return r && r.t != null && r.n; })
+      .sort(function (a, b) { return a.t - b.t; });
+  }
+  /* Свет на каждом этапе — одним проходом: солнце считается для места съёмки,
+     а не для места, где сейчас стоит маркер на карте */
+  function routeLight(s, route) {
+    var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate);
+    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzFor(s.placeLon); }
+    computeSun(s.date);
+    var out = route.map(function (r) { return stateAt(r.t); });
+    LAT = kLat; LON = kLon; TZ = kTz;
+    computeSun(kDate);
+    return out;
+  }
+  /* Карточка события целиком: шапка, навигатор, сцены, плитки.
+     Всё, что ниже (Когда, Свет и погода), для события прячется: его вопросы
+     закрыты сценами, а подробная астрономия свадебному дню не нужна. */
+  /* ============================================================
+     КАРТОЧКА СОБЫТИЯ — docs/11_EVENT_CARD.md
+     Три вида по фазе. Состав — функция пресета. Свет — условие.
+     ============================================================ */
+
+  /* Словарь знаков ключевых мест. Точка, названную произвольно, получает
+     нейтральный знак: пустой иконки не бывает */
+  /* Знаки живут в icons.js — общей библиотеке приложения */
+  var IC = window.ICONS;
+  /* Разметка просит знак атрибутом data-ic, библиотека его подставляет:
+     в HTML не остаётся ни одного пути SVG */
+  function paintIcons(root) {
+    (root || document).querySelectorAll("[data-ic]").forEach(function (el) {
+      if (!el.firstChild) el.innerHTML = IC.svg(el.dataset.ic);
+    });
+  }
+  function laneIcon(name) { return "<svg viewBox=\"0 0 24 24\">" + IC.forPoint(name) + "</svg>"; }
+  /* На ленте помещается одно слово: «Сборы жениха» → «Сборы» */
+  function laneWord(n) {
+    var w = String(n).trim().split(/\s+/)[0];
+    return w.length > 11 ? w.slice(0, 10) + "…" : w;
+  }
+
+  /* Фаза события: до / во время / после.
+     Граница «во время» — от первой точки дня до последней плюс запас на то,
+     что банкет всегда длиннее, чем записано. Дальше — «после». */
+  var TAIL_MIN = 180;
+  function eventPhase(s, route) {
+    var now = new Date();
+    if (!sameDay(s.date, now)) return s.date > now ? "before" : "after";
+    var m = now.getHours() * 60 + now.getMinutes();
+    var from = route.length ? route[0].t : s.min;
+    var to = (route.length ? route[route.length - 1].t : (s.end != null ? s.end : s.min + (s.dur || 90))) + TAIL_MIN;
+    if (m < from) return "before";
+    return m <= to ? "during" : "after";
+  }
+
+  /* Свет — условие, а не раздел. Три требования сразу:
+     пресет его требует, точка дня попадает в окно, и есть что сказать. */
+  var LIGHT_WISH = /закат|золот|рассвет|звёзд|звезд|луна/i;
+  function lightCase(s, route, sun) {
+    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
+    var asks = want.some(function (w) { return LIGHT_WISH.test(w); });
+    if (!asks || sun.goldB === null || sun.blueB === null) return null;
+
+    // Ближайшая к золотому окну точка дня: попадает ли, и насколько мимо
+    var hit = null, near = null, gap = 1e9;
+    route.forEach(function (r) {
+      if (r.t >= sun.goldB - 10 && r.t <= sun.blueB) { if (!hit) hit = r; return; }
+      var d = Math.min(Math.abs(r.t - sun.goldB), Math.abs(r.t - sun.blueB));
+      if (d < gap) { gap = d; near = r; }
+    });
+
+    var q = qualityOf(s.date), wx = dayWeather(s.date), bad = q === "poor" || q === "fog";
+    if (bad) {
+      return { bad: true, text: (hit ? hit.n : "Съёмка") + " ждала закат, а прогноз обещает "
+        + QUAL[q].cond.toLowerCase() + " · облачность " + wx.cloud + "%." };
+    }
+    if (hit) {
+      return { bad: false, text: "«" + hit.n + "» попадает в золотой час: "
+        + range(sun.goldB, sun.blueB) + ". Свет тёплый и мягкий." };
+    }
+    if (near) {
+      return { bad: false, text: "Золотой час " + range(sun.goldB, sun.blueB)
+        + " — ближайшая точка «" + near.n + "» мимо на " + durLabel(Math.round(gap))
+        + ". Сдвиньте, если свет важен." };
+    }
+    return { bad: false, text: "Золотой час " + range(sun.goldB, sun.blueB) + "." };
+  }
+
+  /* ---------- Порядок блоков ----------
+     Иерархия по умолчанию наша: она продумана и проверена. Но день у каждого
+     свой, поэтому порядок можно переложить — и он запоминается по группе
+     жанров, а не по отдельной съёмке (docs/12_CARD_ARCHITECTURE.md). */
+  var CARD_BLOCKS = [
+    { k: "day",      el: "cdDay",      n: "Плитка дня",   ic: "clock" },
+    { k: "light",    el: "cdSay",      n: "Свет",         ic: "sun" },
+    { k: "place",    el: "cdPanes",    n: "Место и дальше", ic: "pin" },
+    { k: "weather",  el: "cdWx",       n: "Погода",       ic: "cloud" },
+    { k: "route",    el: "cdRouteFold", n: "Маршрут дня", ic: "route" },
+    { k: "refs",     el: "cdRefFold",  n: "Референсы",    ic: "camera" },
+    { k: "notes",    el: "cdNotesBlk", n: "Заметки",      ic: "note" },
+    { k: "delivery", el: "cdDelvBlk",  n: "Сдача",        ic: "clock" },
+    { k: "money",    el: "cdMoneyBlk", n: "Гонорар",      ic: "purse" }
+  ];
+  var DEFAULT_ORDER = CARD_BLOCKS.map(function (b) { return b.k; });
+
+  var cardOrder = (saved && saved.cardOrder) || {};
+  function orderFor(type) {
+    var o = cardOrder[groupOf(type)];
+    if (!o) return DEFAULT_ORDER.slice();
+    // порядок мог быть сохранён до появления нового блока — дописываем в конец
+    var out = o.filter(function (k) { return DEFAULT_ORDER.indexOf(k) >= 0; });
+    DEFAULT_ORDER.forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+    return out;
+  }
+  function applyOrder(type) {
+    var host = $("cdEventBlocks");
+    orderFor(type).forEach(function (k) {
+      var b = CARD_BLOCKS.filter(function (x) { return x.k === k; })[0];
+      if (b) host.appendChild($(b.el));      // appendChild переносит, а не копирует
+    });
+  }
+
+  /* ---------- Режим перестановки ----------
+     Блоки сворачиваются в заголовки, заголовки таскаются пальцем.
+     Порядок сохраняется на группу жанров, «Вернуть наш порядок» — сброс. */
+  var ordMode = false;
+  function setOrderMode(on) {
+    var s = sessions[cardIdx];
+    if (!s) return;
+    ordMode = on;
+    $("cdEventBlocks").hidden = on;
+    $("cdOrderList").hidden = !on;
+    $("cdOrderFoot").hidden = !on;
+    $("cardEdit").hidden = on;
+    $("cardOrder").classList.toggle("ok", on);
+    if (on) renderOrderList(s); else { renderEventCard(s); $("cardOverlay").scrollTop = 0; }
+  }
+  function renderOrderList(s) {
+    var host = $("cdOrderList");
+    host.innerHTML = orderFor(s.type).map(function (k) {
+      var b = CARD_BLOCKS.filter(function (x) { return x.k === k; })[0];
+      var empty = $(b.el).hidden;              // блока нет в этой съёмке — но порядок ему нужен
+      return '<div class="ord-row' + (empty ? " off" : "") + '" data-k="' + k + '">'
+        + '<span class="badge">' + IC.svg(b.ic) + "</span>"
+        + '<span class="ord-n">' + b.n + "</span>"
+        + '<span class="ord-grip"><svg viewBox="0 0 24 24"><path d="M4 9h16M4 15h16"/></svg></span></div>';
+    }).join("");
+    host.querySelectorAll(".ord-row").forEach(function (row) { dragRow(row, host, s); });
+  }
+  /* Перетаскивание пальцем: строка едет за пальцем, соседи расступаются.
+     HTML5 drag-and-drop на телефоне не работает вовсе — только указатели. */
+  function dragRow(row, host, s) {
+    row.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      var startY = e.clientY, moved = false;
+      row.setPointerCapture(e.pointerId);
+
+      function move(ev) {
+        var dy = ev.clientY - startY;
+        if (!moved && Math.abs(dy) < 4) return;
+        if (!moved) {
+          moved = true;
+          row.classList.add("drag");
+          // под пальцем должна оказаться строка снизу, а не сама перетаскиваемая
+          row.style.pointerEvents = "none";
+        }
+        row.style.transform = "translateY(" + dy + "px)";
+        var over = document.elementFromPoint(ev.clientX, ev.clientY);
+        over = over && over.closest(".ord-row");
+        if (over && over !== row) {
+          var rect = over.getBoundingClientRect();
+          var after = ev.clientY > rect.top + rect.height / 2;
+          host.insertBefore(row, after ? over.nextSibling : over);
+          startY = ev.clientY;
+          row.style.transform = "";
+        }
+      }
+      function up() {
+        row.removeEventListener("pointermove", move);
+        row.removeEventListener("pointerup", up);
+        row.classList.remove("drag");
+        row.style.transform = "";
+        row.style.pointerEvents = "";
+        if (!moved) return;
+        cardOrder[groupOf(s.type)] = [].map.call(host.children, function (r) { return r.dataset.k; });
+        saveAll();
+      }
+      row.addEventListener("pointermove", move);
+      row.addEventListener("pointerup", up);
+    });
+  }
+  $("cardOrder").addEventListener("click", function () { setOrderMode(!ordMode); });
+  $("cdOrderDone").addEventListener("click", function () { setOrderMode(false); });
+  $("cdOrderReset").addEventListener("click", function () {
+    var s = sessions[cardIdx];
+    if (!s) return;
+    delete cardOrder[groupOf(s.type)];
+    saveAll(); renderOrderList(s);
+  });
+
+  function renderEventCard(s) {
+    paintIcons($("cardOverlay"));
+    var on = hasRoute(s.type);
+    var route = on ? routeOf(s) : [];
+    var ids = CARD_BLOCKS.map(function (b) { return b.el; }).concat(["cdEvHead"]);
+    $("cardOrder").hidden = !on;
+    if (!on) {
+      // Обычная съёмка приходит после событийной: возвращаем то, что та прятала
+      ids.forEach(function (i) { $(i).hidden = true; });
+      $("cardTitle").hidden = false; $("cardSub").hidden = false;
+      $("cdWhenLabel").hidden = false; $("cdWhenGroup").hidden = false;
+      $("cdLightLabel").hidden = false; $("cdLightGroup").hidden = false;
+      $("cdTrust").hidden = false;
+      return;
+    }
+    var phase = eventPhase(s, route);
+    var sun = cardSun(s);
+    var light = phase === "after" ? null : lightCase(s, route, sun);
+
+    // Всё, что карточка события говорит своим языком, списками не дублируется
+    $("cardTitle").hidden = true; $("cardSub").hidden = true;
+    $("cdWhenLabel").hidden = true; $("cdWhenGroup").hidden = true;
+    $("cdLightLabel").hidden = true; $("cdLightGroup").hidden = true;
+    $("cdTrust").hidden = true;
+    $("cdDelvLabel").hidden = true; $("cdDelvGroup").hidden = true;
+    $("cdNotesLabel").hidden = true; $("cdNotes").hidden = true;
+    $("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
+    $("cdRefsLabel").hidden = true; $("cdRefs").innerHTML = "";
+
+    renderEvHead(s, phase);
+    renderDayTile(s, route, phase, light);
+    renderPanes(s, route, phase, sun);
+    renderWxPane(s, route, phase);
+    renderRouteFold(s, route, phase);
+    renderRefFold(s, route, phase);
+    applyOrder(s.type);
+  }
+
+  /* Шапка: знак события, имена, счёт, телефон */
+  var EV_SIGN = { "Свадьбы": IC.svg("rings", null, 24), "Лавстори": IC.svg("heart", null, 24) };
+  function renderEvHead(s, phase) {
+    $("cdEvHead").hidden = false;
+    $("cdEvSign").innerHTML = EV_SIGN[s.type] || "";
+    $("cdEvNames").textContent = clientName(s) || genreSpec(s.type).ev || s.type;
+
+    var ev = genreSpec(s.type).ev || s.type, when = whenWord(s.date).replace(/^ · /, "");
+    $("cdEvWhen").textContent = phase === "after" ? ev + " прошла" + afterWord(s.date)
+      : when ? ev + " " + when : ev;
+    $("cdEvWhen").classList.toggle("past", phase === "after");
+
+    var tel = firstPhone(s);
+    $("cdEvTel").hidden = !tel;
+    if (tel) {
+      $("cdEvTelN").textContent = tel;
+      $("cdEvTel").href = "tel:" + tel.replace(/[^\d+]/g, "");
+    }
+  }
+  function afterWord(d) {
+    var n = new Date();
+    var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate())
+      - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+    if (days <= 0) return "";
+    if (days === 1) return " вчера";
+    return days <= 7 ? " " + days + " " + plural(days, ["день", "дня", "дней"]) + " назад" : "";
+  }
+
+  /* Плитка дня: дата, навигатор, лента знаков */
+  function renderDayTile(s, route, phase, light) {
+    $("cdDay").hidden = false;
+    $("cdDayD").textContent = s.date.getDate();
+    $("cdDayM").textContent = MONTHS[s.date.getMonth()];
+    $("cdDayW").textContent = WD_FULL[s.date.getDay()];
+
+    var now = new Date(), today = sameDay(s.date, now);
+    var nowMin2 = today ? now.getHours() * 60 + now.getMinutes() : null;
+    var cur = curIndex(route, nowMin2);
+
+    $("cdDayClock").textContent = today ? fmt(nowMin2) : "";
+    $("cdDayDot").style.display = phase === "during" ? "" : "none";
+
+    if (!route.length) {
+      $("cdDayNow").textContent = "Точки дня не заданы";
+      $("cdDayLeft").innerHTML = "«Изменить» → Таймлайн дня";
+    } else if (phase === "during" && cur >= 0) {
+      var nx = route[cur + 1];
+      $("cdDayNow").textContent = "Сейчас: " + route[cur].n;
+      $("cdDayLeft").innerHTML = nx
+        ? "осталось <b>" + durLabel(nx.t - nowMin2) + "</b> · дальше " + nx.n
+        : "последняя точка дня";
+    } else if (phase === "before" && today) {
+      $("cdDayNow").textContent = "Скоро: " + route[0].n;
+      $("cdDayLeft").innerHTML = "через <b>" + durLabel(route[0].t - nowMin2) + "</b> · в " + fmt(route[0].t);
+    } else if (phase === "before") {
+      $("cdDayNow").textContent = fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
+      $("cdDayLeft").textContent = durLabel(route[route.length - 1].t - route[0].t)
+        + " · " + route.length + " " + plural(route.length, ["точка", "точки", "точек"]);
+    } else {
+      $("cdDayNow").textContent = "Съёмка отработана";
+      $("cdDayLeft").textContent = fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
+    }
+
+    var pts = lanePoints(s, route, light);
+    var curP = -1;
+    if (nowMin2 !== null && phase === "during")
+      for (var j = 0; j < pts.length; j++) if (!pts[j].light && pts[j].t <= nowMin2) curP = j;
+
+    $("cdLane").innerHTML = pts.map(function (p, i) {
+      var cls = i === curP ? " now"
+        : ((nowMin2 !== null && p.t <= nowMin2) || (phase === "after" && route.length) ? " past" : "");
+      if (p.light) cls += " light";
+      return '<div class="lane-p' + cls + '">'
+        + '<div class="lane-ic">' + laneIcon(p.n) + "</div>"
+        + '<div class="lane-rail"><span class="lane-dot"></span></div>'
+        + '<div class="lane-t">' + fmt(p.t) + "</div>"
+        + '<div class="lane-n">' + esc(laneWord(p.n)) + "</div></div>";
+    }).join("");
+
+    $("cdSay").hidden = !light;
+    if (light) {
+      $("cdSay").className = "say" + (light.bad ? " bad" : "");
+      $("cdSayIc").innerHTML = light.bad
+        ? IC.svg("warn") : IC.svg("sun");
+      $("cdSayT").innerHTML = light.text;
+    }
+  }
+  function curIndex(route, nowMin2) {
+    var c = -1;
+    if (nowMin2 !== null) for (var i = 0; i < route.length; i++) if (route[i].t <= nowMin2) c = i;
+    return c;
+  }
+  function lanePoints(s, route, light) {
+    var pts = route.map(function (r) { return { t: r.t, n: r.n, light: false }; });
+    if (light && !light.bad) {
+      var g = cardSun(s).goldB;
+      if (g !== null && !pts.some(function (p) { return Math.abs(p.t - g) < 20; })) {
+        pts.push({ t: Math.round(g), n: "Золотой", light: true });
+        pts.sort(function (a, b) { return a.t - b.t; });
+      }
+    }
+    return pts;
+  }
+
+  /* Парные плитки: место с кнопкой маршрута и следующая точка; ниже — деньги,
+     сдача, заметки. Каждая со знаком: глаз цепляется за пиктограмму */
+  var PANE_IC = {
+    pin: IC.svg("pin"), note: IC.svg("note"), purse: IC.svg("purse"), clock: IC.svg("clock")
+  };
+  function renderPanes(s, route, phase, sun) {
+    var top = [], bottom = [], spec = genreSpec(s.type);
+
+    if (s.place && phase !== "after") {
+      top.push('<button type="button" class="pane" data-act="map"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.pin + "</span>"
+        + '<span class="pn-body"><span class="pn-t">' + esc(shortPlace(s.place)) + "</span>"
+        + '<span class="pn-s">' + esc(firstScenePlace(route) || s.place) + "</span></span></div>"
+        + '<span class="go-btn">На карте <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></button>');
+    }
+    // Следующая точка — то, ради чего в телефон и заглядывают
+    var nx = nextPoint(s, route, phase);
+    if (nx) {
+      top.push('<div class="pane"><div class="pane-row">'
+        + '<span class="badge">' + laneIcon(nx.n) + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Дальше</span>'
+        + '<span class="pn-t" style="margin-top:2px">' + esc(nx.n) + "</span></span></div>"
+        + '<div class="pn-s" style="margin-top:8px">через ' + durLabel(nx.in) + ' · <span style="color:#E2A44C">' + fmt(nx.t) + "</span></div></div>");
+    }
+
+    var inc = sessionIncome(s), exp = +s.expense || 0;
+    var moneyHtml = (inc > 0 || exp > 0)
+      ? '<div class="pane wide"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.purse + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Гонорар</span>'
+        + '<span class="pn-v">' + money(inc) + (exp ? ' <span style="font-size:12px;color:#635E54">− расходы ' + money(exp) + "</span>" : "") + "</span></span>"
+        + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp) + "</span></div></div>"
+      : "";
+
+    var delvHtml = "";
+    if (spec.delivery !== false) {
+      var ds = deliveryState(s), dd = deadlineDate(s);
+      delvHtml = '<div class="pane wide"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.clock + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Сдача</span>'
+        + '<span class="pn-t" style="color:' + ds.color + ';margin-top:2px">' + ds.label
+        + (dd && !s.delivered ? ' <span style="color:#635E54;font-size:12.5px">· до ' + dd.getDate() + " " + MONTHS[dd.getMonth()] + "</span>" : "")
+        + "</span></span></div></div>";
+    }
+
+    var notesHtml = s.notes
+      ? '<div class="pane wide"><div class="pane-row">'
+        + '<span class="badge blue">' + PANE_IC.note + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Заметки</span>'
+        + '<span class="pn-s" style="white-space:normal;margin-top:3px;color:#C9C2B6;font-size:13px;line-height:1.45">'
+        + esc(s.notes) + "</span></span></div></div>"
+      : "";
+
+    // Одинокая плитка не оставляет дыру: занимает ряд целиком
+    if (top.length === 1) top[0] = top[0].replace('class="pane"', 'class="pane wide"');
+    $("cdPanes").hidden = !top.length;
+    $("cdPanes").innerHTML = top.join("");
+    /* Заметки, сдача и гонорар — самостоятельные блоки: их порядок фотограф
+       меняет сам, и по умолчанию заметки стоят выше денег */
+    fillBlock("cdNotesBlk", notesHtml);
+    fillBlock("cdDelvBlk", delvHtml);
+    fillBlock("cdMoneyBlk", moneyHtml);
+
+    var mapBtn = $("cdPanes").querySelector('[data-act="map"]');
+    if (mapBtn) mapBtn.addEventListener("click", function () {
+      if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzFor(LON); }
+      closeCard(); go("s-map");
+      if (typeof syncMap === "function") syncMap();
+    });
+  }
+  function fillBlock(id, html) {
+    $(id).hidden = !html;
+    $(id).innerHTML = html;
+  }
+  function firstScenePlace(route) {
+    for (var i = 0; i < route.length; i++) if (route[i].p) return route[i].p;
+    return "";
+  }
+  function nextPoint(s, route, phase) {
+    if (!route.length || phase === "after") return null;
+    var now = new Date();
+    if (!sameDay(s.date, now)) return null;
+    var m = now.getHours() * 60 + now.getMinutes();
+    for (var i = 0; i < route.length; i++) if (route[i].t > m) return { n: route[i].n, t: route[i].t, in: route[i].t - m };
+    return null;
+  }
+
+  /* Погода: знак и градус, рядом — часы точек дня. Только словами и знаками */
+  function renderWxPane(s, route, phase) {
+    if (phase === "after") { $("cdWx").hidden = true; return; }
+    $("cdWx").hidden = false;
+    var q = qualityOf(s.date), wx = dayWeather(s.date);
+    var hours = (route.length ? route : [{ t: s.min }]).slice(0, 5);
+    $("cdWx").innerHTML = '<div class="wx-now"><span class="big">' + wxSign(q) + "</span>"
+      + '<span><span class="wx-t">' + tempAt(wx.tempBase, 900) + "°</span>"
+      + '<span class="wx-c">' + QUAL[q].cond + "</span></span></div>"
+      + '<div class="wx-hours">' + hours.map(function (r) {
+        return '<div class="wx-h"><div class="hh">' + fmt(r.t) + "</div>"
+          + wxSign(q)
+          + '<div class="tt">' + tempAt(wx.tempBase, r.t) + "°</div>"
+          + '<div class="pp">' + wx.cloud + "%</div></div>";
+      }).join("") + "</div>";
+  }
+  /* Знак погоды: части (солнце, облако, осадки) красит CSS, не разметка */
+  function wxSign(q) {
+    var name = q === "poor" ? "rain" : q === "fog" ? "cloud" : q === "good" ? "part" : "clear";
+    return IC.svg(name, "i-wx");
+  }
+  /* Маршрут: свёрнут до строки со знаками, разворачивается тапом */
+  function renderRouteFold(s, route, phase) {
+    var show = route.length && phase !== "after";
+    $("cdRouteFold").hidden = !show;
+    if (!show) return;
+    $("cdRouteFold").classList.remove("open");
+    $("cdRouteT").textContent = "Маршрут дня";
+    $("cdRouteS").textContent = route.length + " " + plural(route.length, ["точка", "точки", "точек"])
+      + " · " + fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
+
+    var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
+    var cur = curIndex(route, nowMin2);
+    $("cdRouteBody").innerHTML = route.map(function (r, i) {
+      var cls = i === cur ? " now" : (nowMin2 !== null && r.t < nowMin2 ? " past" : "");
+      return '<div class="sc-item' + cls + '"><span class="sc-ic">' + laneIcon(r.n) + "</span>"
+        + '<span class="sc-t">' + fmt(r.t) + "</span>"
+        + '<span><span class="sc-n">' + esc(r.n) + "</span>"
+        + (r.p ? '<span class="sc-p">' + esc(r.p) + "</span>" : "") + "</span></div>";
+    }).join("");
+  }
+
+  /* Референсы: строка со знаком и полосой кадров; тап — весь экран */
+  function renderRefFold(s, route, phase) {
+    var all = allRefs(s);
+    var show = all.length && phase !== "after";
+    $("cdRefFold").hidden = !show;
+    if (!show) return;
+    $("cdRefFold").classList.remove("open");
+    var stage = currentStage(s, route);
+    $("cdRefT").textContent = "Референсы" + (stage ? ": " + stage : "");
+    $("cdRefS").textContent = all.length + " " + plural(all.length, ["кадр", "кадра", "кадров"])
+      + " · набор жанра и съёмки";
+    $("cdRefStrip").innerHTML = all.slice(0, 7).map(function (r) {
+      return r.thumb ? '<img src="' + r.thumb + '" alt="">' : '<span class="ph"></span>';
+    }).join("");
+  }
+  /* Набор жанра и референсы съёмки — вместе: на площадке они об одном */
+  function allRefs(s) {
+    var mine = (Array.isArray(s.refs) ? s.refs : []).map(function (r) {
+      return { k: r.k, path: r.path, thumb: r.thumb, url: r.url, tag: r.tag || null, own: true };
+    });
+    var set = (genreRefs[s.type] || []).map(function (r) {
+      return { k: r.k, path: r.path, thumb: r.thumb, url: r.url, tag: r.tag || null, own: false };
+    });
+    return mine.concat(set);
+  }
+  function currentStage(s, route) {
+    var now = new Date();
+    if (!sameDay(s.date, now) || !route.length) return "";
+    var c = curIndex(route, now.getHours() * 60 + now.getMinutes());
+    return c >= 0 ? route[c].n : "";
+  }
+
+  /* Полный экран референсов: фильтр по папкам набора */
+  var rfTag = null, rfList = [];
+  function openRefsFull(s, route) {
+    rfList = allRefs(s);
+    rfTag = null;
+    $("rfSub").textContent = clientName(s) + (currentStage(s, route) ? " · " + currentStage(s, route) : "");
+    renderRefsFull();
+    $("refsFull").classList.add("open");
+  }
+  function renderRefsFull() {
+    var tags = REF_TAGS.filter(function (t) {
+      return rfList.some(function (r) { return r.tag === t; });
+    });
+    $("rfTags").innerHTML = (tags.length ? [""].concat(tags) : []).map(function (t) {
+      return '<button type="button" class="rf-tag' + ((rfTag === (t || null)) ? " on" : "") + '" data-t="' + t + '">'
+        + (t || "Все") + "</button>";
+    }).join("");
+    $("rfTags").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () { rfTag = b.dataset.t || null; renderRefsFull(); });
+    });
+
+    var shown = rfList.filter(function (r) { return !rfTag || r.tag === rfTag; });
+    $("rfGrid").innerHTML = shown.map(function (r, i) {
+      if (r.k === "link") {
+        return '<button type="button" class="rf-cell link" data-i="' + i + '">'
+          + '<span class="host">' + refHost(r.url) + "</span>"
+          + '<span class="path">' + refTail(r.url) + "</span></button>";
+      }
+      return '<button type="button" class="rf-cell" data-i="' + i + '">'
+        + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "") + "</button>";
+    }).join("") || '<div class="rf-empty">Пусто. Набор жанра собирается в «Мои жанры» — '
+      + "он подскажет, что снять, когда мысль встала.</div>";
+    $("rfGrid").querySelectorAll(".rf-cell").forEach(function (b) {
+      b.addEventListener("click", function () { openRef(shown[+b.dataset.i]); });
+    });
+  }
+  $("rfClose").addEventListener("click", function () { $("refsFull").classList.remove("open"); });
+  $("cdRefHead").addEventListener("click", function () {
+    var s = sessions[cardIdx];
+    if (s) openRefsFull(s, routeOf(s));
+  });
+  $("cdRouteHead").addEventListener("click", function () {
+    $("cdRouteFold").classList.toggle("open");
+  });
+
+  /* Телефон живёт в строке клиента: «Марина и Сергей · +7 923 412-33-33».
+     Отдельного поля пока нет — вытаскиваем то, что фотограф уже пишет. */
+  function firstPhone(s) {
+    var m = /(\+?\d[\d\-\s()]{8,}\d)/.exec((s.phone || "") + " " + (s.contact || "") + " " + (s.notes || ""));
+    return m ? m[1].trim() : "";
+  }
+  function shortPlace(p) { return String(p).split(",")[0]; }
+  /* Имя без телефона: фотограф пишет клиента одной строкой, а в шапке
+     нужны только имена — номер уезжает в строку вызова */
+  function clientName(s) {
+    var tel = firstPhone(s);
+    var n = (s.contact || "").replace(tel, "");
+    return n.replace(/[\s·,;|—-]+$/, "").replace(/^[\s·,;|—-]+/, "").trim() || (s.contact || "");
+  }
+
   /* keepScroll — возврат из правки: карточка остаётся там, где её читали */
   function openCard(idx, keepScroll) {
     var s = sessions[idx];
@@ -4334,10 +5415,14 @@
       $("cdProfit").textContent = money(inc - exp);
     }
 
+    // Событийная карточка перекрывает решения обычной: считается последней
+    renderEventCard(s);
+
     $("cardOverlay").scrollTop = wasAt;
     $("cardOverlay").classList.add("open");
   }
   function closeCard() {
+    if (ordMode) setOrderMode(false);
     cardIdx = null;
     $("cardOverlay").classList.remove("open");
   }
@@ -4373,6 +5458,7 @@
       fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
       fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
       fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
+      fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "" }; });
       payFolded = true;
     } else {
       fAuto = true;
@@ -4382,7 +5468,9 @@
       // Новая съёмка начинается там, где сейчас смотрим свет
       sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
       fRefs = [];
+      fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
     }
+    renderRouteEditor();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
     $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
@@ -4421,10 +5509,70 @@
         var on = ALL_GENRES.filter(function (x) { return genresOn[x]; });
         if (genresOn[g] && on.length === 1) return;   // последний жанр не отключаем
         genresOn[g] = genresOn[g] ? 0 : 1;
-        renderGenreList(); renderGenres();
+        renderGenreList(); renderGenres(); renderGenreRefs();
       });
     });
   }
+  /* ---------- Набор референсов жанра ----------
+     Фотограф собирает сценарий заранее: что снять на сборах, что на прогулке.
+     На площадке набор открывается в карточке вместе с рефами съёмки. */
+  var gRefTag = null;                  // выбранная папка: и фильтр, и метка для новых
+  function genreRefList(g) {
+    if (!genreRefs[g]) genreRefs[g] = [];
+    return genreRefs[g];
+  }
+  function renderGenreRefs() {
+    var g = shootType, list = genreRefList(g);
+    $("gRefGenre").textContent = "· " + g.toLowerCase();
+    $("gRefTags").innerHTML = REF_TAGS.map(function (t) {
+      return '<button type="button" class="rf-tag' + (gRefTag === t ? " on" : "") + '" data-t="' + t + '">'
+        + t + " " + list.filter(function (r) { return r.tag === t; }).length + "</button>";
+    }).join("");
+    $("gRefTags").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        gRefTag = gRefTag === b.dataset.t ? null : b.dataset.t;
+        renderGenreRefs();
+      });
+    });
+    var shown = list.map(function (r, i) { return { r: r, i: i }; })
+      .filter(function (p) { return !gRefTag || p.r.tag === gRefTag; });
+    $("gRefGrid").innerHTML = shown.map(function (p) {
+      if (p.r.k === "link") {
+        return '<button type="button" class="ref-card link" data-i="' + p.i + '">'
+          + '<span class="host">' + refHost(p.r.url) + "</span>"
+          + '<span class="path">' + refTail(p.r.url) + "</span>"
+          + '<span class="kill" data-kill="' + p.i + '">✕</span></button>';
+      }
+      return '<button type="button" class="ref-card" data-i="' + p.i + '">'
+        + (p.r.thumb ? '<img src="' + p.r.thumb + '" alt="">' : "")
+        + (p.r.pending ? '<span class="wait">…</span>' : "")
+        + '<span class="kill" data-kill="' + p.i + '">✕</span></button>';
+    }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
+      + (gRefTag ? "В папке «" + gRefTag + "» пока пусто" : "Соберите сценарий: что снять на сборах, прогулке, вечером")
+      + "</div>";
+    $("gRefGrid").querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        var kill = e.target.closest("[data-kill]");
+        if (kill) {
+          var i = +kill.dataset.kill, r = list[i];
+          if (r && r.k === "img" && r.path) yaDelete(r.path);
+          list.splice(i, 1); saveAll(); renderGenreRefs(); return;
+        }
+        openRef(list[+b.dataset.i]);
+      });
+    });
+  }
+  $("gRefPhoto").addEventListener("click", function () {
+    useRefCtx(genreRefList(shootType), renderGenreRefs, "gRefNote", "genre-refs", gRefTag);
+    $("refFile").click();
+  });
+  $("gRefLink").addEventListener("click", function () {
+    var url = askLink();
+    if (!url) return;
+    genreRefList(shootType).push({ k: "link", url: url, tag: gRefTag });
+    saveAll(); renderGenreRefs();
+  });
+
   /* Пакеты с ценой > 0 — рабочие; недозаполненные строки живут только в редакторе */
   function usablePacks() { return packs.filter(function (p) { return p.p > 0; }); }
   function numVal(el) { return parseFloat((el.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0; }
@@ -4456,6 +5604,7 @@
   });
   $("fGear").addEventListener("click", function () {
     renderGenreList();
+    renderGenreRefs();
     $("gRate").value = defaultRate || "";
     renderPackEditor();
     $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
@@ -4498,6 +5647,7 @@
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense,
       refs: fRefs.filter(function (r) { return r.k === "link" || r.path; }),
+      route: hasRoute(shootType) ? routeFromEditor() : [],
       synced: syncTarget === "off" ? null : syncTarget
     };
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
