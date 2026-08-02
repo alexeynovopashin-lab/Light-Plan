@@ -494,20 +494,33 @@
   /* display в CSS перебивает атрибут hidden — прячем масштабы явно */
   .cal[hidden], .cal-head[hidden], .week[hidden] { display: none; }
   .cal .d {
-    aspect-ratio: 1/1; border: none; background: none; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-family: inherit; font-size: 16px; color: #EFEAE0;
+    min-height: 55px; border: none; background: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    padding: 3px 1px 4px;
+    font-family: inherit; font-size: 15px; color: #EFEAE0;
     position: relative; border-radius: 11px; font-variant-numeric: tabular-nums;
     transition: background 0.25s ease;
   }
   .cal .d.past { color: #4A453E; }
+  /* Дни соседних месяцев: последние выходные августа часто лежат в сентябре,
+     и занятость по ним видна только так. Блёклые — чтобы не спорить со своим месяцем */
+  .cal .d.out .d-n { color: #3A352F; }
+  .cal .d.out .cal-lb { opacity: 0.45; }
+  /* Подпись жанра в клетке говорит о дне больше, чем точка: «Свадьба» — это
+     занятый день целиком, «Портрет» — час-полтора и можно совместить */
+  .cal-lb {
+    max-width: 100%; font-size: 8.5px; line-height: 1.25; letter-spacing: -0.1px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: #8A8478; font-variant-numeric: normal;
+  }
+  .cal-lb.more { color: #55504A; }
   .cal .d.today { color: #E2A44C; font-weight: 650; }
   .cal .d.sel { background: #221F19; }
   /* Кольцо вокруг числа = есть съёмка. Цвет кольца = срочность сдачи материала:
      белое (предстоит) → жёлтое → янтарное → терракота (просрочено) */
   .d-n {
     position: relative; z-index: 0;   /* свой контекст, иначе подложка уходит за фон */
-    width: 30px; height: 30px;
+    width: 26px; height: 26px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
   }
   /* Подложка, а не кольцо: тонкая окружность вокруг двузначных чисел
@@ -520,6 +533,7 @@
   @keyframes ringBreath { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   @media (prefers-reduced-motion: reduce) { .d-n.breath::before { animation: none; } }
   .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; background: transparent; }
+  .cal { row-gap: 2px; }
   /* ---------- Недельный вид: семь световых лент ---------- */
   .week { padding: 4px 20px 0; }
   .wk-row {
@@ -3566,6 +3580,10 @@
     return { q: q, a: win.a, b: win.b, label: win.label };
   }
 
+  /* В клетке помещается одно слово: жанр в именительном и без хвоста */
+  var SHORT_GENRE = { "Свадьбы": "Свадьба", "Архитектура": "Архитект.", "Предметка": "Предметка" };
+  function shortGenre(t) { return SHORT_GENRE[t] || t; }
+
   function renderCal() {
     var week = calScope === "week";
     $("calHead").hidden = week;
@@ -3583,26 +3601,55 @@
     var today = new Date(); today.setHours(0,0,0,0);
     var monthHasShoots = false;
 
-    for (var i = 0; i < offset; i++) grid.appendChild(document.createElement("div"));
-    for (var n = 1; n <= days; n++) {
-      var d = new Date(calMonth.getFullYear(), calMonth.getMonth(), n);
+    /* Клетку рисуем одинаково для своего месяца и для соседних: последние
+       выходные месяца часто выпадают на следующий, и занятость по ним нужна
+       не меньше. Чужие дни блёклые и не спорят со своими. */
+    function cell(d, out) {
       var b = document.createElement("button");
-      b.className = "d"
+      var inMonth = !out;
+      b.className = "d" + (out ? " out" : "")
         + (d < today ? " past" : "")
         + (sameDay(d, today) ? " today" : "")
         + (sameDay(d, calSel) ? " sel" : "");
       var q = qualityOf(d);
-      var mk = dayMark(d);
+      var mk = inMonth ? dayMark(d) : null;
       var lit = mk && mk.fill;
-      // Точка = съёмка (нет съёмки — нет точки), её цвет = какой свет достанется
-      var dotCol = mk ? (QUAL[q].dot || "#A8B49B") : null;
-      if (dotCol) monthHasShoots = true;
-      b.innerHTML = '<span class="d-n' + (lit && mk.breath ? " breath" : "") + '"'
-        + (lit ? ' style="--mark:' + mk.fill + '"' : "") + ">" + n + "</span>"
-        + (dotCol ? '<span class="dot" style="background:' + dotCol + '"></span>' : "");
-      (function (dd) { b.addEventListener("click", function () { calSel = dd; renderCal(); renderDayPanel(); }); })(d);
-      grid.appendChild(b);
+      var shoots = sessions.filter(function (x) { return sameDay(x.date, d); })
+        .sort(function (x, y) { return x.min - y.min; });
+      if (shoots.length && inMonth) monthHasShoots = true;
+
+      var html = '<span class="d-n' + (lit && mk.breath ? " breath" : "") + '"'
+        + (lit ? ' style="--mark:' + mk.fill + '"' : "") + ">" + d.getDate() + "</span>";
+      // Две подписи помещаются, третья превращается в счётчик
+      var show = shoots.length > 2 ? shoots.slice(0, 1) : shoots.slice(0, 2);
+      show.forEach(function (x) {
+        var col = QUAL[qualityOf(x.date)].dot || "#A8B49B";
+        html += '<span class="cal-lb" style="color:' + col + '">' + esc(shortGenre(x.type)) + "</span>";
+      });
+      if (shoots.length > show.length) {
+        html += '<span class="cal-lb more">+' + (shoots.length - show.length) + "</span>";
+      }
+      b.innerHTML = html;
+      b.addEventListener("click", function () {
+        calSel = d;
+        // Тап по чужому дню перелистывает месяц: иначе он выбран, но не виден
+        if (out) calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        renderCal(); renderDayPanel();
+      });
+      return b;
     }
+
+    for (var i = offset; i > 0; i--) {
+      grid.appendChild(cell(new Date(calMonth.getFullYear(), calMonth.getMonth(), 1 - i), true));
+    }
+    for (var n = 1; n <= days; n++) {
+      grid.appendChild(cell(new Date(calMonth.getFullYear(), calMonth.getMonth(), n), false));
+    }
+    var tail = (7 - ((offset + days) % 7)) % 7;
+    for (var k = 1; k <= tail; k++) {
+      grid.appendChild(cell(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, k), true));
+    }
+
     // Легенда объясняет точки — без съёмок объяснять нечего
     document.querySelector(".legend").style.display = monthHasShoots ? "flex" : "none";
     // Метка возврата — только когда ушли из текущего месяца
