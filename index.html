@@ -1922,26 +1922,17 @@
     </div>
 
     <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
-    <div class="g-label" id="fDelvLabel">Сдать материал</div>
-    <div class="group" id="fDelvGroup">
-      <div class="g-chips">
-        <div class="dial-wrap">
-          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
-          <div class="dial-ticks" id="fDelvTicks"></div>
-          <div class="dial-labels" id="fDelvLabels"></div>
-        </div>
-        <div class="f-hint" id="fDelvHint">—</div>
-      </div>
-      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
-    </div>
-
-    <div class="g-label">Нужна погода</div>
+    <div class="g-label" id="fWhoLabel">Место и клиент</div>
     <div class="group">
-      <div class="g-chips"><div class="chips" id="fWish"></div></div>
+      <button class="row" id="fPlace">
+        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
+        <span class="rv act">Изменить</span>
+      </button>
+      <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
+      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
     </div>
-    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
-    <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
+    <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
     <div class="g-label" id="fPayLabel">Оплата</div>
     <div class="group" id="fPayGroup">
       <!-- Спойлер: свёрнутая оплата показывает способ и итог одной строкой -->
@@ -1974,6 +1965,19 @@
       </div>
     </div>
 
+    <div class="g-label" id="fDelvLabel">Сдать материал</div>
+    <div class="group" id="fDelvGroup">
+      <div class="g-chips">
+        <div class="dial-wrap">
+          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
+          <div class="dial-ticks" id="fDelvTicks"></div>
+          <div class="dial-labels" id="fDelvLabels"></div>
+        </div>
+        <div class="f-hint" id="fDelvHint">—</div>
+      </div>
+      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
+    </div>
+
     <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
          ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
     <div class="g-label" id="fRouteLabel" hidden>Таймлайн дня</div>
@@ -1982,17 +1986,13 @@
       <button type="button" class="rt-add" id="fRouteAdd">+ Сцена</button>
     </div>
 
-    <div class="g-label" id="fWhoLabel">Место и клиент</div>
+    <div class="g-label">Нужна погода</div>
     <div class="group">
-      <button class="row" id="fPlace">
-        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
-        <span class="rv act">Изменить</span>
-      </button>
-      <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
-      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
+      <div class="g-chips"><div class="chips" id="fWish"></div></div>
     </div>
+    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
-    <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
+    <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
     <div class="g-label">Референсы</div>
     <div class="group">
       <div class="ref-grid" id="refGrid"></div>
@@ -2969,7 +2969,7 @@
 
   /* ---------- Сдача материала ---------- */
   var GENRE_DEADLINE = { "Свадьбы": 90, "Лавстори": 14, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
-    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5 };
+    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5, "Реклама": 10 };
   var DELV_DAYS = [3, 7, 14, 30, 90];
   var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
 
@@ -4387,7 +4387,7 @@
   }
 
   /* Жанры: пользователь оставляет только свои */
-  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
+  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка","Реклама"];
 
   /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
   var GENRE_IC = window.ICONS.genres;
@@ -4420,9 +4420,36 @@
     "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
     "Стрит":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
     "Репортаж":    { delivery: true,  client: true,  dur: 180, pay: ["hourly", "flat"] },
-    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] }
+    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] },
+    "Реклама":     { delivery: true,  client: true,  dur: 240, pay: ["flat", "hourly"] }
   };
-  function genreSpec(g) { return GENRE[g] || { delivery: true, client: true, dur: 90, pay: ["hourly", "flat"] }; }
+  /* ---------- Группы жанров ----------
+     docs/12_CARD_ARCHITECTURE.md. Группа задаёт состав и подписи, жанр
+     правит поверх. Девять описаний сжимаются в четыре. */
+  var GENRE_GROUP = {
+    "Свадьбы": "event",
+    "Портрет": "people", "Лавстори": "people", "Семья": "people",
+    "Предметка": "client", "Реклама": "client", "Архитектура": "client", "Репортаж": "client",
+    "Пейзаж": "own", "Стрит": "own"
+  };
+  var GROUP = {
+    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true },
+    people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "off" },
+    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: true },
+    own:    { who: null,           whoHint: "",                              route: "off" }
+  };
+  function groupOf(type) { return GENRE_GROUP[type] || "people"; }
+  function groupSpec(type) { return GROUP[groupOf(type)] || GROUP.people; }
+
+  function genreSpec(g) {
+    var base = GENRE[g] || { delivery: true, client: true, dur: 90, pay: ["hourly", "flat"] };
+    var gr = GROUP[GENRE_GROUP[g] || "people"] || GROUP.people;
+    /* Таймлайн — свойство группы, а не жанра: у события он всегда,
+       у заказчика доступен, у частной съёмки и своих его нет */
+    if (base.route === undefined) base.route = gr.route === "always";
+    base.routeOpt = gr.route === "opt";
+    return base;
+  }
 
   /* Правка внутри жанра запоминается и в следующий раз перебивает пресет */
   var genrePrefs = (saved && saved.genrePrefs) || {};
@@ -4442,13 +4469,20 @@
     $("fDelvLabel").style.display = d;
     $("fDelvGroup").style.display = d;
     $("fContact").style.display = sp.client ? "" : "none";
-    $("fRouteLabel").hidden = !sp.route;
-    $("fRouteGroup").hidden = !sp.route;
+    /* Таймлайн: у события всегда, у заказчика — доступен и молчит,
+       пока точек не завели (docs/12_CARD_ARCHITECTURE.md) */
+    var showRoute = sp.route || sp.routeOpt;
+    $("fRouteLabel").hidden = !showRoute;
+    $("fRouteGroup").hidden = !showRoute;
     if (sp.route && editIdx === null && !fRoute.length) {
       fRoute = seedRoute(fMin);
       renderRouteEditor();
     }
-    $("fWhoLabel").textContent = sp.client ? "Место и клиент" : "Место";
+    /* Подпись и подсказка — от группы: у события это пара, у коммерции
+       организация, у своих съёмок клиента нет вовсе */
+    var gr = groupSpec(shootType);
+    $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
+    $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
   }
   /* ---------- Маршрут в форме ----------
@@ -4832,15 +4866,6 @@
     { k: "money",    el: "cdMoneyBlk", n: "Гонорар",      ic: "purse" }
   ];
   var DEFAULT_ORDER = CARD_BLOCKS.map(function (b) { return b.k; });
-
-  /* Группы жанров: карточка одной группы устроена одинаково */
-  var GENRE_GROUP = {
-    "Свадьбы": "event",
-    "Портрет": "people", "Лавстори": "people", "Семья": "people",
-    "Предметка": "client", "Реклама": "client", "Архитектура": "client", "Репортаж": "client",
-    "Пейзаж": "own", "Стрит": "own"
-  };
-  function groupOf(type) { return GENRE_GROUP[type] || "people"; }
 
   var cardOrder = (saved && saved.cardOrder) || {};
   function orderFor(type) {
