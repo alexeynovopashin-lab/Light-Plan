@@ -1017,6 +1017,32 @@
   .bar { height: 6px; border-radius: 3px; background: #221F19; overflow: hidden; margin-top: 8px; }
   .bar span { display: block; height: 100%; background: #A8B49B; border-radius: 3px; }
 
+  /* Перестановка блоков: карточка сворачивается в список заголовков */
+  .card-bar-r { display: flex; align-items: center; gap: 10px; }
+  .ord-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .ord-list[hidden] { display: none; }
+  .ord-row {
+    display: flex; align-items: center; gap: 12px; padding: 14px;
+    background: #17150F; border-radius: 14px; touch-action: none; user-select: none;
+  }
+  .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; }
+  .ord-row .badge svg { width: 17px; height: 17px; }
+  .ord-n { flex: 1; font-size: 15.5px; color: #EFEAE0; }
+  .ord-grip svg {
+    width: 20px; height: 20px; fill: none; stroke: #55504A; stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+  .ord-row.drag { background: #221F19; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  .ord-row.off { opacity: 0.4; }              /* блока нет в этой съёмке */
+  .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
+  .ord-foot[hidden] { display: none; }
+  .ord-reset, .ord-done {
+    flex: 1; padding: 14px; border-radius: 14px; border: none;
+    font-family: inherit; font-size: 15px; cursor: pointer;
+  }
+  .ord-reset { background: #17150F; color: #A8A093; }
+  .ord-done { background: #EFEAE0; color: #0F0E0C; font-weight: 650; }
+
   /* Реплика навигатора: одна строка о том, что делать */
   .say { display: flex; gap: 9px; align-items: flex-start; margin-top: 9px;
     padding: 11px 14px; border-radius: 14px; background: #17150F;
@@ -1060,16 +1086,17 @@
   .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: #55504A; line-height: 1.5; }
 
   /* Редактор точек в форме */
-  .rt-row { display: flex; align-items: center; gap: 8px; padding: 8px 15px; flex-wrap: wrap; }
+  .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
   .rt-row + .rt-row { box-shadow: inset 0 1px 0 #0F0E0C; }
   .rt-row input {
     background: #0F0E0C; border: none; border-radius: 9px; padding: 10px 11px;
     color: #EFEAE0; font-family: inherit; font-size: 15px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
-  .rt-row .rt-in-t { flex: 0 0 68px; text-align: center; font-variant-numeric: tabular-nums; }
+  .rt-row .rt-in-t { flex: 0 0 78px; text-align: center; font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px; }
   .rt-row .rt-in-n { flex: 1; }
-  .rt-row .rt-in-p { flex: 1 0 100%; font-size: 14px; }
+  .rt-row .rt-in-p { flex: 1 0 100%; font-size: 13.5px; padding: 8px 11px; }
   .rt-row input::placeholder { color: #4A453E; }
   .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: #55504A;
     font-size: 15px; padding: 6px; cursor: pointer; }
@@ -1715,7 +1742,12 @@
       <button class="round" id="cardBack" aria-label="Закрыть">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <button class="card-edit" id="cardEdit">Изменить</button>
+      <div class="card-bar-r">
+        <button class="card-edit" id="cardEdit">Изменить</button>
+        <button class="round" id="cardOrder" aria-label="Изменить порядок" hidden>
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
     </div>
     <h2 class="form-title" id="cardTitle">Съёмка</h2>
     <p class="form-sub" id="cardSub">—</p>
@@ -1733,6 +1765,15 @@
       </a>
     </div>
 
+    <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
+    <div id="cdOrderList" class="ord-list" hidden></div>
+    <div class="ord-foot" id="cdOrderFoot" hidden>
+      <button type="button" class="ord-reset" id="cdOrderReset">Вернуть наш порядок</button>
+      <button type="button" class="ord-done" id="cdOrderDone">Готово</button>
+    </div>
+
+    <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
+    <div id="cdEventBlocks">
     <div class="day-tile" id="cdDay" hidden>
       <div class="dt-date">
         <div class="dt-d" id="cdDayD">30</div>
@@ -1776,7 +1817,10 @@
       <div class="fold-body"><div class="strip" id="cdRefStrip"></div></div>
     </div>
 
-    <div class="ev-grid" id="cdPanes2" hidden></div>
+    <div class="ev-grid" id="cdNotesBlk" hidden></div>
+    <div class="ev-grid" id="cdDelvBlk" hidden></div>
+    <div class="ev-grid" id="cdMoneyBlk" hidden></div>
+    </div>
 
     <div class="g-label" id="cdWhenLabel">Когда</div>
     <div class="group" id="cdWhenGroup">
@@ -1878,26 +1922,17 @@
     </div>
 
     <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
-    <div class="g-label" id="fDelvLabel">Сдать материал</div>
-    <div class="group" id="fDelvGroup">
-      <div class="g-chips">
-        <div class="dial-wrap">
-          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
-          <div class="dial-ticks" id="fDelvTicks"></div>
-          <div class="dial-labels" id="fDelvLabels"></div>
-        </div>
-        <div class="f-hint" id="fDelvHint">—</div>
-      </div>
-      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
-    </div>
-
-    <div class="g-label">Нужна погода</div>
+    <div class="g-label" id="fWhoLabel">Место и клиент</div>
     <div class="group">
-      <div class="g-chips"><div class="chips" id="fWish"></div></div>
+      <button class="row" id="fPlace">
+        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
+        <span class="rv act">Изменить</span>
+      </button>
+      <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
+      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
     </div>
-    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
-    <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
+    <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
     <div class="g-label" id="fPayLabel">Оплата</div>
     <div class="group" id="fPayGroup">
       <!-- Спойлер: свёрнутая оплата показывает способ и итог одной строкой -->
@@ -1930,6 +1965,19 @@
       </div>
     </div>
 
+    <div class="g-label" id="fDelvLabel">Сдать материал</div>
+    <div class="group" id="fDelvGroup">
+      <div class="g-chips">
+        <div class="dial-wrap">
+          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
+          <div class="dial-ticks" id="fDelvTicks"></div>
+          <div class="dial-labels" id="fDelvLabels"></div>
+        </div>
+        <div class="f-hint" id="fDelvHint">—</div>
+      </div>
+      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
+    </div>
+
     <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
          ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
     <div class="g-label" id="fRouteLabel" hidden>Таймлайн дня</div>
@@ -1938,17 +1986,13 @@
       <button type="button" class="rt-add" id="fRouteAdd">+ Сцена</button>
     </div>
 
-    <div class="g-label" id="fWhoLabel">Место и клиент</div>
+    <div class="g-label">Нужна погода</div>
     <div class="group">
-      <button class="row" id="fPlace">
-        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
-        <span class="rv act">Изменить</span>
-      </button>
-      <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
-      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
+      <div class="g-chips"><div class="chips" id="fWish"></div></div>
     </div>
+    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
-    <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
+    <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
     <div class="g-label">Референсы</div>
     <div class="group">
       <div class="ref-grid" id="refGrid"></div>
@@ -2648,7 +2692,8 @@
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
         }),
-        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs, sync: syncTarget,
+        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
+        cardOrder: cardOrder, sync: syncTarget,
         defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
@@ -2924,7 +2969,7 @@
 
   /* ---------- Сдача материала ---------- */
   var GENRE_DEADLINE = { "Свадьбы": 90, "Лавстори": 14, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
-    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5 };
+    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5, "Реклама": 10 };
   var DELV_DAYS = [3, 7, 14, 30, 90];
   var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
 
@@ -4342,7 +4387,7 @@
   }
 
   /* Жанры: пользователь оставляет только свои */
-  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка"];
+  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка","Реклама"];
 
   /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
   var GENRE_IC = window.ICONS.genres;
@@ -4375,9 +4420,36 @@
     "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
     "Стрит":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
     "Репортаж":    { delivery: true,  client: true,  dur: 180, pay: ["hourly", "flat"] },
-    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] }
+    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] },
+    "Реклама":     { delivery: true,  client: true,  dur: 240, pay: ["flat", "hourly"] }
   };
-  function genreSpec(g) { return GENRE[g] || { delivery: true, client: true, dur: 90, pay: ["hourly", "flat"] }; }
+  /* ---------- Группы жанров ----------
+     docs/12_CARD_ARCHITECTURE.md. Группа задаёт состав и подписи, жанр
+     правит поверх. Девять описаний сжимаются в четыре. */
+  var GENRE_GROUP = {
+    "Свадьбы": "event",
+    "Портрет": "people", "Лавстори": "people", "Семья": "people",
+    "Предметка": "client", "Реклама": "client", "Архитектура": "client", "Репортаж": "client",
+    "Пейзаж": "own", "Стрит": "own"
+  };
+  var GROUP = {
+    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true },
+    people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "off" },
+    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: true },
+    own:    { who: null,           whoHint: "",                              route: "off" }
+  };
+  function groupOf(type) { return GENRE_GROUP[type] || "people"; }
+  function groupSpec(type) { return GROUP[groupOf(type)] || GROUP.people; }
+
+  function genreSpec(g) {
+    var base = GENRE[g] || { delivery: true, client: true, dur: 90, pay: ["hourly", "flat"] };
+    var gr = GROUP[GENRE_GROUP[g] || "people"] || GROUP.people;
+    /* Таймлайн — свойство группы, а не жанра: у события он всегда,
+       у заказчика доступен, у частной съёмки и своих его нет */
+    if (base.route === undefined) base.route = gr.route === "always";
+    base.routeOpt = gr.route === "opt";
+    return base;
+  }
 
   /* Правка внутри жанра запоминается и в следующий раз перебивает пресет */
   var genrePrefs = (saved && saved.genrePrefs) || {};
@@ -4397,9 +4469,20 @@
     $("fDelvLabel").style.display = d;
     $("fDelvGroup").style.display = d;
     $("fContact").style.display = sp.client ? "" : "none";
-    $("fRouteLabel").hidden = !sp.route;
-    $("fRouteGroup").hidden = !sp.route;
-    $("fWhoLabel").textContent = sp.client ? "Место и клиент" : "Место";
+    /* Таймлайн: у события всегда, у заказчика — доступен и молчит,
+       пока точек не завели (docs/12_CARD_ARCHITECTURE.md) */
+    var showRoute = sp.route || sp.routeOpt;
+    $("fRouteLabel").hidden = !showRoute;
+    $("fRouteGroup").hidden = !showRoute;
+    if (sp.route && editIdx === null && !fRoute.length) {
+      fRoute = seedRoute(fMin);
+      renderRouteEditor();
+    }
+    /* Подпись и подсказка — от группы: у события это пара, у коммерции
+       организация, у своих съёмок клиента нет вовсе */
+    var gr = groupSpec(shootType);
+    $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
+    $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
   }
   /* ---------- Маршрут в форме ----------
@@ -4410,20 +4493,51 @@
     var host = $("fRouteList");
     host.innerHTML = fRoute.map(function (r, i) {
       return '<div class="rt-row" data-i="' + i + '">'
-        + '<input class="rt-in-t" type="text" inputmode="numeric" placeholder="10:00" value="' + esc(r.t || "") + '"/>'
-        + '<input class="rt-in-n" type="text" placeholder="Сборы" value="' + esc(r.n || "") + '"/>'
+        + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
+        + '<input class="rt-in-n" type="text" placeholder="' + esc(SCENE_HINT[i % SCENE_HINT.length]) + '" value="' + esc(r.n || "") + '"/>'
         + '<button type="button" class="rt-x" aria-label="Убрать">✕</button>'
-        + '<input class="rt-in-p" type="text" placeholder="Место сцены — необязательно" value="' + esc(r.p || "") + '"/></div>';
-    }).join("") || '<div class="rt-empty">Например: 10:00 · Сборы · 12:00 ЗАГС · 14:00 Прогулка</div>';
+        + '<input class="rt-in-p" type="text" placeholder="Место — необязательно" value="' + esc(r.p || "") + '"/></div>';
+    }).join("") || '<div class="rt-empty">Точки дня: сборы, ЗАГС, прогулка, банкет</div>';
     host.querySelectorAll(".rt-row").forEach(function (row) {
-      var r = fRoute[+row.dataset.i];
-      row.querySelector(".rt-in-t").addEventListener("input", function () { r.t = this.value; });
+      var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
+      /* Время набирается цифрами и складывается в часы на лету: «1000» → «10:00».
+         Раньше это была просто строка, и в записи оставался номер как телефон */
+      t.addEventListener("input", function () {
+        var d = this.value.replace(/\D/g, "").slice(0, 4);
+        if (d.length > 2) d = d.slice(0, 2) + ":" + d.slice(2);
+        this.value = d; r.t = d;
+      });
+      /* Неполный набор досчитывается по цифрам: «9» → 09:00, «935» → 09:35,
+         «2130» → 21:30. Что не складывается во время — стирается */
+      t.addEventListener("blur", function () {
+        var d = this.value.replace(/\D/g, ""), h, m;
+        if (!d) { this.value = r.t = ""; return; }
+        if (d.length <= 2) { h = +d; m = 0; }
+        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
+        else { h = +d.slice(0, 2); m = +d.slice(2); }
+        this.value = r.t = (h > 23 || m > 59) ? "" : fmt(h * 60 + m);
+      });
       row.querySelector(".rt-in-n").addEventListener("input", function () { r.n = this.value; });
       row.querySelector(".rt-in-p").addEventListener("input", function () { r.p = this.value; });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
       });
     });
+  }
+  /* Подсказки в пустых строках идут по ходу дня, а не повторяют одно слово */
+  var SCENE_HINT = ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"];
+
+  /* Свадьба почти всегда начинается с росписи и прогулки — предлагаем их сразу.
+     Шаг зависит от начала: утренняя съёмка разворачивается на весь день,
+     вечерняя укладывается в пару часов, иначе точки уезжают за полночь */
+  function seedRoute(startMin) {
+    var wide = startMin < 900;                       // начали до 15:00 — день впереди
+    var a = snapMin(startMin + (wide ? 120 : 30));
+    var b = snapMin(startMin + (wide ? 240 : 90));
+    return [
+      { t: fmt(Math.min(a, 1410)), n: "ЗАГС", p: "" },
+      { t: fmt(Math.min(b, 1410)), n: "Прогулка", p: "" }
+    ];
   }
   $("fRouteAdd").addEventListener("click", function () {
     if (fRoute.length >= 10) return;          // день из одиннадцати сцен планируют не здесь
@@ -4736,11 +4850,124 @@
     return { bad: false, text: "Золотой час " + range(sun.goldB, sun.blueB) + "." };
   }
 
+  /* ---------- Порядок блоков ----------
+     Иерархия по умолчанию наша: она продумана и проверена. Но день у каждого
+     свой, поэтому порядок можно переложить — и он запоминается по группе
+     жанров, а не по отдельной съёмке (docs/12_CARD_ARCHITECTURE.md). */
+  var CARD_BLOCKS = [
+    { k: "day",      el: "cdDay",      n: "Плитка дня",   ic: "clock" },
+    { k: "light",    el: "cdSay",      n: "Свет",         ic: "sun" },
+    { k: "place",    el: "cdPanes",    n: "Место и дальше", ic: "pin" },
+    { k: "weather",  el: "cdWx",       n: "Погода",       ic: "cloud" },
+    { k: "route",    el: "cdRouteFold", n: "Маршрут дня", ic: "route" },
+    { k: "refs",     el: "cdRefFold",  n: "Референсы",    ic: "camera" },
+    { k: "notes",    el: "cdNotesBlk", n: "Заметки",      ic: "note" },
+    { k: "delivery", el: "cdDelvBlk",  n: "Сдача",        ic: "clock" },
+    { k: "money",    el: "cdMoneyBlk", n: "Гонорар",      ic: "purse" }
+  ];
+  var DEFAULT_ORDER = CARD_BLOCKS.map(function (b) { return b.k; });
+
+  var cardOrder = (saved && saved.cardOrder) || {};
+  function orderFor(type) {
+    var o = cardOrder[groupOf(type)];
+    if (!o) return DEFAULT_ORDER.slice();
+    // порядок мог быть сохранён до появления нового блока — дописываем в конец
+    var out = o.filter(function (k) { return DEFAULT_ORDER.indexOf(k) >= 0; });
+    DEFAULT_ORDER.forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+    return out;
+  }
+  function applyOrder(type) {
+    var host = $("cdEventBlocks");
+    orderFor(type).forEach(function (k) {
+      var b = CARD_BLOCKS.filter(function (x) { return x.k === k; })[0];
+      if (b) host.appendChild($(b.el));      // appendChild переносит, а не копирует
+    });
+  }
+
+  /* ---------- Режим перестановки ----------
+     Блоки сворачиваются в заголовки, заголовки таскаются пальцем.
+     Порядок сохраняется на группу жанров, «Вернуть наш порядок» — сброс. */
+  var ordMode = false;
+  function setOrderMode(on) {
+    var s = sessions[cardIdx];
+    if (!s) return;
+    ordMode = on;
+    $("cdEventBlocks").hidden = on;
+    $("cdOrderList").hidden = !on;
+    $("cdOrderFoot").hidden = !on;
+    $("cardEdit").hidden = on;
+    $("cardOrder").classList.toggle("ok", on);
+    if (on) renderOrderList(s); else { renderEventCard(s); $("cardOverlay").scrollTop = 0; }
+  }
+  function renderOrderList(s) {
+    var host = $("cdOrderList");
+    host.innerHTML = orderFor(s.type).map(function (k) {
+      var b = CARD_BLOCKS.filter(function (x) { return x.k === k; })[0];
+      var empty = $(b.el).hidden;              // блока нет в этой съёмке — но порядок ему нужен
+      return '<div class="ord-row' + (empty ? " off" : "") + '" data-k="' + k + '">'
+        + '<span class="badge">' + IC.svg(b.ic) + "</span>"
+        + '<span class="ord-n">' + b.n + "</span>"
+        + '<span class="ord-grip"><svg viewBox="0 0 24 24"><path d="M4 9h16M4 15h16"/></svg></span></div>';
+    }).join("");
+    host.querySelectorAll(".ord-row").forEach(function (row) { dragRow(row, host, s); });
+  }
+  /* Перетаскивание пальцем: строка едет за пальцем, соседи расступаются.
+     HTML5 drag-and-drop на телефоне не работает вовсе — только указатели. */
+  function dragRow(row, host, s) {
+    row.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      var startY = e.clientY, moved = false;
+      row.setPointerCapture(e.pointerId);
+
+      function move(ev) {
+        var dy = ev.clientY - startY;
+        if (!moved && Math.abs(dy) < 4) return;
+        if (!moved) {
+          moved = true;
+          row.classList.add("drag");
+          // под пальцем должна оказаться строка снизу, а не сама перетаскиваемая
+          row.style.pointerEvents = "none";
+        }
+        row.style.transform = "translateY(" + dy + "px)";
+        var over = document.elementFromPoint(ev.clientX, ev.clientY);
+        over = over && over.closest(".ord-row");
+        if (over && over !== row) {
+          var rect = over.getBoundingClientRect();
+          var after = ev.clientY > rect.top + rect.height / 2;
+          host.insertBefore(row, after ? over.nextSibling : over);
+          startY = ev.clientY;
+          row.style.transform = "";
+        }
+      }
+      function up() {
+        row.removeEventListener("pointermove", move);
+        row.removeEventListener("pointerup", up);
+        row.classList.remove("drag");
+        row.style.transform = "";
+        row.style.pointerEvents = "";
+        if (!moved) return;
+        cardOrder[groupOf(s.type)] = [].map.call(host.children, function (r) { return r.dataset.k; });
+        saveAll();
+      }
+      row.addEventListener("pointermove", move);
+      row.addEventListener("pointerup", up);
+    });
+  }
+  $("cardOrder").addEventListener("click", function () { setOrderMode(!ordMode); });
+  $("cdOrderDone").addEventListener("click", function () { setOrderMode(false); });
+  $("cdOrderReset").addEventListener("click", function () {
+    var s = sessions[cardIdx];
+    if (!s) return;
+    delete cardOrder[groupOf(s.type)];
+    saveAll(); renderOrderList(s);
+  });
+
   function renderEventCard(s) {
     paintIcons($("cardOverlay"));
     var on = hasRoute(s.type);
     var route = on ? routeOf(s) : [];
-    var ids = ["cdEvHead", "cdDay", "cdSay", "cdPanes", "cdWx", "cdRouteFold", "cdRefFold", "cdPanes2"];
+    var ids = CARD_BLOCKS.map(function (b) { return b.el; }).concat(["cdEvHead"]);
+    $("cardOrder").hidden = !on;
     if (!on) {
       // Обычная съёмка приходит после событийной: возвращаем то, что та прятала
       ids.forEach(function (i) { $(i).hidden = true; });
@@ -4770,6 +4997,7 @@
     renderWxPane(s, route, phase);
     renderRouteFold(s, route, phase);
     renderRefFold(s, route, phase);
+    applyOrder(s.type);
   }
 
   /* Шапка: знак события, имена, счёт, телефон */
@@ -4889,7 +5117,7 @@
         + '<span class="badge">' + PANE_IC.pin + "</span>"
         + '<span class="pn-body"><span class="pn-t">' + esc(shortPlace(s.place)) + "</span>"
         + '<span class="pn-s">' + esc(firstScenePlace(route) || s.place) + "</span></span></div>"
-        + '<span class="go-btn">Маршрут <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></button>');
+        + '<span class="go-btn">На карте <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></button>');
     }
     // Следующая точка — то, ради чего в телефон и заглядывают
     var nx = nextPoint(s, route, phase);
@@ -4902,38 +5130,42 @@
     }
 
     var inc = sessionIncome(s), exp = +s.expense || 0;
-    if (inc > 0 || exp > 0) {
-      var paid = Math.max(0, Math.min(1, exp ? 0 : 0));
-      bottom.push('<div class="pane wide"><div class="pane-row">'
+    var moneyHtml = (inc > 0 || exp > 0)
+      ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.purse + "</span>"
         + '<span class="pn-body"><span class="pn-k">Гонорар</span>'
         + '<span class="pn-v">' + money(inc) + (exp ? ' <span style="font-size:12px;color:#635E54">− расходы ' + money(exp) + "</span>" : "") + "</span></span>"
-        + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp) + "</span></div></div>");
-    }
+        + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp) + "</span></div></div>"
+      : "";
+
+    var delvHtml = "";
     if (spec.delivery !== false) {
       var ds = deliveryState(s), dd = deadlineDate(s);
-      bottom.push('<div class="pane wide"><div class="pane-row">'
+      delvHtml = '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.clock + "</span>"
         + '<span class="pn-body"><span class="pn-k">Сдача</span>'
         + '<span class="pn-t" style="color:' + ds.color + ';margin-top:2px">' + ds.label
         + (dd && !s.delivered ? ' <span style="color:#635E54;font-size:12.5px">· до ' + dd.getDate() + " " + MONTHS[dd.getMonth()] + "</span>" : "")
-        + "</span></span></div></div>");
+        + "</span></span></div></div>";
     }
-    if (s.notes) {
-      bottom.push('<div class="pane wide"><div class="pane-row">'
+
+    var notesHtml = s.notes
+      ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge blue">' + PANE_IC.note + "</span>"
         + '<span class="pn-body"><span class="pn-k">Заметки</span>'
         + '<span class="pn-s" style="white-space:normal;margin-top:3px;color:#C9C2B6;font-size:13px;line-height:1.45">'
-        + esc(s.notes) + "</span></span></div></div>");
-    }
+        + esc(s.notes) + "</span></span></div></div>"
+      : "";
 
     // Одинокая плитка не оставляет дыру: занимает ряд целиком
     if (top.length === 1) top[0] = top[0].replace('class="pane"', 'class="pane wide"');
-    if (bottom.length === 1) bottom[0] = bottom[0].replace('class="pane"', 'class="pane wide"');
     $("cdPanes").hidden = !top.length;
     $("cdPanes").innerHTML = top.join("");
-    $("cdPanes2").hidden = !bottom.length;
-    $("cdPanes2").innerHTML = bottom.join("");
+    /* Заметки, сдача и гонорар — самостоятельные блоки: их порядок фотограф
+       меняет сам, и по умолчанию заметки стоят выше денег */
+    fillBlock("cdNotesBlk", notesHtml);
+    fillBlock("cdDelvBlk", delvHtml);
+    fillBlock("cdMoneyBlk", moneyHtml);
 
     var mapBtn = $("cdPanes").querySelector('[data-act="map"]');
     if (mapBtn) mapBtn.addEventListener("click", function () {
@@ -4941,6 +5173,10 @@
       closeCard(); go("s-map");
       if (typeof syncMap === "function") syncMap();
     });
+  }
+  function fillBlock(id, html) {
+    $(id).hidden = !html;
+    $(id).innerHTML = html;
   }
   function firstScenePlace(route) {
     for (var i = 0; i < route.length; i++) if (route[i].p) return route[i].p;
@@ -5186,6 +5422,7 @@
     $("cardOverlay").classList.add("open");
   }
   function closeCard() {
+    if (ordMode) setOrderMode(false);
     cardIdx = null;
     $("cardOverlay").classList.remove("open");
   }
@@ -5231,7 +5468,7 @@
       // Новая съёмка начинается там, где сейчас смотрим свет
       sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
       fRefs = [];
-      fRoute = [];
+      fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
     }
     renderRouteEditor();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
