@@ -1060,16 +1060,17 @@
   .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: #55504A; line-height: 1.5; }
 
   /* Редактор точек в форме */
-  .rt-row { display: flex; align-items: center; gap: 8px; padding: 8px 15px; flex-wrap: wrap; }
+  .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
   .rt-row + .rt-row { box-shadow: inset 0 1px 0 #0F0E0C; }
   .rt-row input {
     background: #0F0E0C; border: none; border-radius: 9px; padding: 10px 11px;
     color: #EFEAE0; font-family: inherit; font-size: 15px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
-  .rt-row .rt-in-t { flex: 0 0 68px; text-align: center; font-variant-numeric: tabular-nums; }
+  .rt-row .rt-in-t { flex: 0 0 78px; text-align: center; font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px; }
   .rt-row .rt-in-n { flex: 1; }
-  .rt-row .rt-in-p { flex: 1 0 100%; font-size: 14px; }
+  .rt-row .rt-in-p { flex: 1 0 100%; font-size: 13.5px; padding: 8px 11px; }
   .rt-row input::placeholder { color: #4A453E; }
   .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: #55504A;
     font-size: 15px; padding: 6px; cursor: pointer; }
@@ -4399,6 +4400,10 @@
     $("fContact").style.display = sp.client ? "" : "none";
     $("fRouteLabel").hidden = !sp.route;
     $("fRouteGroup").hidden = !sp.route;
+    if (sp.route && editIdx === null && !fRoute.length) {
+      fRoute = seedRoute(fMin);
+      renderRouteEditor();
+    }
     $("fWhoLabel").textContent = sp.client ? "Место и клиент" : "Место";
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
   }
@@ -4410,20 +4415,51 @@
     var host = $("fRouteList");
     host.innerHTML = fRoute.map(function (r, i) {
       return '<div class="rt-row" data-i="' + i + '">'
-        + '<input class="rt-in-t" type="text" inputmode="numeric" placeholder="10:00" value="' + esc(r.t || "") + '"/>'
-        + '<input class="rt-in-n" type="text" placeholder="Сборы" value="' + esc(r.n || "") + '"/>'
+        + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
+        + '<input class="rt-in-n" type="text" placeholder="' + esc(SCENE_HINT[i % SCENE_HINT.length]) + '" value="' + esc(r.n || "") + '"/>'
         + '<button type="button" class="rt-x" aria-label="Убрать">✕</button>'
-        + '<input class="rt-in-p" type="text" placeholder="Место сцены — необязательно" value="' + esc(r.p || "") + '"/></div>';
-    }).join("") || '<div class="rt-empty">Например: 10:00 · Сборы · 12:00 ЗАГС · 14:00 Прогулка</div>';
+        + '<input class="rt-in-p" type="text" placeholder="Место — необязательно" value="' + esc(r.p || "") + '"/></div>';
+    }).join("") || '<div class="rt-empty">Точки дня: сборы, ЗАГС, прогулка, банкет</div>';
     host.querySelectorAll(".rt-row").forEach(function (row) {
-      var r = fRoute[+row.dataset.i];
-      row.querySelector(".rt-in-t").addEventListener("input", function () { r.t = this.value; });
+      var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
+      /* Время набирается цифрами и складывается в часы на лету: «1000» → «10:00».
+         Раньше это была просто строка, и в записи оставался номер как телефон */
+      t.addEventListener("input", function () {
+        var d = this.value.replace(/\D/g, "").slice(0, 4);
+        if (d.length > 2) d = d.slice(0, 2) + ":" + d.slice(2);
+        this.value = d; r.t = d;
+      });
+      /* Неполный набор досчитывается по цифрам: «9» → 09:00, «935» → 09:35,
+         «2130» → 21:30. Что не складывается во время — стирается */
+      t.addEventListener("blur", function () {
+        var d = this.value.replace(/\D/g, ""), h, m;
+        if (!d) { this.value = r.t = ""; return; }
+        if (d.length <= 2) { h = +d; m = 0; }
+        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
+        else { h = +d.slice(0, 2); m = +d.slice(2); }
+        this.value = r.t = (h > 23 || m > 59) ? "" : fmt(h * 60 + m);
+      });
       row.querySelector(".rt-in-n").addEventListener("input", function () { r.n = this.value; });
       row.querySelector(".rt-in-p").addEventListener("input", function () { r.p = this.value; });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
       });
     });
+  }
+  /* Подсказки в пустых строках идут по ходу дня, а не повторяют одно слово */
+  var SCENE_HINT = ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"];
+
+  /* Свадьба почти всегда начинается с росписи и прогулки — предлагаем их сразу.
+     Шаг зависит от начала: утренняя съёмка разворачивается на весь день,
+     вечерняя укладывается в пару часов, иначе точки уезжают за полночь */
+  function seedRoute(startMin) {
+    var wide = startMin < 900;                       // начали до 15:00 — день впереди
+    var a = snapMin(startMin + (wide ? 120 : 30));
+    var b = snapMin(startMin + (wide ? 240 : 90));
+    return [
+      { t: fmt(Math.min(a, 1410)), n: "ЗАГС", p: "" },
+      { t: fmt(Math.min(b, 1410)), n: "Прогулка", p: "" }
+    ];
   }
   $("fRouteAdd").addEventListener("click", function () {
     if (fRoute.length >= 10) return;          // день из одиннадцати сцен планируют не здесь
@@ -5231,7 +5267,7 @@
       // Новая съёмка начинается там, где сейчас смотрим свет
       sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
       fRefs = [];
-      fRoute = [];
+      fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
     }
     renderRouteEditor();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
