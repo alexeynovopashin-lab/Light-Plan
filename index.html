@@ -4147,7 +4147,7 @@
           var spec = genreSpec(p.s.type);
           var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
           return '<button type="button" class="wk-card" data-i="' + p.i + '">'
-            + '<span class="wk-ic">' + IC.svg(GENRE_SIGN[p.s.type] || "rings") + "</span>"
+            + '<span class="wk-ic">' + IC.svg(GENRE_SIGN[p.s.type] || "camera") + "</span>"
             + '<span class="wk-body"><span class="wk-t">' + esc(spec.ev || p.s.type)
             + (clientName(p.s) ? " · " + esc(clientName(p.s)) : "") + "</span>"
             + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
@@ -5614,8 +5614,11 @@
     $("fRouteGroup").hidden = !showRoute;
     if (sp.route && editIdx === null && !fRoute.length) {
       fRoute = seedRoute(fMin);
-      renderRouteEditor();
+      fRouteSeeded = true;             // точки наши, не фотографа
     }
+    /* Перерисовываем всегда, а не только при засеве: подсказки точек идут от
+       жанра, и пустой список иначе остаётся с чужими словами */
+    if (showRoute) renderRouteEditor();
     /* Подпись и подсказка — от группы: у события это пара, у коммерции
        организация, у своих съёмок клиента нет вовсе */
     var gr = groupSpec(shootType);
@@ -5702,15 +5705,17 @@
      Черновик живёт в fRoute: строки редактируются свободно, а в запись
      уезжают только заполненные (время разобралось и этап назван). */
   var fRoute = [];
+  var fRouteSeeded = false;            // точки подставлены нами, а не набраны руками
   function renderRouteEditor() {
-    var host = $("fRouteList");
+    var host = $("fRouteList"), hints = sceneHints(shootType);
     host.innerHTML = fRoute.map(function (r, i) {
       return '<div class="rt-row" data-i="' + i + '">'
         + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
-        + '<input class="rt-in-n" type="text" placeholder="' + esc(SCENE_HINT[i % SCENE_HINT.length]) + '" value="' + esc(r.n || "") + '"/>'
+        + '<input class="rt-in-n" type="text" placeholder="' + esc(hints[i % hints.length]) + '" value="' + esc(r.n || "") + '"/>'
         + '<button type="button" class="rt-x" aria-label="Убрать">✕</button>'
         + '<input class="rt-in-p" type="text" placeholder="Место — необязательно" value="' + esc(r.p || "") + '"/></div>';
-    }).join("") || '<div class="rt-empty">Точки дня: сборы, ЗАГС, прогулка, банкет</div>';
+    }).join("") || '<div class="rt-empty">Точки дня: '
+      + hints.slice(0, 4).join(", ").toLowerCase() + "</div>";
     host.querySelectorAll(".rt-row").forEach(function (row) {
       var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
       /* Время набирается цифрами и складывается в часы на лету: «1000» → «10:00».
@@ -5730,15 +5735,38 @@
         else { h = +d.slice(0, 2); m = +d.slice(2); }
         this.value = r.t = (h > 23 || m > 59) ? "" : fmt(h * 60 + m);
       });
-      row.querySelector(".rt-in-n").addEventListener("input", function () { r.n = this.value; });
-      row.querySelector(".rt-in-p").addEventListener("input", function () { r.p = this.value; });
+      /* Тронули строку — точки стали фотографа, и при смене жанра мы их
+         больше не выбрасываем */
+      t.addEventListener("input", function () { fRouteSeeded = false; });
+      row.querySelector(".rt-in-n").addEventListener("input", function () {
+        r.n = this.value; fRouteSeeded = false;
+      });
+      row.querySelector(".rt-in-p").addEventListener("input", function () {
+        r.p = this.value; fRouteSeeded = false;
+      });
       row.querySelector(".rt-x").addEventListener("click", function () {
+        fRouteSeeded = false;
         fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
       });
     });
   }
-  /* Подсказки в пустых строках идут по ходу дня, а не повторяют одно слово */
-  var SCENE_HINT = ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"];
+  /* Подсказки в пустых строках идут по ходу дня, а не повторяют одно слово.
+     И идут от жанра: «ЗАГС» в съёмке фасадов — такой же мусор, как папка
+     «Невеста» в предметке (docs/12_CARD_ARCHITECTURE.md) */
+  var GENRE_SCENES = {
+    "Свадьбы":     ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"],
+    "Лавстори":    ["Встреча", "Прогулка", "Кафе", "Закат"],
+    "Семья":       ["Сборы", "Прогулка", "Игра", "Общий кадр"],
+    "Портрет":     ["Начало", "Смена образа", "Улица", "Финал"],
+    "Репортаж":    ["Сбор гостей", "Открытие", "Основная часть", "Финал"],
+    "Предметка":   ["Распаковка", "Съёмка", "Смена фона", "Детали"],
+    "Реклама":     ["Подготовка", "Основной кадр", "Смена сцены", "Дубли"],
+    "Архитектура": ["Общий план", "Фасад", "Интерьер", "Вечерний свет"],
+    "Пейзаж":      ["Выезд", "Точка съёмки", "Золотой час", "Синий час"],
+    "Стрит":       ["Маршрут", "Точка", "Свет", "Финал"]
+  };
+  var SCENES_DEFAULT = ["Начало", "Основная часть", "Смена точки", "Финал"];
+  function sceneHints(g) { return GENRE_SCENES[g] || SCENES_DEFAULT; }
 
   /* Свадьба почти всегда начинается с росписи и прогулки — предлагаем их сразу.
      Шаг зависит от начала: утренняя съёмка разворачивается на весь день,
@@ -5815,6 +5843,10 @@
       ch.addEventListener("click", function () {
         if (ch.dataset.v === shootType) return;
         shootType = ch.dataset.v;
+        /* Точки, подставленные свадьбой, не переезжают в чужой жанр: у
+           архитектуры «ЗАГС и прогулка» — не план, а мусор. Набитое руками
+           остаётся: его выбрасывать не нам */
+        if (fRouteSeeded && !hasRoute(shootType)) { fRoute = []; renderRouteEditor(); }
         applyGenrePreset();          // жанр перестраивает форму под себя
         renderGenres(); refreshForm();
       });
@@ -6329,7 +6361,7 @@
       var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
-        + '<span class="peek-in">' + IC.svg(GENRE_SIGN[p.s.type] || "rings")
+        + '<span class="peek-in">' + IC.svg(GENRE_SIGN[p.s.type] || "camera")
         + "<b>" + esc(spec.ev || p.s.type) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
         + "</span></span></button>";
     }).join("");
@@ -7205,15 +7237,25 @@
   /* Пакеты с ценой > 0 — рабочие; недозаполненные строки живут только в редакторе */
   function usablePacks() { return packs.filter(function (p) { return p.p > 0; }); }
   function numVal(el) { return parseFloat((el.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0; }
+  /* Пример пакета берётся у открытого жанра: «Загс и прогулка» уместны на
+     свадьбе и нелепы в предметке. Сами пакеты пока общие — см. ROADMAP */
+  var PACK_HINT = {
+    "Свадьбы": "Загс и прогулка", "Лавстори": "Прогулка на закате",
+    "Семья": "Час в студии", "Портрет": "Час и десять кадров",
+    "Предметка": "Партия из десяти", "Реклама": "Съёмочный день",
+    "Архитектура": "Объект под ключ", "Репортаж": "Полдня на площадке",
+    "Пейзаж": "Выезд на точку", "Стрит": "Прогулка по городу"
+  };
+  function packHint() { return PACK_HINT[shootType] || "Съёмка на час"; }
   function renderPackEditor() {
-    var host = $("packList");
+    var host = $("packList"), hint = packHint();
     host.innerHTML = packs.map(function (p, i) {
       return '<div class="pack-item" data-i="' + i + '">'
-        + '<input class="pk-n" type="text" placeholder="Загс и прогулка" value="' + (p.n || "").replace(/"/g, "&quot;") + '"/>'
+        + '<input class="pk-n" type="text" placeholder="' + esc(hint) + '" value="' + (p.n || "").replace(/"/g, "&quot;") + '"/>'
         + '<input class="pk-h" type="text" inputmode="numeric" placeholder="ч" value="' + (p.h || "") + '"/>'
         + '<input class="pk-p" type="text" inputmode="numeric" placeholder="₽" value="' + (p.p || "") + '"/>'
         + '<button type="button" class="pk-x" aria-label="Убрать">✕</button></div>';
-    }).join("") || '<div class="pack-empty">Например: «Загс и прогулка» · 3 ч · 14 000 ₽</div>';
+    }).join("") || '<div class="pack-empty">Например: «' + esc(hint) + '» · 3 ч · 14 000 ₽</div>';
     host.querySelectorAll(".pack-item").forEach(function (row) {
       var i = +row.dataset.i, p = packs[i];
       row.querySelector(".pk-n").addEventListener("input", function () { p.n = this.value; saveAll(); });
