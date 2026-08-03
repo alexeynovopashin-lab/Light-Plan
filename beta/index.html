@@ -1221,6 +1221,10 @@
   .say b { color: #E2A44C; font-weight: 400; }
   .say.bad { background: #1D1512; color: #D9A08A; }
   .say.bad .s-ic svg { stroke: #C9663D; }
+  /* Наложение — предупреждение, а не тревога: тон спокойный, полоса слева */
+  .say.warn { background: #191510; color: #D9C2A0; border-left: 2px solid #C9853F; }
+  .say.warn .s-ic svg { stroke: #C9853F; }
+  .say.warn b { color: #EFEAE0; }
 
   /* Референсы во весь экран: думаю о кадрах — не нужно ничего больше */
   .refs-full {
@@ -1844,6 +1848,16 @@
     <div class="chips" id="delvDays" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="delvNote">Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней.</p>
 
+    <!-- Съёмки назначают получасами. Мелкий шаг нужен редко, поэтому он
+         включается отдельно, а не мешает каждому вводу времени -->
+    <div class="sec-label">Шаг времени</div>
+    <div class="seg" id="stepSeg">
+      <button class="active" data-step="30">Полчаса</button>
+      <button data-step="15">15 минут</button>
+      <button data-step="5">5 минут</button>
+    </div>
+    <p class="seg-note" id="stepNote">Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется.</p>
+
     <div class="sec-label">Отклик</div>
     <div class="item"><span class="k">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
 
@@ -2014,6 +2028,10 @@
         <div class="lane" id="cdLane"></div>
       </div>
     </div>
+
+    <!-- Наложение говорит там же, где реплика о свете: строкой под плиткой дня.
+         На «Сегодня» и «Карту» не выходит никогда (04_ANTI_GOALS) -->
+    <div class="say warn" id="cdClash" hidden><span class="s-ic" data-ic="warn"></span><span id="cdClashT"></span></div>
 
     <div class="say" id="cdSay" hidden><span class="s-ic" id="cdSayIc"></span><span id="cdSayT"></span></div>
 
@@ -3055,7 +3073,7 @@
           return o;
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
-        cardOrder: cardOrder, sync: syncTarget, orgs: orgs,
+        cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
@@ -4284,7 +4302,8 @@
     $("dpTrust").textContent = trustOf(calSel);
     // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
     // обещание кнопки должно совпадать с тем, что откроется в форме
-    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(snapMin(w.a));
+    /* Подсказка называет то время, которое и подставится: свет не округляем */
+    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(Math.round(w.a));
 
     // Погода дня — в сводке, как на главном экране
     var wx = dayWeather(calSel);
@@ -4510,11 +4529,30 @@
   var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет";
   var wishes = [];   // пожелания к погоде; пусто = «неважно». Мультивыбор: облака+закат
   /* Съёмку назначают на ровное время. Шаг тот же, что у детентов ползунка, — 15 минут */
-  var SNAP = 15;
-  function snapMin(m) { return Math.round(m / SNAP) * SNAP; }
+  /* ---------- Шаг времени ----------
+     Съёмки назначают получасами: «в двенадцать», «в полвторого». Мелкий шаг
+     нужен редко и включается отдельно, а по умолчанию мешает — чтобы поставить
+     14:00, приходилось проезжать мимо 13:55 и 14:05.
+
+     Исключение — время, подсказанное светом. Золотой час начинается в 19:38,
+     и округлять его до 19:30 значит соврать: снимать надо тогда, когда светло,
+     а не тогда, когда круглое число (docs/03_PRINCIPLES). */
+  var timeStep = (saved && saved.timeStep) || 30;
+  function snapMin(m) { return Math.round(m / timeStep) * timeStep; }
+  /* Значения барабана минут: шаг плюс текущая минута, если она не по шагу —
+     иначе барабан не сможет показать 19:38, пришедшие от заката */
+  function minsList(cur) {
+    var out = [];
+    for (var m = 0; m < 60; m += timeStep) out.push(m);
+    if (cur != null && out.indexOf(cur) < 0) { out.push(cur); out.sort(function (a, b) { return a - b; }); }
+    return out;
+  }
   /* Пока время предложено светом, смена жанра вправе его переставить.
      Как только фотограф покрутил барабан начала — время его, не наше */
   var fAuto = true;
+  /* Время пришло от света (золотой час, закат, астрособытие). Такое время
+     не округляется по шагу и живёт минутой, которую назвало солнце */
+  var fLight = false;
   /* Оплата в форме: ключ способа (hourly/flat/pack/object/item), ставка/сумма/цена,
      количество единиц, расходы */
   var fPay = "hourly", fRate = 0, fUnits = 1, fExpense = 0;
@@ -5309,10 +5347,23 @@
   /* ---------- Барабаны внутри формы ---------- */
   var fwDate = $("fwDate"), fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
-  var MINS = Array.apply(null, Array(60)).map(function (_, i) { return pad(i); });
   fill(fwDate, dateList.map(function (x) { return x.label; }));
   [fwSH, fwEH].forEach(function (el2) { fill(el2, HOURS); });
-  [fwSM, fwEM].forEach(function (el2) { fill(el2, MINS); });
+  /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
+     уметь показать и 30, и 38, если 38 пришли от золотого часа */
+  function fillMins(el2, cur) {
+    el2._vals = minsList(cur);
+    fill(el2, el2._vals.map(pad));
+  }
+  function wheelMin(el2) {
+    var v = el2._vals || minsList(null);
+    return v[clamp(wheelIndex(el2), 0, v.length - 1)] || 0;
+  }
+  function syncMinWheel(el2, m) {
+    fillMins(el2, m);
+    syncWheel(el2, el2._vals.indexOf(m));
+  }
+  fillMins(fwSM, null); fillMins(fwEM, null);
 
   /* Программная установка не должна выглядеть как выбор пользователя.
      Барабан раскрывается анимацией высоты, и снап по дороге уводит позицию —
@@ -5345,20 +5396,20 @@
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
   function onStartWheel() {
     if (openRow !== "fStart") return;
-    fAuto = false;
-    fMin = wheelIndex(fwSH) * 60 + wheelIndex(fwSM);   // длительность сохраняется, конец едет следом
+    fAuto = false; fLight = false;      // покрутили руками — время больше не от солнца
+    fMin = wheelIndex(fwSH) * 60 + wheelMin(fwSM);     // длительность сохраняется, конец едет следом
     refreshForm();
   }
   function onEndWheel() {
     if (openRow !== "fEnd") return;
-    var end = wheelIndex(fwEH) * 60 + wheelIndex(fwEM);
+    var end = wheelIndex(fwEH) * 60 + wheelMin(fwEM);
     var d = ((end - fMin) % 1440 + 1440) % 1440;        // ночная съёмка переходит через полночь
     if (d < 15) d = 15;
     if (d > 720) d = 720;   // конец раньше начала — это описка, а не сутки съёмки
     fDur = d;
     rememberGenre("dur", fDur);
     var back = (((fMin + fDur) % 1440) + 1440) % 1440;
-    if (back !== end) { syncWheel(fwEH, Math.floor(back / 60)); syncWheel(fwEM, back % 60); }
+    if (back !== end) { syncWheel(fwEH, Math.floor(back / 60)); syncMinWheel(fwEM, back % 60); }
     refreshForm();
   }
 
@@ -5380,11 +5431,11 @@
     if (id === "fWhen") syncWheel(fwDate, dateIndex(fDate));
     if (id === "fStart") {
       var s = ((fMin % 1440) + 1440) % 1440;
-      syncWheel(fwSH, Math.floor(s / 60)); syncWheel(fwSM, s % 60);
+      syncWheel(fwSH, Math.floor(s / 60)); syncMinWheel(fwSM, s % 60);
     }
     if (id === "fEnd") {
       var e = (((fMin + fDur) % 1440) + 1440) % 1440;
-      syncWheel(fwEH, Math.floor(e / 60)); syncWheel(fwEM, e % 60);
+      syncWheel(fwEH, Math.floor(e / 60)); syncMinWheel(fwEM, e % 60);
     }
   }
   ROWS.forEach(function (r) {
@@ -5669,9 +5720,12 @@
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
     var w = dayWindow(fDate);
     if (fAuto && w.q !== "poor") {
-      fMin = snapMin(w.a);
+      /* Время от света идёт как есть, без округления: золотой час начинается
+         в 19:38, и «полвосьмого» тут — не удобство, а неправда */
+      fMin = Math.round(w.a);
+      fLight = true;
       if (fDur > w.b - w.a) {
-        fMin = snapMin(w.b) - fDur;      // длиннее света: золотой час уходит в конец
+        fMin = Math.round(w.b) - fDur;   // длиннее света: золотой час уходит в конец
         if (fMin < 0) fMin += 1440;
       }
     }
@@ -5772,6 +5826,60 @@
     return null;
   }
 
+  /* ============================================================
+     НАЛОЖЕНИЯ В ДНЕ
+     Наложение — не ошибка ввода, а факт, о котором фотограф должен узнать
+     раньше, чем окажется в двух местах сразу. Поэтому предупреждаем, но
+     никогда не запрещаем сохранить: два фотографа в команде, вторая камера,
+     подмена — законные причины (docs/12_CARD_ARCHITECTURE.md).
+     ============================================================ */
+  var TRAVEL_MIN = 40;                 // порог на дорогу между разными местами
+  function shootEnd(s) { return s.end != null ? s.end : s.min + (s.dur || 90); }
+  /* Имя места без уточнений: «Лобня, Московская область» и «Лобня» — одно место */
+  function placeKey(s) {
+    return String(s.place || "").split(",")[0].trim().toLowerCase();
+  }
+  /* Съёмка, с которой сравниваем: та, что сейчас в форме, либо сохранённая */
+  function clashesFor(day, min, end, place, skipIdx, wants) {
+    var out = [];
+    sessions.forEach(function (s, i) {
+      if (i === skipIdx || !sameDay(s.date, day)) return;
+      var sEnd = shootEnd(s), name = clientName(s) || s.type;
+      var when = fmt(s.min) + " — " + fmt(sEnd);
+      /* Пересечение времени — тяжелее всего: быть в двух местах разом нельзя */
+      if (min < sEnd && s.min < end) {
+        out.push({ w: 3, t: "Время пересекается",
+          m: "В этот день уже есть «" + name + "», " + when + "." });
+        return;
+      }
+      /* Дорога: съёмки не пересекаются, но между ними меньше сорока минут,
+         а места разные. Пока места заданы словом, порог берётся простым */
+      var gap = min >= sEnd ? min - sEnd : s.min - end;
+      var otherPlace = placeKey(s);
+      if (gap < TRAVEL_MIN && otherPlace && place && otherPlace !== place) {
+        out.push({ w: 2, t: "Мало времени на дорогу",
+          m: "Между «" + name + "» (" + when + ") и этой съёмкой " + gap
+            + " мин, а места разные." });
+        return;
+      }
+      /* Спор за свет: две съёмки одного дня заказали закат, а золотой час один.
+         Единственное предупреждение, которое рождается из световой модели */
+      var otherWants = Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []);
+      if (wants.indexOf("Закат") >= 0 && otherWants.indexOf("Закат") >= 0) {
+        out.push({ w: 1, t: "Обе съёмки просят закат",
+          m: "«" + name + "» (" + when + ") тоже ждёт закат, а золотой час один." });
+      }
+    });
+    return out.sort(function (a, b) { return b.w - a.w; });
+  }
+  /* Наложения съёмки, уже лежащей в записях — для карточки и списка дня */
+  function clashesOf(idx) {
+    var s = sessions[idx];
+    if (!s) return [];
+    return clashesFor(s.date, s.min, shootEnd(s), placeKey(s), idx,
+      Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []));
+  }
+
   function refreshForm() {
     var keep = new Date(selDate);
     computeSun(fDate);
@@ -5785,9 +5893,11 @@
     /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку */
     $("formSub").innerHTML = w.q === "poor"
       ? "В этот день окна света нет — время на ваше усмотрение"
-      : fMin === snapMin(w.a)
+      /* Светозависимое время больше не округляется, поэтому сравниваем и с
+         точной минутой окна, и с округлённой — иначе подпись врёт */
+      : (fLight || fMin === snapMin(w.a) || fMin === Math.round(w.a))
         ? 'Свет подсказал время — <span class="t">начало ' + fmt(fMin) + "</span>"
-        : fMin + fDur === snapMin(w.b)
+        : fMin + fDur === snapMin(w.b) || fMin + fDur === Math.round(w.b)
           ? 'Съёмка длиннее света — <span class="t">золотой час в конце</span>'
           : 'Окно света — <span class="t">' + range(w.a, w.b) + "</span>";
     computeSun(keep);
@@ -5797,7 +5907,11 @@
     $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
     renderPay(); renderRefs();
     $("refNote").hidden = true;
-    var warn = wishesCheck(fDate);
+    /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
+       а прогноз — про то, каким будет свет. Показываем то, что тяжелее */
+    var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name }),
+      editIdx, wishes)[0];
+    var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
   }
@@ -5959,6 +6073,7 @@
   var CARD_BLOCKS = [
     { k: "deal",     el: "cdDeal",     n: "Сделка",       ic: "doc" },
     { k: "day",      el: "cdDay",      n: "Плитка дня",   ic: "clock" },
+    { k: "clash",    el: "cdClash",    n: "Наложение",    ic: "warn" },
     { k: "light",    el: "cdSay",      n: "Свет",         ic: "sun" },
     { k: "place",    el: "cdPanes",    n: "Место и дальше", ic: "pin" },
     { k: "weather",  el: "cdWx",       n: "Погода",       ic: "cloud" },
@@ -5976,7 +6091,7 @@
   /* У заказа порядок другой не по вкусу, а по существу: сделка отвечает на
      главный вопрос, задание и документы важнее маршрута и референсов */
   var GROUP_ORDER = {
-    client: ["deal", "day", "light", "place", "weather", "brief", "docs",
+    client: ["deal", "day", "clash", "light", "place", "weather", "brief", "docs",
              "models", "notes", "delivery", "money", "route", "refs"]
   };
   /* Фаза «после» у заказа — самая рабочая: съёмка прошла, а счёт и акт ещё нет.
@@ -6109,6 +6224,7 @@
     renderWxPane(s, route, phase);
     renderRouteFold(s, route, phase);
     renderRefFold(s, route, phase);
+    renderClash(s);
     renderDeal(s);
     renderOrderBlocks(s);
     renderStack(s);
@@ -6521,6 +6637,19 @@
     }).join("");
   }
 
+  /* Наложение в карточке: строкой под плиткой дня. После съёмки молчит —
+     говорить «вы были в двух местах» поздно и незачем */
+  function renderClash(s) {
+    var list = cardIdx === null ? [] : clashesOf(cardIdx);
+    var show = list.length && eventPhase(s, routeOf(s)) !== "after";
+    $("cdClash").hidden = !show;
+    if (!show) return;
+    var c = list[0];
+    $("cdClashT").innerHTML = "<b>" + esc(c.t) + ".</b> " + esc(c.m)
+      + (list.length > 1 ? " И ещё " + (list.length - 1) + "." : "");
+    paintIcons($("cdClash"));
+  }
+
   /* ---------- Состояние сделки ----------
      Пять звеньев в порядке работы: ТЗ, договор, счёт, оплата, акт. Каждое либо
      закрыто, либо его ждут; новых полей под это не заводили — звено считается
@@ -6834,11 +6963,12 @@
 
   /* idx !== null — правим существующую запись клиента */
   var editIdx = null;
-  function openForm(d, startMin, idx) {
+  function openForm(d, startMin, idx, fromLight) {
     editIdx = (idx === undefined || idx === null) ? null : idx;
     if (editIdx !== null) {
       var s = sessions[editIdx];
       fAuto = false;                     // время сохранённой съёмки принадлежит фотографу
+      fLight = s.min % timeStep !== 0;   // некруглая минута — значит её назвал свет
       fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
       shootType = s.type;
       // старые записи хранили строку — поднимаем в массив
@@ -6876,7 +7006,10 @@
       payFolded = true;
     } else {
       fAuto = true;
-      fDate = new Date(d); fMin = snapMin(startMin);
+      /* Время пришло от света («Запланировать» на золотой час) — не округляем;
+         обычное начало округляем до шага, чтобы не ставить 19:47 руками */
+      fLight = !!fromLight;
+      fDate = new Date(d); fMin = fromLight ? Math.round(startMin) : snapMin(startMin);
       $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
       fOrgId = null; $("fPerson").value = ""; $("fPhone").value = "";
@@ -7335,8 +7468,8 @@
     });
   });
 
-  $("planToday").addEventListener("click", function () { openForm(selDate, Math.round(SUN.goldB || viewMin)); });
-  $("planDay").addEventListener("click", function () { openForm(calSel, Math.round(dayWindow(calSel).a)); });
+  $("planToday").addEventListener("click", function () { openForm(selDate, Math.round(SUN.goldB || viewMin), null, true); });
+  $("planDay").addEventListener("click", function () { openForm(calSel, Math.round(dayWindow(calSel).a), null, true); });
   $("seeLight").addEventListener("click", function () {
     selDate = new Date(calSel);
     computeSun(selDate);
@@ -7430,7 +7563,7 @@
     renderCal(); renderDayPanel();
   });
   $("planAdd").addEventListener("click", function () {
-    openForm(calSel, Math.round(dayWindow(calSel).a));
+    openForm(calSel, Math.round(dayWindow(calSel).a), null, true);
   });
   $("dayToggle").addEventListener("click", function () {
     dayPanelOpen = !dayPanelOpen;
@@ -7509,6 +7642,25 @@
       renderDelvSettings(); renderCal(); renderDayPanel();
     });
   });
+
+  /* Шаг времени: барабаны перестраиваются сразу, уже введённое время не трогаем —
+     переставлять чужие 19:38 из-за смены настройки было бы самоуправством */
+  function renderStepSeg() {
+    document.querySelectorAll("#stepSeg button").forEach(function (b) {
+      b.classList.toggle("active", +b.dataset.step === timeStep);
+    });
+    $("stepNote").textContent = timeStep === 30
+      ? "Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется."
+      : "Шаг " + timeStep + " минут. Мельче — точнее, но дольше крутить барабан.";
+  }
+  document.querySelectorAll("#stepSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      timeStep = +b.dataset.step;
+      saveAll(); renderStepSeg();
+      fillMins(fwSM, fMin % 60); fillMins(fwEM, (fMin + fDur) % 60);
+    });
+  });
+  renderStepSeg();
 
   document.querySelectorAll("#calSync button").forEach(function (b) {
     b.addEventListener("click", function () {
