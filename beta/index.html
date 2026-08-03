@@ -592,6 +592,11 @@
     background: none; border: none; padding: 4px 0 0; cursor: pointer; font-family: inherit;
   }
   .wk-num { font-size: 19px; color: #EFEAE0; font-variant-numeric: tabular-nums; }
+  /* Погода прямо в колонке даты — это и есть прогноз на неделю */
+  .wk-wx { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-top: 4px; }
+  .wk-wx svg { width: 17px; height: 17px; fill: none; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .wk-wx i { font-style: normal; font-size: 11px; color: #8A8478; font-variant-numeric: tabular-nums; }
   .wk-wd { font-size: 10px; color: #55504A; letter-spacing: 0.6px; }
   .wk-day-row.today .wk-num { color: #E2A44C; font-weight: 650; }
   .wk-day-row.today .wk-wd { color: #E2A44C; }
@@ -622,6 +627,17 @@
   .wk-free span { margin-left: auto; color: #635E54; font-variant-numeric: tabular-nums; }
   .wk-free:active { background: #17150F; }
   /* Сдача материала в этот день — тоже занятость */
+  /* Развёрнутый день: свет и погода подробностями, здесь же в неделе */
+  .wk-more { display: none; padding: 8px 12px 4px; }
+  .wk-day-row.open .wk-more { display: block; }
+  .wk-light { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .wk-light span { display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: #8A8478; font-variant-numeric: tabular-nums; }
+  .wk-light span.gold { color: #E2A44C; }
+  .wk-light svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .wk-wxs { font-size: 12px; color: #55504A; margin-top: 6px; }
+
   .wk-due {
     display: flex; align-items: center; gap: 7px; padding: 6px 12px;
     font-size: 12px; color: #C9663D;
@@ -3825,9 +3841,13 @@
         + (d < today ? " past" : "")
         + (sameDay(d, calSel) ? " sel" : "");
 
+      /* Прогноз на неделю живёт в самих строках: знак и градус у каждого дня.
+         Одно приложение вместо двух — незачем уходить в погоду за этим */
+      var q = qualityOf(d), wx = dayWeather(d), sky = daySky(d);
       var head = '<button type="button" class="wk-head">'
         + '<span class="wk-num">' + d.getDate() + "</span>"
-        + '<span class="wk-wd">' + WD[d.getDay()] + "</span></button>";
+        + '<span class="wk-wd">' + WD[d.getDay()] + "</span>"
+        + '<span class="wk-wx">' + wxSign(q) + "<i>" + tempAt(wx.tempBase, 900) + "°</i></span></button>";
 
       var body = "";
       if (shoots.length) {
@@ -3842,9 +3862,8 @@
         }).join("");
       } else {
         /* Свободный день так и подписан. Свет здесь — ориентир, одна строка */
-        var sky = daySky(d);
         body = '<button type="button" class="wk-free">свободно'
-          + (sky.set !== null ? '<span>закат ' + fmt(sky.set) + "</span>" : "") + "</button>";
+          + (sky.goldB !== null ? '<span>золотой час ' + fmt(sky.goldB) + "</span>" : "") + "</button>";
       }
       if (due.length) {
         body += '<div class="wk-due">' + IC.svg("clock") + "сдать "
@@ -3852,14 +3871,34 @@
           + "</div>";
       }
 
-      row.innerHTML = head + '<div class="wk-list">' + body + "</div>";
-      (function (dd) {
-        row.querySelector(".wk-head").addEventListener("click", function () {
-          calSel = dd; setScope("day"); renderCal(); renderDayPanel();
+      /* Тап по дате разворачивает день здесь же: свет и погода подробностями.
+         Уводить в другой вид ради этого — лишний шаг (замечание с тестов) */
+      var more = '<div class="wk-more">'
+        + '<div class="wk-light">'
+        + '<span>' + IC.svg("sunrise") + fmt(sky.rise) + "</span>"
+        + (sky.goldB !== null ? '<span class="gold">' + IC.svg("sun") + range(sky.goldB, sky.blueB) + "</span>" : "")
+        + '<span>' + IC.svg("sunset") + fmt(sky.set) + "</span></div>"
+        + '<div class="wk-wxs">' + QUAL[q].cond + " · облачность " + wx.cloud + "% · ветер " + wx.wind + " м/с</div>"
+        + "</div>";
+
+      row.innerHTML = head + '<div class="wk-list">' + body + more + "</div>";
+      /* row объявлен через var: без захвата в замыкание все семь обработчиков
+         держали бы последнюю строку недели */
+      (function (dd, rw) {
+        rw.querySelector(".wk-head").addEventListener("click", function () {
+          calSel = dd;
+          var open = rw.classList.toggle("open");
+          // Открыт всегда один день: две развёрнутые строки уже не обзор недели
+          if (open) host.querySelectorAll(".wk-day-row.open").forEach(function (r) {
+            if (r !== rw) r.classList.remove("open");
+          });
+          host.querySelectorAll(".wk-day-row").forEach(function (r) { r.classList.remove("sel"); });
+          rw.classList.add("sel");
+          renderDayPanel();
         });
-        var free = row.querySelector(".wk-free");
+        var free = rw.querySelector(".wk-free");
         if (free) free.addEventListener("click", function () { openForm(dd, null); });
-      })(d);
+      })(d, row);
       row.querySelectorAll(".wk-card").forEach(function (b) {
         b.addEventListener("click", function () { openCard(+b.dataset.i); });
       });
