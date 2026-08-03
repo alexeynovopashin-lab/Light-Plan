@@ -391,10 +391,13 @@
   }
   .ym .c i { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
   .icon-btn {
-    background: none; border: none; cursor: pointer; padding: 8px;
+    background: none; border: none; cursor: pointer; padding: 8px 5px;
     display: flex; color: #E2A44C;
   }
-  .icon-btn svg { width: 25px; height: 25px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  /* Организации и документы: знак спокойнее календаря и поиска — сюда
+     заходят раз в неделю, а не каждый день */
+  .icon-btn#planOrgs { color: #A8A093; }
   .icon-btn#planSearch { color: #EFEAE0; }
 
   /* Спойлер сводки дня */
@@ -461,31 +464,62 @@
   /* Переключатель масштаба — текстовый, без плашки: навигация не спорит с контентом */
   /* Шапка планировщика: виды, заголовок, действия — одной строкой.
      Три яруса (год, переключатель, навигация месяца) съедали 150 pt */
+  /* Слева три вида, справа три действия — заголовку остаётся середина.
+     Поля ужаты и промежуток срезан, иначе «Август» обрывается многоточием */
   .plan-top {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 52px 20px 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 2px;
+    padding: 52px 12px 6px; flex-shrink: 0;
   }
-  .scope-ic { display: flex; gap: 2px; flex-shrink: 0; }
-  .scope-ic button {
-    width: 30px; height: 30px; padding: 0; border: none; background: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; border-radius: 8px;
+  /* Кнопка вида: 44 pt — размер, в который попадают пальцем не глядя */
+  .scope-btn {
+    width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
+    background: #17150F; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
   }
-  .scope-ic svg {
-    width: 19px; height: 19px; fill: none; stroke: #55504A; stroke-width: 1.5;
+  .scope-btn:active { opacity: 0.7; }
+  .scope-btn svg {
+    width: 21px; height: 21px; fill: none; stroke: #E2A44C; stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round;
   }
-  .scope-ic button.active svg { stroke: #E2A44C; }
+  /* Веер: список под кнопкой, а не диалог поверх экрана — вид меняют мимоходом */
+  .scope-scrim { position: fixed; inset: 0; z-index: 40; }
+  .scope-scrim[hidden] { display: none; }
+  .scope-menu {
+    position: absolute; left: 12px; top: 96px; z-index: 41; min-width: 208px;
+    background: #17150F; border-radius: 16px; padding: 6px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+    transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
+  }
+  .scope-menu[hidden] { display: none; }
+  @keyframes scopeIn { from { opacity: 0; transform: scale(0.94) translateY(-6px); } }
+  .scope-menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 12px;
+    background: none; border: none; border-radius: 11px; cursor: pointer;
+    font-family: inherit; font-size: 15px; color: #EFEAE0; text-align: left;
+  }
+  .scope-menu button:active { background: #221F19; }
+  .scope-menu .mk { width: 16px; flex-shrink: 0; display: flex; }
+  .scope-menu .mk svg { width: 16px; height: 16px; fill: none; stroke: #E2A44C;
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+  .scope-menu button.on .mk svg { opacity: 1; }
+  .scope-menu .ic { display: flex; flex-shrink: 0; }
+  .scope-menu .ic svg { width: 19px; height: 19px; fill: none; stroke: #8A8478;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .scope-menu button.on .ic svg { stroke: #EFEAE0; }
   .plan-title {
     flex: 1; min-width: 0; background: none; border: none; padding: 4px;
     font-family: inherit; font-size: 19px; font-weight: 650; color: #EFEAE0;
     letter-spacing: -0.3px; text-align: center; cursor: pointer; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis;
   }
-  .plan-title #calYear { color: #8A8478; font-weight: 500; }
   .plan-title:active { opacity: 0.6; }
-  .plan-acts { display: flex; gap: 4px; align-items: center; }
+  /* Шеврон при месяце: подсказка, что заголовок — кнопка к экрану года */
+  .pt-chev { display: inline-flex; vertical-align: middle; margin-left: 5px; }
+  .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: #635E54; stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); }
+  .plan-acts { display: flex; gap: 0; align-items: center; }
   .icon-btn {
-    background: none; border: none; padding: 6px; cursor: pointer; color: #E2A44C;
+    background: none; border: none; padding: 6px 4px; cursor: pointer; color: #E2A44C;
     display: flex; align-items: center; justify-content: center;
   }
   .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; }
@@ -925,6 +959,8 @@
     stroke-linecap: round; stroke-linejoin: round; }
   .ev-names { font-size: 29px; font-weight: 700; color: #EFEAE0; letter-spacing: -0.7px;
     line-height: 1.1; margin-top: 8px; }
+  .ev-person { font-size: 14.5px; color: #C9C2B6; margin-top: 5px; }
+  .ev-person[hidden] { display: none; }
   .ev-when { font-size: 13px; color: #A8B49B; margin-top: 5px; }
   .ev-when.past { color: #635E54; }
   .ev-tel { display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
@@ -972,6 +1008,32 @@
   }
   .go-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9;
     stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Состояние сделки: цепочка звеньев. Закрытое звено золотое и с галкой,
+     открытое — пустой кружок; читается без подписи, как лента точек дня */
+  .deal { margin-top: 14px; padding: 14px 12px 12px; background: #17150F; border-radius: 18px; }
+  .deal[hidden] { display: none; }
+  .deal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .deal-t { font-size: 15px; color: #EFEAE0; }
+  .deal-s { font-size: 12.5px; color: #8A8478; flex-shrink: 0; }
+  .deal-chain { display: flex; margin-top: 13px; }
+  .deal-l { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column;
+    align-items: center; text-align: center; position: relative; }
+  /* Нить между звеньями идёт под кружками и не выходит за края цепочки */
+  .deal-l::before { content: ""; position: absolute; top: 13px; left: -50%; width: 100%;
+    height: 1px; background: #221F19; }
+  .deal-l:first-child::before { display: none; }
+  .deal-l.done::before { background: #E2A44C; }
+  .deal-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #2C2820;
+    background: #0F0E0C; display: flex; align-items: center; justify-content: center;
+    position: relative; z-index: 1; }
+  .deal-l.done .deal-dot { background: #E2A44C; border-color: #E2A44C; }
+  .deal-dot svg { width: 13px; height: 13px; fill: none; stroke: #17150F; stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .deal-n { font-size: 11px; color: #635E54; margin-top: 6px; }
+  .deal-l.done .deal-n { color: #A8A093; }
+  .deal-l.next .deal-dot { border-color: #E2A44C; }
+  .deal-l.next .deal-n { color: #E2A44C; }
 
   /* Плитка дня */
   .day-tile {
@@ -1159,6 +1221,10 @@
   .say b { color: #E2A44C; font-weight: 400; }
   .say.bad { background: #1D1512; color: #D9A08A; }
   .say.bad .s-ic svg { stroke: #C9663D; }
+  /* Наложение — предупреждение, а не тревога: тон спокойный, полоса слева */
+  .say.warn { background: #191510; color: #D9C2A0; border-left: 2px solid #C9853F; }
+  .say.warn .s-ic svg { stroke: #C9853F; }
+  .say.warn b { color: #EFEAE0; }
 
   /* Референсы во весь экран: думаю о кадрах — не нужно ничего больше */
   .refs-full {
@@ -1301,11 +1367,14 @@
   .ip .wheel.narrow { flex: 0 0 66px; }
   .ip .wheel[data-w="date"] .w-item { justify-content: center; padding-right: 0; }
 
-  .group input[type="text"], .group textarea {
+  .group input[type="text"], .group input[type="tel"], .group textarea {
     display: block; width: 100%; background: none; border: none;
     color: #EFEAE0; font-family: inherit; font-size: 16px;
     padding: 15px; outline: none; -webkit-appearance: none; appearance: none;
   }
+  /* display:block выше сильнее браузерного [hidden] — скрытое поле иначе
+     остаётся на виду. Правило нужно после самого display (DECISIONS) */
+  .group input[hidden], .group textarea[hidden] { display: none; }
   .group input::placeholder, .group textarea::placeholder { color: #4A453E; }
   .group textarea { resize: none; min-height: 92px; line-height: 1.5; }
 
@@ -1389,10 +1458,16 @@
     cursor: pointer; line-height: 1;
   }
   .stepper button:active { background: #33291A; color: #E2A44C; }
-  .stepper b {
-    min-width: 34px; text-align: center; font-size: 16px; font-weight: 650;
-    font-variant-numeric: tabular-nums;
+  /* Число в степпере — поле, а не подпись: пятьдесят предметов кнопкой
+     набирать полсотни раз, а вписать их можно за секунду */
+  .stepper .step-in {
+    width: 58px; padding: 6px 2px; text-align: center; background: none; border: none;
+    font-family: inherit; font-size: 16px; font-weight: 650; color: #EFEAE0;
+    font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none;
+    outline: none; border-radius: 8px;
   }
+  .stepper .step-in:focus { background: #221F19; }
+  .stepper .step-in::placeholder { color: #4A453E; font-weight: 400; }
   #fPayFold .chev { display: inline-block; transition: transform 0.3s ease; color: #8A8478; }
   #fPayFold.open .chev { transform: rotate(180deg); }
   #fPaySumm { font-size: 15px; }
@@ -1458,6 +1533,35 @@
     font-family: inherit; font-size: 15px; cursor: pointer;
   }
   .danger[hidden] { display: none; }
+
+  /* ---------- Организации и документы ---------- */
+  .org-seg { display: flex; gap: 8px; margin: 14px 0 4px; }
+  .org-seg button { flex: 1; padding: 11px; border-radius: 12px; border: none;
+    background: #17150F; color: #8A8478; font-family: inherit; font-size: 14px; }
+  .org-seg button.active { background: #221F19; color: #EFEAE0; }
+  .org-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    margin-top: 10px; padding: 14px; background: #17150F; border: none; border-radius: 16px;
+    font-family: inherit; color: #EFEAE0; }
+  .org-item:active { opacity: 0.7; }
+  .org-item .badge { width: 34px; height: 34px; border-radius: 11px; }
+  .org-item .badge svg { width: 17px; height: 17px; }
+  .org-b { min-width: 0; flex: 1; }
+  .org-n { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .org-s { display: block; font-size: 12px; color: #635E54; margin-top: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Строка документа: вид слева, имя и размер справа. Тап открывает файл */
+  .doc-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+    margin-top: 8px; padding: 12px 14px; background: #17150F; border: none; border-radius: 14px;
+    font-family: inherit; color: #EFEAE0; }
+  .doc-row:active { opacity: 0.7; }
+  .doc-row .k { flex: 0 0 auto; font-size: 11px; color: #E2A44C; letter-spacing: 0.2px;
+    min-width: 56px; }
+  .doc-row .n { flex: 1; min-width: 0; font-size: 14px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .doc-row .w { flex: 0 0 auto; font-size: 11.5px; color: #635E54; }
+  .org-empty { padding: 14px 2px; font-size: 13px; color: #635E54; line-height: 1.5; }
+  /* Реквизиты — это дюжина строк с цифрами: поле сразу под их рост */
+  #oReq { min-height: 190px; font-size: 15px; }
 
   /* Прогноз против замысла — предупреждаем спокойно, без красного */
   .wish-warn {
@@ -1646,22 +1750,32 @@
          Три яруса (год, переключатель, навигация месяца) съедали 150 pt —
          календарь начинался ниже середины экрана -->
     <div class="plan-top">
-      <div class="scope-ic" id="scopeSeg">
-        <button data-scope="month" class="active" aria-label="Месяц" data-ic="view_month"></button>
-        <button data-scope="week" aria-label="Неделя" data-ic="view_week"></button>
-        <button data-scope="day" aria-label="День" data-ic="view_day"></button>
-      </div>
+      <!-- Три знака по 30 pt было не попасть пальцем. Осталась одна кнопка
+           с текущим видом, остальные раскрываются веером -->
+      <button class="scope-btn" id="scopeBtn" aria-label="Вид календаря" data-ic="view_month"></button>
+      <!-- Год из заголовка убран: он и так выбирается на экране года,
+           а месяцу нужна ширина, чтобы не обрываться многоточием -->
       <button class="plan-title" id="planTitle">
-        <span id="calYear">2026</span> <span id="calMonth">Август</span>
+        <span id="calMonth">Август</span>
+        <span class="pt-chev" data-ic="chevron"></span>
       </button>
       <div class="plan-acts">
         <button class="icon-btn" id="planAdd" aria-label="Новая съёмка">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
         </button>
+        <button class="icon-btn" id="planOrgs" aria-label="Организации и документы" data-ic="doc"></button>
         <button class="icon-btn" id="planSearch" aria-label="Поиск">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
         </button>
       </div>
+    </div>
+    <!-- Веер видов: раскрывается под кнопкой, текущий помечен галочкой —
+         иначе кнопка перестаёт отвечать на вопрос «где я» -->
+    <div class="scope-scrim" id="scopeScrim" hidden></div>
+    <div class="scope-menu" id="scopeMenu" hidden>
+      <button data-scope="month"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_month"></span>Один месяц</button>
+      <button data-scope="week"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_week"></span>Неделя</button>
+      <button data-scope="day"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_day"></span>Один день</button>
     </div>
     <button class="now-back" id="calNow">↺ сегодня</button>
 
@@ -1739,6 +1853,16 @@
     </div>
     <div class="chips" id="delvDays" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="delvNote">Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней.</p>
+
+    <!-- Съёмки назначают получасами. Мелкий шаг нужен редко, поэтому он
+         включается отдельно, а не мешает каждому вводу времени -->
+    <div class="sec-label">Шаг времени</div>
+    <div class="seg" id="stepSeg">
+      <button class="active" data-step="30">Полчаса</button>
+      <button data-step="15">15 минут</button>
+      <button data-step="5">5 минут</button>
+    </div>
+    <p class="seg-note" id="stepNote">Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется.</p>
 
     <div class="sec-label">Отклик</div>
     <div class="item"><span class="k">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
@@ -1869,6 +1993,9 @@
     <div class="ev-head" id="cdEvHead" hidden>
       <div class="ev-sign" id="cdEvSign"></div>
       <div class="ev-names" id="cdEvNames">—</div>
+      <!-- У заказа крупно организация, а контактное лицо строкой ниже:
+           менеджер меняется, юрлицо остаётся (docs/12_CARD_ARCHITECTURE.md) -->
+      <div class="ev-person" id="cdEvPerson" hidden>—</div>
       <div class="ev-when" id="cdEvWhen">—</div>
       <a class="ev-tel" id="cdEvTel" href="tel:" hidden>
         <span id="cdEvTelN">—</span>
@@ -1888,6 +2015,10 @@
 
     <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
     <div id="cdEventBlocks">
+    <!-- Состояние сделки: у заказа съёмка — середина, а не кульминация.
+         Цепочка отвечает на один вопрос: что осталось закрыть -->
+    <div class="deal" id="cdDeal" hidden></div>
+
     <div class="day-tile" id="cdDay" hidden>
       <div class="dt-date">
         <div class="dt-d" id="cdDayD">30</div>
@@ -1903,6 +2034,10 @@
         <div class="lane" id="cdLane"></div>
       </div>
     </div>
+
+    <!-- Наложение говорит там же, где реплика о свете: строкой под плиткой дня.
+         На «Сегодня» и «Карту» не выходит никогда (04_ANTI_GOALS) -->
+    <div class="say warn" id="cdClash" hidden><span class="s-ic" data-ic="warn"></span><span id="cdClashT"></span></div>
 
     <div class="say" id="cdSay" hidden><span class="s-ic" id="cdSayIc"></span><span id="cdSayT"></span></div>
 
@@ -1934,6 +2069,18 @@
     <div class="ev-grid" id="cdNotesBlk" hidden></div>
     <div class="ev-grid" id="cdDelvBlk" hidden></div>
     <div class="ev-grid" id="cdMoneyBlk" hidden></div>
+
+    <!-- Заказ: ТЗ и модели — текстом, документы — списком с тапом на файл -->
+    <div class="ev-grid" id="cdBriefBlk" hidden></div>
+    <div class="ev-grid" id="cdModelsBlk" hidden></div>
+    <div class="fold" id="cdDocFold" hidden>
+      <button type="button" class="fold-head" id="cdDocHead">
+        <span class="badge" data-ic="doc"></span>
+        <span class="pn-body"><span class="pn-t">Документы</span><span class="pn-s" id="cdDocS">—</span></span>
+        <span class="chev" data-ic="chevron"></span>
+      </button>
+      <div class="fold-body" id="cdDocBody"></div>
+    </div>
     </div>
 
     </div><!-- /sheet -->
@@ -2046,6 +2193,16 @@
         <span class="rv act">Изменить</span>
       </button>
       <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
+      <!-- У заказа платит юрлицо: выбираем организацию из списка, а лицо и
+           телефон — свои поля. Разбор строки «Ромашка · Пётр» был временным -->
+      <button class="row sep" id="fOrgRow" hidden>Заказчик
+        <span class="rv"><span id="fOrgName">выбрать</span></span>
+      </button>
+      <input class="sep" type="text" id="fPerson" placeholder="Контактное лицо" hidden/>
+      <input class="sep" type="tel" id="fPhone" placeholder="Телефон" hidden/>
+      <!-- Выезд свёрнут до тумблера: город спрашиваем, только когда едем -->
+      <div class="row sep" id="fTripRow">Выезд в другой город<span class="toggle" id="fTrip"></span></div>
+      <input class="sep" type="text" id="fTripPlace" placeholder="Куда едем" hidden/>
       <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
     </div>
 
@@ -2070,9 +2227,16 @@
           <span class="k" id="fUnitsLabel">Объектов</span>
           <span class="stepper">
             <button type="button" id="fUnitsMinus" aria-label="Меньше">−</button>
-            <b id="fUnitsVal">1</b>
+            <input class="step-in" type="text" inputmode="numeric" id="fUnitsVal"
+                   aria-label="Количество" value="1"/>
             <button type="button" id="fUnitsPlus" aria-label="Больше">+</button>
           </span>
+        </div>
+        <!-- Предоплата: не доход и не расход, а то, что уже получено.
+             Итог показывает остаток — за ним и лезут в карточку перед съёмкой -->
+        <div class="pay-row sep" id="fPrepayRow">
+          <span class="k">Предоплата, ₽</span>
+          <input class="pay-in" type="text" inputmode="numeric" id="fPrepay" placeholder="0"/>
         </div>
         <div class="pay-row sep">
           <span class="k">Расходы, ₽</span>
@@ -2099,8 +2263,39 @@
          ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
     <div class="g-label" id="fRouteLabel" hidden>Таймлайн дня</div>
     <div class="group" id="fRouteGroup" hidden>
+      <!-- Гости — масштаб дня: сколько людей в кадре и сколько уйдёт на общий -->
+      <div class="pay-row" id="fGuestsRow" hidden>
+        <span class="k">Гостей</span>
+        <span class="stepper">
+          <button type="button" id="fGuestsMinus" aria-label="Меньше">−</button>
+          <input class="step-in" type="text" inputmode="numeric" id="fGuestsVal"
+                 aria-label="Сколько гостей" placeholder="—"/>
+          <button type="button" id="fGuestsPlus" aria-label="Больше">+</button>
+        </span>
+      </div>
       <div id="fRouteList"></div>
       <button type="button" class="rt-add" id="fRouteAdd">+ Сцена</button>
+    </div>
+
+    <!-- Заказ: то, чего нет в частной съёмке. Появляется у группы заказчика,
+         модели — поправкой жанра (docs/12_CARD_ARCHITECTURE.md) -->
+    <div class="g-label" id="fOrderLabel" hidden>Заказ</div>
+    <div class="group" id="fOrderGroup" hidden>
+      <textarea id="fBrief" placeholder="Техническое задание: что снять, в каком виде сдать"></textarea>
+      <textarea class="sep" id="fModels" placeholder="Модели: имя и телефон, по одной в строке" hidden></textarea>
+      <!-- Вид документа выбирается до добавления, как папка у референсов:
+           он же фильтр списка, он же метка для новых файлов -->
+      <div class="rf-tags wrap sep" id="docKinds"></div>
+      <div class="ref-grid" id="docGrid"></div>
+      <div class="ref-add sep">
+        <button type="button" class="ref-btn" id="docFileBtn"><span data-ic="doc"></span>Файл</button>
+        <button type="button" class="ref-btn" id="docLink">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
+          Ссылка
+        </button>
+      </div>
+      <input type="file" id="docFile" multiple hidden>
+      <div class="ref-note" id="docNote" hidden></div>
     </div>
 
     <div class="g-label">Нужна погода</div>
@@ -2162,6 +2357,81 @@
       <input type="text" id="searchInput" placeholder="Клиент, тип съёмки или место"/>
     </div>
     <div id="searchResults"></div>
+  </div>
+
+  <!-- ============ ОРГАНИЗАЦИИ И ДОКУМЕНТЫ ============
+       Организация живёт дольше съёмки: менеджер уходит, юрлицо остаётся.
+       Здесь же общее хранилище бумаг — все документы всех съёмок в одном месте
+       (docs/12_CARD_ARCHITECTURE.md, «Организация как сущность») -->
+  <div class="overlay pad" id="orgOverlay">
+    <button class="back" id="orgBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Назад
+    </button>
+    <div class="org-seg" id="orgSeg">
+      <button class="active" data-v="orgs">Организации</button>
+      <button data-v="docs">Документы</button>
+    </div>
+
+    <div id="orgListView">
+      <div id="orgList"></div>
+      <button class="rt-add" id="orgAdd" style="margin:12px 0 0">+ Организация</button>
+    </div>
+
+    <div id="orgDocsView" hidden>
+      <div class="rf-tags wrap" id="allDocKinds"></div>
+      <div id="allDocs"></div>
+    </div>
+  </div>
+
+  <!-- Карточка организации: реквизиты, документы, архив съёмок -->
+  <div class="overlay pad" id="orgCard">
+    <button class="back" id="orgCardBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Организации
+    </button>
+
+    <div class="g-label">Организация</div>
+    <div class="group">
+      <input type="text" id="oName" placeholder="ООО «Ромашка»"/>
+      <input class="sep" type="text" id="oPerson" placeholder="Контактное лицо"/>
+      <input class="sep" type="tel" id="oPhone" placeholder="Телефон"/>
+    </div>
+
+    <!-- Реквизиты приходят как попало: текстом, файлом, снимком экрана.
+         Поле принимает всё три вида и ничего не спрашивает сверх этого -->
+    <div class="g-label">Реквизиты</div>
+    <div class="group">
+      <textarea id="oReq" placeholder="ИНН, ОГРН, расчётный счёт, банк, адрес — вставьте текстом или приложите файл"></textarea>
+      <div class="ref-grid sep" id="oReqGrid"></div>
+      <div class="ref-add sep">
+        <button type="button" class="ref-btn" id="oReqFileBtn"><span data-ic="doc"></span>Файл</button>
+        <button type="button" class="ref-btn" id="oReqShotBtn">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+          Снимок
+        </button>
+      </div>
+      <input type="file" id="oReqFile" multiple hidden>
+      <div class="ref-note" id="oReqNote" hidden></div>
+    </div>
+
+    <div class="g-label" id="oDocsLabel">Документы организации</div>
+    <div class="group">
+      <div class="rf-tags wrap" id="oDocKinds"></div>
+      <div class="ref-add sep">
+        <button type="button" class="ref-btn" id="oDocFileBtn"><span data-ic="doc"></span>Файл</button>
+        <button type="button" class="ref-btn" id="oDocLinkBtn">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
+          Ссылка
+        </button>
+      </div>
+      <input type="file" id="oDocFile" multiple hidden>
+      <div class="ref-note" id="oDocNote" hidden></div>
+    </div>
+    <div id="oDocs"></div>
+
+    <div class="g-label" id="oShootsLabel">Съёмки</div>
+    <div id="oShoots"></div>
+
+    <button class="danger" id="oDelete">Удалить организацию</button>
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
@@ -2811,7 +3081,7 @@
           return o;
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
-        cardOrder: cardOrder, sync: syncTarget,
+        cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
@@ -3062,6 +3332,25 @@
 
   var sessions = saved && saved.sessions ? saved.sessions : [];
   var syncTarget = saved && saved.sync ? saved.sync : "off";
+  /* ---------- Организации ----------
+     Отдельная запись с постоянным ключом: название правится, контактное лицо
+     меняется, а история съёмок не рвётся (docs/12_CARD_ARCHITECTURE.md).
+     В съёмке хранится ссылка orgId, а не строка с названием. */
+  var orgs = (saved && saved.orgs) || [];
+  function orgById(id) {
+    if (!id) return null;
+    for (var i = 0; i < orgs.length; i++) if (orgs[i].id === id) return orgs[i];
+    return null;
+  }
+  function newOrgId() {
+    return "o" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+  /* Съёмки организации: архив взаимодействия — когда снимали и на сколько */
+  function orgShoots(id) {
+    return sessions.map(function (s, i) { return { s: s, i: i }; })
+      .filter(function (p) { return p.s.orgId === id; })
+      .sort(function (a, b) { return b.s.date - a.s.date; });
+  }
   var defaultRate = saved && saved.defaultRate ? saved.defaultRate : 0;   // ставка ₽/час по умолчанию
   /* Пакет — именованный продукт: «Загс и прогулка · 3 ч · 14 000 ₽».
      n — название, p — цена, h — часы (null: длительность не задаёт).
@@ -3678,23 +3967,23 @@
     return { q: q, a: win.a, b: win.b, label: win.label };
   }
 
-  /* Заголовок сам говорит, что открыто: месяц, неделя или день */
+  /* Заголовок сам говорит, что открыто: месяц, неделя или день.
+     Год называется только чужой: «Август» — этот год, «Август 2027» — другой */
   function setPlanTitle() {
-    var y = $("calYear"), m = $("calMonth"), nowY = new Date().getFullYear();
+    var m = $("calMonth"), nowY = new Date().getFullYear();
+    function yr(d) { return d.getFullYear() === nowY ? "" : " " + d.getFullYear(); }
     if (calScope === "day") {
-      y.textContent = calSel.getFullYear() === nowY ? "" : calSel.getFullYear();
-      m.textContent = calSel.getDate() + " " + MONTHS[calSel.getMonth()];
+      m.textContent = calSel.getDate() + " " + MONTHS[calSel.getMonth()] + yr(calSel);
     } else if (calScope === "week") {
       var a = weekStart(calSel), b = addDays(a, 6);
-      y.textContent = a.getFullYear() === nowY ? "" : a.getFullYear();
       /* «3 – 9 августа» вместо «3 августа – 9 августа»: месяц называем один раз,
          иначе заголовок налезает на иконки */
-      m.textContent = a.getMonth() === b.getMonth()
+      m.textContent = (a.getMonth() === b.getMonth()
         ? a.getDate() + " – " + b.getDate() + " " + MONTHS[b.getMonth()]
-        : a.getDate() + " " + MONTHS[a.getMonth()] + " – " + b.getDate() + " " + MONTHS[b.getMonth()];
+        : a.getDate() + " " + MONTHS[a.getMonth()] + " – " + b.getDate() + " " + MONTHS[b.getMonth()])
+        + yr(a);
     } else {
-      y.textContent = calMonth.getFullYear();
-      m.textContent = MONTHS_N[calMonth.getMonth()];
+      m.textContent = MONTHS_N[calMonth.getMonth()] + yr(calMonth);
     }
   }
   /* Метка возврата — только когда ушли от сегодняшнего дня */
@@ -3712,6 +4001,9 @@
 
   function renderCal() {
     if (window.ICONS) paintIcons(document);      // знаки видов в шапке
+    /* Кнопка вида и галочка в веере ставятся здесь же — при первом показе
+       масштаб приходит из состояния, а не из нажатия */
+    if (window.ICONS) setScope(calScope);
     var week = calScope === "week", day = calScope === "day";
     $("calHead").hidden = week || day;
     $("cal").hidden = week || day;
@@ -4018,7 +4310,8 @@
     $("dpTrust").textContent = trustOf(calSel);
     // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
     // обещание кнопки должно совпадать с тем, что откроется в форме
-    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(snapMin(w.a));
+    /* Подсказка называет то время, которое и подставится: свет не округляем */
+    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(Math.round(w.a));
 
     // Погода дня — в сводке, как на главном экране
     var wx = dayWeather(calSel);
@@ -4038,7 +4331,7 @@
       return '<div class="swipe"><button class="swipe-del" data-i="' + i + '">Удалить</button>' +
         '<button class="plan-row" data-i="' + i + '">' +
         '<span class="pr-time">' + fmt(s.min) + " – " + fmt(end) + "</span>" +
-        '<span class="pr-who">' + (s.contact || s.type) + "</span>" +
+        '<span class="pr-who">' + esc(clientName(s) || s.type) + "</span>" +
         (ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
         "</button></div>";
     }).join("") : "";   // пустой список и есть «нет событий» — лишняя строка не нужна
@@ -4133,7 +4426,7 @@
         c.className = "session";
         c.innerHTML =
           '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
-          '<div class="s-body"><div class="s-title">' + s.type + (s.contact ? " · " + s.contact : "") + "</div>" +
+          '<div class="s-body"><div class="s-title">' + s.type + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
           '<div class="s-sub">' + s.place + (function (w) {
             var list = Array.isArray(w) ? w : (w && w !== "Неважно" ? [w] : []);
             return list.length ? " · жду: " + list.join(", ").toLowerCase() : "";
@@ -4244,17 +4537,44 @@
   var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет";
   var wishes = [];   // пожелания к погоде; пусто = «неважно». Мультивыбор: облака+закат
   /* Съёмку назначают на ровное время. Шаг тот же, что у детентов ползунка, — 15 минут */
-  var SNAP = 15;
-  function snapMin(m) { return Math.round(m / SNAP) * SNAP; }
+  /* ---------- Шаг времени ----------
+     Съёмки назначают получасами: «в двенадцать», «в полвторого». Мелкий шаг
+     нужен редко и включается отдельно, а по умолчанию мешает — чтобы поставить
+     14:00, приходилось проезжать мимо 13:55 и 14:05.
+
+     Исключение — время, подсказанное светом. Золотой час начинается в 19:38,
+     и округлять его до 19:30 значит соврать: снимать надо тогда, когда светло,
+     а не тогда, когда круглое число (docs/03_PRINCIPLES). */
+  var timeStep = (saved && saved.timeStep) || 30;
+  function snapMin(m) { return Math.round(m / timeStep) * timeStep; }
+  /* Значения барабана минут: шаг плюс текущая минута, если она не по шагу —
+     иначе барабан не сможет показать 19:38, пришедшие от заката */
+  function minsList(cur) {
+    var out = [];
+    for (var m = 0; m < 60; m += timeStep) out.push(m);
+    if (cur != null && out.indexOf(cur) < 0) { out.push(cur); out.sort(function (a, b) { return a - b; }); }
+    return out;
+  }
   /* Пока время предложено светом, смена жанра вправе его переставить.
      Как только фотограф покрутил барабан начала — время его, не наше */
   var fAuto = true;
+  /* Время пришло от света (золотой час, закат, астрособытие). Такое время
+     не округляется по шагу и живёт минутой, которую назвало солнце */
+  var fLight = false;
   /* Оплата в форме: ключ способа (hourly/flat/pack/object/item), ставка/сумма/цена,
      количество единиц, расходы */
   var fPay = "hourly", fRate = 0, fUnits = 1, fExpense = 0;
+  /* Предоплата: часть гонорара, полученная заранее. В доход не добавляется —
+     она из него вычитается остатком (docs/12_CARD_ARCHITECTURE.md) */
+  var fPrepay = 0;
+  /* Гости — только у события дня; 0 значит «не указано», а не «нет гостей» */
+  var fGuests = 0;
   /* Референсы съёмки: {k:"img", path, thumb} — оригинал на Диске, миниатюра рядом;
      {k:"link", url} — ссылка на Pinterest или что угодно ещё */
   var fRefs = [];
+  /* Документы заказа: {k:"doc", path, name, size} на Диске фотографа либо
+     {k:"link", url}. Миниатюр у них не бывает — показываем именем */
+  var fDocs = [];
   var fDelvChoice = "auto";     // "auto" | число дней | null
   /* Крайние деления шкалы — состояния, середина — ручной срок */
   var DELV_OPTS = [["auto", "жанр"], [3, "3 дн"], [7, "нед"], [14, "2 нед"],
@@ -4416,6 +4736,513 @@
     fRefs.push({ k: "link", url: url });
     renderRefs();
   });
+  /* ---------- Документы заказа ----------
+     Механика та же, что у референсов: файл уезжает на Диск фотографа, в записи
+     остаётся путь. Отличие одно — это не картинки: миниатюры нет, поэтому в
+     списке стоят имя, тип и размер, а тап открывает файл. */
+  /* Виды документов заказа. Порядок — порядок сделки: чем открывают работу,
+     тем и начинается список; акт закрывает (docs/12_CARD_ARCHITECTURE.md) */
+  var DOC_KINDS = ["Договор", "Счёт", "Чек", "Акт", "ТЗ"];
+  var fDocKind = null;                 // выбранный вид: и фильтр, и метка новым
+  /* Имя файла обычно уже говорит, что это: «dogovor-romashka.pdf». Угадываем,
+     чтобы не заставлять выбирать вид у каждого файла заново */
+  /* Файлы называют и кириллицей, и транслитом: «akt-vypolnennyh», «chek-2214».
+     Ловим оба написания — иначе вид приходится ставить руками каждому файлу */
+  var DOC_GUESS = [
+    [/догов|contract|dogovor/i, "Договор"],
+    [/чек|chek|check|cheque|receipt|kassa/i, "Чек"],
+    [/счёт|счет|invoice|schet|schyot/i, "Счёт"],
+    [/акт(?![а-яё])|akt(?![a-z])|act(?![a-z])/i, "Акт"],
+    [/тз|бриф|brief|task|tz(?![a-z])/i, "ТЗ"]
+  ];
+  function guessDocKind(name) {
+    for (var i = 0; i < DOC_GUESS.length; i++) {
+      if (DOC_GUESS[i][0].test(name || "")) return DOC_GUESS[i][1];
+    }
+    return null;
+  }
+  function renderDocKinds() {
+    $("docKinds").innerHTML = DOC_KINDS.map(function (k) {
+      var n = fDocs.filter(function (r) { return r.kind === k; }).length;
+      return '<button type="button" class="rf-tag' + (fDocKind === k ? " on" : "") + '" data-k="' + k + '">'
+        + k + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
+    }).join("");
+    $("docKinds").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        fDocKind = fDocKind === b.dataset.k ? null : b.dataset.k;
+        renderDocKinds(); renderDocs();
+      });
+    });
+  }
+
+  function docSize(b) {
+    if (!b) return "";
+    return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + " КБ"
+      : (b / 1048576).toFixed(b < 10485760 ? 1 : 0).replace(".", ",") + " МБ";
+  }
+  function docExt(name) {
+    var m = /\.([a-z0-9]+)$/i.exec(name || "");
+    return m ? m[1].toUpperCase() : "файл";
+  }
+  function renderDocs() {
+    var box = $("docGrid");
+    /* Выбранный вид работает фильтром: в сделке из десяти бумаг ищут одну */
+    var shown = fDocs.map(function (r, i) { return { r: r, i: i }; })
+      .filter(function (p) { return !fDocKind || p.r.kind === fDocKind; });
+    box.innerHTML = shown.map(function (p) {
+      var r = p.r, i = p.i;
+      var top = r.kind || (r.k === "link" ? refHost(r.url) : docExt(r.name));
+      var sub = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || "документ");
+      return '<button type="button" class="ref-card link" data-i="' + i + '">'
+        + '<span class="host">' + esc(top) + "</span>"
+        + '<span class="path">' + esc(sub) + "</span>"
+        + (r.pending ? '<span class="wait">…</span>' : "")
+        + '<span class="kill" data-kill="' + i + '">✕</span></button>';
+    }).join("");
+    box.querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        var kill = e.target.closest("[data-kill]");
+        if (kill) {
+          var i = +kill.dataset.kill, r = fDocs[i];
+          if (r && r.k === "doc" && r.path) yaDelete(r.path);
+          fDocs.splice(i, 1); renderDocs(); renderDocKinds(); return;
+        }
+        openDoc(fDocs[+b.dataset.i]);
+      });
+    });
+  }
+  function openDoc(r) {
+    if (!r) return;
+    if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
+    if (!r.path) return;
+    yaDownloadUrl(r.path).then(function (href) {
+      window.open(href, "_blank", "noopener");
+    }).catch(function () {
+      $("docNote").hidden = false;
+      $("docNote").textContent = "Файл не открылся: нет связи с Диском.";
+    });
+  }
+  function addDocFiles(files) {
+    if (!yaToken) {
+      $("docNote").hidden = false;
+      $("docNote").textContent = "Чтобы хранить документы, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
+      return;
+    }
+    var dir = "app:/docs", dirReady = yaEnsureDir(dir);
+    Array.prototype.slice.call(files).forEach(function (file) {
+      var rec = { k: "doc", path: null, name: file.name, size: file.size, pending: true,
+        kind: fDocKind || guessDocKind(file.name) };
+      fDocs.push(rec); renderDocs(); renderDocKinds();
+      var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [""])[0];
+      dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
+        .catch(function () { return yaUpload("app:/doc-" + stamp + ext, file); })
+        .then(function (path) { rec.path = path; rec.pending = false; renderDocs(); })
+        .catch(function (e) {
+          fDocs.splice(fDocs.indexOf(rec), 1); renderDocs();
+          $("docNote").hidden = false;
+          $("docNote").textContent = "Документ не загрузился: " + e.message;
+        });
+    });
+  }
+  $("docFileBtn").addEventListener("click", function () { $("docFile").click(); });
+  $("docFile").addEventListener("change", function () { addDocFiles(this.files || []); this.value = ""; });
+  $("docLink").addEventListener("click", function () {
+    var url = prompt("Ссылка на документ: договор, счёт, ТЗ в облаке");
+    if (!url) return;
+    url = url.trim();
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    fDocs.push({ k: "link", url: url, kind: fDocKind || guessDocKind(url) });
+    renderDocs(); renderDocKinds();
+  });
+
+  /* ============================================================
+     ОРГАНИЗАЦИИ И ХРАНИЛИЩЕ ДОКУМЕНТОВ
+     ============================================================ */
+  var orgIdx = null;                 // открытая карточка организации
+
+  /* Все бумаги в одном месте: документы съёмок и документы организаций.
+     Реквизиты организации сюда тоже попадают — это такой же файл, который
+     ищут месяц спустя, и делить хранилище надвое незачем. */
+  function allDocuments() {
+    var out = [];
+    sessions.forEach(function (s, i) {
+      (Array.isArray(s.docs) ? s.docs : []).forEach(function (r, j) {
+        var org = orgById(s.orgId);
+        out.push({ r: r, from: "session", si: i, di: j,
+          when: s.date, who: (org && org.name) || clientName(s) || s.type });
+      });
+    });
+    orgs.forEach(function (o, i) {
+      (o.docs || []).forEach(function (r, j) {
+        out.push({ r: r, from: "org", oi: i, di: j, when: null, who: o.name });
+      });
+      (o.reqFiles || []).forEach(function (r, j) {
+        out.push({ r: { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
+          thumb: r.thumb, kind: "Реквизиты" }, from: "req", oi: i, di: j, when: null, who: o.name });
+      });
+    });
+    /* Свежие сверху: к бумагам возвращаются от последней к первой */
+    return out.sort(function (a, b) {
+      return (b.when ? b.when.getTime() : 0) - (a.when ? a.when.getTime() : 0);
+    });
+  }
+  /* Вид документа: сохранённый либо угаданный. Одна функция на все списки —
+     иначе фильтр считает одно, а строка показывает другое */
+  function docKind(r) {
+    return r.kind || guessDocKind(r.name || r.url) || null;
+  }
+  function docTitle(r) {
+    if (r.k === "link") return refTail(r.url).split("/").pop() || refHost(r.url);
+    return r.name || "документ";
+  }
+  function docWeight(r) {
+    if (r.k === "link") return refHost(r.url);
+    return docExt(r.name) + (r.size ? " · " + docSize(r.size) : "");
+  }
+  function docRow(d, i, kill) {
+    return '<button type="button" class="doc-row" data-i="' + i + '">'
+      + '<span class="k">' + esc(docKind(d.r) || "документ") + "</span>"
+      + '<span class="n">' + esc(docTitle(d.r)) + "</span>"
+      + '<span class="w">' + esc(docWeight(d.r)) + "</span>"
+      /* Убрать можно только свою бумагу: документ съёмки живёт в съёмке,
+         и удалять его отсюда — прятать концы от той карточки */
+      + (kill ? '<span class="w" data-kill="' + i + '" style="padding-left:6px">✕</span>' : "")
+      + "</button>";
+  }
+
+  var allDocFilter = null, allDocList = [];
+  function renderAllDocs() {
+    var all = allDocuments();
+    allDocList = all.filter(function (d) {
+      return !allDocFilter || docKind(d.r) === allDocFilter;
+    });
+    var kinds = DOC_KINDS.concat(["Реквизиты"]);
+    $("allDocKinds").innerHTML = kinds.map(function (k) {
+      var n = all.filter(function (d) { return docKind(d.r) === k; }).length;
+      if (!n && allDocFilter !== k) return "";
+      return '<button type="button" class="rf-tag' + (allDocFilter === k ? " on" : "") + '" data-k="' + k + '">'
+        + k + '<span class="n">' + n + "</span></button>";
+    }).join("");
+    $("allDocKinds").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        allDocFilter = allDocFilter === b.dataset.k ? null : b.dataset.k;
+        renderAllDocs();
+      });
+    });
+    $("allDocs").innerHTML = allDocList.map(function (d, i) {
+      return docRow(d, i)
+        + '<div class="org-empty" style="padding:2px 14px 0">' + esc(d.who)
+        + (d.when ? " · " + d.when.getDate() + " " + MONTHS[d.when.getMonth()] : "") + "</div>";
+    }).join("") || '<div class="org-empty">Документов пока нет. Они появляются здесь сами: '
+      + "договор из съёмки, чек, акт, реквизиты организации.</div>";
+    $("allDocs").querySelectorAll(".doc-row").forEach(function (b) {
+      b.addEventListener("click", function () { openDoc(allDocList[+b.dataset.i].r); });
+    });
+  }
+
+  function renderOrgList() {
+    $("orgList").innerHTML = orgs.map(function (o, i) {
+      var sh = orgShoots(o.id);
+      var sum = sh.reduce(function (a, p) { return a + sessionIncome(p.s); }, 0);
+      var bits = [];
+      if (o.person) bits.push(o.person);
+      if (sh.length) bits.push(sh.length + " " + plural(sh.length, ["съёмка", "съёмки", "съёмок"]));
+      if (sum) bits.push(money(sum));
+      return '<button type="button" class="org-item" data-i="' + i + '">'
+        + '<span class="badge">' + IC.svg("city") + "</span>"
+        + '<span class="org-b"><span class="org-n">' + esc(o.name || "Без названия") + "</span>"
+        + '<span class="org-s">' + esc(bits.join(" · ") || "реквизиты не заполнены") + "</span></span>"
+        + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
+    }).join("") || '<div class="org-empty">Организаций пока нет. Заведите ту, что платит: '
+      + "реквизиты и бумаги будут лежать при ней, а не в каждой съёмке заново.</div>";
+    $("orgList").querySelectorAll(".org-item").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = +b.dataset.i;
+        /* Экран открыт из формы — тап выбирает заказчика и возвращает назад */
+        if (orgPick) {
+          var pick = orgPick; orgPick = null;
+          $("orgOverlay").classList.remove("open");
+          pick(orgs[i]);
+          return;
+        }
+        openOrgCard(i);
+      });
+    });
+  }
+
+  function openOrgs() {
+    renderOrgList(); renderAllDocs();
+    paintIcons($("orgOverlay"));
+    $("orgOverlay").classList.add("open");
+  }
+  $("planOrgs").addEventListener("click", openOrgs);
+  $("orgBack").addEventListener("click", function () {
+    orgPick = null;                    // ушли без выбора — заказчик остался прежним
+    $("orgOverlay").classList.remove("open");
+  });
+  $("orgSeg").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      $("orgSeg").querySelectorAll("button").forEach(function (x) { x.classList.remove("active"); });
+      b.classList.add("active");
+      var docs = b.dataset.v === "docs";
+      $("orgListView").hidden = docs;
+      $("orgDocsView").hidden = !docs;
+      if (docs) renderAllDocs();
+    });
+  });
+  $("orgAdd").addEventListener("click", function () {
+    orgs.push({ id: newOrgId(), name: "", person: "", phone: "", req: "", reqFiles: [], docs: [] });
+    saveAll(); renderOrgList(); openOrgCard(orgs.length - 1);
+  });
+
+  /* ---------- Карточка организации ---------- */
+  function openOrgCard(i) {
+    orgIdx = i;
+    var o = orgs[i];
+    if (!o) return;
+    $("oName").value = o.name || "";
+    $("oPerson").value = o.person || "";
+    $("oPhone").value = o.phone || "";
+    $("oReq").value = o.req || "";
+    renderReqFiles(); renderOrgDocs(); renderOrgShoots();
+    paintIcons($("orgCard"));
+    $("orgCard").scrollTop = 0;
+    $("orgCard").classList.add("open");
+  }
+  function closeOrgCard() {
+    var o = orgs[orgIdx];
+    orgIdx = null;
+    $("orgCard").classList.remove("open");
+    /* Организацию завели из формы — она же и выбирается: возвращать человека
+       в список ради второго тапа незачем */
+    if (orgPick && o && o.name) {
+      var pick = orgPick; orgPick = null;
+      $("orgOverlay").classList.remove("open");
+      pick(o);
+      return;
+    }
+    renderOrgList(); renderAllDocs();
+  }
+  $("orgCardBack").addEventListener("click", closeOrgCard);
+  /* Правки пишутся сразу: отдельной кнопки «сохранить» у организации нет,
+     иначе её забудут нажать ровно тогда, когда реквизиты понадобятся */
+  [["oName", "name"], ["oPerson", "person"], ["oPhone", "phone"], ["oReq", "req"]].forEach(function (p) {
+    $(p[0]).addEventListener("input", function () {
+      if (orgIdx === null) return;
+      orgs[orgIdx][p[1]] = this.value;
+      saveAll();
+    });
+  });
+  $("oDelete").addEventListener("click", function () {
+    if (orgIdx === null) return;
+    var o = orgs[orgIdx];
+    /* Организацию, за которой числятся съёмки, не удаляем молча: ссылка
+       в записи осталась бы висеть в пустоту */
+    var sh = orgShoots(o.id);
+    if (sh.length && !confirm("За организацией числится " + sh.length + " "
+      + plural(sh.length, ["съёмка", "съёмки", "съёмок"]) + ". Удалить всё равно? Съёмки останутся, но потеряют заказчика.")) return;
+    sessions.forEach(function (s) { if (s.orgId === o.id) s.orgId = null; });
+    orgs.splice(orgIdx, 1);
+    saveAll(); closeOrgCard();
+  });
+
+  /* Реквизиты: текст живёт в поле, файлы и снимки экрана — на Диске.
+     Снимок экрана — картинка, поэтому у него есть миниатюра; договор в PDF
+     показывается именем. Механика та же, что у референсов. */
+  function renderReqFiles() {
+    var o = orgs[orgIdx];
+    if (!o) return;
+    var list = o.reqFiles || (o.reqFiles = []);
+    $("oReqGrid").innerHTML = list.map(function (r, i) {
+      if (r.k === "img") {
+        return '<button type="button" class="ref-card" data-i="' + i + '">'
+          + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "")
+          + (r.pending ? '<span class="wait">…</span>' : "")
+          + '<span class="kill" data-kill="' + i + '">✕</span></button>';
+      }
+      return '<button type="button" class="ref-card link" data-i="' + i + '">'
+        + '<span class="host">' + esc(docExt(r.name)) + "</span>"
+        + '<span class="path">' + esc(r.name || "файл") + "</span>"
+        + (r.pending ? '<span class="wait">…</span>' : "")
+        + '<span class="kill" data-kill="' + i + '">✕</span></button>';
+    }).join("");
+    $("oReqGrid").querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        var kill = e.target.closest("[data-kill]");
+        if (kill) {
+          var i = +kill.dataset.kill, r = list[i];
+          if (r && r.path) yaDelete(r.path);
+          list.splice(i, 1); saveAll(); renderReqFiles(); return;
+        }
+        var r2 = list[+b.dataset.i];
+        if (r2.k === "img") openRef(r2); else openDoc(r2);
+      });
+    });
+  }
+  var reqAsImage = false;
+  $("oReqFileBtn").addEventListener("click", function () {
+    reqAsImage = false; $("oReqFile").removeAttribute("accept"); $("oReqFile").click();
+  });
+  $("oReqShotBtn").addEventListener("click", function () {
+    reqAsImage = true; $("oReqFile").setAttribute("accept", "image/*"); $("oReqFile").click();
+  });
+  $("oReqFile").addEventListener("change", function () {
+    addReqFiles(this.files || []); this.value = "";
+  });
+  function addReqFiles(files) {
+    var o = orgs[orgIdx];
+    if (!o) return;
+    if (!yaToken) {
+      $("oReqNote").hidden = false;
+      $("oReqNote").textContent = "Чтобы хранить файлы, подключите Яндекс.Диск в настройках. Текст реквизитов работает и без него.";
+      return;
+    }
+    var list = o.reqFiles || (o.reqFiles = []);
+    var dir = "app:/orgs", dirReady = yaEnsureDir(dir);
+    Array.prototype.slice.call(files).forEach(function (file) {
+      var isImg = /^image\//.test(file.type);
+      var rec = { k: isImg ? "img" : "doc", path: null, name: file.name, size: file.size, pending: true };
+      list.push(rec); renderReqFiles();
+      var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [""])[0];
+      var thumbReady = isImg ? refThumb(file, 320).catch(function () { return null; })
+        : Promise.resolve(null);
+      thumbReady
+        .then(function (thumb) {
+          rec.thumb = thumb; renderReqFiles();
+          return dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
+            .catch(function () { return yaUpload("app:/org-" + stamp + ext, file); });
+        })
+        .then(function (path) { rec.path = path; rec.pending = false; saveAll(); renderReqFiles(); })
+        .catch(function (e) {
+          list.splice(list.indexOf(rec), 1); renderReqFiles();
+          $("oReqNote").hidden = false;
+          $("oReqNote").textContent = "Файл не загрузился: " + e.message;
+        });
+    });
+  }
+
+  /* Документы организации: свои плюс все, что приложены к её съёмкам —
+     акт ищут по организации, а не по дате съёмки */
+  function orgDocList(o) {
+    var out = (o.docs || []).map(function (r) { return { r: r, when: null }; });
+    orgShoots(o.id).forEach(function (p) {
+      (Array.isArray(p.s.docs) ? p.s.docs : []).forEach(function (r) {
+        out.push({ r: r, when: p.s.date });
+      });
+    });
+    return out;
+  }
+  /* Бумаги, что живут дольше съёмки — рамочный договор, реквизиты банка, —
+     кладутся прямо в организацию. Вид выбирается тем же чипсом */
+  var oDocKind = null;
+  function renderOrgDocKinds() {
+    $("oDocKinds").innerHTML = DOC_KINDS.map(function (k) {
+      return '<button type="button" class="rf-tag' + (oDocKind === k ? " on" : "") + '" data-k="' + k + '">'
+        + k + "</button>";
+    }).join("");
+    $("oDocKinds").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        oDocKind = oDocKind === b.dataset.k ? null : b.dataset.k;
+        renderOrgDocKinds();
+      });
+    });
+  }
+  $("oDocLinkBtn").addEventListener("click", function () {
+    if (orgIdx === null) return;
+    var url = prompt("Ссылка на документ организации");
+    if (!url) return;
+    url = url.trim();
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    var o = orgs[orgIdx];
+    (o.docs || (o.docs = [])).push({ k: "link", url: url, kind: oDocKind || guessDocKind(url) });
+    saveAll(); renderOrgDocs();
+  });
+  $("oDocFileBtn").addEventListener("click", function () { $("oDocFile").click(); });
+  $("oDocFile").addEventListener("change", function () {
+    addOrgDocFiles(this.files || []); this.value = "";
+  });
+  function addOrgDocFiles(files) {
+    var o = orgs[orgIdx];
+    if (!o) return;
+    if (!yaToken) {
+      $("oDocNote").hidden = false;
+      $("oDocNote").textContent = "Чтобы хранить документы, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
+      return;
+    }
+    var list = o.docs || (o.docs = []);
+    var dir = "app:/docs", dirReady = yaEnsureDir(dir);
+    Array.prototype.slice.call(files).forEach(function (file) {
+      var rec = { k: "doc", path: null, name: file.name, size: file.size, pending: true,
+        kind: oDocKind || guessDocKind(file.name) };
+      list.push(rec); renderOrgDocs();
+      var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [""])[0];
+      dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
+        .catch(function () { return yaUpload("app:/doc-" + stamp + ext, file); })
+        .then(function (path) { rec.path = path; rec.pending = false; saveAll(); renderOrgDocs(); })
+        .catch(function (e) {
+          list.splice(list.indexOf(rec), 1); renderOrgDocs();
+          $("oDocNote").hidden = false;
+          $("oDocNote").textContent = "Документ не загрузился: " + e.message;
+        });
+    });
+  }
+
+  var orgDocs = [];
+  function renderOrgDocs() {
+    var o = orgs[orgIdx];
+    if (!o) return;
+    renderOrgDocKinds();
+    orgDocs = orgDocList(o);
+    $("oDocs").innerHTML = orgDocs.map(function (d, i) {
+      return docRow(d, i, !d.when)
+        + (d.when ? '<div class="org-empty" style="padding:2px 14px 0">съёмка '
+            + d.when.getDate() + " " + MONTHS[d.when.getMonth()] + "</div>" : "");
+    }).join("") || '<div class="org-empty">Бумаг пока нет. Они приложатся из съёмок '
+      + "или прямо сюда — договор действует дольше одной съёмки.</div>";
+    $("oDocs").querySelectorAll(".doc-row").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        var kill = e.target.closest("[data-kill]");
+        var d = orgDocs[+b.dataset.i];
+        if (kill) {
+          var own = orgs[orgIdx].docs || [];
+          var at = own.indexOf(d.r);
+          if (at >= 0) {
+            if (d.r.k === "doc" && d.r.path) yaDelete(d.r.path);
+            own.splice(at, 1); saveAll(); renderOrgDocs();
+          }
+          return;
+        }
+        openDoc(d.r);
+      });
+    });
+  }
+  /* Архив взаимодействия: когда снимали, что снимали, сколько заплатили */
+  function renderOrgShoots() {
+    var o = orgs[orgIdx];
+    if (!o) return;
+    var list = orgShoots(o.id);
+    $("oShoots").innerHTML = list.map(function (p) {
+      var inc = sessionIncome(p.s), pre = +p.s.prepay || 0;
+      var tail = inc ? money(inc) + (pre && pre < inc ? " · внесено " + money(pre) : "") : "";
+      return '<button type="button" class="org-item" data-i="' + p.i + '">'
+        + '<span class="badge">' + IC.svg(GENRE_SIGN[p.s.type] || "camera") + "</span>"
+        + '<span class="org-b"><span class="org-n">' + esc(p.s.type) + " · "
+        + p.s.date.getDate() + " " + MONTHS[p.s.date.getMonth()] + " " + p.s.date.getFullYear() + "</span>"
+        + '<span class="org-s">' + esc(tail || "сумма не задана") + "</span></span>"
+        + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
+    }).join("") || '<div class="org-empty">Съёмок для этой организации пока не было.</div>';
+    $("oShoots").querySelectorAll(".org-item").forEach(function (b) {
+      b.addEventListener("click", function () {
+        closeOrgCard();
+        $("orgOverlay").classList.remove("open");
+        openCard(+b.dataset.i);
+      });
+    });
+  }
+
   function askLink() {
     var url = prompt("Ссылка на референс (Pinterest, Instagram, что угодно)");
     if (!url) return null;
@@ -4448,7 +5275,9 @@
     // Количество — только для «за единицу»
     $("fUnitsRow").hidden = mech !== "unit";
     $("fUnitsLabel").textContent = PAY[fPay].unit ? (PAY[fPay].unit[0].toUpperCase() + PAY[fPay].unit.slice(1)) : "Количество";
-    $("fUnitsVal").textContent = fUnits;
+    /* Пока в поле печатают, значение туда не возвращаем: иначе каретка
+       прыгает в конец и «50» набрать невозможно */
+    if (document.activeElement !== $("fUnitsVal")) $("fUnitsVal").value = fUnits;
     // Пакеты — готовые суммы чипсами; «＋ свой» ведёт в настройку
     var isPack = fPay === "pack", live = usablePacks();
     $("fPackChips").hidden = !isPack;
@@ -4478,8 +5307,12 @@
     // Итог: доход и прибыль
     var inc = sessionIncome(payProbe()), net = inc - fExpense;
     var hrs = mech === "hourly" ? " · " + durLabel(fDur) : "";
+    /* Предоплата не меняет доход — она отвечает на другой вопрос: сколько
+       ещё принесут в день съёмки. Поэтому идёт отдельной строкой остатка */
+    var rest = Math.max(0, inc - fPrepay);
     $("fPayTotal").innerHTML =
-      '<span class="lbl">Доход ' + money(inc) + hrs + (fExpense ? " − расход " + money(fExpense) : "") + "</span>"
+      '<span class="lbl">Доход ' + money(inc) + hrs + (fExpense ? " − расход " + money(fExpense) : "")
+      + (fPrepay ? "<br>Предоплата " + money(fPrepay) + " · остаток " + money(rest) : "") + "</span>"
       + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net) + "</span>";
     // Сводка спойлера: способ и итог одной строкой
     $("fPaySumm").innerHTML = PAY[fPay].label + " · <b>" + money(net) + "</b>";
@@ -4497,9 +5330,33 @@
   }
   bindPayInput("fRate", function (v) { fRate = v; });
   bindPayInput("fExpense", function (v) { fExpense = v; });
+  bindPayInput("fPrepay", function (v) { fPrepay = v; });
   /* Количество — степпером: в поле пальцем цифры вводить неудобно */
-  $("fUnitsMinus").addEventListener("click", function () { fUnits = Math.max(1, fUnits - 1); renderPay(); });
-  $("fUnitsPlus").addEventListener("click", function () { fUnits = Math.min(99, fUnits + 1); renderPay(); });
+  /* Кнопки — для «на один больше», поле — для «их пятьдесят».
+     Предел поднят до 9999: партия предметки бывает и в тысячу кадров */
+  var UNITS_MAX = 9999;
+  /* Кнопка пишет в поле всегда, даже если курсор стоит в нём: нажатие «+» —
+     явное действие, и число обязано сойтись с тем, что видно */
+  function stepUnits(d) {
+    fUnits = Math.max(1, Math.min(UNITS_MAX, (fUnits || 0) + d));
+    $("fUnitsVal").value = fUnits;
+    renderPay();
+  }
+  $("fUnitsMinus").addEventListener("click", function () { stepUnits(-1); });
+  $("fUnitsPlus").addEventListener("click", function () { stepUnits(1); });
+  $("fUnitsVal").addEventListener("input", function () {
+    var d = this.value.replace(/\D/g, "").slice(0, 4);
+    if (this.value !== d) this.value = d;
+    fUnits = Math.min(UNITS_MAX, +d || 0);
+    renderPay();
+  });
+  /* Пустое поле — не ноль предметов, а незаконченный ввод: на выходе
+     возвращаем единицу, иначе доход молча обнулится */
+  $("fUnitsVal").addEventListener("blur", function () {
+    fUnits = Math.max(1, Math.min(UNITS_MAX, fUnits || 1));
+    this.value = fUnits;
+    renderPay();
+  });
   var DURS = [30, 60, 90, 120, 180];
   /* По-русски пишем «1,5 часа», а не «1½ ч» */
   function hourWord(n) {
@@ -4523,10 +5380,23 @@
   /* ---------- Барабаны внутри формы ---------- */
   var fwDate = $("fwDate"), fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
-  var MINS = Array.apply(null, Array(60)).map(function (_, i) { return pad(i); });
   fill(fwDate, dateList.map(function (x) { return x.label; }));
   [fwSH, fwEH].forEach(function (el2) { fill(el2, HOURS); });
-  [fwSM, fwEM].forEach(function (el2) { fill(el2, MINS); });
+  /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
+     уметь показать и 30, и 38, если 38 пришли от золотого часа */
+  function fillMins(el2, cur) {
+    el2._vals = minsList(cur);
+    fill(el2, el2._vals.map(pad));
+  }
+  function wheelMin(el2) {
+    var v = el2._vals || minsList(null);
+    return v[clamp(wheelIndex(el2), 0, v.length - 1)] || 0;
+  }
+  function syncMinWheel(el2, m) {
+    fillMins(el2, m);
+    syncWheel(el2, el2._vals.indexOf(m));
+  }
+  fillMins(fwSM, null); fillMins(fwEM, null);
 
   /* Программная установка не должна выглядеть как выбор пользователя.
      Барабан раскрывается анимацией высоты, и снап по дороге уводит позицию —
@@ -4559,20 +5429,20 @@
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
   function onStartWheel() {
     if (openRow !== "fStart") return;
-    fAuto = false;
-    fMin = wheelIndex(fwSH) * 60 + wheelIndex(fwSM);   // длительность сохраняется, конец едет следом
+    fAuto = false; fLight = false;      // покрутили руками — время больше не от солнца
+    fMin = wheelIndex(fwSH) * 60 + wheelMin(fwSM);     // длительность сохраняется, конец едет следом
     refreshForm();
   }
   function onEndWheel() {
     if (openRow !== "fEnd") return;
-    var end = wheelIndex(fwEH) * 60 + wheelIndex(fwEM);
+    var end = wheelIndex(fwEH) * 60 + wheelMin(fwEM);
     var d = ((end - fMin) % 1440 + 1440) % 1440;        // ночная съёмка переходит через полночь
     if (d < 15) d = 15;
     if (d > 720) d = 720;   // конец раньше начала — это описка, а не сутки съёмки
     fDur = d;
     rememberGenre("dur", fDur);
     var back = (((fMin + fDur) % 1440) + 1440) % 1440;
-    if (back !== end) { syncWheel(fwEH, Math.floor(back / 60)); syncWheel(fwEM, back % 60); }
+    if (back !== end) { syncWheel(fwEH, Math.floor(back / 60)); syncMinWheel(fwEM, back % 60); }
     refreshForm();
   }
 
@@ -4594,11 +5464,11 @@
     if (id === "fWhen") syncWheel(fwDate, dateIndex(fDate));
     if (id === "fStart") {
       var s = ((fMin % 1440) + 1440) % 1440;
-      syncWheel(fwSH, Math.floor(s / 60)); syncWheel(fwSM, s % 60);
+      syncWheel(fwSH, Math.floor(s / 60)); syncMinWheel(fwSM, s % 60);
     }
     if (id === "fEnd") {
       var e = (((fMin + fDur) % 1440) + 1440) % 1440;
-      syncWheel(fwEH, Math.floor(e / 60)); syncWheel(fwEM, e % 60);
+      syncWheel(fwEH, Math.floor(e / 60)); syncMinWheel(fwEM, e % 60);
     }
   }
   ROWS.forEach(function (r) {
@@ -4661,8 +5531,10 @@
     "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
     "Стрит":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
     "Репортаж":    { delivery: true,  client: true,  dur: 180, pay: ["hourly", "flat"] },
-    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"] },
-    "Реклама":     { delivery: true,  client: true,  dur: 240, pay: ["flat", "hourly"] }
+    /* models — поправка жанра поверх группы: у рекламы и предметки в кадре
+       чужие люди, у архитектуры и репортажа их нет (docs/12_CARD_ARCHITECTURE.md) */
+    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"], models: true },
+    "Реклама":     { delivery: true,  client: true,  dur: 240, pay: ["flat", "hourly"], models: true }
   };
   /* ---------- Группы жанров ----------
      docs/12_CARD_ARCHITECTURE.md. Группа задаёт состав и подписи, жанр
@@ -4674,9 +5546,9 @@
     "Пейзаж": "own", "Стрит": "own"
   };
   var GROUP = {
-    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true },
-    people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "off" },
-    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: true },
+    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true, guests: true, prepay: true },
+    people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "off", prepay: true },
+    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: true, prepay: true, order: true },
     own:    { who: null,           whoHint: "",                              route: "off" }
   };
   function groupOf(type) { return GENRE_GROUP[type] || "people"; }
@@ -4709,7 +5581,6 @@
     var d = sp.delivery ? "" : "none";
     $("fDelvLabel").style.display = d;
     $("fDelvGroup").style.display = d;
-    $("fContact").style.display = sp.client ? "" : "none";
     /* Таймлайн: у события всегда, у заказчика — доступен и молчит,
        пока точек не завели (docs/12_CARD_ARCHITECTURE.md) */
     var showRoute = sp.route || sp.routeOpt;
@@ -4725,7 +5596,82 @@
     $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
     $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
+
+    /* Заказчик — организацией, а не строкой: у группы 3 платит юрлицо */
+    $("fOrgRow").hidden = !gr.order;
+    $("fPerson").hidden = !gr.order;
+    $("fPhone").hidden = !gr.order;
+    $("fContact").hidden = !!gr.order || !sp.client;
+    renderFormOrg();
+
+    /* Гости — у события дня: сколько людей на банкете, столько и общих планов.
+       Живут в блоке таймлайна, потому что это тоже мерка дня, а не съёмки */
+    $("fGuestsRow").hidden = !gr.guests;
+    renderGuests();
+    /* Предоплата есть везде, где есть заказчик: свою съёмку себе не оплачивают */
+    $("fPrepayRow").hidden = !gr.prepay;
+    if (!gr.prepay) { fPrepay = 0; $("fPrepay").value = ""; }
+    /* Заказ — блок группы 3: ТЗ и документы. Модели включает жанр */
+    $("fOrderLabel").hidden = !gr.order;
+    $("fOrderGroup").hidden = !gr.order;
+    $("fModels").hidden = !(gr.order && sp.models);
+    /* Выезд есть у всех: за город ездят и со свадьбой, и с пейзажем */
+    renderTrip();
   }
+  /* ---------- Заказчик в форме ----------
+     Организация выбирается на общем экране: список там уже есть, второй такой
+     же в форме был бы копией. Экран открывается в режиме выбора и закрывается
+     сам, как только организация названа. */
+  var fOrgId = null;
+  function renderFormOrg() {
+    var o = orgById(fOrgId);
+    $("fOrgName").textContent = o ? (o.name || "без названия") : "выбрать";
+    $("fOrgName").style.color = o ? "#EFEAE0" : "#8A8478";
+  }
+  var orgPick = null;                  // функция, которой отдаём выбранную организацию
+  $("fOrgRow").addEventListener("click", function () {
+    orgPick = function (o) {
+      fOrgId = o.id;
+      /* Лицо и телефон подставляются из организации, но остаются полями съёмки:
+         на этот заказ мог прийти другой менеджер */
+      if (!$("fPerson").value) $("fPerson").value = o.person || "";
+      if (!$("fPhone").value) $("fPhone").value = o.phone || "";
+      renderFormOrg();
+    };
+    openOrgs();
+  });
+
+  /* Выезд: тумблер открывает поле города и ничего больше не значит.
+     Выключили — город стирается: пустой «Куда едем» врал бы в карточке */
+  function renderTrip() {
+    var on = $("fTrip").classList.contains("on");
+    $("fTripPlace").hidden = !on;
+    if (!on) $("fTripPlace").value = "";
+  }
+  $("fTrip").addEventListener("click", function () {
+    this.classList.toggle("on");
+    renderTrip();
+    if (!this.classList.contains("on")) return;
+    $("fTripPlace").focus();
+  });
+  var GUESTS_MAX = 2000;
+  function renderGuests() {
+    if (document.activeElement !== $("fGuestsVal")) $("fGuestsVal").value = fGuests || "";
+  }
+  /* Шаг в десять человек: свадьбу считают десятками, а не по головам.
+     Точное число вписывается в поле — на банкете их бывает и триста */
+  function stepGuests(d) {
+    fGuests = Math.max(0, Math.min(GUESTS_MAX, (fGuests || 0) + d));
+    $("fGuestsVal").value = fGuests || "";
+  }
+  $("fGuestsMinus").addEventListener("click", function () { stepGuests(-10); });
+  $("fGuestsPlus").addEventListener("click", function () { stepGuests(10); });
+  $("fGuestsVal").addEventListener("input", function () {
+    var d = this.value.replace(/\D/g, "").slice(0, 4);
+    if (this.value !== d) this.value = d;
+    fGuests = Math.min(GUESTS_MAX, +d || 0);
+  });
+  $("fGuestsVal").addEventListener("blur", renderGuests);
   /* ---------- Маршрут в форме ----------
      Черновик живёт в fRoute: строки редактируются свободно, а в запись
      уезжают только заполненные (время разобралось и этап назван). */
@@ -4815,9 +5761,12 @@
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
     var w = dayWindow(fDate);
     if (fAuto && w.q !== "poor") {
-      fMin = snapMin(w.a);
+      /* Время от света идёт как есть, без округления: золотой час начинается
+         в 19:38, и «полвосьмого» тут — не удобство, а неправда */
+      fMin = Math.round(w.a);
+      fLight = true;
       if (fDur > w.b - w.a) {
-        fMin = snapMin(w.b) - fDur;      // длиннее света: золотой час уходит в конец
+        fMin = Math.round(w.b) - fDur;   // длиннее света: золотой час уходит в конец
         if (fMin < 0) fMin += 1440;
       }
     }
@@ -4918,6 +5867,60 @@
     return null;
   }
 
+  /* ============================================================
+     НАЛОЖЕНИЯ В ДНЕ
+     Наложение — не ошибка ввода, а факт, о котором фотограф должен узнать
+     раньше, чем окажется в двух местах сразу. Поэтому предупреждаем, но
+     никогда не запрещаем сохранить: два фотографа в команде, вторая камера,
+     подмена — законные причины (docs/12_CARD_ARCHITECTURE.md).
+     ============================================================ */
+  var TRAVEL_MIN = 40;                 // порог на дорогу между разными местами
+  function shootEnd(s) { return s.end != null ? s.end : s.min + (s.dur || 90); }
+  /* Имя места без уточнений: «Лобня, Московская область» и «Лобня» — одно место */
+  function placeKey(s) {
+    return String(s.place || "").split(",")[0].trim().toLowerCase();
+  }
+  /* Съёмка, с которой сравниваем: та, что сейчас в форме, либо сохранённая */
+  function clashesFor(day, min, end, place, skipIdx, wants) {
+    var out = [];
+    sessions.forEach(function (s, i) {
+      if (i === skipIdx || !sameDay(s.date, day)) return;
+      var sEnd = shootEnd(s), name = clientName(s) || s.type;
+      var when = fmt(s.min) + " — " + fmt(sEnd);
+      /* Пересечение времени — тяжелее всего: быть в двух местах разом нельзя */
+      if (min < sEnd && s.min < end) {
+        out.push({ w: 3, t: "Время пересекается",
+          m: "В этот день уже есть «" + name + "», " + when + "." });
+        return;
+      }
+      /* Дорога: съёмки не пересекаются, но между ними меньше сорока минут,
+         а места разные. Пока места заданы словом, порог берётся простым */
+      var gap = min >= sEnd ? min - sEnd : s.min - end;
+      var otherPlace = placeKey(s);
+      if (gap < TRAVEL_MIN && otherPlace && place && otherPlace !== place) {
+        out.push({ w: 2, t: "Мало времени на дорогу",
+          m: "Между «" + name + "» (" + when + ") и этой съёмкой " + gap
+            + " мин, а места разные." });
+        return;
+      }
+      /* Спор за свет: две съёмки одного дня заказали закат, а золотой час один.
+         Единственное предупреждение, которое рождается из световой модели */
+      var otherWants = Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []);
+      if (wants.indexOf("Закат") >= 0 && otherWants.indexOf("Закат") >= 0) {
+        out.push({ w: 1, t: "Обе съёмки просят закат",
+          m: "«" + name + "» (" + when + ") тоже ждёт закат, а золотой час один." });
+      }
+    });
+    return out.sort(function (a, b) { return b.w - a.w; });
+  }
+  /* Наложения съёмки, уже лежащей в записях — для карточки и списка дня */
+  function clashesOf(idx) {
+    var s = sessions[idx];
+    if (!s) return [];
+    return clashesFor(s.date, s.min, shootEnd(s), placeKey(s), idx,
+      Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []));
+  }
+
   function refreshForm() {
     var keep = new Date(selDate);
     computeSun(fDate);
@@ -4931,9 +5934,11 @@
     /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку */
     $("formSub").innerHTML = w.q === "poor"
       ? "В этот день окна света нет — время на ваше усмотрение"
-      : fMin === snapMin(w.a)
+      /* Светозависимое время больше не округляется, поэтому сравниваем и с
+         точной минутой окна, и с округлённой — иначе подпись врёт */
+      : (fLight || fMin === snapMin(w.a) || fMin === Math.round(w.a))
         ? 'Свет подсказал время — <span class="t">начало ' + fmt(fMin) + "</span>"
-        : fMin + fDur === snapMin(w.b)
+        : fMin + fDur === snapMin(w.b) || fMin + fDur === Math.round(w.b)
           ? 'Съёмка длиннее света — <span class="t">золотой час в конце</span>'
           : 'Окно света — <span class="t">' + range(w.a, w.b) + "</span>";
     computeSun(keep);
@@ -4943,7 +5948,11 @@
     $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
     renderPay(); renderRefs();
     $("refNote").hidden = true;
-    var warn = wishesCheck(fDate);
+    /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
+       а прогноз — про то, каким будет свет. Показываем то, что тяжелее */
+    var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name }),
+      editIdx, wishes)[0];
+    var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
   }
@@ -5103,30 +6112,50 @@
      свой, поэтому порядок можно переложить — и он запоминается по группе
      жанров, а не по отдельной съёмке (docs/12_CARD_ARCHITECTURE.md). */
   var CARD_BLOCKS = [
+    { k: "deal",     el: "cdDeal",     n: "Сделка",       ic: "doc" },
     { k: "day",      el: "cdDay",      n: "Плитка дня",   ic: "clock" },
+    { k: "clash",    el: "cdClash",    n: "Наложение",    ic: "warn" },
     { k: "light",    el: "cdSay",      n: "Свет",         ic: "sun" },
     { k: "place",    el: "cdPanes",    n: "Место и дальше", ic: "pin" },
     { k: "weather",  el: "cdWx",       n: "Погода",       ic: "cloud" },
     { k: "route",    el: "cdRouteFold", n: "Маршрут дня", ic: "route" },
     { k: "refs",     el: "cdRefFold",  n: "Референсы",    ic: "camera" },
+    { k: "brief",    el: "cdBriefBlk", n: "Задание",      ic: "note_edit" },
+    { k: "models",   el: "cdModelsBlk", n: "Модели",      ic: "guests" },
+    { k: "docs",     el: "cdDocFold",  n: "Документы",    ic: "doc" },
     { k: "notes",    el: "cdNotesBlk", n: "Заметки",      ic: "note" },
     { k: "delivery", el: "cdDelvBlk",  n: "Сдача",        ic: "clock" },
     { k: "money",    el: "cdMoneyBlk", n: "Гонорар",      ic: "purse" }
   ];
   var DEFAULT_ORDER = CARD_BLOCKS.map(function (b) { return b.k; });
 
+  /* У заказа порядок другой не по вкусу, а по существу: сделка отвечает на
+     главный вопрос, задание и документы важнее маршрута и референсов */
+  var GROUP_ORDER = {
+    client: ["deal", "day", "clash", "light", "place", "weather", "brief", "docs",
+             "models", "notes", "delivery", "money", "route", "refs"]
+  };
+  /* Фаза «после» у заказа — самая рабочая: съёмка прошла, а счёт и акт ещё нет.
+     Бумаги и деньги выходят вперёд поверх любого порядка (docs/11_EVENT_CARD) */
+  var AFTER_FIRST = ["deal", "docs", "money", "delivery"];
+
   var cardOrder = (saved && saved.cardOrder) || {};
   function orderFor(type) {
+    var base = GROUP_ORDER[groupOf(type)] || DEFAULT_ORDER;
     var o = cardOrder[groupOf(type)];
-    if (!o) return DEFAULT_ORDER.slice();
+    if (!o) return base.slice();
     // порядок мог быть сохранён до появления нового блока — дописываем в конец
     var out = o.filter(function (k) { return DEFAULT_ORDER.indexOf(k) >= 0; });
-    DEFAULT_ORDER.forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+    base.forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
     return out;
   }
-  function applyOrder(type) {
-    var host = $("cdEventBlocks");
-    orderFor(type).forEach(function (k) {
+  function applyOrder(type, phase) {
+    var host = $("cdEventBlocks"), list = orderFor(type);
+    if (phase === "after" && groupOf(type) === "client") {
+      var first = AFTER_FIRST.filter(function (k) { return list.indexOf(k) >= 0; });
+      list = first.concat(list.filter(function (k) { return first.indexOf(k) < 0; }));
+    }
+    list.forEach(function (k) {
       var b = CARD_BLOCKS.filter(function (x) { return x.k === k; })[0];
       if (b) host.appendChild($(b.el));      // appendChild переносит, а не копирует
     });
@@ -5236,8 +6265,11 @@
     renderWxPane(s, route, phase);
     renderRouteFold(s, route, phase);
     renderRefFold(s, route, phase);
+    renderClash(s);
+    renderDeal(s);
+    renderOrderBlocks(s);
     renderStack(s);
-    applyOrder(s.type);
+    applyOrder(s.type, phase);
   }
 
   /* ---------- Стопка карточек дня ----------
@@ -5327,8 +6359,21 @@
 
     /* Крупно — то, чем съёмка называется: пара, клиент, организация.
        Нет клиента — крупно жанр, он и есть имя съёмки */
-    var name = clientName(s);
+    var name = clientName(s), person = "";
+    if (gr.order) {
+      var org = orgById(s.orgId);
+      /* Название берётся из организации, а не из записи: «ООО Ромашка»
+         сократили до «Ромашки» — карточка показывает новое имя, история цела */
+      if (org) { name = org.name || name; person = s.person || org.person || ""; }
+      else {
+        // запись до появления организаций: разбираем строку по точке
+        var parts = name.split(/\s*[·|,]\s*/);
+        if (parts.length > 1) { name = parts[0]; person = parts.slice(1).join(", "); }
+      }
+    }
     $("cdEvNames").textContent = name || (spec.ev || s.type);
+    $("cdEvPerson").hidden = !person;
+    $("cdEvPerson").textContent = person;
 
     /* Строка под именем обязана содержать жанр, дату и время — это первое,
        что человек ищет в карточке (замечание с тестов) */
@@ -5461,7 +6506,8 @@
   /* Парные плитки: место с кнопкой маршрута и следующая точка; ниже — деньги,
      сдача, заметки. Каждая со знаком: глаз цепляется за пиктограмму */
   var PANE_IC = {
-    pin: IC.svg("pin"), note: IC.svg("note"), purse: IC.svg("purse"), clock: IC.svg("clock")
+    pin: IC.svg("pin"), note: IC.svg("note"), purse: IC.svg("purse"), clock: IC.svg("clock"),
+    guests: IC.svg("guests"), car: IC.svg("car"), brief: IC.svg("note_edit"), doc: IC.svg("doc")
   };
   function renderPanes(s, route, phase, sun) {
     var top = [], bottom = [], spec = genreSpec(s.type);
@@ -5491,12 +6537,35 @@
         + '<div class="pn-s" style="margin-top:8px">через ' + durLabel(nx.in) + ' · <span style="color:#E2A44C">' + fmt(nx.t) + "</span></div></div>");
     }
 
-    var inc = sessionIncome(s), exp = +s.expense || 0;
+    /* Гости и выезд — плитки, а не строки: число и город читаются знаком.
+       Пустое поле плитки не создаёт вовсе (docs/12_CARD_ARCHITECTURE.md) */
+    if (s.guests) {
+      top.push('<div class="pane"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.guests + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Гостей</span>'
+        + '<span class="pn-v">' + s.guests + "</span></span></div></div>");
+    }
+    if (s.trip) {
+      top.push('<div class="pane"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.car + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Выезд</span>'
+        + '<span class="pn-t" style="margin-top:2px">' + esc(s.tripPlace || "в другой город") + "</span></span></div></div>");
+    }
+
+    var inc = sessionIncome(s), exp = +s.expense || 0, pre = +s.prepay || 0;
+    /* Остаток — то, ради чего в гонорар и заглядывают перед съёмкой:
+       предоплата уже в кармане, вопрос в том, сколько привезут сегодня */
+    var rest = Math.max(0, inc - pre);
     var moneyHtml = (inc > 0 || exp > 0)
       ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.purse + "</span>"
         + '<span class="pn-body"><span class="pn-k">Гонорар</span>'
-        + '<span class="pn-v">' + money(inc) + (exp ? ' <span style="font-size:12px;color:#635E54">− расходы ' + money(exp) + "</span>" : "") + "</span></span>"
+        + '<span class="pn-v">' + money(inc) + (exp ? ' <span style="font-size:12px;color:#635E54">− расходы ' + money(exp) + "</span>" : "") + "</span>"
+        /* Строка длинная, а обрезать в ней нечего: остаток — ровно то число,
+           ради которого сюда смотрят. Поэтому перенос, а не многоточие */
+        + (pre ? '<span class="pn-s" style="margin-top:3px;white-space:normal">предоплата ' + money(pre)
+          + " · остаток " + money(rest) + "</span>" : "")
+        + "</span>"
         + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp) + "</span></div></div>"
       : "";
 
@@ -5519,8 +6588,13 @@
         + esc(s.notes) + "</span></span></div></div>"
       : "";
 
-    // Одинокая плитка не оставляет дыру: занимает ряд целиком
-    if (top.length === 1) top[0] = top[0].replace('class="pane"', 'class="pane wide"');
+    /* Дыр в сетке не бывает: непарная плитка растягивается на ряд.
+       Место всегда идёт во всю ширину, поэтому пару ищем среди остальных */
+    var half = top.filter(function (h) { return h.indexOf('class="pane"') >= 0; });
+    if (half.length % 2) {
+      var last = half[half.length - 1], at = top.lastIndexOf(last);
+      top[at] = last.replace('class="pane"', 'class="pane wide"');
+    }
     $("cdPanes").hidden = !top.length;
     $("cdPanes").innerHTML = top.join("");
     /* Заметки, сдача и гонорар — самостоятельные блоки: их порядок фотограф
@@ -5604,6 +6678,113 @@
     }).join("");
   }
 
+  /* Наложение в карточке: строкой под плиткой дня. После съёмки молчит —
+     говорить «вы были в двух местах» поздно и незачем */
+  function renderClash(s) {
+    var list = cardIdx === null ? [] : clashesOf(cardIdx);
+    var show = list.length && eventPhase(s, routeOf(s)) !== "after";
+    $("cdClash").hidden = !show;
+    if (!show) return;
+    var c = list[0];
+    $("cdClashT").innerHTML = "<b>" + esc(c.t) + ".</b> " + esc(c.m)
+      + (list.length > 1 ? " И ещё " + (list.length - 1) + "." : "");
+    paintIcons($("cdClash"));
+  }
+
+  /* ---------- Состояние сделки ----------
+     Пять звеньев в порядке работы: ТЗ, договор, счёт, оплата, акт. Каждое либо
+     закрыто, либо его ждут; новых полей под это не заводили — звено считается
+     из того, что в записи уже есть (docs/11_EVENT_CARD.md). */
+  function dealChain(s) {
+    var docs = Array.isArray(s.docs) ? s.docs : [];
+    function has(kind) {
+      return docs.some(function (r) { return r.kind === kind; });
+    }
+    var inc = sessionIncome(s), pre = +s.prepay || 0;
+    /* Оплата закрыта, когда получено всё. Нет суммы вовсе — звено не считается
+       ни закрытым, ни просроченным: фотограф просто ещё не назвал цену */
+    var paid = inc > 0 && pre >= inc;
+    return [
+      { n: "ТЗ", done: !!(s.brief || has("ТЗ")) },
+      { n: "Договор", done: has("Договор") },
+      { n: "Счёт", done: has("Счёт") },
+      { n: "Оплата", done: paid, half: !paid && pre > 0 },
+      { n: "Акт", done: has("Акт") }
+    ];
+  }
+  function renderDeal(s) {
+    /* Блок только у группы заказчика: у частной съёмки сделки нет,
+       есть договорённость на словах */
+    if (!groupSpec(s.type).order) { $("cdDeal").hidden = true; return; }
+    var chain = dealChain(s), left = chain.filter(function (l) { return !l.done; });
+    $("cdDeal").hidden = false;
+
+    /* Подпись говорит, что осталось, а не сколько сделано: «закрыто 3 из 5» —
+       отчёт, «ждём акт» — работа */
+    var half = chain.filter(function (l) { return l.half; })[0];
+    var tail = left.length === 0 ? "всё закрыто"
+      : half ? "внесена предоплата · ждём остаток"
+      : left.length === 1 ? "ждём: " + left[0].n.toLowerCase()
+      : "осталось " + left.length + " " + plural(left.length, ["шаг", "шага", "шагов"]);
+
+    $("cdDeal").innerHTML = '<div class="deal-top"><span class="deal-t">Сделка</span>'
+      + '<span class="deal-s">' + esc(tail) + "</span></div>"
+      + '<div class="deal-chain">' + chain.map(function (l, i) {
+          var isNext = !l.done && left.length && left[0] === l;
+          var cls = l.done ? " done" : (isNext ? " next" : "");
+          return '<div class="deal-l' + cls + '"><span class="deal-dot">'
+            + (l.done ? '<svg viewBox="0 0 24 24"><polyline points="5 12.5 10 17.5 19 6.5"/></svg>' : "")
+            + "</span>"
+            + '<span class="deal-n">' + l.n + "</span></div>";
+        }).join("") + "</div>";
+  }
+
+  /* ---------- Заказ в карточке ----------
+     ТЗ и модели — текстом под знаком, документы — свёрнутым списком.
+     Каждый блок появляется, только если поле заполнено: пустых заголовков
+     в карточке нет (docs/12_CARD_ARCHITECTURE.md). */
+  function renderOrderBlocks(s) {
+    fillBlock("cdBriefBlk", s.brief
+      ? '<div class="pane wide"><div class="pane-row">'
+        + '<span class="badge blue">' + PANE_IC.brief + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Задание</span>'
+        + '<span class="pn-s" style="white-space:normal;margin-top:3px;color:#C9C2B6;font-size:13px;line-height:1.45">'
+        + esc(s.brief) + "</span></span></div></div>"
+      : "");
+
+    /* Модели записаны по строке на человека — так их и показываем */
+    var models = (s.models || "").split("\n").map(function (x) { return x.trim(); })
+      .filter(function (x) { return x; });
+    fillBlock("cdModelsBlk", models.length
+      ? '<div class="pane wide"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.guests + "</span>"
+        + '<span class="pn-body"><span class="pn-k">Модели · ' + models.length + "</span>"
+        + '<span class="pn-s" style="white-space:normal;margin-top:3px;color:#C9C2B6;font-size:13px;line-height:1.5">'
+        + models.map(esc).join("<br>") + "</span></span></div></div>"
+      : "");
+
+    var docs = Array.isArray(s.docs) ? s.docs : [];
+    $("cdDocFold").hidden = !docs.length;
+    if (!docs.length) return;
+    $("cdDocFold").classList.remove("open");
+    $("cdDocS").textContent = docs.length + " " + plural(docs.length, ["документ", "документа", "документов"]);
+    $("cdDocBody").innerHTML = docs.map(function (r, i) {
+      /* У ссылки именем служит последний кусок пути: «i/dogovor.pdf» —
+         это путь, а не имя документа */
+      var name = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || "документ");
+      var kind = r.k === "link" ? refHost(r.url) : docExt(r.name) + (r.size ? " · " + docSize(r.size) : "");
+      return '<div class="sc-item" data-i="' + i + '"><span class="sc-ic">' + PANE_IC.doc + "</span>"
+        + '<span><span class="sc-n">' + esc(name) + "</span>"
+        + '<span class="sc-p">' + esc(kind) + "</span></span></div>";
+    }).join("");
+    $("cdDocBody").querySelectorAll(".sc-item").forEach(function (row) {
+      row.addEventListener("click", function () { openDoc(docs[+row.dataset.i]); });
+    });
+  }
+  $("cdDocHead").addEventListener("click", function () {
+    $("cdDocFold").classList.toggle("open");
+  });
+
   /* Референсы: строка со знаком и полосой кадров; тап — весь экран */
   function renderRefFold(s, route, phase) {
     var all = allRefs(s);
@@ -5684,13 +6865,20 @@
   /* Телефон живёт в строке клиента: «Марина и Сергей · +7 923 412-33-33».
      Отдельного поля пока нет — вытаскиваем то, что фотограф уже пишет. */
   function firstPhone(s) {
-    var m = /(\+?\d[\d\-\s()]{8,}\d)/.exec((s.phone || "") + " " + (s.contact || "") + " " + (s.notes || ""));
+    if (s.phone) return s.phone;                    // своё поле — с появления организаций
+    var org = orgById(s.orgId);
+    if (org && org.phone) return org.phone;         // не задан у съёмки — берём у организации
+    var m = /(\+?\d[\d\-\s()]{8,}\d)/.exec((s.contact || "") + " " + (s.notes || ""));
     return m ? m[1].trim() : "";
   }
   function shortPlace(p) { return String(p).split(",")[0]; }
   /* Имя без телефона: фотограф пишет клиента одной строкой, а в шапке
      нужны только имена — номер уезжает в строку вызова */
   function clientName(s) {
+    /* У заказа съёмку называет организация: «ИП Иванов И.И.», а не вся строка
+       с контактным лицом и телефоном — в списке дня для неё нет места */
+    var org = orgById(s.orgId);
+    if (org && org.name) return org.name;
     var tel = firstPhone(s);
     var n = (s.contact || "").replace(tel, "");
     return n.replace(/[\s·,;|—-]+$/, "").replace(/^[\s·,;|—-]+/, "").trim() || (s.contact || "");
@@ -5816,11 +7004,12 @@
 
   /* idx !== null — правим существующую запись клиента */
   var editIdx = null;
-  function openForm(d, startMin, idx) {
+  function openForm(d, startMin, idx, fromLight) {
     editIdx = (idx === undefined || idx === null) ? null : idx;
     if (editIdx !== null) {
       var s = sessions[editIdx];
       fAuto = false;                     // время сохранённой съёмки принадлежит фотографу
+      fLight = s.min % timeStep !== 0;   // некруглая минута — значит её назвал свет
       fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
       shootType = s.type;
       // старые записи хранили строку — поднимаем в массив
@@ -5832,23 +7021,52 @@
         : { name: s.place || "", lat: LAT, lon: LON, city: true };   // старые записи знали только имя
       $("fContact").value = s.contact || "";
       $("fNotes").value = s.notes || "";
+      fOrgId = s.orgId || null;
+      $("fPerson").value = s.person || "";
+      $("fPhone").value = s.phone || "";
       // Оплата сохранённой съёмки — свёрнута: данные уже введены
       fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
       fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
+      /* Новых полей у старой записи нет вовсе — это пустое поле, а не поломка
+         (docs/12_CARD_ARCHITECTURE.md, «Совместимость») */
+      fPrepay = +s.prepay || 0; fGuests = +s.guests || 0;
+      $("fPrepay").value = fPrepay || "";
+      $("fTrip").classList.toggle("on", !!s.trip);
+      $("fTripPlace").value = s.tripPlace || "";
+      $("fBrief").value = s.brief || "";
+      $("fModels").value = s.models || "";
+      fDocs = Array.isArray(s.docs)
+        ? s.docs.map(function (r) {
+            return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
+              /* Записи первой беты вида не знали — угадываем по имени */
+              kind: r.kind || guessDocKind(r.name || r.url) };
+          })
+        : [];
       fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
       fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "" }; });
       payFolded = true;
     } else {
       fAuto = true;
-      fDate = new Date(d); fMin = snapMin(startMin);
+      /* Время пришло от света («Запланировать» на золотой час) — не округляем;
+         обычное начало округляем до шага, чтобы не ставить 19:47 руками */
+      fLight = !!fromLight;
+      fDate = new Date(d); fMin = fromLight ? Math.round(startMin) : snapMin(startMin);
       $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
+      fOrgId = null; $("fPerson").value = ""; $("fPhone").value = "";
+      fPrepay = 0; fGuests = 0; fDocs = [];
+      $("fPrepay").value = "";
+      $("fTrip").classList.remove("on");
+      $("fTripPlace").value = "";
+      $("fBrief").value = ""; $("fModels").value = "";
       // Новая съёмка начинается там, где сейчас смотрим свет
       sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
       fRefs = [];
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
     }
     renderRouteEditor();
+    fDocKind = null;
+    renderDocKinds(); renderDocs();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
     $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
@@ -6016,15 +7234,33 @@
   $("fPlace").addEventListener("click", function () {
     openLocSheet("session");
   });
+  /* Строка клиента остаётся в записи и после появления организаций: на ней
+     держатся поиск, список дня и неделя. У заказа она собирается сама */
+  function contactLine() {
+    if (!groupSpec(shootType).order) return $("fContact").value.trim();
+    var o = orgById(fOrgId);
+    return [o ? o.name : "", $("fPerson").value.trim(), $("fPhone").value.trim()]
+      .filter(function (x) { return x; }).join(" · ");
+  }
   $("fSave").addEventListener("click", function () {
     var warn = wishesCheck(fDate);
     var rec = {
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
-      contact: $("fContact").value.trim(), notes: $("fNotes").value.trim(),
+      contact: contactLine(), notes: $("fNotes").value.trim(),
+      orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
       place: sessionPlace.name, placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
-      pay: fPay, rate: fRate, units: fUnits, expense: fExpense,
+      pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
+      /* Пустое поле не пишется значением: гости нулём и выезд ложью — те же
+         пустые поля, и в карточке их быть не должно */
+      guests: fGuests || 0,
+      trip: $("fTrip").classList.contains("on"), tripPlace: $("fTripPlace").value.trim(),
+      brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
+      docs: fDocs.filter(function (r) { return r.k === "link" || r.path; })
+        .map(function (r) {
+          return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url, kind: r.kind || null };
+        }),
       refs: fRefs.filter(function (r) { return r.k === "link" || r.path; }),
       route: hasRoute(shootType) ? routeFromEditor() : [],
       synced: syncTarget === "off" ? null : syncTarget
@@ -6273,8 +7509,8 @@
     });
   });
 
-  $("planToday").addEventListener("click", function () { openForm(selDate, Math.round(SUN.goldB || viewMin)); });
-  $("planDay").addEventListener("click", function () { openForm(calSel, Math.round(dayWindow(calSel).a)); });
+  $("planToday").addEventListener("click", function () { openForm(selDate, Math.round(SUN.goldB || viewMin), null, true); });
+  $("planDay").addEventListener("click", function () { openForm(calSel, Math.round(dayWindow(calSel).a), null, true); });
   $("seeLight").addEventListener("click", function () {
     selDate = new Date(calSel);
     computeSun(selDate);
@@ -6282,15 +7518,29 @@
     go("s-today");
   });
 
-  /* Переключатель масштаба: месяц ⇄ ближний недельный горизонт */
+  /* ---------- Переключатель масштаба ----------
+     Кнопка показывает текущий вид, веер предлагает остальные. Три знака в ряд
+     по 30 pt на телефоне не нажимались — цель выросла до 44 pt. */
+  var SCOPE_IC = { month: "view_month", week: "view_week", day: "view_day" };
   function setScope(s) {
     calScope = s;
-    $("scopeSeg").querySelectorAll("button").forEach(function (x) {
-      x.classList.toggle("active", x.dataset.scope === s);
+    $("scopeBtn").innerHTML = IC.svg(SCOPE_IC[s] || SCOPE_IC.month);
+    $("scopeMenu").querySelectorAll("button").forEach(function (x) {
+      x.classList.toggle("on", x.dataset.scope === s);
     });
   }
-  $("scopeSeg").querySelectorAll("button").forEach(function (b) {
+  function openScopeMenu(on) {
+    $("scopeMenu").hidden = !on;
+    $("scopeScrim").hidden = !on;
+    if (on) paintIcons($("scopeMenu"));
+  }
+  $("scopeBtn").addEventListener("click", function () {
+    openScopeMenu($("scopeMenu").hidden);
+  });
+  $("scopeScrim").addEventListener("click", function () { openScopeMenu(false); });
+  $("scopeMenu").querySelectorAll("button").forEach(function (b) {
     b.addEventListener("click", function () {
+      openScopeMenu(false);
       if (calScope === b.dataset.scope) return;
       setScope(b.dataset.scope);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);   // масштабы синхронны по выбранному дню
@@ -6354,7 +7604,7 @@
     renderCal(); renderDayPanel();
   });
   $("planAdd").addEventListener("click", function () {
-    openForm(calSel, Math.round(dayWindow(calSel).a));
+    openForm(calSel, Math.round(dayWindow(calSel).a), null, true);
   });
   $("dayToggle").addEventListener("click", function () {
     dayPanelOpen = !dayPanelOpen;
@@ -6375,7 +7625,7 @@
       var s = p.s, end = s.end != null ? s.end : s.min + (s.dur || 90);
       return '<button class="plan-row" data-i="' + p.i + '" style="border-bottom:1px solid rgba(255,255,255,0.04)">' +
         '<span class="pr-time">' + s.date.getDate() + " " + MON_S[s.date.getMonth()] + "</span>" +
-        '<span class="pr-who">' + (s.contact || s.type) + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
+        '<span class="pr-who">' + esc(clientName(s) || s.type) + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
     }).join("");
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -6433,6 +7683,25 @@
       renderDelvSettings(); renderCal(); renderDayPanel();
     });
   });
+
+  /* Шаг времени: барабаны перестраиваются сразу, уже введённое время не трогаем —
+     переставлять чужие 19:38 из-за смены настройки было бы самоуправством */
+  function renderStepSeg() {
+    document.querySelectorAll("#stepSeg button").forEach(function (b) {
+      b.classList.toggle("active", +b.dataset.step === timeStep);
+    });
+    $("stepNote").textContent = timeStep === 30
+      ? "Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется."
+      : "Шаг " + timeStep + " минут. Мельче — точнее, но дольше крутить барабан.";
+  }
+  document.querySelectorAll("#stepSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      timeStep = +b.dataset.step;
+      saveAll(); renderStepSeg();
+      fillMins(fwSM, fMin % 60); fillMins(fwEM, (fMin + fDur) % 60);
+    });
+  });
+  renderStepSeg();
 
   document.querySelectorAll("#calSync button").forEach(function (b) {
     b.addEventListener("click", function () {
