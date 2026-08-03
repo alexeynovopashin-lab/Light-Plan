@@ -3082,7 +3082,7 @@
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
-        defaultRate: defaultRate, packs: packs, loc: { lat: LAT, lon: LON }
+        defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON }
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
       if (typeof yaSchedule === "function") yaSchedule();   // копия уедет на Диск через пару секунд
@@ -3354,10 +3354,28 @@
   var defaultRate = saved && saved.defaultRate ? saved.defaultRate : 0;   // ставка ₽/час по умолчанию
   /* Пакет — именованный продукт: «Загс и прогулка · 3 ч · 14 000 ₽».
      n — название, p — цена, h — часы (null: длительность не задаёт).
-     Старый формат (голые числа) мигрируется в безымянные пакеты. */
-  var packs = ((saved && saved.packs) || []).map(function (p, i) {
-    return (typeof p === "number") ? { n: "Пакет " + (i + 1), p: p, h: null } : p;
-  }).filter(function (p) { return p && p.p > 0; }).slice(0, 6);
+
+     Пакеты лежат по жанрам: у портретного фотографа это «фотосет», «полчаса»,
+     «съёмка с визажистом», и предлагать ему свадебный «загс и прогулка»
+     бессмысленно. Общий список первой беты переезжает в свадьбы — там он
+     и собирался (docs/12_CARD_ARCHITECTURE.md). */
+  function normPacks(list) {
+    return (list || []).map(function (p, i) {
+      return (typeof p === "number") ? { n: "Пакет " + (i + 1), p: p, h: null } : p;
+    }).filter(function (p) { return p && p.p > 0; }).slice(0, 6);
+  }
+  var genrePacks = {};
+  (function () {
+    var raw = saved && saved.packs;
+    if (Array.isArray(raw)) genrePacks["Свадьбы"] = normPacks(raw);   // старый общий список
+    else if (raw && typeof raw === "object") {
+      for (var g in raw) genrePacks[g] = normPacks(raw[g]);
+    }
+  })();
+  function packsOf(g) {
+    if (!genrePacks[g]) genrePacks[g] = [];
+    return genrePacks[g];
+  }
 
   /* ---------- Деньги: доход, расходы, прибыль ---------- */
   function money(n) {
@@ -5523,10 +5541,13 @@
     item:   { m: "unit",   label: "За предмет", unit: "предметов" }
   };
   var GENRE = {
-    "Портрет":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
+    /* Пакет есть у всех, кто работает с людьми: у портретного фотографа это
+       «фотосет», «полчаса», «съёмка с визажистом» — тот же продукт, что
+       свадебный «загс и прогулка», только свой (docs/12_CARD_ARCHITECTURE.md) */
+    "Портрет":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "Свадьбы":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
-    "Лавстори":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
-    "Семья":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat"] },
+    "Лавстори":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
+    "Семья":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "Пейзаж":      { delivery: false, client: false, dur: null, pay: ["flat"] },
     "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
     "Стрит":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
@@ -5547,9 +5568,13 @@
   };
   var GROUP = {
     event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true, guests: true, prepay: true },
-    people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "off", prepay: true },
+    /* Таймлайн у «Людей» доступен и молчит: лавстори на три часа идёт парком,
+       кафе и городом — это тоже день из точек, только короткий */
+    people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "opt", pack: true, prepay: true },
     client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: true, prepay: true, order: true },
-    own:    { who: null,           whoHint: "",                              route: "off" }
+    /* Своя съёмка бывает и оплаченной: коммерческий стрит, продажа пейзажа.
+       Клиента нет, но предоплату проставить можно */
+    own:    { who: null,           whoHint: "",                              route: "off", prepay: true }
   };
   function groupOf(type) { return GENRE_GROUP[type] || "people"; }
   function groupSpec(type) { return GROUP[groupOf(type)] || GROUP.people; }
@@ -6252,21 +6277,30 @@
     row.addEventListener("pointerdown", function (e) {
       if (e.button) return;
       var startY = e.clientY, moved = false;
-      row.setPointerCapture(e.pointerId);
+      /* Захват указателя не обязателен для работы, но Safari умеет бросать
+         на нём InvalidPointerId — тогда перетаскивание падало молча */
+      try { row.setPointerCapture(e.pointerId); } catch (err) {}
 
+      /* Соседа под пальцем ищем перебором строк, а не elementFromPoint:
+         тот требовал гасить pointer-events у строки, а Safari от этого
+         терял захват указателя — строка переставала ехать вовсе */
+      function rowUnder(y) {
+        var kids = host.children;
+        for (var i = 0; i < kids.length; i++) {
+          if (kids[i] === row) continue;
+          var r = kids[i].getBoundingClientRect();
+          if (y >= r.top && y <= r.bottom) return kids[i];
+        }
+        return null;
+      }
       function move(ev) {
         var dy = ev.clientY - startY;
         if (!moved && Math.abs(dy) < 4) return;
-        if (!moved) {
-          moved = true;
-          row.classList.add("drag");
-          // под пальцем должна оказаться строка снизу, а не сама перетаскиваемая
-          row.style.pointerEvents = "none";
-        }
+        if (!moved) { moved = true; row.classList.add("drag"); }
+        ev.preventDefault();
         row.style.transform = "translateY(" + dy + "px)";
-        var over = document.elementFromPoint(ev.clientX, ev.clientY);
-        over = over && over.closest(".ord-row");
-        if (over && over !== row) {
+        var over = rowUnder(ev.clientY);
+        if (over) {
           var rect = over.getBoundingClientRect();
           var after = ev.clientY > rect.top + rect.height / 2;
           host.insertBefore(row, after ? over.nextSibling : over);
@@ -6277,15 +6311,16 @@
       function up() {
         row.removeEventListener("pointermove", move);
         row.removeEventListener("pointerup", up);
+        row.removeEventListener("pointercancel", up);
         row.classList.remove("drag");
         row.style.transform = "";
-        row.style.pointerEvents = "";
         if (!moved) return;
         cardOrder[groupOf(s.type)] = [].map.call(host.children, function (r) { return r.dataset.k; });
         saveAll();
       }
       row.addEventListener("pointermove", move);
       row.addEventListener("pointerup", up);
+      row.addEventListener("pointercancel", up);   // системный жест прервал — не залипаем
     });
   }
   $("cardOrder").addEventListener("click", function () { setOrderMode(!ordMode); });
@@ -6393,7 +6428,9 @@
       peeks.querySelectorAll(".peek").forEach(function (b) { b.style.transform = ""; });
     }
     sheet.addEventListener("touchstart", function (e) {
-      if (peeks.hidden || e.touches.length !== 1 || overlay.scrollTop > 2) { y0 = null; return; }
+      /* В режиме перестановки лист не тянется: там тем же движением таскают
+         блоки, и жест стопки съедал перетаскивание целиком */
+      if (ordMode || peeks.hidden || e.touches.length !== 1 || overlay.scrollTop > 2) { y0 = null; return; }
       y0 = e.touches[0].clientY; on = false;
     }, { passive: true });
     sheet.addEventListener("touchmove", function (e) {
@@ -7235,10 +7272,10 @@
   });
 
   /* Пакеты с ценой > 0 — рабочие; недозаполненные строки живут только в редакторе */
-  function usablePacks() { return packs.filter(function (p) { return p.p > 0; }); }
+  function usablePacks() { return packsOf(shootType).filter(function (p) { return p.p > 0; }); }
   function numVal(el) { return parseFloat((el.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0; }
   /* Пример пакета берётся у открытого жанра: «Загс и прогулка» уместны на
-     свадьбе и нелепы в предметке. Сами пакеты пока общие — см. ROADMAP */
+     свадьбе и нелепы в предметке */
   var PACK_HINT = {
     "Свадьбы": "Загс и прогулка", "Лавстори": "Прогулка на закате",
     "Семья": "Час в студии", "Портрет": "Час и десять кадров",
@@ -7248,7 +7285,7 @@
   };
   function packHint() { return PACK_HINT[shootType] || "Съёмка на час"; }
   function renderPackEditor() {
-    var host = $("packList"), hint = packHint();
+    var host = $("packList"), hint = packHint(), packs = packsOf(shootType);
     host.innerHTML = packs.map(function (p, i) {
       return '<div class="pack-item" data-i="' + i + '">'
         + '<input class="pk-n" type="text" placeholder="' + esc(hint) + '" value="' + (p.n || "").replace(/"/g, "&quot;") + '"/>'
@@ -7267,6 +7304,7 @@
     });
   }
   $("packAdd").addEventListener("click", function () {
+    var packs = packsOf(shootType);
     if (packs.length >= 6) return;
     packs.push({ n: "", p: 0, h: null });
     renderPackEditor();
