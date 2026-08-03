@@ -417,6 +417,8 @@
 
   /* Компактный список съёмок дня */
   .plan-list { padding: 0 24px; flex-shrink: 0; }
+  /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
+  .plan-list[hidden], .sec-label[hidden], .action[hidden], .day-panel[hidden] { display: none; }
   .cal, .cal-head, .legend, .sec-label { flex-shrink: 0; }
   .plan-row {
     display: flex; align-items: baseline; gap: 12px; width: 100%;
@@ -541,6 +543,40 @@
   @media (prefers-reduced-motion: reduce) { .d-n.breath::before { animation: none; } }
   .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; background: transparent; }
   .cal { row-gap: 2px; }
+  /* Съёмки выбранного дня — записи клиентов */
+  .bookings { margin-top: 12px; }
+  .booking {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    background: #17150F; border: none; border-radius: 14px;
+    padding: 12px 15px; margin-bottom: 8px; cursor: pointer;
+    color: #EFEAE0; font-family: inherit; text-align: left;
+  }
+  .booking:active { background: #201C15; }
+  .bk-time { display: flex; flex-direction: column; min-width: 58px; font-variant-numeric: tabular-nums; }
+  .bk-start { font-size: 16px; color: #E2A44C; font-weight: 550; }
+  .bk-to { font-size: 11px; color: #8A8478; margin-top: 2px; }
+  .bk-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .bk-title, .bk-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bk-title { font-size: 15px; font-weight: 600; }
+  .bk-sub { font-size: 12px; color: #8A8478; margin-top: 2px; }
+  .bk-edit { color: #635E54; font-size: 20px; line-height: 1; }
+
+  /* паддинг задан выше, внутри свёртываемого блока */
+  .dp-date { font-size: 11px; color: #8A8478; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
+  .dp-verdict { font-size: 26px; font-weight: 650; letter-spacing: -0.4px; margin-top: 6px; }
+  .dp-why { color: #8A8478; font-size: 14px; margin-top: 5px; }
+  .dp-window { margin-top: 14px; font-size: 15px; }
+  .dp-window .t { font-variant-numeric: tabular-nums; color: #E2A44C; font-weight: 600; }
+  .dp-trust { font-size: 12px; color: #635E54; margin-top: 6px; }
+  .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
+
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
+  .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8A8478; }
+  .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .legend .ring { background: rgba(239,234,224,0.24); border: none; }
+  .legend .ring.due { background: rgba(201,102,61,0.34); }
+
   /* ---------- Неделя: семь дней карточками ----------
      Не световые ленты, а занятость: где день занят, куда влезет съёмка,
      что горит по сдаче. Свет остался строкой заката у свободного дня. */
@@ -3667,7 +3703,12 @@
     document.querySelector(".legend").style.display = (day || week) ? "none" : "";
     /* В сводке дня календарной сетки нет вовсе, а панель дня раскрыта всегда:
        весь экран отвечает на один вопрос — что за день */
-    $("dayToggle").hidden = day;
+    /* В неделе нижний блок не нужен: строки дней уже показывают всё,
+       что он повторял бы списком */
+    ["dayToggle", "dayPanel", "plannedLabel", "dpSessions", "planDay"].forEach(function (id) {
+      $(id).hidden = week;
+    });
+    if (!week) $("dayToggle").hidden = day;
     /* В сводке дня панель раскрыта всегда; в остальных видах — как оставил
        пользователь, иначе автоматическое раскрытие остаётся навсегда */
     $("dayPanel").classList.toggle("open", day || dayPanelOpen);
