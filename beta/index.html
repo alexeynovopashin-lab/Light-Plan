@@ -925,6 +925,8 @@
     stroke-linecap: round; stroke-linejoin: round; }
   .ev-names { font-size: 29px; font-weight: 700; color: #EFEAE0; letter-spacing: -0.7px;
     line-height: 1.1; margin-top: 8px; }
+  .ev-person { font-size: 14.5px; color: #C9C2B6; margin-top: 5px; }
+  .ev-person[hidden] { display: none; }
   .ev-when { font-size: 13px; color: #A8B49B; margin-top: 5px; }
   .ev-when.past { color: #635E54; }
   .ev-tel { display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
@@ -972,6 +974,32 @@
   }
   .go-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9;
     stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Состояние сделки: цепочка звеньев. Закрытое звено золотое и с галкой,
+     открытое — пустой кружок; читается без подписи, как лента точек дня */
+  .deal { margin-top: 14px; padding: 14px 12px 12px; background: #17150F; border-radius: 18px; }
+  .deal[hidden] { display: none; }
+  .deal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .deal-t { font-size: 15px; color: #EFEAE0; }
+  .deal-s { font-size: 12.5px; color: #8A8478; flex-shrink: 0; }
+  .deal-chain { display: flex; margin-top: 13px; }
+  .deal-l { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column;
+    align-items: center; text-align: center; position: relative; }
+  /* Нить между звеньями идёт под кружками и не выходит за края цепочки */
+  .deal-l::before { content: ""; position: absolute; top: 13px; left: -50%; width: 100%;
+    height: 1px; background: #221F19; }
+  .deal-l:first-child::before { display: none; }
+  .deal-l.done::before { background: #E2A44C; }
+  .deal-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #2C2820;
+    background: #0F0E0C; display: flex; align-items: center; justify-content: center;
+    position: relative; z-index: 1; }
+  .deal-l.done .deal-dot { background: #E2A44C; border-color: #E2A44C; }
+  .deal-dot svg { width: 13px; height: 13px; fill: none; stroke: #17150F; stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .deal-n { font-size: 11px; color: #635E54; margin-top: 6px; }
+  .deal-l.done .deal-n { color: #A8A093; }
+  .deal-l.next .deal-dot { border-color: #E2A44C; }
+  .deal-l.next .deal-n { color: #E2A44C; }
 
   /* Плитка дня */
   .day-tile {
@@ -1872,6 +1900,9 @@
     <div class="ev-head" id="cdEvHead" hidden>
       <div class="ev-sign" id="cdEvSign"></div>
       <div class="ev-names" id="cdEvNames">—</div>
+      <!-- У заказа крупно организация, а контактное лицо строкой ниже:
+           менеджер меняется, юрлицо остаётся (docs/12_CARD_ARCHITECTURE.md) -->
+      <div class="ev-person" id="cdEvPerson" hidden>—</div>
       <div class="ev-when" id="cdEvWhen">—</div>
       <a class="ev-tel" id="cdEvTel" href="tel:" hidden>
         <span id="cdEvTelN">—</span>
@@ -1891,6 +1922,10 @@
 
     <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
     <div id="cdEventBlocks">
+    <!-- Состояние сделки: у заказа съёмка — середина, а не кульминация.
+         Цепочка отвечает на один вопрос: что осталось закрыть -->
+    <div class="deal" id="cdDeal" hidden></div>
+
     <div class="day-tile" id="cdDay" hidden>
       <div class="dt-date">
         <div class="dt-d" id="cdDayD">30</div>
@@ -2142,7 +2177,10 @@
     <div class="group" id="fOrderGroup" hidden>
       <textarea id="fBrief" placeholder="Техническое задание: что снять, в каком виде сдать"></textarea>
       <textarea class="sep" id="fModels" placeholder="Модели: имя и телефон, по одной в строке" hidden></textarea>
-      <div class="ref-grid sep" id="docGrid"></div>
+      <!-- Вид документа выбирается до добавления, как папка у референсов:
+           он же фильтр списка, он же метка для новых файлов -->
+      <div class="rf-tags wrap sep" id="docKinds"></div>
+      <div class="ref-grid" id="docGrid"></div>
       <div class="ref-add sep">
         <button type="button" class="ref-btn" id="docFileBtn"><span data-ic="doc"></span>Файл</button>
         <button type="button" class="ref-btn" id="docLink">
@@ -4479,6 +4517,38 @@
      Механика та же, что у референсов: файл уезжает на Диск фотографа, в записи
      остаётся путь. Отличие одно — это не картинки: миниатюры нет, поэтому в
      списке стоят имя, тип и размер, а тап открывает файл. */
+  /* Виды документов заказа. Порядок — порядок сделки: чем открывают работу,
+     тем и начинается список; акт закрывает (docs/12_CARD_ARCHITECTURE.md) */
+  var DOC_KINDS = ["Договор", "Счёт", "Акт", "ТЗ"];
+  var fDocKind = null;                 // выбранный вид: и фильтр, и метка новым
+  /* Имя файла обычно уже говорит, что это: «dogovor-romashka.pdf». Угадываем,
+     чтобы не заставлять выбирать вид у каждого файла заново */
+  var DOC_GUESS = [
+    [/догов|contract|dogovor/i, "Договор"],
+    [/счёт|счет|invoice|schet/i, "Счёт"],
+    [/акт(?![а-яё])|act(?![a-z])/i, "Акт"],
+    [/тз|бриф|brief|task/i, "ТЗ"]
+  ];
+  function guessDocKind(name) {
+    for (var i = 0; i < DOC_GUESS.length; i++) {
+      if (DOC_GUESS[i][0].test(name || "")) return DOC_GUESS[i][1];
+    }
+    return null;
+  }
+  function renderDocKinds() {
+    $("docKinds").innerHTML = DOC_KINDS.map(function (k) {
+      var n = fDocs.filter(function (r) { return r.kind === k; }).length;
+      return '<button type="button" class="rf-tag' + (fDocKind === k ? " on" : "") + '" data-k="' + k + '">'
+        + k + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
+    }).join("");
+    $("docKinds").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        fDocKind = fDocKind === b.dataset.k ? null : b.dataset.k;
+        renderDocKinds(); renderDocs();
+      });
+    });
+  }
+
   function docSize(b) {
     if (!b) return "";
     return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + " КБ"
@@ -4490,16 +4560,16 @@
   }
   function renderDocs() {
     var box = $("docGrid");
-    box.innerHTML = fDocs.map(function (r, i) {
-      if (r.k === "link") {
-        return '<button type="button" class="ref-card link" data-i="' + i + '">'
-          + '<span class="host">' + refHost(r.url) + "</span>"
-          + '<span class="path">' + refTail(r.url) + "</span>"
-          + '<span class="kill" data-kill="' + i + '">✕</span></button>';
-      }
+    /* Выбранный вид работает фильтром: в сделке из десяти бумаг ищут одну */
+    var shown = fDocs.map(function (r, i) { return { r: r, i: i }; })
+      .filter(function (p) { return !fDocKind || p.r.kind === fDocKind; });
+    box.innerHTML = shown.map(function (p) {
+      var r = p.r, i = p.i;
+      var top = r.kind || (r.k === "link" ? refHost(r.url) : docExt(r.name));
+      var sub = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || "документ");
       return '<button type="button" class="ref-card link" data-i="' + i + '">'
-        + '<span class="host">' + docExt(r.name) + "</span>"
-        + '<span class="path">' + esc(r.name || "документ") + "</span>"
+        + '<span class="host">' + esc(top) + "</span>"
+        + '<span class="path">' + esc(sub) + "</span>"
         + (r.pending ? '<span class="wait">…</span>' : "")
         + '<span class="kill" data-kill="' + i + '">✕</span></button>';
     }).join("");
@@ -4509,7 +4579,7 @@
         if (kill) {
           var i = +kill.dataset.kill, r = fDocs[i];
           if (r && r.k === "doc" && r.path) yaDelete(r.path);
-          fDocs.splice(i, 1); renderDocs(); return;
+          fDocs.splice(i, 1); renderDocs(); renderDocKinds(); return;
         }
         openDoc(fDocs[+b.dataset.i]);
       });
@@ -4534,8 +4604,9 @@
     }
     var dir = "app:/docs", dirReady = yaEnsureDir(dir);
     Array.prototype.slice.call(files).forEach(function (file) {
-      var rec = { k: "doc", path: null, name: file.name, size: file.size, pending: true };
-      fDocs.push(rec); renderDocs();
+      var rec = { k: "doc", path: null, name: file.name, size: file.size, pending: true,
+        kind: fDocKind || guessDocKind(file.name) };
+      fDocs.push(rec); renderDocs(); renderDocKinds();
       var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
       var ext = (file.name.match(/\.[a-z0-9]+$/i) || [""])[0];
       dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
@@ -4555,8 +4626,8 @@
     if (!url) return;
     url = url.trim();
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-    fDocs.push({ k: "link", url: url });
-    renderDocs();
+    fDocs.push({ k: "link", url: url, kind: fDocKind || guessDocKind(url) });
+    renderDocs(); renderDocKinds();
   });
 
   function askLink() {
@@ -5290,6 +5361,7 @@
      свой, поэтому порядок можно переложить — и он запоминается по группе
      жанров, а не по отдельной съёмке (docs/12_CARD_ARCHITECTURE.md). */
   var CARD_BLOCKS = [
+    { k: "deal",     el: "cdDeal",     n: "Сделка",       ic: "doc" },
     { k: "day",      el: "cdDay",      n: "Плитка дня",   ic: "clock" },
     { k: "light",    el: "cdSay",      n: "Свет",         ic: "sun" },
     { k: "place",    el: "cdPanes",    n: "Место и дальше", ic: "pin" },
@@ -5305,18 +5377,33 @@
   ];
   var DEFAULT_ORDER = CARD_BLOCKS.map(function (b) { return b.k; });
 
+  /* У заказа порядок другой не по вкусу, а по существу: сделка отвечает на
+     главный вопрос, задание и документы важнее маршрута и референсов */
+  var GROUP_ORDER = {
+    client: ["deal", "day", "light", "place", "weather", "brief", "docs",
+             "models", "notes", "delivery", "money", "route", "refs"]
+  };
+  /* Фаза «после» у заказа — самая рабочая: съёмка прошла, а счёт и акт ещё нет.
+     Бумаги и деньги выходят вперёд поверх любого порядка (docs/11_EVENT_CARD) */
+  var AFTER_FIRST = ["deal", "docs", "money", "delivery"];
+
   var cardOrder = (saved && saved.cardOrder) || {};
   function orderFor(type) {
+    var base = GROUP_ORDER[groupOf(type)] || DEFAULT_ORDER;
     var o = cardOrder[groupOf(type)];
-    if (!o) return DEFAULT_ORDER.slice();
+    if (!o) return base.slice();
     // порядок мог быть сохранён до появления нового блока — дописываем в конец
     var out = o.filter(function (k) { return DEFAULT_ORDER.indexOf(k) >= 0; });
-    DEFAULT_ORDER.forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+    base.forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
     return out;
   }
-  function applyOrder(type) {
-    var host = $("cdEventBlocks");
-    orderFor(type).forEach(function (k) {
+  function applyOrder(type, phase) {
+    var host = $("cdEventBlocks"), list = orderFor(type);
+    if (phase === "after" && groupOf(type) === "client") {
+      var first = AFTER_FIRST.filter(function (k) { return list.indexOf(k) >= 0; });
+      list = first.concat(list.filter(function (k) { return first.indexOf(k) < 0; }));
+    }
+    list.forEach(function (k) {
       var b = CARD_BLOCKS.filter(function (x) { return x.k === k; })[0];
       if (b) host.appendChild($(b.el));      // appendChild переносит, а не копирует
     });
@@ -5426,9 +5513,10 @@
     renderWxPane(s, route, phase);
     renderRouteFold(s, route, phase);
     renderRefFold(s, route, phase);
+    renderDeal(s);
     renderOrderBlocks(s);
     renderStack(s);
-    applyOrder(s.type);
+    applyOrder(s.type, phase);
   }
 
   /* ---------- Стопка карточек дня ----------
@@ -5518,8 +5606,17 @@
 
     /* Крупно — то, чем съёмка называется: пара, клиент, организация.
        Нет клиента — крупно жанр, он и есть имя съёмки */
-    var name = clientName(s);
+    var name = clientName(s), person = "";
+    /* У заказа строка клиента пишется «ООО «Ромашка» · Пётр»: до точки —
+       организация, после — контактное лицо. Отдельного поля у неё пока нет,
+       поэтому разбираем то, что фотограф уже написал (docs/12, этап 3) */
+    if (gr.order) {
+      var parts = name.split(/\s*[·|,]\s*/);
+      if (parts.length > 1) { name = parts[0]; person = parts.slice(1).join(", "); }
+    }
     $("cdEvNames").textContent = name || (spec.ev || s.type);
+    $("cdEvPerson").hidden = !person;
+    $("cdEvPerson").textContent = person;
 
     /* Строка под именем обязана содержать жанр, дату и время — это первое,
        что человек ищет в карточке (замечание с тестов) */
@@ -5824,6 +5921,54 @@
     }).join("");
   }
 
+  /* ---------- Состояние сделки ----------
+     Пять звеньев в порядке работы: ТЗ, договор, счёт, оплата, акт. Каждое либо
+     закрыто, либо его ждут; новых полей под это не заводили — звено считается
+     из того, что в записи уже есть (docs/11_EVENT_CARD.md). */
+  function dealChain(s) {
+    var docs = Array.isArray(s.docs) ? s.docs : [];
+    function has(kind) {
+      return docs.some(function (r) { return r.kind === kind; });
+    }
+    var inc = sessionIncome(s), pre = +s.prepay || 0;
+    /* Оплата закрыта, когда получено всё. Нет суммы вовсе — звено не считается
+       ни закрытым, ни просроченным: фотограф просто ещё не назвал цену */
+    var paid = inc > 0 && pre >= inc;
+    return [
+      { n: "ТЗ", done: !!(s.brief || has("ТЗ")) },
+      { n: "Договор", done: has("Договор") },
+      { n: "Счёт", done: has("Счёт") },
+      { n: "Оплата", done: paid, half: !paid && pre > 0 },
+      { n: "Акт", done: has("Акт") }
+    ];
+  }
+  function renderDeal(s) {
+    /* Блок только у группы заказчика: у частной съёмки сделки нет,
+       есть договорённость на словах */
+    if (!groupSpec(s.type).order) { $("cdDeal").hidden = true; return; }
+    var chain = dealChain(s), left = chain.filter(function (l) { return !l.done; });
+    $("cdDeal").hidden = false;
+
+    /* Подпись говорит, что осталось, а не сколько сделано: «закрыто 3 из 5» —
+       отчёт, «ждём акт» — работа */
+    var half = chain.filter(function (l) { return l.half; })[0];
+    var tail = left.length === 0 ? "всё закрыто"
+      : half ? "внесена предоплата · ждём остаток"
+      : left.length === 1 ? "ждём: " + left[0].n.toLowerCase()
+      : "осталось " + left.length + " " + plural(left.length, ["шаг", "шага", "шагов"]);
+
+    $("cdDeal").innerHTML = '<div class="deal-top"><span class="deal-t">Сделка</span>'
+      + '<span class="deal-s">' + esc(tail) + "</span></div>"
+      + '<div class="deal-chain">' + chain.map(function (l, i) {
+          var isNext = !l.done && left.length && left[0] === l;
+          var cls = l.done ? " done" : (isNext ? " next" : "");
+          return '<div class="deal-l' + cls + '"><span class="deal-dot">'
+            + (l.done ? '<svg viewBox="0 0 24 24"><polyline points="5 12.5 10 17.5 19 6.5"/></svg>' : "")
+            + "</span>"
+            + '<span class="deal-n">' + l.n + "</span></div>";
+        }).join("") + "</div>";
+  }
+
   /* ---------- Заказ в карточке ----------
      ТЗ и модели — текстом под знаком, документы — свёрнутым списком.
      Каждый блок появляется, только если поле заполнено: пустых заголовков
@@ -6110,7 +6255,11 @@
       $("fBrief").value = s.brief || "";
       $("fModels").value = s.models || "";
       fDocs = Array.isArray(s.docs)
-        ? s.docs.map(function (r) { return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url }; })
+        ? s.docs.map(function (r) {
+            return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
+              /* Записи первой беты вида не знали — угадываем по имени */
+              kind: r.kind || guessDocKind(r.name || r.url) };
+          })
         : [];
       fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
       fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "" }; });
@@ -6131,7 +6280,8 @@
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
     }
     renderRouteEditor();
-    renderDocs();
+    fDocKind = null;
+    renderDocKinds(); renderDocs();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
     $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
@@ -6313,7 +6463,10 @@
       guests: fGuests || 0,
       trip: $("fTrip").classList.contains("on"), tripPlace: $("fTripPlace").value.trim(),
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
-      docs: fDocs.filter(function (r) { return r.k === "link" || r.path; }),
+      docs: fDocs.filter(function (r) { return r.k === "link" || r.path; })
+        .map(function (r) {
+          return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url, kind: r.kind || null };
+        }),
       refs: fRefs.filter(function (r) { return r.k === "link" || r.path; }),
       route: hasRoute(shootType) ? routeFromEditor() : [],
       synced: syncTarget === "off" ? null : syncTarget
