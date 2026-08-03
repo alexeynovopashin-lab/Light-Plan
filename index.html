@@ -477,6 +477,7 @@
     flex: 1; min-width: 0; background: none; border: none; padding: 4px;
     font-family: inherit; font-size: 19px; font-weight: 650; color: #EFEAE0;
     letter-spacing: -0.3px; text-align: center; cursor: pointer; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
   }
   .plan-title #calYear { color: #8A8478; font-weight: 500; }
   .plan-title:active { opacity: 0.6; }
@@ -540,74 +541,60 @@
   @media (prefers-reduced-motion: reduce) { .d-n.breath::before { animation: none; } }
   .cal .d .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; background: transparent; }
   .cal { row-gap: 2px; }
-  /* ---------- Недельный вид: семь световых лент ---------- */
-  .week { padding: 4px 20px 0; }
-  .wk-row {
-    display: flex; align-items: center; gap: 12px; width: 100%;
-    background: none; border: none; cursor: pointer; font-family: inherit;
-    padding: 7px 4px; border-radius: 10px; text-align: left;
-    transition: background 0.2s ease;
+  /* ---------- Неделя: семь дней карточками ----------
+     Не световые ленты, а занятость: где день занят, куда влезет съёмка,
+     что горит по сдаче. Свет остался строкой заката у свободного дня. */
+  .week { padding: 6px 20px 0; display: flex; flex-direction: column; gap: 4px; }
+  .wk-day-row {
+    display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: start;
+    padding: 8px; border-radius: 14px;
   }
-  .wk-row.sel { background: #1A1712; }
-  .wk-row:active { background: #17150F; }
-  /* День недели над числом — узкая колонка, числа как объекты композиции */
-  .wk-day { flex-shrink: 0; width: 34px; text-align: center; }
-  .wk-day .wd { font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase; color: #55504A; font-weight: 600; }
-  .wk-day .dn { font-size: 18px; color: #EFEAE0; font-variant-numeric: tabular-nums; line-height: 1.1; }
-  .wk-row.today .wk-day .wd, .wk-row.today .wk-day .dn { color: #E2A44C; }
-  .wk-row.past .wk-day .dn { color: #4A453E; }
-  /* Лента суток 0–24 ч: ночь тёмная, день светлее, золотые окна латунью */
-  .wk-track {
-    position: relative; flex: 1; height: 26px; border-radius: 6px;
-    background: #131110; overflow: hidden;
+  .wk-day-row.sel { background: #17150F; }
+  .wk-day-row.past { opacity: 0.5; }
+  .wk-head {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    background: none; border: none; padding: 4px 0 0; cursor: pointer; font-family: inherit;
   }
-  .wk-track .zday { position: absolute; top: 0; bottom: 0; background: #201C15; }
-  .wk-track .zgold { position: absolute; top: 0; bottom: 0; background: rgba(226,164,76,0.32); }
-  /* Восход и закат — тонкие латунные риски: гравировка прибора */
-  .wk-track .edge { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(226,164,76,0.5); }
-  /* Полдень — ориентир, едва заметная риска */
-  .wk-track .noon { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.06); }
-  /* Съёмка на ленте: сегмент начало–конец, цвет — срочность сдачи */
-  .wk-track .shoot {
-    position: absolute; top: 6px; height: 14px; min-width: 3px; border-radius: 3px;
-    background: #EFEAE0; box-shadow: 0 0 0 1px #131110;
+  .wk-num { font-size: 19px; color: #EFEAE0; font-variant-numeric: tabular-nums; }
+  .wk-wd { font-size: 10px; color: #55504A; letter-spacing: 0.6px; }
+  .wk-day-row.today .wk-num { color: #E2A44C; font-weight: 650; }
+  .wk-day-row.today .wk-wd { color: #E2A44C; }
+  .wk-list { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .wk-card {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    padding: 9px 12px; border: none; border-radius: 12px; background: #17150F;
+    font-family: inherit; color: #EFEAE0; cursor: pointer;
   }
-  .wk-sum { flex-shrink: 0; width: 30px; text-align: right; font-size: 12px;
-    color: #8A8478; font-variant-numeric: tabular-nums; }
-  .wk-sum.poor { color: #55504A; }
+  .wk-card:active { opacity: 0.75; }
+  .wk-ic svg {
+    width: 17px; height: 17px; fill: none; stroke: #E2A44C; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round; display: block;
+  }
+  .wk-body { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 8px; }
+  .wk-t { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wk-s {
+    margin-left: auto; font-size: 12.5px; color: #8A8478;
+    font-variant-numeric: tabular-nums; flex-shrink: 0;
+  }
+  /* Свободный день — не пустота, а предложение: тап заводит съёмку */
+  .wk-free {
+    display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
+    padding: 9px 12px; border: none; border-radius: 12px; background: none;
+    box-shadow: inset 0 0 0 1px #1C1913;
+    font-family: inherit; font-size: 13.5px; color: #55504A; cursor: pointer;
+  }
+  .wk-free span { margin-left: auto; color: #635E54; font-variant-numeric: tabular-nums; }
+  .wk-free:active { background: #17150F; }
+  /* Сдача материала в этот день — тоже занятость */
+  .wk-due {
+    display: flex; align-items: center; gap: 7px; padding: 6px 12px;
+    font-size: 12px; color: #C9663D;
+  }
+  .wk-due svg {
+    width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
+  }
 
-  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
-  .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8A8478; }
-  .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .legend .ring { background: rgba(239,234,224,0.24); border: none; }
-  .legend .ring.due { background: rgba(201,102,61,0.34); }
-
-  /* Съёмки выбранного дня — записи клиентов */
-  .bookings { margin-top: 12px; }
-  .booking {
-    display: flex; align-items: center; gap: 14px; width: 100%;
-    background: #17150F; border: none; border-radius: 14px;
-    padding: 12px 15px; margin-bottom: 8px; cursor: pointer;
-    color: #EFEAE0; font-family: inherit; text-align: left;
-  }
-  .booking:active { background: #201C15; }
-  .bk-time { display: flex; flex-direction: column; min-width: 58px; font-variant-numeric: tabular-nums; }
-  .bk-start { font-size: 16px; color: #E2A44C; font-weight: 550; }
-  .bk-to { font-size: 11px; color: #8A8478; margin-top: 2px; }
-  .bk-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .bk-title, .bk-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bk-title { font-size: 15px; font-weight: 600; }
-  .bk-sub { font-size: 12px; color: #8A8478; margin-top: 2px; }
-  .bk-edit { color: #635E54; font-size: 20px; line-height: 1; }
-
-  /* паддинг задан выше, внутри свёртываемого блока */
-  .dp-date { font-size: 11px; color: #8A8478; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
-  .dp-verdict { font-size: 26px; font-weight: 650; letter-spacing: -0.4px; margin-top: 6px; }
-  .dp-why { color: #8A8478; font-size: 14px; margin-top: 5px; }
-  .dp-window { margin-top: 14px; font-size: 15px; }
-  .dp-window .t { font-variant-numeric: tabular-nums; color: #E2A44C; font-weight: 600; }
-  .dp-trust { font-size: 12px; color: #635E54; margin-top: 6px; }
-  .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
 
   /* ---------- Съёмки ---------- */
   .sec-label {
@@ -3648,7 +3635,11 @@
     } else if (calScope === "week") {
       var a = weekStart(calSel), b = addDays(a, 6);
       y.textContent = a.getFullYear() === nowY ? "" : a.getFullYear();
-      m.textContent = a.getDate() + " " + MONTHS[a.getMonth()] + " – " + b.getDate() + " " + MONTHS[b.getMonth()];
+      /* «3 – 9 августа» вместо «3 августа – 9 августа»: месяц называем один раз,
+         иначе заголовок налезает на иконки */
+      m.textContent = a.getMonth() === b.getMonth()
+        ? a.getDate() + " – " + b.getDate() + " " + MONTHS[b.getMonth()]
+        : a.getDate() + " " + MONTHS[a.getMonth()] + " – " + b.getDate() + " " + MONTHS[b.getMonth()];
     } else {
       y.textContent = calMonth.getFullYear();
       m.textContent = MONTHS_N[calMonth.getMonth()];
@@ -3763,47 +3754,77 @@
       : a.getDate() + " " + MON_S[a.getMonth()] + " – " + b.getDate() + " " + MON_S[b.getMonth()];
   }
   function renderWeek() {
+    /* Неделю смотрят про занятость, а не про свет: где день занят целиком,
+       куда влезет ещё одна съёмка, что горит по сдаче. Световые ленты
+       отвечали не на тот вопрос — их не поняли на тестах.
+       Свет остался одной строкой: во сколько закат. */
     var host = $("week"); host.innerHTML = "";
-    var start = weekStart(calSel), end = addDays(start, 6);
-    var today = new Date(); today.setHours(0,0,0,0);
-    setPlanTitle();                      // заголовок ведёт одна функция, иначе они спорят
+    var start = weekStart(calSel);
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    setPlanTitle();
     document.querySelector(".legend").style.display = "none";
 
-    var span = function (min) { return (clamp(min, 0, 1440) / 1440 * 100).toFixed(2) + "%"; };
-    var seg = function (a, b) {
-      return "left:" + span(a) + ";width:"
-        + ((clamp(b, 0, 1440) - clamp(a, 0, 1440)) / 1440 * 100).toFixed(2) + "%";
-    };
     for (var i = 0; i < 7; i++) {
-      var d = addDays(start, i), sky = daySky(d), q = qualityOf(d);
-      var t = "";
-      t += '<span class="zday" style="' + seg(sky.rise, sky.set) + '"></span>';
-      if (q !== "poor") {   // золотые окна утром и вечером; в дождь их нет
-        t += '<span class="zgold" style="' + seg(sky.blueA, sky.goldA) + '"></span>';
-        t += '<span class="zgold" style="' + seg(sky.goldB, sky.blueB) + '"></span>';
-      }
-      t += '<span class="edge" style="left:' + span(sky.rise) + '"></span>';
-      t += '<span class="edge" style="left:' + span(sky.set) + '"></span>';
-      t += '<span class="noon" style="left:50%"></span>';
-      var shoots = sessions.filter(function (s) { return sameDay(s.date, d); })
-        .sort(function (a, b) { return a.min - b.min; });
-      shoots.forEach(function (s) {
-        var e = s.end != null ? s.end : s.min + (s.dur || 90);
-        t += '<span class="shoot" style="' + seg(s.min, e) + ";background:" + deliveryState(s).color + '"></span>';
+      var d = addDays(start, i);
+      var shoots = sessions.map(function (x, k) { return { s: x, i: k }; })
+        .filter(function (p) { return sameDay(p.s.date, d); })
+        .sort(function (a, b) {
+          var aw = hasRoute(a.s.type) ? 0 : 1, bw = hasRoute(b.s.type) ? 0 : 1;
+          return aw - bw || a.s.min - b.s.min;
+        });
+      /* Сдача попадает на этот день — отдельной пометкой: это тоже занятость */
+      var due = sessions.filter(function (x) {
+        var dd = deadlineDate(x);
+        return dd && !x.delivered && sameDay(dd, d);
       });
-      var row = document.createElement("button");
-      row.className = "wk-row"
+
+      var row = document.createElement("div");
+      row.className = "wk-day-row"
         + (sameDay(d, today) ? " today" : "")
         + (d < today ? " past" : "")
         + (sameDay(d, calSel) ? " sel" : "");
-      row.innerHTML =
-        '<span class="wk-day"><span class="wd">' + WD[d.getDay()] + '</span><span class="dn">' + d.getDate() + "</span></span>"
-        + '<span class="wk-track">' + t + "</span>"
-        + '<span class="wk-sum' + (q === "poor" ? " poor" : "") + '">' + (shoots.length || "") + "</span>";
-      (function (dd) { row.addEventListener("click", function () { calSel = dd; renderCal(); renderDayPanel(); }); })(d);
+
+      var head = '<button type="button" class="wk-head">'
+        + '<span class="wk-num">' + d.getDate() + "</span>"
+        + '<span class="wk-wd">' + WD[d.getDay()] + "</span></button>";
+
+      var body = "";
+      if (shoots.length) {
+        body = shoots.map(function (p) {
+          var spec = genreSpec(p.s.type);
+          var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
+          return '<button type="button" class="wk-card" data-i="' + p.i + '">'
+            + '<span class="wk-ic">' + IC.svg(GENRE_SIGN[p.s.type] || "rings") + "</span>"
+            + '<span class="wk-body"><span class="wk-t">' + esc(spec.ev || p.s.type)
+            + (clientName(p.s) ? " · " + esc(clientName(p.s)) : "") + "</span>"
+            + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
+        }).join("");
+      } else {
+        /* Свободный день так и подписан. Свет здесь — ориентир, одна строка */
+        var sky = daySky(d);
+        body = '<button type="button" class="wk-free">свободно'
+          + (sky.set !== null ? '<span>закат ' + fmt(sky.set) + "</span>" : "") + "</button>";
+      }
+      if (due.length) {
+        body += '<div class="wk-due">' + IC.svg("clock") + "сдать "
+          + due.map(function (x) { return esc(clientName(x) || (genreSpec(x.type).ev || x.type)); }).join(", ")
+          + "</div>";
+      }
+
+      row.innerHTML = head + '<div class="wk-list">' + body + "</div>";
+      (function (dd) {
+        row.querySelector(".wk-head").addEventListener("click", function () {
+          calSel = dd; setScope("day"); renderCal(); renderDayPanel();
+        });
+        var free = row.querySelector(".wk-free");
+        if (free) free.addEventListener("click", function () { openForm(dd, null); });
+      })(d);
+      row.querySelectorAll(".wk-card").forEach(function (b) {
+        b.addEventListener("click", function () { openCard(+b.dataset.i); });
+      });
       host.appendChild(row);
     }
-    $("calNow").classList.toggle("show", !sameDay(weekStart(calSel), weekStart(today)));
+    markScopeNow();
   }
 
   /* ---------- Год: тот же календарь в меньшем масштабе ---------- */
