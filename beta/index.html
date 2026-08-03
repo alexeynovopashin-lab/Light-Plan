@@ -5569,7 +5569,33 @@
   /* Набор референсов жанра — сценарий съёмки. Лежит по жанрам, папки внутри
      жанра размечены тегом: пара, невеста, детали. Хранится на Диске фотографа */
   var genreRefs = (saved && saved.genreRefs) || {};
-  var REF_TAGS = ["Пара", "Невеста", "Жених", "Прогулка", "Вечер", "Детали"];
+  /* ---------- Папки набора референсов ----------
+     Папки называют предмет съёмки, а не процесс, поэтому идут от жанра, а не
+     от группы: «Невеста» в предметке и «Фактура» на свадьбе одинаково нелепы.
+     Свадебный набор протекал во все жанры — это и чинится. */
+  var GENRE_TAGS = {
+    "Свадьбы":     ["Сборы", "Пара", "Невеста", "Жених", "Прогулка", "Вечер", "Детали"],
+    "Лавстори":    ["Пара", "Прогулка", "Вечер", "Детали"],
+    "Семья":       ["Все вместе", "Дети", "Родители", "Игра", "Детали"],
+    "Портрет":     ["Лицо", "В рост", "Руки", "Свет", "Детали"],
+    "Предметка":   ["Предмет", "Ракурсы", "Фактура", "Композиция"],
+    "Реклама":     ["Кампания", "Модель", "Продукт", "Сцена"],
+    "Архитектура": ["Фасад", "Интерьер", "Деталь", "Общий план"],
+    "Репортаж":    ["Герой", "Общий", "Крупный", "Момент"],
+    "Пейзаж":      ["Общий", "Передний план", "Небо", "Свет"],
+    "Стрит":       ["Кадр", "Герой", "Свет", "Геометрия"]
+  };
+  var REF_TAGS_DEFAULT = ["Общий", "Крупный", "Свет", "Детали"];
+  function refTagsFor(g) { return GENRE_TAGS[g] || REF_TAGS_DEFAULT; }
+  /* Папки жанра плюс те, что уже стоят на снимках: набор мог быть собран
+     до этой правки, и прятать чужую папку значило бы прятать сами кадры */
+  function refTagsOf(g, list) {
+    var out = refTagsFor(g).slice();
+    (list || []).forEach(function (r) {
+      if (r.tag && out.indexOf(r.tag) < 0) out.push(r.tag);
+    });
+    return out;
+  }
   function rememberGenre(key, val) {
     if (!genrePrefs[shootType]) genrePrefs[shootType] = {};
     genrePrefs[shootType][key] = val;
@@ -6818,16 +6844,17 @@
   }
 
   /* Полный экран референсов: фильтр по папкам набора */
-  var rfTag = null, rfList = [];
+  var rfTag = null, rfList = [], rfGenre = null;
   function openRefsFull(s, route) {
     rfList = allRefs(s);
     rfTag = null;
+    rfGenre = s.type;                  // папки этой съёмки, а не свадебные
     $("rfSub").textContent = clientName(s) + (currentStage(s, route) ? " · " + currentStage(s, route) : "");
     renderRefsFull();
     $("refsFull").classList.add("open");
   }
   function renderRefsFull() {
-    var tags = REF_TAGS.filter(function (t) {
+    var tags = refTagsOf(rfGenre, rfList).filter(function (t) {
       return rfList.some(function (r) { return r.tag === t; });
     });
     $("rfTags").innerHTML = (tags.length ? [""].concat(tags) : []).map(function (t) {
@@ -7120,7 +7147,10 @@
   function renderGenreRefs() {
     var g = shootType, list = genreRefList(g);
     $("gRefGenre").textContent = "· " + g.toLowerCase();
-    $("gRefTags").innerHTML = REF_TAGS.map(function (t) {
+    /* Жанр сменили — выбранная папка могла остаться от прежнего набора */
+    var tags = refTagsOf(g, list);
+    if (gRefTag && tags.indexOf(gRefTag) < 0) gRefTag = null;
+    $("gRefTags").innerHTML = tags.map(function (t) {
       var n = list.filter(function (r) { return r.tag === t; }).length;
       return '<button type="button" class="rf-tag' + (gRefTag === t ? " on" : "") + '" data-t="' + t + '">'
         + t + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
@@ -7145,7 +7175,9 @@
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + '<span class="kill" data-kill="' + p.i + '">✕</span></button>';
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
-      + (gRefTag ? "В папке «" + gRefTag + "» пока пусто" : "Соберите сценарий: что снять на сборах, прогулке, вечером")
+      /* Подсказка называет папки этого жанра, а не свадебные сборы и прогулку */
+      + (gRefTag ? "В папке «" + gRefTag + "» пока пусто"
+        : "Соберите сценарий: " + refTagsFor(g).slice(0, 3).join(", ").toLowerCase() + " и что ещё снять")
       + "</div>";
     $("gRefGrid").querySelectorAll(".ref-card").forEach(function (b) {
       b.addEventListener("click", function (e) {
