@@ -1458,10 +1458,16 @@
     cursor: pointer; line-height: 1;
   }
   .stepper button:active { background: #33291A; color: #E2A44C; }
-  .stepper b {
-    min-width: 34px; text-align: center; font-size: 16px; font-weight: 650;
-    font-variant-numeric: tabular-nums;
+  /* Число в степпере — поле, а не подпись: пятьдесят предметов кнопкой
+     набирать полсотни раз, а вписать их можно за секунду */
+  .stepper .step-in {
+    width: 58px; padding: 6px 2px; text-align: center; background: none; border: none;
+    font-family: inherit; font-size: 16px; font-weight: 650; color: #EFEAE0;
+    font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none;
+    outline: none; border-radius: 8px;
   }
+  .stepper .step-in:focus { background: #221F19; }
+  .stepper .step-in::placeholder { color: #4A453E; font-weight: 400; }
   #fPayFold .chev { display: inline-block; transition: transform 0.3s ease; color: #8A8478; }
   #fPayFold.open .chev { transform: rotate(180deg); }
   #fPaySumm { font-size: 15px; }
@@ -2221,7 +2227,8 @@
           <span class="k" id="fUnitsLabel">Объектов</span>
           <span class="stepper">
             <button type="button" id="fUnitsMinus" aria-label="Меньше">−</button>
-            <b id="fUnitsVal">1</b>
+            <input class="step-in" type="text" inputmode="numeric" id="fUnitsVal"
+                   aria-label="Количество" value="1"/>
             <button type="button" id="fUnitsPlus" aria-label="Больше">+</button>
           </span>
         </div>
@@ -2261,7 +2268,8 @@
         <span class="k">Гостей</span>
         <span class="stepper">
           <button type="button" id="fGuestsMinus" aria-label="Меньше">−</button>
-          <b id="fGuestsVal">—</b>
+          <input class="step-in" type="text" inputmode="numeric" id="fGuestsVal"
+                 aria-label="Сколько гостей" placeholder="—"/>
           <button type="button" id="fGuestsPlus" aria-label="Больше">+</button>
         </span>
       </div>
@@ -5267,7 +5275,9 @@
     // Количество — только для «за единицу»
     $("fUnitsRow").hidden = mech !== "unit";
     $("fUnitsLabel").textContent = PAY[fPay].unit ? (PAY[fPay].unit[0].toUpperCase() + PAY[fPay].unit.slice(1)) : "Количество";
-    $("fUnitsVal").textContent = fUnits;
+    /* Пока в поле печатают, значение туда не возвращаем: иначе каретка
+       прыгает в конец и «50» набрать невозможно */
+    if (document.activeElement !== $("fUnitsVal")) $("fUnitsVal").value = fUnits;
     // Пакеты — готовые суммы чипсами; «＋ свой» ведёт в настройку
     var isPack = fPay === "pack", live = usablePacks();
     $("fPackChips").hidden = !isPack;
@@ -5322,8 +5332,31 @@
   bindPayInput("fExpense", function (v) { fExpense = v; });
   bindPayInput("fPrepay", function (v) { fPrepay = v; });
   /* Количество — степпером: в поле пальцем цифры вводить неудобно */
-  $("fUnitsMinus").addEventListener("click", function () { fUnits = Math.max(1, fUnits - 1); renderPay(); });
-  $("fUnitsPlus").addEventListener("click", function () { fUnits = Math.min(99, fUnits + 1); renderPay(); });
+  /* Кнопки — для «на один больше», поле — для «их пятьдесят».
+     Предел поднят до 9999: партия предметки бывает и в тысячу кадров */
+  var UNITS_MAX = 9999;
+  /* Кнопка пишет в поле всегда, даже если курсор стоит в нём: нажатие «+» —
+     явное действие, и число обязано сойтись с тем, что видно */
+  function stepUnits(d) {
+    fUnits = Math.max(1, Math.min(UNITS_MAX, (fUnits || 0) + d));
+    $("fUnitsVal").value = fUnits;
+    renderPay();
+  }
+  $("fUnitsMinus").addEventListener("click", function () { stepUnits(-1); });
+  $("fUnitsPlus").addEventListener("click", function () { stepUnits(1); });
+  $("fUnitsVal").addEventListener("input", function () {
+    var d = this.value.replace(/\D/g, "").slice(0, 4);
+    if (this.value !== d) this.value = d;
+    fUnits = Math.min(UNITS_MAX, +d || 0);
+    renderPay();
+  });
+  /* Пустое поле — не ноль предметов, а незаконченный ввод: на выходе
+     возвращаем единицу, иначе доход молча обнулится */
+  $("fUnitsVal").addEventListener("blur", function () {
+    fUnits = Math.max(1, Math.min(UNITS_MAX, fUnits || 1));
+    this.value = fUnits;
+    renderPay();
+  });
   var DURS = [30, 60, 90, 120, 180];
   /* По-русски пишем «1,5 часа», а не «1½ ч» */
   function hourWord(n) {
@@ -5621,16 +5654,24 @@
     if (!this.classList.contains("on")) return;
     $("fTripPlace").focus();
   });
+  var GUESTS_MAX = 2000;
   function renderGuests() {
-    $("fGuestsVal").textContent = fGuests ? fGuests : "—";
+    if (document.activeElement !== $("fGuestsVal")) $("fGuestsVal").value = fGuests || "";
   }
-  /* Шаг в десять человек: свадьбу считают десятками, а не по головам */
-  $("fGuestsMinus").addEventListener("click", function () {
-    fGuests = Math.max(0, fGuests - 10); renderGuests();
+  /* Шаг в десять человек: свадьбу считают десятками, а не по головам.
+     Точное число вписывается в поле — на банкете их бывает и триста */
+  function stepGuests(d) {
+    fGuests = Math.max(0, Math.min(GUESTS_MAX, (fGuests || 0) + d));
+    $("fGuestsVal").value = fGuests || "";
+  }
+  $("fGuestsMinus").addEventListener("click", function () { stepGuests(-10); });
+  $("fGuestsPlus").addEventListener("click", function () { stepGuests(10); });
+  $("fGuestsVal").addEventListener("input", function () {
+    var d = this.value.replace(/\D/g, "").slice(0, 4);
+    if (this.value !== d) this.value = d;
+    fGuests = Math.min(GUESTS_MAX, +d || 0);
   });
-  $("fGuestsPlus").addEventListener("click", function () {
-    fGuests = Math.min(500, fGuests + 10); renderGuests();
-  });
+  $("fGuestsVal").addEventListener("blur", renderGuests);
   /* ---------- Маршрут в форме ----------
      Черновик живёт в fRoute: строки редактируются свободно, а в запись
      уезжают только заполненные (время разобралось и этап назван). */
