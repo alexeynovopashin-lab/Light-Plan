@@ -1169,7 +1169,10 @@
     width: 20px; height: 20px; fill: none; stroke: #55504A; stroke-width: 1.8;
     stroke-linecap: round;
   }
-  .ord-row.drag { background: #221F19; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  /* Строка в руке идёт поверх соседей: без своего слоя она подлезала под них
+     и в момент перестановки читалась двумя подписями в одной полосе */
+  .ord-row.drag { background: #221F19; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    position: relative; z-index: 5; }
   .ord-row.off { opacity: 0.4; }              /* блока нет в этой съёмке */
   .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
   .ord-foot[hidden] { display: none; }
@@ -6281,37 +6284,38 @@
   function dragRow(row, host, s) {
     row.addEventListener("pointerdown", function (e) {
       if (e.button) return;
-      var startY = e.clientY, moved = false;
+      var y0 = e.clientY, moved = false;
       /* Захват указателя не обязателен для работы, но Safari умеет бросать
          на нём InvalidPointerId — тогда перетаскивание падало молча */
       try { row.setPointerCapture(e.pointerId); } catch (err) {}
 
-      /* Соседа под пальцем ищем перебором строк, а не elementFromPoint:
-         тот требовал гасить pointer-events у строки, а Safari от этого
-         терял захват указателя — строка переставала ехать вовсе */
-      function rowUnder(y) {
-        var kids = host.children;
-        for (var i = 0; i < kids.length; i++) {
-          if (kids[i] === row) continue;
-          var r = kids[i].getBoundingClientRect();
-          if (y >= r.top && y <= r.bottom) return kids[i];
-        }
-        return null;
-      }
+      /* Считаем не по тому, что под пальцем, а по шагу строки: сколько строк
+         палец прошёл, столько раз строка и переставляется. Поиск соседа под
+         пальцем врал — перетаскиваемая строка едет поверх соседей и сама
+         оказывается под ним, поэтому она наезжала на чужую, а на её месте
+         оставалась дыра. Строки одинаковой высоты, шаг постоянный. */
+      var step = row.offsetHeight + (parseFloat(getComputedStyle(host).rowGap) || 0);
+      var startIndex = [].indexOf.call(host.children, row);
+      var index = startIndex;
+
       function move(ev) {
-        var dy = ev.clientY - startY;
+        var dy = ev.clientY - y0;
         if (!moved && Math.abs(dy) < 4) return;
         if (!moved) { moved = true; row.classList.add("drag"); }
         ev.preventDefault();
-        row.style.transform = "translateY(" + dy + "px)";
-        var over = rowUnder(ev.clientY);
-        if (over) {
-          var rect = over.getBoundingClientRect();
-          var after = ev.clientY > rect.top + rect.height / 2;
-          host.insertBefore(row, after ? over.nextSibling : over);
-          startY = ev.clientY;
-          row.style.transform = "";
+
+        var want = Math.max(0, Math.min(host.children.length - 1,
+          startIndex + Math.round(dy / step)));
+        if (want !== index) {
+          /* Ставим перед той строкой, что займёт наше место. При движении вниз
+             ориентир сдвигается на единицу — сама строка ещё в списке */
+          var ref = host.children[want > index ? want + 1 : want];
+          host.insertBefore(row, ref || null);
+          index = want;
         }
+        /* Строка не тянется за пальцем, а перескакивает по местам. Плавное
+           следование выглядело сломанным: пока палец между двумя слотами,
+           строка наезжала на соседа, а на её месте зияла дыра */
       }
       function up() {
         row.removeEventListener("pointermove", move);
