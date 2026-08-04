@@ -4713,34 +4713,73 @@
   function useRefCtx(list, render, note, dir, tag) {
     refCtx = { list: list, render: render, note: note, dir: dir, tag: tag || null };
   }
-  function addRefFiles(files) {
-    var list = refCtx.list || fRefs, render = refCtx.render || renderRefs, note = refCtx.note;
+  /* ---------- Загрузка файлов на Диск ----------
+     Одна механика на четыре места: референсы съёмки, набор жанра, документы
+     съёмки, реквизиты и бумаги организации. Различаются папкой, списком и
+     словами — всё остальное совпадало дословно, включая запасной путь при
+     недоступной подпапке.
+
+     o.list     — куда класть запись
+     o.dir      — папка на Диске без «app:/»
+     o.render   — чем перерисовать список
+     o.note     — id строки для объяснений
+     o.imagesOnly — брать только картинки (референсы)
+     o.thumbs   — снимать миниатюру у картинок
+     o.meta     — что дописать в запись: объект или функция от файла
+                  (вид документа угадывается по имени, поэтому знать файл нужно)
+     o.save     — сохранять сразу (черновик формы сохраняется своим порядком)
+     o.noDiskText — свои слова, когда Диск не подключён */
+  function uploadToDisk(files, o) {
+    var list = o.list, render = o.render || function () {}, note = o.note;
     if (!yaToken) {
       $(note).hidden = false;
-      $(note).textContent = "Чтобы хранить фото, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
+      $(note).textContent = o.noDiskText
+        || (o.imagesOnly ? "Чтобы хранить фото" : "Чтобы хранить документы")
+          + ", подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
       return;
     }
-    var dir = "app:/" + (refCtx.dir || "refs");
+    var dir = "app:/" + o.dir;
     var dirReady = yaEnsureDir(dir);          // папку создаём один раз перед загрузкой
     Array.prototype.slice.call(files).forEach(function (file) {
-      if (!/^image\//.test(file.type)) return;
-      var rec = { k: "img", path: null, thumb: null, pending: true, tag: refCtx.tag };
+      var isImg = /^image\//.test(file.type);
+      if (o.imagesOnly && !isImg) return;
+      var rec = { k: isImg && o.thumbs ? "img" : "doc", path: null, pending: true,
+        name: file.name, size: file.size };
+      var meta = typeof o.meta === "function" ? o.meta(file) : o.meta;
+      if (meta) for (var key in meta) rec[key] = meta[key];
       list.push(rec); render();
       var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
-      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [".jpg"])[0];
-      refThumb(file, 320)
+      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [isImg ? ".jpg" : ""])[0];
+      /* Миниатюра снимается до отправки: она же остаётся, когда сети нет */
+      var ready = (isImg && o.thumbs) ? refThumb(file, 320).catch(function () { return null; })
+        : Promise.resolve(null);
+      ready
         .then(function (thumb) {
-          rec.thumb = thumb; render();
+          if (thumb) { rec.thumb = thumb; render(); }
           return dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
-            // Подпапка не далась — кладём рядом с копией, лишь бы фото не потерялось
-            .catch(function () { return yaUpload("app:/ref-" + stamp + ext, file); });
+            // Подпапка не далась — кладём рядом с копией, лишь бы файл не потерялся
+            .catch(function () { return yaUpload("app:/" + o.dir + "-" + stamp + ext, file); });
         })
-        .then(function (path) { rec.path = path; rec.pending = false; render(); saveAll(); })
+        .then(function (path) {
+          rec.path = path; rec.pending = false; render();
+          if (o.save !== false) saveAll();
+        })
         .catch(function (e) {
           list.splice(list.indexOf(rec), 1); render();
           $(note).hidden = false;
-          $(note).textContent = "Фото не загрузилось: " + e.message;
+          $(note).textContent = (o.imagesOnly ? "Фото" : "Документ") + " не загрузился: " + e.message;
         });
+    });
+  }
+
+  function addRefFiles(files) {
+    uploadToDisk(files, {
+      list: refCtx.list || fRefs,
+      render: refCtx.render || renderRefs,
+      note: refCtx.note,
+      dir: refCtx.dir || "refs",
+      imagesOnly: true, thumbs: true,
+      meta: { tag: refCtx.tag }
     });
   }
   $("refPhoto").addEventListener("click", function () {
@@ -4841,26 +4880,13 @@
     });
   }
   function addDocFiles(files) {
-    if (!yaToken) {
-      $("docNote").hidden = false;
-      $("docNote").textContent = "Чтобы хранить документы, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
-      return;
-    }
-    var dir = "app:/docs", dirReady = yaEnsureDir(dir);
-    Array.prototype.slice.call(files).forEach(function (file) {
-      var rec = { k: "doc", path: null, name: file.name, size: file.size, pending: true,
-        kind: fDocKind || guessDocKind(file.name) };
-      fDocs.push(rec); renderDocs(); renderDocKinds();
-      var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
-      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [""])[0];
-      dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
-        .catch(function () { return yaUpload("app:/doc-" + stamp + ext, file); })
-        .then(function (path) { rec.path = path; rec.pending = false; renderDocs(); })
-        .catch(function (e) {
-          fDocs.splice(fDocs.indexOf(rec), 1); renderDocs();
-          $("docNote").hidden = false;
-          $("docNote").textContent = "Документ не загрузился: " + e.message;
-        });
+    uploadToDisk(files, {
+      list: fDocs,
+      render: function () { renderDocs(); renderDocKinds(); },
+      note: "docNote", dir: "docs",
+      /* Черновик формы сохраняется вместе со съёмкой, а не сам по себе */
+      save: false,
+      meta: function (file) { return { kind: fDocKind || guessDocKind(file.name) }; }
     });
   }
   $("docFileBtn").addEventListener("click", function () { $("docFile").click(); });
@@ -5111,36 +5137,16 @@
   function addReqFiles(files) {
     var o = orgs[orgIdx];
     if (!o) return;
-    if (!yaToken) {
-      $("oReqNote").hidden = false;
-      $("oReqNote").textContent = "Чтобы хранить файлы, подключите Яндекс.Диск в настройках. Текст реквизитов работает и без него.";
-      return;
-    }
-    var list = o.reqFiles || (o.reqFiles = []);
-    var dir = "app:/orgs", dirReady = yaEnsureDir(dir);
-    Array.prototype.slice.call(files).forEach(function (file) {
-      var isImg = /^image\//.test(file.type);
-      var rec = { k: isImg ? "img" : "doc", path: null, name: file.name, size: file.size, pending: true };
-      list.push(rec); renderReqFiles();
-      var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
-      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [""])[0];
-      var thumbReady = isImg ? refThumb(file, 320).catch(function () { return null; })
-        : Promise.resolve(null);
-      thumbReady
-        .then(function (thumb) {
-          rec.thumb = thumb; renderReqFiles();
-          return dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
-            .catch(function () { return yaUpload("app:/org-" + stamp + ext, file); });
-        })
-        .then(function (path) { rec.path = path; rec.pending = false; saveAll(); renderReqFiles(); })
-        .catch(function (e) {
-          list.splice(list.indexOf(rec), 1); renderReqFiles();
-          $("oReqNote").hidden = false;
-          $("oReqNote").textContent = "Файл не загрузился: " + e.message;
-        });
+    uploadToDisk(files, {
+      list: o.reqFiles || (o.reqFiles = []),
+      render: renderReqFiles,
+      note: "oReqNote", dir: "orgs",
+      noDiskText: "Чтобы хранить файлы, подключите Яндекс.Диск в настройках. Текст реквизитов работает и без него.",
+      /* Снимок экрана — картинка и показывается миниатюрой, договор в PDF —
+         именем. Поэтому берём всё подряд, но миниатюру снимаем где можем */
+      thumbs: true
     });
   }
-
   /* Документы организации: свои плюс все, что приложены к её съёмкам —
      акт ищут по организации, а не по дате съёмки */
   function orgDocList(o) {
@@ -5184,30 +5190,13 @@
   function addOrgDocFiles(files) {
     var o = orgs[orgIdx];
     if (!o) return;
-    if (!yaToken) {
-      $("oDocNote").hidden = false;
-      $("oDocNote").textContent = "Чтобы хранить документы, подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
-      return;
-    }
-    var list = o.docs || (o.docs = []);
-    var dir = "app:/docs", dirReady = yaEnsureDir(dir);
-    Array.prototype.slice.call(files).forEach(function (file) {
-      var rec = { k: "doc", path: null, name: file.name, size: file.size, pending: true,
-        kind: oDocKind || guessDocKind(file.name) };
-      list.push(rec); renderOrgDocs();
-      var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
-      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [""])[0];
-      dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
-        .catch(function () { return yaUpload("app:/doc-" + stamp + ext, file); })
-        .then(function (path) { rec.path = path; rec.pending = false; saveAll(); renderOrgDocs(); })
-        .catch(function (e) {
-          list.splice(list.indexOf(rec), 1); renderOrgDocs();
-          $("oDocNote").hidden = false;
-          $("oDocNote").textContent = "Документ не загрузился: " + e.message;
-        });
+    uploadToDisk(files, {
+      list: o.docs || (o.docs = []),
+      render: renderOrgDocs,
+      note: "oDocNote", dir: "docs",
+      meta: function (file) { return { kind: oDocKind || guessDocKind(file.name) }; }
     });
   }
-
   var orgDocs = [];
   function renderOrgDocs() {
     var o = orgs[orgIdx];
