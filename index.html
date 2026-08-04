@@ -5616,50 +5616,53 @@
     saveAll();
   }
   /* Показываем только то, что этому жанру нужно */
+  /* ---------- Состав формы ----------
+     Матрица полей (docs/12_CARD_ARCHITECTURE.md) записана здесь данными, а не
+     рассыпана по коду. Строка — поле или блок: какие узлы прячем и при каком
+     условии. `sp` — жанр, `gr` — его группа.
+
+     Раньше это были четырнадцать присваиваний `hidden` вперемешку с
+     побочными действиями, и новое поле приходилось вписывать в пять мест. */
+  var FORM_FIELDS = [
+    /* Сдача материала — там, где есть кому сдавать */
+    { els: ["fDelvLabel", "fDelvGroup"], on: function (sp) { return sp.delivery; } },
+    /* Таймлайн: у события всегда, у остальных доступен и молчит */
+    { els: ["fRouteLabel", "fRouteGroup"], on: function (sp) { return sp.route || sp.routeOpt; } },
+    /* Клиент строкой — пока он человек. У заказа вместо неё организация */
+    { els: ["fContact"], on: function (sp, gr) { return sp.client && !gr.order; } },
+    { els: ["fOrgRow", "fPerson", "fPhone"], on: function (sp, gr) { return !!gr.order; } },
+    /* Гости — мерка события дня, живут в блоке таймлайна */
+    { els: ["fGuestsRow"], on: function (sp, gr) { return !!gr.guests; } },
+    /* Предоплата есть везде, где за съёмку платят */
+    { els: ["fPrepayRow"], on: function (sp, gr) { return !!gr.prepay; } },
+    /* Заказ: ТЗ и документы у группы заказчика; модели включает жанр */
+    { els: ["fOrderLabel", "fOrderGroup"], on: function (sp, gr) { return !!gr.order; } },
+    { els: ["fModels"], on: function (sp, gr) { return !!(gr.order && sp.models); } }
+  ];
+
   function applyGenreShape() {
-    var sp = genreSpec(shootType);
-    var d = sp.delivery ? "" : "none";
-    $("fDelvLabel").style.display = d;
-    $("fDelvGroup").style.display = d;
-    /* Таймлайн: у события всегда, у заказчика — доступен и молчит,
-       пока точек не завели (docs/12_CARD_ARCHITECTURE.md) */
-    var showRoute = sp.route || sp.routeOpt;
-    $("fRouteLabel").hidden = !showRoute;
-    $("fRouteGroup").hidden = !showRoute;
+    var sp = genreSpec(shootType), gr = groupSpec(shootType);
+    var shown = {};
+    FORM_FIELDS.forEach(function (f) {
+      var on = !!f.on(sp, gr);
+      f.els.forEach(function (id) { $(id).hidden = !on; shown[id] = on; });
+    });
+
+    /* Дальше — то, что описанием не выражается: подписи, сброс значений и
+       перерисовки. Их немного, и каждая объяснена */
+    $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
+    $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
+    if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
+    if (!shown.fPrepayRow) { fPrepay = 0; $("fPrepay").value = ""; }
+
     if (sp.route && editIdx === null && !fRoute.length) {
       fRoute = seedRoute(fMin);
       fRouteSeeded = true;             // точки наши, не фотографа
     }
     /* Перерисовываем всегда, а не только при засеве: подсказки точек идут от
        жанра, и пустой список иначе остаётся с чужими словами */
-    if (showRoute) renderRouteEditor();
-    /* Подпись и подсказка — от группы: у события это пара, у коммерции
-       организация, у своих съёмок клиента нет вовсе */
-    var gr = groupSpec(shootType);
-    $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
-    $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
-    if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
-
-    /* Заказчик — организацией, а не строкой: у группы 3 платит юрлицо */
-    $("fOrgRow").hidden = !gr.order;
-    $("fPerson").hidden = !gr.order;
-    $("fPhone").hidden = !gr.order;
-    $("fContact").hidden = !!gr.order || !sp.client;
-    renderFormOrg();
-
-    /* Гости — у события дня: сколько людей на банкете, столько и общих планов.
-       Живут в блоке таймлайна, потому что это тоже мерка дня, а не съёмки */
-    $("fGuestsRow").hidden = !gr.guests;
-    renderGuests();
-    /* Предоплата есть везде, где есть заказчик: свою съёмку себе не оплачивают */
-    $("fPrepayRow").hidden = !gr.prepay;
-    if (!gr.prepay) { fPrepay = 0; $("fPrepay").value = ""; }
-    /* Заказ — блок группы 3: ТЗ и документы. Модели включает жанр */
-    $("fOrderLabel").hidden = !gr.order;
-    $("fOrderGroup").hidden = !gr.order;
-    $("fModels").hidden = !(gr.order && sp.models);
-    /* Выезд есть у всех: за город ездят и со свадьбой, и с пейзажем */
-    renderTrip();
+    if (shown.fRouteGroup) renderRouteEditor();
+    renderFormOrg(); renderGuests(); renderTrip();
   }
   /* ---------- Заказчик в форме ----------
      Организация выбирается на общем экране: список там уже есть, второй такой
