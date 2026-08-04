@@ -464,15 +464,20 @@
   /* Переключатель масштаба — текстовый, без плашки: навигация не спорит с контентом */
   /* Шапка планировщика: виды, заголовок, действия — одной строкой.
      Три яруса (год, переключатель, навигация месяца) съедали 150 pt */
-  /* Слева три вида, справа три действия — заголовку остаётся середина.
-     Поля ужаты и промежуток срезан, иначе «Август» обрывается многоточием */
+  /* Слева кнопка вида, справа три действия, между ними заголовок.
+     Сетка из трёх колонок, а не флекс: боковые части разной ширины, и при
+     флексе «Август» вставал по центру остатка, а не по центру экрана */
+  /* Края делят остаток поровну — тогда заголовок стоит по центру экрана.
+     Когда заголовок длинный («3 – 9 августа»), края сжимаются до своих кнопок
+     и центр съезжает: читаемость важнее симметрии до пикселя */
   .plan-top {
-    display: flex; align-items: center; justify-content: space-between; gap: 2px;
-    padding: 52px 12px 6px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px; padding: 52px 16px 6px; flex-shrink: 0;
   }
+  .plan-lead { flex: 1 1 0; display: flex; justify-content: flex-start; }
   /* Кнопка вида: 44 pt — размер, в который попадают пальцем не глядя */
   .scope-btn {
     width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
+    justify-self: start;
     background: #17150F; border-radius: 13px;
     display: flex; align-items: center; justify-content: center;
   }
@@ -507,19 +512,24 @@
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .scope-menu button.on .ic svg { stroke: #EFEAE0; }
   .plan-title {
-    flex: 1; min-width: 0; background: none; border: none; padding: 4px;
+    flex: 0 1 auto; min-width: 0; background: none; border: none; padding: 4px;
     font-family: inherit; font-size: 19px; font-weight: 650; color: #EFEAE0;
     letter-spacing: -0.3px; text-align: center; cursor: pointer; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis;
   }
   .plan-title:active { opacity: 0.6; }
-  /* Шеврон при месяце: подсказка, что заголовок — кнопка к экрану года */
+  /* Шеврон при месяце: подсказка, что заголовок — кнопка к экрану года.
+     Он висит справа от слова и тянет центр на себя, поэтому слева
+     оставлено ровно столько же места: по центру должно стоять слово,
+     а не «слово со стрелкой» */
+  .plan-title { padding-left: 16px; }
   .pt-chev { display: inline-flex; vertical-align: middle; margin-left: 5px; }
   .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: #635E54; stroke-width: 2.4;
     stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); }
-  .plan-acts { display: flex; gap: 0; align-items: center; }
+  /* Действия разрежены: три знака подряд без просвета читались одной кнопкой */
+  .plan-acts { flex: 1 1 0; display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
   .icon-btn {
-    background: none; border: none; padding: 6px 4px; cursor: pointer; color: #E2A44C;
+    background: none; border: none; padding: 6px; cursor: pointer; color: #E2A44C;
     display: flex; align-items: center; justify-content: center;
   }
   .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; }
@@ -1752,7 +1762,9 @@
     <div class="plan-top">
       <!-- Три знака по 30 pt было не попасть пальцем. Осталась одна кнопка
            с текущим видом, остальные раскрываются веером -->
-      <button class="scope-btn" id="scopeBtn" aria-label="Вид календаря" data-ic="view_month"></button>
+      <!-- Обёртка нужна для симметрии: она равна по ширине группе действий
+           справа, и заголовок между ними встаёт ровно по центру экрана -->
+      <div class="plan-lead"><button class="scope-btn" id="scopeBtn" aria-label="Вид календаря" data-ic="view_month"></button></div>
       <!-- Год из заголовка убран: он и так выбирается на экране года,
            а месяцу нужна ширина, чтобы не обрываться многоточием -->
       <button class="plan-title" id="planTitle">
@@ -4022,6 +4034,7 @@
     /* Кнопка вида и галочка в веере ставятся здесь же — при первом показе
        масштаб приходит из состояния, а не из нажатия */
     if (window.ICONS) setScope(calScope);
+
     var week = calScope === "week", day = calScope === "day";
     $("calHead").hidden = week || day;
     $("cal").hidden = week || day;
