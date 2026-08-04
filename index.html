@@ -1358,6 +1358,10 @@
     background: none; border: none; font-family: inherit; font-size: 16px;
     color: #EFEAE0; cursor: pointer;
   }
+  /* display:flex выше сильнее браузерного [hidden] — без этого правила строка
+     «Заказчик» вылезала в свадебной форме, где её быть не должно.
+     Тот же грабль, что с полями формы (DECISIONS) */
+  .row[hidden] { display: none; }
   .row .rv { color: #A8A093; font-variant-numeric: tabular-nums; text-align: right; }
   .row .sub, .row .sub2 {
     display: block; font-size: 11px; color: #635E54; margin-top: 2px;
@@ -2208,9 +2212,15 @@
         <span class="rv act">Изменить</span>
       </button>
       <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
-      <!-- У заказа платит юрлицо: выбираем организацию из списка, а лицо и
-           телефон — свои поля. Разбор строки «Ромашка · Пётр» был временным -->
-      <button class="row sep" id="fOrgRow" hidden>Заказчик
+      <!-- У события снимают двоих, и у каждого своё имя и свой телефон:
+           звонить приходится то невесте, то жениху. Подписи ставит жанр -->
+      <input class="sep" type="text" id="fP1Name" placeholder="Невеста" hidden/>
+      <input class="sep" type="tel"  id="fP1Tel"  placeholder="Телефон невесты" hidden/>
+      <input class="sep" type="text" id="fP2Name" placeholder="Жених" hidden/>
+      <input class="sep" type="tel"  id="fP2Tel"  placeholder="Телефон жениха" hidden/>
+      <!-- У заказа платит юрлицо, у события есть организатор: выбираем из
+           общего списка. Разбор строки «Ромашка · Пётр» был временным -->
+      <button class="row sep" id="fOrgRow" hidden><span id="fOrgLabel">Заказчик</span>
         <span class="rv"><span id="fOrgName">выбрать</span></span>
       </button>
       <input class="sep" type="text" id="fPerson" placeholder="Контактное лицо" hidden/>
@@ -3408,7 +3418,7 @@
   function sessionNet(s) { return sessionIncome(s) - (+(s && s.expense) || 0); }
 
   /* ---------- Сдача материала ---------- */
-  var GENRE_DEADLINE = { "Свадьбы": 90, "Лавстори": 14, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
+  var GENRE_DEADLINE = { "Свадьбы": 90, "Праздник": 14, "Лавстори": 14, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
     "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5, "Реклама": 10 };
   var DELV_DAYS = [3, 7, 14, 30, 90];
   var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
@@ -5521,7 +5531,7 @@
   }
 
   /* Жанры: пользователь оставляет только свои */
-  var ALL_GENRES = ["Портрет","Свадьбы","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка","Реклама"];
+  var ALL_GENRES = ["Портрет","Свадьбы","Праздник","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка","Реклама"];
 
   /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
   var GENRE_IC = window.ICONS.genres;
@@ -5551,6 +5561,10 @@
        свадебный «загс и прогулка», только свой (docs/12_CARD_ARCHITECTURE.md) */
     "Портрет":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "Свадьбы":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
+    /* Праздник — день рождения, юбилей, городское событие: что считать
+       праздником, решает фотограф. Устроен как событие дня: точки, гости,
+       пакеты — только повод другой */
+    "Праздник":    { delivery: true,  client: true,  dur: 240, pay: ["hourly", "pack"], route: true, ev: "Праздник" },
     "Лавстори":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "Семья":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "Пейзаж":      { delivery: false, client: false, dur: null, pay: ["flat"] },
@@ -5566,21 +5580,57 @@
      docs/12_CARD_ARCHITECTURE.md. Группа задаёт состав и подписи, жанр
      правит поверх. Девять описаний сжимаются в четыре. */
   var GENRE_GROUP = {
-    "Свадьбы": "event",
+    "Свадьбы": "event", "Праздник": "event",
     "Портрет": "people", "Лавстори": "people", "Семья": "people",
     "Предметка": "client", "Реклама": "client", "Архитектура": "client", "Репортаж": "client",
     "Пейзаж": "own", "Стрит": "own"
   };
   var GROUP = {
-    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true, guests: true, prepay: true },
+    /* У события есть организатор: свадебный агент, площадка, отдел культуры
+       города. Он не платит вместо пары, но именно через него съёмка попадает
+       в общий план дня — это и точка стыковки с Event OS */
+    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true, guests: true, prepay: true, org: "Организатор" },
     /* Таймлайн у «Людей» доступен и молчит: лавстори на три часа идёт парком,
        кафе и городом — это тоже день из точек, только короткий */
     people: { who: "Клиент",       whoHint: "Имя или телефон клиента",      route: "opt", pack: true, prepay: true },
-    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: true, prepay: true, order: true },
+    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: "Заказчик", prepay: true, order: true },
     /* Своя съёмка бывает и оплаченной: коммерческий стрит, продажа пейзажа.
        Клиента нет, но предоплату проставить можно */
     own:    { who: null,           whoHint: "",                              route: "off", prepay: true }
   };
+  /* ---------- Кого снимаем ----------
+     У свадьбы двое, и у каждого своё имя и свой телефон: звонить приходится
+     то невесте, то жениху, а искать номер в общей строке — потеря минуты там,
+     где её нет. У праздника герой один. У остальных жанров пары нет вовсе,
+     и поле остаётся прежней строкой. */
+  var GENRE_PERSONS = {
+    "Свадьбы":  ["Невеста", "Жених"],
+    "Праздник": ["Виновник торжества"]
+  };
+  function personsOf(g) { return GENRE_PERSONS[g] || []; }
+
+  /* ---------- Телефон ----------
+     Номер набирают как придётся, а показывать его надо одинаково:
+     «8 923 412-33-33» или «+7 923 412-33-33». Ведущую цифру не меняем —
+     кто пишет через плюс, тот так и продолжит. */
+  function formatTel(v) {
+    var raw = String(v || "");
+    var plus = /^\s*\+/.test(raw);
+    var d = raw.replace(/\D/g, "");
+    if (!d) return "";
+    if (plus && d[0] === "8") d = "7" + d.slice(1);       // «+8» не бывает
+    var lead = plus ? "+" + d[0] : d[0];
+    var rest = d.slice(1, 11);                            // код 3 + номер 7
+    var out = lead;
+    if (rest.length) out += " " + rest.slice(0, 3);
+    if (rest.length > 3) out += " " + rest.slice(3, 6);
+    if (rest.length > 6) out += "-" + rest.slice(6, 8);
+    if (rest.length > 8) out += "-" + rest.slice(8, 10);
+    return out;
+  }
+  /* Имя без фамилии: в шапке карточки нужны Алексей и Елена, а не паспорт */
+  function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || ""; }
+
   function groupOf(type) { return GENRE_GROUP[type] || "people"; }
   function groupSpec(type) { return GROUP[groupOf(type)] || GROUP.people; }
 
@@ -5605,6 +5655,7 @@
      Свадебный набор протекал во все жанры — это и чинится. */
   var GENRE_TAGS = {
     "Свадьбы":     ["Сборы", "Пара", "Невеста", "Жених", "Прогулка", "Вечер", "Детали"],
+    "Праздник":    ["Виновник", "Гости", "Стол", "Танцы", "Детали"],
     "Лавстори":    ["Пара", "Прогулка", "Вечер", "Детали"],
     "Семья":       ["Все вместе", "Дети", "Родители", "Игра", "Детали"],
     "Портрет":     ["Лицо", "В рост", "Руки", "Свет", "Детали"],
@@ -5645,8 +5696,13 @@
     /* Таймлайн: у события всегда, у остальных доступен и молчит */
     { els: ["fRouteLabel", "fRouteGroup"], on: function (sp) { return sp.route || sp.routeOpt; } },
     /* Клиент строкой — пока он человек. У заказа вместо неё организация */
-    { els: ["fContact"], on: function (sp, gr) { return sp.client && !gr.order; } },
-    { els: ["fOrgRow", "fPerson", "fPhone"], on: function (sp, gr) { return !!gr.order; } },
+    { els: ["fContact"], on: function (sp, gr) { return sp.client && !gr.order && !personsOf(shootType).length; } },
+    /* Пара: два имени и два телефона вместо одной строки */
+    { els: ["fP1Name", "fP1Tel"], on: function () { return personsOf(shootType).length > 0; } },
+    { els: ["fP2Name", "fP2Tel"], on: function () { return personsOf(shootType).length > 1; } },
+    /* Организатор у события, заказчик у заказа — одна строка, разные слова */
+    { els: ["fOrgRow"], on: function (sp, gr) { return !!gr.org; } },
+    { els: ["fPerson", "fPhone"], on: function (sp, gr) { return !!gr.order; } },
     /* Гости — мерка события дня, живут в блоке таймлайна */
     { els: ["fGuestsRow"], on: function (sp, gr) { return !!gr.guests; } },
     /* Предоплата есть везде, где за съёмку платят */
@@ -5667,6 +5723,12 @@
     /* Дальше — то, что описанием не выражается: подписи, сброс значений и
        перерисовки. Их немного, и каждая объяснена */
     $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
+    /* Подписи людей и организатора ставит жанр: у свадьбы невеста с женихом,
+       у праздника виновник торжества, у заказа контактное лицо */
+    var pp = personsOf(shootType);
+    if (pp[0]) { $("fP1Name").placeholder = pp[0]; $("fP1Tel").placeholder = "Телефон · " + pp[0].toLowerCase(); }
+    if (pp[1]) { $("fP2Name").placeholder = pp[1]; $("fP2Tel").placeholder = "Телефон · " + pp[1].toLowerCase(); }
+    $("fOrgLabel").textContent = gr.org || "Заказчик";
     $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
     if (!shown.fPrepayRow) { fPrepay = 0; $("fPrepay").value = ""; }
@@ -5684,6 +5746,18 @@
      Организация выбирается на общем экране: список там уже есть, второй такой
      же в форме был бы копией. Экран открывается в режиме выбора и закрывается
      сам, как только организация названа. */
+  /* Телефон причёсывается на лету: набирают цифрами, а видят
+     «8 923 412-33-33». Курсор всегда в конце — номер набирают слева направо */
+  ["fP1Tel", "fP2Tel", "fPhone", "oPhone"].forEach(function (id) {
+    var el = $(id);
+    if (!el) return;
+    el.addEventListener("input", function () {
+      var end = this.selectionStart === this.value.length;
+      this.value = formatTel(this.value);
+      if (end) this.selectionStart = this.selectionEnd = this.value.length;
+    });
+  });
+
   var fOrgId = null;
   function renderFormOrg() {
     var o = orgById(fOrgId);
@@ -5788,6 +5862,7 @@
      «Невеста» в предметке (docs/12_CARD_ARCHITECTURE.md) */
   var GENRE_SCENES = {
     "Свадьбы":     ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"],
+    "Праздник":    ["Сбор гостей", "Поздравления", "Стол", "Торт", "Танцы"],
     "Лавстори":    ["Встреча", "Прогулка", "Кафе", "Закат"],
     "Семья":       ["Сборы", "Прогулка", "Игра", "Общий кадр"],
     "Портрет":     ["Начало", "Смена образа", "Улица", "Финал"],
@@ -6502,7 +6577,8 @@
      остальные берут свою пиктограмму из библиотеки */
   var GENRE_SIGN = {
     "Портрет": "camera", "Семья": "family", "Пейзаж": "park", "Архитектура": "city",
-    "Стрит": "street", "Репортаж": "mic", "Предметка": "lens", "Реклама": "flash"
+    "Стрит": "street", "Репортаж": "mic", "Предметка": "lens", "Реклама": "flash",
+    "Праздник": "balloons"
   };
   function afterWord(d) {
     var n = new Date();
@@ -6970,6 +7046,9 @@
   /* Телефон живёт в строке клиента: «Марина и Сергей · +7 923 412-33-33».
      Отдельного поля пока нет — вытаскиваем то, что фотограф уже пишет. */
   function firstPhone(s) {
+    /* У пары звонят тому, чей номер записан первым: невесте, если он есть */
+    var ps = Array.isArray(s.persons) ? s.persons : [];
+    for (var i = 0; i < ps.length; i++) if (ps[i].tel) return ps[i].tel;
     if (s.phone) return s.phone;                    // своё поле — с появления организаций
     var org = orgById(s.orgId);
     if (org && org.phone) return org.phone;         // не задан у съёмки — берём у организации
@@ -6980,6 +7059,12 @@
   /* Имя без телефона: фотограф пишет клиента одной строкой, а в шапке
      нужны только имена — номер уезжает в строку вызова */
   function clientName(s) {
+    /* Пару называют по именам и без фамилий: «Алексей и Елена».
+       Заголовок собирается сам — руками его не пишут */
+    var ps = (Array.isArray(s.persons) ? s.persons : [])
+      .map(function (p) { return firstName(p.n); })
+      .filter(function (x) { return x; });
+    if (ps.length) return ps.join(" и ");
     /* У заказа съёмку называет организация: «ИП Иванов И.И.», а не вся строка
        с контактным лицом и телефоном — в списке дня для неё нет места */
     var org = orgById(s.orgId);
@@ -7129,6 +7214,12 @@
       fOrgId = s.orgId || null;
       $("fPerson").value = s.person || "";
       $("fPhone").value = s.phone || "";
+      /* Пара: у записи до этой правки её нет — поля остаются пустыми */
+      var ps = Array.isArray(s.persons) ? s.persons : [];
+      $("fP1Name").value = (ps[0] && ps[0].n) || "";
+      $("fP1Tel").value = (ps[0] && ps[0].tel) || "";
+      $("fP2Name").value = (ps[1] && ps[1].n) || "";
+      $("fP2Tel").value = (ps[1] && ps[1].tel) || "";
       // Оплата сохранённой съёмки — свёрнута: данные уже введены
       fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
       fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
@@ -7159,6 +7250,8 @@
       $("fDone").classList.remove("on");
       $("fContact").value = ""; $("fNotes").value = "";
       fOrgId = null; $("fPerson").value = ""; $("fPhone").value = "";
+      $("fP1Name").value = ""; $("fP1Tel").value = "";
+      $("fP2Name").value = ""; $("fP2Tel").value = "";
       fPrepay = 0; fGuests = 0; fDocs = [];
       $("fPrepay").value = "";
       $("fTrip").classList.remove("on");
@@ -7286,7 +7379,8 @@
   /* Пример пакета берётся у открытого жанра: «Загс и прогулка» уместны на
      свадьбе и нелепы в предметке */
   var PACK_HINT = {
-    "Свадьбы": "Загс и прогулка", "Лавстори": "Прогулка на закате",
+    "Свадьбы": "Загс и прогулка", "Праздник": "Три часа с гостями",
+    "Лавстори": "Прогулка на закате",
     "Семья": "Час в студии", "Портрет": "Час и десять кадров",
     "Предметка": "Партия из десяти", "Реклама": "Съёмочный день",
     "Архитектура": "Объект под ключ", "Репортаж": "Полдня на площадке",
@@ -7355,9 +7449,24 @@
   $("fPlace").addEventListener("click", function () {
     openLocSheet("session");
   });
+  /* Кого снимаем — парой или строкой, смотря по жанру */
+  function formPersons() {
+    var pp = personsOf(shootType);
+    if (!pp.length) return [];
+    var out = [{ n: $("fP1Name").value.trim(), tel: $("fP1Tel").value.trim() }];
+    if (pp.length > 1) out.push({ n: $("fP2Name").value.trim(), tel: $("fP2Tel").value.trim() });
+    /* Пустых людей не храним: незаполненная пара — это просто пустое поле */
+    return out.filter(function (p) { return p.n || p.tel; });
+  }
   /* Строка клиента остаётся в записи и после появления организаций: на ней
-     держатся поиск, список дня и неделя. У заказа она собирается сама */
+     держатся поиск, список дня и неделя. У пары и у заказа она собирается сама */
   function contactLine() {
+    var pp = formPersons();
+    if (pp.length) {
+      /* «Алексей и Елена» — имена без фамилий: в шапке нужны люди, а не паспорт */
+      return pp.map(function (p) { return firstName(p.n) || p.tel; })
+        .filter(function (x) { return x; }).join(" и ");
+    }
     if (!groupSpec(shootType).order) return $("fContact").value.trim();
     var o = orgById(fOrgId);
     return [o ? o.name : "", $("fPerson").value.trim(), $("fPhone").value.trim()]
@@ -7369,6 +7478,7 @@
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
       contact: contactLine(), notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
+      persons: formPersons(),
       place: sessionPlace.name, placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
