@@ -20,6 +20,85 @@
 <script src="icons.js"></script>
 <style>
   /* ============================================================
+     ЦВЕТА ОДНИМ СПИСКОМ
+     Раньше цвета были зашиты по файлу: 547 вхождений, 59 оттенков. Светлая тема
+     была невозможна не технически, а по смыслу — один хекс значил разное.
+     #E2A44C это и акцент интерфейса, и цвет золотого часа: на светлом фоне
+     акцент обязан потемнеть ради контраста, а золотой час трогать нельзя,
+     это физика, а не оформление.
+
+     Отсюда граница, на которой держится список:
+     • интерфейс — поверхности, текст, органы управления — живёт здесь;
+     • содержание — модель света, палитра неба, путь солнца, вода на карте —
+       живёт в JavaScript и не меняется никогда: закат одинаков при любой теме.
+
+     Ни один оттенок не схлопнут с соседним. Почти-дубликаты (различаются на
+     3–8 единиц в канале) остались раздельными токенами: чистка палитры — это
+     решение по дизайну, а не побочный эффект переименования.
+     ============================================================ */
+  :root {
+    /* полупрозрачные: панели, разделители и текст с альфой. Скрипт по хексам
+       их не видел — а таб-бар и все линии держатся именно на них */
+    --bar: rgba(15,14,12,0.9); --bar-2: rgba(23,21,15,0.86);
+    --fill-a: rgba(15,14,12,0.75); --fill-b: rgba(15,14,12,0.6);
+    --overlay: rgba(18,16,14,0.82); --overlay-2: rgba(8,7,6,0.94);
+    --overlay-3: rgba(44,41,36,0.86); --hair: rgba(255,255,255,0.05);
+    --hair-2: rgba(255,255,255,0.04); --hair-3: rgba(255,255,255,0.03);
+    --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
+    --ink-a22: rgba(239,234,224,0.22); --ink-a20: rgba(239,234,224,0.2);
+    --ink-a24: rgba(239,234,224,0.24); --ink-a40: rgba(239,234,224,0.4);
+    --bg: #070606; --surface: #0F0E0C; --canvas: #14110E;
+    --sheet: #17150F; --sheet-2: #131109; --sheet-3: #1A1710;
+    --sheet-4: #1A1712; --warn-bg: #191510; --bad-bg: #1D1512;
+    --badge-bg: #241F17; --hatch: #1C1A14; --hairline: #1C1913;
+    --on-brass: #16120C; --field: #1C1A16; --field-press: #262218;
+    --press: #221F19; --press-2: #201C15; --press-warm: #221D14;
+    --press-brass: #33291A; --rail: #2B2822; --rail-2: #2E2A24;
+    --rail-3: #2C2820; --rail-4: #2A261E; --rail-5: #3A352E;
+    --seg-on: #2A2724; --bezel: #1C1A17; --edge: #38332B;
+    --ink: #EFEAE0; --ink-2: #C9C2B6; --ink-2b: #C0B8AA;
+    --ink-3: #A8A093; --ink-3b: #A89C86; --ink-4: #8A8478;
+    --ink-5: #6B6559; --ink-5b: #6E6558; --ink-6: #635E54;
+    --ink-7: #55504A; --ink-8: #4A453E; --ink-9: #45403A;
+    --ink-10: #3A352F; --brass: #E2A44C; --brass-soft: #D9AC6B;
+    --brass-deep: #C9853F; --brass-dark: #8A4B22; --green: #A8B49B;
+    --blue: #7C9CC4; --tone-good: #B5AC9C; --terra: #C9663D;
+    --terra-2: #B9603D; --bad-ink: #D9A08A; --warn-ink: #D9C2A0;
+    --moon: #A8BDD8; --moon-lit: #CFD6DE; --moon-dark: #16161A;
+  }
+
+  /* Светлая тема. Меняются поверхности, текст и насыщенность акцентов: латунь
+     темнеет ради контраста на светлом, но остаётся латунью. Карта, луна и
+     модель света не тронуты — они про небо, а не про интерфейс. */
+  :root[data-theme="light"] {
+    --bar: rgba(250,248,243,0.92); --bar-2: rgba(255,255,255,0.9);
+    --fill-a: rgba(250,248,243,0.8); --fill-b: rgba(237,233,225,0.72);
+    --overlay: rgba(250,248,243,0.86); --overlay-2: rgba(250,248,243,0.96);
+    --overlay-3: rgba(214,208,195,0.9); --hair: rgba(0,0,0,0.07);
+    --hair-2: rgba(0,0,0,0.06); --hair-3: rgba(0,0,0,0.05);
+    --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
+    --ink-a22: rgba(23,21,15,0.22); --ink-a20: rgba(23,21,15,0.2);
+    --ink-a24: rgba(23,21,15,0.24); --ink-a40: rgba(23,21,15,0.4);
+    --bg: #EDE9E1; --surface: #FAF8F3; --sheet: #FFFFFF;
+    --sheet-2: #F4F1EA; --sheet-3: #F2EEE6; --sheet-4: #F2EEE6;
+    --warn-bg: #FBF1DE; --bad-bg: #FBE7DC; --badge-bg: #EFE9DD;
+    --hatch: #E7E2D8; --hairline: #E2DCD1; --on-brass: #FFFFFF;
+    --field: #EAE5DB; --field-press: #DCD6C9; --press: #EDE9E1;
+    --press-2: #EBE6DC; --press-warm: #F6ECD8; --press-brass: #F7E9CF;
+    --rail: #DCD6C9; --rail-2: #D2CBBC; --rail-3: #D5CEC0;
+    --rail-4: #D8D1C3; --rail-5: #C3BBAA; --seg-on: #DDD6C8;
+    --bezel: #D8D2C6; --edge: #CFC8B9; --ink: #17150F;
+    --ink-2: #3A352E; --ink-2b: #423C33; --ink-3: #55504A;
+    --ink-3b: #5A5348; --ink-4: #6B6559; --ink-5: #857E70;
+    --ink-5b: #857E70; --ink-6: #8C8578; --ink-7: #9A9385;
+    --ink-8: #ADA697; --ink-9: #B5AE9F; --ink-10: #BFB8A9;
+    --brass: #A9721F; --brass-soft: #9B6A22; --brass-deep: #8A5A18;
+    --brass-dark: #6E3C15; --green: #5F6B4E; --blue: #3F6088;
+    --tone-good: #6B6559; --terra: #A84E27; --terra-2: #9E4722;
+    --bad-ink: #8A3F22; --warn-ink: #7A5A22;
+  }
+
+  /* ============================================================
      LIGHT ATLAS — ЦЕЛЬНЫЙ ПРОТОТИП V3
      Сегодня · Карта · Съёмки · Настройки
      Одна солнечная модель (NOAA) кормит все экраны.
@@ -34,7 +113,7 @@
 
   body {
     display: flex; justify-content: center; align-items: center;
-    min-height: 100vh; background: #070606;
+    min-height: 100vh; background: var(--bg);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     user-select: none; -webkit-user-select: none;
@@ -45,9 +124,9 @@
 
   .device {
     width: 390px; height: 844px;
-    background: #0F0E0C; border-radius: 44px;
-    position: relative; overflow: hidden; color: #EFEAE0;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 0 8px #1C1A17, 0 0 0 9px #2A2724;
+    background: var(--surface); border-radius: 44px;
+    position: relative; overflow: hidden; color: var(--ink);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 0 8px var(--bezel), 0 0 0 9px var(--seg-on);
   }
   @media (max-width: 500px) {
     body { align-items: stretch; }
@@ -88,22 +167,24 @@
   /* Место — кнопка: тап открывает выбор координат */
   .loc { background: none; border: none; padding: 0; margin: 0; font-family: inherit; text-align: left; cursor: pointer; color: inherit; }
   .loc .name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; display: inline-flex; align-items: center; gap: 5px; }
-  .loc-pin { width: 13px; height: 13px; stroke: #635E54; fill: none; stroke-width: 1.6; }
-  .loc:active .loc-pin { stroke: #E2A44C; }
+  .loc-pin { width: 13px; height: 13px; stroke: var(--ink-6); fill: none; stroke-width: 1.6; }
+  .loc:active .loc-pin { stroke: var(--brass); }
   /* Мелко — более точное место под крупным городом */
-  .head-sub { font-size: 11px; color: #8A8478; margin-top: 1px; letter-spacing: 0.1px; }
+  .head-sub { font-size: 11px; color: var(--ink-4); margin-top: 1px; letter-spacing: 0.1px; }
+  /* Уточнения к городу может не быть — пустая строка не должна держать высоту */
+  .head-sub:empty { display: none; }
   .loc .date {
-    font-size: 11px; color: #8A8478; text-transform: uppercase;
+    font-size: 11px; color: var(--ink-4); text-transform: uppercase;
     letter-spacing: 0.6px; margin-top: 3px; font-weight: 500;
   }
-  .head-note { font-size: 11px; color: #635E54; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 500; }
+  .head-note { font-size: 11px; color: var(--ink-6); letter-spacing: 0.4px; text-transform: uppercase; font-weight: 500; }
   /* Погода в шапке — как виджет Apple: иконка + температура, состояние, мин/макс */
   .head-wx { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
   .hw-top { display: flex; align-items: center; gap: 7px; }
-  .hw-top svg { width: 22px; height: 22px; stroke: #EFEAE0; fill: none; stroke-width: 1.5; }
-  .hw-top .temp { font-size: 24px; font-weight: 600; color: #EFEAE0; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
-  .hw-cond { font-size: 14px; color: #C9C2B6; }
-  .hw-hilo { display: flex; gap: 10px; font-size: 13px; color: #8A8478; font-variant-numeric: tabular-nums; }
+  .hw-top svg { width: 22px; height: 22px; stroke: var(--ink); fill: none; stroke-width: 1.5; }
+  .hw-top .temp { font-size: 24px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+  .hw-cond { font-size: 14px; color: var(--ink-2); }
+  .hw-hilo { display: flex; gap: 10px; font-size: 13px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
   .head-note { margin-top: 4px; }
 
   .title { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; padding: 26px 24px 0; }
@@ -124,10 +205,10 @@
     display: flex;
   }
   .sky-swap svg { width: 52px; height: 26px; fill: none; stroke-width: 1.5; }
-  .sky-swap .sg { stroke: #55504A; transition: stroke 0.35s ease; }
-  .sky-swap .sl { stroke: #3A352E; }
-  .sky-swap #swSun.on { stroke: #E2A44C; }
-  .sky-swap #swMoon.on { stroke: #A8BDD8; }
+  .sky-swap .sg { stroke: var(--ink-7); transition: stroke 0.35s ease; }
+  .sky-swap .sl { stroke: var(--rail-5); }
+  .sky-swap #swSun.on { stroke: var(--brass); }
+  .sky-swap #swMoon.on { stroke: var(--moon); }
   .sky-swap:active { opacity: 0.65; }
   /* Зона нажатия — только текст, не вся ширина купола: иначе низкое солнце
      попадает в невидимую полосу читалки, и тап по нему открывает шторку */
@@ -138,33 +219,153 @@
   }
   .dr-time {
     font-size: 46px; font-weight: 200; letter-spacing: -0.5px;
-    font-variant-numeric: tabular-nums; line-height: 1; color: #EFEAE0;
+    font-variant-numeric: tabular-nums; line-height: 1; color: var(--ink);
   }
-  .dr-time .caret { font-size: 18px; font-weight: 300; color: #635E54; margin-left: 8px; vertical-align: 7px; }
+  .dr-time .caret { font-size: 18px; font-weight: 300; color: var(--ink-6); margin-left: 8px; vertical-align: 7px; }
   .dr-phase {
-    font-size: 11px; color: #D9AC6B; text-transform: uppercase;
+    font-size: 11px; color: var(--brass-soft); text-transform: uppercase;
     letter-spacing: 1.4px; font-weight: 600; margin-top: 7px; transition: color 0.4s ease;
   }
-  .dr-sense { font-size: 12px; color: #8A8478; margin-top: 4px; }
+  .dr-sense { font-size: 12px; color: var(--ink-4); margin-top: 4px; }
 
   /* ---------- Отсчёт до следующего света (заполняет место под дугой) ---------- */
   .next-light { text-align: center; padding: 2px 24px 0; }
-  .nl-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: #8A8478; font-weight: 600; }
+  .nl-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-4); font-weight: 600; }
   .nl-value { font-size: 30px; font-weight: 300; letter-spacing: -0.5px; line-height: 1.05; margin-top: 3px;
-    font-variant-numeric: tabular-nums; color: #E2A44C; transition: color 0.4s ease; }
-  .nl-trend { display: inline-flex; align-items: center; gap: 8px; margin-top: 5px; color: #8A8478; font-size: 12px; }
+    font-variant-numeric: tabular-nums; color: var(--brass); transition: color 0.4s ease; }
+  .nl-trend { display: inline-flex; align-items: center; gap: 8px; margin-top: 5px; color: var(--ink-4); font-size: 12px; }
   .nl-spark { width: 42px; height: 14px; display: block; }
+
+  /* ---------- Закладка места в шапке карты ----------
+     Пустой правый угол шапки занимали координаты. Теперь там действие:
+     стоишь на точке — оставь её себе. Залитая закладка значит «уже сохранено»,
+     повторный тап убирает: одна кнопка на оба состояния, как у любой закладки. */
+  .map-save {
+    width: 44px; height: 44px; flex-shrink: 0; margin: -6px -8px 0 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--ink-6); cursor: pointer;
+  }
+  .map-save svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+    transition: fill 0.18s ease; }
+  .map-save.on { color: var(--brass); }
+  /* Заливка плотная, а не полупрозрачная: на знаке в 20 пикселей разница в 22%
+     не читается, и тап выглядел так, будто ничего не произошло */
+  .map-save.on svg { fill: var(--brass); }
+  .map-save:active { color: var(--ink); }
+  /* Подпись говорит, что именно случилось. Без неё человек, не заметив отклика,
+     жмёт второй раз — и снимает только что поставленную закладку */
+  #s-map .header { position: relative; }
+  .save-note {
+    position: absolute; right: 44px; top: 18px;
+    font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; font-weight: 600;
+    color: var(--ink-3b); white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity 0.25s ease;
+  }
+  .save-note.show { opacity: 1; }
+
+  /* ---------- Веер сохранённых точек ----------
+     Один список на три места: долгое нажатие на закладке карты, выбор места
+     в маршруте карточки и пункт настроек. Язык взят у веера видов календаря —
+     второго такого же меню в продукте быть не должно.
+     z-index выше формы съёмки (80): веер открывается из неё же */
+  .spot-scrim { position: fixed; inset: 0; z-index: 96; }
+  .spot-scrim[hidden] { display: none; }
+  .spot-fan {
+    position: absolute; z-index: 97; min-width: 216px; max-width: 280px;
+    max-height: 320px; overflow-y: auto; scrollbar-width: none;
+    overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    background: var(--sheet); border-radius: 16px; padding: 6px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+    animation: scopeIn 0.16s ease-out;
+  }
+  .spot-fan::-webkit-scrollbar { display: none; }
+  .spot-fan[hidden] { display: none; }
+  .spot-fan button {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px;
+    background: none; border: none; border-radius: 11px; cursor: pointer;
+    font-family: inherit; text-align: left; color: var(--ink);
+  }
+  .spot-fan button:active { background: var(--press); }
+  .spot-fan .ic { display: flex; flex-shrink: 0; }
+  .spot-fan .ic svg { width: 18px; height: 18px; fill: none; stroke: var(--ink-4);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .spot-fan button.on .ic svg { stroke: var(--brass); fill: rgba(226,164,76,0.25); }
+  .spot-fan .tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .spot-fan .t1 { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spot-fan .t2 { font-size: 11px; color: var(--ink-4);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Уточнения может не быть — пустая строка не должна занимать место */
+  .spot-fan .t2:empty, .spot-coord:empty { display: none; }
+  .spot-fan .fan-empty { padding: 12px; font-size: 13px; color: var(--ink-4); line-height: 1.45; }
+  @media (prefers-reduced-motion: reduce) { .spot-fan { animation: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .map-save svg, .save-note { transition: none; }
+  }
+
+  /* ---------- Сохранённые точки в листе «Где снимаем» ----------
+     Список стоит выше поиска: возврат на своё место — частый случай,
+     а поиск нового — редкий */
+  .spot-list { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 14px; }
+  .spot-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px;
+    border-bottom: 1px solid var(--hair); }
+  .spot-go { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+    background: none; border: none; padding: 0; text-align: left; cursor: pointer;
+    color: inherit; font-family: inherit; }
+  .spot-name { font-size: 15px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spot-coord { font-size: 11px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+  .spot-del { width: 36px; height: 36px; flex-shrink: 0; background: none; border: none;
+    display: inline-flex; align-items: center; justify-content: center; color: var(--ink-6); cursor: pointer; }
+  .spot-del svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
+  .spot-del:active { color: var(--terra); }
+  .spot-empty { font-size: 12px; color: var(--ink-6); padding: 2px 0 12px; }
+
+  /* ---------- Строка времени карты и шеврон ----------
+     Карта отвечает про выбранный ползунком момент, а времени этого момента
+     на экране не было вовсе: крутишь — солнце едет, градусы меняются, а в
+     котором часу это будет, не сказано. Строка несворачиваемая: свёрнутая
+     карта — это холст, время и ползунок, режим «стою на площадке». */
+  .map-read {
+    display: flex; align-items: baseline; gap: 11px; width: 100%;
+    margin: 14px 0 2px; padding: 0 24px; background: none; border: none;
+    color: inherit; font-family: inherit; text-align: left; cursor: pointer;
+  }
+  .mr-time {
+    font-size: 34px; font-weight: 200; letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums; line-height: 1; color: var(--ink); flex-shrink: 0;
+  }
+  .mr-phase {
+    font-size: 11px; color: var(--brass-soft); text-transform: uppercase; letter-spacing: 1.4px;
+    font-weight: 600; flex: 1; min-width: 0; transition: color 0.4s ease;
+  }
+  .mr-chev { display: inline-flex; align-self: center; flex-shrink: 0; }
+  .mr-chev svg { width: 9px; height: 15px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round;
+    transform: rotate(90deg); transition: transform 0.35s ease; }
+  .map-read.shut .mr-chev svg { transform: rotate(-90deg); }
+  /* Собственного паддинга у обёртки нет: свёрнутый блок с max-height: 0 всё
+     равно занял бы его высоту — эту граблю уже ловили */
+  .map-fold { overflow: hidden; max-height: 1600px; transition: max-height 0.4s ease; }
+  .map-fold.shut { max-height: 0; }
+  /* Свёрнутая сводка отдаёт место карте — ради него всё и затевалось.
+     Без этого на месте семи строк остаётся просто дыра.
+     Специфичность выше, чем у `.screen > *` с его flex-shrink: 0 */
+  body.map-shut .map-frame { flex: 1 1 auto; height: auto; min-height: 370px; }
+  @media (prefers-reduced-motion: reduce) {
+    .map-fold { transition: none; }
+    .mr-chev svg { transition: none; }
+  }
 
   /* ---------- Сводка ---------- */
   .telemetry { padding: 0 24px; }
   .t-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 9px 0 8px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px;
+    padding: 9px 0 8px; border-bottom: 1px solid var(--hair-2); font-size: 14px;
   }
-  .t-label { color: #8A8478; flex-shrink: 0; }
+  .t-label { color: var(--ink-4); flex-shrink: 0; }
   .t-value { font-weight: 500; letter-spacing: 0.1px; white-space: nowrap; text-align: right;
     display: inline-flex; align-items: center; }
-  .t-value.rec { color: #E2A44C; font-weight: 600; transition: color 0.4s ease; }
+  .t-value.rec { color: var(--brass); font-weight: 600; transition: color 0.4s ease; }
   /* Экспонометр качества света — читается быстрее слов */
   .meter { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; margin-right: 9px; }
   .meter i { display: inline-block; width: 3px; border-radius: 1px; }
@@ -179,15 +380,19 @@
   /* ---------- Астро режим ---------- */
   .pro { display: none; padding: 0 24px; }
   body.pro-mode .pro { display: block; }
+  /* Измерения — забота астро-режима. Обычный оставляет то, чего на холсте
+     нет цифрой: времена окон, луну и вердикт точки съёмки */
+  .pro-only { display: none; }
+  body.pro-mode .t-row.pro-only { display: flex; }
   /* Заметная, но лёгкая: иконка + текст + стрелка, без обводки и заливки */
   .spoiler {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; margin: 6px 0 0; padding: 13px;
     background: none; border: none;
-    color: #C9C2B6; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    color: var(--ink-2); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
   }
-  .spoiler:active { color: #EFEAE0; }
-  .spoiler svg { width: 17px; height: 17px; stroke: #8A8478; fill: none; stroke-width: 1.6; }
+  .spoiler:active { color: var(--ink); }
+  .spoiler svg { width: 17px; height: 17px; stroke: var(--ink-4); fill: none; stroke-width: 1.6; }
   .spoiler .chev { transition: transform 0.35s ease; font-size: 12px; }
   .spoiler.open .chev { transform: rotate(180deg); }
   .pro-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.25,1,0.4,1); }
@@ -195,15 +400,15 @@
   .pro-group {
     display: flex; align-items: center; gap: 8px;
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
-    color: #55504A; font-weight: 600; margin: 20px 0 4px;
+    color: var(--ink-7); font-weight: 600; margin: 20px 0 4px;
   }
-  .pro-group svg { width: 15px; height: 15px; stroke: #8A8478; fill: none; stroke-width: 1.6; flex-shrink: 0; }
+  .pro-group svg { width: 15px; height: 15px; stroke: var(--ink-4); fill: none; stroke-width: 1.6; flex-shrink: 0; }
   .p-row {
     display: flex; justify-content: space-between; align-items: baseline;
-    padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03);
+    padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--hair-3);
   }
-  .p-row .k { color: #8A8478; }
-  .p-row .v { font-variant-numeric: tabular-nums; color: #C9C2B6; font-weight: 500; text-align: right; }
+  .p-row .k { color: var(--ink-4); }
+  .p-row .v { font-variant-numeric: tabular-nums; color: var(--ink-2); font-weight: 500; text-align: right; }
 
   /* Палитра предсказанного неба: не картинка заката, а его температура.
      Переход — только когда меняется прогноз или день; вечной петли нет. */
@@ -214,10 +419,10 @@
   }
   .sky-swatch span {
     font-size: 13px; font-weight: 600; letter-spacing: 0.2px;
-    color: rgba(18,16,14,0.82); text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+    color: var(--overlay); text-shadow: 0 1px 0 var(--hair-5);
   }
   @media (prefers-reduced-motion: reduce) { .sky-swatch { transition: none; } }
-  .p-row .v.none { color: #55504A; font-weight: 400; }
+  .p-row .v.none { color: var(--ink-7); font-weight: 400; }
 
   /* ---------- Управление временем ---------- */
   /* Закреплён над таб-баром, вне потока экрана — не прыгает при переходе,
@@ -225,39 +430,39 @@
   .timebar {
     position: absolute; left: 0; right: 0; bottom: var(--tabh, 74px); z-index: 25;
     padding: 12px 24px 14px;
-    background: #0F0E0C; border-top: 1px solid rgba(255,255,255,0.05);
+    background: var(--surface); border-top: 1px solid var(--hair);
     display: flex; flex-direction: column; gap: 8px;
   }
   body[data-tab="s-plan"] .timebar, body[data-tab="s-set"] .timebar { display: none; }
   .screen-action { margin: auto 24px 0; }
   .edges {
     display: flex; justify-content: space-between;
-    font-size: 11px; color: #8A8478; font-weight: 500; font-variant-numeric: tabular-nums;
+    font-size: 11px; color: var(--ink-4); font-weight: 500; font-variant-numeric: tabular-nums;
   }
   /* Пиктограмма вместо слова: половинка солнца над горизонтом,
      стрелка в центре говорит — всходит или садится */
   .edge { display: inline-flex; align-items: center; gap: 7px; }
-  .edge svg { width: 19px; height: 19px; stroke: #C9853F; fill: none; stroke-width: 1.6; }
+  .edge svg { width: 19px; height: 19px; stroke: var(--brass-deep); fill: none; stroke-width: 1.6; }
   .track-wrap { position: relative; padding-bottom: 16px; }
   /* Гравировка: риски каждый час, крупные каждые шесть — под дорожкой ползунка */
   .ruler {
     position: absolute; left: 13px; right: 13px; top: 24px; height: 10px;
     width: calc(100% - 26px); pointer-events: none;
   }
-  .ruler line { stroke: #3A352E; stroke-width: 1; }
-  .ruler line.major { stroke: #55504A; }
+  .ruler line { stroke: var(--rail-5); stroke-width: 1; }
+  .ruler line.major { stroke: var(--ink-7); }
   /* Появляется, только когда отмотал время от текущего. Тап → возврат к «сейчас». */
   .now-tick {
     position: absolute; bottom: -6px; transform: translateX(-50%);
     display: none; align-items: center; background: none; border: none;
     cursor: pointer; font-family: inherit; line-height: 1;
-    font-size: 11px; letter-spacing: 0.4px; color: #C9853F; font-weight: 600;
+    font-size: 11px; letter-spacing: 0.4px; color: var(--brass-deep); font-weight: 600;
     white-space: nowrap; padding: 8px 12px;
   }
   .now-tick.show { display: inline-flex; }
   .now-tick::before {
     content: ""; position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
-    width: 2px; height: 7px; border-radius: 1px; background: #C9853F;
+    width: 2px; height: 7px; border-radius: 1px; background: var(--brass-deep);
   }
   .scrub {
     -webkit-appearance: none; appearance: none; width: 100%; height: 36px;
@@ -266,73 +471,88 @@
   /* Скромный градиент: тёплые края — рассвет и закат, нейтральный полдень */
   .scrub::-webkit-slider-runnable-track {
     height: 4px; border-radius: 2px;
-    background: linear-gradient(90deg, rgba(201,133,63,0.55), #2B2822 26%, #2B2822 74%, rgba(201,133,63,0.55));
+    background: linear-gradient(90deg, rgba(201,133,63,0.55), var(--rail) 26%, var(--rail) 74%, rgba(201,133,63,0.55));
   }
   .scrub::-moz-range-track {
     height: 4px; border-radius: 2px;
-    background: linear-gradient(90deg, rgba(201,133,63,0.55), #2B2822 26%, #2B2822 74%, rgba(201,133,63,0.55));
+    background: linear-gradient(90deg, rgba(201,133,63,0.55), var(--rail) 26%, var(--rail) 74%, rgba(201,133,63,0.55));
   }
   .scrub::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 26px; height: 26px; border-radius: 50%;
-    background: #EFEAE0; border: 3px solid #0F0E0C;
-    box-shadow: 0 0 0 1px rgba(239,234,224,0.22), 0 4px 12px rgba(0,0,0,0.55); margin-top: -11px;
+    background: var(--ink); border: 3px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55); margin-top: -11px;
   }
   .scrub::-moz-range-thumb {
     width: 26px; height: 26px; border-radius: 50%;
-    background: #EFEAE0; border: 3px solid #0F0E0C;
-    box-shadow: 0 0 0 1px rgba(239,234,224,0.22), 0 4px 12px rgba(0,0,0,0.55);
+    background: var(--ink); border: 3px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55);
   }
 
   /* Действие — часть композиции, а не плашка-CTA: строка со сводочным ритмом */
   .action {
     display: flex; align-items: center; gap: 13px;
-    background: none; border: none; border-top: 1px solid rgba(255,255,255,0.07);
-    padding: 13px 0 2px; color: #EFEAE0; font-family: inherit; cursor: pointer; text-align: left;
+    background: none; border: none; border-top: 1px solid var(--hair-4);
+    padding: 13px 0 2px; color: var(--ink); font-family: inherit; cursor: pointer; text-align: left;
   }
-  .action .ic { width: 22px; height: 22px; stroke: #E2A44C; fill: none; stroke-width: 1.6; flex-shrink: 0; }
+  .action .ic { width: 22px; height: 22px; stroke: var(--brass); fill: none; stroke-width: 1.6; flex-shrink: 0; }
   .action .lbl { flex: 1; font-size: 16px; font-weight: 600; white-space: nowrap; }
-  .action .sub { font-size: 13px; font-weight: 450; color: #8A8478; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .action .sub { font-size: 13px; font-weight: 450; color: var(--ink-4); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .action:active { opacity: 0.55; }
   .ghost {
-    background: none; border: none; color: #8A8478; font-family: inherit;
+    background: none; border: none; color: var(--ink-4); font-family: inherit;
     font-size: 14px; padding: 14px; cursor: pointer; width: 100%; text-align: center;
   }
-  .ghost:active { color: #EFEAE0; }
+  .ghost:active { color: var(--ink); }
 
   /* ---------- Карта ---------- */
   .map-frame {
-    position: relative; margin: 18px 16px 0; height: 300px;
-    border-radius: 18px; overflow: hidden; background: #14110E;
+    /* 370, а не «сколько влезет»: при меньшей высоте строка лицензии Leaflet
+       заходит в область рисования и режет компас снизу — она занимает правую
+       половину нижнего края ровно там, где стоит «Ю». Высота отодвигает её за
+       границу холста, и компас упирается уже в ширину экрана, а не в неё */
+    /* isolation: isolate — Leaflet раскладывает свои панели по z-index до 700,
+       и без своего контекста наложения они спорят со всем приложением: веер
+       точек на 97 уезжал под карту. Замкнув их в кадре, наружу карта выходит
+       одним слоем, а порядок внутри неё сохраняется */
+    isolation: isolate;
+    position: relative; margin: 18px 16px 0; height: 370px;
+    border-radius: 18px; overflow: hidden; background: var(--canvas);
   }
   /* touch-action: none — Leaflet водит палец сам через JS (drag и пинч-зум),
      браузеру тут решать нечего, это и советует сама библиотека */
-  #lmap { position: absolute; inset: 0; background: #14110E; touch-action: none; }
+  #lmap { position: absolute; inset: 0; background: var(--canvas); touch-action: none; }
   /* Слой света поверх тайлов — компас не перехватывает жесты карты */
   #mapLight { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 450; }
   /* Точка съёмки — в центре кадра; карта ездит под ней */
   .map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 460; }
   .map-pin i { display: block; width: 13px; height: 13px; border-radius: 50%;
-    background: #EFEAE0; box-shadow: 0 0 0 2px #14110E, 0 0 0 3px rgba(239,234,224,0.4); }
+    background: var(--ink); box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3px var(--ink-a40); }
   /* «Моё место» — единственный элемент управления, тихий кружок */
   .map-here {
     position: absolute; right: 12px; bottom: 12px; z-index: 470;
     width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
-    background: rgba(23,21,15,0.86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center; color: #A8A093;
+    background: var(--bar-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; color: var(--ink-3);
   }
   .map-here svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
-  .map-here:active { color: #E2A44C; }
+  .map-here:active { color: var(--brass); }
 
   /* Тёмный Leaflet: карта — холст, а не интерфейс */
-  .leaflet-container { background: #14110E; font-family: inherit; outline: none; }
+  .leaflet-container { background: var(--canvas); font-family: inherit; outline: none; }
   .leaflet-control-zoom { display: none; }
   .leaflet-control-attribution {
-    background: rgba(15,14,12,0.6) !important; color: #4A453E !important;
+    background: var(--fill-b) !important; color: var(--ink-8) !important;
     font-size: 9px !important; padding: 1px 5px !important;
   }
-  .leaflet-control-attribution a { color: #6B6559 !important; }
-  .leaflet-tile { filter: saturate(0.85); }
+  .leaflet-control-attribution a { color: var(--ink-5) !important; }
+  /* CARTO dark_nolabels сам по себе слишком глухой: кварталы и улицы на телефоне
+     не различить. Тон и вода — в SVG-фильтре наверху страницы: подъём яркости
+     CSS выражает, а «покрасить только воду» — нет.
+     Контраст не добавляем: проверено, он вытаскивал крупные заливки в светлое
+     пятно, спорящее со слоем света. */
+  .filter-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .leaflet-tile { filter: url(#tileTone); }
 
   /* ---------- Календарь ---------- */
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
@@ -340,7 +560,7 @@
   .now-back {
     display: none; align-items: center; gap: 5px;
     background: none; border: none; cursor: pointer; font-family: inherit;
-    font-size: 11px; letter-spacing: 0.4px; color: #C9853F; font-weight: 600;
+    font-size: 11px; letter-spacing: 0.4px; color: var(--brass-deep); font-weight: 600;
     white-space: nowrap; padding: 8px 10px;
   }
   .now-back.show { display: inline-flex; }
@@ -353,7 +573,7 @@
   }
   .year-nav .y { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
   .year-nav button {
-    background: none; border: none; color: #8A8478; font-family: inherit;
+    background: none; border: none; color: var(--ink-4); font-family: inherit;
     font-size: 22px; cursor: pointer; padding: 6px 14px; line-height: 1;
   }
   .year-grid {
@@ -361,44 +581,44 @@
     column-gap: 8px; row-gap: 26px; margin-top: 28px;
   }
   .year-sum {
-    margin-top: 34px; padding-top: 18px; font-size: 13px; color: #635E54;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    margin-top: 34px; padding-top: 18px; font-size: 13px; color: var(--ink-6);
+    border-top: 1px solid var(--hair);
   }
-  .year-sum b { color: #A8A093; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .year-stat { margin-top: 12px; font-size: 13px; color: #635E54; line-height: 2; }
-  .year-stat b { color: #A8A093; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .year-stat .ys-k { color: #55504A; font-size: 10px; letter-spacing: 1.1px; text-transform: uppercase; font-weight: 600; margin-right: 8px; }
+  .year-sum b { color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .year-stat { margin-top: 12px; font-size: 13px; color: var(--ink-6); line-height: 2; }
+  .year-stat b { color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .year-stat .ys-k { color: var(--ink-7); font-size: 10px; letter-spacing: 1.1px; text-transform: uppercase; font-weight: 600; margin-right: 8px; }
   .year-profit {
     background: none; border: none; cursor: pointer; font-family: inherit;
-    margin-top: 12px; padding: 0; font-size: 13px; color: #8A8478;
+    margin-top: 12px; padding: 0; font-size: 13px; color: var(--ink-4);
   }
-  .year-profit:active { color: #E2A44C; }
-  .year-profit-val { margin-top: 12px; font-size: 13px; color: #635E54; font-variant-numeric: tabular-nums; }
-  .year-profit-val b { color: #E2A44C; font-weight: 650; font-size: 20px; letter-spacing: -0.3px; }
-  .year-profit-val b.neg { color: #C9663D; }
+  .year-profit:active { color: var(--brass); }
+  .year-profit-val { margin-top: 12px; font-size: 13px; color: var(--ink-6); font-variant-numeric: tabular-nums; }
+  .year-profit-val b { color: var(--brass); font-weight: 650; font-size: 20px; letter-spacing: -0.3px; }
+  .year-profit-val b.neg { color: var(--terra); }
   .ym {
     background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
-    padding: 12px 10px; border-radius: 12px; color: #EFEAE0;
+    padding: 12px 10px; border-radius: 12px; color: var(--ink);
   }
-  .ym:active { background: #17150F; }
-  .ym.now .n { color: #E2A44C; }
-  .ym.empty .n { color: #55504A; }
+  .ym:active { background: var(--sheet); }
+  .ym.now .n { color: var(--brass); }
+  .ym.empty .n { color: var(--ink-7); }
   .ym .n { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
   /* Строка под именем месяца: точка срочности и число съёмок. Пусто — значит пусто */
   .ym .c {
     display: flex; align-items: center; gap: 6px; margin-top: 7px; min-height: 14px;
-    font-size: 12px; color: #8A8478; font-variant-numeric: tabular-nums;
+    font-size: 12px; color: var(--ink-4); font-variant-numeric: tabular-nums;
   }
   .ym .c i { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
   .icon-btn {
     background: none; border: none; cursor: pointer; padding: 8px 5px;
-    display: flex; color: #E2A44C;
+    display: flex; color: var(--brass);
   }
   .icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.7; }
   /* Организации и документы: знак спокойнее календаря и поиска — сюда
      заходят раз в неделю, а не каждый день */
-  .icon-btn#planOrgs { color: #A8A093; }
-  .icon-btn#planSearch { color: #EFEAE0; }
+  .icon-btn#planOrgs { color: var(--ink-3); }
+  .icon-btn#planSearch { color: var(--ink); }
 
   /* Спойлер сводки дня */
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
@@ -407,7 +627,7 @@
     display: flex; align-items: center; justify-content: center;
     width: 100%; margin-top: 18px; padding: 6px 0;
     background: none; border: none; border-top: 1px solid rgba(226,164,76,0.35);
-    color: #8A8478; cursor: pointer; font-family: inherit;
+    color: var(--ink-4); cursor: pointer; font-family: inherit;
   }
   .day-toggle .chev { transition: transform 0.35s ease; font-size: 13px; margin-top: -2px; }
   .day-toggle.open .chev { transform: rotate(180deg); }
@@ -426,13 +646,21 @@
   .plan-row {
     display: flex; align-items: baseline; gap: 12px; width: 100%;
     background: none; border: none; cursor: pointer; font-family: inherit;
-    padding: 9px 0; text-align: left; color: #EFEAE0;
+    padding: 9px 0; text-align: left; color: var(--ink);
   }
   .plan-row:active { opacity: 0.6; }
-  .pr-time { color: #E2A44C; font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pr-time { color: var(--brass); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pr-who { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pr-due { margin-left: auto; font-size: 12px; white-space: nowrap; }
-  .plan-empty { color: #55504A; font-size: 14px; padding: 6px 0 2px; }
+  .plan-empty { color: var(--ink-7); font-size: 14px; padding: 6px 0 2px; }
+  /* Занятое время в списке дня: приглушено и со знаком причины. Латунь времени
+     достаётся съёмкам — они про свет, а отпуск про его отсутствие */
+  .plan-row.busy { align-items: center; color: var(--ink-3); }
+  .plan-row.busy .pr-time { color: var(--ink-4); font-size: 14px; }
+  .plan-row.busy .pr-who { font-size: 15px; }
+  .pr-ic { display: inline-flex; flex-shrink: 0; }
+  .pr-ic svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-4);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
   /* Свайп влево по строке — как в родных списках iOS.
      Удаление обратимо: под списком остаётся «Вернуть» */
@@ -441,10 +669,10 @@
     position: absolute; right: 0; top: 0; bottom: 0; width: 92px;
     display: flex; align-items: center; justify-content: center;
     background: none; border: none; cursor: pointer;
-    font-family: inherit; font-size: 14px; color: #C9663D;
+    font-family: inherit; font-size: 14px; color: var(--terra);
   }
   .swipe .plan-row {
-    position: relative; background: #0F0E0C;
+    position: relative; background: var(--surface);
     transition: transform 0.32s cubic-bezier(0.25,1,0.4,1);
     touch-action: pan-y;
   }
@@ -453,12 +681,12 @@
   .undo {
     display: none; align-items: center; justify-content: space-between;
     margin: 8px 24px 0; padding: 11px 14px;
-    background: #17150F; border-radius: 12px; font-size: 13px; color: #8A8478;
+    background: var(--sheet); border-radius: 12px; font-size: 13px; color: var(--ink-4);
   }
   .undo.show { display: flex; }
   .undo button {
     background: none; border: none; cursor: pointer; font-family: inherit;
-    font-size: 13px; font-weight: 600; color: #E2A44C; padding: 2px 0;
+    font-size: 13px; font-weight: 600; color: var(--brass); padding: 2px 0;
   }
 
   /* Переключатель масштаба — текстовый, без плашки: навигация не спорит с контентом */
@@ -478,12 +706,12 @@
   .scope-btn {
     width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
     justify-self: start;
-    background: #17150F; border-radius: 13px;
+    background: var(--sheet); border-radius: 13px;
     display: flex; align-items: center; justify-content: center;
   }
   .scope-btn:active { opacity: 0.7; }
   .scope-btn svg {
-    width: 21px; height: 21px; fill: none; stroke: #E2A44C; stroke-width: 1.6;
+    width: 21px; height: 21px; fill: none; stroke: var(--brass); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round;
   }
   /* Веер: список под кнопкой, а не диалог поверх экрана — вид меняют мимоходом */
@@ -491,7 +719,7 @@
   .scope-scrim[hidden] { display: none; }
   .scope-menu {
     position: absolute; left: 12px; top: 96px; z-index: 41; min-width: 208px;
-    background: #17150F; border-radius: 16px; padding: 6px;
+    background: var(--sheet); border-radius: 16px; padding: 6px;
     box-shadow: 0 18px 40px rgba(0,0,0,0.55);
     transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
   }
@@ -500,20 +728,20 @@
   .scope-menu button {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 12px;
     background: none; border: none; border-radius: 11px; cursor: pointer;
-    font-family: inherit; font-size: 15px; color: #EFEAE0; text-align: left;
+    font-family: inherit; font-size: 15px; color: var(--ink); text-align: left;
   }
-  .scope-menu button:active { background: #221F19; }
+  .scope-menu button:active { background: var(--press); }
   .scope-menu .mk { width: 16px; flex-shrink: 0; display: flex; }
-  .scope-menu .mk svg { width: 16px; height: 16px; fill: none; stroke: #E2A44C;
+  .scope-menu .mk svg { width: 16px; height: 16px; fill: none; stroke: var(--brass);
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
   .scope-menu button.on .mk svg { opacity: 1; }
   .scope-menu .ic { display: flex; flex-shrink: 0; }
-  .scope-menu .ic svg { width: 19px; height: 19px; fill: none; stroke: #8A8478;
+  .scope-menu .ic svg { width: 19px; height: 19px; fill: none; stroke: var(--ink-4);
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-  .scope-menu button.on .ic svg { stroke: #EFEAE0; }
+  .scope-menu button.on .ic svg { stroke: var(--ink); }
   .plan-title {
     flex: 0 1 auto; min-width: 0; background: none; border: none; padding: 4px;
-    font-family: inherit; font-size: 19px; font-weight: 650; color: #EFEAE0;
+    font-family: inherit; font-size: 19px; font-weight: 650; color: var(--ink);
     letter-spacing: -0.3px; text-align: center; cursor: pointer; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis;
   }
@@ -524,23 +752,23 @@
      а не «слово со стрелкой» */
   .plan-title { padding-left: 16px; }
   .pt-chev { display: inline-flex; vertical-align: middle; margin-left: 5px; }
-  .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: #635E54; stroke-width: 2.4;
+  .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
     stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); }
   /* Действия разрежены: три знака подряд без просвета читались одной кнопкой */
   .plan-acts { flex: 1 1 0; display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
   .icon-btn {
-    background: none; border: none; padding: 6px; cursor: pointer; color: #E2A44C;
+    background: none; border: none; padding: 6px; cursor: pointer; color: var(--brass);
     display: flex; align-items: center; justify-content: center;
   }
   .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; }
   .now-back { display: none; }
   .now-back.show {
     display: block; margin: 0 auto 4px; background: none; border: none;
-    font-family: inherit; font-size: 12.5px; color: #E2A44C; cursor: pointer;
+    font-family: inherit; font-size: 12.5px; color: var(--brass); cursor: pointer;
   }
   .cal-head { display: grid; grid-template-columns: repeat(7,1fr); padding: 14px 20px 0; }
   .cal-head span {
-    text-align: center; font-size: 11px; color: #55504A;
+    text-align: center; font-size: 11px; color: var(--ink-7);
     letter-spacing: 0.6px; text-transform: uppercase; padding-bottom: 8px; font-weight: 600;
   }
   .cal { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; padding: 0 20px; }
@@ -550,25 +778,28 @@
     min-height: 55px; border: none; background: none; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 1px;
     padding: 3px 1px 4px;
-    font-family: inherit; font-size: 15px; color: #EFEAE0;
+    font-family: inherit; font-size: 15px; color: var(--ink);
     position: relative; border-radius: 11px; font-variant-numeric: tabular-nums;
     transition: background 0.25s ease;
   }
-  .cal .d.past { color: #4A453E; }
+  .cal .d.past { color: var(--ink-8); }
   /* Дни соседних месяцев: последние выходные августа часто лежат в сентябре,
      и занятость по ним видна только так. Блёклые — чтобы не спорить со своим месяцем */
-  .cal .d.out .d-n { color: #3A352F; }
+  .cal .d.out .d-n { color: var(--ink-10); }
   .cal .d.out .cal-lb { opacity: 0.45; }
   /* Подпись жанра в клетке говорит о дне больше, чем точка: «Свадьба» — это
      занятый день целиком, «Портрет» — час-полтора и можно совместить */
   .cal-lb {
     max-width: 100%; font-size: 8.5px; line-height: 1.25; letter-spacing: -0.1px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    color: #8A8478; font-variant-numeric: normal;
+    color: var(--ink-4); font-variant-numeric: normal;
   }
-  .cal-lb.more { color: #55504A; }
-  .cal .d.today { color: #E2A44C; font-weight: 650; }
-  .cal .d.sel { background: #221F19; }
+  .cal-lb.more { color: var(--ink-7); }
+  /* Занятость — не съёмка: цвета света у неё нет, и вперёд она не лезет.
+     Курсив отличает её от жанра, не добавляя ещё одного цвета */
+  .cal-lb.busy { color: var(--ink-5); font-style: italic; }
+  .cal .d.today { color: var(--brass); font-weight: 650; }
+  .cal .d.sel { background: var(--press); }
   /* Кольцо вокруг числа = есть съёмка. Цвет кольца = срочность сдачи материала:
      белое (предстоит) → жёлтое → янтарное → терракота (просрочено) */
   .d-n {
@@ -591,34 +822,34 @@
   .bookings { margin-top: 12px; }
   .booking {
     display: flex; align-items: center; gap: 14px; width: 100%;
-    background: #17150F; border: none; border-radius: 14px;
+    background: var(--sheet); border: none; border-radius: 14px;
     padding: 12px 15px; margin-bottom: 8px; cursor: pointer;
-    color: #EFEAE0; font-family: inherit; text-align: left;
+    color: var(--ink); font-family: inherit; text-align: left;
   }
-  .booking:active { background: #201C15; }
+  .booking:active { background: var(--press-2); }
   .bk-time { display: flex; flex-direction: column; min-width: 58px; font-variant-numeric: tabular-nums; }
-  .bk-start { font-size: 16px; color: #E2A44C; font-weight: 550; }
-  .bk-to { font-size: 11px; color: #8A8478; margin-top: 2px; }
+  .bk-start { font-size: 16px; color: var(--brass); font-weight: 550; }
+  .bk-to { font-size: 11px; color: var(--ink-4); margin-top: 2px; }
   .bk-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .bk-title, .bk-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bk-title { font-size: 15px; font-weight: 600; }
-  .bk-sub { font-size: 12px; color: #8A8478; margin-top: 2px; }
-  .bk-edit { color: #635E54; font-size: 20px; line-height: 1; }
+  .bk-sub { font-size: 12px; color: var(--ink-4); margin-top: 2px; }
+  .bk-edit { color: var(--ink-6); font-size: 20px; line-height: 1; }
 
   /* паддинг задан выше, внутри свёртываемого блока */
-  .dp-date { font-size: 11px; color: #8A8478; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
+  .dp-date { font-size: 11px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
   .dp-verdict { font-size: 26px; font-weight: 650; letter-spacing: -0.4px; margin-top: 6px; }
-  .dp-why { color: #8A8478; font-size: 14px; margin-top: 5px; }
+  .dp-why { color: var(--ink-4); font-size: 14px; margin-top: 5px; }
   .dp-window { margin-top: 14px; font-size: 15px; }
-  .dp-window .t { font-variant-numeric: tabular-nums; color: #E2A44C; font-weight: 600; }
-  .dp-trust { font-size: 12px; color: #635E54; margin-top: 6px; }
+  .dp-window .t { font-variant-numeric: tabular-nums; color: var(--brass); font-weight: 600; }
+  .dp-trust { font-size: 12px; color: var(--ink-6); margin-top: 6px; }
   .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
 
 
   .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
-  .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8A8478; }
+  .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-4); }
   .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .legend .ring { background: rgba(239,234,224,0.24); border: none; }
+  .legend .ring { background: var(--ink-a24); border: none; }
   .legend .ring.due { background: rgba(201,102,61,0.34); }
 
   /* ---------- Неделя: семь дней карточками ----------
@@ -629,62 +860,62 @@
     display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: start;
     padding: 8px; border-radius: 14px;
   }
-  .wk-day-row.sel { background: #17150F; }
+  .wk-day-row.sel { background: var(--sheet); }
   .wk-day-row.past { opacity: 0.5; }
   .wk-head {
     display: flex; flex-direction: column; align-items: center; gap: 1px;
     background: none; border: none; padding: 4px 0 0; cursor: pointer; font-family: inherit;
   }
-  .wk-num { font-size: 19px; color: #EFEAE0; font-variant-numeric: tabular-nums; }
+  .wk-num { font-size: 19px; color: var(--ink); font-variant-numeric: tabular-nums; }
   /* Погода прямо в колонке даты — это и есть прогноз на неделю */
   .wk-wx { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-top: 4px; }
   .wk-wx svg { width: 17px; height: 17px; fill: none; stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; }
-  .wk-wx i { font-style: normal; font-size: 11px; color: #8A8478; font-variant-numeric: tabular-nums; }
-  .wk-wd { font-size: 10px; color: #55504A; letter-spacing: 0.6px; }
-  .wk-day-row.today .wk-num { color: #E2A44C; font-weight: 650; }
-  .wk-day-row.today .wk-wd { color: #E2A44C; }
+  .wk-wx i { font-style: normal; font-size: 11px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+  .wk-wd { font-size: 10px; color: var(--ink-7); letter-spacing: 0.6px; }
+  .wk-day-row.today .wk-num { color: var(--brass); font-weight: 650; }
+  .wk-day-row.today .wk-wd { color: var(--brass); }
   .wk-list { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .wk-card {
     display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-    padding: 9px 12px; border: none; border-radius: 12px; background: #17150F;
-    font-family: inherit; color: #EFEAE0; cursor: pointer;
+    padding: 9px 12px; border: none; border-radius: 12px; background: var(--sheet);
+    font-family: inherit; color: var(--ink); cursor: pointer;
   }
   .wk-card:active { opacity: 0.75; }
   .wk-ic svg {
-    width: 17px; height: 17px; fill: none; stroke: #E2A44C; stroke-width: 1.5;
+    width: 17px; height: 17px; fill: none; stroke: var(--brass); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; display: block;
   }
   .wk-body { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 8px; }
   .wk-t { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wk-s {
-    margin-left: auto; font-size: 12.5px; color: #8A8478;
+    margin-left: auto; font-size: 12.5px; color: var(--ink-4);
     font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
   /* Свободный день — не пустота, а предложение: тап заводит съёмку */
   .wk-free {
     display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
     padding: 9px 12px; border: none; border-radius: 12px; background: none;
-    box-shadow: inset 0 0 0 1px #1C1913;
-    font-family: inherit; font-size: 13.5px; color: #55504A; cursor: pointer;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    font-family: inherit; font-size: 13.5px; color: var(--ink-7); cursor: pointer;
   }
-  .wk-free span { margin-left: auto; color: #635E54; font-variant-numeric: tabular-nums; }
-  .wk-free:active { background: #17150F; }
+  .wk-free span { margin-left: auto; color: var(--ink-6); font-variant-numeric: tabular-nums; }
+  .wk-free:active { background: var(--sheet); }
   /* Сдача материала в этот день — тоже занятость */
   /* Развёрнутый день: свет и погода подробностями, здесь же в неделе */
   .wk-more { display: none; padding: 8px 12px 4px; }
   .wk-day-row.open .wk-more { display: block; }
   .wk-light { display: flex; flex-wrap: wrap; gap: 6px 14px; }
   .wk-light span { display: flex; align-items: center; gap: 5px;
-    font-size: 12px; color: #8A8478; font-variant-numeric: tabular-nums; }
-  .wk-light span.gold { color: #E2A44C; }
+    font-size: 12px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+  .wk-light span.gold { color: var(--brass); }
   .wk-light svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-  .wk-wxs { font-size: 12px; color: #55504A; margin-top: 6px; }
+  .wk-wxs { font-size: 12px; color: var(--ink-7); margin-top: 6px; }
 
   .wk-due {
     display: flex; align-items: center; gap: 7px; padding: 6px 12px;
-    font-size: 12px; color: #C9663D;
+    font-size: 12px; color: var(--terra);
   }
   .wk-due svg {
     width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6;
@@ -695,87 +926,87 @@
   /* ---------- Съёмки ---------- */
   .sec-label {
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
-    color: #55504A; font-weight: 600; padding: 30px 24px 8px;
+    color: var(--ink-7); font-weight: 600; padding: 30px 24px 8px;
   }
   .session {
     display: flex; align-items: center; gap: 16px;
-    background: #17150F; border-radius: 16px;
+    background: var(--sheet); border-radius: 16px;
     padding: 16px 18px; margin: 0 24px 10px; cursor: pointer;
   }
   .s-date { text-align: center; min-width: 40px; }
   .s-date .n { font-size: 24px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
-  .s-date .m { font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; color: #635E54; margin-top: 3px; }
+  .s-date .m { font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-6); margin-top: 3px; }
   .s-body { flex: 1; min-width: 0; }
   .s-title, .s-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .s-title { font-size: 15px; font-weight: 600; }
-  .s-sub { font-size: 13px; color: #8A8478; margin-top: 2px; }
-  .s-sync { font-size: 11px; color: #635E54; margin-top: 4px; }
+  .s-sub { font-size: 13px; color: var(--ink-4); margin-top: 2px; }
+  .s-sync { font-size: 11px; color: var(--ink-6); margin-top: 4px; }
   .s-time { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
-  .s-time .st { font-size: 16px; color: #E2A44C; font-weight: 500; }
-  .s-time .en { font-size: 12px; color: #8A8478; margin-top: 2px; }
-  .empty { color: #55504A; font-size: 14px; padding: 4px 24px 0; }
+  .s-time .st { font-size: 16px; color: var(--brass); font-weight: 500; }
+  .s-time .en { font-size: 12px; color: var(--ink-4); margin-top: 2px; }
+  .empty { color: var(--ink-7); font-size: 14px; padding: 4px 24px 0; }
 
   /* ---------- Настройки ---------- */
-  .seg { display: flex; background: #17150F; border-radius: 12px; padding: 3px; margin: 12px 24px 0; }
+  .seg { display: flex; background: var(--sheet); border-radius: 12px; padding: 3px; margin: 12px 24px 0; }
   .seg button {
     flex: 1; background: none; border: none; border-radius: 10px;
-    color: #8A8478; font-family: inherit; font-size: 14px; font-weight: 550;
+    color: var(--ink-4); font-family: inherit; font-size: 14px; font-weight: 550;
     padding: 11px; cursor: pointer; transition: background 0.3s ease, color 0.3s;
   }
-  .seg button.active { background: #2A2724; color: #EFEAE0; }
-  .seg-note { font-size: 12px; color: #635E54; padding: 10px 24px 0; line-height: 1.5; }
+  .seg button.active { background: var(--seg-on); color: var(--ink); }
+  .seg-note { font-size: 12px; color: var(--ink-6); padding: 10px 24px 0; line-height: 1.5; }
 
   /* Работа с копией данных: действие, а не плашка-CTA */
   .data-btn {
     display: flex; align-items: center; gap: 11px; width: calc(100% - 48px);
     margin: 10px 24px 0; padding: 13px 15px;
-    background: #221D14; border: none; border-radius: 12px; cursor: pointer;
-    font-family: inherit; font-size: 15px; font-weight: 600; color: #E2A44C;
+    background: var(--press-warm); border: none; border-radius: 12px; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 600; color: var(--brass);
   }
   .data-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.7; flex-shrink: 0; }
   .data-btn:active { opacity: 0.6; }
-  .data-btn.ghost-btn { background: #17150F; color: #A8A093; }
-  #storeState.risk { color: #C9853F; }
-  #storeState.safe { color: #A8B49B; }
-  #yaState.safe { color: #A8B49B; }
+  .data-btn.ghost-btn { background: var(--sheet); color: var(--ink-3); }
+  #storeState.risk { color: var(--brass-deep); }
+  #storeState.safe { color: var(--green); }
+  #yaState.safe { color: var(--green); }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .data-btn[hidden], .item[hidden] { display: none; }
   .item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 24px; font-size: 15px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--hair-2);
   }
-  .item .k { color: #EFEAE0; }
-  .item .v { color: #8A8478; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .item .k { color: var(--ink); }
+  .item .v { color: var(--ink-4); font-size: 14px; font-variant-numeric: tabular-nums; }
   .toggle {
-    width: 51px; height: 31px; border-radius: 20px; background: #2E2A24;
+    width: 51px; height: 31px; border-radius: 20px; background: var(--rail-2);
     position: relative; transition: background 0.3s ease; flex-shrink: 0; cursor: pointer;
   }
-  .toggle.on { background: #E2A44C; }
+  .toggle.on { background: var(--brass); }
   .toggle::after {
     content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px;
     border-radius: 50%; background: #fff; transition: transform 0.3s ease;
   }
   .toggle.on::after { transform: translateX(20px); }
-  .foot { text-align: center; color: #45403A; font-size: 12px; padding: 36px 0 12px; line-height: 1.7; }
-  #buildInfo { color: #38332B; font-variant-numeric: tabular-nums; }
+  .foot { text-align: center; color: var(--ink-9); font-size: 12px; padding: 36px 0 12px; line-height: 1.7; }
+  #buildInfo { color: var(--edge); font-variant-numeric: tabular-nums; }
 
   /* ---------- Таб-бар ---------- */
   .tabbar {
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 30;
-    background: rgba(15,14,12,0.9);
+    background: var(--bar);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid var(--hair);
     display: flex; padding: 9px 6px 24px;
   }
   .tab {
     flex: 1; background: none; border: none; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
-    color: #635E54; font-family: inherit; font-size: 10px; font-weight: 500; padding: 5px 0;
+    color: var(--ink-6); font-family: inherit; font-size: 10px; font-weight: 500; padding: 5px 0;
   }
   .tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.5; }
-  .tab.active { color: #EFEAE0; }
-  .tab.active svg { stroke: #E2A44C; }
+  .tab.active { color: var(--ink); }
+  .tab.active svg { stroke: var(--brass); }
 
   /* ---------- Шторка выбора ---------- */
   .scrim {
@@ -785,7 +1016,7 @@
   .scrim.open { opacity: 1; visibility: visible; }
   .sheet {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 70;
-    background: #17150F; border-radius: 24px 24px 0 0; padding: 10px 24px 34px;
+    background: var(--sheet); border-radius: 24px 24px 0 0; padding: 10px 24px 34px;
     transform: translateY(101%); transition: transform 0.38s cubic-bezier(0.25,1,0.4,1);
     /* Список пакетов растёт — лист не должен вылезать за экран */
     max-height: 86vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -799,55 +1030,58 @@
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
   #gScrim, #locScrim { z-index: 84; }
   #gSheet, #locSheet { z-index: 86; }
+  /* Лист занятости открывается с экрана «Съёмки», а не из формы — ему хватает
+     своего уровня, но выше нижних листов настроек он быть обязан */
+  #blkSheet { z-index: 86; }
 
   /* Лист выбора места */
   .loc-detect {
     display: flex; align-items: center; justify-content: center; gap: 9px;
     width: 100%; margin-top: 18px; padding: 14px;
-    background: #221D14; border: none; border-radius: 12px; cursor: pointer;
-    font-family: inherit; font-size: 15px; font-weight: 600; color: #E2A44C;
+    background: var(--press-warm); border: none; border-radius: 12px; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 600; color: var(--brass);
   }
   .loc-detect svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
   .loc-detect:active { opacity: 0.6; }
   .loc-fields { display: flex; gap: 10px; margin-top: 12px; }
   .loc-fields label {
     flex: 1; display: flex; flex-direction: column; gap: 6px;
-    font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #55504A; font-weight: 600;
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-7); font-weight: 600;
   }
   .loc-fields input {
-    background: #17150F; border: none; border-radius: 12px; padding: 13px 14px;
-    color: #EFEAE0; font-family: inherit; font-size: 16px; outline: none;
+    background: var(--sheet); border: none; border-radius: 12px; padding: 13px 14px;
+    color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
   }
-  .loc-fields input:focus { background: #221F19; }
-  .loc-err { min-height: 16px; margin-top: 8px; font-size: 12px; color: #C9663D; }
+  .loc-fields input:focus { background: var(--press); }
+  .loc-err { min-height: 16px; margin-top: 8px; font-size: 12px; color: var(--terra); }
   /* Поиск места по названию */
   .loc-search {
     display: flex; align-items: center; gap: 10px; margin-top: 10px;
-    background: #17150F; border-radius: 12px; padding: 0 14px;
+    background: var(--sheet); border-radius: 12px; padding: 0 14px;
   }
-  .loc-search svg { width: 17px; height: 17px; stroke: #635E54; fill: none; stroke-width: 1.8; flex-shrink: 0; }
+  .loc-search svg { width: 17px; height: 17px; stroke: var(--ink-6); fill: none; stroke-width: 1.8; flex-shrink: 0; }
   .loc-search input {
     flex: 1; min-width: 0; background: none; border: none; padding: 14px 0;
-    color: #EFEAE0; font-family: inherit; font-size: 16px; outline: none;
+    color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none;
   }
-  .loc-search input::placeholder { color: #4A453E; }
+  .loc-search input::placeholder { color: var(--ink-8); }
   .loc-results:empty { display: none; }
   .loc-results { margin-top: 8px; max-height: 168px; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; }
   .loc-results::-webkit-scrollbar { display: none; }
   .loc-hit {
     display: block; width: 100%; text-align: left; cursor: pointer;
-    background: none; border: none; font-family: inherit; color: #EFEAE0;
-    padding: 11px 2px; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
+    background: none; border: none; font-family: inherit; color: var(--ink);
+    padding: 11px 2px; box-shadow: inset 0 -1px 0 var(--hair-2);
   }
   .loc-hit:active { opacity: 0.6; }
   .loc-hit .n { font-size: 15px; }
-  .loc-hit .a { display: block; font-size: 12px; color: #8A8478; margin-top: 2px; }
-  .loc-note { padding: 10px 2px; font-size: 13px; color: #635E54; }
-  .grip { width: 38px; height: 4px; border-radius: 3px; background: #38332B; margin: 0 auto 18px; }
+  .loc-hit .a { display: block; font-size: 12px; color: var(--ink-4); margin-top: 2px; }
+  .loc-note { padding: 10px 2px; font-size: 13px; color: var(--ink-6); }
+  .grip { width: 38px; height: 4px; border-radius: 3px; background: var(--edge); margin: 0 auto 18px; }
   .sheet-title { font-size: 19px; font-weight: 650; letter-spacing: -0.2px; }
-  .sheet-sub { font-size: 13px; color: #8A8478; margin-top: 5px; }
+  .sheet-sub { font-size: 13px; color: var(--ink-4); margin-top: 5px; }
 
   .picker { position: relative; display: flex; height: 170px; margin-top: 14px; }
   .pick-band {
@@ -867,7 +1101,7 @@
   .w-item {
     height: 34px; display: flex; align-items: center; justify-content: center;
     scroll-snap-align: center; font-size: 20px; letter-spacing: -0.2px;
-    color: #EFEAE0; white-space: nowrap; opacity: 0;
+    color: var(--ink); white-space: nowrap; opacity: 0;
     font-variant-numeric: tabular-nums; will-change: transform, opacity;
   }
   .wheel[data-w="date"] .w-item { justify-content: flex-end; padding-right: 16px; }
@@ -876,11 +1110,11 @@
 
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .chip {
-    background: #221F19; border: none; border-radius: 20px;
-    color: #A8A093; font-family: inherit; font-size: 13px;
+    background: var(--press); border: none; border-radius: 20px;
+    color: var(--ink-3); font-family: inherit; font-size: 13px;
     padding: 10px 15px; cursor: pointer;
   }
-  .chip.active { background: #33291A; color: #E2A44C; font-weight: 600; }
+  .chip.active { background: var(--press-brass); color: var(--brass); font-weight: 600; }
 
   /* Инструмент вместо чипсов: пиктограмма с подписью, как кнопки режимов у камеры */
   .tool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -888,11 +1122,11 @@
     display: flex; flex-direction: column; align-items: center; gap: 6px;
     background: none; border: none; border-radius: 12px; cursor: pointer;
     padding: 11px 2px 9px; font-family: inherit; font-size: 10px;
-    color: #6B6559; letter-spacing: 0.2px;
+    color: var(--ink-5); letter-spacing: 0.2px;
     transition: color 0.25s ease, background 0.25s ease;
   }
   .tool svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; }
-  .tool.active { color: #E2A44C; background: #221D14; }
+  .tool.active { color: var(--brass); background: var(--press-warm); }
   .tool.off { opacity: 0.4; }
 
   /* Шкала с детентами: срок сдачи выбирается стрелкой по гравировке, а не кнопками */
@@ -901,19 +1135,19 @@
     -webkit-appearance: none; appearance: none; width: 100%; height: 32px;
     background: transparent; outline: none; cursor: pointer; display: block; margin: 0;
   }
-  .dial::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: #2B2822; }
-  .dial::-moz-range-track { height: 3px; border-radius: 2px; background: #2B2822; }
+  .dial::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: var(--rail); }
+  .dial::-moz-range-track { height: 3px; border-radius: 2px; background: var(--rail); }
   .dial::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 11px; height: 24px; border-radius: 5px;
-    background: #EFEAE0; border: 2px solid #0F0E0C;
-    box-shadow: 0 0 0 1px rgba(239,234,224,0.2), 0 3px 8px rgba(0,0,0,0.5);
+    background: var(--ink); border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--ink-a20), 0 3px 8px rgba(0,0,0,0.5);
     margin-top: -10.5px;
   }
   .dial::-moz-range-thumb {
     width: 11px; height: 24px; border-radius: 5px;
-    background: #EFEAE0; border: 2px solid #0F0E0C;
-    box-shadow: 0 0 0 1px rgba(239,234,224,0.2), 0 3px 8px rgba(0,0,0,0.5);
+    background: var(--ink); border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--ink-a20), 0 3px 8px rgba(0,0,0,0.5);
   }
   .dial-ticks {
     position: absolute; left: 6px; right: 6px; top: 24px; height: 7px;
@@ -921,19 +1155,19 @@
   }
   .dial-ticks i {
     position: absolute; top: 0; width: 1px; height: 6px;
-    background: #3A352E; transform: translateX(-0.5px);
+    background: var(--rail-5); transform: translateX(-0.5px);
   }
   .dial-labels { position: absolute; left: 6px; right: 6px; top: 33px; height: 13px; pointer-events: none; }
   .dial-labels span {
     position: absolute; transform: translateX(-50%);
-    font-size: 9.5px; letter-spacing: 0.3px; color: #55504A; white-space: nowrap;
+    font-size: 9.5px; letter-spacing: 0.3px; color: var(--ink-7); white-space: nowrap;
     font-variant-numeric: tabular-nums; transition: color 0.25s ease;
   }
-  .dial-labels span.lit { color: #E2A44C; font-weight: 600; }
+  .dial-labels span.lit { color: var(--brass); font-weight: 600; }
   .sheet-done {
     width: 100%; margin-top: 20px; padding: 16px;
-    background: #EFEAE0; border: none; border-radius: 14px;
-    color: #0F0E0C; font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
+    background: var(--ink); border: none; border-radius: 14px;
+    color: var(--surface); font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
   }
 
   /* ---------- Карточка съёмки ----------
@@ -944,17 +1178,17 @@
   #cardOverlay .row { cursor: default; }
   .card-edit {
     background: none; border: none; padding: 6px 2px; font-family: inherit;
-    font-size: 16px; color: #E2A44C; cursor: pointer;
+    font-size: 16px; color: var(--brass); cursor: pointer;
   }
   .card-edit:active { opacity: 0.6; }
-  .card-trust { font-size: 11px; color: #55504A; margin: 9px 4px 0; }
+  .card-trust { font-size: 11px; color: var(--ink-7); margin: 9px 4px 0; }
   /* Прогноз испортился — единственное, чего не умеет обычный календарь */
   .card-warn {
-    font-size: 13px; color: #C9663D; margin: 10px 4px 0; line-height: 1.45;
+    font-size: 13px; color: var(--terra); margin: 10px 4px 0; line-height: 1.45;
   }
   .card-notes {
-    font-size: 15px; color: #C9C2B6; line-height: 1.5;
-    background: #17150F; border-radius: 14px; padding: 14px 15px;
+    font-size: 15px; color: var(--ink-2); line-height: 1.5;
+    background: var(--sheet); border-radius: 14px; padding: 14px 15px;
     white-space: pre-wrap; word-break: break-word;
   }
   /* ---------- Карточка события ----------
@@ -965,16 +1199,16 @@
   .ev-head[hidden] { display: none; }
   .ev-sign { display: block; margin: 0 auto; }
   .ev-sign { line-height: 0; }
-  .ev-sign svg { width: 62px; height: 46px; fill: none; stroke: #E2A44C; stroke-width: 1.6;
+  .ev-sign svg { width: 62px; height: 46px; fill: none; stroke: var(--brass); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
-  .ev-names { font-size: 29px; font-weight: 700; color: #EFEAE0; letter-spacing: -0.7px;
+  .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
     line-height: 1.1; margin-top: 8px; }
-  .ev-person { font-size: 14.5px; color: #C9C2B6; margin-top: 5px; }
+  .ev-person { font-size: 14.5px; color: var(--ink-2); margin-top: 5px; }
   .ev-person[hidden] { display: none; }
-  .ev-when { font-size: 13px; color: #A8B49B; margin-top: 5px; }
-  .ev-when.past { color: #635E54; }
+  .ev-when { font-size: 13px; color: var(--green); margin-top: 5px; }
+  .ev-when.past { color: var(--ink-6); }
   .ev-tel { display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
-    padding: 9px 10px; font-size: 19px; color: #E2A44C; text-decoration: none;
+    padding: 9px 10px; font-size: 19px; color: var(--brass); text-decoration: none;
     font-variant-numeric: tabular-nums; }
   .ev-tel[hidden] { display: none; }
   .ev-tel:active { opacity: 0.6; }
@@ -985,85 +1219,85 @@
   .ev-grid[hidden] { display: none; }
   .pane {
     display: block; width: 100%; text-align: left; padding: 13px 14px;
-    background: #17150F; border: none; border-radius: 16px; min-width: 0;
-    font-family: inherit; color: #EFEAE0; cursor: pointer;
+    background: var(--sheet); border: none; border-radius: 16px; min-width: 0;
+    font-family: inherit; color: var(--ink); cursor: pointer;
   }
   .pane.wide { grid-column: 1 / -1; }
   .pane:active { opacity: 0.75; }
   .badge {
-    width: 38px; height: 38px; border-radius: 12px; background: #221F19;
+    width: 38px; height: 38px; border-radius: 12px; background: var(--press);
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .badge svg { width: 19px; height: 19px; fill: none; stroke: #E2A44C; stroke-width: 1.6;
+  .badge svg { width: 19px; height: 19px; fill: none; stroke: var(--brass); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
-  .badge.blue svg { stroke: #7C9CC4; }
+  .badge.blue svg { stroke: var(--blue); }
   .pane-row { display: flex; align-items: center; gap: 12px; }
-  .pn-t { display: block; font-size: 15px; color: #EFEAE0;
+  .pn-t { display: block; font-size: 15px; color: var(--ink);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pn-s { display: block; font-size: 12px; color: #635E54; margin-top: 2px;
+  .pn-s { display: block; font-size: 12px; color: var(--ink-6); margin-top: 2px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pn-k { display: block; font-size: 11px; color: #635E54; letter-spacing: 0.2px; }
-  .pn-v { display: block; font-size: 17px; color: #EFEAE0; margin-top: 2px;
+  .pn-k { display: block; font-size: 11px; color: var(--ink-6); letter-spacing: 0.2px; }
+  .pn-v { display: block; font-size: 17px; color: var(--ink); margin-top: 2px;
     font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .pn-v.gold { color: #E2A44C; }
+  .pn-v.gold { color: var(--brass); }
   .pn-body { display: block; min-width: 0; flex: 1; }
   .go-btn { display: inline-flex; }
   .chev { flex-shrink: 0; }
-  .chev svg { width: 8px; height: 14px; fill: none; stroke: #4A453E; stroke-width: 2;
+  .chev svg { width: 8px; height: 14px; fill: none; stroke: var(--ink-8); stroke-width: 2;
     stroke-linecap: round; stroke-linejoin: round; }
   .go-btn {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
-    background: #221F19; border-radius: 11px; padding: 8px 10px;
-    font-size: 13.5px; color: #E2A44C; border: none; font-family: inherit;
+    background: var(--press); border-radius: 11px; padding: 8px 10px;
+    font-size: 13.5px; color: var(--brass); border: none; font-family: inherit;
   }
   .go-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9;
     stroke-linecap: round; stroke-linejoin: round; }
 
   /* Состояние сделки: цепочка звеньев. Закрытое звено золотое и с галкой,
      открытое — пустой кружок; читается без подписи, как лента точек дня */
-  .deal { margin-top: 14px; padding: 14px 12px 12px; background: #17150F; border-radius: 18px; }
+  .deal { margin-top: 14px; padding: 14px 12px 12px; background: var(--sheet); border-radius: 18px; }
   .deal[hidden] { display: none; }
   .deal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .deal-t { font-size: 15px; color: #EFEAE0; }
-  .deal-s { font-size: 12.5px; color: #8A8478; flex-shrink: 0; }
+  .deal-t { font-size: 15px; color: var(--ink); }
+  .deal-s { font-size: 12.5px; color: var(--ink-4); flex-shrink: 0; }
   .deal-chain { display: flex; margin-top: 13px; }
   .deal-l { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column;
     align-items: center; text-align: center; position: relative; }
   /* Нить между звеньями идёт под кружками и не выходит за края цепочки */
   .deal-l::before { content: ""; position: absolute; top: 13px; left: -50%; width: 100%;
-    height: 1px; background: #221F19; }
+    height: 1px; background: var(--press); }
   .deal-l:first-child::before { display: none; }
-  .deal-l.done::before { background: #E2A44C; }
-  .deal-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #2C2820;
-    background: #0F0E0C; display: flex; align-items: center; justify-content: center;
+  .deal-l.done::before { background: var(--brass); }
+  .deal-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--rail-3);
+    background: var(--surface); display: flex; align-items: center; justify-content: center;
     position: relative; z-index: 1; }
-  .deal-l.done .deal-dot { background: #E2A44C; border-color: #E2A44C; }
-  .deal-dot svg { width: 13px; height: 13px; fill: none; stroke: #17150F; stroke-width: 2.4;
+  .deal-l.done .deal-dot { background: var(--brass); border-color: var(--brass); }
+  .deal-dot svg { width: 13px; height: 13px; fill: none; stroke: var(--sheet); stroke-width: 2.4;
     stroke-linecap: round; stroke-linejoin: round; }
-  .deal-n { font-size: 11px; color: #635E54; margin-top: 6px; }
-  .deal-l.done .deal-n { color: #A8A093; }
-  .deal-l.next .deal-dot { border-color: #E2A44C; }
-  .deal-l.next .deal-n { color: #E2A44C; }
+  .deal-n { font-size: 11px; color: var(--ink-6); margin-top: 6px; }
+  .deal-l.done .deal-n { color: var(--ink-3); }
+  .deal-l.next .deal-dot { border-color: var(--brass); }
+  .deal-l.next .deal-n { color: var(--brass); }
 
   /* Плитка дня */
   .day-tile {
     display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px;
-    margin-top: 14px; padding: 14px 12px; background: #17150F; border-radius: 18px;
+    margin-top: 14px; padding: 14px 12px; background: var(--sheet); border-radius: 18px;
   }
   .day-tile[hidden] { display: none; }
-  .dt-date { text-align: center; align-self: center; padding-right: 11px; border-right: 1px solid #0F0E0C; }
-  .dt-d { font-size: 42px; font-weight: 700; color: #E2A44C; line-height: 0.92;
+  .dt-date { text-align: center; align-self: center; padding-right: 11px; border-right: 1px solid var(--surface); }
+  .dt-d { font-size: 42px; font-weight: 700; color: var(--brass); line-height: 0.92;
     letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
-  .dt-m { font-size: 12px; color: #EFEAE0; margin-top: 5px; letter-spacing: 0.3px; }
-  .dt-w { font-size: 11px; color: #635E54; margin-top: 2px; }
+  .dt-m { font-size: 12px; color: var(--ink); margin-top: 5px; letter-spacing: 0.3px; }
+  .dt-w { font-size: 11px; color: var(--ink-6); margin-top: 2px; }
   .dt-main { min-width: 0; }
   .dt-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .dt-now { font-size: 15px; color: #EFEAE0; display: flex; align-items: center; gap: 7px; min-width: 0; }
-  .dt-now .dot { width: 6px; height: 6px; border-radius: 50%; background: #A8B49B; flex-shrink: 0; }
+  .dt-now { font-size: 15px; color: var(--ink); display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .dt-now .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
   .dt-now .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .dt-clock { font-size: 13.5px; color: #A8A093; font-variant-numeric: tabular-nums; flex-shrink: 0; }
-  .dt-left { font-size: 12.5px; color: #8A8478; margin-top: 3px; }
-  .dt-left b { color: #A8B49B; font-weight: 400; }
+  .dt-clock { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .dt-left { font-size: 12.5px; color: var(--ink-4); margin-top: 3px; }
+  .dt-left b { color: var(--green); font-weight: 400; }
 
   /* Лента точек: знаки сверху, латунная нить, время и подпись снизу */
   .lane { display: flex; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
@@ -1072,29 +1306,29 @@
     align-items: center; text-align: center; }
   .lane-ic { height: 26px; display: flex; align-items: center; justify-content: center;
     width: 26px; border-radius: 50%; }
-  .lane-ic svg { width: 20px; height: 20px; fill: none; stroke: #6E6558; stroke-width: 1.4;
+  .lane-ic svg { width: 20px; height: 20px; fill: none; stroke: var(--ink-5b); stroke-width: 1.4;
     stroke-linecap: round; stroke-linejoin: round; }
   .lane-rail { position: relative; width: 100%; height: 14px; }
   .lane-rail::before, .lane-rail::after { content: ""; position: absolute; top: 50%; height: 1.4px;
-    transform: translateY(-50%); background: #2A261E; }
+    transform: translateY(-50%); background: var(--rail-4); }
   .lane-rail::before { left: 0; right: 50%; }
   .lane-rail::after { left: 50%; right: 0; }
   .lane-p:first-child .lane-rail::before, .lane-p:last-child .lane-rail::after { background: none; }
   .lane-dot { position: absolute; left: 50%; top: 50%; z-index: 2; width: 8px; height: 8px;
-    margin: -4px 0 0 -4px; border-radius: 50%; background: #4A453E; }
-  .lane-t { font-size: 11px; color: #A8A093; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .lane-n { font-size: 9.5px; color: #55504A; margin-top: 2px; letter-spacing: -0.2px;
+    margin: -4px 0 0 -4px; border-radius: 50%; background: var(--ink-8); }
+  .lane-t { font-size: 11px; color: var(--ink-3); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .lane-n { font-size: 9.5px; color: var(--ink-7); margin-top: 2px; letter-spacing: -0.2px;
     max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .lane-p.past .lane-ic svg { stroke: #E2A44C; }
-  .lane-p.past .lane-dot { background: #E2A44C; }
-  .lane-p.past .lane-rail::before, .lane-p.past .lane-rail::after { background: #E2A44C; }
-  .lane-p.now .lane-ic { box-shadow: inset 0 0 0 1.4px #A8B49B; }
-  .lane-p.now .lane-ic svg { stroke: #EFEAE0; }
-  .lane-p.now .lane-dot { background: #A8B49B; }
-  .lane-p.now .lane-rail::before { background: #E2A44C; }
-  .lane-p.now .lane-t { color: #EFEAE0; }
-  .lane-p.light .lane-ic svg { stroke: #E2A44C; }
-  .lane-p.light .lane-t { color: #E2A44C; }
+  .lane-p.past .lane-ic svg { stroke: var(--brass); }
+  .lane-p.past .lane-dot { background: var(--brass); }
+  .lane-p.past .lane-rail::before, .lane-p.past .lane-rail::after { background: var(--brass); }
+  .lane-p.now .lane-ic { box-shadow: inset 0 0 0 1.4px var(--green); }
+  .lane-p.now .lane-ic svg { stroke: var(--ink); }
+  .lane-p.now .lane-dot { background: var(--green); }
+  .lane-p.now .lane-rail::before { background: var(--brass); }
+  .lane-p.now .lane-t { color: var(--ink); }
+  .lane-p.light .lane-ic svg { stroke: var(--brass); }
+  .lane-p.light .lane-t { color: var(--brass); }
 
   /* Погода: знак и градус слева, часы точек — справа */
   .pn-wx { display: flex; align-items: center; gap: 9px; margin-left: auto; flex-shrink: 0; }
@@ -1104,28 +1338,28 @@
   .pn-wx .pn-t { text-align: right; }
   .wx-hours.wide { margin-left: 0; justify-content: space-between; width: 100%; }
   .wx-pane { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    background: #17150F; border-radius: 16px; margin-top: 9px; }
+    background: var(--sheet); border-radius: 16px; margin-top: 9px; }
   .wx-pane[hidden] { display: none; }
   .wx-now { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
   /* Погодный знак собран из частей: солнце латунное, облако серое, дождь синий */
-  .i-wx .i-sun { stroke: #D9AC6B; }
-  .i-wx .i-cloud { stroke: #8A8478; }
-  .i-wx .i-rain { stroke: #7C9CC4; }
-  .wx-now .big svg { width: 38px; height: 34px; fill: none; stroke: #8A8478; stroke-width: 1.5;
+  .i-wx .i-sun { stroke: var(--brass-soft); }
+  .i-wx .i-cloud { stroke: var(--ink-4); }
+  .i-wx .i-rain { stroke: var(--blue); }
+  .wx-now .big svg { width: 38px; height: 34px; fill: none; stroke: var(--ink-4); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; }
-  .wx-t { display: block; font-size: 22px; font-weight: 600; color: #EFEAE0; letter-spacing: -0.5px; }
-  .wx-c { display: block; font-size: 11.5px; color: #635E54; margin-top: 1px; }
+  .wx-t { display: block; font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -0.5px; }
+  .wx-c { display: block; font-size: 11.5px; color: var(--ink-6); margin-top: 1px; }
   .wx-hours { display: flex; gap: 10px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
   .wx-hours::-webkit-scrollbar { display: none; }
   .wx-h { text-align: center; flex: 0 0 auto; }
-  .wx-h .hh { font-size: 10.5px; color: #8A8478; font-variant-numeric: tabular-nums; }
-  .wx-h svg { width: 20px; height: 20px; margin: 4px 0; fill: none; stroke: #8A8478; stroke-width: 1.4;
+  .wx-h .hh { font-size: 10.5px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+  .wx-h svg { width: 20px; height: 20px; margin: 4px 0; fill: none; stroke: var(--ink-4); stroke-width: 1.4;
     stroke-linecap: round; stroke-linejoin: round; }
-  .wx-h .tt { font-size: 11.5px; color: #EFEAE0; font-variant-numeric: tabular-nums; }
-  .wx-h .pp { font-size: 10px; color: #55504A; }
+  .wx-h .tt { font-size: 11.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .wx-h .pp { font-size: 10px; color: var(--ink-7); }
 
   /* Разворачиваемое: маршрут и референсы. Свёрнуто — знак и суть одной строкой */
-  .fold { margin-top: 9px; background: #17150F; border-radius: 16px; overflow: hidden; }
+  .fold { margin-top: 9px; background: var(--sheet); border-radius: 16px; overflow: hidden; }
   .fold[hidden] { display: none; }
   .fold-head { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
     padding: 13px 14px; background: none; border: none; font-family: inherit; cursor: pointer; }
@@ -1135,24 +1369,24 @@
   .strip { display: flex; gap: 6px; margin-top: 2px; }
   .strip img { width: 46px; height: 60px; object-fit: cover; border-radius: 9px; flex-shrink: 0; }
   .strip .ph { width: 46px; height: 60px; border-radius: 9px; flex-shrink: 0;
-    background: repeating-linear-gradient(135deg, #1C1A14 0 7px, #17150F 7px 14px); }
+    background: repeating-linear-gradient(135deg, var(--hatch) 0 7px, var(--sheet) 7px 14px); }
 
   /* Точки маршрута в развёрнутом виде */
   .sc-item { display: grid; grid-template-columns: 26px 50px 1fr; align-items: center;
     column-gap: 10px; padding: 9px 0; }
-  .sc-item + .sc-item { box-shadow: inset 0 1px 0 #0F0E0C; }
-  .sc-ic svg { width: 18px; height: 18px; fill: none; stroke: #6E6558; stroke-width: 1.4;
+  .sc-item + .sc-item { box-shadow: inset 0 1px 0 var(--surface); }
+  .sc-ic svg { width: 18px; height: 18px; fill: none; stroke: var(--ink-5b); stroke-width: 1.4;
     stroke-linecap: round; stroke-linejoin: round; }
-  .sc-t { font-size: 14px; color: #A8A093; font-variant-numeric: tabular-nums; }
-  .sc-n { font-size: 15px; color: #C9C2B6; }
-  .sc-p { display: block; font-size: 11.5px; color: #55504A; margin-top: 1px; }
+  .sc-t { font-size: 14px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .sc-n { font-size: 15px; color: var(--ink-2); }
+  .sc-p { display: block; font-size: 11.5px; color: var(--ink-7); margin-top: 1px; }
   .sc-item.past { opacity: 0.45; }
-  .sc-item.now .sc-n { color: #EFEAE0; }
-  .sc-item.now .sc-ic svg { stroke: #A8B49B; }
+  .sc-item.now .sc-n { color: var(--ink); }
+  .sc-item.now .sc-ic svg { stroke: var(--green); }
 
   /* Бюджет */
-  .bar { height: 6px; border-radius: 3px; background: #221F19; overflow: hidden; margin-top: 8px; }
-  .bar span { display: block; height: 100%; background: #A8B49B; border-radius: 3px; }
+  .bar { height: 6px; border-radius: 3px; background: var(--press); overflow: hidden; margin-top: 8px; }
+  .bar span { display: block; height: 100%; background: var(--green); border-radius: 3px; }
 
   /* Перестановка блоков: карточка сворачивается в список заголовков */
   .card-bar-r { display: flex; align-items: center; gap: 10px; }
@@ -1160,18 +1394,18 @@
   .ord-list[hidden] { display: none; }
   .ord-row {
     display: flex; align-items: center; gap: 12px; padding: 14px;
-    background: #17150F; border-radius: 14px; touch-action: none; user-select: none;
+    background: var(--sheet); border-radius: 14px; touch-action: none; user-select: none;
   }
   .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; }
   .ord-row .badge svg { width: 17px; height: 17px; }
-  .ord-n { flex: 1; font-size: 15.5px; color: #EFEAE0; }
+  .ord-n { flex: 1; font-size: 15.5px; color: var(--ink); }
   .ord-grip svg {
-    width: 20px; height: 20px; fill: none; stroke: #55504A; stroke-width: 1.8;
+    width: 20px; height: 20px; fill: none; stroke: var(--ink-7); stroke-width: 1.8;
     stroke-linecap: round;
   }
   /* Строка в руке идёт поверх соседей: без своего слоя она подлезала под них
      и в момент перестановки читалась двумя подписями в одной полосе */
-  .ord-row.drag { background: #221F19; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  .ord-row.drag { background: var(--press); box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     position: relative; z-index: 5; }
   .ord-row.off { opacity: 0.4; }              /* блока нет в этой съёмке */
   .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
@@ -1180,8 +1414,8 @@
     flex: 1; padding: 14px; border-radius: 14px; border: none;
     font-family: inherit; font-size: 15px; cursor: pointer;
   }
-  .ord-reset { background: #17150F; color: #A8A093; }
-  .ord-done { background: #EFEAE0; color: #0F0E0C; font-weight: 650; }
+  .ord-reset { background: var(--sheet); color: var(--ink-3); }
+  .ord-done { background: var(--ink); color: var(--surface); font-weight: 650; }
 
   /* ---------- Стопка карточек дня ----------
      Карточка — лист. Соседние съёмки лежат под ним и выглядывают краями,
@@ -1195,68 +1429,68 @@
     /* Кнопка центрирует содержимое по вертикали — строка уезжала под лист */
     position: absolute; left: 50%; height: 74px; border: none; padding: 4px 16px 0;
     display: flex; align-items: flex-start;
-    cursor: pointer; background: #17150F; border-radius: 22px; text-align: left;
+    cursor: pointer; background: var(--sheet); border-radius: 22px; text-align: left;
     /* Пружина: карточки не приезжают, а отскакивают на место */
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
   }
   .peek, .peek[style] { margin-left: auto; margin-right: auto; left: 0; right: 0; }
-  .peek:active { background: #221F19; }
+  .peek:active { background: var(--press); }
   .peeks.dragging .peek, .card-sheet.dragging { transition: none; }
   .peek-in {
     display: flex; align-items: center; gap: 7px; height: 18px; width: 100%;
-    font-size: 11.5px; color: #8A8478;
+    font-size: 11.5px; color: var(--ink-4);
   }
   .peek-in svg {
-    width: 14px; height: 14px; fill: none; stroke: #E2A44C; stroke-width: 1.5;
+    width: 14px; height: 14px; fill: none; stroke: var(--brass); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
   }
-  .peek-in b { font-weight: 600; color: #A8A093; }
+  .peek-in b { font-weight: 600; color: var(--ink-3); }
   .peek-in span { font-variant-numeric: tabular-nums; margin-left: auto; }
   /* Имя .sheet уже занято нижними листами настроек — у карточки своё */
   .card-sheet {
     position: relative; z-index: 1;
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
-    background: #131109; border-radius: 22px; padding: 18px 12px 16px;
+    background: var(--sheet-2); border-radius: 22px; padding: 18px 12px 16px;
   }
   /* Внутренние плитки чуть светлее листа, иначе он их съедает */
   .card-sheet .pane, .card-sheet .day-tile, .card-sheet .wx-pane,
-  .card-sheet .fold, .card-sheet .say { background: #1A1710; }
-  .card-sheet .badge { background: #241F17; }
+  .card-sheet .fold, .card-sheet .say { background: var(--sheet-3); }
+  .card-sheet .badge { background: var(--badge-bg); }
 
   /* Реплика навигатора: одна строка о том, что делать */
   .say { display: flex; gap: 9px; align-items: flex-start; margin-top: 9px;
-    padding: 11px 14px; border-radius: 14px; background: #17150F;
-    font-size: 13.5px; line-height: 1.45; color: #A8A093; }
+    padding: 11px 14px; border-radius: 14px; background: var(--sheet);
+    font-size: 13.5px; line-height: 1.45; color: var(--ink-3); }
   .say[hidden] { display: none; }
   .say .s-ic { flex-shrink: 0; margin-top: 1px; }
-  .say .s-ic svg { width: 16px; height: 16px; fill: none; stroke: #E2A44C; stroke-width: 1.5;
+  .say .s-ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; }
-  .say b { color: #E2A44C; font-weight: 400; }
-  .say.bad { background: #1D1512; color: #D9A08A; }
-  .say.bad .s-ic svg { stroke: #C9663D; }
+  .say b { color: var(--brass); font-weight: 400; }
+  .say.bad { background: var(--bad-bg); color: var(--bad-ink); }
+  .say.bad .s-ic svg { stroke: var(--terra); }
   /* Наложение — предупреждение, а не тревога: тон спокойный, полоса слева */
-  .say.warn { background: #191510; color: #D9C2A0; border-left: 2px solid #C9853F; }
-  .say.warn .s-ic svg { stroke: #C9853F; }
-  .say.warn b { color: #EFEAE0; }
+  .say.warn { background: var(--warn-bg); color: var(--warn-ink); border-left: 2px solid var(--brass-deep); }
+  .say.warn .s-ic svg { stroke: var(--brass-deep); }
+  .say.warn b { color: var(--ink); }
 
   /* Референсы во весь экран: думаю о кадрах — не нужно ничего больше */
   .refs-full {
-    position: absolute; inset: 0; z-index: 92; background: #0F0E0C;
+    position: absolute; inset: 0; z-index: 92; background: var(--surface);
     display: flex; flex-direction: column; transform: translateY(101%);
     transition: transform 0.36s cubic-bezier(0.25,1,0.4,1); visibility: hidden;
   }
   .refs-full.open { transform: none; visibility: visible; }
   .rf-bar { display: flex; align-items: center; justify-content: space-between;
     padding: 46px 16px 10px; flex-shrink: 0; }
-  .rf-title { font-size: 17px; color: #EFEAE0; }
-  .rf-title span { font-size: 12px; color: #635E54; display: block; margin-top: 2px; }
+  .rf-title { font-size: 17px; color: var(--ink); }
+  .rf-title span { font-size: 12px; color: var(--ink-6); display: block; margin-top: 2px; }
   .rf-tags { display: flex; gap: 7px; overflow-x: auto; padding: 0 16px 10px;
     flex-shrink: 0; scrollbar-width: none; }
   .rf-tags::-webkit-scrollbar { display: none; }
-  .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; border: 1px solid #221F19;
-    background: none; font-family: inherit; font-size: 13px; color: #A8A093; cursor: pointer; }
-  .rf-tag.on { background: #E2A44C; border-color: #E2A44C; color: #17150F; }
-  .rf-tag .n { color: #635E54; margin-left: 5px; font-variant-numeric: tabular-nums; }
+  .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; border: 1px solid var(--press);
+    background: none; font-family: inherit; font-size: 13px; color: var(--ink-3); cursor: pointer; }
+  .rf-tag.on { background: var(--brass); border-color: var(--brass); color: var(--sheet); }
+  .rf-tag .n { color: var(--ink-6); margin-left: 5px; font-variant-numeric: tabular-nums; }
   .rf-tag.on .n { color: rgba(23,21,15,0.6); }
   /* В настройках папок немного, и они должны быть видны все сразу */
   .rf-tags.wrap { flex-wrap: wrap; overflow: visible; padding: 12px 13px 6px; }
@@ -1264,42 +1498,51 @@
     gap: 6px; padding: 0 16px 30px; align-content: start; scrollbar-width: none; }
   .rf-grid::-webkit-scrollbar { display: none; }
   .rf-cell { aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; border: none;
-    padding: 0; background: #17150F; cursor: pointer; position: relative; }
+    padding: 0; background: var(--sheet); cursor: pointer; position: relative; }
   .rf-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .rf-cell.link { display: flex; flex-direction: column; justify-content: flex-end;
     padding: 8px; text-align: left; }
-  .rf-cell .host { font-size: 11px; color: #E2A44C; }
-  .rf-cell .path { font-size: 10px; color: #55504A; overflow: hidden;
+  .rf-cell .host { font-size: 11px; color: var(--brass); }
+  .rf-cell .path { font-size: 10px; color: var(--ink-7); overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; }
-  .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: #55504A; line-height: 1.5; }
+  .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: var(--ink-7); line-height: 1.5; }
 
   /* Редактор точек в форме */
   .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
-  .rt-row + .rt-row { box-shadow: inset 0 1px 0 #0F0E0C; }
+  .rt-row + .rt-row { box-shadow: inset 0 1px 0 var(--surface); }
   .rt-row input {
-    background: #0F0E0C; border: none; border-radius: 9px; padding: 10px 11px;
-    color: #EFEAE0; font-family: inherit; font-size: 15px; outline: none;
+    background: var(--surface); border: none; border-radius: 9px; padding: 10px 11px;
+    color: var(--ink); font-family: inherit; font-size: 15px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
   .rt-row .rt-in-t { flex: 0 0 78px; text-align: center; font-variant-numeric: tabular-nums;
     letter-spacing: 0.3px; }
   .rt-row .rt-in-n { flex: 1; }
-  .rt-row .rt-in-p { flex: 1 0 100%; font-size: 13.5px; padding: 8px 11px; }
-  .rt-row input::placeholder { color: #4A453E; }
-  .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: #55504A;
+  /* Место в строке маршрута: поле и кнопка выбора из сохранённых точек.
+     Фотограф ездит по одним и тем же адресам — набирать их заново незачем */
+  .rt-place { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; }
+  .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
+  .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--surface); border: none; border-radius: 9px; color: var(--ink-4); cursor: pointer; }
+  .rt-pick svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .rt-pick:active { color: var(--brass); }
+  .rt-row input::placeholder { color: var(--ink-8); }
+  .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: var(--ink-7);
     font-size: 15px; padding: 6px; cursor: pointer; }
   .rt-add { width: 100%; padding: 13px 15px; background: none; border: none;
-    box-shadow: inset 0 1px 0 #0F0E0C; text-align: left;
-    font-family: inherit; font-size: 15px; color: #A8A093; cursor: pointer; }
-  .rt-empty { padding: 14px 15px; font-size: 13px; color: #4A453E; }
+    box-shadow: inset 0 1px 0 var(--surface); text-align: left;
+    font-family: inherit; font-size: 15px; color: var(--ink-3); cursor: pointer; }
+  .rt-empty { padding: 14px 15px; font-size: 13px; color: var(--ink-8); }
   /* Подсказка внутри сетки — во всю ширину: колонка ломала её по слову */
   .ref-grid .rt-empty { grid-column: 1 / -1; line-height: 1.5; }
 
   .card-money {
     display: flex; justify-content: space-between; align-items: center;
     width: 100%; margin-top: 30px; padding: 14px 15px; min-height: 52px;
-    background: #17150F; border: none; border-radius: 14px;
-    font-family: inherit; font-size: 16px; color: #EFEAE0; cursor: pointer;
+    background: var(--sheet); border: none; border-radius: 14px;
+    font-family: inherit; font-size: 16px; color: var(--ink); cursor: pointer;
   }
   .card-money.open { border-radius: 14px 14px 0 0; }
   .card-money.open + .group { border-radius: 0 0 14px 14px; }
@@ -1311,7 +1554,7 @@
 
   /* ---------- Форма съёмки ---------- */
   .overlay {
-    position: absolute; inset: 0; background: #0F0E0C; z-index: 80;
+    position: absolute; inset: 0; background: var(--surface); z-index: 80;
     padding: 0 24px 40px; overflow-y: auto; scrollbar-width: none;
     overscroll-behavior: contain; touch-action: pan-y;
     transform: translateY(101%); transition: transform 0.42s cubic-bezier(0.25,1,0.4,1);
@@ -1325,20 +1568,20 @@
   /* Шапка формы: отменить и подтвердить. Кружки не кричат цветом,
      подтверждение отличается светлой заливкой — размером и положением, не CTA */
   .form-bar {
-    position: sticky; top: 0; z-index: 3; background: #0F0E0C;
+    position: sticky; top: 0; z-index: 3; background: var(--surface);
     display: flex; justify-content: space-between; align-items: center;
     padding: 46px 0 8px;
   }
   .round {
     width: 32px; height: 32px; border-radius: 50%; border: none; padding: 0;
-    background: #221F19; color: #A8A093; cursor: pointer;
+    background: var(--press); color: var(--ink-3); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .round svg {
     width: 15px; height: 15px; stroke: currentColor; fill: none;
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
   }
-  .round.ok { background: #EFEAE0; color: #0F0E0C; }
+  .round.ok { background: var(--ink); color: var(--surface); }
   .round:active { opacity: 0.65; }
 
   /* Группы вместо плоской ленты полей. Групп мало, между ними — воздух;
@@ -1346,30 +1589,49 @@
   .g-label {
     display: flex; align-items: center; justify-content: space-between;
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
-    color: #55504A; font-weight: 600; margin: 30px 4px 9px;
+    color: var(--ink-7); font-weight: 600; margin: 30px 4px 9px;
   }
-  .group { background: #17150F; border-radius: 14px; overflow: hidden; }
-  .group .sep { box-shadow: inset 0 1px 0 #0F0E0C; }
+  .group { background: var(--sheet); border-radius: 14px; overflow: hidden; }
+  .group .sep { box-shadow: inset 0 1px 0 var(--surface); }
   .g-chips { padding: 13px 15px 15px; }
   .g-chips .chips { margin-top: 0; }
   .row {
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
     width: 100%; padding: 14px 15px; min-height: 52px; text-align: left;
     background: none; border: none; font-family: inherit; font-size: 16px;
-    color: #EFEAE0; cursor: pointer;
+    color: var(--ink); cursor: pointer;
   }
   /* display:flex выше сильнее браузерного [hidden] — без этого правила строка
      «Заказчик» вылезала в свадебной форме, где её быть не должно.
      Тот же грабль, что с полями формы (DECISIONS) */
   .row[hidden] { display: none; }
-  .row .rv { color: #A8A093; font-variant-numeric: tabular-nums; text-align: right; }
+  .row .rv { color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; }
+  /* Значение, открывающее барабан, обведено капсулой. У Apple всё, что можно
+     изменить, имеет рамку: она притягивает взгляд и обещает действие. Голый
+     текст справа читался как подпись — было непонятно, что сюда можно нажать.
+     Подсказка под значением остаётся снаружи капсулы: она не поле, а пояснение */
+  .row .rv { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  /* Дата и время — две отдельные капсулы в одной строке: мероприятие может
+     начаться восьмого и кончиться девятого, и обе даты нужно видеть и править */
+  .caps { display: flex; align-items: center; gap: 6px; }
+  .row .rv-v {
+    display: inline-block; padding: 5px 10px; border-radius: 9px; border: none;
+    background: var(--field); color: var(--ink); font-variant-numeric: tabular-nums;
+    font-family: inherit; font-size: 16px; cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  .row .rv-v.open { background: rgba(226,164,76,0.16); color: var(--brass); }
+  .row .rv-v:active { background: var(--field-press); }
+  /* Строка перестала быть кнопкой: нажимаются капсулы, а не она целиком */
+  .row .rl { cursor: default; }
+  @media (prefers-reduced-motion: reduce) { .row .rv-v { transition: none; } }
   .row .sub, .row .sub2 {
-    display: block; font-size: 11px; color: #635E54; margin-top: 2px;
+    display: block; font-size: 11px; color: var(--ink-6); margin-top: 2px;
     font-variant-numeric: tabular-nums;
   }
   .row .rv .sub { max-width: 190px; }
   .row .rv.act { font-size: 14px; }   /* подсказка о действии не спорит с содержимым строки */
-  .row.open > .rv { color: #E2A44C; }
+  .row.open > .rv { color: var(--brass); }
 
   /* Барабан живёт под своей строкой — шторка больше не закрывает форму */
   .inline {
@@ -1384,15 +1646,20 @@
   .ip .wheel.narrow { flex: 0 0 66px; }
   .ip .wheel[data-w="date"] .w-item { justify-content: center; padding-right: 0; }
 
-  .group input[type="text"], .group input[type="tel"], .group textarea {
+  /* Поля во всю строку. Капсулы (значение справа от подписи) сюда не входят
+     явно: это правило специфичнее их собственного и гасило бы им фон и отступы.
+     Исключение записано в селекторе, чтобы граница двух видов полей была видна
+     здесь же, а не всплывала потом каскадом (грабля повторялась трижды) */
+  .group input[type="text"]:not(.pay-in):not(.step-in),
+  .group input[type="tel"], .group textarea {
     display: block; width: 100%; background: none; border: none;
-    color: #EFEAE0; font-family: inherit; font-size: 16px;
+    color: var(--ink); font-family: inherit; font-size: 16px;
     padding: 15px; outline: none; -webkit-appearance: none; appearance: none;
   }
   /* display:block выше сильнее браузерного [hidden] — скрытое поле иначе
      остаётся на виду. Правило нужно после самого display (DECISIONS) */
   .group input[hidden], .group textarea[hidden] { display: none; }
-  .group input::placeholder, .group textarea::placeholder { color: #4A453E; }
+  .group input::placeholder, .group textarea::placeholder { color: var(--ink-8); }
   .group textarea { resize: none; min-height: 92px; line-height: 1.5; }
 
   /* Оплата: строка «подпись — поле», число прижато вправо и в моно */
@@ -1400,67 +1667,76 @@
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 13px 15px; min-height: 50px;
   }
-  .pay-row .k { font-size: 15px; color: #EFEAE0; flex-shrink: 0; white-space: nowrap; }
+  .pay-row .k { font-size: 15px; color: var(--ink); flex-shrink: 0; white-space: nowrap; }
+  /* ---------- Правило на все формы ----------
+     Значение справа от подписи — обведено, потому что его можно изменить.
+     Голое число у правого края читается как итог, а не как поле: «0» рядом
+     со «Ставкой» выглядел отчётом, и вводить туда никто не пробовал.
+     Исключение — поле во всю строку («Невеста», «Телефон»): там подсказка
+     сама говорит, что это ввод, а капсула во всю ширину стала бы плашкой. */
   .pay-in {
-    background: none; border: none; text-align: right; flex: 1; min-width: 0;
-    color: #EFEAE0; font-family: inherit; font-size: 16px; outline: none;
+    background: var(--field); border: none; border-radius: 9px; padding: 6px 10px;
+    text-align: right; flex: 0 1 132px; min-width: 84px;
+    color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
+    transition: background 0.18s ease, color 0.18s ease;
   }
-  .pay-in::placeholder { color: #4A453E; }
-  .pay-in:focus { color: #E2A44C; }
+  .pay-in::placeholder { color: var(--ink-7); }
+  .pay-in:focus { background: rgba(226,164,76,0.16); color: var(--brass); }
+  @media (prefers-reduced-motion: reduce) { .pay-in { transition: none; } }
   .pay-total {
     display: flex; justify-content: space-between; align-items: baseline;
     padding: 14px 15px; font-variant-numeric: tabular-nums;
   }
-  .pay-total .lbl { font-size: 13px; color: #8A8478; }
-  .pay-total .val { font-size: 18px; font-weight: 650; color: #E2A44C; }
-  .pay-total .val.neg { color: #C9663D; }
+  .pay-total .lbl { font-size: 13px; color: var(--ink-4); }
+  .pay-total .val { font-size: 18px; font-weight: 650; color: var(--brass); }
+  .pay-total .val.neg { color: var(--terra); }
 
   /* ---------- Референсы: картинки и ссылки ---------- */
   .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 12px 15px 0; }
   .ref-grid:empty { display: none; }
   .ref-card {
     position: relative; aspect-ratio: 1/1; border-radius: 10px; overflow: hidden;
-    background: #17150F; border: none; padding: 0; cursor: pointer; display: block;
+    background: var(--sheet); border: none; padding: 0; cursor: pointer; display: block;
   }
   .ref-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
   /* Ссылка вместо картинки: домен и хвост адреса, без картинки-заглушки */
   .ref-card.link {
     display: flex; flex-direction: column; gap: 5px;
     padding: 10px 10px 10px 10px; text-align: left; aspect-ratio: 1/1;
-    background: #1A1712;
+    background: var(--sheet-4);
   }
   .ref-card.link .host {
     font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase;
-    color: #E2A44C; font-weight: 700; padding-right: 22px;   /* место под крестик */
+    color: var(--brass); font-weight: 700; padding-right: 22px;   /* место под крестик */
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .ref-card.link .path {
-    font-size: 11px; color: #8A8478; line-height: 1.35; overflow: hidden;
+    font-size: 11px; color: var(--ink-4); line-height: 1.35; overflow: hidden;
     display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; word-break: break-word;
   }
   .ref-card .kill {
     position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
-    background: rgba(15,14,12,0.75); border: none; color: #EFEAE0; cursor: pointer;
+    background: var(--fill-a); border: none; color: var(--ink); cursor: pointer;
     font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
   }
   .ref-card .wait {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: rgba(15,14,12,0.6); font-size: 11px; color: #A8A093;
+    background: var(--fill-b); font-size: 11px; color: var(--ink-3);
   }
   .ref-add { display: flex; gap: 8px; padding: 12px 15px; }
   .ref-btn {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
-    background: #17150F; border: none; border-radius: 10px; padding: 11px;
-    color: #A8A093; font-family: inherit; font-size: 14px; cursor: pointer;
+    background: var(--sheet); border: none; border-radius: 10px; padding: 11px;
+    color: var(--ink-3); font-family: inherit; font-size: 14px; cursor: pointer;
   }
   .ref-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.6; }
-  .ref-btn:active { color: #E2A44C; }
-  .ref-note { padding: 0 15px 12px; font-size: 12px; color: #8A8478; line-height: 1.45; }
+  .ref-btn:active { color: var(--brass); }
+  .ref-note { padding: 0 15px 12px; font-size: 12px; color: var(--ink-4); line-height: 1.45; }
   .ref-note[hidden] { display: none; }
   /* Просмотр картинки во весь экран */
   .ref-view {
-    position: absolute; inset: 0; z-index: 95; background: rgba(8,7,6,0.94);
+    position: absolute; inset: 0; z-index: 95; background: var(--overlay-2);
     display: none; align-items: center; justify-content: center; padding: 24px;
   }
   .ref-view.open { display: flex; }
@@ -1471,82 +1747,85 @@
   .stepper { display: inline-flex; align-items: center; gap: 2px; }
   .stepper button {
     width: 38px; height: 34px; border: none; border-radius: 10px;
-    background: #221F19; color: #A8A093; font-family: inherit; font-size: 19px;
+    background: var(--press); color: var(--ink-3); font-family: inherit; font-size: 19px;
     cursor: pointer; line-height: 1;
   }
-  .stepper button:active { background: #33291A; color: #E2A44C; }
+  .stepper button:active { background: var(--press-brass); color: var(--brass); }
   /* Число в степпере — поле, а не подпись: пятьдесят предметов кнопкой
      набирать полсотни раз, а вписать их можно за секунду */
   .stepper .step-in {
-    width: 58px; padding: 6px 2px; text-align: center; background: none; border: none;
-    font-family: inherit; font-size: 16px; font-weight: 650; color: #EFEAE0;
+    width: 58px; padding: 6px 2px; text-align: center; background: var(--field); border: none;
+    font-family: inherit; font-size: 16px; font-weight: 650; color: var(--ink);
     font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none;
-    outline: none; border-radius: 8px;
+    outline: none; border-radius: 9px;
+    transition: background 0.18s ease, color 0.18s ease;
   }
-  .stepper .step-in:focus { background: #221F19; }
-  .stepper .step-in::placeholder { color: #4A453E; font-weight: 400; }
-  #fPayFold .chev { display: inline-block; transition: transform 0.3s ease; color: #8A8478; }
+  .stepper .step-in:focus { background: rgba(226,164,76,0.16); color: var(--brass); }
+  @media (prefers-reduced-motion: reduce) { .stepper .step-in { transition: none; } }
+  .stepper .step-in:focus { background: var(--press); }
+  .stepper .step-in::placeholder { color: var(--ink-8); font-weight: 400; }
+  #fPayFold .chev { display: inline-block; transition: transform 0.3s ease; color: var(--ink-4); }
   #fPayFold.open .chev { transform: rotate(180deg); }
   #fPaySumm { font-size: 15px; }
-  #fPaySumm b { color: #E2A44C; font-weight: 650; font-variant-numeric: tabular-nums; }
+  #fPaySumm b { color: var(--brass); font-weight: 650; font-variant-numeric: tabular-nums; }
   /* Редактор пакетов: название · часы · цена · убрать */
   .pack-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px 9px; }
-  .pack-head .k { font-size: 15px; color: #EFEAE0; }
+  .pack-head .k { font-size: 15px; color: var(--ink); }
   .pack-add {
     background: none; border: none; cursor: pointer; font-family: inherit;
-    font-size: 13px; font-weight: 600; color: #E2A44C; padding: 4px 0;
+    font-size: 13px; font-weight: 600; color: var(--brass); padding: 4px 0;
   }
   .pack-item { display: flex; gap: 6px; align-items: center; padding: 0 15px 10px; }
   .pack-item input {
-    background: #17150F; border: none; border-radius: 10px; padding: 10px 10px;
-    color: #EFEAE0; font-family: inherit; font-size: 14px; outline: none;
+    background: var(--sheet); border: none; border-radius: 10px; padding: 10px 10px;
+    color: var(--ink); font-family: inherit; font-size: 14px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
-  .pack-item input::placeholder { color: #4A453E; }
+  .pack-item input::placeholder { color: var(--ink-8); }
   .pack-item .pk-n { flex: 1 1 auto; }
   .pack-item .pk-h { flex: 0 0 46px; text-align: center; font-variant-numeric: tabular-nums; }
   .pack-item .pk-p { flex: 0 0 82px; text-align: right; font-variant-numeric: tabular-nums; }
   .pack-item .pk-x {
     flex: 0 0 26px; height: 26px; border: none; border-radius: 50%;
-    background: none; color: #635E54; cursor: pointer; font-size: 15px; line-height: 1;
+    background: none; color: var(--ink-6); cursor: pointer; font-size: 15px; line-height: 1;
     font-family: inherit; padding: 0;
   }
-  .pack-item .pk-x:active { color: #C9663D; }
-  .pack-empty { padding: 0 15px 12px; font-size: 12px; color: #635E54; }
+  .pack-item .pk-x:active { color: var(--terra); }
+  .pack-empty { padding: 0 15px 12px; font-size: 12px; color: var(--ink-6); }
 
   .back {
-    background: none; border: none; color: #8A8478; cursor: pointer;
+    background: none; border: none; color: var(--ink-4); cursor: pointer;
     font-family: inherit; font-size: 15px; padding: 8px 0;
     display: inline-flex; align-items: center; gap: 7px;
   }
   .back svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; }
   .gear {
     background: none; border: none; cursor: pointer; padding: 8px;
-    color: #8A8478; display: flex;
+    color: var(--ink-4); display: flex;
   }
   .gear svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.6; }
-  .gear:active { color: #EFEAE0; }
+  .gear:active { color: var(--ink); }
   .form-title { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; margin-top: 10px; }
-  .form-sub { color: #8A8478; font-size: 14px; margin-top: 6px; }
-  .form-sub .t { color: #E2A44C; font-variant-numeric: tabular-nums; }
+  .form-sub { color: var(--ink-4); font-size: 14px; margin-top: 6px; }
+  .form-sub .t { color: var(--brass); font-variant-numeric: tabular-nums; }
   .field { margin-top: 22px; }
   .f-label {
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
-    color: #55504A; font-weight: 600; display: block; margin-bottom: 9px;
+    color: var(--ink-7); font-weight: 600; display: block; margin-bottom: 9px;
   }
   .field input[type="text"], .field textarea {
-    width: 100%; background: #17150F; border: none; border-radius: 12px;
-    color: #EFEAE0; font-family: inherit; font-size: 16px;
+    width: 100%; background: var(--sheet); border: none; border-radius: 12px;
+    color: var(--ink); font-family: inherit; font-size: 16px;
     padding: 14px 15px; outline: none; -webkit-appearance: none; appearance: none;
   }
-  .field input::placeholder, .field textarea::placeholder { color: #4A453E; }
-  .field input:focus, .field textarea:focus { background: #221F19; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--ink-8); }
+  .field input:focus, .field textarea:focus { background: var(--press); }
   .field textarea { resize: none; min-height: 84px; line-height: 1.5; }
-  .f-hint { font-size: 12px; color: #635E54; margin-top: 8px; }
-  .saved-note { font-size: 13px; color: #8A8478; margin-top: 8px; min-height: 0; }
+  .f-hint { font-size: 12px; color: var(--ink-6); margin-top: 8px; }
+  .saved-note { font-size: 13px; color: var(--ink-4); margin-top: 8px; min-height: 0; }
   .danger {
     display: block; width: 100%; margin-top: 26px; padding: 15px;
-    background: none; border: none; color: #B9603D;
+    background: none; border: none; color: var(--terra-2);
     font-family: inherit; font-size: 15px; cursor: pointer;
   }
   .danger[hidden] { display: none; }
@@ -1554,46 +1833,46 @@
   /* ---------- Организации и документы ---------- */
   .org-seg { display: flex; gap: 8px; margin: 14px 0 4px; }
   .org-seg button { flex: 1; padding: 11px; border-radius: 12px; border: none;
-    background: #17150F; color: #8A8478; font-family: inherit; font-size: 14px; }
-  .org-seg button.active { background: #221F19; color: #EFEAE0; }
+    background: var(--sheet); color: var(--ink-4); font-family: inherit; font-size: 14px; }
+  .org-seg button.active { background: var(--press); color: var(--ink); }
   .org-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-    margin-top: 10px; padding: 14px; background: #17150F; border: none; border-radius: 16px;
-    font-family: inherit; color: #EFEAE0; }
+    margin-top: 10px; padding: 14px; background: var(--sheet); border: none; border-radius: 16px;
+    font-family: inherit; color: var(--ink); }
   .org-item:active { opacity: 0.7; }
   .org-item .badge { width: 34px; height: 34px; border-radius: 11px; }
   .org-item .badge svg { width: 17px; height: 17px; }
   .org-b { min-width: 0; flex: 1; }
   .org-n { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .org-s { display: block; font-size: 12px; color: #635E54; margin-top: 3px;
+  .org-s { display: block; font-size: 12px; color: var(--ink-6); margin-top: 3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Строка документа: вид слева, имя и размер справа. Тап открывает файл */
   .doc-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
-    margin-top: 8px; padding: 12px 14px; background: #17150F; border: none; border-radius: 14px;
-    font-family: inherit; color: #EFEAE0; }
+    margin-top: 8px; padding: 12px 14px; background: var(--sheet); border: none; border-radius: 14px;
+    font-family: inherit; color: var(--ink); }
   .doc-row:active { opacity: 0.7; }
-  .doc-row .k { flex: 0 0 auto; font-size: 11px; color: #E2A44C; letter-spacing: 0.2px;
+  .doc-row .k { flex: 0 0 auto; font-size: 11px; color: var(--brass); letter-spacing: 0.2px;
     min-width: 56px; }
   .doc-row .n { flex: 1; min-width: 0; font-size: 14px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .doc-row .w { flex: 0 0 auto; font-size: 11.5px; color: #635E54; }
-  .org-empty { padding: 14px 2px; font-size: 13px; color: #635E54; line-height: 1.5; }
+  .doc-row .w { flex: 0 0 auto; font-size: 11.5px; color: var(--ink-6); }
+  .org-empty { padding: 14px 2px; font-size: 13px; color: var(--ink-6); line-height: 1.5; }
   /* Реквизиты — это дюжина строк с цифрами: поле сразу под их рост */
   #oReq { min-height: 190px; font-size: 15px; }
 
   /* Прогноз против замысла — предупреждаем спокойно, без красного */
   .wish-warn {
     display: none; margin-top: 10px; padding: 12px 14px;
-    background: #191510; border-radius: 12px;
-    border-left: 2px solid #C9853F; font-size: 13px; line-height: 1.5;
+    background: var(--warn-bg); border-radius: 12px;
+    border-left: 2px solid var(--brass-deep); font-size: 13px; line-height: 1.5;
   }
   .wish-warn.show { display: block; }
-  .wish-warn b { color: #E2A44C; font-weight: 600; display: block; margin-bottom: 2px; }
-  .wish-warn span { color: #8A8478; }
+  .wish-warn b { color: var(--brass); font-weight: 600; display: block; margin-bottom: 2px; }
+  .wish-warn span { color: var(--ink-4); }
 
   /* Уведомление iOS */
   .notif {
     position: absolute; top: 12px; left: 10px; right: 10px; z-index: 95;
-    background: rgba(44,41,36,0.86);
+    background: var(--overlay-3);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border-radius: 18px; padding: 13px 15px; display: flex; gap: 11px;
     transform: translateY(-140%); opacity: 0;
@@ -1603,16 +1882,16 @@
   .notif.show { transform: none; opacity: 1; }
   .n-icon {
     width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-    background: linear-gradient(160deg, #E2A44C, #8A4B22);
+    background: linear-gradient(160deg, var(--brass), var(--brass-dark));
     display: flex; align-items: center; justify-content: center;
   }
-  .n-icon svg { width: 20px; height: 20px; stroke: #16120C; fill: none; stroke-width: 2; }
+  .n-icon svg { width: 20px; height: 20px; stroke: var(--on-brass); fill: none; stroke-width: 2; }
   .n-body { flex: 1; min-width: 0; }
   .n-head { display: flex; justify-content: space-between; align-items: baseline; }
-  .n-app { font-size: 11px; letter-spacing: 0.7px; color: #A8A093; font-weight: 600; text-transform: uppercase; }
-  .n-time { font-size: 11px; color: #8A8478; }
+  .n-app { font-size: 11px; letter-spacing: 0.7px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; }
+  .n-time { font-size: 11px; color: var(--ink-4); }
   .n-title { font-size: 14px; font-weight: 650; margin-top: 3px; }
-  .n-text { font-size: 13px; color: #C0B8AA; line-height: 1.4; margin-top: 1px; }
+  .n-text { font-size: 13px; color: var(--ink-2b); line-height: 1.4; margin-top: 1px; }
 
   .home {
     position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
@@ -1622,6 +1901,36 @@
 </style>
 </head>
 <body>
+
+<!-- Тон тайлов карты. Тайлы CARTO — чистая полутоновая картинка (R=G=B всюду),
+     поэтому вода в них неотличима от суши ничем, кроме уровня серого. Проверено
+     по тайлам: вода — ровно 38, суша доходит до 37, а 42 встречается в горах
+     без воды вовсе (лёд). Значит порог «самое светлое — вода» соврал бы, и
+     красить можно только точное совпадение с 38.
+     CSS-фильтром такое не выразить: он меняет цвет всей картинки разом. -->
+<svg class="filter-defs" aria-hidden="true"><defs>
+  <filter id="tileTone" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <!-- Суша: подъём яркости с тёплым уклоном — синий канал отстаёт от красного,
+         и холст садится в тепло рамки (#14110E) -->
+    <feComponentTransfer in="SourceGraphic" result="land">
+      <feFuncR type="linear" slope="1.62"/>
+      <feFuncG type="linear" slope="1.55"/>
+      <feFuncB type="linear" slope="1.40"/>
+    </feComponentTransfer>
+    <!-- Уровень серого переносим в альфу: картинка серая, поэтому красного канала довольно -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="lum"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/>
+    <!-- Ступенчатая таблица на 256 значений оставляет ровно одну ступень — 38.
+         Заполняется на старте: двести пятьдесят шесть чисел в разметке нечитаемы -->
+    <feComponentTransfer in="lum" result="mask">
+      <feFuncA id="waterStep" type="discrete" tableValues="0"/>
+    </feComponentTransfer>
+    <!-- Тускло-голубой той же светлоты, что был серый: вода меняет цвет, а не вес -->
+    <feFlood flood-color="#2B3C4E" result="blue"/>
+    <feComposite in="blue" in2="mask" operator="in" result="water"/>
+    <feMerge><feMergeNode in="land"/><feMergeNode in="water"/></feMerge>
+  </filter>
+</defs></svg>
 
 <div class="device">
 
@@ -1727,36 +2036,54 @@
 
   <!-- ============ КАРТА ============ -->
   <section class="screen" id="s-map">
+    <!-- Шапка отвечает «где и когда», а не «сколько градусов широты».
+         Широта с долготой ушли в астро-детали: продукт не про навигацию,
+         человек думает «Лагерный сад», а не «56.4536» -->
     <div class="header">
-      <div class="loc">
-        <div class="name" id="mLocName">Северный объезд</div>
+      <button class="loc" id="mapLoc" aria-label="Сменить место">
+        <div class="name"><span id="mLocName">—</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+        <div class="head-sub" id="mLocSub">—</div>
         <div class="date" id="mDate">ЧТ · 16 июля</div>
-      </div>
-      <div class="head-note" id="mCoords">56.02 N · 37.48 E</div>
+      </button>
+      <!-- Освободившийся угол берёт сохранение точки: стоишь на месте — оставь
+           его себе. Список — общий с «Моими точками съёмки» в настройках -->
+      <span class="save-note" id="saveNote" aria-live="polite"></span>
+      <button class="map-save" id="mapSave" aria-label="Сохранить точку" data-ic="bookmark"></button>
     </div>
 
     <div class="map-frame">
       <div id="lmap"></div>
-      <svg id="mapLight" viewBox="0 0 358 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
       <div class="map-pin"><i></i></div>
       <button class="map-here" id="mapHere" aria-label="Моё место">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
     </div>
 
-    <div class="telemetry" style="margin-top:14px;">
-      <div class="t-row"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
-      <div class="t-row"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
-      <div class="t-row"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
-      <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
-      <div class="t-row"><span class="t-label">Синий час</span><span class="t-value" id="mBlue">—</span></div>
-      <div class="t-row"><span class="t-label">Луна</span><span class="t-value" id="mMoon">—</span></div>
-      <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
-    </div>
+    <!-- Время выбранного момента — единственное, что переживает сворачивание -->
+    <button class="map-read" id="mapRead" aria-expanded="true" aria-controls="mapFold">
+      <span class="mr-time" id="mrTime">—</span>
+      <span class="mr-phase" id="mrPhase">—</span>
+      <span class="mr-chev" data-ic="chevron"></span>
+    </button>
 
-    <div class="pro">
-      <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
-      <div class="pro-body" id="mProBody"></div>
+    <div class="map-fold" id="mapFold">
+      <div class="telemetry">
+        <!-- «Свет идёт с ЗЮЗ» повторяет луч, который и так виден на карте:
+             нарисованное не дублируем словами, строка ушла в астро -->
+        <div class="t-row pro-only"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
+        <div class="t-row pro-only"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
+        <div class="t-row pro-only"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
+        <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
+        <div class="t-row"><span class="t-label">Синий час</span><span class="t-value" id="mBlue">—</span></div>
+        <div class="t-row"><span class="t-label">Луна</span><span class="t-value" id="mMoon">—</span></div>
+        <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
+      </div>
+
+      <div class="pro">
+        <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
+        <div class="pro-body" id="mProBody"></div>
+      </div>
     </div>
 
   </section>
@@ -1840,6 +2167,9 @@
       <span class="lbl">Запланировать съёмку</span>
       <span class="sub" id="planDayHint">—</span>
     </button>
+    <!-- Занять время — действие тише съёмки: планировщик про съёмки,
+         а выходной ставят реже -->
+    <button class="ghost" id="planBlock" style="margin: 10px 24px 0;">Занять время — выходной, дорога, перелёт</button>
     <div id="sessionList" hidden></div>
   </section>
 
@@ -1855,6 +2185,13 @@
       <button data-mode="pro">Астро</button>
     </div>
     <p class="seg-note">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
+
+    <div class="sec-label">Тема</div>
+    <div class="seg" id="themeSeg">
+      <button class="active" data-theme="dark">Тёмная</button>
+      <button data-theme="light">Светлая</button>
+    </div>
+    <p class="seg-note">Меняется интерфейс. Небо, свет и карта остаются прежними: закат не зависит от темы.</p>
 
     <div class="sec-label">Календарь</div>
     <div class="seg" id="calSync">
@@ -1892,7 +2229,9 @@
     <div class="item"><span class="k">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
 
     <div class="sec-label">Места</div>
-    <div class="item"><span class="k">Мои точки съёмки</span><span class="v">3 ›</span></div>
+    <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
+         точки и открывает тот же лист, что закладка в шапке карты -->
+    <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет ›</span></div>
     <div class="item"><span class="k">Дорога до точки</span><span class="v">40 мин ›</span></div>
 
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
@@ -2174,18 +2513,24 @@
     <div class="group">
       <div class="g-chips"><div class="chips" id="fType"></div></div>
 
-      <button class="row sep" id="fWhen">Дата
-        <span class="rv"><span id="fWhenName">—</span><span class="sub" id="fWhenHint">—</span></span>
-      </button>
-      <div class="inline" id="fWhenPick">
+      <!-- Дата стоит у начала и у конца: мероприятие начинается 8 августа и
+           заканчивается 9-го. Отдельной строки «Дата» больше нет — она означала
+           бы, что съёмка живёт внутри одних суток, а банкет её переживает.
+           Строки перестали быть кнопками: внутри теперь по две своих кнопки -->
+      <div class="row sep" id="fStart"><span class="rl">Начало</span>
+        <span class="rv">
+          <span class="caps">
+            <button type="button" class="rv-v" id="fStartDate">—</button>
+            <button type="button" class="rv-v" id="fStartVal">—</button>
+          </span>
+          <span class="sub" id="fWhenHint">—</span>
+        </span>
+      </div>
+      <div class="inline" id="fStartDatePick">
         <div class="ip"><div class="pick-band"></div>
-          <div class="wheel" data-w="date" id="fwDate"></div>
+          <div class="wheel" data-w="date" id="fwSDate"></div>
         </div>
       </div>
-
-      <button class="row sep" id="fStart">Начало
-        <span class="rv" id="fStartVal">—</span>
-      </button>
       <div class="inline" id="fStartPick">
         <div class="ip time"><div class="pick-band"></div>
           <div class="wheel narrow" data-w="hour" id="fwSH"></div>
@@ -2193,9 +2538,20 @@
         </div>
       </div>
 
-      <button class="row sep" id="fEnd">Конец
-        <span class="rv"><span id="fEndVal">—</span><span class="sub" id="fDurVal">—</span></span>
-      </button>
+      <div class="row sep" id="fEnd"><span class="rl">Конец</span>
+        <span class="rv">
+          <span class="caps">
+            <button type="button" class="rv-v" id="fEndDate">—</button>
+            <button type="button" class="rv-v" id="fEndVal">—</button>
+          </span>
+          <span class="sub" id="fDurVal">—</span>
+        </span>
+      </div>
+      <div class="inline" id="fEndDatePick">
+        <div class="ip"><div class="pick-band"></div>
+          <div class="wheel" data-w="date" id="fwEDate"></div>
+        </div>
+      </div>
       <div class="inline" id="fEndPick">
         <div class="ip time"><div class="pick-band"></div>
           <div class="wheel narrow" data-w="hour" id="fwEH"></div>
@@ -2460,6 +2816,74 @@
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
+  <!-- ============ ЗАНЯТЬ ВРЕМЯ ============
+       Выходной, дорога, перелёт. Своя форма, а не съёмка без полей: у отпуска
+       нет ни клиента, ни жанра, ни сдачи материала -->
+  <div class="scrim" id="blkScrim"></div>
+  <div class="sheet" id="blkSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" id="blkTitle">Занять время</div>
+    <div class="sheet-sub">День не для съёмки — но день занятый: календарь должен об этом знать</div>
+
+    <div class="g-chips" style="padding:0;"><div class="chips" id="blkKind"></div></div>
+
+    <div class="group" style="margin-top:14px;">
+      <div class="row sep"><span class="rl">Весь день</span>
+        <span class="rv"><span class="toggle on" id="blkAllDay"></span></span>
+      </div>
+
+      <div class="row sep" id="blkFromRow"><span class="rl">С</span>
+        <span class="rv">
+          <span class="caps">
+            <button type="button" class="rv-v" id="blkFromDate">—</button>
+            <button type="button" class="rv-v" id="blkFromTime" hidden>—</button>
+          </span>
+        </span>
+      </div>
+      <div class="inline" id="blkFromDatePick">
+        <div class="ip"><div class="pick-band"></div><div class="wheel" data-w="date" id="bwFD"></div></div>
+      </div>
+      <div class="inline" id="blkFromTimePick">
+        <div class="ip time"><div class="pick-band"></div>
+          <div class="wheel narrow" data-w="hour" id="bwFH"></div>
+          <div class="wheel narrow" data-w="min" id="bwFM"></div>
+        </div>
+      </div>
+
+      <div class="row sep" id="blkToRow"><span class="rl">По</span>
+        <span class="rv">
+          <span class="caps">
+            <button type="button" class="rv-v" id="blkToDate">—</button>
+            <button type="button" class="rv-v" id="blkToTime" hidden>—</button>
+          </span>
+          <span class="sub" id="blkSpan">—</span>
+        </span>
+      </div>
+      <div class="inline" id="blkToDatePick">
+        <div class="ip"><div class="pick-band"></div><div class="wheel" data-w="date" id="bwTD"></div></div>
+      </div>
+      <div class="inline" id="blkToTimePick">
+        <div class="ip time"><div class="pick-band"></div>
+          <div class="wheel narrow" data-w="hour" id="bwTH"></div>
+          <div class="wheel narrow" data-w="min" id="bwTM"></div>
+        </div>
+      </div>
+
+      <input class="sep" type="text" id="blkNote" placeholder="Заметка — необязательно"/>
+    </div>
+
+    <button class="sheet-done" id="blkDone">Готово</button>
+    <button class="data-btn ghost-btn" id="blkDel" hidden style="margin-top:8px;">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <span>Убрать из календаря</span>
+    </button>
+  </div>
+
+  <!-- Веер сохранённых точек: общий на карту, маршрут карточки и настройки.
+       Прямой потомок .device — координаты считаются от рамки телефона -->
+  <div class="spot-scrim" id="spotScrim" hidden></div>
+  <div class="spot-fan" id="spotFan" hidden></div>
+
   <div class="scrim" id="locScrim"></div>
   <div class="sheet" id="locSheet">
     <div class="grip"></div>
@@ -2469,6 +2893,10 @@
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       <span id="locDetectLbl">Определить моё место</span>
     </button>
+    <!-- Сохранённые точки идут выше поиска: вернуться на своё место нужно
+         часто, а искать новое — редко -->
+    <div class="sec-label" id="spotLabel" style="padding-left:0;">Мои точки</div>
+    <div class="spot-list" id="spotList"></div>
     <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
     <div class="loc-search">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
@@ -3107,7 +3535,12 @@
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
-        defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON }
+        defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
+        mapFold: mapFoldShut, spots: spots, theme: theme,
+        blocks: blocks.map(function (b) {
+          var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
+          return o;
+        })
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
       if (typeof yaSchedule === "function") yaSchedule();   // копия уедет на Диск через пару секунд
@@ -3357,6 +3790,79 @@
 
   var sessions = saved && saved.sessions ? saved.sessions : [];
   var syncTarget = saved && saved.sync ? saved.sync : "off";
+  // Сводка карты свёрнута или нет: кто её свернул, тот не хочет видеть её и завтра
+  var mapFoldShut = !!(saved && saved.mapFold);
+
+  /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
+     на карте живут своими цветами в этом файле и темой не управляются */
+  var theme = (saved && saved.theme === "light") ? "light" : "dark";
+  function applyTheme(t) {
+    theme = t;
+    document.documentElement.setAttribute("data-theme", t);
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", t === "light" ? "#EDE9E1" : "#0F0E0C");
+    document.querySelectorAll("#themeSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.theme === t);
+    });
+  }
+
+  /* ---------- Занятое время ----------
+     Календарь отвечает на вопрос «я свободен?», и ответ не должен зависеть от
+     того, свадьба это или самолёт. Пока занятость знали только съёмки, календарь
+     врал: показывал свободным день, в который фотограф в отпуске.
+
+     Отдельный список, а не поле в съёмках: у выходного нет ни клиента, ни жанра,
+     ни сдачи материала, и попади он в sessions — полез бы в прибыль за год,
+     в «ждём: акт» и в карточки. Занятость — это не съёмка без полей. */
+  var blocks = (saved && saved.blocks) || [];
+  blocks.forEach(function (b) { b.from = new Date(b.from); });
+  var BLOCK_KINDS = [
+    { k: "off",    n: "Выходной", ic: "home" },
+    { k: "road",   n: "Дорога",   ic: "car" },
+    { k: "flight", n: "Перелёт",  ic: "plane" },
+    { k: "busy",   n: "Занято",   ic: "clock" }
+  ];
+  function blockKind(k) {
+    for (var i = 0; i < BLOCK_KINDS.length; i++) if (BLOCK_KINDS[i].k === k) return BLOCK_KINDS[i];
+    return BLOCK_KINDS[3];
+  }
+  /* Многодневная занятость хранится днями от начала, а не второй датой:
+     отпуск «с 3 по 10» и «7 дней подряд» — одно и то же, но дней не разъехаться */
+  function blockDays(b) { return b.allDay ? Math.max(1, b.days || 1) : 1; }
+  function blockLast(b) {
+    var d = new Date(b.from); d.setDate(d.getDate() + blockDays(b) - 1); return d;
+  }
+  function blockCovers(b, d) {
+    if (!b.allDay) return sameDay(b.from, d);
+    var a = new Date(b.from); a.setHours(0, 0, 0, 0);
+    var z = blockLast(b); z.setHours(23, 59, 59, 999);
+    return d >= a && d <= z;
+  }
+  function blocksOn(d) {
+    return blocks.filter(function (b) { return blockCovers(b, d); });
+  }
+  function blockLabel(b) { return b.note || blockKind(b.k).n; }
+  function newBlockId() { return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  /* ---------- Сохранённые точки съёмки ----------
+     Фотограф возвращается на одни и те же места, и набирать их заново — работа
+     на пустом месте. Список один на приложение: и закладка в шапке карты, и
+     «Мои точки съёмки» в настройках, и лист «Где снимаем» смотрят сюда же. */
+  var spots = (saved && saved.spots) || [];
+  /* Две точки считаем одной, если они ближе примерно 60 метров: карта ездит
+     под пальцем, и попасть в ту же тысячную долю градуса невозможно */
+  function sameSpot(a, lat, lon) {
+    return Math.abs(a.lat - lat) < 0.0006 && Math.abs(a.lon - lon) < 0.0006;
+  }
+  function spotHere() {
+    for (var i = 0; i < spots.length; i++) if (sameSpot(spots[i], LAT, LON)) return i;
+    return -1;
+  }
+  function renderSpotMark() {
+    var on = spotHere() >= 0;
+    $("mapSave").classList.toggle("on", on);
+    $("mapSave").setAttribute("aria-label", on ? "Убрать точку" : "Сохранить точку");
+    if ($("spotCount")) $("spotCount").textContent = spots.length ? spots.length + " ›" : "нет ›";
+  }
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
      меняется, а история съёмок не рвётся (docs/12_CARD_ARCHITECTURE.md).
@@ -3786,7 +4292,54 @@
   /* ============================================================
      ЭКРАН «КАРТА»
      ============================================================ */
-  var MPX = 179, MPY = 150, MR = 112;   // центр и радиус компаса в системе viewBox 358×300
+  var MPX = 179, MPY = 170, MR = 112;   // центр и радиус горизонта в системе viewBox 358×340
+
+  /* Радиус означает высоту светила: зенит — центр круга, горизонт — обод,
+     сумерки уходят наружу. Прежде радиус был постоянным и не значил ничего:
+     полуденное солнце и закатное стояли одинаково далеко от центра.
+     Формула из беты Солнечного компаса, где этот вопрос решён раньше. */
+  var PATH_MIN_ALT = -18;                          // глубже астрономической ночи рисовать нечего
+  var PATH_MAX_R = MR * (1 - PATH_MIN_ALT / 90);   // ≈134 — внешний предел пути
+  /* Обод компаса — заданный радиус, а не «отступ от пути»: на нём стоят и буквы
+     сторон света, и градусы, одним кольцом. Раздельные кольца съедали радиус,
+     из-за которого компас и казался мелким. */
+  var COMPASS_R = 152;
+  var TICK_OUT = 146, TICK_IN = 139;               // деления — внутри обода, под текстом
+  var HOUR_LBL_MAX = 134;                          // дальше подписи часов не уходят
+  function altR(alt) {
+    return Math.max(8, Math.min(PATH_MAX_R, MR * (1 - alt / 90)));
+  }
+
+  /* Цвет пути — по высоте, а не по названию окна. Свет непрерывен, поэтому
+     золотой час и синий стали участками самой траектории, а не отдельными
+     кольцами: синий час не вторая орбита, а отрезок пути солнца. */
+  var PATH_STOPS = [
+    { alt:  90, rgb: [138, 132, 120], a: 0.40, w: 1.3 },
+    { alt:  20, rgb: [176, 160, 132], a: 0.50, w: 1.7 },
+    { alt:   6, rgb: [226, 164,  76], a: 0.95, w: 3.4 },   // золотой час сверху
+    { alt:   0, rgb: [226, 164,  76], a: 0.95, w: 3.4 },   // горизонт
+    { alt:  -4, rgb: [150, 110, 170], a: 0.88, w: 3.0 },   // перелом к синему
+    { alt:  -6, rgb: [124, 156, 196], a: 0.85, w: 3.0 },   // синий час
+    { alt: -12, rgb: [ 64,  92, 140], a: 0.48, w: 2.0 },
+    { alt: -18, rgb: [ 40,  54,  92], a: 0.28, w: 1.4 }
+  ];
+  function stopAt(alt) {
+    var s = PATH_STOPS, last = s[s.length - 1];
+    if (alt >= s[0].alt) return s[0];
+    if (alt <= last.alt) return last;
+    for (var i = 0; i < s.length - 1; i++) {
+      var hi = s[i], lo = s[i + 1];
+      if (alt <= hi.alt && alt >= lo.alt) {
+        var k = (alt - lo.alt) / (hi.alt - lo.alt);
+        return {
+          rgb: [0, 1, 2].map(function (j) { return Math.round(lo.rgb[j] + (hi.rgb[j] - lo.rgb[j]) * k); }),
+          a: lo.a + (hi.a - lo.a) * k,
+          w: lo.w + (hi.w - lo.w) * k
+        };
+      }
+    }
+    return last;
+  }
 
   function el(name, attrs) {
     var e = document.createElementNS(NS, name);
@@ -3802,86 +4355,149 @@
     var svg = $("mapLight"); if (!svg) return; svg.innerHTML = "";
     var t = viewMin, e = elevAt(t), az = azAt(t), sh = shadowAt(t);
 
-    // Азимутальное кольцо — прибор поверх холста
+    /* Кольцо горизонта. Раньше это был просто обод прибора, теперь — линия
+       нулевой высоты, от которой читается вся проекция: внутри светило над
+       землёй, снаружи под ней. Раз оно значит больше, оно и весит больше. */
     svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: MR, fill: "none",
-      stroke: "rgba(239,234,224,0.10)", "stroke-width": 1 }));
+      stroke: "rgba(239,234,224,0.20)", "stroke-width": 1 }));
 
-    /* Полный круг суток. Солнце не исчезает ночью — оно уходит под горизонт,
-       и это должно читаться: день сплошной нитью, ночь редким пунктиром. */
-    function azPath(t1, t2, r, step) {
-      if (t1 === null || t2 === null) return "";
-      var dd = "", f = true;
-      for (var x = t1; x <= t2; x += (step || 6)) {
-        var pp = A(azAt(x), r);
-        dd += (f ? "M" : "L") + pp[0].toFixed(1) + " " + pp[1].toFixed(1) + " ";
-        f = false;
+    /* Путь солнца за сутки: от местной полуночи до следующей — так сутки
+       остаются целыми в дни перевода часов, когда их 23 или 25.
+       Шаг 4 минуты: мельче на этом холсте уже не видно.
+       Пройденная часть тоньше и приглушённее — прошлое читается, но не спорит
+       с тем, что впереди. Делит не «сейчас», а положение ползунка: карта
+       отвечает про выбранный момент, а не про часы на телефоне. */
+    (function sunPath() {
+      var run = null, DELTA = 12;   // суммарная разница RGB, после которой начинаем новый сегмент
+      function flush() {
+        if (run && run.pts.length >= 2) {
+          svg.appendChild(el("path", {
+            d: "M" + run.pts.join(" L"), fill: "none",
+            stroke: "rgb(" + run.rgb.join(",") + ")",
+            "stroke-opacity": (run.a * (run.past ? 0.40 : 1)).toFixed(3),
+            "stroke-width": (run.w * (run.past ? 0.6 : 1)).toFixed(2),
+            "stroke-linecap": "round", "stroke-linejoin": "round"
+          }));
+        }
+        run = null;
       }
-      return dd.trim();
-    }
-    // Ночная часть: от заката до восхода следующего дня — солнце под землёй
-    if (SUN.set !== null && SUN.rise !== null) {
-      var night = azPath(SUN.set, SUN.rise + 1440, MR, 10);
-      if (night) svg.appendChild(el("path", { d: night, fill: "none", stroke: "rgba(124,156,196,0.30)",
-        "stroke-width": 1.2, "stroke-dasharray": "1 7", "stroke-linecap": "round" }));
-    }
-    // Дневная часть — сплошная тонкая нить
-    var day = azPath(SUN.arcA, SUN.arcB, MR, 8);
-    if (day) svg.appendChild(el("path", { d: day, fill: "none", stroke: "rgba(226,164,76,0.42)",
-      "stroke-width": 1.6, "stroke-linecap": "round" }));
+      for (var x = 0; x <= 1440; x += 4) {
+        var alt = elevAt(x);
+        if (alt < PATH_MIN_ALT) { flush(); continue; }
+        var c = stopAt(alt), past = x < t;
+        var p = A(azAt(x), altR(alt)), xy = p[0].toFixed(1) + "," + p[1].toFixed(1);
+        if (run) {
+          var d = Math.abs(run.rgb[0] - c.rgb[0]) + Math.abs(run.rgb[1] - c.rgb[1]) + Math.abs(run.rgb[2] - c.rgb[2]);
+          if (past !== run.past || d > DELTA) { run.pts.push(xy); flush(); }   // общая точка — стык без разрыва
+        }
+        if (!run) run = { rgb: c.rgb, a: c.a, w: c.w, past: past, pts: [] };
+        run.pts.push(xy);
+      }
+      flush();
+    })();
 
-    /* Окна света на азимутальном круге: синий час снаружи, золотой внутри —
-       два разных отрезка, а не один. Фотограф видит, куда смотреть и когда. */
-    function azBand(t1, t2, r, color, w) {
-      var dd = azPath(t1, t2, r, 4);
-      if (dd) svg.appendChild(el("path", { d: dd, fill: "none", stroke: color,
-        "stroke-width": w, "stroke-linecap": "round" }));
+    /* Часовые засечки превращают дугу в циферблат: «в котором часу солнце
+       будет вон над той крышей» отвечается без ползунка вообще. Подпись
+       каждые три часа — двадцать четыре подписи в этот круг не помещаются. */
+    function nearRiseSet(x) {
+      return (SUN.rise !== null && Math.abs(x - SUN.rise) < 34)
+          || (SUN.set !== null && Math.abs(x - SUN.set) < 34);
     }
-    azBand(SUN.civA, SUN.blueA, MR + 7, "rgba(124,156,196,0.75)", 3);   // синий час утром
-    azBand(SUN.blueB, SUN.civB, MR + 7, "rgba(124,156,196,0.75)", 3);   // синий час вечером
-    azBand(SUN.blueA, SUN.goldA, MR, "#E2A44C", 4);                     // золотой час утром
-    azBand(SUN.goldB, SUN.blueB, MR, "#E2A44C", 4);                     // золотой час вечером
+    for (var h = 0; h < 24; h++) {
+      var ht = h * 60, hAlt = elevAt(ht);
+      if (hAlt < PATH_MIN_ALT) continue;
+      var hR = altR(hAlt), hp = A(azAt(ht), hR), lit = hAlt > -0.833;
+      svg.appendChild(el("circle", { cx: hp[0], cy: hp[1], r: lit ? 1.9 : 1.5,
+        fill: lit ? "#E2A44C" : "#7C9CC4", "fill-opacity": lit ? 0.9 : 0.55 }));
+      if (h % 3 || nearRiseSet(ht)) continue;     // подпись уступает восходу и закату — те важнее
+      // Потолок нужен ночным часам: их точки лежат у самого предела пути,
+      // и подпись без ограничения залезла бы на деления компаса
+      var lp = A(azAt(ht), Math.min(hR + 10, HOUR_LBL_MAX));
+      var htx = el("text", { x: lp[0], y: lp[1] + 3.4, fill: "rgba(168,156,134,0.72)", "font-size": 9,
+        "text-anchor": "middle", "font-family": "ui-monospace, monospace" });
+      htx.textContent = (h < 10 ? "0" : "") + h;
+      svg.appendChild(htx);
+    }
 
-    // Восход и закат — метки с временем
+    // Восход и закат — метки с временем, на своей высоте
     [[SUN.rise, "start", 9], [SUN.set, "end", -9]].forEach(function (m) {
       if (m[0] === null) return;
-      var pt = A(azAt(m[0]), MR);
+      var pt = A(azAt(m[0]), altR(elevAt(m[0])));
       svg.appendChild(el("circle", { cx: pt[0], cy: pt[1], r: 3.5, fill: "#14110E", stroke: "#E2A44C", "stroke-width": 1.5 }));
       var tx = el("text", { x: pt[0] + m[2], y: pt[1] + 4, fill: "#A89C86", "font-size": 11,
         "text-anchor": m[1], "font-family": "-apple-system, sans-serif", "font-weight": 600 });
       tx.textContent = fmt(m[0]); svg.appendChild(tx);
     });
 
-    /* Луна: её путь и текущее положение — на куполе она есть, на карте должна быть тоже */
+    /* Луна: та же проекция, но пунктиром — у неё свой ход и своя высота.
+       Отдельного кольца ей больше не нужно: радиус разводит светила сам. */
     var mArc = moonArc(selDate, t), mNow = moonAt(selDate, t);
-    if (mArc && !mArc.none && mArc.rise !== null && mArc.set !== null) {
+    (function moonPath() {
       var mp = "", mf = true;
-      for (var mt = mArc.rise; mt <= mArc.set; mt += 10) {
-        var mpt = A(moonAt(selDate, mt).az, MR - 16);
+      for (var mt = 0; mt <= 1440; mt += 8) {
+        var mo = moonAt(selDate, mt);
+        if (mo.alt < -2) { mf = true; continue; }        // под горизонтом луна неинтересна
+        var mpt = A(mo.az, altR(mo.alt));
         mp += (mf ? "M" : "L") + mpt[0].toFixed(1) + " " + mpt[1].toFixed(1) + " ";
         mf = false;
       }
-      if (mp) svg.appendChild(el("path", { d: mp.trim(), fill: "none", stroke: "rgba(207,214,222,0.28)",
+      if (mp) svg.appendChild(el("path", { d: mp.trim(), fill: "none", stroke: "rgba(207,214,222,0.30)",
         "stroke-width": 1.2, "stroke-dasharray": "4 5", "stroke-linecap": "round" }));
-    }
+    })();
     if (mNow.alt > -3) {
-      var mpos = A(mNow.az, MR - 16);
+      var mpos = A(mNow.az, altR(mNow.alt));
       svg.appendChild(el("circle", { cx: mpos[0], cy: mpos[1], r: 4.5,
         fill: mNow.alt > 0 ? "#CFD6DE" : "rgba(207,214,222,0.45)", stroke: "#14110E", "stroke-width": 1.5 }));
     }
 
-    // Луч и солнце
-    if (e > -6) {
-      var sp = A(az, MR), sc = e > 0 ? "#E2A44C" : "#7C9CC4";
+    // Луч и солнце — на радиусе своей высоты
+    if (e > PATH_MIN_ALT) {
+      var sp = A(az, altR(e)), sc = e > 0 ? "#E2A44C" : "#7C9CC4";
       svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
         stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
       svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 11, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
       svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: "#14110E", "stroke-width": 2 }));
     }
 
-    // Север
-    var n = el("text", { x: MPX, y: MPY - MR - 6, fill: "#8A8478", "font-size": 11, "text-anchor": "middle",
-      "font-family": "-apple-system, sans-serif", "font-weight": 700 });
-    n.textContent = "С"; svg.appendChild(n);
+    /* Деления с градусами — только в астро. В обычном режиме они спорили бы с
+       монохромным холстом, а на вопрос «куда смотреть» отвечают четыре буквы.
+       Числа стоят снаружи делений, четверти пропущены: там уже стоят буквы,
+       и «90°» рядом с «В» — это два слова об одном. */
+    if (document.body.classList.contains("pro-mode")) {
+      for (var g = 0; g < 360; g += 10) {
+        var big = g % 30 === 0;
+        var t1 = A(g, big ? TICK_IN : TICK_IN + 4), t2 = A(g, TICK_OUT);
+        svg.appendChild(el("line", { x1: t1[0], y1: t1[1], x2: t2[0], y2: t2[1],
+          stroke: "rgba(239,234,224," + (big ? 0.26 : 0.13) + ")", "stroke-width": big ? 1.2 : 1 }));
+        if (!big || g % 90 === 0) continue;
+        var gp = A(g, COMPASS_R);
+        var gt = el("text", { x: gp[0], y: gp[1] + 3.4, fill: "rgba(138,132,120,0.70)", "font-size": 9,
+          "text-anchor": "middle", "font-family": "ui-monospace, monospace" });
+        gt.textContent = g + "°"; svg.appendChild(gt);
+      }
+    }
+
+    /* Компас: четыре буквы по ободу — они есть всегда, в обоих режимах */
+    [[0, "С"], [90, "В"], [180, "Ю"], [270, "З"]].forEach(function (c) {
+      var cp = A(c[0], COMPASS_R);
+      var ct = el("text", { x: cp[0], y: cp[1] + 4, fill: c[0] === 0 ? "#A89C86" : "#8A8478",
+        "font-size": 11, "text-anchor": "middle",
+        "font-family": "-apple-system, sans-serif", "font-weight": 700 });
+      ct.textContent = c[1]; svg.appendChild(ct);
+    });
+
+    /* Время выбранного момента — в языке купола, тем же словарём фаз.
+       Это ответ на исходную беду: солнце ехало, градусы менялись, а в котором
+       часу это будет, экран не говорил нигде. */
+    var mst = stateAt(t);
+    $("mrTime").textContent = fmt(t);
+    if (skyMode === "moon") {
+      $("mrPhase").textContent = phaseName(moonPhase(selDate, t).phase);
+      $("mrPhase").style.color = "#A8BDD8";
+    } else {
+      $("mrPhase").textContent = mst.label;
+      $("mrPhase").style.color = rgb(mst.c);
+    }
 
     // Сводка карты — честная физика, без выдуманных зданий
     $("mDate").textContent = WD[selDate.getDay()] + " · " + selDate.getDate() + " " + MONTHS[selDate.getMonth()];
@@ -3893,8 +4509,16 @@
       : range(SUN.goldB, SUN.blueB) + " · " + dirOf(azAt(SUN.goldB));
     $("mBlue").textContent = (SUN.blueB === null || SUN.civB === null) ? "—"
       : range(SUN.blueB, SUN.civB) + " · " + dirOf(azAt(SUN.blueB));
+    /* Луна над горизонтом: в астро — измерения, в обычном — то, чего на карте
+       нет цифрой. Азимут с высотой повторяют лунный диск, который и так нарисован,
+       а «зайдёт в 03:10» и доля света не повторяют ничего. */
+    var moonPro = document.body.classList.contains("pro-mode");
+    var moonLit = Math.round(moonPhase(selDate, t).fraction * 100);
     $("mMoon").textContent = mNow.alt > 0
-      ? dirOf(mNow.az) + " · " + mNow.alt.toFixed(0) + "° · " + Math.round(moonPhase(selDate, t).fraction * 100) + "%"
+      ? (moonPro
+          ? dirOf(mNow.az) + " · " + mNow.alt.toFixed(0) + "° · " + moonLit + "%"
+          : "освещена " + moonLit + "%"
+            + (mArc && !mArc.none && mArc.set !== null ? " · зайдёт " + fmt(mArc.set) : ""))
       : mArc.none ? "сегодня не восходит" : "под горизонтом · взойдёт " + fmt(mArc.rise);
     $("mPoint").textContent = e > 0 ? "на свету" : "в тени";
     $("mPoint").style.color = e > 0 ? "#E2A44C" : "#8A8478";
@@ -3932,9 +4556,25 @@
   function applyGeoNames() {
     var coords = coordText(LAT, LON);
     var city = geoCity || coords;
+    /* Координаты — крайнее средство, а не подпись. Знаем город — под ним стоит
+       уточнение или ничего; числа появляются только когда имени нет вовсе и
+       иначе экран не ответил бы «где это» */
+    var sub = geoCity ? geoSub : "";
     if ($("hLocName")) $("hLocName").textContent = city;
-    if ($("hLocSub")) $("hLocSub").textContent = geoSub || coords;
+    if ($("hLocSub")) $("hLocSub").textContent = sub;
     $("mLocName").textContent = city;
+    $("mLocSub").textContent = sub;
+    /* Точку могли сохранить раньше, чем ответил геокодер, — тогда именем ей
+       служат координаты. Ответ пришёл: имя дозревает, а не остаётся числами
+       навсегда. Правим только то, что сами и подставили. */
+    if (geoCity) {
+      var k = spotHere();
+      if (k >= 0 && !spots[k].named) {
+        spots[k].name = geoCity; spots[k].sub = geoSub || ""; spots[k].named = true;
+        saveAll();
+      }
+    }
+    renderSpotMark();   // на новом месте закладка может быть уже поставлена
   }
   function fetchGeoName() {
     if (typeof fetch === "undefined") return;
@@ -3954,7 +4594,6 @@
 
   function setLocation(lat, lon) {
     LAT = lat; LON = lon; TZ = tzFor(lon);
-    $("mCoords").textContent = coordText(lat, lon);
     geoCity = ""; geoSub = "";     // прежнее имя недействительно
     applyGeoNames();               // сразу координаты, город подтянется следом
     saveAll();                     // место переживает перезапуск
@@ -3983,7 +4622,6 @@
       var c = lmap.getCenter();
       setLocation(c.lat, c.lng);
     });
-    $("mCoords").textContent = coordText(LAT, LON);
     applyGeoNames();
   }
   /* Экран карты показывается — Leaflet должен пересчитать размер и встать на место */
@@ -4095,14 +4733,23 @@
 
       var html = '<span class="d-n' + (lit && mk.breath ? " breath" : "") + '"'
         + (lit ? ' style="--mark:' + mk.fill + '"' : "") + ">" + d.getDate() + "</span>";
+      /* Занятость стоит в клетке наравне со съёмками: день, занятый отпуском,
+         должен читаться занятым. Но цвета света у неё нет — у выходного не
+         бывает золотого часа, и красить его качеством неба было бы враньём */
+      var items = shoots.map(function (x) {
+        return { t: shortGenre(x.type), c: QUAL[qualityOf(x.date)].dot || "#A8B49B" };
+      }).concat((inMonth ? blocksOn(d) : []).map(function (b) {
+        return { t: blockLabel(b), c: null };
+      }));
       // Две подписи помещаются, третья превращается в счётчик
-      var show = shoots.length > 2 ? shoots.slice(0, 1) : shoots.slice(0, 2);
+      var show = items.length > 2 ? items.slice(0, 1) : items.slice(0, 2);
       show.forEach(function (x) {
-        var col = QUAL[qualityOf(x.date)].dot || "#A8B49B";
-        html += '<span class="cal-lb" style="color:' + col + '">' + esc(shortGenre(x.type)) + "</span>";
+        html += x.c
+          ? '<span class="cal-lb" style="color:' + x.c + '">' + esc(x.t) + "</span>"
+          : '<span class="cal-lb busy">' + esc(x.t) + "</span>";
       });
-      if (shoots.length > show.length) {
-        html += '<span class="cal-lb more">+' + (shoots.length - show.length) + "</span>";
+      if (items.length > show.length) {
+        html += '<span class="cal-lb more">+' + (items.length - show.length) + "</span>";
       }
       b.innerHTML = html;
       b.addEventListener("click", function () {
@@ -4379,18 +5026,40 @@
         (ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
         "</button></div>";
     }).join("") : "";   // пустой список и есть «нет событий» — лишняя строка не нужна
+
+    /* Занятость идёт следом за съёмками и своей строкой: у неё нет ни клиента,
+       ни срока сдачи, и притворяться съёмкой ей незачем */
+    var bls = blocksOn(calSel);
+    box.innerHTML += bls.map(function (b) {
+      var when = b.allDay
+        ? (blockDays(b) > 1 ? "весь день · " + blockDays(b) + " дн" : "весь день")
+        : fmt(b.min) + " – " + fmt(b.min + b.dur);
+      return '<div class="swipe"><button class="swipe-del" data-b="' + b.id + '">Удалить</button>' +
+        '<button class="plan-row busy" data-b="' + b.id + '">' +
+        '<span class="pr-ic" data-ic="' + blockKind(b.k).ic + '"></span>' +
+        '<span class="pr-time">' + esc(when) + "</span>" +
+        '<span class="pr-who">' + esc(blockLabel(b)) + "</span>" +
+        "</button></div>";
+    }).join("");
+
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
         if (b._moved) return;                      // это был свайп, а не тап
         if (closeSwipes()) return;                 // открытая кнопка сначала закрывается
-        openCard(+b.dataset.i);
+        if (b.dataset.b) openBlock(b.dataset.b);
+        else openCard(+b.dataset.i);
       });
       attachSwipe(b);
     });
     box.querySelectorAll(".swipe-del").forEach(function (b) {
-      b.addEventListener("click", function () { removeSession(+b.dataset.i); });
+      b.addEventListener("click", function () {
+        if (b.dataset.b) removeBlock(b.dataset.b);
+        else removeSession(+b.dataset.i);
+      });
     });
-    $("plannedLabel").textContent = idxs.length ? "Запланировано" : "Свободный день";
+    paintIcons(box);
+    var busy = idxs.length + bls.length;
+    $("plannedLabel").textContent = busy ? "Запланировано" : "Свободный день";
     $("planDay").querySelector(".lbl").textContent = idxs.length ? "Добавить съёмку" : "Запланировать съёмку";
   }
 
@@ -5411,9 +6080,11 @@
   }
 
   /* ---------- Барабаны внутри формы ---------- */
-  var fwDate = $("fwDate"), fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
+  var fwSDate = $("fwSDate"), fwEDate = $("fwEDate");
+  var fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
-  fill(fwDate, dateList.map(function (x) { return x.label; }));
+  fill(fwSDate, dateList.map(function (x) { return x.label; }));
+  fill(fwEDate, dateList.map(function (x) { return x.label; }));
   [fwSH, fwEH].forEach(function (el2) { fill(el2, HOURS); });
   /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
      уметь показать и 30, и 38, если 38 пришли от золотого часа */
@@ -5453,9 +6124,39 @@
   }
   /* Значение снимается только с раскрытого барабана: иначе остановка,
      догнавшая закрытие формы, дописала бы время в чужую съёмку */
-  attachWheel(fwDate, function () {
-    if (openRow !== "fWhen") return;
-    fDate = new Date(dateList[wheelIndex(fwDate)].date);
+  /* Конец живёт своей датой: съёмка началась восьмого, кончилась девятого.
+     Внутри по-прежнему одна длительность, а дата конца — её следствие:
+     хранить два момента и длительность значило бы держать две правды. */
+  var MAX_DUR = 2880;                                  // двое суток — потолок здравого смысла
+  /* Разница в календарных днях. Округление переживает перевод часов, когда
+     в сутках 23 или 25 часов и деление нацело соврало бы */
+  function dayDiff(a, b) {
+    var x = new Date(a); x.setHours(0, 0, 0, 0);
+    var y = new Date(b); y.setHours(0, 0, 0, 0);
+    return Math.round((x - y) / 86400000);
+  }
+  function endDayOff() { return Math.floor((fMin + fDur) / 1440); }
+  function endDate() {
+    var d = new Date(fDate); d.setDate(d.getDate() + endDayOff()); return d;
+  }
+  function endMinOfDay() { return ((fMin + fDur) % 1440 + 1440) % 1440; }
+  /* Длительность из выбранных даты и времени конца. Конец, оказавшийся раньше
+     начала, — не сутки съёмки, а описка: подвигаем на следующий день */
+  function setEndFrom(off, minOfDay) {
+    var d = off * 1440 + minOfDay - fMin;
+    while (d < 15) d += 1440;
+    fDur = Math.min(d, MAX_DUR);
+    rememberGenre("dur", fDur);
+  }
+
+  attachWheel(fwSDate, function () {
+    if (openRow !== "fStartDate") return;
+    fDate = new Date(dateList[wheelIndex(fwSDate)].date);   // длительность цела — конец едет следом
+    refreshForm();
+  });
+  attachWheel(fwEDate, function () {
+    if (openRow !== "fEndDate") return;
+    setEndFrom(dayDiff(dateList[wheelIndex(fwEDate)].date, fDate), endMinOfDay());
     refreshForm();
   });
   attachWheel(fwSH, onStartWheel); attachWheel(fwSM, onStartWheel);
@@ -5468,22 +6169,21 @@
   }
   function onEndWheel() {
     if (openRow !== "fEnd") return;
-    var end = wheelIndex(fwEH) * 60 + wheelMin(fwEM);
-    var d = ((end - fMin) % 1440 + 1440) % 1440;        // ночная съёмка переходит через полночь
-    if (d < 15) d = 15;
-    if (d > 720) d = 720;   // конец раньше начала — это описка, а не сутки съёмки
-    fDur = d;
-    rememberGenre("dur", fDur);
-    var back = (((fMin + fDur) % 1440) + 1440) % 1440;
-    if (back !== end) { syncWheel(fwEH, Math.floor(back / 60)); syncMinWheel(fwEM, back % 60); }
+    setEndFrom(endDayOff(), wheelIndex(fwEH) * 60 + wheelMin(fwEM));
     refreshForm();
   }
 
-  /* Раскрыт всегда один барабан: один жест — один результат */
-  var ROWS = [["fWhen", "fWhenPick"], ["fStart", "fStartPick"], ["fEnd", "fEndPick"]];
+  /* Раскрыт всегда один барабан: один жест — один результат.
+     Барабанов стало четыре: у начала и у конца своя дата и своё время */
+  var ROWS = [
+    ["fStartDate", "fStartDatePick"], ["fStart", "fStartPick"],
+    ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"]
+  ];
+  // Подсветку носит капсула, а не строка: в строке их теперь две
+  var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal" };
   var openRow = null;
   function closeRows() {
-    ROWS.forEach(function (r) { $(r[0]).classList.remove("open"); $(r[1]).classList.remove("open"); });
+    ROWS.forEach(function (r) { $(CAP[r[0]]).classList.remove("open"); $(r[1]).classList.remove("open"); });
     openRow = null;
   }
   function toggleRow(id) {
@@ -5492,20 +6192,22 @@
     if (was === id) return;
     var r = ROWS.filter(function (x) { return x[0] === id; })[0];
     openRow = id;
-    $(r[0]).classList.add("open");
+    $(CAP[id]).classList.add("open");
     $(r[1]).classList.add("open");
-    if (id === "fWhen") syncWheel(fwDate, dateIndex(fDate));
+    if (id === "fStartDate") syncWheel(fwSDate, dateIndex(fDate));
+    if (id === "fEndDate") syncWheel(fwEDate, dateIndex(endDate()));
     if (id === "fStart") {
       var s = ((fMin % 1440) + 1440) % 1440;
       syncWheel(fwSH, Math.floor(s / 60)); syncMinWheel(fwSM, s % 60);
     }
     if (id === "fEnd") {
-      var e = (((fMin + fDur) % 1440) + 1440) % 1440;
+      var e = endMinOfDay();
       syncWheel(fwEH, Math.floor(e / 60)); syncMinWheel(fwEM, e % 60);
     }
   }
+  // Нажимается капсула, а не строка целиком
   ROWS.forEach(function (r) {
-    $(r[0]).addEventListener("click", function () { toggleRow(r[0]); });
+    $(CAP[r[0]]).addEventListener("click", function () { toggleRow(r[0]); });
   });
 
   /* Место съёмки живёт в самой съёмке: имя, координаты и «в городе» для засветки.
@@ -5524,10 +6226,15 @@
         renderSessionPlace();
       }).catch(function () {});
   }
+  /* Имени места достаточно. Координаты под ним — шум: человек думает
+     «Кронверкское», а не «59.945 N · 30.313 E», и числа он всё равно не
+     проверяет. Остаётся признак города — он не украшение, а вход в модель:
+     от него зависит засветка при съёмке звёзд.
+     Числа показываем только когда имени нет вовсе — тогда они единственное,
+     что честно отвечает «где это». */
   function renderSessionPlace() {
     $("fPlaceName").textContent = sessionPlace.name || coordText(sessionPlace.lat, sessionPlace.lon);
-    $("fPlaceCoords").textContent = coordText(sessionPlace.lat, sessionPlace.lon)
-      + (sessionPlace.city ? " · в городе" : " · за городом");
+    $("fPlaceCoords").textContent = sessionPlace.city ? "в городе" : "за городом";
   }
 
   /* Жанры: пользователь оставляет только свои */
@@ -5820,9 +6527,13 @@
         + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
         + '<input class="rt-in-n" type="text" placeholder="' + esc(hints[i % hints.length]) + '" value="' + esc(r.n || "") + '"/>'
         + '<button type="button" class="rt-x" aria-label="Убрать">✕</button>'
-        + '<input class="rt-in-p" type="text" placeholder="Место — необязательно" value="' + esc(r.p || "") + '"/></div>';
+        + '<div class="rt-place">'
+        + '<input class="rt-in-p" type="text" placeholder="Место — необязательно" value="' + esc(r.p || "") + '"/>'
+        + '<button type="button" class="rt-pick" aria-label="Выбрать из моих точек" data-ic="pin"></button>'
+        + '</div></div>';
     }).join("") || '<div class="rt-empty">Точки дня: '
       + hints.slice(0, 4).join(", ").toLowerCase() + "</div>";
+    paintIcons(host);
     host.querySelectorAll(".rt-row").forEach(function (row) {
       var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
       /* Время набирается цифрами и складывается в часы на лету: «1000» → «10:00».
@@ -5854,6 +6565,15 @@
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRouteSeeded = false;
         fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
+      });
+      /* Место из сохранённых точек. Веер тот же, что на карте, — отличается
+         только тем, что делает выбор: там переезд, здесь заполнение поля */
+      var pick = row.querySelector(".rt-pick");
+      pick.addEventListener("click", function () {
+        openSpotFan(pick, function (sp) {
+          r.p = sp.name; fRouteSeeded = false;
+          row.querySelector(".rt-in-p").value = sp.name;
+        });
       });
     });
   }
@@ -5927,9 +6647,14 @@
          в 19:38, и «полвосьмого» тут — не удобство, а неправда */
       fMin = Math.round(w.a);
       fLight = true;
-      if (fDur > w.b - w.a) {
+      /* Съёмка длиннее суток светом не выравнивается: у неё нет «начала под
+         золотой час», она его и так вся вбирает. Раньше этой оговорки не было,
+         потому что длительность была ограничена двенадцатью часами */
+      if (fDur > w.b - w.a && fDur <= 1440) {
         fMin = Math.round(w.b) - fDur;   // длиннее света: золотой час уходит в конец
-        if (fMin < 0) fMin += 1440;
+        // Нормализуем в сутки целиком: одного прибавления мало, когда съёмка
+        // длиннее дня — начало уезжало в минус и ломало всю форму
+        fMin = ((fMin % 1440) + 1440) % 1440;
       }
     }
     applyGenreShape();
@@ -6049,6 +6774,21 @@
   /* Съёмка, с которой сравниваем: та, что сейчас в форме, либо сохранённая */
   function clashesFor(day, min, end, place, skipIdx, wants) {
     var out = [];
+    /* Занятое время спорит со съёмкой наравне с другой съёмкой — ради этого
+       занятость и заводилась. Но запрета по-прежнему нет: выходной можно и
+       отменить ради заказа, решает фотограф, а не приложение */
+    blocksOn(day).forEach(function (b) {
+      var name = blockLabel(b);
+      if (b.allDay) {
+        out.push({ w: 3, t: "День занят", m: "На этот день стоит «" + name + "»." });
+        return;
+      }
+      var bEnd = b.min + b.dur;
+      if (min < bEnd && b.min < end) {
+        out.push({ w: 3, t: "Время занято",
+          m: "«" + name + "» — " + fmt(b.min) + " — " + fmt(bEnd) + "." });
+      }
+    });
     sessions.forEach(function (s, i) {
       if (i === skipIdx || !sameDay(s.date, day)) return;
       var sEnd = shootEnd(s), name = clientName(s) || s.type;
@@ -6091,12 +6831,19 @@
     var keep = new Date(selDate);
     computeSun(fDate);
     var w = dayWindow(fDate);
-    $("fWhenName").textContent = WD[fDate.getDay()] + " " + fDate.getDate() + " " + MONTHS[fDate.getMonth()];
+    /* Дата у обеих капсул. Коротко — «8 авг»: рядом с временем длинная форма
+       не помещается, а год в списке съёмок этого года лишний */
+    function capDate(d) { return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3); }
+    $("fStartDate").textContent = capDate(fDate);
+    $("fEndDate").textContent = capDate(endDate());
     $("fWhenHint").textContent = w.q === "poor" ? "окна света нет"
       : w.label + " " + range(w.a, w.b);
     $("fStartVal").textContent = fmt(fMin);
     $("fEndVal").textContent = fmt(fMin + fDur);
-    $("fDurVal").textContent = durLabel(fDur);
+    /* Пересекли полночь — говорим об этом словом, а не только датой:
+       «13 ч» само по себе не объясняет, почему конец числом меньше начала */
+    $("fDurVal").textContent = durLabel(fDur)
+      + (endDayOff() > 0 ? " · " + (endDayOff() === 1 ? "следующий день" : "через " + endDayOff() + " дня") : "");
     /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку */
     $("formSub").innerHTML = w.q === "poor"
       ? "В этот день окна света нет — время на ваше усмотрение"
@@ -7879,6 +8626,8 @@
       document.querySelectorAll("#modeSeg button").forEach(function (x) { x.classList.remove("active"); });
       b.classList.add("active");
       document.body.classList.toggle("pro-mode", b.dataset.mode === "pro");
+      // Деления компаса живут в SVG, а не в CSS: одним классом их не показать
+      renderMap();
     });
   });
   [["spoilerBtn","proBody"], ["mSpoilerBtn","mProBody"]].forEach(function (p) {
@@ -7888,6 +8637,171 @@
       this.querySelector(".lbl").textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
     });
   });
+  /* Шеврон карты: свернуть всё, кроме времени. Состояние переживает
+     перезапуск — кто свернул сводку, тот не хочет видеть её и завтра */
+  $("mapRead").addEventListener("click", function () {
+    var shut = !$("mapFold").classList.contains("shut");
+    setMapFold(shut);
+    mapFoldShut = shut;
+    saveAll();
+  });
+  function setMapFold(shut) {
+    $("mapFold").classList.toggle("shut", shut);
+    $("mapRead").classList.toggle("shut", shut);
+    $("mapRead").setAttribute("aria-expanded", shut ? "false" : "true");
+    document.body.classList.toggle("map-shut", shut);
+    // Кадр сменил высоту — Leaflet об этом сам не узнает
+    if (lmap) setTimeout(function () { lmap.invalidateSize(); }, 420);
+  }
+
+  /* ---------- Занять время ----------
+     Календарь врал: день отпуска показывался свободным. Форма своя и мелкая —
+     причина, срок и заметка. Ни клиента, ни жанра, ни денег здесь нет и не будет:
+     занятость это не съёмка без полей. */
+  var bwFD = $("bwFD"), bwTD = $("bwTD");
+  var bwFH = $("bwFH"), bwFM = $("bwFM"), bwTH = $("bwTH"), bwTM = $("bwTM");
+  fill(bwFD, dateList.map(function (x) { return x.label; }));
+  fill(bwTD, dateList.map(function (x) { return x.label; }));
+  [bwFH, bwTH].forEach(function (el2) { fill(el2, HOURS); });
+  fillMins(bwFM, null); fillMins(bwTM, null);
+
+  var blk = null, blkEditId = null, blkRow = null;
+
+  function blkEnd() { return blk.min + blk.dur; }
+  function blkEndDate() {
+    var d = new Date(blk.from);
+    d.setDate(d.getDate() + (blk.allDay ? blockDays(blk) - 1 : Math.floor(blkEnd() / 1440)));
+    return d;
+  }
+  function shortDate(d) { return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3); }
+
+  function renderBlk() {
+    $("blkKind").innerHTML = BLOCK_KINDS.map(function (x) {
+      return '<button type="button" class="gsel' + (blk.k === x.k ? " on" : "") + '" data-k="' + x.k + '">'
+        + '<span class="gs-ic" data-ic="' + x.ic + '"></span><span class="gs-t">' + x.n + "</span></button>";
+    }).join("");
+    paintIcons($("blkKind"));
+    $("blkKind").querySelectorAll("[data-k]").forEach(function (b) {
+      b.addEventListener("click", function () { blk.k = b.dataset.k; renderBlk(); });
+    });
+
+    $("blkAllDay").classList.toggle("on", blk.allDay);
+    $("blkFromTime").hidden = blk.allDay;
+    $("blkToTime").hidden = blk.allDay;
+    // Однодневная занятость по времени: «по» — это та же дата, менять её нечем
+    $("blkToDate").hidden = !blk.allDay;
+
+    $("blkFromDate").textContent = shortDate(blk.from);
+    $("blkToDate").textContent = shortDate(blkEndDate());
+    if (!blk.allDay) {
+      $("blkFromTime").textContent = fmt(blk.min);
+      $("blkToTime").textContent = fmt(blkEnd());
+    }
+    $("blkSpan").textContent = blk.allDay
+      ? (blockDays(blk) > 1 ? blockDays(blk) + " дн" : "один день")
+      : durLabel(blk.dur) + (Math.floor(blkEnd() / 1440) > 0 ? " · следующий день" : "");
+    $("blkNote").value = blk.note || "";
+    $("blkDel").hidden = !blkEditId;
+    $("blkTitle").textContent = blkEditId ? "Занятое время" : "Занять время";
+  }
+
+  /* Барабаны листа: те же четыре роли, что у съёмки, но своя пара дат */
+  var BLK_ROWS = [
+    ["blkFromDate", "blkFromDatePick"], ["blkFromTime", "blkFromTimePick"],
+    ["blkToDate", "blkToDatePick"],     ["blkToTime", "blkToTimePick"]
+  ];
+  var blkOpen = null;
+  function blkCloseRows() {
+    BLK_ROWS.forEach(function (r) { $(r[0]).classList.remove("open"); $(r[1]).classList.remove("open"); });
+    blkOpen = null;
+  }
+  function blkToggle(id) {
+    var was = blkOpen;
+    blkCloseRows();
+    if (was === id) return;
+    var r = BLK_ROWS.filter(function (x) { return x[0] === id; })[0];
+    blkOpen = id;
+    $(r[0]).classList.add("open"); $(r[1]).classList.add("open");
+    if (id === "blkFromDate") syncWheel(bwFD, dateIndex(blk.from));
+    if (id === "blkToDate") syncWheel(bwTD, dateIndex(blkEndDate()));
+    if (id === "blkFromTime") { syncWheel(bwFH, Math.floor(blk.min / 60)); syncMinWheel(bwFM, blk.min % 60); }
+    if (id === "blkToTime") {
+      var e = ((blkEnd() % 1440) + 1440) % 1440;
+      syncWheel(bwTH, Math.floor(e / 60)); syncMinWheel(bwTM, e % 60);
+    }
+  }
+  BLK_ROWS.forEach(function (r) {
+    $(r[0]).addEventListener("click", function () { blkToggle(r[0]); });
+  });
+  attachWheel(bwFD, function () {
+    if (blkOpen !== "blkFromDate") return;
+    blk.from = new Date(dateList[wheelIndex(bwFD)].date);   // срок цел, занятость едет следом
+    renderBlk();
+  });
+  attachWheel(bwTD, function () {
+    if (blkOpen !== "blkToDate") return;
+    // «По» раньше «с» — не отрицательный отпуск, а описка: держим минимум один день
+    blk.days = Math.max(1, dayDiff(dateList[wheelIndex(bwTD)].date, blk.from) + 1);
+    renderBlk();
+  });
+  function onBlkFrom() {
+    if (blkOpen !== "blkFromTime") return;
+    blk.min = wheelIndex(bwFH) * 60 + wheelMin(bwFM);
+    renderBlk();
+  }
+  function onBlkTo() {
+    if (blkOpen !== "blkToTime") return;
+    var d = wheelIndex(bwTH) * 60 + wheelMin(bwTM) - blk.min;
+    while (d < 15) d += 1440;                 // конец раньше начала — значит за полночь
+    blk.dur = Math.min(d, 2880);
+    renderBlk();
+  }
+  attachWheel(bwFH, onBlkFrom); attachWheel(bwFM, onBlkFrom);
+  attachWheel(bwTH, onBlkTo);  attachWheel(bwTM, onBlkTo);
+
+  $("blkAllDay").addEventListener("click", function () {
+    blk.allDay = !blk.allDay;
+    blkCloseRows();
+    renderBlk();
+  });
+  $("blkNote").addEventListener("input", function () { blk.note = this.value; });
+
+  function openBlockSheet(b) {
+    blkEditId = b ? b.id : null;
+    blk = b ? { k: b.k, note: b.note || "", from: new Date(b.from), allDay: !!b.allDay,
+                days: b.days || 1, min: b.min || 600, dur: b.dur || 120 }
+            : { k: "off", note: "", from: new Date(calSel), allDay: true,
+                days: 1, min: 600, dur: 120 };
+    blkCloseRows(); renderBlk();
+    $("blkSheet").classList.add("open"); $("blkScrim").classList.add("open");
+  }
+  function closeBlockSheet() {
+    $("blkSheet").classList.remove("open"); $("blkScrim").classList.remove("open");
+    blkCloseRows();
+  }
+  function openBlock(id) {
+    for (var i = 0; i < blocks.length; i++) if (blocks[i].id === id) return openBlockSheet(blocks[i]);
+  }
+  function removeBlock(id) {
+    blocks = blocks.filter(function (b) { return b.id !== id; });
+    saveAll(); renderCal(); renderDayPanel();
+  }
+  $("blkScrim").addEventListener("click", closeBlockSheet);
+  $("planBlock").addEventListener("click", function () { openBlockSheet(null); });
+  $("blkDel").addEventListener("click", function () {
+    if (blkEditId) removeBlock(blkEditId);
+    closeBlockSheet();
+  });
+  $("blkDone").addEventListener("click", function () {
+    var rec = { id: blkEditId || newBlockId(), k: blk.k, note: (blk.note || "").trim(),
+                from: new Date(blk.from), allDay: blk.allDay,
+                days: blk.allDay ? blockDays(blk) : 1,
+                min: blk.allDay ? null : blk.min, dur: blk.allDay ? null : blk.dur };
+    if (blkEditId) blocks = blocks.map(function (b) { return b.id === blkEditId ? rec : b; });
+    else blocks.push(rec);
+    saveAll(); closeBlockSheet(); renderCal(); renderDayPanel();
+  });
+
   /* Настройки сдачи материала */
   function renderDelvSettings() {
     document.querySelectorAll("#delvSeg button").forEach(function (b) {
@@ -7974,6 +8888,7 @@
     locPickName = isSession ? (base.name || "") : "";
     $("locErr").textContent = "";
     $("locDetectLbl").textContent = "Определить моё место";
+    renderSpots();
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
     // Первый тап по месту на «Сегодня» — сразу спрашиваем разрешение на геоданные
     if (!isSession && navigator.permissions && navigator.permissions.query) {
@@ -7984,6 +8899,138 @@
   }
   function closeLocSheet() { $("locSheet").classList.remove("open"); $("locScrim").classList.remove("open"); }
   $("todayLoc").addEventListener("click", function () { openLocSheet("app"); });
+  $("mapLoc").addEventListener("click", function () { openLocSheet("app"); });
+  $("spotsRow").addEventListener("click", function () { openLocSheet("app"); });
+
+  /* Закладка в шапке карты: одна кнопка на оба состояния. Имя берём то же,
+     что показано в шапке, — человек сохраняет то, что видит. Пока геокодер
+     не ответил, именем служат координаты, и это честнее пустой строки. */
+  var saveNoteTimer = null;
+  function saveNote(text) {
+    var n = $("saveNote"); if (!n) return;
+    n.textContent = text; n.classList.add("show");
+    clearTimeout(saveNoteTimer);
+    saveNoteTimer = setTimeout(function () { n.classList.remove("show"); }, 1900);
+  }
+  $("mapSave").addEventListener("click", function () {
+    var i = spotHere();
+    if (i >= 0) { spots.splice(i, 1); saveNote("точка убрана"); }
+    else {
+      spots.unshift({ name: geoCity || coordText(LAT, LON), sub: geoSub || "",
+                      named: !!geoCity,          // именем служат координаты — дождёмся геокодера
+                      lat: +LAT.toFixed(5), lon: +LON.toFixed(5) });
+      saveNote("точка сохранена");
+    }
+    saveAll(); renderSpotMark(); renderSpots();
+  });
+
+  /* ---------- Веер точек ----------
+     Один список на три места: закладка карты (долгое нажатие), место в строке
+     маршрута и пункт настроек. Выбор отдаётся обработчику, а сам веер не знает,
+     кто его позвал, — поэтому одна разметка обслуживает и переезд по карте,
+     и заполнение поля в форме. */
+  function openSpotFan(anchor, onPick) {
+    var fan = $("spotFan"), scrim = $("spotScrim"), dev = document.querySelector(".device");
+    fan.innerHTML = "";
+    if (!spots.length) {
+      var em = document.createElement("div");
+      em.className = "fan-empty";
+      em.textContent = "Точек пока нет. Закладка в шапке карты сохраняет место, где стоите.";
+      fan.appendChild(em);
+    } else {
+      spots.forEach(function (sp) {
+        var b = document.createElement("button"); b.type = "button";
+        if (sameSpot(sp, LAT, LON)) b.className = "on";      // где стоим сейчас
+        b.innerHTML = '<span class="ic" data-ic="pin"></span>'
+          + '<span class="tx"><span class="t1"></span><span class="t2"></span></span>';
+        b.querySelector(".t1").textContent = sp.name;
+        b.querySelector(".t2").textContent = sp.sub || "";   // координаты в списке не нужны
+        b.addEventListener("click", function () { closeSpotFan(); onPick(sp); });
+        fan.appendChild(b);
+      });
+      paintIcons(fan);
+    }
+    // Веер встаёт под кнопкой и не вылезает за рамку телефона
+    var dr = dev.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+    fan.hidden = false; scrim.hidden = false;
+    var w = fan.offsetWidth, h = fan.offsetHeight;
+    var left = ar.left - dr.left + ar.width - w;          // прижимаем правым краем к кнопке
+    left = Math.max(10, Math.min(left, dr.width - w - 10));
+    var top = ar.bottom - dr.top + 6;
+    if (top + h > dr.height - 10) top = Math.max(10, ar.top - dr.top - h - 6);   // не влез снизу — раскрываем вверх
+    fan.style.left = Math.round(left) + "px";
+    fan.style.top = Math.round(top) + "px";
+  }
+  function closeSpotFan() { $("spotFan").hidden = true; $("spotScrim").hidden = true; }
+  $("spotScrim").addEventListener("click", closeSpotFan);
+
+  /* Долгое нажатие на закладке открывает список. Короткий тап сохраняет —
+     поэтому после срабатывания долгого жеста клик надо погасить, иначе
+     список откроется и тут же поставится лишняя закладка. */
+  (function saveHold() {
+    var btn = $("mapSave"), timer = null, fired = false, sx = 0, sy = 0;
+    function stop() { clearTimeout(timer); timer = null; }
+    btn.addEventListener("pointerdown", function (e) {
+      fired = false; sx = e.clientX; sy = e.clientY;
+      timer = setTimeout(function () {
+        fired = true;
+        openSpotFan(btn, function (sp) { gotoLocation(sp.lat, sp.lon); });
+      }, 450);
+    });
+    btn.addEventListener("pointermove", function (e) {
+      // Палец поехал — это прокрутка, а не удержание
+      if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) stop();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+      btn.addEventListener(t, stop);
+    });
+    btn.addEventListener("click", function (e) {
+      if (fired) { e.preventDefault(); e.stopImmediatePropagation(); fired = false; }
+    }, true);
+    // Долгое нажатие на iOS вызывает своё меню выделения — оно тут лишнее
+    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  })();
+
+  function renderSpots() {
+    var box = $("spotList"); if (!box) return;
+    box.innerHTML = "";
+    if (!spots.length) {
+      var em = document.createElement("div");
+      em.className = "spot-empty";
+      em.textContent = "Пока пусто. Закладка в шапке карты сохраняет место, где стоите.";
+      box.appendChild(em);
+      return;
+    }
+    spots.forEach(function (sp, idx) {
+      var row = document.createElement("div"); row.className = "spot-row";
+      var go = document.createElement("button"); go.className = "spot-go"; go.type = "button";
+      var nm = document.createElement("span"); nm.className = "spot-name"; nm.textContent = sp.name;
+      var co = document.createElement("span"); co.className = "spot-coord";
+      co.textContent = sp.sub || "";                          // имени места достаточно
+      go.appendChild(nm); go.appendChild(co);
+      /* Точка из списка ведёт себя как любое другое место: свет, погода и
+         карта следуют за ней. Для съёмки — только заполняет поля листа. */
+      go.addEventListener("click", function () {
+        if (locTarget === "session") {
+          $("locLat").value = (+sp.lat).toFixed(4);
+          $("locLon").value = (+sp.lon).toFixed(4);
+          locPickName = sp.name;
+          $("locErr").textContent = "";
+          return;
+        }
+        gotoLocation(sp.lat, sp.lon);
+        closeLocSheet();
+      });
+      var del = document.createElement("button"); del.className = "spot-del"; del.type = "button";
+      del.setAttribute("aria-label", "Убрать точку");
+      del.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      del.addEventListener("click", function () {
+        spots.splice(idx, 1); saveAll(); renderSpotMark(); renderSpots();
+      });
+      row.appendChild(go); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
   $("locScrim").addEventListener("click", closeLocSheet);
   $("locDetect").addEventListener("click", function () {
     if (locTarget === "session") {          // для съёмки геолокация только заполняет поля
@@ -8095,7 +9142,24 @@
     var s = isNaN(d) ? "—" : p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
     $("buildInfo").textContent = "сборка " + s;
   })();
+  /* Ступень воды. Таблица из 256 значений — по одному на уровень серого:
+     единица стоит там, где вода (38), везде остальное ноль. Порог тут не
+     годится: 42 встречается в горах, где воды нет вовсе. */
+  (function waterStep() {
+    var f = document.getElementById("waterStep"); if (!f) return;
+    var t = new Array(256);
+    for (var i = 0; i < 256; i++) t[i] = (i === 38) ? "1" : "0";
+    f.setAttribute("tableValues", t.join(" "));
+  })();
+
+  applyTheme(theme);
+  document.querySelectorAll("#themeSeg button").forEach(function (b) {
+    b.addEventListener("click", function () { applyTheme(b.dataset.theme); saveAll(); });
+  });
+
   applyDate();
+  setMapFold(mapFoldShut);
+  renderSpotMark();
   renderDelvSettings();
   renderCal(); renderDayPanel(); renderSessions();
   measureDock();
