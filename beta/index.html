@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Plan β">
+<meta name="apple-mobile-web-app-title" content="Light Plan">
 <meta name="theme-color" content="#0F0E0C">
-<title>Light Plan β</title>
+<title>Light Plan</title>
 <!-- Иконка и манифест: приложение ставится на домашний экран -->
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -155,6 +155,76 @@
   .nl-trend { display: inline-flex; align-items: center; gap: 8px; margin-top: 5px; color: #8A8478; font-size: 12px; }
   .nl-spark { width: 42px; height: 14px; display: block; }
 
+  /* ---------- Закладка места в шапке карты ----------
+     Пустой правый угол шапки занимали координаты. Теперь там действие:
+     стоишь на точке — оставь её себе. Залитая закладка значит «уже сохранено»,
+     повторный тап убирает: одна кнопка на оба состояния, как у любой закладки. */
+  .map-save {
+    width: 44px; height: 44px; flex-shrink: 0; margin: -6px -8px 0 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: #635E54; cursor: pointer;
+  }
+  .map-save svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+    transition: fill 0.3s ease, color 0.3s ease; }
+  .map-save.on { color: #E2A44C; }
+  .map-save.on svg { fill: rgba(226,164,76,0.22); }
+  .map-save:active { color: #EFEAE0; }
+  @media (prefers-reduced-motion: reduce) { .map-save svg { transition: none; } }
+
+  /* ---------- Сохранённые точки в листе «Где снимаем» ----------
+     Список стоит выше поиска: возврат на своё место — частый случай,
+     а поиск нового — редкий */
+  .spot-list { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 14px; }
+  .spot-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px;
+    border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .spot-go { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+    background: none; border: none; padding: 0; text-align: left; cursor: pointer;
+    color: inherit; font-family: inherit; }
+  .spot-name { font-size: 15px; color: #EFEAE0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spot-coord { font-size: 11px; color: #8A8478; font-variant-numeric: tabular-nums; }
+  .spot-del { width: 36px; height: 36px; flex-shrink: 0; background: none; border: none;
+    display: inline-flex; align-items: center; justify-content: center; color: #635E54; cursor: pointer; }
+  .spot-del svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
+  .spot-del:active { color: #C9663D; }
+  .spot-empty { font-size: 12px; color: #635E54; padding: 2px 0 12px; }
+
+  /* ---------- Строка времени карты и шеврон ----------
+     Карта отвечает про выбранный ползунком момент, а времени этого момента
+     на экране не было вовсе: крутишь — солнце едет, градусы меняются, а в
+     котором часу это будет, не сказано. Строка несворачиваемая: свёрнутая
+     карта — это холст, время и ползунок, режим «стою на площадке». */
+  .map-read {
+    display: flex; align-items: baseline; gap: 11px; width: 100%;
+    margin: 14px 0 2px; padding: 0 24px; background: none; border: none;
+    color: inherit; font-family: inherit; text-align: left; cursor: pointer;
+  }
+  .mr-time {
+    font-size: 34px; font-weight: 200; letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums; line-height: 1; color: #EFEAE0; flex-shrink: 0;
+  }
+  .mr-phase {
+    font-size: 11px; color: #D9AC6B; text-transform: uppercase; letter-spacing: 1.4px;
+    font-weight: 600; flex: 1; min-width: 0; transition: color 0.4s ease;
+  }
+  .mr-chev { display: inline-flex; align-self: center; flex-shrink: 0; }
+  .mr-chev svg { width: 9px; height: 15px; fill: none; stroke: #635E54; stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round;
+    transform: rotate(90deg); transition: transform 0.35s ease; }
+  .map-read.shut .mr-chev svg { transform: rotate(-90deg); }
+  /* Собственного паддинга у обёртки нет: свёрнутый блок с max-height: 0 всё
+     равно занял бы его высоту — эту граблю уже ловили */
+  .map-fold { overflow: hidden; max-height: 1600px; transition: max-height 0.4s ease; }
+  .map-fold.shut { max-height: 0; }
+  /* Свёрнутая сводка отдаёт место карте — ради него всё и затевалось.
+     Без этого на месте семи строк остаётся просто дыра.
+     Специфичность выше, чем у `.screen > *` с его flex-shrink: 0 */
+  body.map-shut .map-frame { flex: 1 1 auto; height: auto; min-height: 340px; }
+  @media (prefers-reduced-motion: reduce) {
+    .map-fold { transition: none; }
+    .mr-chev svg { transition: none; }
+  }
+
   /* ---------- Сводка ---------- */
   .telemetry { padding: 0 24px; }
   .t-row {
@@ -179,6 +249,10 @@
   /* ---------- Астро режим ---------- */
   .pro { display: none; padding: 0 24px; }
   body.pro-mode .pro { display: block; }
+  /* Измерения — забота астро-режима. Обычный оставляет то, чего на холсте
+     нет цифрой: времена окон, луну и вердикт точки съёмки */
+  .pro-only { display: none; }
+  body.pro-mode .t-row.pro-only { display: flex; }
   /* Заметная, но лёгкая: иконка + текст + стрелка, без обводки и заливки */
   .spoiler {
     display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -302,7 +376,7 @@
 
   /* ---------- Карта ---------- */
   .map-frame {
-    position: relative; margin: 18px 16px 0; height: 300px;
+    position: relative; margin: 18px 16px 0; height: 340px;
     border-radius: 18px; overflow: hidden; background: #14110E;
   }
   /* touch-action: none — Leaflet водит палец сам через JS (drag и пинч-зум),
@@ -332,7 +406,11 @@
     font-size: 9px !important; padding: 1px 5px !important;
   }
   .leaflet-control-attribution a { color: #6B6559 !important; }
-  .leaflet-tile { filter: saturate(0.85); }
+  /* CARTO dark_nolabels сам по себе слишком глухой: кварталы и улицы на телефоне
+     не различить. Поднимаем яркость — но без добавки контраста: она вытаскивала
+     крупные заливки (вода, парки) в светлое пятно, спорящее со слоем света.
+     Лёгкая sepia уводит нейтральный серый в тепло рамки (#14110E). */
+  .leaflet-tile { filter: brightness(1.55) saturate(0.6) sepia(0.22); }
 
   /* ---------- Календарь ---------- */
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
@@ -1727,36 +1805,53 @@
 
   <!-- ============ КАРТА ============ -->
   <section class="screen" id="s-map">
+    <!-- Шапка отвечает «где и когда», а не «сколько градусов широты».
+         Широта с долготой ушли в астро-детали: продукт не про навигацию,
+         человек думает «Лагерный сад», а не «56.4536» -->
     <div class="header">
-      <div class="loc">
-        <div class="name" id="mLocName">Северный объезд</div>
+      <button class="loc" id="mapLoc" aria-label="Сменить место">
+        <div class="name"><span id="mLocName">—</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+        <div class="head-sub" id="mLocSub">—</div>
         <div class="date" id="mDate">ЧТ · 16 июля</div>
-      </div>
-      <div class="head-note" id="mCoords">56.02 N · 37.48 E</div>
+      </button>
+      <!-- Освободившийся угол берёт сохранение точки: стоишь на месте — оставь
+           его себе. Список — общий с «Моими точками съёмки» в настройках -->
+      <button class="map-save" id="mapSave" aria-label="Сохранить точку" data-ic="bookmark"></button>
     </div>
 
     <div class="map-frame">
       <div id="lmap"></div>
-      <svg id="mapLight" viewBox="0 0 358 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
       <div class="map-pin"><i></i></div>
       <button class="map-here" id="mapHere" aria-label="Моё место">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
     </div>
 
-    <div class="telemetry" style="margin-top:14px;">
-      <div class="t-row"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
-      <div class="t-row"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
-      <div class="t-row"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
-      <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
-      <div class="t-row"><span class="t-label">Синий час</span><span class="t-value" id="mBlue">—</span></div>
-      <div class="t-row"><span class="t-label">Луна</span><span class="t-value" id="mMoon">—</span></div>
-      <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
-    </div>
+    <!-- Время выбранного момента — единственное, что переживает сворачивание -->
+    <button class="map-read" id="mapRead" aria-expanded="true" aria-controls="mapFold">
+      <span class="mr-time" id="mrTime">—</span>
+      <span class="mr-phase" id="mrPhase">—</span>
+      <span class="mr-chev" data-ic="chevron"></span>
+    </button>
 
-    <div class="pro">
-      <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
-      <div class="pro-body" id="mProBody"></div>
+    <div class="map-fold" id="mapFold">
+      <div class="telemetry">
+        <!-- «Свет идёт с ЗЮЗ» повторяет луч, который и так виден на карте:
+             нарисованное не дублируем словами, строка ушла в астро -->
+        <div class="t-row pro-only"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
+        <div class="t-row pro-only"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
+        <div class="t-row pro-only"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
+        <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
+        <div class="t-row"><span class="t-label">Синий час</span><span class="t-value" id="mBlue">—</span></div>
+        <div class="t-row"><span class="t-label">Луна</span><span class="t-value" id="mMoon">—</span></div>
+        <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
+      </div>
+
+      <div class="pro">
+        <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
+        <div class="pro-body" id="mProBody"></div>
+      </div>
     </div>
 
   </section>
@@ -1892,7 +1987,9 @@
     <div class="item"><span class="k">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
 
     <div class="sec-label">Места</div>
-    <div class="item"><span class="k">Мои точки съёмки</span><span class="v">3 ›</span></div>
+    <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
+         точки и открывает тот же лист, что закладка в шапке карты -->
+    <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет ›</span></div>
     <div class="item"><span class="k">Дорога до точки</span><span class="v">40 мин ›</span></div>
 
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
@@ -2469,6 +2566,10 @@
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       <span id="locDetectLbl">Определить моё место</span>
     </button>
+    <!-- Сохранённые точки идут выше поиска: вернуться на своё место нужно
+         часто, а искать новое — редко -->
+    <div class="sec-label" id="spotLabel" style="padding-left:0;">Мои точки</div>
+    <div class="spot-list" id="spotList"></div>
     <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
     <div class="loc-search">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
@@ -3107,7 +3208,8 @@
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
-        defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON }
+        defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
+        mapFold: mapFoldShut, spots: spots
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
       if (typeof yaSchedule === "function") yaSchedule();   // копия уедет на Диск через пару секунд
@@ -3357,6 +3459,28 @@
 
   var sessions = saved && saved.sessions ? saved.sessions : [];
   var syncTarget = saved && saved.sync ? saved.sync : "off";
+  // Сводка карты свёрнута или нет: кто её свернул, тот не хочет видеть её и завтра
+  var mapFoldShut = !!(saved && saved.mapFold);
+  /* ---------- Сохранённые точки съёмки ----------
+     Фотограф возвращается на одни и те же места, и набирать их заново — работа
+     на пустом месте. Список один на приложение: и закладка в шапке карты, и
+     «Мои точки съёмки» в настройках, и лист «Где снимаем» смотрят сюда же. */
+  var spots = (saved && saved.spots) || [];
+  /* Две точки считаем одной, если они ближе примерно 60 метров: карта ездит
+     под пальцем, и попасть в ту же тысячную долю градуса невозможно */
+  function sameSpot(a, lat, lon) {
+    return Math.abs(a.lat - lat) < 0.0006 && Math.abs(a.lon - lon) < 0.0006;
+  }
+  function spotHere() {
+    for (var i = 0; i < spots.length; i++) if (sameSpot(spots[i], LAT, LON)) return i;
+    return -1;
+  }
+  function renderSpotMark() {
+    var on = spotHere() >= 0;
+    $("mapSave").classList.toggle("on", on);
+    $("mapSave").setAttribute("aria-label", on ? "Убрать точку" : "Сохранить точку");
+    if ($("spotCount")) $("spotCount").textContent = spots.length ? spots.length + " ›" : "нет ›";
+  }
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
      меняется, а история съёмок не рвётся (docs/12_CARD_ARCHITECTURE.md).
@@ -3786,7 +3910,49 @@
   /* ============================================================
      ЭКРАН «КАРТА»
      ============================================================ */
-  var MPX = 179, MPY = 150, MR = 112;   // центр и радиус компаса в системе viewBox 358×300
+  var MPX = 179, MPY = 170, MR = 96;   // центр и радиус горизонта в системе viewBox 358×340
+
+  /* Радиус означает высоту светила: зенит — центр круга, горизонт — обод,
+     сумерки уходят наружу. Прежде радиус был постоянным и не значил ничего:
+     полуденное солнце и закатное стояли одинаково далеко от центра.
+     Формула из беты Солнечного компаса, где этот вопрос решён раньше. */
+  var PATH_MIN_ALT = -18;                          // глубже астрономической ночи рисовать нечего
+  var PATH_MAX_R = MR * (1 - PATH_MIN_ALT / 90);   // ≈115 — внешний предел пути
+  var COMPASS_R = PATH_MAX_R + 18;                 // буквы сторон света снаружи всего
+  function altR(alt) {
+    return Math.max(8, Math.min(PATH_MAX_R, MR * (1 - alt / 90)));
+  }
+
+  /* Цвет пути — по высоте, а не по названию окна. Свет непрерывен, поэтому
+     золотой час и синий стали участками самой траектории, а не отдельными
+     кольцами: синий час не вторая орбита, а отрезок пути солнца. */
+  var PATH_STOPS = [
+    { alt:  90, rgb: [138, 132, 120], a: 0.40, w: 1.3 },
+    { alt:  20, rgb: [176, 160, 132], a: 0.50, w: 1.7 },
+    { alt:   6, rgb: [226, 164,  76], a: 0.95, w: 3.4 },   // золотой час сверху
+    { alt:   0, rgb: [226, 164,  76], a: 0.95, w: 3.4 },   // горизонт
+    { alt:  -4, rgb: [150, 110, 170], a: 0.88, w: 3.0 },   // перелом к синему
+    { alt:  -6, rgb: [124, 156, 196], a: 0.85, w: 3.0 },   // синий час
+    { alt: -12, rgb: [ 64,  92, 140], a: 0.48, w: 2.0 },
+    { alt: -18, rgb: [ 40,  54,  92], a: 0.28, w: 1.4 }
+  ];
+  function stopAt(alt) {
+    var s = PATH_STOPS, last = s[s.length - 1];
+    if (alt >= s[0].alt) return s[0];
+    if (alt <= last.alt) return last;
+    for (var i = 0; i < s.length - 1; i++) {
+      var hi = s[i], lo = s[i + 1];
+      if (alt <= hi.alt && alt >= lo.alt) {
+        var k = (alt - lo.alt) / (hi.alt - lo.alt);
+        return {
+          rgb: [0, 1, 2].map(function (j) { return Math.round(lo.rgb[j] + (hi.rgb[j] - lo.rgb[j]) * k); }),
+          a: lo.a + (hi.a - lo.a) * k,
+          w: lo.w + (hi.w - lo.w) * k
+        };
+      }
+    }
+    return last;
+  }
 
   function el(name, attrs) {
     var e = document.createElementNS(NS, name);
@@ -3802,86 +3968,147 @@
     var svg = $("mapLight"); if (!svg) return; svg.innerHTML = "";
     var t = viewMin, e = elevAt(t), az = azAt(t), sh = shadowAt(t);
 
-    // Азимутальное кольцо — прибор поверх холста
+    /* Кольцо горизонта. Раньше это был просто обод прибора, теперь — линия
+       нулевой высоты, от которой читается вся проекция: внутри светило над
+       землёй, снаружи под ней. Раз оно значит больше, оно и весит больше. */
     svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: MR, fill: "none",
-      stroke: "rgba(239,234,224,0.10)", "stroke-width": 1 }));
+      stroke: "rgba(239,234,224,0.20)", "stroke-width": 1 }));
 
-    /* Полный круг суток. Солнце не исчезает ночью — оно уходит под горизонт,
-       и это должно читаться: день сплошной нитью, ночь редким пунктиром. */
-    function azPath(t1, t2, r, step) {
-      if (t1 === null || t2 === null) return "";
-      var dd = "", f = true;
-      for (var x = t1; x <= t2; x += (step || 6)) {
-        var pp = A(azAt(x), r);
-        dd += (f ? "M" : "L") + pp[0].toFixed(1) + " " + pp[1].toFixed(1) + " ";
-        f = false;
+    /* Путь солнца за сутки: от местной полуночи до следующей — так сутки
+       остаются целыми в дни перевода часов, когда их 23 или 25.
+       Шаг 4 минуты: мельче на этом холсте уже не видно.
+       Пройденная часть тоньше и приглушённее — прошлое читается, но не спорит
+       с тем, что впереди. Делит не «сейчас», а положение ползунка: карта
+       отвечает про выбранный момент, а не про часы на телефоне. */
+    (function sunPath() {
+      var run = null, DELTA = 12;   // суммарная разница RGB, после которой начинаем новый сегмент
+      function flush() {
+        if (run && run.pts.length >= 2) {
+          svg.appendChild(el("path", {
+            d: "M" + run.pts.join(" L"), fill: "none",
+            stroke: "rgb(" + run.rgb.join(",") + ")",
+            "stroke-opacity": (run.a * (run.past ? 0.40 : 1)).toFixed(3),
+            "stroke-width": (run.w * (run.past ? 0.6 : 1)).toFixed(2),
+            "stroke-linecap": "round", "stroke-linejoin": "round"
+          }));
+        }
+        run = null;
       }
-      return dd.trim();
-    }
-    // Ночная часть: от заката до восхода следующего дня — солнце под землёй
-    if (SUN.set !== null && SUN.rise !== null) {
-      var night = azPath(SUN.set, SUN.rise + 1440, MR, 10);
-      if (night) svg.appendChild(el("path", { d: night, fill: "none", stroke: "rgba(124,156,196,0.30)",
-        "stroke-width": 1.2, "stroke-dasharray": "1 7", "stroke-linecap": "round" }));
-    }
-    // Дневная часть — сплошная тонкая нить
-    var day = azPath(SUN.arcA, SUN.arcB, MR, 8);
-    if (day) svg.appendChild(el("path", { d: day, fill: "none", stroke: "rgba(226,164,76,0.42)",
-      "stroke-width": 1.6, "stroke-linecap": "round" }));
+      for (var x = 0; x <= 1440; x += 4) {
+        var alt = elevAt(x);
+        if (alt < PATH_MIN_ALT) { flush(); continue; }
+        var c = stopAt(alt), past = x < t;
+        var p = A(azAt(x), altR(alt)), xy = p[0].toFixed(1) + "," + p[1].toFixed(1);
+        if (run) {
+          var d = Math.abs(run.rgb[0] - c.rgb[0]) + Math.abs(run.rgb[1] - c.rgb[1]) + Math.abs(run.rgb[2] - c.rgb[2]);
+          if (past !== run.past || d > DELTA) { run.pts.push(xy); flush(); }   // общая точка — стык без разрыва
+        }
+        if (!run) run = { rgb: c.rgb, a: c.a, w: c.w, past: past, pts: [] };
+        run.pts.push(xy);
+      }
+      flush();
+    })();
 
-    /* Окна света на азимутальном круге: синий час снаружи, золотой внутри —
-       два разных отрезка, а не один. Фотограф видит, куда смотреть и когда. */
-    function azBand(t1, t2, r, color, w) {
-      var dd = azPath(t1, t2, r, 4);
-      if (dd) svg.appendChild(el("path", { d: dd, fill: "none", stroke: color,
-        "stroke-width": w, "stroke-linecap": "round" }));
+    /* Часовые засечки превращают дугу в циферблат: «в котором часу солнце
+       будет вон над той крышей» отвечается без ползунка вообще. Подпись
+       каждые три часа — двадцать четыре подписи в этот круг не помещаются. */
+    function nearRiseSet(x) {
+      return (SUN.rise !== null && Math.abs(x - SUN.rise) < 34)
+          || (SUN.set !== null && Math.abs(x - SUN.set) < 34);
     }
-    azBand(SUN.civA, SUN.blueA, MR + 7, "rgba(124,156,196,0.75)", 3);   // синий час утром
-    azBand(SUN.blueB, SUN.civB, MR + 7, "rgba(124,156,196,0.75)", 3);   // синий час вечером
-    azBand(SUN.blueA, SUN.goldA, MR, "#E2A44C", 4);                     // золотой час утром
-    azBand(SUN.goldB, SUN.blueB, MR, "#E2A44C", 4);                     // золотой час вечером
+    for (var h = 0; h < 24; h++) {
+      var ht = h * 60, hAlt = elevAt(ht);
+      if (hAlt < PATH_MIN_ALT) continue;
+      var hR = altR(hAlt), hp = A(azAt(ht), hR), lit = hAlt > -0.833;
+      svg.appendChild(el("circle", { cx: hp[0], cy: hp[1], r: lit ? 1.9 : 1.5,
+        fill: lit ? "#E2A44C" : "#7C9CC4", "fill-opacity": lit ? 0.9 : 0.55 }));
+      if (h % 3 || nearRiseSet(ht)) continue;     // подпись уступает восходу и закату — те важнее
+      var lp = A(azAt(ht), hR + 10);
+      var htx = el("text", { x: lp[0], y: lp[1] + 3.4, fill: "rgba(168,156,134,0.72)", "font-size": 9,
+        "text-anchor": "middle", "font-family": "ui-monospace, monospace" });
+      htx.textContent = (h < 10 ? "0" : "") + h;
+      svg.appendChild(htx);
+    }
 
-    // Восход и закат — метки с временем
+    // Восход и закат — метки с временем, на своей высоте
     [[SUN.rise, "start", 9], [SUN.set, "end", -9]].forEach(function (m) {
       if (m[0] === null) return;
-      var pt = A(azAt(m[0]), MR);
+      var pt = A(azAt(m[0]), altR(elevAt(m[0])));
       svg.appendChild(el("circle", { cx: pt[0], cy: pt[1], r: 3.5, fill: "#14110E", stroke: "#E2A44C", "stroke-width": 1.5 }));
       var tx = el("text", { x: pt[0] + m[2], y: pt[1] + 4, fill: "#A89C86", "font-size": 11,
         "text-anchor": m[1], "font-family": "-apple-system, sans-serif", "font-weight": 600 });
       tx.textContent = fmt(m[0]); svg.appendChild(tx);
     });
 
-    /* Луна: её путь и текущее положение — на куполе она есть, на карте должна быть тоже */
+    /* Луна: та же проекция, но пунктиром — у неё свой ход и своя высота.
+       Отдельного кольца ей больше не нужно: радиус разводит светила сам. */
     var mArc = moonArc(selDate, t), mNow = moonAt(selDate, t);
-    if (mArc && !mArc.none && mArc.rise !== null && mArc.set !== null) {
+    (function moonPath() {
       var mp = "", mf = true;
-      for (var mt = mArc.rise; mt <= mArc.set; mt += 10) {
-        var mpt = A(moonAt(selDate, mt).az, MR - 16);
+      for (var mt = 0; mt <= 1440; mt += 8) {
+        var mo = moonAt(selDate, mt);
+        if (mo.alt < -2) { mf = true; continue; }        // под горизонтом луна неинтересна
+        var mpt = A(mo.az, altR(mo.alt));
         mp += (mf ? "M" : "L") + mpt[0].toFixed(1) + " " + mpt[1].toFixed(1) + " ";
         mf = false;
       }
-      if (mp) svg.appendChild(el("path", { d: mp.trim(), fill: "none", stroke: "rgba(207,214,222,0.28)",
+      if (mp) svg.appendChild(el("path", { d: mp.trim(), fill: "none", stroke: "rgba(207,214,222,0.30)",
         "stroke-width": 1.2, "stroke-dasharray": "4 5", "stroke-linecap": "round" }));
-    }
+    })();
     if (mNow.alt > -3) {
-      var mpos = A(mNow.az, MR - 16);
+      var mpos = A(mNow.az, altR(mNow.alt));
       svg.appendChild(el("circle", { cx: mpos[0], cy: mpos[1], r: 4.5,
         fill: mNow.alt > 0 ? "#CFD6DE" : "rgba(207,214,222,0.45)", stroke: "#14110E", "stroke-width": 1.5 }));
     }
 
-    // Луч и солнце
-    if (e > -6) {
-      var sp = A(az, MR), sc = e > 0 ? "#E2A44C" : "#7C9CC4";
+    // Луч и солнце — на радиусе своей высоты
+    if (e > PATH_MIN_ALT) {
+      var sp = A(az, altR(e)), sc = e > 0 ? "#E2A44C" : "#7C9CC4";
       svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
         stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
       svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 11, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
       svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: "#14110E", "stroke-width": 2 }));
     }
 
-    // Север
-    var n = el("text", { x: MPX, y: MPY - MR - 6, fill: "#8A8478", "font-size": 11, "text-anchor": "middle",
-      "font-family": "-apple-system, sans-serif", "font-weight": 700 });
-    n.textContent = "С"; svg.appendChild(n);
+    /* Деления с градусами — только в астро. В обычном режиме они спорили бы с
+       монохромным холстом, а на вопрос «куда смотреть» отвечают четыре буквы.
+       Числа стоят снаружи делений, четверти пропущены: там уже стоят буквы,
+       и «90°» рядом с «В» — это два слова об одном. */
+    if (document.body.classList.contains("pro-mode")) {
+      for (var g = 0; g < 360; g += 10) {
+        var big = g % 30 === 0;
+        var t1 = A(g, big ? COMPASS_R : COMPASS_R + 3), t2 = A(g, COMPASS_R + 9);
+        svg.appendChild(el("line", { x1: t1[0], y1: t1[1], x2: t2[0], y2: t2[1],
+          stroke: "rgba(239,234,224," + (big ? 0.26 : 0.13) + ")", "stroke-width": big ? 1.2 : 1 }));
+        if (!big || g % 90 === 0) continue;
+        var gp = A(g, COMPASS_R + 17);
+        var gt = el("text", { x: gp[0], y: gp[1] + 3.4, fill: "rgba(138,132,120,0.70)", "font-size": 9,
+          "text-anchor": "middle", "font-family": "ui-monospace, monospace" });
+        gt.textContent = g + "°"; svg.appendChild(gt);
+      }
+    }
+
+    /* Компас: четыре буквы по ободу — они есть всегда, в обоих режимах */
+    [[0, "С"], [90, "В"], [180, "Ю"], [270, "З"]].forEach(function (c) {
+      var cp = A(c[0], COMPASS_R);
+      var ct = el("text", { x: cp[0], y: cp[1] + 4, fill: c[0] === 0 ? "#A89C86" : "#8A8478",
+        "font-size": 11, "text-anchor": "middle",
+        "font-family": "-apple-system, sans-serif", "font-weight": 700 });
+      ct.textContent = c[1]; svg.appendChild(ct);
+    });
+
+    /* Время выбранного момента — в языке купола, тем же словарём фаз.
+       Это ответ на исходную беду: солнце ехало, градусы менялись, а в котором
+       часу это будет, экран не говорил нигде. */
+    var mst = stateAt(t);
+    $("mrTime").textContent = fmt(t);
+    if (skyMode === "moon") {
+      $("mrPhase").textContent = phaseName(moonPhase(selDate, t).phase);
+      $("mrPhase").style.color = "#A8BDD8";
+    } else {
+      $("mrPhase").textContent = mst.label;
+      $("mrPhase").style.color = rgb(mst.c);
+    }
 
     // Сводка карты — честная физика, без выдуманных зданий
     $("mDate").textContent = WD[selDate.getDay()] + " · " + selDate.getDate() + " " + MONTHS[selDate.getMonth()];
@@ -3893,8 +4120,16 @@
       : range(SUN.goldB, SUN.blueB) + " · " + dirOf(azAt(SUN.goldB));
     $("mBlue").textContent = (SUN.blueB === null || SUN.civB === null) ? "—"
       : range(SUN.blueB, SUN.civB) + " · " + dirOf(azAt(SUN.blueB));
+    /* Луна над горизонтом: в астро — измерения, в обычном — то, чего на карте
+       нет цифрой. Азимут с высотой повторяют лунный диск, который и так нарисован,
+       а «зайдёт в 03:10» и доля света не повторяют ничего. */
+    var moonPro = document.body.classList.contains("pro-mode");
+    var moonLit = Math.round(moonPhase(selDate, t).fraction * 100);
     $("mMoon").textContent = mNow.alt > 0
-      ? dirOf(mNow.az) + " · " + mNow.alt.toFixed(0) + "° · " + Math.round(moonPhase(selDate, t).fraction * 100) + "%"
+      ? (moonPro
+          ? dirOf(mNow.az) + " · " + mNow.alt.toFixed(0) + "° · " + moonLit + "%"
+          : "освещена " + moonLit + "%"
+            + (mArc && !mArc.none && mArc.set !== null ? " · зайдёт " + fmt(mArc.set) : ""))
       : mArc.none ? "сегодня не восходит" : "под горизонтом · взойдёт " + fmt(mArc.rise);
     $("mPoint").textContent = e > 0 ? "на свету" : "в тени";
     $("mPoint").style.color = e > 0 ? "#E2A44C" : "#8A8478";
@@ -3935,6 +4170,18 @@
     if ($("hLocName")) $("hLocName").textContent = city;
     if ($("hLocSub")) $("hLocSub").textContent = geoSub || coords;
     $("mLocName").textContent = city;
+    $("mLocSub").textContent = geoSub || coords;
+    /* Точку могли сохранить раньше, чем ответил геокодер, — тогда именем ей
+       служат координаты. Ответ пришёл: имя дозревает, а не остаётся числами
+       навсегда. Правим только то, что сами и подставили. */
+    if (geoCity) {
+      var k = spotHere();
+      if (k >= 0 && !spots[k].named) {
+        spots[k].name = geoCity; spots[k].sub = geoSub || ""; spots[k].named = true;
+        saveAll();
+      }
+    }
+    renderSpotMark();   // на новом месте закладка может быть уже поставлена
   }
   function fetchGeoName() {
     if (typeof fetch === "undefined") return;
@@ -3954,7 +4201,6 @@
 
   function setLocation(lat, lon) {
     LAT = lat; LON = lon; TZ = tzFor(lon);
-    $("mCoords").textContent = coordText(lat, lon);
     geoCity = ""; geoSub = "";     // прежнее имя недействительно
     applyGeoNames();               // сразу координаты, город подтянется следом
     saveAll();                     // место переживает перезапуск
@@ -3983,7 +4229,6 @@
       var c = lmap.getCenter();
       setLocation(c.lat, c.lng);
     });
-    $("mCoords").textContent = coordText(LAT, LON);
     applyGeoNames();
   }
   /* Экран карты показывается — Leaflet должен пересчитать размер и встать на место */
@@ -7879,6 +8124,8 @@
       document.querySelectorAll("#modeSeg button").forEach(function (x) { x.classList.remove("active"); });
       b.classList.add("active");
       document.body.classList.toggle("pro-mode", b.dataset.mode === "pro");
+      // Деления компаса живут в SVG, а не в CSS: одним классом их не показать
+      renderMap();
     });
   });
   [["spoilerBtn","proBody"], ["mSpoilerBtn","mProBody"]].forEach(function (p) {
@@ -7888,6 +8135,23 @@
       this.querySelector(".lbl").textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
     });
   });
+  /* Шеврон карты: свернуть всё, кроме времени. Состояние переживает
+     перезапуск — кто свернул сводку, тот не хочет видеть её и завтра */
+  $("mapRead").addEventListener("click", function () {
+    var shut = !$("mapFold").classList.contains("shut");
+    setMapFold(shut);
+    mapFoldShut = shut;
+    saveAll();
+  });
+  function setMapFold(shut) {
+    $("mapFold").classList.toggle("shut", shut);
+    $("mapRead").classList.toggle("shut", shut);
+    $("mapRead").setAttribute("aria-expanded", shut ? "false" : "true");
+    document.body.classList.toggle("map-shut", shut);
+    // Кадр сменил высоту — Leaflet об этом сам не узнает
+    if (lmap) setTimeout(function () { lmap.invalidateSize(); }, 420);
+  }
+
   /* Настройки сдачи материала */
   function renderDelvSettings() {
     document.querySelectorAll("#delvSeg button").forEach(function (b) {
@@ -7974,6 +8238,7 @@
     locPickName = isSession ? (base.name || "") : "";
     $("locErr").textContent = "";
     $("locDetectLbl").textContent = "Определить моё место";
+    renderSpots();
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
     // Первый тап по месту на «Сегодня» — сразу спрашиваем разрешение на геоданные
     if (!isSession && navigator.permissions && navigator.permissions.query) {
@@ -7984,6 +8249,61 @@
   }
   function closeLocSheet() { $("locSheet").classList.remove("open"); $("locScrim").classList.remove("open"); }
   $("todayLoc").addEventListener("click", function () { openLocSheet("app"); });
+  $("mapLoc").addEventListener("click", function () { openLocSheet("app"); });
+  $("spotsRow").addEventListener("click", function () { openLocSheet("app"); });
+
+  /* Закладка в шапке карты: одна кнопка на оба состояния. Имя берём то же,
+     что показано в шапке, — человек сохраняет то, что видит. Пока геокодер
+     не ответил, именем служат координаты, и это честнее пустой строки. */
+  $("mapSave").addEventListener("click", function () {
+    var i = spotHere();
+    if (i >= 0) spots.splice(i, 1);
+    else spots.unshift({ name: geoCity || coordText(LAT, LON), sub: geoSub || "",
+                         named: !!geoCity,          // именем служат координаты — дождёмся геокодера
+                         lat: +LAT.toFixed(5), lon: +LON.toFixed(5) });
+    saveAll(); renderSpotMark(); renderSpots();
+  });
+
+  function renderSpots() {
+    var box = $("spotList"); if (!box) return;
+    box.innerHTML = "";
+    if (!spots.length) {
+      var em = document.createElement("div");
+      em.className = "spot-empty";
+      em.textContent = "Пока пусто. Закладка в шапке карты сохраняет место, где стоите.";
+      box.appendChild(em);
+      return;
+    }
+    spots.forEach(function (sp, idx) {
+      var row = document.createElement("div"); row.className = "spot-row";
+      var go = document.createElement("button"); go.className = "spot-go"; go.type = "button";
+      var nm = document.createElement("span"); nm.className = "spot-name"; nm.textContent = sp.name;
+      var co = document.createElement("span"); co.className = "spot-coord";
+      co.textContent = sp.sub || coordText(sp.lat, sp.lon);
+      go.appendChild(nm); go.appendChild(co);
+      /* Точка из списка ведёт себя как любое другое место: свет, погода и
+         карта следуют за ней. Для съёмки — только заполняет поля листа. */
+      go.addEventListener("click", function () {
+        if (locTarget === "session") {
+          $("locLat").value = (+sp.lat).toFixed(4);
+          $("locLon").value = (+sp.lon).toFixed(4);
+          locPickName = sp.name;
+          $("locErr").textContent = "";
+          return;
+        }
+        gotoLocation(sp.lat, sp.lon);
+        closeLocSheet();
+      });
+      var del = document.createElement("button"); del.className = "spot-del"; del.type = "button";
+      del.setAttribute("aria-label", "Убрать точку");
+      del.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      del.addEventListener("click", function () {
+        spots.splice(idx, 1); saveAll(); renderSpotMark(); renderSpots();
+      });
+      row.appendChild(go); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
   $("locScrim").addEventListener("click", closeLocSheet);
   $("locDetect").addEventListener("click", function () {
     if (locTarget === "session") {          // для съёмки геолокация только заполняет поля
@@ -8096,6 +8416,8 @@
     $("buildInfo").textContent = "сборка " + s;
   })();
   applyDate();
+  setMapFold(mapFoldShut);
+  renderSpotMark();
   renderDelvSettings();
   renderCal(); renderDayPanel(); renderSessions();
   measureDock();
