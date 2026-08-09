@@ -1588,6 +1588,18 @@
   /* display перебивает hidden — прячем явно (грабли из DECISIONS) */
   .card-money[hidden], #cardOverlay .group[hidden], #cardOverlay .row[hidden],
   .card-notes[hidden], .g-label[hidden], .card-warn[hidden] { display: none; }
+  /* Эволюция встречи: действие крупное, но не кричит — латунь текстом,
+     а не плашкой, как и все действия продукта */
+  .grow-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    width: 100%; margin-top: 14px; padding: 14px 15px; background: var(--press-warm);
+    border: none; border-radius: 14px; cursor: pointer; font-family: inherit; text-align: left; }
+  .grow-btn[hidden] { display: none; }
+  .gb-t { font-size: 16px; font-weight: 600; color: var(--brass); }
+  .gb-s { font-size: 12px; color: var(--ink-4); }
+  .grow-btn:active { background: var(--press-brass); }
+  .card-grown { margin-top: 12px; padding: 12px 15px; border-radius: 14px;
+    background: var(--sheet-3); font-size: 14px; color: var(--ink-3); }
+  .card-grown[hidden] { display: none; }
   /* В карточке референсы только смотрят: удаление живёт в форме */
   #cdRefs .kill { display: none; }
 
@@ -2210,6 +2222,14 @@
       <span class="lbl">Запланировать съёмку</span>
       <span class="sub" id="planDayHint">—</span>
     </button>
+    <!-- Встреча — второе действие дня. Подсказки от света у неё нет и быть не
+         может: обсуждение не привязано к золотому часу, и выдумывать ей повод
+         значило бы врать. Поэтому она тише съёмки, но остаётся кнопкой -->
+    <button class="action" id="planMeet" style="margin: 10px 24px 0;">
+      <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v2M3.5 13.5a8.5 8.5 0 0 1 17 0z" style="display:none"/><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="10.5" r="2.4"/><path d="M15 19.5c0-2.2 1.4-3.8 3.4-3.8 1.1 0 2.1.5 2.6 1.3"/></svg>
+      <span class="lbl">Встреча</span>
+      <span class="sub">обсудить съёмку</span>
+    </button>
     <!-- Занять время — действие тише съёмки: планировщик про съёмки,
          а выходной ставят реже -->
     <button class="ghost" id="planBlock" style="margin: 10px 24px 0;">Занять время — выходной, дорога, перелёт</button>
@@ -2544,6 +2564,16 @@
     <div class="g-label" id="cdNotesLabel">Заметки</div>
     <p class="card-notes" id="cdNotes"></p>
 
+    <!-- Встреча кончается решением. Кнопка не переименовывает запись, а
+         порождает съёмку: разговор 5 февраля был и остаётся в календаре, а
+         съёмка встаёт на свою дату. Стереть встречу, которой не было, можно
+         свайпом — а вот восстановить стёртую историю нечем. -->
+    <button class="grow-btn" id="cdGrow" hidden>
+      <span class="gb-t">Назначить съёмку</span>
+      <span class="gb-s">встреча останется в календаре</span>
+    </button>
+    <div class="card-grown" id="cdGrown" hidden></div>
+
     <!-- Деньги не первое, что видишь: строка сворачивается (04_ANTI_GOALS) -->
     <button class="card-money" id="cdMoneyBtn" hidden>Деньги<span class="rv" id="cdMoneySum">—</span></button>
     <div class="group" id="cdMoneyGroup" hidden>
@@ -2746,15 +2776,15 @@
       <div class="ref-note" id="docNote" hidden></div>
     </div>
 
-    <div class="g-label">Нужна погода</div>
-    <div class="group">
+    <div class="g-label" id="fWishLabel">Нужна погода</div>
+    <div class="group" id="fWishGroup">
       <div class="g-chips"><div class="chips" id="fWish"></div></div>
     </div>
     <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
     <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
-    <div class="g-label">Референсы</div>
-    <div class="group">
+    <div class="g-label" id="fRefsLabel">Референсы</div>
+    <div class="group" id="fRefsGroup">
       <div class="ref-grid" id="refGrid"></div>
       <div class="ref-add sep">
         <button type="button" class="ref-btn" id="refPhoto">
@@ -3984,6 +4014,7 @@
     return n.toLocaleString("ru-RU") + " ₽";
   }
   function sessionIncome(s) {
+    if (isMeet(s)) return 0;      // встреча — разговор, а не работа
     if (!s || !s.pay) return 0;
     var mech = PAY[s.pay] ? PAY[s.pay].m : s.pay;   // s.pay — ключ способа, из него механика
     var r = +s.rate || 0;
@@ -4023,6 +4054,7 @@
   }
   var GREY = [107, 101, 91];
   function deliveryState(s) {
+    if (isMeet(s)) return { rank: 0, c: GREY, breath: false, label: "" };
     var now = Date.now(), shot = s.date.getTime(), r;
     if (s.delivered)   r = { rank: 0, c: GREY, breath: false, label: "материал сдан" };
     else if (shot > now) r = { rank: 1, c: [239,234,224], breath: false, label: "предстоит" };
@@ -4045,7 +4077,7 @@
   function dayMark(d) {
     var best = null;
     sessions.forEach(function (s) {
-      if (!sameDay(s.date, d)) return;
+      if (!sameDay(s.date, d) || isMeet(s)) return;
       var st = deliveryState(s);
       if (!best || st.rank > best.rank) best = st;
     });
@@ -4826,7 +4858,9 @@
          должен читаться занятым. Но цвета света у неё нет — у выходного не
          бывает золотого часа, и красить его качеством неба было бы враньём */
       var items = shoots.map(function (x) {
-        return { t: shortGenre(x.type), c: QUAL[qualityOf(x.date)].dot || "#A8B49B" };
+        return isMeet(x)
+          ? { t: "Встреча", c: null }
+          : { t: shortGenre(x.type), c: QUAL[qualityOf(x.date)].dot || "#A8B49B" };
       }).concat((inMonth ? blocksOn(d) : []).map(function (b) {
         return { t: blockLabel(b), c: null };
       }));
@@ -5021,7 +5055,8 @@
       grid.appendChild(b);
     }
     // Год одной строкой: сколько съёмок и когда ближайшая впереди
-    var all = sessions.filter(function (s) { return s.date.getFullYear() === yearShown; });
+    /* Год считает съёмки: встречи в «столько-то съёмок» и в прибыль не идут */
+    var all = sessions.filter(function (s) { return s.date.getFullYear() === yearShown && !isMeet(s); });
     var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     var ahead = all.filter(function (s) { return s.date >= midnight; })   // сегодняшняя — ещё впереди
       .sort(function (a, b) { return a.date - b.date; })[0];
@@ -5111,8 +5146,9 @@
       return '<div class="swipe"><button class="swipe-del" data-i="' + i + '">Удалить</button>' +
         '<button class="plan-row" data-i="' + i + '">' +
         '<span class="pr-time">' + fmt(s.min) + " – " + fmt(end) + "</span>" +
-        '<span class="pr-who">' + esc(clientName(s) || s.type) + "</span>" +
-        (ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
+        '<span class="pr-who">' + esc(clientName(s) || (isMeet(s) ? "Встреча" : s.type)) + "</span>" +
+        (isMeet(s) ? '<span class="pr-due">встреча · ' + esc(shortGenre(s.type).toLowerCase()) + "</span>"
+          : ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
         "</button></div>";
     }).join("") : "";   // пустой список и есть «нет событий» — лишняя строка не нужна
 
@@ -6486,11 +6522,24 @@
 
      Раньше это были четырнадцать присваиваний `hidden` вперемешку с
      побочными действиями, и новое поле приходилось вписывать в пять мест. */
+  /* ---------- Встреча ----------
+     Встреча — та же запись, но без конкретики: жанр, когда, с кем и заметки.
+     Ни денег, ни сдачи материала, ни погоды, ни референсов у неё нет — не
+     потому что «пока не сделали», а потому что обсуждать нечего: съёмки ещё
+     не назначено. Поэтому режим встречи выражен теми же правилами формы. */
+  var formKind = "shoot";
+  function isMeet(s2) { return !!(s2 && s2.kind === "meet"); }
+  function meetMode() { return formKind === "meet"; }
+
   var FORM_FIELDS = [
+    /* Всё, что про уже назначенную съёмку, встреча прячет целиком */
+    { els: ["fPayLabel", "fPayGroup"], on: function () { return !meetMode(); } },
+    { els: ["fWishLabel", "fWishGroup"], on: function () { return !meetMode(); } },
+    { els: ["fRefsLabel", "fRefsGroup"], on: function () { return !meetMode(); } },
     /* Сдача материала — там, где есть кому сдавать */
-    { els: ["fDelvLabel", "fDelvGroup"], on: function (sp) { return sp.delivery; } },
+    { els: ["fDelvLabel", "fDelvGroup"], on: function (sp) { return sp.delivery && !meetMode(); } },
     /* Таймлайн: у события всегда, у остальных доступен и молчит */
-    { els: ["fRouteLabel", "fRouteGroup"], on: function (sp) { return sp.route || sp.routeOpt; } },
+    { els: ["fRouteLabel", "fRouteGroup"], on: function (sp) { return (sp.route || sp.routeOpt) && !meetMode(); } },
     /* Клиент строкой — пока он человек. У заказа вместо неё организация */
     { els: ["fContact"], on: function (sp, gr) { return sp.client && !gr.order && !personsOf(shootType).length; } },
     /* Пара: два имени и два телефона вместо одной строки */
@@ -6500,11 +6549,11 @@
     { els: ["fOrgRow"], on: function (sp, gr) { return !!gr.org; } },
     { els: ["fPerson", "fPhone"], on: function (sp, gr) { return !!gr.order; } },
     /* Гости — мерка события дня, живут в блоке таймлайна */
-    { els: ["fGuestsRow"], on: function (sp, gr) { return !!gr.guests; } },
+    { els: ["fGuestsRow"], on: function (sp, gr) { return !!gr.guests && !meetMode(); } },
     /* Предоплата есть везде, где за съёмку платят */
-    { els: ["fPrepayRow"], on: function (sp, gr) { return !!gr.prepay; } },
+    { els: ["fPrepayRow"], on: function (sp, gr) { return !!gr.prepay && !meetMode(); } },
     /* Заказ: ТЗ и документы у группы заказчика; модели включает жанр */
-    { els: ["fOrderLabel", "fOrderGroup"], on: function (sp, gr) { return !!gr.order; } },
+    { els: ["fOrderLabel", "fOrderGroup"], on: function (sp, gr) { return !!gr.order && !meetMode(); } },
     { els: ["fModels"], on: function (sp, gr) { return !!(gr.order && sp.models); } }
   ];
 
@@ -6715,7 +6764,9 @@
   function applyGenrePreset() {
     var sp = genreSpec(shootType), pref = genrePrefs[shootType] || {};
     fDelvChoice = sp.delivery ? (pref.delv !== undefined ? pref.delv : "auto") : null;
-    var dur = pref.dur !== undefined ? pref.dur : sp.dur;
+    /* Встреча длится час, а не восемь: свадебная длительность жанра к разговору
+       в кафе отношения не имеет */
+    var dur = meetMode() ? 60 : (pref.dur !== undefined ? pref.dur : sp.dur);
     if (dur === null || dur === undefined) {
       var w = dayWindow(fDate);
       dur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
@@ -6731,7 +6782,8 @@
        Двигаем начало назад, чтобы золотой час пришёлся на конец съёмки.
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
     var w = dayWindow(fDate);
-    if (fAuto && w.q !== "poor") {
+    /* Свет не двигает встречу: в кафе идут «к двум», а не в золотой час */
+    if (fAuto && w.q !== "poor" && !meetMode()) {
       /* Время от света идёт как есть, без округления: золотой час начинается
          в 19:38, и «полвосьмого» тут — не удобство, а неправда */
       fMin = Math.round(w.a);
@@ -6933,8 +6985,10 @@
        «13 ч» само по себе не объясняет, почему конец числом меньше начала */
     $("fDurVal").textContent = durLabel(fDur)
       + (endDayOff() > 0 ? " · " + (endDayOff() === 1 ? "следующий день" : "через " + endDayOff() + " дня") : "");
-    /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку */
-    $("formSub").innerHTML = w.q === "poor"
+    /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку.
+       Встрече он не нужен вовсе: она не про золотой час, а про разговор */
+    if (meetMode()) $("formSub").textContent = "Когда и где встречаемся — свет тут ни при чём";
+    else $("formSub").innerHTML = w.q === "poor"
       ? "В этот день окна света нет — время на ваше усмотрение"
       /* Светозависимое время больше не округляется, поэтому сравниваем и с
          точной минутой окна, и с округлённой — иначе подпись врёт */
@@ -7256,7 +7310,10 @@
     paintIcons($("cardOverlay"));
     /* Карточка одна на все жанры: у свадьбы точки дня свои, у остальных —
        световые вехи. Разный набор блоков, один язык (docs/11_EVENT_CARD.md) */
-    var route = routeOf(s);
+    /* У встречи точек дня нет по определению: план съёмочного дня появляется
+       вместе со съёмкой, а не на разговоре о ней. Иначе свадебный пресет
+       подсовывал встрече ЗАГС и прогулку */
+    var route = isMeet(s) ? [] : routeOf(s);
     var phase = eventPhase(s, route);
     var sun = cardSun(s);
     var light = phase === "after" ? null : lightCase(s, route, sun);
@@ -7369,6 +7426,7 @@
   var EV_SIGN = { "Свадьбы": IC.svg("rings", null, 24), "Лавстори": IC.svg("heart", null, 24) };
   function renderEvHead(s, phase) {
     $("cdEvHead").hidden = false;
+    $("cdEvHead").classList.toggle("is-meet", isMeet(s));
     var spec = genreSpec(s.type), gr = groupSpec(s.type);
     $("cdEvSign").innerHTML = EV_SIGN[s.type] || IC.svg(GENRE_SIGN[s.type] || "camera");
 
@@ -7395,7 +7453,10 @@
     var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
     var when = whenWord(s.date).replace(/^ · /, "");
     var bits = [];
-    if (name) bits.push(spec.ev || s.type);
+    /* Встреча называет себя встречей и говорит, о чём она: «Встреча · свадьба».
+       Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
+    if (isMeet(s)) bits.push("Встреча · " + shortGenre(s.type).toLowerCase());
+    else if (name) bits.push(spec.ev || s.type);
     bits.push(s.date.getDate() + " " + MONTHS[s.date.getMonth()]);
     bits.push(range(s.min, end));
     $("cdEvWhen").textContent = bits.join(" · ")
@@ -7446,7 +7507,7 @@
         $("cdDayNow").textContent = "Идёт съёмка";
         $("cdDayLeft").innerHTML = "осталось <b>" + durLabel(Math.max(0, endMin - nowMin2)) + "</b> · до " + fmt(endMin);
       } else if (phase === "after") {
-        $("cdDayNow").textContent = "Съёмка отработана";
+        $("cdDayNow").textContent = isMeet(s) ? "Встреча прошла" : "Съёмка отработана";
         $("cdDayLeft").textContent = range(s.min, endMin) + " · " + durLabel(dur);
       } else {
         $("cdDayNow").textContent = range(s.min, endMin);
@@ -7467,7 +7528,7 @@
       $("cdDayLeft").textContent = durLabel(route[route.length - 1].t - route[0].t)
         + " · " + route.length + " " + plural(route.length, ["точка", "точки", "точек"]);
     } else {
-      $("cdDayNow").textContent = "Съёмка отработана";
+      $("cdDayNow").textContent = isMeet(s) ? "Встреча прошла" : "Съёмка отработана";
       $("cdDayLeft").textContent = fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
     }
 
@@ -7586,7 +7647,7 @@
       : "";
 
     var delvHtml = "";
-    if (spec.delivery !== false) {
+    if (spec.delivery !== false && !isMeet(s)) {
       var ds = deliveryState(s), dd = deadlineDate(s);
       delvHtml = '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.clock + "</span>"
@@ -7919,8 +7980,22 @@
     var spec = genreSpec(s.type), sun = cardSun(s);
     var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
 
-    $("cardTitle").textContent = s.type;
-    $("cardSub").textContent = s.contact || "без клиента";
+    /* Встреча — та же карточка, но заголовком «Встреча»: жанр уходит в
+       подзаголовок, потому что он тут предмет разговора, а не вид работы */
+    var meet = isMeet(s);
+    $("cardTitle").textContent = meet ? "Встреча" : s.type;
+    $("cardSub").textContent = meet
+      ? (s.contact ? s.contact + " · " + shortGenre(s.type).toLowerCase()
+                   : "по теме: " + shortGenre(s.type).toLowerCase())
+      : (s.contact || "без клиента");
+
+    /* Эволюция: кнопка есть, пока съёмка из встречи не назначена */
+    $("cdGrow").hidden = !meet || !!s.grewOn;
+    $("cdGrown").hidden = !(meet && s.grewOn);
+    if (meet && s.grewOn) {
+      var g = new Date(s.grewOn);
+      $("cdGrown").textContent = "Съёмка назначена на " + g.getDate() + " " + MONTHS[g.getMonth()] + ".";
+    }
 
     $("cdDate").textContent = WD[s.date.getDay()] + " · " + s.date.getDate() + " " + MONTHS[s.date.getMonth()];
     $("cdTime").textContent = range(s.min, end);
@@ -8022,6 +8097,36 @@
   $("cardEdit").addEventListener("click", function () {
     if (cardIdx !== null) openForm(null, null, cardIdx);
   });
+
+  /* Встреча → съёмка. Порождение, а не переименование: если бы запись просто
+     сменила род и переехала на дату съёмки, календарь забыл бы про два часа
+     в кафе — ровно про то, ради чего встречи и заводились.
+     Съёмка открывается сразу формой: дату всё равно называть, а всё остальное
+     уже перенесено — жанр, имена, телефоны, место и заметки. */
+  $("cdGrow").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    var m = sessions[cardIdx];
+    var when = new Date(m.date);
+    when.setDate(when.getDate() + 30);            // разговор сегодня, съёмка позже
+    var w = dayWindow(when);
+    var rec = {
+      kind: "shoot", date: when,
+      min: Math.round(w.a), dur: genreSpec(m.type).dur || 90,
+      type: m.type, contact: m.contact || "", notes: m.notes || "",
+      persons: (m.persons || []).slice(),
+      person: m.person || "", phone: m.phone || "", orgId: m.orgId || null,
+      place: m.place || "", placeLat: m.placeLat, placeLon: m.placeLon, placeCity: m.placeCity,
+      wish: [], fromMeetOn: m.date.toISOString()
+    };
+    rec.end = rec.min + rec.dur;
+    m.grewOn = when.toISOString();                // встреча помнит, чем кончилась
+    sessions.push(rec);
+    saveAll();
+    closeCard();
+    calSel = new Date(when); calMonth = new Date(when.getFullYear(), when.getMonth(), 1);
+    renderCal(); renderDayPanel();
+    openForm(null, null, sessions.length - 1);    // дату и время называет фотограф
+  });
   $("cdMoneyBtn").addEventListener("click", function () {
     var open = $("cdMoneyGroup").hidden;
     $("cdMoneyGroup").hidden = !open;
@@ -8030,10 +8135,12 @@
 
   /* idx !== null — правим существующую запись клиента */
   var editIdx = null;
-  function openForm(d, startMin, idx, fromLight) {
+  function openForm(d, startMin, idx, fromLight, kind) {
     editIdx = (idx === undefined || idx === null) ? null : idx;
+    formKind = kind || "shoot";
     if (editIdx !== null) {
       var s = sessions[editIdx];
+      formKind = isMeet(s) ? "meet" : "shoot";   // род берётся у записи, а не у кнопки
       fAuto = false;                     // время сохранённой съёмки принадлежит фотографу
       fLight = s.min % timeStep !== 0;   // некруглая минута — значит её назвал свет
       fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
@@ -8103,7 +8210,9 @@
     renderDocKinds(); renderDocs();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
-    $("formTitle").textContent = editIdx !== null ? "Съёмка" : "Новая съёмка";
+    $("formTitle").textContent = meetMode()
+      ? (editIdx !== null ? "Встреча" : "Новая встреча")
+      : (editIdx !== null ? "Съёмка" : "Новая съёмка");
     $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
     closeRows();
@@ -8311,6 +8420,7 @@
   $("fSave").addEventListener("click", function () {
     var warn = wishesCheck(fDate);
     var rec = {
+      kind: formKind,
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
       contact: contactLine(), notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
@@ -8578,6 +8688,11 @@
 
   $("planToday").addEventListener("click", function () { openForm(selDate, Math.round(SUN.goldB || viewMin), null, true); });
   $("planDay").addEventListener("click", function () { openForm(calSel, Math.round(dayWindow(calSel).a), null, true); });
+  /* Встреча начинается с круглого времени, а не с золотого часа: в кафе идут
+     «к двум», и подставлять сюда 19:38 было бы насмешкой */
+  $("planMeet").addEventListener("click", function () {
+    openForm(calSel, snapMin(14 * 60), null, false, "meet");
+  });
   $("seeLight").addEventListener("click", function () {
     selDate = new Date(calSel);
     computeSun(selDate);
