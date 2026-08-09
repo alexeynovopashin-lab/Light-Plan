@@ -37,6 +37,13 @@
      решение по дизайну, а не побочный эффект переименования.
      ============================================================ */
   :root {
+    --glyph: #E2A44C;
+    --pin-ring: #14110E;
+    --arc-mid: #EFEAE0;
+    /* Кружок ползунка и погашенные деления прибора: у них своя логика, они не
+       текст и не поверхность. На тёмном кружок светлый, на светлом — тоже
+       светлый, но с кромкой, иначе он растворяется в фоне */
+    --knob: #EFEAE0;          --knob-edge: #0F0E0C;    --meter-off: #3A352E;
     /* полупрозрачные: панели, разделители и текст с альфой. Скрипт по хексам
        их не видел — а таб-бар и все линии держатся именно на них */
     --bar: rgba(15,14,12,0.9); --bar-2: rgba(23,21,15,0.86);
@@ -71,6 +78,13 @@
      темнеет ради контраста на светлом, но остаётся латунью. Карта, луна и
      модель света не тронуты — они про небо, а не про интерфейс. */
   :root[data-theme="light"] {
+    /* крупные знаки и число дня: латунь в больших пятнах на светлом мутнеет */
+    --glyph: #2F2A23;
+    --pin-ring: #3A352E;
+    --arc-mid: #17150F;
+    --knob: #FFFFFF; --knob-edge: #C3BBAA; --meter-off: #D2CBBC;
+    /* Подложки внутри карточки разведены сильнее: на светлом лист и плитки
+       различались на два пункта и сливались в одно пятно */
     --bar: rgba(250,248,243,0.92); --bar-2: rgba(255,255,255,0.9);
     --fill-a: rgba(250,248,243,0.8); --fill-b: rgba(237,233,225,0.72);
     --overlay: rgba(250,248,243,0.86); --overlay-2: rgba(250,248,243,0.96);
@@ -80,8 +94,8 @@
     --ink-a22: rgba(23,21,15,0.22); --ink-a20: rgba(23,21,15,0.2);
     --ink-a24: rgba(23,21,15,0.24); --ink-a40: rgba(23,21,15,0.4);
     --bg: #EDE9E1; --surface: #FAF8F3; --sheet: #FFFFFF;
-    --sheet-2: #F4F1EA; --sheet-3: #F2EEE6; --sheet-4: #F2EEE6;
-    --warn-bg: #FBF1DE; --bad-bg: #FBE7DC; --badge-bg: #EFE9DD;
+    --sheet-2: #F1EDE4; --sheet-3: #FFFFFF; --sheet-4: #FFFFFF;
+    --warn-bg: #FBF1DE; --bad-bg: #FBE7DC; --badge-bg: #F4F0E6;
     --hatch: #E7E2D8; --hairline: #E2DCD1; --on-brass: #FFFFFF;
     --field: #EAE5DB; --field-press: #DCD6C9; --press: #EDE9E1;
     --press-2: #EBE6DC; --press-warm: #F6ECD8; --press-brass: #F7E9CF;
@@ -193,6 +207,13 @@
   /* height = высоте viewBox (240): раньше 24px уходило в мёртвый зазор */
   /* touch-action: pan-y — вертикальный скролл страницы живёт, горизонтальный
      жест ловит перетаскивание светила по дуге */
+  /* Купол: цвета вынесены из разметки в тему. Середина дуги, линия горизонта
+     и пунктир были заданы под тёмный фон и на светлом либо пропадали, либо
+     наоборот чернели */
+  .arc-mid { stop-color: var(--arc-mid); }
+  .horizon-line { stroke: var(--hair); stroke-width: 1; stroke-dasharray: 4 5; }
+  #drop { stroke: var(--ink-6); }
+  #nowRing { stroke: var(--ink-a40); }
   .dome { position: relative; width: 100%; height: 240px; margin-top: 0; flex-shrink: 0; cursor: grab; touch-action: pan-y; }
   .dome:active { cursor: grabbing; }
   /* только сам купол — иконки переключателя внутри .dome не должны растягиваться */
@@ -480,12 +501,12 @@
   .scrub::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 26px; height: 26px; border-radius: 50%;
-    background: var(--ink); border: 3px solid var(--surface);
+    background: var(--knob); border: 3px solid var(--knob-edge);
     box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55); margin-top: -11px;
   }
   .scrub::-moz-range-thumb {
     width: 26px; height: 26px; border-radius: 50%;
-    background: var(--ink); border: 3px solid var(--surface);
+    background: var(--knob); border: 3px solid var(--knob-edge);
     box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55);
   }
 
@@ -527,7 +548,7 @@
   /* Точка съёмки — в центре кадра; карта ездит под ней */
   .map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 460; }
   .map-pin i { display: block; width: 13px; height: 13px; border-radius: 50%;
-    background: var(--ink); box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3px var(--ink-a40); }
+    background: var(--knob); box-shadow: 0 0 0 2px var(--pin-ring), 0 0 0 3.5px var(--ink-a40); }
   /* «Моё место» — единственный элемент управления, тихий кружок */
   .map-here {
     position: absolute; right: 12px; bottom: 12px; z-index: 470;
@@ -553,6 +574,13 @@
      пятно, спорящее со слоем света. */
   .filter-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
   .leaflet-tile { filter: url(#tileTone); }
+  /* На светлой теме тайлы обычные и цветные: зелень зелёная, вода голубая,
+     дороги серые, здания бежевые. Ни тон, ни подкраска воды им не нужны —
+     всё это чинило тёмный холст, которого здесь нет */
+  :root[data-theme="light"] .leaflet-tile { filter: none; }
+  :root[data-theme="light"] .map-frame,
+  :root[data-theme="light"] #lmap,
+  :root[data-theme="light"] .leaflet-container { background: #E8E3DA; }
 
   /* ---------- Календарь ---------- */
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
@@ -1166,8 +1194,8 @@
   .dial-labels span.lit { color: var(--brass); font-weight: 600; }
   .sheet-done {
     width: 100%; margin-top: 20px; padding: 16px;
-    background: var(--ink); border: none; border-radius: 14px;
-    color: var(--surface); font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
+    background: var(--brass); border: none; border-radius: 14px;
+    color: var(--on-brass); font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
   }
 
   /* ---------- Карточка съёмки ----------
@@ -1199,7 +1227,7 @@
   .ev-head[hidden] { display: none; }
   .ev-sign { display: block; margin: 0 auto; }
   .ev-sign { line-height: 0; }
-  .ev-sign svg { width: 62px; height: 46px; fill: none; stroke: var(--brass); stroke-width: 1.6;
+  .ev-sign svg { width: 62px; height: 46px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
   .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
     line-height: 1.1; margin-top: 8px; }
@@ -1286,7 +1314,7 @@
   }
   .day-tile[hidden] { display: none; }
   .dt-date { text-align: center; align-self: center; padding-right: 11px; border-right: 1px solid var(--surface); }
-  .dt-d { font-size: 42px; font-weight: 700; color: var(--brass); line-height: 0.92;
+  .dt-d { font-size: 42px; font-weight: 700; color: var(--glyph); line-height: 0.92;
     letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
   .dt-m { font-size: 12px; color: var(--ink); margin-top: 5px; letter-spacing: 0.3px; }
   .dt-w { font-size: 11px; color: var(--ink-6); margin-top: 2px; }
@@ -1620,6 +1648,10 @@
     font-family: inherit; font-size: 16px; cursor: pointer;
     transition: background 0.18s ease, color 0.18s ease;
   }
+  /* display: inline-block выше сильнее браузерного [hidden] — без этой строки
+     скрытые капсулы времени оставались на виду пустыми, «9 авг —». Тот же
+     каскад, что уже ловил поля формы, строки карточки и «Куда едем» */
+  .row .rv-v[hidden] { display: none; }
   .row .rv-v.open { background: rgba(226,164,76,0.16); color: var(--brass); }
   .row .rv-v:active { background: var(--field-press); }
   /* Строка перестала быть кнопкой: нажимаются капсулы, а не она целиком */
@@ -1955,8 +1987,8 @@
         <defs>
           <linearGradient id="dayLight" x1="0" y1="0" x2="390" y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#E2A44C"/><stop offset="10%" stop-color="#E2A44C"/>
-            <stop offset="30%" stop-color="#EFEAE0" stop-opacity="0.28"/>
-            <stop offset="70%" stop-color="#EFEAE0" stop-opacity="0.28"/>
+            <stop class="arc-mid" offset="30%" stop-opacity="0.28"/>
+            <stop class="arc-mid" offset="70%" stop-opacity="0.28"/>
             <stop offset="90%" stop-color="#E2A44C"/><stop offset="100%" stop-color="#E2A44C"/>
           </linearGradient>
           <radialGradient id="horizonGlow" cx="50%" cy="50%" r="50%">
@@ -1965,26 +1997,26 @@
           </radialGradient>
           <linearGradient id="moonLight" x1="0" y1="0" x2="390" y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#A8BDD8" stop-opacity="0.5"/>
-            <stop offset="30%" stop-color="#EFEAE0" stop-opacity="0.2"/>
-            <stop offset="70%" stop-color="#EFEAE0" stop-opacity="0.2"/>
+            <stop class="arc-mid" offset="30%" stop-opacity="0.2"/>
+            <stop class="arc-mid" offset="70%" stop-opacity="0.2"/>
             <stop offset="100%" stop-color="#A8BDD8" stop-opacity="0.5"/>
           </linearGradient>
           <clipPath id="aboveHorizon"><rect x="0" y="0" width="390" height="196"/></clipPath>
         </defs>
         <g clip-path="url(#aboveHorizon)"><g id="stars" opacity="0"></g><g id="meteors"></g></g>
         <ellipse id="glow" cx="309" cy="196" rx="130" ry="62" fill="url(#horizonGlow)" clip-path="url(#aboveHorizon)"/>
-        <line x1="18" y1="196" x2="372" y2="196" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4 5"/>
+        <line class="horizon-line" x1="18" y1="196" x2="372" y2="196" stroke-width="1" stroke-dasharray="4 5"/>
         <path id="arcPath" d="M 32 196 A 163 148 0 0 1 358 196" fill="none" stroke="url(#dayLight)" stroke-width="3" stroke-linecap="round"/>
-        <line id="drop" stroke="#635E54" stroke-width="1" stroke-dasharray="2 4"/>
+        <line id="drop" stroke-width="1" stroke-dasharray="2 4"/>
         <circle id="sunGlow" r="16" fill="rgba(217,172,107,0.18)"/>
-        <circle id="sunCore" r="6.5" fill="#D9AC6B" stroke="#0F0E0C" stroke-width="2.5"/>
+        <circle id="sunCore" r="6.5" fill="#D9AC6B" stroke="var(--surface)" stroke-width="2.5"/>
         <!-- Диск луны: тёмная сторона всегда на месте, освещённая прирастает по фазе -->
         <g id="moonDisc" style="display:none">
           <circle id="moonHalo" r="17" fill="rgba(168,189,216,0.10)"/>
-          <circle r="7.5" fill="#16161A" stroke="#0F0E0C" stroke-width="2.5"/>
+          <circle r="7.5" fill="var(--moon-dark)" stroke="var(--surface)" stroke-width="2.5"/>
           <g id="moonFace"><path id="moonLit" fill="#CFD6DE"/></g>
         </g>
-        <circle id="nowRing" r="11" fill="none" stroke="rgba(239,234,224,0.35)" stroke-width="1.2"/>
+        <circle id="nowRing" r="11" fill="none" stroke-width="1.2"/>
       </svg>
       <!-- Один тумблер ИЛИ/ИЛИ: солнце, косая черта, луна. Горит выбранное -->
       <button class="sky-swap" id="skySwap" aria-label="Солнце или луна">
@@ -3348,7 +3380,7 @@
      ============================================================ */
   var GOLD=[226,164,76], AMBER=[217,172,107], SILVER=[239,234,224], SCARLET=[216,80,47],
       PINK=[201,105,143], BLUE=[91,119,160], DEEP=[61,88,120], NIGHT=[104,126,168];
-  var TONE = { good: "#B5AC9C", neutral: "#8A8478", stars: "#A8BDD8" };
+  var TONE = { good: "var(--tone-good)", neutral: "var(--ink-4)", stars: "var(--moon)" };
 
   function lerp(a, b, k) {
     k = clamp(k, 0, 1);
@@ -3360,7 +3392,9 @@
   /* Пиктограммы: экспонометр света, звёзды и погода */
   function meterHTML(level, color) {
     var b = "";
-    for (var i = 1; i <= 5; i++) b += '<i style="background:' + (i <= level ? color : "#3A352E") + '"></i>';
+    /* Погашенные деления берут цвет из темы: раньше они были зашиты тёмными
+       и на светлом фоне читались сильнее горящих — прибор врал наоборот */
+    for (var i = 1; i <= 5; i++) b += '<i style="background:' + (i <= level ? color : "var(--meter-off)") + '"></i>';
     return '<span class="meter">' + b + "</span>";
   }
   function starGlyph() {
@@ -3804,6 +3838,7 @@
     document.querySelectorAll("#themeSeg button").forEach(function (b) {
       b.classList.toggle("active", b.dataset.theme === t);
     });
+    if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
   }
 
   /* ---------- Занятое время ----------
@@ -4089,7 +4124,10 @@
     }
     $("glow").setAttribute("cx", clamp(p[0], 60, 330).toFixed(1));
     $("glowStop0").setAttribute("stop-color", rgb(glowCol));
-    $("glowStop0").setAttribute("stop-opacity", clamp(glowAmt, 0, 1).toFixed(2));
+    /* На светлом фоне зарево работает иначе: там нет темноты, которую оно
+       рассеивает, и та же плотность даёт грязное пятно вместо свечения */
+    var glowK = theme === "light" ? 0.42 : 1;
+    $("glowStop0").setAttribute("stop-opacity", clamp(glowAmt * glowK, 0, 1).toFixed(2));
 
     $("stars").setAttribute("opacity", clamp((-e - 8) / 8, 0, 1).toFixed(3));
     $("stars").setAttribute("transform", "rotate(" + ((t - MINT) * 0.25).toFixed(2) + " " + cx + " " + cy + ")");
@@ -4108,10 +4146,13 @@
     if (curWeather && isFinite(curWeather.sunset) && curWeather.sunset !== null) {
       var sc = curWeather.sunset;
       $("tSunset").textContent = sunsetShort(sc) + " · " + sc + " / 100";
-      $("tSunset").style.color = sc >= 75 ? "#E2A44C" : sc >= 50 ? "#A8B49B" : sc >= 28 ? "#C0B8AA" : "#7C9CC4";
+      /* Балл — главная фича на этом экране, шептать ему нечем: даже «серый»
+         закат говорит обычным текстом, а не почти-фоном */
+      $("tSunset").style.color = sc >= 75 ? "var(--brass)" : sc >= 50 ? "var(--green)"
+        : sc >= 28 ? "var(--ink)" : "var(--blue)";
     } else {
       $("tSunset").textContent = wxLive ? "нет данных на этот день" : "прогноз имитируется";
-      $("tSunset").style.color = "#8A8478";
+      $("tSunset").style.color = "var(--ink-4)";
     }
     // Золотой час — окно, не момент: чтобы не спутать его с закатом
     $("tGolden").textContent = (SUN.goldB === null || SUN.set === null)
@@ -4292,6 +4333,9 @@
   /* ============================================================
      ЭКРАН «КАРТА»
      ============================================================ */
+  /* Фон полотна карты: на тёмной теме это наш холст, на светлой — обычная
+     карта. Метки обводятся им же, чтобы читаться на любом из двух */
+  function mapInk() { return theme === "light" ? "#FBF9F5" : "#14110E"; }
   var MPX = 179, MPY = 170, MR = 112;   // центр и радиус горизонта в системе viewBox 358×340
 
   /* Радиус означает высоту светила: зенит — центр круга, горизонт — обод,
@@ -4423,7 +4467,7 @@
     [[SUN.rise, "start", 9], [SUN.set, "end", -9]].forEach(function (m) {
       if (m[0] === null) return;
       var pt = A(azAt(m[0]), altR(elevAt(m[0])));
-      svg.appendChild(el("circle", { cx: pt[0], cy: pt[1], r: 3.5, fill: "#14110E", stroke: "#E2A44C", "stroke-width": 1.5 }));
+      svg.appendChild(el("circle", { cx: pt[0], cy: pt[1], r: 3.5, fill: mapInk(), stroke: "#E2A44C", "stroke-width": 1.5 }));
       var tx = el("text", { x: pt[0] + m[2], y: pt[1] + 4, fill: "#A89C86", "font-size": 11,
         "text-anchor": m[1], "font-family": "-apple-system, sans-serif", "font-weight": 600 });
       tx.textContent = fmt(m[0]); svg.appendChild(tx);
@@ -4447,7 +4491,7 @@
     if (mNow.alt > -3) {
       var mpos = A(mNow.az, altR(mNow.alt));
       svg.appendChild(el("circle", { cx: mpos[0], cy: mpos[1], r: 4.5,
-        fill: mNow.alt > 0 ? "#CFD6DE" : "rgba(207,214,222,0.45)", stroke: "#14110E", "stroke-width": 1.5 }));
+        fill: mNow.alt > 0 ? "#CFD6DE" : "rgba(207,214,222,0.45)", stroke: mapInk(), "stroke-width": 1.5 }));
     }
 
     // Луч и солнце — на радиусе своей высоты
@@ -4544,7 +4588,12 @@
   }
 
   /* ---------- Настоящая карта: Leaflet + тёмные тайлы ---------- */
-  var lmap = null, mapQuiet = false;
+  var lmap = null, mapQuiet = false, tiles = null;
+  function tileURL() {
+    return theme === "light"
+      ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
+      : "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
+  }
   function tzFor(lon) { return Math.max(-12, Math.min(14, HOME_TZ + Math.round((lon - HOME_LON) / 15))); }
   function coordText(lat, lon) {
     return Math.abs(lat).toFixed(3) + " " + (lat >= 0 ? "N" : "S")
@@ -4613,7 +4662,12 @@
   function initMap() {
     if (lmap || typeof L === "undefined") return;
     lmap = L.map("lmap", { zoomControl: false, attributionControl: true }).setView([LAT, LON], 15);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+    /* Полотно карты зависит от темы. Тёмная получает монохромный холст
+       (dark_nolabels) — он и задумывался как фон для слоя света. Светлой он не
+       годится: чёрная карта под светлым интерфейсом выглядит дырой. Там стоит
+       voyager_nolabels — обычная карта в привычных цветах, тоже без подписей,
+       чтобы имена улиц не спорили с нашей разметкой. */
+    tiles = L.tileLayer(tileURL(), {
       subdomains: "abcd", maxZoom: 19, attribution: "© OpenStreetMap · CARTO"
     }).addTo(lmap);
     // Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место
@@ -8677,10 +8731,11 @@
 
   function renderBlk() {
     $("blkKind").innerHTML = BLOCK_KINDS.map(function (x) {
-      return '<button type="button" class="gsel' + (blk.k === x.k ? " on" : "") + '" data-k="' + x.k + '">'
-        + '<span class="gs-ic" data-ic="' + x.ic + '"></span><span class="gs-t">' + x.n + "</span></button>";
+      // .tool — те же пиктограммы, что у жанров и погоды. Свой класс я завёл
+      // по ошибке, стилей у него не было, и кнопки падали в браузерное умолчание
+      return '<button type="button" class="tool' + (blk.k === x.k ? " active" : "") + '" data-k="' + x.k + '">'
+        + IC.svg(x.ic) + "<span>" + x.n + "</span></button>";
     }).join("");
-    paintIcons($("blkKind"));
     $("blkKind").querySelectorAll("[data-k]").forEach(function (b) {
       b.addEventListener("click", function () { blk.k = b.dataset.k; renderBlk(); });
     });
