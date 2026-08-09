@@ -1083,6 +1083,7 @@
   .loc-detect svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
   .loc-detect:active { opacity: 0.6; }
   .loc-fields { display: flex; gap: 10px; margin-top: 12px; }
+  .loc-fields label { flex: 0 1 150px; }
   .loc-fields label {
     flex: 1; display: flex; flex-direction: column; gap: 6px;
     font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-7); font-weight: 600;
@@ -1179,13 +1180,13 @@
   .dial::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 11px; height: 24px; border-radius: 5px;
-    background: var(--ink); border: 2px solid var(--surface);
+    background: var(--knob); border: 2px solid var(--knob-edge);
     box-shadow: 0 0 0 1px var(--ink-a20), 0 3px 8px rgba(0,0,0,0.5);
     margin-top: -10.5px;
   }
   .dial::-moz-range-thumb {
     width: 11px; height: 24px; border-radius: 5px;
-    background: var(--ink); border: 2px solid var(--surface);
+    background: var(--knob); border: 2px solid var(--knob-edge);
     box-shadow: 0 0 0 1px var(--ink-a20), 0 3px 8px rgba(0,0,0,0.5);
   }
   .dial-ticks {
@@ -1559,6 +1560,10 @@
   .rt-row .rt-in-n { flex: 1; }
   /* Место в строке маршрута: поле и кнопка выбора из сохранённых точек.
      Фотограф ездит по одним и тем же адресам — набирать их заново незачем */
+  /* Второй человек отделён воздухом: две пары «имя — телефон» подряд без
+     паузы читались одним списком из четырёх полей */
+  #fP2Name { margin-top: 9px; }
+
   .rt-place { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; }
   .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
   .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
@@ -1665,6 +1670,7 @@
   /* Дата и время — две отдельные капсулы в одной строке: мероприятие может
      начаться восьмого и кончиться девятого, и обе даты нужно видеть и править */
   .caps { display: flex; align-items: center; gap: 6px; }
+  .caps .rv-v { min-width: 72px; text-align: center; }
   .row .rv-v {
     display: inline-block; padding: 5px 10px; border-radius: 9px; border: none;
     background: var(--field); color: var(--ink); font-variant-numeric: tabular-nums;
@@ -1705,7 +1711,11 @@
      явно: это правило специфичнее их собственного и гасило бы им фон и отступы.
      Исключение записано в селекторе, чтобы граница двух видов полей была видна
      здесь же, а не всплывала потом каскадом (грабля повторялась трижды) */
-  .group input[type="text"]:not(.pay-in):not(.step-in),
+  /* :where() вокруг исключений — он не добавляет специфичности. С обычным
+     :not() селектор становился (0,4,1) и перебивал правило [hidden] ниже:
+     скрытые текстовые поля вылезали наружу, а tel оставались скрытыми,
+     потому что их селектор не менялся. Пятый раз эта грабля. */
+  .group input[type="text"]:not(:where(.pay-in, .step-in)),
   .group input[type="tel"], .group textarea {
     display: block; width: 100%; background: none; border: none;
     color: var(--ink); font-family: inherit; font-size: 16px;
@@ -2667,10 +2677,10 @@
       <input class="sep" type="text" id="fContact" placeholder="Имя или телефон клиента"/>
       <!-- У события снимают двоих, и у каждого своё имя и свой телефон:
            звонить приходится то невесте, то жениху. Подписи ставит жанр -->
-      <input class="sep" type="text" id="fP1Name" placeholder="Невеста" hidden/>
-      <input class="sep" type="tel"  id="fP1Tel"  placeholder="Телефон невесты" hidden/>
-      <input class="sep" type="text" id="fP2Name" placeholder="Жених" hidden/>
-      <input class="sep" type="tel"  id="fP2Tel"  placeholder="Телефон жениха" hidden/>
+      <input class="sep" type="text" id="fP1Name" placeholder="Имя невесты" hidden/>
+      <input class="sep pair-end" type="tel"  id="fP1Tel"  placeholder="Телефон" hidden/>
+      <input class="sep" type="text" id="fP2Name" placeholder="Имя жениха" hidden/>
+      <input class="sep pair-end" type="tel"  id="fP2Tel"  placeholder="Телефон" hidden/>
       <!-- У заказа платит юрлицо, у события есть организатор: выбираем из
            общего списка. Разбор строки «Ромашка · Пётр» был временным -->
       <button class="row sep" id="fOrgRow" hidden><span id="fOrgLabel">Заказчик</span>
@@ -2678,9 +2688,17 @@
       </button>
       <input class="sep" type="text" id="fPerson" placeholder="Контактное лицо" hidden/>
       <input class="sep" type="tel" id="fPhone" placeholder="Телефон" hidden/>
-      <!-- Выезд свёрнут до тумблера: город спрашиваем, только когда едем -->
-      <div class="row sep" id="fTripRow">Выезд в другой город<span class="toggle" id="fTrip"></span></div>
-      <input class="sep" type="text" id="fTripPlace" placeholder="Куда едем" hidden/>
+      <!-- Гости — мерка людей, а не порядок точек дня: из таймлайна строка переехала
+           сюда, к паре и организатору. По умолчанию ноль: свадьбы бывают без гостей -->
+      <div class="pay-row" id="fGuestsRow" hidden>
+        <span class="k">Гостей</span>
+        <span class="stepper">
+          <button type="button" id="fGuestsMinus" aria-label="Меньше">−</button>
+          <input class="step-in" type="text" inputmode="numeric" id="fGuestsVal"
+                 aria-label="Сколько гостей" placeholder="—"/>
+          <button type="button" id="fGuestsPlus" aria-label="Больше">+</button>
+        </span>
+      </div>
       <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
     </div>
 
@@ -2741,16 +2759,6 @@
          ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
     <div class="g-label" id="fRouteLabel" hidden>Таймлайн дня</div>
     <div class="group" id="fRouteGroup" hidden>
-      <!-- Гости — масштаб дня: сколько людей в кадре и сколько уйдёт на общий -->
-      <div class="pay-row" id="fGuestsRow" hidden>
-        <span class="k">Гостей</span>
-        <span class="stepper">
-          <button type="button" id="fGuestsMinus" aria-label="Меньше">−</button>
-          <input class="step-in" type="text" inputmode="numeric" id="fGuestsVal"
-                 aria-label="Сколько гостей" placeholder="—"/>
-          <button type="button" id="fGuestsPlus" aria-label="Больше">+</button>
-        </span>
-      </div>
       <div id="fRouteList"></div>
       <button type="button" class="rt-add" id="fRouteAdd">+ Сцена</button>
     </div>
@@ -3000,6 +3008,15 @@
       <input id="locQuery" type="text" placeholder="Лагерный сад, Томск" autocomplete="off"/>
     </div>
     <div class="loc-results" id="locResults"></div>
+    <!-- Название спрашиваем прямым текстом: геокодер знает район, а человек
+         думает населённым пунктом — «Томск», «деревня Иваново» -->
+    <div class="group" id="locPlaceGroup" hidden style="margin-top:12px;">
+      <input class="sep" type="text" id="locName" placeholder="Населённый пункт"/>
+      <div class="row sep"><span class="rl">Выезд в другой город</span>
+        <span class="rv"><span class="toggle" id="locTrip"></span></span>
+      </div>
+    </div>
+    <!-- Координаты — запасной путь, поэтому парой, а не в разные концы строки -->
     <div class="loc-fields">
       <label>Широта<input id="locLat" type="text" inputmode="decimal" placeholder="56.021"/></label>
       <label>Долгота<input id="locLon" type="text" inputmode="decimal" placeholder="37.482"/></label>
@@ -3453,6 +3470,10 @@
   }
   var rgb = function (c) { return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; };
   var rgba = function (c, a) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; };
+  /* Цвет из модели света годится для дуги и зарева, но не для подписи: в полдень
+     он почти белый, и на светлой теме слово исчезало. Небо остаётся цветным,
+     а подпись — это подпись, ей нужна читаемость. */
+  var labelColor = function (c) { return theme === "light" ? "var(--ink-3)" : rgb(c); };
 
   /* Пиктограммы: экспонометр света, звёзды и погода */
   function meterHTML(level, color) {
@@ -3894,6 +3915,7 @@
 
   /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
      на карте живут своими цветами в этом файле и темой не управляются */
+  var booted = false;
   var theme = (saved && saved.theme === "light") ? "light" : "dark";
   function applyTheme(t) {
     theme = t;
@@ -3904,6 +3926,9 @@
       b.classList.toggle("active", b.dataset.theme === t);
     });
     if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
+    /* Часть цветов ставится из кода (подписи фаз, метки на карте) — их сменой
+       класса не переключить, экраны надо перерисовать */
+    if (booted) { renderToday(); renderMap(); }
   }
 
   /* ---------- Занятое время ----------
@@ -4116,7 +4141,7 @@
     $("moonHalo").setAttribute("opacity", (ph.fraction * vis).toFixed(2));
 
     $("drPhase").textContent = phaseName(ph.phase);
-    $("drPhase").style.color = "#A8BDD8";
+    $("drPhase").style.color = theme === "light" ? "var(--ink-3)" : "#A8BDD8";
     var pct = Math.round(ph.fraction * 100) + "%";
     $("drSense").textContent = m.alt > 0
       ? "освещена на " + pct + " · высота " + m.alt.toFixed(0) + "°"
@@ -4202,7 +4227,7 @@
     $("drTime").textContent = fmt(t);
     if (!moon) {
       $("drPhase").textContent = st.label;
-      $("drPhase").style.color = col;
+      $("drPhase").style.color = labelColor(st.c);
       $("drSense").textContent = st.sense;
     }
 
@@ -4403,7 +4428,12 @@
   /* Фон полотна карты: на тёмной теме это наш холст, на светлой — обычная
      карта. Метки обводятся им же, чтобы читаться на любом из двух */
   function mapInk() { return theme === "light" ? "#FBF9F5" : "#14110E"; }
-  var MPX = 179, MPY = 170, MR = 112;   // центр и радиус горизонта в системе viewBox 358×340
+  /* Кольца компаса рисуются поверх полотна: на тёмном светлым, на светлом тёмным */
+  function ringColor(a) {
+    return theme === "light" ? "rgba(30,26,20," + (a * 1.5).toFixed(2) + ")"
+                             : "rgba(239,234,224," + a + ")";
+  }
+  var MPX = 179, MPY = 170, MR = 118;   // центр и радиус горизонта в системе viewBox 358×340
 
   /* Радиус означает высоту светила: зенит — центр круга, горизонт — обод,
      сумерки уходят наружу. Прежде радиус был постоянным и не значил ничего:
@@ -4414,9 +4444,9 @@
   /* Обод компаса — заданный радиус, а не «отступ от пути»: на нём стоят и буквы
      сторон света, и градусы, одним кольцом. Раздельные кольца съедали радиус,
      из-за которого компас и казался мелким. */
-  var COMPASS_R = 152;
-  var TICK_OUT = 146, TICK_IN = 139;               // деления — внутри обода, под текстом
-  var HOUR_LBL_MAX = 134;                          // дальше подписи часов не уходят
+  var COMPASS_R = 160;
+  var TICK_OUT = 154, TICK_IN = 147;               // деления — внутри обода, под текстом
+  var HOUR_LBL_MAX = 142;                          // дальше подписи часов не уходят
   function altR(alt) {
     return Math.max(8, Math.min(PATH_MAX_R, MR * (1 - alt / 90)));
   }
@@ -4470,7 +4500,12 @@
        нулевой высоты, от которой читается вся проекция: внутри светило над
        землёй, снаружи под ней. Раз оно значит больше, оно и весит больше. */
     svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: MR, fill: "none",
-      stroke: "rgba(239,234,224,0.20)", "stroke-width": 1 }));
+      stroke: ringColor(0.20), "stroke-width": 1 }));
+    /* Своя окружность компаса. Без неё обод существовал только там, где стоят
+       буквы, и у экватора это разваливалось: путь солнца уходит к центру, а
+       глазу не за что зацепиться, чтобы понять, где горизонт, а где стороны света */
+    svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: COMPASS_R - 8, fill: "none",
+      stroke: ringColor(0.13), "stroke-width": 1 }));
 
     /* Путь солнца за сутки: от местной полуночи до следующей — так сутки
        остаются целыми в дни перевода часов, когда их 23 или 25.
@@ -4604,10 +4639,10 @@
     $("mrTime").textContent = fmt(t);
     if (skyMode === "moon") {
       $("mrPhase").textContent = phaseName(moonPhase(selDate, t).phase);
-      $("mrPhase").style.color = "#A8BDD8";
+      $("mrPhase").style.color = theme === "light" ? "var(--ink-3)" : "#A8BDD8";
     } else {
       $("mrPhase").textContent = mst.label;
-      $("mrPhase").style.color = rgb(mst.c);
+      $("mrPhase").style.color = labelColor(mst.c);
     }
 
     // Сводка карты — честная физика, без выдуманных зданий
@@ -6347,7 +6382,7 @@
       .then(function (r) { return r.json(); }).then(function (j) {
         if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;
         sessionPlace.city = !!(j.city || j.locality);
-        if (!sessionPlace.name) sessionPlace.name = j.locality || j.city || "";
+        if (!sessionPlace.name) sessionPlace.name = j.city || j.locality || "";
         renderSessionPlace();
       }).catch(function () {});
   }
@@ -6571,8 +6606,10 @@
     /* Подписи людей и организатора ставит жанр: у свадьбы невеста с женихом,
        у праздника виновник торжества, у заказа контактное лицо */
     var pp = personsOf(shootType);
-    if (pp[0]) { $("fP1Name").placeholder = pp[0]; $("fP1Tel").placeholder = "Телефон · " + pp[0].toLowerCase(); }
-    if (pp[1]) { $("fP2Name").placeholder = pp[1]; $("fP2Tel").placeholder = "Телефон · " + pp[1].toLowerCase(); }
+    /* «Телефон · невеста» под строкой «Невеста» повторял слово впустую:
+       поле стоит следом, и чей это телефон, видно без подписи */
+    if (pp[0]) { $("fP1Name").placeholder = "Имя · " + pp[0].toLowerCase(); $("fP1Tel").placeholder = "Телефон"; }
+    if (pp[1]) { $("fP2Name").placeholder = "Имя · " + pp[1].toLowerCase(); $("fP2Tel").placeholder = "Телефон"; }
     $("fOrgLabel").textContent = gr.org || "Заказчик";
     $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
@@ -6585,7 +6622,7 @@
     /* Перерисовываем всегда, а не только при засеве: подсказки точек идут от
        жанра, и пустой список иначе остаётся с чужими словами */
     if (shown.fRouteGroup) renderRouteEditor();
-    renderFormOrg(); renderGuests(); renderTrip();
+    renderFormOrg(); renderGuests();
   }
   /* ---------- Заказчик в форме ----------
      Организация выбирается на общем экране: список там уже есть, второй такой
@@ -6622,19 +6659,9 @@
     openOrgs();
   });
 
-  /* Выезд: тумблер открывает поле города и ничего больше не значит.
-     Выключили — город стирается: пустой «Куда едем» врал бы в карточке */
-  function renderTrip() {
-    var on = $("fTrip").classList.contains("on");
-    $("fTripPlace").hidden = !on;
-    if (!on) $("fTripPlace").value = "";
-  }
-  $("fTrip").addEventListener("click", function () {
-    this.classList.toggle("on");
-    renderTrip();
-    if (!this.classList.contains("on")) return;
-    $("fTripPlace").focus();
-  });
+  /* Выезд живёт в листе «Место съёмки»: он про место, и спрашивать про него
+     отдельной строкой формы значило бы разложить один вопрос по двум экранам */
+  var fTrip = false;
   var GUESTS_MAX = 2000;
   function renderGuests() {
     if (document.activeElement !== $("fGuestsVal")) $("fGuestsVal").value = fGuests || "";
@@ -8170,8 +8197,7 @@
          (docs/12_CARD_ARCHITECTURE.md, «Совместимость») */
       fPrepay = +s.prepay || 0; fGuests = +s.guests || 0;
       $("fPrepay").value = fPrepay || "";
-      $("fTrip").classList.toggle("on", !!s.trip);
-      $("fTripPlace").value = s.tripPlace || "";
+      fTrip = !!s.trip;
       $("fBrief").value = s.brief || "";
       $("fModels").value = s.models || "";
       fDocs = Array.isArray(s.docs)
@@ -8197,8 +8223,7 @@
       $("fP2Name").value = ""; $("fP2Tel").value = "";
       fPrepay = 0; fGuests = 0; fDocs = [];
       $("fPrepay").value = "";
-      $("fTrip").classList.remove("on");
-      $("fTripPlace").value = "";
+      fTrip = false;
       $("fBrief").value = ""; $("fModels").value = "";
       // Новая съёмка начинается там, где сейчас смотрим свет
       sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
@@ -8432,7 +8457,7 @@
       /* Пустое поле не пишется значением: гости нулём и выезд ложью — те же
          пустые поля, и в карточке их быть не должно */
       guests: fGuests || 0,
-      trip: $("fTrip").classList.contains("on"), tripPlace: $("fTripPlace").value.trim(),
+      trip: fTrip, tripPlace: fTrip ? sessionPlace.name : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
       docs: fDocs.filter(function (r) { return r.k === "link" || r.path; })
         .map(function (r) {
@@ -9092,6 +9117,11 @@
     $("locQuery").value = ""; $("locResults").innerHTML = "";
     locPickName = isSession ? (base.name || "") : "";
     $("locErr").textContent = "";
+    $("locPlaceGroup").hidden = !isSession;      // выезд и название — про съёмку
+    if (isSession) {
+      $("locName").value = base.name || "";
+      $("locTrip").classList.toggle("on", fTrip);
+    }
     $("locDetectLbl").textContent = "Определить моё место";
     renderSpots();
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
@@ -9237,6 +9267,10 @@
     });
   }
   $("locScrim").addEventListener("click", closeLocSheet);
+  $("locTrip").addEventListener("click", function () { this.classList.toggle("on"); });
+  /* Имя, введённое руками, геокодер больше не перебивает: человек назвал
+     место так, как ему удобно, и «уточнять» это до района незачем */
+  $("locName").addEventListener("input", function () { locPickName = this.value.trim(); });
   $("locDetect").addEventListener("click", function () {
     if (locTarget === "session") {          // для съёмки геолокация только заполняет поля
       if (!navigator.geolocation) { $("locErr").textContent = "Геолокация недоступна"; return; }
@@ -9312,7 +9346,8 @@
     if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = "Широта — число от −90 до 90"; return; }
     if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = "Долгота — число от −180 до 180"; return; }
     if (locTarget === "session") {
-      setSessionPlace(la, lo, locPickName);
+      fTrip = $("locTrip").classList.contains("on");
+      setSessionPlace(la, lo, ($("locName").value || "").trim() || locPickName);
     } else {
       gotoLocation(la, lo);
     }
@@ -9363,6 +9398,7 @@
   });
 
   applyDate();
+  booted = true;                 // дальше смена темы перерисовывает экраны сама
   setMapFold(mapFoldShut);
   renderSpotMark();
   renderDelvSettings();
