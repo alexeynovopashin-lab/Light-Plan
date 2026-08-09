@@ -1016,6 +1016,17 @@
     border-radius: 50%; background: #fff; transition: transform 0.3s ease;
   }
   .toggle.on::after { transform: translateX(20px); }
+  /* Правовая информация: список служб, а не простыня текста. Читают её редко,
+     но найти обязаны — поэтому строки, а не свёрнутый спойлер */
+  .legal { padding: 2px 24px 0; }
+  .lg-row { display: flex; gap: 14px; align-items: baseline; padding: 8px 0;
+    border-bottom: 1px solid var(--hair-2); font-size: 13px; }
+  .lg-row:last-child { border-bottom: none; }
+  .lg-k { color: var(--ink-4); flex: 0 0 108px; }
+  .lg-v { color: var(--ink-2); flex: 1; line-height: 1.45; }
+  .lg-v a { color: var(--brass); text-decoration: none; }
+  .lg-v a:active { text-decoration: underline; }
+
   .foot { text-align: center; color: var(--ink-9); font-size: 12px; padding: 36px 0 12px; line-height: 1.7; }
   #buildInfo { color: var(--edge); font-variant-numeric: tabular-nums; }
 
@@ -2299,6 +2310,30 @@
     <div class="sec-label">Единицы и язык</div>
     <div class="item"><span class="k">Температура</span><span class="v">°C ›</span></div>
     <div class="item"><span class="k">Язык</span><span class="v">Русский ›</span></div>
+
+    <!-- Копирайт карты переехал сюда с полотна: на экране «Карта» строка
+         лицензии занимала правую половину нижнего края и резала компас.
+         Лицензии OSM и CARTO это допускают — требование в доступности
+         указания, а не в том, чтобы оно лежало поверх карты. -->
+    <div class="sec-label">Правовая информация</div>
+    <div class="legal">
+      <div class="lg-row"><span class="lg-k">Карта</span>
+        <span class="lg-v">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>,
+          участники · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></span></div>
+      <div class="lg-row"><span class="lg-k">Карты и слои</span>
+        <span class="lg-v"><a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> 1.9.4 · BSD-2-Clause</span></div>
+      <div class="lg-row"><span class="lg-k">Погода</span>
+        <span class="lg-v"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0</span></div>
+      <div class="lg-row"><span class="lg-k">Поиск места</span>
+        <span class="lg-v"><a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a> · OpenStreetMap</span></div>
+      <div class="lg-row"><span class="lg-k">Имя места</span>
+        <span class="lg-v"><a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a></span></div>
+      <div class="lg-row"><span class="lg-k">Копия данных</span>
+        <span class="lg-v">Яндекс.Диск · только папка приложения</span></div>
+      <div class="lg-row"><span class="lg-k">Солнце и луна</span>
+        <span class="lg-v">своя модель по алгоритмам NOAA</span></div>
+    </div>
+    <p class="seg-note">Съёмки, места и настройки хранятся на устройстве. На наш сервер не уходит ничего — его нет.</p>
 
     <div class="foot">Light Plan · прибор для света<br><span id="buildInfo">сборка —</span></div>
   </section>
@@ -4661,14 +4696,14 @@
   }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
-    lmap = L.map("lmap", { zoomControl: false, attributionControl: true }).setView([LAT, LON], 15);
+    lmap = L.map("lmap", { zoomControl: false, attributionControl: false }).setView([LAT, LON], 15);
     /* Полотно карты зависит от темы. Тёмная получает монохромный холст
        (dark_nolabels) — он и задумывался как фон для слоя света. Светлой он не
        годится: чёрная карта под светлым интерфейсом выглядит дырой. Там стоит
        voyager_nolabels — обычная карта в привычных цветах, тоже без подписей,
        чтобы имена улиц не спорили с нашей разметкой. */
     tiles = L.tileLayer(tileURL(), {
-      subdomains: "abcd", maxZoom: 19, attribution: "© OpenStreetMap · CARTO"
+      subdomains: "abcd", maxZoom: 19
     }).addTo(lmap);
     // Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место
     lmap.on("moveend", function () {
