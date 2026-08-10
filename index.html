@@ -668,10 +668,20 @@
   .day-toggle .chev { transition: transform 0.35s ease; font-size: 13px; margin-top: -2px; }
   .day-toggle.open .chev { transform: rotate(180deg); }
   /* паддинг внутри, иначе свёрнутая панель всё равно занимает место */
-  .day-panel { max-height: 0; overflow: hidden; padding: 0 24px; flex-shrink: 0;
+  /* Сводка дня — свой контейнер с обводкой. Экран держит две вещи разного
+     рода: что за день по свету и погоде, и как он расписан по часам. Пока
+     сводка лежала на общем фоне, она читалась началом ленты, хотя лентой не
+     является. Рамка эту границу и проводит.
+     Паддинг внутри обёртки, а не у самой панели: у свёрнутой `max-height: 0`
+     всё равно оставляет высоту паддинга (грабли из DECISIONS). */
+  .day-panel { max-height: 0; overflow: hidden; flex-shrink: 0; margin: 0 20px;
     transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
   .day-panel.open { max-height: 420px; }
-  .dp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-top: 16px; }
+  .dp-box {
+    border-radius: 16px; padding: 14px 16px 12px;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .dp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
   #plannedLabel { padding-top: 16px; }
 
   /* Компактный список съёмок дня */
@@ -948,11 +958,22 @@
   /* Свободное окно — не пробел, а сведение: фотограф решает по нему, влезет ли
      ещё съёмка. Поэтому у него своя строка, а не пустота между событиями */
   .dl-row.free .dl-axis::before { background: none; border-left: 1px dashed var(--ink-10); left: calc(50% - 0.5px); }
+  /* Слот приглушён: он предлагает, а не требует. Тап заводит съёмку на это
+     время — «＋ съёмка» проступает справа, чтобы предложение было названо, а
+     не угадывалось */
   .dl-free {
+    display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
+    background: none; border: none; cursor: pointer; font-family: inherit;
     font-size: 12px; color: var(--ink-5); letter-spacing: 0.4px;
-    text-transform: uppercase; padding: 2px 0 16px 10px;
+    text-transform: uppercase; padding: 4px 0 16px 10px;
   }
   .dl-free b { color: var(--ink-3); font-weight: 600; letter-spacing: 0; text-transform: none; }
+  .dl-free i {
+    margin-left: auto; font-style: normal; text-transform: none; letter-spacing: 0;
+    color: var(--brass-deep); opacity: 0.75;
+  }
+  .dl-free:active { color: var(--ink-3); }
+  .dl-free:active i { opacity: 1; }
   /* Свет на оси: закат и золотой час стоят своим временем среди событий —
      это то, чего нет ни в одном обычном календаре */
   .dl-row.light .dl-time { color: var(--brass-deep); }
@@ -2459,6 +2480,7 @@
          причина и уверенность прогноза свелись к одной строке, а «посмотреть
          свет» из кнопки-плашки стало ссылкой -->
     <div class="day-panel" id="dayPanel">
+     <div class="dp-box">
       <div class="dp-head">
         <div>
           <div class="dp-date" id="dpDate">—</div>
@@ -2472,6 +2494,7 @@
       </div>
       <div class="dp-window" id="dpWindow">—</div>
       <button class="dp-link" id="seeLight">Посмотреть свет этого дня →</button>
+     </div>
     </div>
 
     <div class="sec-label" id="plannedLabel">Запланировано</div>
@@ -5635,10 +5658,20 @@
     var html = "", prevEnd = null;
     /* Свободное окно называется только когда оно рабочее. Пятнадцать минут
        между съёмками — это не окно, а перебежка, и сообщать о ней незачем */
+    /* Окно — не подпись, а место: тап заводит съёмку прямо в него. Иначе
+       фотограф видит «свободно 3 ч 30 мин», а чтобы этим воспользоваться,
+       идёт в кнопку внизу экрана и выставляет время руками — при том что
+       приложение его уже знает.
+       Начало округляется до получаса вверх: время, которое ставят руками,
+       называют получасами («в четыре»), и подставлять 15:58 было бы издёвкой.
+       Это ровно то различение, что записано о шаге времени: свет не
+       округляем никогда, а назначенное человеком — всегда. */
     function freeGap(from, to) {
       if (from == null || to - from < 60) return "";
+      var at = Math.min(Math.ceil(from / 30) * 30, to - 30);
       return '<div class="dl-row free"><div class="dl-time"></div><div class="dl-axis"></div>'
-        + '<div class="dl-free">свободно · <b>' + durLabel(to - from) + "</b></div></div>";
+        + '<button type="button" class="dl-free" data-at="' + at + '">свободно · <b>'
+        + durLabel(to - from) + "</b><i>＋ съёмка</i></button></div>";
     }
     /* Отметка света встаёт между событиями своим временем. Это и есть то, чего
        не умеет обычный календарь: он покажет пустой вечер, но не скажет, что
@@ -5710,10 +5743,18 @@
         else removeSession(+b.dataset.i);
       });
     });
+    /* Тап по свободному окну заводит съёмку на его время: приложение уже
+       знает, когда окно начинается, и спрашивать это второй раз незачем */
+    box.querySelectorAll(".dl-free").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (closeSwipes()) return;
+        openForm(calSel, +b.dataset.at, null, false);
+      });
+    });
     paintIcons(box);
-    var busy = idxs.length + bls.length;
-    $("plannedLabel").textContent = busy ? "Запланировано" : "Свободный день";
-    $("planDay").querySelector(".lbl").textContent = idxs.length ? "Добавить съёмку" : "Запланировать съёмку";
+    var shootCount = items.filter(function (x) { return x.kind !== "busy"; }).length;
+    $("plannedLabel").textContent = items.length ? "Запланировано" : "Свободный день";
+    $("planDay").querySelector(".lbl").textContent = shootCount ? "Добавить съёмку" : "Запланировать съёмку";
   }
 
   /* ---------- Свайп влево по строке съёмки ---------- */
@@ -8837,7 +8878,14 @@
       fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "" }; });
       payFolded = true;
     } else {
-      fAuto = true;
+      /* Подстраивать начало под свет можно только тогда, когда его и предложил
+         свет. Время, названное человеком — тап по свободному окну в ленте
+         дня, — принадлежит ему: приложение знает про закат, но решает всё
+         равно фотограф. Без этого тап по окну «16:00» открывал форму на
+         19:18, то есть отвечал не на то, что нажали.
+         Время не передано вовсе (свободный день в неделе) — подбираем светом,
+         иначе подставлять было бы нечего */
+      fAuto = (startMin == null) || !!fromLight;
       /* Время пришло от света («Запланировать» на золотой час) — не округляем;
          обычное начало округляем до шага, чтобы не ставить 19:47 руками */
       fLight = !!fromLight;
