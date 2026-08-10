@@ -2742,7 +2742,17 @@
     </div>
 
     <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
-    <div class="g-label" id="fPayLabel">Оплата</div>
+    <!-- Шестерёнка повторяет ту, что у «Съёмки»: коллега, впервые увидевшая
+         приложение, не догадалась, что цену и пакеты настраивают через «＋ свой».
+         Знак настроек про это говорит сам, а чипс — нет -->
+    <div class="g-label" id="fPayLabel">Оплата
+      <button class="gear" id="fPayGear" aria-label="Ставка и пакеты">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
     <div class="group" id="fPayGroup">
       <!-- Спойлер: свёрнутая оплата показывает способ и итог одной строкой -->
       <button class="row" id="fPayFold">
@@ -6208,7 +6218,19 @@
     $("fPayType").querySelectorAll(".chip").forEach(function (ch) {
       ch.addEventListener("click", function () {
         if (ch.dataset.k === fPay) return;
+        var wasMech = PAY[fPay].m, wasPack = fPay === "pack";
         fPay = ch.dataset.k; rememberGenre("pay", fPay);
+        var nowMech = PAY[fPay].m;
+        /* Число в поле означает разное: ставку в час, цену за предмет, сумму
+           сделки. Сменилась механика — прежнее значение становится ложью, и
+           сорок тысяч за пакет оказывались ставкой в час. Стираем, а не
+           подсовываем под новой подписью.
+           Вход в пакеты чистим отдельно: иначе случайно совпавшая сумма
+           подсветила бы пакет, которого никто не выбирал. */
+        if (nowMech !== wasMech || fPay === "pack" || wasPack) {
+          fRate = nowMech === "hourly" ? (defaultRate || 0) : 0;
+          $("fRate").value = fRate || "";
+        }
         renderPay();
       });
     });
@@ -6230,15 +6252,9 @@
       $("fPackChips").innerHTML = live.map(function (p, i) {
         return '<button class="chip' + (p.p === fRate ? " active" : "") + '" data-p="' + i + '">'
           + (p.n || money(p.p)) + "</button>";
-      }).join("") + '<button class="chip" data-p="new">＋ свой</button>';
+      }).join("");
       $("fPackChips").querySelectorAll(".chip").forEach(function (ch) {
         ch.addEventListener("click", function () {
-          if (ch.dataset.p === "new") {           // настроить свой пакет — в «Мои жанры»
-            renderGenreList(); renderPackEditor();
-            $("gRate").value = defaultRate || "";
-            $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
-            return;
-          }
           var p = live[+ch.dataset.p];
           fRate = p.p;
           $("fRate").value = fRate;
@@ -8576,6 +8592,7 @@
     var last = $("packList").querySelector(".pack-item:last-child .pk-n");
     if (last) last.focus();
   });
+  $("fPayGear").addEventListener("click", function () { $("fGear").click(); });
   $("fGear").addEventListener("click", function () {
     renderGenreList();
     renderGenreRefs();
