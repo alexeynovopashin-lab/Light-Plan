@@ -18,6 +18,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <!-- Словарь знаков: одно место, где живут все SVG приложения (icons.js) -->
 <script src="icons.js"></script>
+<script src="lang.js"></script>
 <style>
   /* ============================================================
      ЦВЕТА ОДНИМ СПИСКОМ
@@ -5357,12 +5358,12 @@
     "Репортаж": ["репортаж", "репортажа", "репортажей"],
     "Предметка": ["предметка", "предметки", "предметок"]
   };
+  /* Правило множественного числа переехало в язык (`lang.js`): у русского три
+     формы, у английского две, и это свойство языка, а не наших строк.
+     Здесь остался мост для мест, где формы приходят массивом на месте. */
   function plural(n, forms) {
-    var t = n % 100, o = n % 10;
-    if (t >= 11 && t <= 14) return forms[2];
-    if (o === 1) return forms[0];
-    if (o >= 2 && o <= 4) return forms[1];
-    return forms[2];
+    var i = LANG.index(n);
+    return forms[i] != null ? forms[i] : forms[forms.length - 1];
   }
   function genreLine(list) {
     var byType = {};
@@ -5373,13 +5374,8 @@
         return "<b>" + byType[t] + "</b> " + plural(byType[t], GENRE_PLURAL[t] || [t, t, t]);
       }).join(" · ");
   }
-  function shootWord(n) {
-    var t = n % 100, o = n % 10;
-    if (t >= 11 && t <= 14) return "съёмок";
-    if (o === 1) return "съёмка";
-    if (o >= 2 && o <= 4) return "съёмки";
-    return "съёмок";
-  }
+  // Слова и правило — в языке; здесь остаётся только вопрос «какое число»
+  function shootWord(n) { return LANG.word("unit.shoot", n); }
 
   function renderDayPanel() {
     var w = dayWindow(calSel), q = w.q;
@@ -6462,19 +6458,15 @@
   });
   var DURS = [30, 60, 90, 120, 180];
   /* По-русски пишем «1,5 часа», а не «1½ ч» */
-  function hourWord(n) {
-    var t = n % 100, o = n % 10;
-    if (t >= 11 && t <= 14) return "часов";
-    if (o === 1) return "час";
-    if (o >= 2 && o <= 4) return "часа";
-    return "часов";
-  }
+  function hourWord(n) { return LANG.word("unit.hour", n); }
   function durLabel(m) {
     var h = Math.floor(m / 60), mm = m % 60;
-    if (h === 0) return mm + " мин";
-    if (mm === 0) return h + " " + hourWord(h);
-    if (mm === 30) return h + ",5 часа";   // при дробном числительном — всегда «часа»
-    return h + " ч " + mm + " мин";
+    if (h === 0) return LANG.t("dur.minutes", { m: mm });
+    if (mm === 0) return LANG.t("dur.hours", { h: h, hourWord: hourWord(h) });
+    /* Половина часа — отдельная строка, а не склейка: при дробном числительном
+       русский всегда требует «часа», и правило числа тут не работает */
+    if (mm === 30) return LANG.t("dur.halfHour", { h: h });
+    return LANG.t("dur.hoursMins", { h: h, m: mm });
   }
   function nearestDur(m) {
     return DURS.reduce(function (a, b) { return Math.abs(b - m) < Math.abs(a - m) ? b : a; });
