@@ -947,7 +947,14 @@
     background: var(--ink-6); border-color: var(--ink-6);
   }
   .dl-body { padding: 0 0 16px 10px; min-width: 0; }
-  .dl-title { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .dl-title { font-size: 15px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 7px; }
+  /* Знак события: латунь у съёмки, приглушённый у встречи и занятости */
+  .dl-ic { display: inline-flex; flex-shrink: 0; }
+  .dl-ic svg {
+    width: 16px; height: 16px; display: block; fill: none;
+    stroke: var(--brass); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .dl-ic.meet svg, .dl-ic.busy svg { stroke: var(--ink-5); }
   .dl-sub {
     font-size: 12px; color: var(--ink-4); margin-top: 2px;
     font-variant-numeric: tabular-nums;
@@ -985,7 +992,11 @@
     content: ""; flex: 1 1 auto; height: 0;
     border-top: 1px dashed rgba(201, 133, 63, 0.45); order: 2;
   }
-  .dl-light span { order: 1; white-space: nowrap; }
+  .dl-light span { order: 1; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+  .dl-light svg {
+    width: 14px; height: 14px; display: block; fill: none;
+    stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
   .dl-row.light .dl-axis::before { background: rgba(201, 133, 63, 0.35); }
   .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
 
@@ -2902,6 +2913,12 @@
     <p class="form-sub" id="formSub">—</p>
     <div class="saved-note" id="savedNote"></div>
 
+    <!-- Наложение стоит вверху формы, а не в подвале. Это ответ на вопрос
+         «а можно ли вообще?», и узнавать о нём, докрутив до референсов,
+         поздно: время к тому моменту уже выбрано. Запрета по-прежнему нет —
+         предупреждаем, но сохранить даём всегда. -->
+    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
+
     <!-- Съёмка: что и когда. Барабаны раскрываются под своей строкой,
          так форма остаётся на виду и не теряется контекст. -->
     <div class="g-label">Съёмка
@@ -3089,7 +3106,6 @@
     <div class="group" id="fWishGroup">
       <div class="g-chips"><div class="chips" id="fWish"></div></div>
     </div>
-    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
 
     <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
     <div class="g-label" id="fRefsLabel">Референсы</div>
@@ -5681,7 +5697,8 @@
       var t = Math.round(w.a);
       if (t <= from || t >= to) return "";
       return '<div class="dl-row light"><div class="dl-time">' + fmt(t) + "</div>"
-        + '<div class="dl-axis"></div><div class="dl-light"><span>' + w.label + "</span></div></div>";
+        + '<div class="dl-axis"></div><div class="dl-light"><span class="dl-lic">'
+        + IC.svg(w.label === "закат" ? "sunset" : "sun") + w.label + "</span></div></div>";
     }
     items.forEach(function (it) {
       html += freeGap(prevEnd, it.a);
@@ -5697,7 +5714,8 @@
           + '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
           + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
           + '<div class="dl-axis"><i class="dl-dot busy"></i></div>'
-          + '<div class="dl-body"><div class="dl-title">' + esc(blockLabel(b)) + "</div>"
+          + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
+          + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
           + '<div class="dl-sub">' + esc(when) + "</div></div></div></div>";
       } else {
         var s = it.s, ds = deliveryState(s), meet = it.kind === "meet";
@@ -5706,7 +5724,13 @@
           + '<div class="dl-row plan-row" data-i="' + it.i + '">'
           + '<div class="dl-time">' + fmt(it.a) + "</div>"
           + '<div class="dl-axis"><i class="dl-dot' + (meet ? " meet" : "") + '"></i></div>'
-          + '<div class="dl-body"><div class="dl-title">' + esc(name) + "</div>"
+          /* Знак опознаётся быстрее подписи: на площадке читают глазом, а не
+             построчно. У встречи он приглушён — латунь достаётся тому, что
+             про свет */
+          + '<div class="dl-body"><div class="dl-title"><span class="dl-ic'
+          + (meet ? " meet" : "") + '">'
+          + IC.svg(meet ? "guests" : (GENRE_SIGN[s.type] || "camera")) + "</span>"
+          + esc(name) + "</div>"
           + '<div class="dl-sub">' + (meet
               ? "встреча · " + esc(shortGenre(s.type).toLowerCase())
               : fmt(it.a) + " – " + fmt(it.b)) + "</div>"
@@ -8963,7 +8987,8 @@
   }
   function renderGenreRefs() {
     var g = shootType, list = genreRefList(g);
-    $("gRefGenre").textContent = "· " + g.toLowerCase();
+    // Подпись называет жанр словом, а не кодом: на экране «· портрет»
+    $("gRefGenre").textContent = "· " + genreName(g).toLowerCase();
     /* Жанр сменили — выбранная папка могла остаться от прежнего набора */
     var tags = refTagsOf(g, list);
     if (gRefTag && tags.indexOf(gRefTag) < 0) gRefTag = null;
