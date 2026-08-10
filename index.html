@@ -874,11 +874,98 @@
 
   /* паддинг задан выше, внутри свёртываемого блока */
   .dp-date { font-size: 11px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
-  .dp-verdict { font-size: 26px; font-weight: 650; letter-spacing: -0.4px; margin-top: 6px; }
-  .dp-why { color: var(--ink-4); font-size: 14px; margin-top: 5px; }
-  .dp-window { margin-top: 14px; font-size: 15px; }
+  /* Вердикт сбавил в размере: главным на экране стала лента времени, и
+     заголовок в 26 пунктов спорил с ней за первый взгляд */
+  .dp-verdict { font-size: 19px; font-weight: 620; letter-spacing: -0.2px; margin-top: 4px; }
+  .dp-window { margin-top: 8px; font-size: 14px; color: var(--ink-3); }
   .dp-window .t { font-variant-numeric: tabular-nums; color: var(--brass); font-weight: 600; }
-  .dp-trust { font-size: 12px; color: var(--ink-6); margin-top: 6px; }
+  /* Ссылка вместо плашки: это переход на соседний экран, а не действие дня */
+  .dp-link {
+    background: none; border: none; padding: 8px 0 0; margin: 0;
+    font-family: inherit; font-size: 13px; color: var(--brass-deep); cursor: pointer;
+  }
+
+  /* ---------- День как лента времени ----------
+     Экран отвечает не «что у меня записано», а «как устроен день»: где заняты
+     часы, где остались окна и куда попадает свет. Поэтому ось времени, а не
+     список карточек — карточка у съёмки своя, лента лишь показывает её местом
+     в сутках.
+     Лента идёт по порядку событий, а не по масштабу часов: пропорция сжала бы
+     вечер в полоску, а пустую середину дня растянула на весь экран. Сколько
+     длится окно, говорят словами — «свободно · 3 ч 30 мин». */
+  .day-line { padding: 0 24px; flex-shrink: 0; }
+  .day-line[hidden] { display: none; }
+  /* Строка ленты — тот же `.plan-row` ради свайпа и тапа, но раскладка своя.
+     `.plan-row` задаёт свой display и паддинги, поэтому оба свойства
+     переписываются явно: правило ниже по файлу при равной специфичности
+     выигрывает, и полагаться на это молча нельзя (грабли из DECISIONS) */
+  .dl-row {
+    display: grid; grid-template-columns: 46px 18px 1fr;
+    align-items: start; padding: 0; gap: 0;
+  }
+  /* Фон нужен свайпу — иначе кнопка «Удалить» просвечивает сквозь строку.
+     Берётся фон самого экрана: строка должна быть невидимой на нём, иначе
+     лента снова превращается в стопку плашек, от которых и уходили */
+  .swipe .dl-row { background: var(--surface); }
+  .dl-time {
+    font-size: 12px; color: var(--ink-5); font-variant-numeric: tabular-nums;
+    padding-top: 1px; letter-spacing: 0.2px;
+  }
+  /* Ось: тонкая нить, общая для всего дня. Рисуется фоном колонки, поэтому
+     не рвётся между строками и не требует своего элемента в каждой */
+  .dl-axis { position: relative; align-self: stretch; }
+  .dl-axis::before {
+    content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 1px; margin-left: -0.5px; background: var(--ink-10);
+  }
+  /* Концы ленты подрезаются по классам, а не по `:first-child`. Каждая строка
+     лежит в своей обёртке для свайпа, поэтому позиционные псевдоклассы
+     срабатывают на всех строках сразу: нить обрезалась с обеих сторон и
+     исчезала вовсе. Шестой раз, когда подводит не логика, а селектор */
+  .dl-row.dl-first .dl-axis::before { top: 7px; }
+  .dl-row.dl-last .dl-axis::before { bottom: calc(100% - 8px); }
+  /* Знак события. Съёмка залита, встреча пустая, занятость — черта: тип
+     читается формой точки, а не размером карточки */
+  .dl-dot {
+    position: absolute; left: 50%; top: 3px; width: 9px; height: 9px;
+    margin-left: -4.5px; border-radius: 50%; box-sizing: border-box;
+    background: var(--brass); border: 1.5px solid var(--brass);
+  }
+  .dl-dot.meet { background: var(--surface); }
+  .dl-dot.busy {
+    border-radius: 1px; height: 2px; top: 7px; width: 11px; margin-left: -5.5px;
+    background: var(--ink-6); border-color: var(--ink-6);
+  }
+  .dl-body { padding: 0 0 16px 10px; min-width: 0; }
+  .dl-title { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .dl-sub {
+    font-size: 12px; color: var(--ink-4); margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .dl-due { font-size: 12px; margin-top: 3px; }
+  .dl-row.busy .dl-title { font-weight: 500; color: var(--ink-3); font-style: italic; }
+
+  /* Свободное окно — не пробел, а сведение: фотограф решает по нему, влезет ли
+     ещё съёмка. Поэтому у него своя строка, а не пустота между событиями */
+  .dl-row.free .dl-axis::before { background: none; border-left: 1px dashed var(--ink-10); left: calc(50% - 0.5px); }
+  .dl-free {
+    font-size: 12px; color: var(--ink-5); letter-spacing: 0.4px;
+    text-transform: uppercase; padding: 2px 0 16px 10px;
+  }
+  .dl-free b { color: var(--ink-3); font-weight: 600; letter-spacing: 0; text-transform: none; }
+  /* Свет на оси: закат и золотой час стоят своим временем среди событий —
+     это то, чего нет ни в одном обычном календаре */
+  .dl-row.light .dl-time { color: var(--brass-deep); }
+  .dl-light {
+    display: flex; align-items: center; gap: 8px; padding: 0 0 14px 10px;
+    font-size: 12px; color: var(--brass-deep);
+  }
+  .dl-light::before {
+    content: ""; flex: 1 1 auto; height: 0;
+    border-top: 1px dashed rgba(201, 133, 63, 0.45); order: 2;
+  }
+  .dl-light span { order: 1; white-space: nowrap; }
+  .dl-row.light .dl-axis::before { background: rgba(201, 133, 63, 0.35); }
   .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
 
 
@@ -896,7 +983,10 @@
     display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: start;
     padding: 8px; border-radius: 14px;
   }
-  .wk-day-row.sel { background: var(--sheet); }
+  /* Выбранный день не меняет тип: у него та же раскладка, только обводка.
+     Прежде он получал заливку на всю строку и читался объектом другого рода,
+     хотя это просто выбранный день */
+  .wk-day-row.sel .wk-list { box-shadow: inset 0 0 0 1px var(--brass-dark); }
   .wk-day-row.past { opacity: 0.5; }
   .wk-head {
     display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -911,13 +1001,26 @@
   .wk-wd { font-size: 10px; color: var(--ink-7); letter-spacing: 0.6px; }
   .wk-day-row.today .wk-num { color: var(--brass); font-weight: 650; }
   .wk-day-row.today .wk-wd { color: var(--brass); }
-  .wk-list { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  /* День — один контейнер, высоту задаёт число событий. Раньше занятый день
+     был стопкой карточек, а свободный — одинокой рамкой, и выбранный день
+     выглядел объектом другого типа. Структура теперь одна на все дни:
+     подложка, внутри строки. */
+  .wk-list {
+    display: flex; flex-direction: column; min-width: 0;
+    background: var(--sheet); border-radius: 14px; overflow: hidden;
+  }
   .wk-card {
     display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-    padding: 9px 12px; border: none; border-radius: 12px; background: var(--sheet);
+    padding: 9px 12px; border: none; border-radius: 0; background: none;
     font-family: inherit; color: var(--ink); cursor: pointer;
   }
-  .wk-card:active { opacity: 0.75; }
+  /* Волосок между строками одного дня — событий бывает несколько, и они не
+     должны слипаться в абзац */
+  .wk-card + .wk-card { box-shadow: inset 0 1px 0 var(--hairline); }
+  .wk-card:active { background: var(--surface); }
+  /* Встреча тише съёмки: латунь знака достаётся тому, что про свет */
+  .wk-card.meet .wk-ic svg { stroke: var(--ink-5); }
+  .wk-card.meet .wk-t { color: var(--ink-3); }
   .wk-ic svg {
     width: 17px; height: 17px; fill: none; stroke: var(--brass); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; display: block;
@@ -928,15 +1031,27 @@
     margin-left: auto; font-size: 12.5px; color: var(--ink-4);
     font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
-  /* Свободный день — не пустота, а предложение: тап заводит съёмку */
+  /* Свободный день — не пустота, а предложение: тап заводит съёмку. Живёт в
+     том же контейнере и той же строкой, что событие: разной остаётся только
+     насыщенность текста */
   .wk-free {
     display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
-    padding: 9px 12px; border: none; border-radius: 12px; background: none;
-    box-shadow: inset 0 0 0 1px var(--hairline);
+    padding: 9px 12px; border: none; border-radius: 0; background: none;
     font-family: inherit; font-size: 13.5px; color: var(--ink-7); cursor: pointer;
   }
   .wk-free span { margin-left: auto; color: var(--ink-6); font-variant-numeric: tabular-nums; }
-  .wk-free:active { background: var(--sheet); }
+  .wk-free:active { background: var(--surface); }
+  /* Строка света внизу дня: у занятого — закат, у свободного — золотой час.
+     Она приклеена к тому же контейнеру, потому что это свойство дня, а не
+     отдельная карточка */
+  .wk-sun {
+    display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+    padding: 6px 12px 8px; font-size: 12px; color: var(--brass-deep);
+    font-variant-numeric: tabular-nums;
+  }
+  .wk-sun svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .wk-card + .wk-sun { box-shadow: inset 0 1px 0 var(--hairline); }
   /* Сдача материала в этот день — тоже занятость */
   /* Развёрнутый день: свет и погода подробностями, здесь же в неделе */
   .wk-more { display: none; padding: 8px 12px 4px; }
@@ -2339,12 +2454,15 @@
 
     <!-- Сводка дня спрятана под спойлер: планировщик ведёт съёмками, а не погодой -->
     <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
+    <!-- Шапка дня сжата до трёх строк: главным содержимым экрана стала лента
+         времени, и сводка не должна отбирать у неё пол-экрана. Вердикт,
+         причина и уверенность прогноза свелись к одной строке, а «посмотреть
+         свет» из кнопки-плашки стало ссылкой -->
     <div class="day-panel" id="dayPanel">
       <div class="dp-head">
         <div>
           <div class="dp-date" id="dpDate">—</div>
           <div class="dp-verdict" id="dpVerdict">—</div>
-          <div class="dp-why" id="dpWhy">—</div>
         </div>
         <div class="head-wx">
           <div class="hw-top"><span id="dpIcon"></span><span class="temp" id="dpTemp">—</span></div>
@@ -2353,12 +2471,11 @@
         </div>
       </div>
       <div class="dp-window" id="dpWindow">—</div>
-      <div class="dp-trust" id="dpTrust">—</div>
-      <button class="ghost" id="seeLight">Посмотреть свет этого дня →</button>
+      <button class="dp-link" id="seeLight">Посмотреть свет этого дня →</button>
     </div>
 
     <div class="sec-label" id="plannedLabel">Запланировано</div>
-    <div class="plan-list" id="dpSessions"></div>
+    <div class="day-line" id="dpSessions"></div>
     <div class="undo" id="undoBar"><span id="undoText">Съёмка удалена</span><button id="undoBtn">Вернуть</button></div>
     <button class="action" id="planDay" style="margin: 4px 24px 0;">
       <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
@@ -4290,7 +4407,13 @@
   /* deadlineChoice: "auto" | число дней | null (без срока) */
   function resolveDeadlineDays(s) {
     if (s.deadlineChoice === null) return null;
-    if (typeof s.deadlineChoice === "number") return s.deadlineChoice;
+    if (typeof s.deadlineChoice === "number") return s.deadlineChoice;   // свой срок сильнее всего
+    /* У стрита и пейзажа сдачи материала нет вовсе — форма даже не показывает
+       это поле. Но срок всё равно считался по жанру, и в ленте дня стояло
+       «сдать за 14 дн.» для съёмки, которую некому сдавать. Раз поля нет,
+       не должно быть и срока */
+    var sp = GENRE[s.type];
+    if (sp && sp.delivery === false) return null;
     if (delivery.mode === "none") return null;
     if (delivery.mode === "single") return delivery.days;
     return GENRE_DEADLINE[s.type] != null ? GENRE_DEADLINE[s.type] : 7;
@@ -5319,16 +5442,31 @@
         body = shoots.map(function (p) {
           var spec = genreSpec(p.s.type);
           var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
-          return '<button type="button" class="wk-card" data-i="' + p.i + '">'
-            + '<span class="wk-ic">' + IC.svg(GENRE_SIGN[p.s.type] || "camera") + "</span>"
-            + '<span class="wk-body"><span class="wk-t">' + esc(spec.ev || genreName(p.s.type))
-            + (clientName(p.s) ? " · " + esc(clientName(p.s)) : "") + "</span>"
+          /* Встреча — не съёмка: у неё нет ни сдачи материала, ни света, и
+             открывает она другой разговор. В ленте дня это уже видно формой
+             точки, здесь — знаком и словом */
+          var meet = isMeet(p.s);
+          return '<button type="button" class="wk-card' + (meet ? " meet" : "") + '" data-i="' + p.i + '">'
+            + '<span class="wk-ic">' + IC.svg(meet ? "guests" : (GENRE_SIGN[p.s.type] || "camera")) + "</span>"
+            + '<span class="wk-body"><span class="wk-t">'
+            + (meet ? "Встреча · " + esc(shortGenre(p.s.type).toLowerCase())
+                    : esc(spec.ev || genreName(p.s.type)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
+            + "</span>"
             + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
         }).join("");
       } else {
-        /* Свободный день так и подписан. Свет здесь — ориентир, одна строка */
-        body = '<button type="button" class="wk-free">свободно'
-          + (sky.goldB !== null ? '<span>золотой час ' + fmt(sky.goldB) + "</span>" : "") + "</button>";
+        /* Свободный день так и подписан — той же строкой в том же контейнере */
+        body = '<button type="button" class="wk-free">свободно</button>';
+      }
+      /* Свет — общая для всех дней строка внизу: у занятого дня закат, у
+         свободного золотой час. Раньше он был только у свободного, и день со
+         съёмками терял единственное, чем этот календарь отличается от чужого */
+      if (sky.set !== null || sky.goldB !== null) {
+        body += '<div class="wk-sun">'
+          + (shoots.length
+            ? IC.svg("sunset") + "закат " + fmt(sky.set)
+            : IC.svg("sun") + "золотой час " + fmt(sky.goldB !== null ? sky.goldB : sky.set))
+          + "</div>";
       }
       if (due.length) {
         body += '<div class="wk-due">' + IC.svg("clock") + "сдать "
@@ -5462,11 +5600,9 @@
     $("dpDate").textContent = WD[calSel.getDay()] + " · " + calSel.getDate() + " " + MONTHS[calSel.getMonth()];
     $("dpVerdict").textContent = QUAL[q].verdict;
     $("dpVerdict").style.color = QUAL[q].vcol;
-    $("dpWhy").textContent = QUAL[q].why;
     $("dpWindow").innerHTML = q === "poor"
       ? '<span style="color:#55504A">Окна света нет</span>'
       : "Лучшее окно · " + w.label + ' <span class="t">' + range(w.a, w.b) + "</span>";
-    $("dpTrust").textContent = trustOf(calSel);
     // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
     // обещание кнопки должно совпадать с тем, что откроется в форме
     /* Подсказка называет то время, которое и подставится: свет не округляем */
@@ -5480,38 +5616,84 @@
     $("dpLo").textContent = "↓ " + tempOut(wx.tempBase, 240) + "°";
     $("dpHi").textContent = "↑ " + tempOut(wx.tempBase, 960) + "°";
 
-    // Съёмки дня — компактной строкой: время, кто, статус сдачи
-    var idxs = [];
-    sessions.forEach(function (s, i) { if (sameDay(s.date, calSel)) idxs.push(i); });
-    var box = $("dpSessions");
-    box.innerHTML = idxs.length ? idxs.map(function (i) {
-      var s = sessions[i], ds = deliveryState(s);
+    /* День собирается одной хронологической лентой: съёмки, встречи и занятость
+       идут вперемешку по времени, между ними встают свободные окна, а свет
+       приходит отметкой на своё время. Раньше это были три списка подряд —
+       съёмки, потом занятость, — и день читался как свалка строк, из которой
+       нельзя было понять ни порядка, ни того, где остались часы. */
+    var box = $("dpSessions"), items = [];
+    sessions.forEach(function (s, i) {
+      if (!sameDay(s.date, calSel)) return;
       var end = s.end != null ? s.end : s.min + (s.dur || 90);
-      return '<div class="swipe"><button class="swipe-del" data-i="' + i + '">Удалить</button>' +
-        '<button class="plan-row" data-i="' + i + '">' +
-        '<span class="pr-time">' + fmt(s.min) + " – " + fmt(end) + "</span>" +
-        '<span class="pr-who">' + esc(clientName(s) || (isMeet(s) ? "Встреча" : genreName(s.type))) + "</span>" +
-        (isMeet(s) ? '<span class="pr-due">встреча · ' + esc(shortGenre(s.type).toLowerCase()) + "</span>"
-          : ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
-        "</button></div>";
-    }).join("") : "";   // пустой список и есть «нет событий» — лишняя строка не нужна
+      items.push({ kind: isMeet(s) ? "meet" : "shoot", a: s.min, b: end, s: s, i: i });
+    });
+    blocksOn(calSel).forEach(function (b) {
+      items.push({ kind: "busy", a: b.allDay ? 0 : b.min, b: b.allDay ? 1440 : b.min + b.dur, blk: b });
+    });
+    items.sort(function (x, y) { return x.a - y.a || x.b - y.b; });
 
-    /* Занятость идёт следом за съёмками и своей строкой: у неё нет ни клиента,
-       ни срока сдачи, и притворяться съёмкой ей незачем */
-    var bls = blocksOn(calSel);
-    box.innerHTML += bls.map(function (b) {
-      var when = b.allDay
-        ? (blockDays(b) > 1
-          ? "весь день · " + blockDays(b) + " " + plural(blockDays(b), ["день", "дня", "дней"])
-          : "весь день")
-        : fmt(b.min) + " – " + fmt(b.min + b.dur);
-      return '<div class="swipe"><button class="swipe-del" data-b="' + b.id + '">Удалить</button>' +
-        '<button class="plan-row busy" data-b="' + b.id + '">' +
-        '<span class="pr-ic" data-ic="' + blockKind(b.k).ic + '"></span>' +
-        '<span class="pr-time">' + esc(when) + "</span>" +
-        '<span class="pr-who">' + esc(blockLabel(b)) + "</span>" +
-        "</button></div>";
-    }).join("");
+    var html = "", prevEnd = null;
+    /* Свободное окно называется только когда оно рабочее. Пятнадцать минут
+       между съёмками — это не окно, а перебежка, и сообщать о ней незачем */
+    function freeGap(from, to) {
+      if (from == null || to - from < 60) return "";
+      return '<div class="dl-row free"><div class="dl-time"></div><div class="dl-axis"></div>'
+        + '<div class="dl-free">свободно · <b>' + durLabel(to - from) + "</b></div></div>";
+    }
+    /* Отметка света встаёт между событиями своим временем. Это и есть то, чего
+       не умеет обычный календарь: он покажет пустой вечер, но не скажет, что
+       в нём закат */
+    function lightMark(from, to) {
+      if (q === "poor" || from == null) return "";
+      var t = Math.round(w.a);
+      if (t <= from || t >= to) return "";
+      return '<div class="dl-row light"><div class="dl-time">' + fmt(t) + "</div>"
+        + '<div class="dl-axis"></div><div class="dl-light"><span>' + w.label + "</span></div></div>";
+    }
+    items.forEach(function (it) {
+      html += freeGap(prevEnd, it.a);
+      html += lightMark(prevEnd, it.a);
+      if (it.kind === "busy") {
+        var b = it.blk;
+        var when = b.allDay
+          ? (blockDays(b) > 1
+            ? "весь день · " + blockDays(b) + " " + plural(blockDays(b), ["день", "дня", "дней"])
+            : "весь день")
+          : fmt(b.min) + " – " + fmt(b.min + b.dur);
+        html += '<div class="swipe"><button class="swipe-del" data-b="' + b.id + '">Удалить</button>'
+          + '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
+          + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
+          + '<div class="dl-axis"><i class="dl-dot busy"></i></div>'
+          + '<div class="dl-body"><div class="dl-title">' + esc(blockLabel(b)) + "</div>"
+          + '<div class="dl-sub">' + esc(when) + "</div></div></div></div>";
+      } else {
+        var s = it.s, ds = deliveryState(s), meet = it.kind === "meet";
+        var name = clientName(s) || (meet ? "Встреча" : genreName(s.type));
+        html += '<div class="swipe"><button class="swipe-del" data-i="' + it.i + '">Удалить</button>'
+          + '<div class="dl-row plan-row" data-i="' + it.i + '">'
+          + '<div class="dl-time">' + fmt(it.a) + "</div>"
+          + '<div class="dl-axis"><i class="dl-dot' + (meet ? " meet" : "") + '"></i></div>'
+          + '<div class="dl-body"><div class="dl-title">' + esc(name) + "</div>"
+          + '<div class="dl-sub">' + (meet
+              ? "встреча · " + esc(shortGenre(s.type).toLowerCase())
+              : fmt(it.a) + " – " + fmt(it.b)) + "</div>"
+          + (!meet && ds.rank >= 2
+              ? '<div class="dl-due" style="color:' + ds.color + '">' + ds.label + "</div>" : "")
+          + "</div></div></div>";
+      }
+      prevEnd = Math.max(prevEnd == null ? it.b : prevEnd, it.b);
+    });
+    /* Хвост дня: после последней съёмки свет ещё может прийти, и вечернее окно
+       это чаще всего и есть самое ценное время */
+    if (items.length) html += lightMark(prevEnd, 1440);
+    box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
+    /* Концы нити помечаются классами: позиционные псевдоклассы здесь не
+       работают — каждая строка лежит в своей обёртке для свайпа */
+    var rows = box.querySelectorAll(".dl-row");
+    if (rows.length) {
+      rows[0].classList.add("dl-first");
+      rows[rows.length - 1].classList.add("dl-last");
+    }
 
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
