@@ -2429,7 +2429,17 @@
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
     <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет ›</span></div>
-    <div class="item"><span class="k">Дорога до точки</span><span class="v">40 мин ›</span></div>
+    <!-- Порог дороги между площадками. Значение зашитой константой было
+         честным для города и враньём для пригорода: сорок минут между
+         разными местами — это про соседние районы, а не про соседний город -->
+    <div class="sec-label">Дорога между площадками</div>
+    <div class="seg" id="travelSeg">
+      <button data-travel="20">20</button>
+      <button class="active" data-travel="40">40</button>
+      <button data-travel="60">60</button>
+      <button data-travel="90">90</button>
+    </div>
+    <p class="seg-note" id="travelNote">Если между съёмками в разных местах остаётся меньше 40 минут, приложение предупредит. Запрета нет: решает фотограф.</p>
 
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
     <div class="sec-label">Данные</div>
@@ -2462,7 +2472,11 @@
     <p class="seg-note" id="yaNote">Копия будет уходить в папку «Приложения · Light Plan». Остальной Диск приложению не виден.</p>
 
     <div class="sec-label">Единицы и язык</div>
-    <div class="item"><span class="k">Температура</span><span class="v">°C ›</span></div>
+    <div class="seg" id="unitSeg" style="margin-top:4px;">
+      <button class="active" data-unit="c">°C</button>
+      <button data-unit="f">°F</button>
+    </div>
+    <p class="seg-note" id="unitNote">Температура показывается в градусах Цельсия.</p>
     <div class="item"><span class="k">Язык</span><span class="v">Русский ›</span></div>
 
     <!-- Копирайт карты переехал сюда с полотна: на экране «Карта» строка
@@ -3571,6 +3585,14 @@
   /* При таскании карты moveend сыплется часто — не дёргаем сервер на каждый кадр */
   function scheduleWeather() { clearTimeout(wxTimer); wxTimer = setTimeout(fetchWeather, 500); }
   function tempAt(base, t) { return Math.round(base + 5 * Math.sin((t - 600) / 1440 * 2 * Math.PI)); }
+  /* Модель считает в Цельсии всегда — прогноз приходит в нём, и переводить
+     внутри значило бы держать две правды. Единицы живут только на выходе.
+     Знак градуса общий для обеих шкал, поэтому подписи он не меняет */
+  function tempOut(base, t) {
+    var c = tempAt(base, t);
+    return tempUnit === "f" ? Math.round(c * 9 / 5 + 32) : c;
+  }
+  function unitLabel() { return tempUnit === "f" ? "°F" : "°C"; }
   function windWord(w) { return w <= 1 ? "штиль" : w <= 3 ? "слабый" : w <= 6 ? "умеренный" : "сильный"; }
   function durShort(m) {
     m = Math.max(0, Math.round(m));
@@ -3797,6 +3819,7 @@
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
         mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: theme,
+        travelMin: travelMin, tempUnit: tempUnit,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
           return o;
@@ -4054,6 +4077,11 @@
   var mapFoldShut = !!(saved && saved.mapFold);
   // Подписи на карте — выключены, пока их не попросили
   var mapLabels = !!(saved && saved.mapLabels);
+  /* Порог дороги между площадками. Сорок минут остаются умолчанием — они
+     записаны в решении о наложениях, — но перестают быть законом природы */
+  var travelMin = (saved && +saved.travelMin) || 40;
+  // Градусы: Цельсий или Фаренгейт. Модель считает в Цельсии всегда
+  var tempUnit = (saved && saved.tempUnit === "f") ? "f" : "c";
 
   /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
      на карте живут своими цветами в этом файле и темой не управляются */
@@ -4402,10 +4430,10 @@
 
     // Шапка: как виджет Apple — иконка, температура, состояние, мин/макс за день
     $("hwIcon").innerHTML = skyIcon(q);
-    $("hwTemp").textContent = tempAt(wx.tempBase, t) + "°";
+    $("hwTemp").textContent = tempOut(wx.tempBase, t) + "°";
     $("hwCond").textContent = QUAL[q].cond;
-    $("hwLo").textContent = "↓ " + tempAt(wx.tempBase, 240) + "°";
-    $("hwHi").textContent = "↑ " + tempAt(wx.tempBase, 960) + "°";
+    $("hwLo").textContent = "↓ " + tempOut(wx.tempBase, 240) + "°";
+    $("hwHi").textContent = "↑ " + tempOut(wx.tempBase, 960) + "°";
 
     // Отсчёт до следующего света + тренд облачности к окну
     if (!moon) {
@@ -4504,7 +4532,7 @@
       ["cloud", "Погода", [
         ["Небо", QUAL[q].sky],
         ["Облачность", (curWeather ? curWeather.cloud : QUAL[q].cloud) + "%"],
-        ["Температура", tempAt((curWeather || { tempBase: 19 }).tempBase, t) + " °C"],
+        ["Температура", tempOut((curWeather || { tempBase: 19 }).tempBase, t) + " " + unitLabel()],
         ["Ветер", (curWeather ? curWeather.wind : 3) + " м/с · " + windWord(curWeather ? curWeather.wind : 3)],
         ["Источник", wxLive ? "Open-Meteo · прогноз" : "прогноз имитируется"]
       ]]
@@ -5222,7 +5250,7 @@
       var head = '<button type="button" class="wk-head">'
         + '<span class="wk-num">' + d.getDate() + "</span>"
         + '<span class="wk-wd">' + WD[d.getDay()] + "</span>"
-        + '<span class="wk-wx">' + wxSign(q) + "<i>" + tempAt(wx.tempBase, 900) + "°</i></span></button>";
+        + '<span class="wk-wx">' + wxSign(q) + "<i>" + tempOut(wx.tempBase, 900) + "°</i></span></button>";
 
       var body = "";
       if (shoots.length) {
@@ -5395,10 +5423,10 @@
     // Погода дня — в сводке, как на главном экране
     var wx = dayWeather(calSel);
     $("dpIcon").innerHTML = skyIcon(q);
-    $("dpTemp").textContent = tempAt(wx.tempBase, 900) + "°";
+    $("dpTemp").textContent = tempOut(wx.tempBase, 900) + "°";
     $("dpCond").textContent = QUAL[q].cond;
-    $("dpLo").textContent = "↓ " + tempAt(wx.tempBase, 240) + "°";
-    $("dpHi").textContent = "↑ " + tempAt(wx.tempBase, 960) + "°";
+    $("dpLo").textContent = "↓ " + tempOut(wx.tempBase, 240) + "°";
+    $("dpHi").textContent = "↑ " + tempOut(wx.tempBase, 960) + "°";
 
     // Съёмки дня — компактной строкой: время, кто, статус сдачи
     var idxs = [];
@@ -7270,7 +7298,7 @@
      никогда не запрещаем сохранить: два фотографа в команде, вторая камера,
      подмена — законные причины (docs/12_CARD_ARCHITECTURE.md).
      ============================================================ */
-  var TRAVEL_MIN = 40;                 // порог на дорогу между разными местами
+  // Порог на дорогу между разными местами — из настроек (`travelMin`)
   function shootEnd(s) { return s.end != null ? s.end : s.min + (s.dur || 90); }
   /* Имя места без уточнений: «Лобня, Московская область» и «Лобня» — одно место */
   function placeKey(s) {
@@ -7304,11 +7332,12 @@
           m: "В этот день уже есть «" + name + "», " + when + "." });
         return;
       }
-      /* Дорога: съёмки не пересекаются, но между ними меньше сорока минут,
-         а места разные. Пока места заданы словом, порог берётся простым */
+      /* Дорога: съёмки не пересекаются, но времени между ними меньше порога,
+         а места разные. Порог задаёт фотограф: в городе хватает двадцати
+         минут, в пригороде и полутора часов бывает мало */
       var gap = min >= sEnd ? min - sEnd : s.min - end;
       var otherPlace = placeKey(s);
-      if (gap < TRAVEL_MIN && otherPlace && place && otherPlace !== place) {
+      if (gap < travelMin && otherPlace && place && otherPlace !== place) {
         out.push({ w: 2, t: "Мало времени на дорогу",
           m: "Между «" + name + "» (" + when + ") и этой съёмкой " + gap
             + " мин, а места разные." });
@@ -7969,7 +7998,7 @@
         + (sub && sub !== shortPlace(s.place) ? '<span class="pn-s">' + esc(sub) + "</span>" : "")
         + "</span>"
         + '<span class="pn-wx">' + wxSign(q)
-        + '<span><span class="pn-t" style="font-size:19px">' + tempAt(wx.tempBase, s.min) + "°</span>"
+        + '<span><span class="pn-t" style="font-size:19px">' + tempOut(wx.tempBase, s.min) + "°</span>"
         + '<span class="pn-s">' + QUAL[q].cond + "</span></span></span>"
         + "</div></button>");
     }
@@ -8093,7 +8122,7 @@
     $("cdWx").innerHTML = '<div class="wx-hours wide">' + hours.map(function (t) {
       return '<div class="wx-h"><div class="hh">' + fmt(t) + "</div>"
         + wxSign(q)
-        + '<div class="tt">' + tempAt(wx.tempBase, t) + "°</div>"
+        + '<div class="tt">' + tempOut(wx.tempBase, t) + "°</div>"
         + '<div class="pp">' + wx.cloud + "%</div></div>";
     }).join("") + "</div>";
   }
@@ -8927,6 +8956,41 @@
     rd.readAsText(f);
     this.value = "";
   });
+
+  /* Порог дороги. Перерисовывать экраны не нужно: он живёт в проверке
+     наложений, а она считается заново при каждом открытии формы и дня */
+  function renderTravelSeg() {
+    document.querySelectorAll("#travelSeg button").forEach(function (b) {
+      b.classList.toggle("active", +b.dataset.travel === travelMin);
+    });
+    $("travelNote").textContent = "Если между съёмками в разных местах остаётся меньше "
+      + travelMin + " минут, приложение предупредит. Запрета нет: решает фотограф.";
+  }
+  document.querySelectorAll("#travelSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      travelMin = +b.dataset.travel; renderTravelSeg(); saveAll();
+    });
+  });
+  renderTravelSeg();
+
+  /* Градусы. Здесь экраны перерисовать надо: температура уже нарисована
+     числом на «Сегодня», в неделе, в дне и в карточке */
+  function renderUnitSeg() {
+    document.querySelectorAll("#unitSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.unit === tempUnit);
+    });
+    $("unitNote").textContent = tempUnit === "f"
+      ? "Температура показывается в градусах Фаренгейта."
+      : "Температура показывается в градусах Цельсия.";
+  }
+  document.querySelectorAll("#unitSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      tempUnit = b.dataset.unit; renderUnitSeg(); saveAll();
+      // Температура нарисована на «Сегодня», в неделе и в панели дня
+      if (booted) { renderToday(); renderWeek(); renderDayPanel(); }
+    });
+  });
+  renderUnitSeg();
 
   $("labelsToggle").classList.toggle("on", mapLabels);
   $("labelsToggle").addEventListener("click", function () {
