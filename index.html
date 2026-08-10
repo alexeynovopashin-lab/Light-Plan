@@ -1190,15 +1190,17 @@
     background: var(--knob); border: 2px solid var(--knob-edge);
     box-shadow: 0 0 0 1px var(--ink-a20), 0 3px 8px rgba(0,0,0,0.5);
   }
+  /* Отступ равен половине ширины бегунка (11 / 2): именно так далеко от края
+     стоит его центр в крайнем положении. С 6 px риска не совпадала */
   .dial-ticks {
-    position: absolute; left: 6px; right: 6px; top: 24px; height: 7px;
+    position: absolute; left: 5.5px; right: 5.5px; top: 24px; height: 7px;
     pointer-events: none;
   }
   .dial-ticks i {
     position: absolute; top: 0; width: 1px; height: 6px;
     background: var(--rail-5); transform: translateX(-0.5px);
   }
-  .dial-labels { position: absolute; left: 6px; right: 6px; top: 33px; height: 13px; pointer-events: none; }
+  .dial-labels { position: absolute; left: 5.5px; right: 5.5px; top: 33px; height: 13px; pointer-events: none; }
   .dial-labels span {
     position: absolute; transform: translateX(-50%);
     font-size: 9.5px; letter-spacing: 0.3px; color: var(--ink-7); white-space: nowrap;
@@ -1695,12 +1697,50 @@
   .row .rv.act { font-size: 14px; }   /* подсказка о действии не спорит с содержимым строки */
   .row.open > .rv { color: var(--brass); }
 
+  /* ---------- Сетка выбора даты ----------
+     Барабан дат не давал увидеть год и не позволял уйти далеко: договориться
+     в декабре на август — обычное дело, а прокрутить туда список из дней
+     невозможно. Сетка месяца с переключателем года решает оба случая. */
+  .daypick { padding: 4px 10px 12px; }
+  .dp-nav { display: flex; align-items: center; gap: 8px; padding: 6px 4px 10px; }
+  .dp-title { flex: 1; display: flex; align-items: center; gap: 6px;
+    background: none; border: none; padding: 4px 6px; border-radius: 9px;
+    font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer; }
+  .dp-title .pt-chev { transition: transform 0.25s ease; }
+  .dp-title.open .pt-chev { transform: rotate(-90deg); }
+  .dp-arrow { width: 34px; height: 34px; border: none; border-radius: 10px;
+    background: var(--field); color: var(--ink-3); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; }
+  .dp-arrow svg { width: 8px; height: 13px; fill: none; stroke: currentColor;
+    stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .dp-arrow:active { background: var(--field-press); }
+  .dp-wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-6); text-align: center; padding-bottom: 4px; }
+  .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dp-cell { height: 38px; border: none; background: none; border-radius: 10px;
+    font-family: inherit; font-size: 15px; color: var(--ink); cursor: pointer;
+    font-variant-numeric: tabular-nums; }
+  .dp-cell.out { color: var(--ink-8); }
+  .dp-cell.today { color: var(--brass); font-weight: 600; }
+  .dp-cell.on { background: var(--brass); color: var(--on-brass); font-weight: 600; }
+  .dp-cell:active { background: var(--press); }
+  .dp-cell.on:active { background: var(--brass); }
+  /* Выбор месяца и года — второй ярус того же окна, а не отдельный экран */
+  .dp-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .dp-months button { height: 42px; border: none; border-radius: 11px; background: var(--field);
+    font-family: inherit; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .dp-months button.on { background: var(--brass); color: var(--on-brass); font-weight: 600; }
+
   /* Барабан живёт под своей строкой — шторка больше не закрывает форму */
   .inline {
     max-height: 0; overflow: hidden;
     transition: max-height 0.34s cubic-bezier(0.25,1,0.4,1);
   }
   .inline.open { max-height: 136px; }
+  /* Сетка месяца выше барабана: шесть рядов, шапка и дни недели.
+     Без своей высоты она обрезалась на втором ряду */
+  .inline.datepick.open { max-height: 420px; }
   .ip { position: relative; display: flex; height: 136px; }
   .ip.time { justify-content: center; }
   .ip .pick-band { top: 51px; }
@@ -1821,7 +1861,7 @@
      набирать полсотни раз, а вписать их можно за секунду */
   .stepper .step-in {
     width: 58px; padding: 6px 2px; text-align: center; background: var(--field); border: none;
-    font-family: inherit; font-size: 16px; font-weight: 650; color: var(--ink);
+    font-family: inherit; font-size: 16px; color: var(--ink);
     font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none;
     outline: none; border-radius: 9px;
     transition: background 0.18s ease, color 0.18s ease;
@@ -2634,10 +2674,8 @@
           <span class="sub" id="fWhenHint">—</span>
         </span>
       </div>
-      <div class="inline" id="fStartDatePick">
-        <div class="ip"><div class="pick-band"></div>
-          <div class="wheel" data-w="date" id="fwSDate"></div>
-        </div>
+      <div class="inline datepick" id="fStartDatePick">
+        <div class="daypick" id="fwSDate"></div>
       </div>
       <div class="inline" id="fStartPick">
         <div class="ip time"><div class="pick-band"></div>
@@ -2655,10 +2693,8 @@
           <span class="sub" id="fDurVal">—</span>
         </span>
       </div>
-      <div class="inline" id="fEndDatePick">
-        <div class="ip"><div class="pick-band"></div>
-          <div class="wheel" data-w="date" id="fwEDate"></div>
-        </div>
+      <div class="inline datepick" id="fEndDatePick">
+        <div class="daypick" id="fwEDate"></div>
       </div>
       <div class="inline" id="fEndPick">
         <div class="ip time"><div class="pick-band"></div>
@@ -2946,8 +2982,8 @@
           </span>
         </span>
       </div>
-      <div class="inline" id="blkFromDatePick">
-        <div class="ip"><div class="pick-band"></div><div class="wheel" data-w="date" id="bwFD"></div></div>
+      <div class="inline datepick" id="blkFromDatePick">
+        <div class="daypick" id="bwFD"></div>
       </div>
       <div class="inline" id="blkFromTimePick">
         <div class="ip time"><div class="pick-band"></div>
@@ -2965,8 +3001,8 @@
           <span class="sub" id="blkSpan">—</span>
         </span>
       </div>
-      <div class="inline" id="blkToDatePick">
-        <div class="ip"><div class="pick-band"></div><div class="wheel" data-w="date" id="bwTD"></div></div>
+      <div class="inline datepick" id="blkToDatePick">
+        <div class="daypick" id="bwTD"></div>
       </div>
       <div class="inline" id="blkToTimePick">
         <div class="ip time"><div class="pick-band"></div>
@@ -5203,7 +5239,9 @@
     var bls = blocksOn(calSel);
     box.innerHTML += bls.map(function (b) {
       var when = b.allDay
-        ? (blockDays(b) > 1 ? "весь день · " + blockDays(b) + " дн" : "весь день")
+        ? (blockDays(b) > 1
+          ? "весь день · " + blockDays(b) + " " + plural(blockDays(b), ["день", "дня", "дней"])
+          : "весь день")
         : fmt(b.min) + " – " + fmt(b.min + b.dur);
       return '<div class="swipe"><button class="swipe-del" data-b="' + b.id + '">Удалить</button>' +
         '<button class="plan-row busy" data-b="' + b.id + '">' +
@@ -6251,11 +6289,9 @@
   }
 
   /* ---------- Барабаны внутри формы ---------- */
-  var fwSDate = $("fwSDate"), fwEDate = $("fwEDate");
+  var fwSDate = $("fwSDate"), fwEDate = $("fwEDate");   // теперь сетки, не барабаны
   var fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
-  fill(fwSDate, dateList.map(function (x) { return x.label; }));
-  fill(fwEDate, dateList.map(function (x) { return x.label; }));
   [fwSH, fwEH].forEach(function (el2) { fill(el2, HOURS); });
   /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
      уметь показать и 30, и 38, если 38 пришли от золотого часа */
@@ -6293,12 +6329,100 @@
     for (var i = 0; i < dateList.length; i++) if (sameDay(dateList[i].date, d)) return i;
     return BACK;
   }
+
+  /* ---------- Сетка выбора даты ----------
+     Один компонент на четыре места: начало и конец съёмки, начало и конец
+     занятости. Помнит показанный месяц отдельно от выбранной даты — иначе
+     листать вперёд было бы нельзя, не меняя саму дату. */
+  var dpShown = {};      // host.id -> Date первого числа показанного месяца
+  var dpMode = {};       // host.id -> "days" | "months"
+  function dpArrow(dir) {
+    return '<button type="button" class="dp-arrow" data-go="' + dir + '" aria-label="'
+      + (dir < 0 ? "Назад" : "Вперёд") + '"><svg viewBox="0 0 24 24"><polyline points="'
+      + (dir < 0 ? "15 4 8 12 15 20" : "9 4 16 12 9 20") + '"/></svg></button>';
+  }
+  function renderDayPick(host, cur, onPick) {
+    var id = host.id;
+    var shown = dpShown[id] || new Date(cur.getFullYear(), cur.getMonth(), 1);
+    dpShown[id] = shown;
+    var mode = dpMode[id] || "days";
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+
+    var head = '<div class="dp-nav">' + dpArrow(-1)
+      + '<button type="button" class="dp-title' + (mode === "months" ? " open" : "") + '">'
+      + (mode === "months" ? shown.getFullYear()
+                           : MONTHS_N[shown.getMonth()] + " " + shown.getFullYear())
+      + '<span class="pt-chev" data-ic="chevron"></span></button>'
+      + dpArrow(1) + "</div>";
+
+    var body;
+    if (mode === "months") {
+      body = '<div class="dp-months">' + MONTHS_N.map(function (m, i) {
+        return '<button type="button" data-m="' + i + '"'
+          + (i === shown.getMonth() ? ' class="on"' : "") + ">" + m.slice(0, 3) + "</button>";
+      }).join("") + "</div>";
+    } else {
+      var first = new Date(shown.getFullYear(), shown.getMonth(), 1);
+      var off = (first.getDay() + 6) % 7;                    // неделя с понедельника
+      var days = new Date(shown.getFullYear(), shown.getMonth() + 1, 0).getDate();
+      var cells = "";
+      for (var i = off; i > 0; i--) {
+        var d0 = new Date(first); d0.setDate(1 - i);
+        cells += dpCell(d0, cur, today, true);
+      }
+      for (var n = 1; n <= days; n++) {
+        cells += dpCell(new Date(shown.getFullYear(), shown.getMonth(), n), cur, today, false);
+      }
+      body = '<div class="dp-wk"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span>'
+        + '<span>Пт</span><span>Сб</span><span>Вс</span></div>'
+        + '<div class="dp-grid">' + cells + "</div>";
+    }
+    host.innerHTML = head + body;
+    paintIcons(host);
+
+    host.querySelectorAll("[data-go]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var k = +b.dataset.go;
+        // В месяцах стрелки листают годы: иначе до августа из декабря идти долго
+        if (dpMode[id] === "months") dpShown[id] = new Date(shown.getFullYear() + k, shown.getMonth(), 1);
+        else dpShown[id] = new Date(shown.getFullYear(), shown.getMonth() + k, 1);
+        renderDayPick(host, cur, onPick);
+      });
+    });
+    host.querySelector(".dp-title").addEventListener("click", function () {
+      dpMode[id] = dpMode[id] === "months" ? "days" : "months";
+      renderDayPick(host, cur, onPick);
+    });
+    host.querySelectorAll("[data-m]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        dpShown[id] = new Date(shown.getFullYear(), +b.dataset.m, 1);
+        dpMode[id] = "days";
+        renderDayPick(host, cur, onPick);
+      });
+    });
+    host.querySelectorAll("[data-d]").forEach(function (b) {
+      b.addEventListener("click", function () { onPick(new Date(+b.dataset.d)); });
+    });
+  }
+  function dpCell(d, cur, today, out) {
+    var cls = "dp-cell" + (out ? " out" : "")
+      + (sameDay(d, today) ? " today" : "") + (sameDay(d, cur) ? " on" : "");
+    return '<button type="button" class="' + cls + '" data-d="' + d.getTime() + '">' + d.getDate() + "</button>";
+  }
+  /* Открыли пикер — показываем месяц выбранной даты, а не тот, где листали */
+  function dpReset(host, cur) {
+    dpShown[host.id] = new Date(cur.getFullYear(), cur.getMonth(), 1);
+    dpMode[host.id] = "days";
+  }
   /* Значение снимается только с раскрытого барабана: иначе остановка,
      догнавшая закрытие формы, дописала бы время в чужую съёмку */
   /* Конец живёт своей датой: съёмка началась восьмого, кончилась девятого.
      Внутри по-прежнему одна длительность, а дата конца — её следствие:
      хранить два момента и длительность значило бы держать две правды. */
-  var MAX_DUR = 2880;                                  // двое суток — потолок здравого смысла
+  /* Неделя. Двух суток было мало: сетка дат позволяет выбрать любой день, и
+     потолок срабатывал молча — человек тапал 1 сентября, а получал 22 августа.
+     Ограничение осталось защитой от бессмыслицы, но перестало спорить с выбором */
+  var MAX_DUR = 10080;
   /* Разница в календарных днях. Округление переживает перевод часов, когда
      в сутках 23 или 25 часов и деление нацело соврало бы */
   function dayDiff(a, b) {
@@ -6320,16 +6444,6 @@
     rememberGenre("dur", fDur);
   }
 
-  attachWheel(fwSDate, function () {
-    if (openRow !== "fStartDate") return;
-    fDate = new Date(dateList[wheelIndex(fwSDate)].date);   // длительность цела — конец едет следом
-    refreshForm();
-  });
-  attachWheel(fwEDate, function () {
-    if (openRow !== "fEndDate") return;
-    setEndFrom(dayDiff(dateList[wheelIndex(fwEDate)].date, fDate), endMinOfDay());
-    refreshForm();
-  });
   attachWheel(fwSH, onStartWheel); attachWheel(fwSM, onStartWheel);
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
   function onStartWheel() {
@@ -6365,8 +6479,21 @@
     openRow = id;
     $(CAP[id]).classList.add("open");
     $(r[1]).classList.add("open");
-    if (id === "fStartDate") syncWheel(fwSDate, dateIndex(fDate));
-    if (id === "fEndDate") syncWheel(fwEDate, dateIndex(endDate()));
+    if (id === "fStartDate") {
+      dpReset(fwSDate, fDate);
+      var pickStart = function (d) {
+        fDate = new Date(d); refreshForm(); renderDayPick(fwSDate, fDate, pickStart);
+      };
+      renderDayPick(fwSDate, fDate, pickStart);
+    }
+    if (id === "fEndDate") {
+      dpReset(fwEDate, endDate());
+      var pickEnd = function (d) {
+        setEndFrom(dayDiff(d, fDate), endMinOfDay());
+        refreshForm(); renderDayPick(fwEDate, endDate(), pickEnd);
+      };
+      renderDayPick(fwEDate, endDate(), pickEnd);
+    }
     if (id === "fStart") {
       var s = ((fMin % 1440) + 1440) % 1440;
       syncWheel(fwSH, Math.floor(s / 60)); syncMinWheel(fwSM, s % 60);
@@ -7018,7 +7145,12 @@
     var w = dayWindow(fDate);
     /* Дата у обеих капсул. Коротко — «8 авг»: рядом с временем длинная форма
        не помещается, а год в списке съёмок этого года лишний */
-    function capDate(d) { return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3); }
+    /* Год показываем, когда он не текущий: 10 августа 2026 и 10 августа 2027
+       иначе неразличимы, а договариваются в декабре на август сплошь и рядом */
+    function capDate(d) {
+      var y = d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "";
+      return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + y;
+    }
     $("fStartDate").textContent = capDate(fDate);
     $("fEndDate").textContent = capDate(endDate());
     $("fWhenHint").textContent = w.q === "poor" ? "окна света нет"
@@ -7028,7 +7160,8 @@
     /* Пересекли полночь — говорим об этом словом, а не только датой:
        «13 ч» само по себе не объясняет, почему конец числом меньше начала */
     $("fDurVal").textContent = durLabel(fDur)
-      + (endDayOff() > 0 ? " · " + (endDayOff() === 1 ? "следующий день" : "через " + endDayOff() + " дня") : "");
+      + (endDayOff() > 0 ? " · " + (endDayOff() === 1 ? "следующий день"
+          : "через " + endDayOff() + " " + plural(endDayOff(), ["день", "дня", "дней"])) : "");
     /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку.
        Встрече он не нужен вовсе: она не про золотой час, а про разговор */
     if (meetMode()) $("formSub").textContent = "Когда и где встречаемся — свет тут ни при чём";
@@ -8906,8 +9039,6 @@
      занятость это не съёмка без полей. */
   var bwFD = $("bwFD"), bwTD = $("bwTD");
   var bwFH = $("bwFH"), bwFM = $("bwFM"), bwTH = $("bwTH"), bwTM = $("bwTM");
-  fill(bwFD, dateList.map(function (x) { return x.label; }));
-  fill(bwTD, dateList.map(function (x) { return x.label; }));
   [bwFH, bwTH].forEach(function (el2) { fill(el2, HOURS); });
   fillMins(bwFM, null); fillMins(bwTM, null);
 
@@ -8919,7 +9050,10 @@
     d.setDate(d.getDate() + (blk.allDay ? blockDays(blk) - 1 : Math.floor(blkEnd() / 1440)));
     return d;
   }
-  function shortDate(d) { return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3); }
+  function shortDate(d) {
+    var y = d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "";
+    return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + y;
+  }
 
   function renderBlk() {
     $("blkKind").innerHTML = BLOCK_KINDS.map(function (x) {
@@ -8945,7 +9079,9 @@
       $("blkToTime").textContent = fmt(blkEnd());
     }
     $("blkSpan").textContent = blk.allDay
-      ? (blockDays(blk) > 1 ? blockDays(blk) + " дн" : "один день")
+      ? (blockDays(blk) > 1
+          ? blockDays(blk) + " " + plural(blockDays(blk), ["день", "дня", "дней"])
+          : "один день")
       : durLabel(blk.dur) + (Math.floor(blkEnd() / 1440) > 0 ? " · следующий день" : "");
     $("blkNote").value = blk.note || "";
     $("blkDel").hidden = !blkEditId;
@@ -8969,8 +9105,21 @@
     var r = BLK_ROWS.filter(function (x) { return x[0] === id; })[0];
     blkOpen = id;
     $(r[0]).classList.add("open"); $(r[1]).classList.add("open");
-    if (id === "blkFromDate") syncWheel(bwFD, dateIndex(blk.from));
-    if (id === "blkToDate") syncWheel(bwTD, dateIndex(blkEndDate()));
+    if (id === "blkFromDate") {
+      dpReset(bwFD, blk.from);
+      var pickFrom = function (d) {
+        blk.from = new Date(d); renderBlk(); renderDayPick(bwFD, blk.from, pickFrom);
+      };
+      renderDayPick(bwFD, blk.from, pickFrom);
+    }
+    if (id === "blkToDate") {
+      dpReset(bwTD, blkEndDate());
+      var pickTo = function (d) {
+        blk.days = Math.max(1, dayDiff(d, blk.from) + 1);
+        renderBlk(); renderDayPick(bwTD, blkEndDate(), pickTo);
+      };
+      renderDayPick(bwTD, blkEndDate(), pickTo);
+    }
     if (id === "blkFromTime") { syncWheel(bwFH, Math.floor(blk.min / 60)); syncMinWheel(bwFM, blk.min % 60); }
     if (id === "blkToTime") {
       var e = ((blkEnd() % 1440) + 1440) % 1440;
@@ -8979,17 +9128,6 @@
   }
   BLK_ROWS.forEach(function (r) {
     $(r[0]).addEventListener("click", function () { blkToggle(r[0]); });
-  });
-  attachWheel(bwFD, function () {
-    if (blkOpen !== "blkFromDate") return;
-    blk.from = new Date(dateList[wheelIndex(bwFD)].date);   // срок цел, занятость едет следом
-    renderBlk();
-  });
-  attachWheel(bwTD, function () {
-    if (blkOpen !== "blkToDate") return;
-    // «По» раньше «с» — не отрицательный отпуск, а описка: держим минимум один день
-    blk.days = Math.max(1, dayDiff(dateList[wheelIndex(bwTD)].date, blk.from) + 1);
-    renderBlk();
   });
   function onBlkFrom() {
     if (blkOpen !== "blkFromTime") return;
