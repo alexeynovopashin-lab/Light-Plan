@@ -213,7 +213,8 @@
   .arc-mid { stop-color: var(--arc-mid); }
   .horizon-line { stroke: var(--hair); stroke-width: 1; stroke-dasharray: 4 5; }
   #drop { stroke: var(--ink-6); }
-  #nowRing { stroke: var(--ink-a40); }
+  /* Метка «сейчас» тише светила: она говорит, где мы, а главное на дуге — солнце */
+  #nowRing { stroke: var(--ink-a20); }
   .dome { position: relative; width: 100%; height: 240px; margin-top: 0; flex-shrink: 0; cursor: grab; touch-action: pan-y; }
   .dome:active { cursor: grabbing; }
   /* только сам купол — иконки переключателя внутри .dome не должны растягиваться */
@@ -3474,6 +3475,16 @@
      он почти белый, и на светлой теме слово исчезало. Небо остаётся цветным,
      а подпись — это подпись, ей нужна читаемость. */
   var labelColor = function (c) { return theme === "light" ? "var(--ink-3)" : rgb(c); };
+  /* Светило берёт цвет из модели, а в полдень он почти белый: на тёмном это
+     верно, на светлом солнце пропадало, и метка «сейчас» читалась сильнее
+     самого солнца. Притемняем, сохраняя оттенок, — жёлтое остаётся жёлтым. */
+  var skyInk = function (c) {
+    if (theme !== "light") return rgb(c);
+    var l = (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255;
+    if (l <= 0.62) return rgb(c);
+    var k = 0.62 / l;
+    return "rgb(" + Math.round(c[0] * k) + "," + Math.round(c[1] * k) + "," + Math.round(c[2] * k) + ")";
+  };
 
   /* Пиктограммы: экспонометр света, звёзды и погода */
   function meterHTML(level, color) {
@@ -4193,7 +4204,7 @@
     var vis = e < 0 ? Math.max(0, 1 - (-e / 3)) : 1;
     $("sunCore").setAttribute("cx", p[0].toFixed(1)); $("sunCore").setAttribute("cy", p[1].toFixed(1));
     $("sunGlow").setAttribute("cx", p[0].toFixed(1)); $("sunGlow").setAttribute("cy", p[1].toFixed(1));
-    $("sunCore").setAttribute("fill", col);
+    $("sunCore").setAttribute("fill", skyInk(st.c));
     $("sunCore").setAttribute("opacity", vis.toFixed(2));
     $("sunGlow").setAttribute("fill", rgba(st.c, 0.18 * vis));
 
@@ -6663,14 +6674,17 @@
      отдельной строкой формы значило бы разложить один вопрос по двум экранам */
   var fTrip = false;
   var GUESTS_MAX = 2000;
+  /* Ноль в поле — это не ответ, а пустая клетка. «Нет» отвечает: гостей не
+     будет. Пока в поле не пишут руками, показываем слово */
+  function guestsText(n) { return n > 0 ? String(n) : "нет"; }
   function renderGuests() {
-    if (document.activeElement !== $("fGuestsVal")) $("fGuestsVal").value = fGuests || "";
+    if (document.activeElement !== $("fGuestsVal")) $("fGuestsVal").value = guestsText(fGuests);
   }
   /* Шаг в десять человек: свадьбу считают десятками, а не по головам.
      Точное число вписывается в поле — на банкете их бывает и триста */
   function stepGuests(d) {
     fGuests = Math.max(0, Math.min(GUESTS_MAX, (fGuests || 0) + d));
-    $("fGuestsVal").value = fGuests || "";
+    $("fGuestsVal").value = guestsText(fGuests);
   }
   $("fGuestsMinus").addEventListener("click", function () { stepGuests(-10); });
   $("fGuestsPlus").addEventListener("click", function () { stepGuests(10); });
@@ -6679,6 +6693,9 @@
     if (this.value !== d) this.value = d;
     fGuests = Math.min(GUESTS_MAX, +d || 0);
   });
+  /* Ушли из поля пустым — снова «нет»: пустая клетка молчит, а слово отвечает */
+  $("fGuestsVal").addEventListener("blur", function () { this.value = guestsText(fGuests); });
+  $("fGuestsVal").addEventListener("focus", function () { if (!fGuests) this.value = ""; });
   $("fGuestsVal").addEventListener("blur", renderGuests);
   /* ---------- Маршрут в форме ----------
      Черновик живёт в fRoute: строки редактируются свободно, а в запись
