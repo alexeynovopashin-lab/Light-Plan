@@ -4065,6 +4065,49 @@
     } catch (e) { return null; }
   }
   var saved = loadAll();
+
+  /* ---------- Жанр: код внутри, имя на экране ----------
+     Жанр служил сразу тремя вещами: текстом на экране, ключом в таблицах
+     сроков, пресетов, пакетов и наборов референсов — и значением, записанным
+     в каждой съёмке фотографа. Пока имя и ключ были одной строкой, перевести
+     жанр было нельзя: перевод сломал бы данные.
+     Теперь ключ — код (`wedding`), имя — строка словаря. */
+  var GENRE_CODE = {
+    "Портрет": "portrait", "Свадьбы": "wedding", "Праздник": "party",
+    "Лавстори": "lovestory", "Семья": "family", "Пейзаж": "landscape",
+    "Архитектура": "architecture", "Стрит": "street", "Репортаж": "report",
+    "Предметка": "product", "Реклама": "ad"
+  };
+  /* Имя жанра для экрана. Терпима к старым записям: пришло русское имя —
+     переводим в код на лету, пришло незнакомое — отдаём как есть, потому что
+     показать чужое слово честнее, чем пустоту */
+  function genreName(g) {
+    var code = GENRE_CODE[g] || g;
+    var s = LANG.t("genre." + code);
+    return s === "genre." + code ? g : s;
+  }
+  /* Разовый перевод сохранённых данных с имён на коды. Трогает всё, где жанр
+     был ключом или значением: сами съёмки, включённые жанры, ручные правки
+     пресетов, наборы референсов и пакеты. Записи, заведённые до этой правки,
+     иначе потеряли бы и пресет формы, и свои пакеты. */
+  function migrateGenres(d) {
+    if (!d) return d;
+    var keys = function (o) {
+      if (!o || typeof o !== "object") return o;
+      var out = {};
+      for (var k in o) out[GENRE_CODE[k] || k] = o[k];
+      return out;
+    };
+    if (Array.isArray(d.sessions)) d.sessions.forEach(function (s) {
+      if (s && GENRE_CODE[s.type]) s.type = GENRE_CODE[s.type];
+    });
+    d.genres = keys(d.genres);
+    d.genrePrefs = keys(d.genrePrefs);
+    d.genreRefs = keys(d.genreRefs);
+    d.packs = keys(d.packs);
+    return d;
+  }
+  saved = migrateGenres(saved);
   // Восстанавливаем место до первого расчёта света
   if (saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon)) {
     LAT = saved.loc.lat; LON = saved.loc.lon;
@@ -4195,7 +4238,7 @@
   var genrePacks = {};
   (function () {
     var raw = saved && saved.packs;
-    if (Array.isArray(raw)) genrePacks["Свадьбы"] = normPacks(raw);   // старый общий список
+    if (Array.isArray(raw)) genrePacks["wedding"] = normPacks(raw);   // старый общий список
     else if (raw && typeof raw === "object") {
       for (var g in raw) genrePacks[g] = normPacks(raw[g]);
     }
@@ -4222,8 +4265,8 @@
   function sessionNet(s) { return sessionIncome(s) - (+(s && s.expense) || 0); }
 
   /* ---------- Сдача материала ---------- */
-  var GENRE_DEADLINE = { "Свадьбы": 90, "Праздник": 14, "Лавстори": 14, "Семья": 14, "Портрет": 7, "Пейзаж": 14,
-    "Архитектура": 5, "Стрит": 14, "Репортаж": 3, "Предметка": 5, "Реклама": 10 };
+  var GENRE_DEADLINE = { "wedding": 90, "party": 14, "lovestory": 14, "family": 14, "portrait": 7, "landscape": 14,
+    "architecture": 5, "street": 14, "report": 3, "product": 5, "ad": 10 };
   var DELV_DAYS = [3, 7, 14, 30, 90];
   var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
 
@@ -5095,8 +5138,10 @@
   }
 
   /* В клетке помещается одно слово: жанр в именительном и без хвоста */
-  var SHORT_GENRE = { "Свадьбы": "Свадьба", "Архитектура": "Архитект.", "Предметка": "Предметка" };
-  function shortGenre(t) { return SHORT_GENRE[t] || t; }
+  /* Короткое имя для тесной клетки календаря: «Свадьба» вместо «Свадьбы»,
+     «Архитект.» вместо «Архитектуры». Где сокращать нечего — обычное имя */
+  var SHORT_GENRE = { "wedding": "Свадьба", "architecture": "Архитект.", "product": "Предметка" };
+  function shortGenre(t) { return SHORT_GENRE[t] || genreName(t); }
 
   function renderCal() {
     if (window.ICONS) paintIcons(document);      // знаки видов в шапке
@@ -5259,7 +5304,7 @@
           var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
           return '<button type="button" class="wk-card" data-i="' + p.i + '">'
             + '<span class="wk-ic">' + IC.svg(GENRE_SIGN[p.s.type] || "camera") + "</span>"
-            + '<span class="wk-body"><span class="wk-t">' + esc(spec.ev || p.s.type)
+            + '<span class="wk-body"><span class="wk-t">' + esc(spec.ev || genreName(p.s.type))
             + (clientName(p.s) ? " · " + esc(clientName(p.s)) : "") + "</span>"
             + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
         }).join("");
@@ -5270,7 +5315,7 @@
       }
       if (due.length) {
         body += '<div class="wk-due">' + IC.svg("clock") + "сдать "
-          + due.map(function (x) { return esc(clientName(x) || (genreSpec(x.type).ev || x.type)); }).join(", ")
+          + due.map(function (x) { return esc(clientName(x) || (genreSpec(x.type).ev || genreName(x.type))); }).join(", ")
           + "</div>";
       }
 
@@ -5374,18 +5419,8 @@
     $("yearProfitVal").hidden = true;
   }
   var yearProfitAmt = 0;
-  /* «5 свадеб · 8 портретов» — жанры со счётом и склонением, по убыванию */
-  var GENRE_PLURAL = {
-    "Портрет": ["портрет", "портрета", "портретов"],
-    "Свадьбы": ["свадьба", "свадьбы", "свадеб"],
-    "Лавстори": ["лавстори", "лавстори", "лавстори"],
-    "Семья": ["семья", "семьи", "семей"],
-    "Пейзаж": ["пейзаж", "пейзажа", "пейзажей"],
-    "Архитектура": ["архитектура", "архитектуры", "архитектур"],
-    "Стрит": ["стрит", "стрита", "стритов"],
-    "Репортаж": ["репортаж", "репортажа", "репортажей"],
-    "Предметка": ["предметка", "предметки", "предметок"]
-  };
+  /* «5 свадеб · 8 портретов» — формы жанров живут в словаре (`genreN.*`),
+     как и все слова, согласуемые с числом */
   /* Правило множественного числа переехало в язык (`lang.js`): у русского три
      формы, у английского две, и это свойство языка, а не наших строк.
      Здесь остался мост для мест, где формы приходят массивом на месте. */
@@ -5399,7 +5434,7 @@
     return Object.keys(byType)
       .sort(function (a, b) { return byType[b] - byType[a]; })
       .map(function (t) {
-        return "<b>" + byType[t] + "</b> " + plural(byType[t], GENRE_PLURAL[t] || [t, t, t]);
+        return "<b>" + byType[t] + "</b> " + LANG.word("genreN." + t, byType[t]);
       }).join(" · ");
   }
   // Слова и правило — в языке; здесь остаётся только вопрос «какое число»
@@ -5438,7 +5473,7 @@
       return '<div class="swipe"><button class="swipe-del" data-i="' + i + '">Удалить</button>' +
         '<button class="plan-row" data-i="' + i + '">' +
         '<span class="pr-time">' + fmt(s.min) + " – " + fmt(end) + "</span>" +
-        '<span class="pr-who">' + esc(clientName(s) || (isMeet(s) ? "Встреча" : s.type)) + "</span>" +
+        '<span class="pr-who">' + esc(clientName(s) || (isMeet(s) ? "Встреча" : genreName(s.type))) + "</span>" +
         (isMeet(s) ? '<span class="pr-due">встреча · ' + esc(shortGenre(s.type).toLowerCase()) + "</span>"
           : ds.rank >= 2 ? '<span class="pr-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "") +
         "</button></div>";
@@ -5526,7 +5561,7 @@
     sessions.splice(i, 1);
     saveAll();
     renderSessions(); renderCal(); renderDayPanel();
-    $("undoText").textContent = (trash.rec.contact || trash.rec.type) + " · съёмка удалена";
+    $("undoText").textContent = (trash.rec.contact || genreName(trash.rec.type)) + " · съёмка удалена";
     $("undoBar").classList.add("show");
     clearTimeout(trashTimer);
     trashTimer = setTimeout(hideUndo, 6000);
@@ -5558,7 +5593,7 @@
         c.className = "session";
         c.innerHTML =
           '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
-          '<div class="s-body"><div class="s-title">' + s.type + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
+          '<div class="s-body"><div class="s-title">' + genreName(s.type) + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
           '<div class="s-sub">' + s.place + (function (w) {
             var list = Array.isArray(w) ? w : (w && w !== "Неважно" ? [w] : []);
             return list.length ? " · жду: " + list.join(", ").toLowerCase() : "";
@@ -5666,7 +5701,7 @@
   /* ============================================================
      ФОРМА СЪЁМКИ
      ============================================================ */
-  var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "Портрет";
+  var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "portrait";
   var wishes = [];   // пожелания к погоде; пусто = «неважно». Мультивыбор: облака+закат
   /* Съёмку назначают на ровное время. Шаг тот же, что у детентов ползунка, — 15 минут */
   /* ---------- Шаг времени ----------
@@ -6028,7 +6063,7 @@
       (Array.isArray(s.docs) ? s.docs : []).forEach(function (r, j) {
         var org = orgById(s.orgId);
         out.push({ r: r, from: "session", si: i, di: j,
-          when: s.date, who: (org && org.name) || clientName(s) || s.type });
+          when: s.date, who: (org && org.name) || clientName(s) || genreName(s.type) });
       });
     });
     orgs.forEach(function (o, i) {
@@ -6350,7 +6385,7 @@
       var tail = inc ? money(inc) + (pre && pre < inc ? " · внесено " + money(pre) : "") : "";
       return '<button type="button" class="org-item" data-i="' + p.i + '">'
         + '<span class="badge">' + IC.svg(GENRE_SIGN[p.s.type] || "camera") + "</span>"
-        + '<span class="org-b"><span class="org-n">' + esc(p.s.type) + " · "
+        + '<span class="org-b"><span class="org-n">' + esc(genreName(p.s.type)) + " · "
         + p.s.date.getDate() + " " + MONTHS[p.s.date.getMonth()] + " " + p.s.date.getFullYear() + "</span>"
         + '<span class="org-s">' + esc(tail || "сумма не задана") + "</span></span>"
         + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
@@ -6757,13 +6792,15 @@
   }
 
   /* Жанры: пользователь оставляет только свои */
-  var ALL_GENRES = ["Портрет","Свадьбы","Праздник","Лавстори","Семья","Пейзаж","Архитектура","Стрит","Репортаж","Предметка","Реклама"];
+  var ALL_GENRES = ["portrait","wedding","party","lovestory","family","landscape","architecture","street","report","product","ad"];
 
   /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
   var GENRE_IC = window.ICONS.genres;
   var WISH_IC = window.ICONS.wishes;
-  function toolBtn(name, icon, cls) {
-    return '<button class="tool' + (cls ? " " + cls : "") + '" data-v="' + name + '">'
+  /* Подпись и значение разведены: у жанра на кнопке стоит имя, а в `data-v`
+     код — иначе обработчик получил бы перевод вместо ключа */
+  function toolBtn(name, icon, cls, value) {
+    return '<button class="tool' + (cls ? " " + cls : "") + '" data-v="' + (value != null ? value : name) + '">'
       + '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + icon + "</svg>"
       + "<span>" + name + "</span></button>";
   }
@@ -6785,31 +6822,31 @@
     /* Пакет есть у всех, кто работает с людьми: у портретного фотографа это
        «фотосет», «полчаса», «съёмка с визажистом» — тот же продукт, что
        свадебный «загс и прогулка», только свой (docs/12_CARD_ARCHITECTURE.md) */
-    "Портрет":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
-    "Свадьбы":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
+    "portrait":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
+    "wedding":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
     /* Праздник — день рождения, юбилей, городское событие: что считать
        праздником, решает фотограф. Устроен как событие дня: точки, гости,
        пакеты — только повод другой */
-    "Праздник":    { delivery: true,  client: true,  dur: 240, pay: ["hourly", "pack"], route: true, ev: "Праздник" },
-    "Лавстори":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
-    "Семья":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
-    "Пейзаж":      { delivery: false, client: false, dur: null, pay: ["flat"] },
-    "Архитектура": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
-    "Стрит":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
-    "Репортаж":    { delivery: true,  client: true,  dur: 180, pay: ["hourly", "flat"] },
+    "party":    { delivery: true,  client: true,  dur: 240, pay: ["hourly", "pack"], route: true, ev: "Праздник" },
+    "lovestory":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
+    "family":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
+    "landscape":      { delivery: false, client: false, dur: null, pay: ["flat"] },
+    "architecture": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
+    "street":       { delivery: false, client: false, dur: 180, pay: ["flat"] },
+    "report":    { delivery: true,  client: true,  dur: 180, pay: ["hourly", "flat"] },
     /* models — поправка жанра поверх группы: у рекламы и предметки в кадре
        чужие люди, у архитектуры и репортажа их нет (docs/12_CARD_ARCHITECTURE.md) */
-    "Предметка":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"], models: true },
-    "Реклама":     { delivery: true,  client: true,  dur: 240, pay: ["flat", "hourly"], models: true }
+    "product":   { delivery: true,  client: true,  dur: 180, pay: ["flat", "hourly", "item"], models: true },
+    "ad":     { delivery: true,  client: true,  dur: 240, pay: ["flat", "hourly"], models: true }
   };
   /* ---------- Группы жанров ----------
      docs/12_CARD_ARCHITECTURE.md. Группа задаёт состав и подписи, жанр
      правит поверх. Девять описаний сжимаются в четыре. */
   var GENRE_GROUP = {
-    "Свадьбы": "event", "Праздник": "event",
-    "Портрет": "people", "Лавстори": "people", "Семья": "people",
-    "Предметка": "client", "Реклама": "client", "Архитектура": "client", "Репортаж": "client",
-    "Пейзаж": "own", "Стрит": "own"
+    "wedding": "event", "party": "event",
+    "portrait": "people", "lovestory": "people", "family": "people",
+    "product": "client", "ad": "client", "architecture": "client", "report": "client",
+    "landscape": "own", "street": "own"
   };
   var GROUP = {
     /* У события есть организатор: свадебный агент, площадка, отдел культуры
@@ -6830,8 +6867,8 @@
      где её нет. У праздника герой один. У остальных жанров пары нет вовсе,
      и поле остаётся прежней строкой. */
   var GENRE_PERSONS = {
-    "Свадьбы":  ["Невеста", "Жених"],
-    "Праздник": ["Виновник торжества"]
+    "wedding":  ["Невеста", "Жених"],
+    "party": ["Виновник торжества"]
   };
   function personsOf(g) { return GENRE_PERSONS[g] || []; }
 
@@ -6880,17 +6917,17 @@
      от группы: «Невеста» в предметке и «Фактура» на свадьбе одинаково нелепы.
      Свадебный набор протекал во все жанры — это и чинится. */
   var GENRE_TAGS = {
-    "Свадьбы":     ["Сборы", "Пара", "Невеста", "Жених", "Прогулка", "Вечер", "Детали"],
-    "Праздник":    ["Виновник", "Гости", "Стол", "Танцы", "Детали"],
-    "Лавстори":    ["Пара", "Прогулка", "Вечер", "Детали"],
-    "Семья":       ["Все вместе", "Дети", "Родители", "Игра", "Детали"],
-    "Портрет":     ["Лицо", "В рост", "Руки", "Свет", "Детали"],
-    "Предметка":   ["Предмет", "Ракурсы", "Фактура", "Композиция"],
-    "Реклама":     ["Кампания", "Модель", "Продукт", "Сцена"],
-    "Архитектура": ["Фасад", "Интерьер", "Деталь", "Общий план"],
-    "Репортаж":    ["Герой", "Общий", "Крупный", "Момент"],
-    "Пейзаж":      ["Общий", "Передний план", "Небо", "Свет"],
-    "Стрит":       ["Кадр", "Герой", "Свет", "Геометрия"]
+    "wedding":     ["Сборы", "Пара", "Невеста", "Жених", "Прогулка", "Вечер", "Детали"],
+    "party":    ["Виновник", "Гости", "Стол", "Танцы", "Детали"],
+    "lovestory":    ["Пара", "Прогулка", "Вечер", "Детали"],
+    "family":       ["Все вместе", "Дети", "Родители", "Игра", "Детали"],
+    "portrait":     ["Лицо", "В рост", "Руки", "Свет", "Детали"],
+    "product":   ["Предмет", "Ракурсы", "Фактура", "Композиция"],
+    "ad":     ["Кампания", "Модель", "Продукт", "Сцена"],
+    "architecture": ["Фасад", "Интерьер", "Деталь", "Общий план"],
+    "report":    ["Герой", "Общий", "Крупный", "Момент"],
+    "landscape":      ["Общий", "Передний план", "Небо", "Свет"],
+    "street":       ["Кадр", "Герой", "Свет", "Геометрия"]
   };
   var REF_TAGS_DEFAULT = ["Общий", "Крупный", "Свет", "Детали"];
   function refTagsFor(g) { return GENRE_TAGS[g] || REF_TAGS_DEFAULT; }
@@ -7111,17 +7148,17 @@
      И идут от жанра: «ЗАГС» в съёмке фасадов — такой же мусор, как папка
      «Невеста» в предметке (docs/12_CARD_ARCHITECTURE.md) */
   var GENRE_SCENES = {
-    "Свадьбы":     ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"],
-    "Праздник":    ["Сбор гостей", "Поздравления", "Стол", "Торт", "Танцы"],
-    "Лавстори":    ["Встреча", "Прогулка", "Кафе", "Закат"],
-    "Семья":       ["Сборы", "Прогулка", "Игра", "Общий кадр"],
-    "Портрет":     ["Начало", "Смена образа", "Улица", "Финал"],
-    "Репортаж":    ["Сбор гостей", "Открытие", "Основная часть", "Финал"],
-    "Предметка":   ["Распаковка", "Съёмка", "Смена фона", "Детали"],
-    "Реклама":     ["Подготовка", "Основной кадр", "Смена сцены", "Дубли"],
-    "Архитектура": ["Общий план", "Фасад", "Интерьер", "Вечерний свет"],
-    "Пейзаж":      ["Выезд", "Точка съёмки", "Золотой час", "Синий час"],
-    "Стрит":       ["Маршрут", "Точка", "Свет", "Финал"]
+    "wedding":     ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"],
+    "party":    ["Сбор гостей", "Поздравления", "Стол", "Торт", "Танцы"],
+    "lovestory":    ["Встреча", "Прогулка", "Кафе", "Закат"],
+    "family":       ["Сборы", "Прогулка", "Игра", "Общий кадр"],
+    "portrait":     ["Начало", "Смена образа", "Улица", "Финал"],
+    "report":    ["Сбор гостей", "Открытие", "Основная часть", "Финал"],
+    "product":   ["Распаковка", "Съёмка", "Смена фона", "Детали"],
+    "ad":     ["Подготовка", "Основной кадр", "Смена сцены", "Дубли"],
+    "architecture": ["Общий план", "Фасад", "Интерьер", "Вечерний свет"],
+    "landscape":      ["Выезд", "Точка съёмки", "Золотой час", "Синий час"],
+    "street":       ["Маршрут", "Точка", "Свет", "Финал"]
   };
   var SCENES_DEFAULT = ["Начало", "Основная часть", "Смена точки", "Финал"];
   function sceneHints(g) { return GENRE_SCENES[g] || SCENES_DEFAULT; }
@@ -7192,7 +7229,7 @@
     }
     applyGenreShape();
   }
-  var genresOn = (saved && saved.genres) || { "Портрет": 1, "Свадьбы": 1, "Лавстори": 1, "Пейзаж": 1, "Архитектура": 1, "Стрит": 1 };
+  var genresOn = (saved && saved.genres) || { "portrait": 1, "wedding": 1, "lovestory": 1, "landscape": 1, "architecture": 1, "street": 1 };
   var WISHES = ["Неважно", "Ясно", "Закат", "Облачно", "Туман", "Осадки", "Луна", "Звёзды"];
   var WANT = { "Ясно": "excellent", "Облачно": "good", "Туман": "fog" };
 
@@ -7203,7 +7240,7 @@
     if (swapped) shootType = list[0];
     $("fType").className = "tool-grid";
     $("fType").innerHTML = list.map(function (g) {
-      return toolBtn(g, GENRE_IC[g], g === shootType ? "active" : "");
+      return toolBtn(genreName(g), GENRE_IC[g], g === shootType ? "active" : "", g);
     }).join("");
     $("fType").querySelectorAll(".tool").forEach(function (ch) {
       ch.addEventListener("click", function () {
@@ -7324,7 +7361,7 @@
     });
     sessions.forEach(function (s, i) {
       if (i === skipIdx || !sameDay(s.date, day)) return;
-      var sEnd = shootEnd(s), name = clientName(s) || s.type;
+      var sEnd = shootEnd(s), name = clientName(s) || genreName(s.type);
       var when = fmt(s.min) + " — " + fmt(sEnd);
       /* Пересечение времени — тяжелее всего: быть в двух местах разом нельзя */
       if (min < sEnd && s.min < end) {
@@ -7772,7 +7809,7 @@
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
         + '<span class="peek-in">' + IC.svg(GENRE_SIGN[p.s.type] || "camera")
-        + "<b>" + esc(spec.ev || p.s.type) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
+        + "<b>" + esc(spec.ev || genreName(p.s.type)) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
         + "</span></span></button>";
     }).join("");
     wrap.style.paddingTop = (others.length * 22) + "px";
@@ -7821,7 +7858,7 @@
   })();
 
   /* Шапка: знак события, имена, счёт, телефон */
-  var EV_SIGN = { "Свадьбы": IC.svg("rings", null, 24), "Лавстори": IC.svg("heart", null, 24) };
+  var EV_SIGN = { "wedding": IC.svg("rings", null, 24), "lovestory": IC.svg("heart", null, 24) };
   function renderEvHead(s, phase) {
     $("cdEvHead").hidden = false;
     $("cdEvHead").classList.toggle("is-meet", isMeet(s));
@@ -7842,7 +7879,7 @@
         if (parts.length > 1) { name = parts[0]; person = parts.slice(1).join(", "); }
       }
     }
-    $("cdEvNames").textContent = name || (spec.ev || s.type);
+    $("cdEvNames").textContent = name || (spec.ev || genreName(s.type));
     $("cdEvPerson").hidden = !person;
     $("cdEvPerson").textContent = person;
 
@@ -7854,7 +7891,7 @@
     /* Встреча называет себя встречей и говорит, о чём она: «Встреча · свадьба».
        Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
     if (isMeet(s)) bits.push("Встреча · " + shortGenre(s.type).toLowerCase());
-    else if (name) bits.push(spec.ev || s.type);
+    else if (name) bits.push(spec.ev || genreName(s.type));
     bits.push(s.date.getDate() + " " + MONTHS[s.date.getMonth()]);
     bits.push(range(s.min, end));
     $("cdEvWhen").textContent = bits.join(" · ")
@@ -7871,9 +7908,9 @@
   /* Знак жанра в шапке: свадьба и лавстори рисуются крупным знаком события,
      остальные берут свою пиктограмму из библиотеки */
   var GENRE_SIGN = {
-    "Портрет": "camera", "Семья": "family", "Пейзаж": "park", "Архитектура": "city",
-    "Стрит": "street", "Репортаж": "mic", "Предметка": "lens", "Реклама": "flash",
-    "Праздник": "balloons"
+    "portrait": "camera", "family": "family", "landscape": "park", "architecture": "city",
+    "street": "street", "report": "mic", "product": "lens", "ad": "flash",
+    "party": "balloons"
   };
   function afterWord(d) {
     var n = new Date();
@@ -8638,7 +8675,7 @@
   function renderGenreList() {
     $("gList").className = "tool-grid";
     $("gList").innerHTML = ALL_GENRES.map(function (g) {
-      return toolBtn(g, GENRE_IC[g], genresOn[g] ? "active" : "off");
+      return toolBtn(genreName(g), GENRE_IC[g], genresOn[g] ? "active" : "off", g);
     }).join("");
     $("gList").querySelectorAll(".tool").forEach(function (ch) {
       ch.addEventListener("click", function () {
@@ -8722,12 +8759,12 @@
   /* Пример пакета берётся у открытого жанра: «Загс и прогулка» уместны на
      свадьбе и нелепы в предметке */
   var PACK_HINT = {
-    "Свадьбы": "Загс и прогулка", "Праздник": "Три часа с гостями",
-    "Лавстори": "Прогулка на закате",
-    "Семья": "Час в студии", "Портрет": "Час и десять кадров",
-    "Предметка": "Партия из десяти", "Реклама": "Съёмочный день",
-    "Архитектура": "Объект под ключ", "Репортаж": "Полдня на площадке",
-    "Пейзаж": "Выезд на точку", "Стрит": "Прогулка по городу"
+    "wedding": "Загс и прогулка", "party": "Три часа с гостями",
+    "lovestory": "Прогулка на закате",
+    "family": "Час в студии", "portrait": "Час и десять кадров",
+    "product": "Партия из десяти", "ad": "Съёмочный день",
+    "architecture": "Объект под ключ", "report": "Полдня на площадке",
+    "landscape": "Выезд на точку", "street": "Прогулка по городу"
   };
   function packHint() { return PACK_HINT[shootType] || "Съёмка на час"; }
   function renderPackEditor() {
@@ -9241,7 +9278,9 @@
     var box = $("searchResults");
     if (!qs) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">Начните вводить имя клиента.</div>'; return; }
     var hits = sessions.map(function (s, i) { return { s: s, i: i }; }).filter(function (p) {
-      return ((p.s.contact || "") + " " + p.s.type + " " + p.s.place).toLowerCase().indexOf(qs) > -1;
+      /* Ищут словом, а не кодом: «свадьба» должна находить съёмку, у которой
+         внутри лежит `wedding` */
+      return ((p.s.contact || "") + " " + genreName(p.s.type) + " " + p.s.place).toLowerCase().indexOf(qs) > -1;
     }).sort(function (a, b) { return b.s.date - a.s.date; });
     if (!hits.length) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">Ничего не найдено.</div>'; return; }
     box.innerHTML = hits.map(function (p) {
