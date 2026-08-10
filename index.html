@@ -568,17 +568,18 @@
     font-size: 9px !important; padding: 1px 5px !important;
   }
   .leaflet-control-attribution a { color: var(--ink-5) !important; }
-  /* CARTO dark_nolabels сам по себе слишком глухой: кварталы и улицы на телефоне
-     не различить. Тон и вода — в SVG-фильтре наверху страницы: подъём яркости
-     CSS выражает, а «покрасить только воду» — нет.
-     Контраст не добавляем: проверено, он вытаскивал крупные заливки в светлое
-     пятно, спорящее со слоем света. */
+  /* Тёмный холст собирается фильтром из тех же светлых тайлов (разбор — у
+     самого фильтра наверху страницы). CSS этого не выражает: нужно сжатие
+     уровней по каждому каналу отдельно, а не общая яркость. */
   .filter-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
-  .leaflet-tile { filter: url(#tileTone); }
-  /* На светлой теме тайлы обычные и цветные: зелень зелёная, вода голубая,
-     дороги серые, здания бежевые. Ни тон, ни подкраска воды им не нужны —
-     всё это чинило тёмный холст, которого здесь нет */
-  :root[data-theme="light"] .leaflet-tile { filter: none; }
+  /* Красится именно слой холста, а не «все тайлы»: фильтр начинается с заливки
+     землёй и потому непрозрачен по всей своей области. Попав на прозрачный
+     слой — например на подписи, — он превратил бы его в сплошной прямоугольник
+     поверх карты. Проверено на себе */
+  .tile-canvas { filter: url(#tileTone); }
+  /* Светлой теме тайлы годятся как есть: зелень зелёная, вода голубая,
+     дороги серые, здания бежевые */
+  :root[data-theme="light"] .tile-canvas { filter: none; }
   :root[data-theme="light"] .map-frame,
   :root[data-theme="light"] #lmap,
   :root[data-theme="light"] .leaflet-container { background: #E8E3DA; }
@@ -2010,33 +2011,104 @@
 </head>
 <body>
 
-<!-- Тон тайлов карты. Тайлы CARTO — чистая полутоновая картинка (R=G=B всюду),
-     поэтому вода в них неотличима от суши ничем, кроме уровня серого. Проверено
-     по тайлам: вода — ровно 38, суша доходит до 37, а 42 встречается в горах
-     без воды вовсе (лёд). Значит порог «самое светлое — вода» соврал бы, и
-     красить можно только точное совпадение с 38.
-     CSS-фильтром такое не выразить: он меняет цвет всей картинки разом. -->
+<!-- Тон тайлов карты. Тёмный холст делается из светлых тайлов, а не берётся
+     готовым: у CARTO dark_nolabels одиннадцать цветов на весь мир и яркость
+     1–39 из 255, причём парк отличается от застройки не тоном, а дизерингом —
+     регулярной смесью двух уровней со средней разницей в полтора уровня.
+     Замерено по тайлам Москвы, Питера, Сокольников и Альп: вытащить из этого
+     кварталы и зелень нельзя ничем, любой фильтр даёт либо черноту, либо рябь.
+     У voyager_nolabels на том же кадре 136 цветов и вся графика на месте.
+     Поэтому холст получается сжатием: светлый диапазон (200–255, где лежит
+     весь voyager) отображается в тёмный, порядок слоёв сохраняется — дороги
+     светлее фона, зелень и вода темнее, — а насыщенность приглушается, чтобы
+     карта осталась холстом и не спорила со слоем света. -->
 <svg class="filter-defs" aria-hidden="true"><defs>
+  <!-- Карта не приглушается, а перекрашивается по слоям. Приглушение чужой
+       палитры даёт ровно то, чем она и была, только тусклее; холст должен быть
+       собран из наших цветов, иначе гармонии взяться неоткуда.
+
+       Классы узнаются по разрыву каналов исходного тайла — замерено по тайлам
+       Москвы, Питера, Лобни и Сокольников:
+         вода       B−R = +22   (единственный положительный разрыв синего)
+         зелень     G−R = +12   при отрицательном B−R
+         магистраль B−R = −62   (жёлтая заливка главных дорог)
+         здания     B−R от −28 до −14 (тёплая бежевая заливка)
+         улицы      светлота ≥ 250
+       Разрывы не пересекаются, поэтому классы разделяются линейной матрицей:
+       она кладёт признак в альфу, а множитель 40 делает границу резкой, но не
+       рваной — антиалиас исходных линий доживает до края маски.
+
+       Порядок наложения — обратный приоритету: последний рисуется поверх. -->
   <filter id="tileTone" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-    <!-- Суша: подъём яркости с тёплым уклоном — синий канал отстаёт от красного,
-         и холст садится в тепло рамки (#14110E) -->
-    <feComponentTransfer in="SourceGraphic" result="land">
-      <feFuncR type="linear" slope="1.62"/>
-      <feFuncG type="linear" slope="1.55"/>
-      <feFuncB type="linear" slope="1.40"/>
-    </feComponentTransfer>
-    <!-- Уровень серого переносим в альфу: картинка серая, поэтому красного канала довольно -->
-    <feColorMatrix in="SourceGraphic" type="matrix" result="lum"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/>
-    <!-- Ступенчатая таблица на 256 значений оставляет ровно одну ступень — 38.
-         Заполняется на старте: двести пятьдесят шесть чисел в разметке нечитаемы -->
-    <feComponentTransfer in="lum" result="mask">
-      <feFuncA id="waterStep" type="discrete" tableValues="0"/>
-    </feComponentTransfer>
-    <!-- Тускло-голубой той же светлоты, что был серый: вода меняет цвет, а не вес -->
-    <feFlood flood-color="#2B3C4E" result="blue"/>
-    <feComposite in="blue" in2="mask" operator="in" result="water"/>
-    <feMerge><feMergeNode in="land"/><feMergeNode in="water"/></feMerge>
+    <!-- Земля: самая тёмная ступень, дорожная сетка прорезает её светлотой -->
+    <feFlood flood-color="#15191C" result="base"/>
+
+    <!-- Здания: графит на две ступени светлее земли. Порядок обратный дневному —
+         ночью подложка проваливается, а застройка всплывает, и морфология
+         города читается без единой обводки -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="b1"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  40 0 -40 0 -1.696"/>
+    <feColorMatrix in="SourceGraphic" type="matrix" result="b2"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -40 0 40 0 4.892"/>
+    <feComposite in="b1" in2="b2" operator="in" result="mBld"/>
+    <feFlood flood-color="#2A3034" result="cBld"/>
+    <feComposite in="cBld" in2="mBld" operator="in" result="lBld"/>
+    <feComposite in="lBld" in2="base" operator="over" result="s0"/>
+
+    <!-- Обводка зданий. Контур самого тайла — в один пиксель, его приходится
+         искать глазами, поэтому обводку рисуем свою.
+         Обводка идёт внутрь, а не наружу: город плотный, и наружные кольца
+         соседних домов слипаются — проверено, кварталы зарастают светлым и
+         промежутки между домами исчезают.
+         Обводку получает только здание, у которого после сжатия осталось ядро.
+         Простая разница «маска минус её сжатие» красит мелкий дом кольцом
+         целиком, и на среднем масштабе застройка рассыпается в рябь. Здесь
+         кольцо строится от ядра наружу: нет ядра — нет обводки, дом остаётся
+         ровной заливкой и держит квартал спокойным.
+         Светлота на ступень выше заливки, но не выше улиц: здание всплывает
+         над землёй, а самым светлым на холсте остаётся дорожная сетка -->
+    <feMorphology id="bldCore" in="mBld" operator="erode" radius="0.9" result="mCore"/>
+    <feMorphology id="bldGrow" in="mCore" operator="dilate" radius="0.9" result="mGrown"/>
+    <feComposite in="mGrown" in2="mCore" operator="out" result="mBldEdge"/>
+    <feFlood flood-color="#3D484D" result="cEdge"/>
+    <feComposite in="cEdge" in2="mBldEdge" operator="in" result="lEdge"/>
+    <feComposite in="lEdge" in2="s0" operator="over" result="s1"/>
+
+    <!-- Улицы: холодный асфальт, самая светлая ступень холста -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="mRoad"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  25.56 85.8 8.64 0 -118.08"/>
+    <feFlood flood-color="#3E4244" result="cRoad"/>
+    <feComposite in="cRoad" in2="mRoad" operator="in" result="lRoad"/>
+    <feComposite in="lRoad" in2="s1" operator="over" result="s2"/>
+
+    <!-- Магистрали: единственный тёплый слой холста. Медь глуше латуни вдвое
+         (насыщенность 22% против 72%) — она ведёт взгляд по городу, но не
+         спорит со слоем света, который на этом же экране рисуется латунью -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="mHwy"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  40 0 -40 0 -4.204"/>
+    <feFlood flood-color="#4F3F33" result="cHwy"/>
+    <feComposite in="cHwy" in2="mHwy" operator="in" result="lHwy"/>
+    <feComposite in="lHwy" in2="s2" operator="over" result="s3"/>
+
+    <!-- Зелень: тональный отвод на 148°, светлота почти как у земли. Парк не
+         спорит с застройкой за передний план — он читается «другой землёй» -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="g1"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -40 40 0 0 -0.284"/>
+    <feColorMatrix in="SourceGraphic" type="matrix" result="g2"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  40 0 -40 0 0.5"/>
+    <feComposite in="g1" in2="g2" operator="in" result="mPark"/>
+    <feFlood flood-color="#1C2922" result="cPark"/>
+    <feComposite in="cPark" in2="mPark" operator="in" result="lPark"/>
+    <feComposite in="lPark" in2="s3" operator="over" result="s4"/>
+
+    <!-- Вода поверх всего: она отделена от суши не синевой, а тем, что светлее
+         и без застройки. Серая вода читалась бы пустырём — это разобрано
+         отдельным решением и не изменилось -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="mWat"
+      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -40 0 40 0 -0.756"/>
+    <feFlood flood-color="#24343A" result="cWat"/>
+    <feComposite in="cWat" in2="mWat" operator="in" result="lWat"/>
+    <feComposite in="lWat" in2="s4" operator="over"/>
   </filter>
 </defs></svg>
 
@@ -2343,6 +2415,14 @@
     <div class="item"><span class="k">Вечерний брифинг</span><span class="toggle on" data-toggle></span></div>
     <div class="item"><span class="k">Утреннее уточнение</span><span class="toggle on" data-toggle></span></div>
     <div class="item"><span class="k">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
+
+    <div class="sec-label">Карта</div>
+    <!-- Холст по умолчанию без подписей: имена улиц спорят с нашей разметкой —
+         часами дуги, временами восхода и заката, буквами сторон света.
+         Но улица бывает нужна, чтобы понять, куда идти, поэтому подписи не
+         запрещены, а выключены: функция обязана уметь исчезнуть -->
+    <div class="item"><span class="k">Названия улиц и мест</span><span class="toggle" id="labelsToggle"></span></div>
+    <p class="seg-note">Отдельный слой поверх карты. Выключен — на карте только свет и город.</p>
 
     <div class="sec-label">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
@@ -3715,7 +3795,7 @@
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
-        mapFold: mapFoldShut, spots: spots, theme: theme,
+        mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: theme,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
           return o;
@@ -3971,6 +4051,8 @@
   var syncTarget = saved && saved.sync ? saved.sync : "off";
   // Сводка карты свёрнута или нет: кто её свернул, тот не хочет видеть её и завтра
   var mapFoldShut = !!(saved && saved.mapFold);
+  // Подписи на карте — выключены, пока их не попросили
+  var mapLabels = !!(saved && saved.mapLabels);
 
   /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
      на карте живут своими цветами в этом файле и темой не управляются */
@@ -3985,6 +4067,8 @@
       b.classList.toggle("active", b.dataset.theme === t);
     });
     if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
+    // Буквы тоже: на светлой карте они тёмные, на тёмной светлые
+    if (labelTiles) labelTiles.setUrl(labelURL());
     /* Часть цветов ставится из кода (подписи фаз, метки на карте) — их сменой
        класса не переключить, экраны надо перерисовать */
     if (booted) { renderToday(); renderMap(); }
@@ -4749,11 +4833,22 @@
   }
 
   /* ---------- Настоящая карта: Leaflet + тёмные тайлы ---------- */
-  var lmap = null, mapQuiet = false, tiles = null;
+  var lmap = null, mapQuiet = false, tiles = null, labelTiles = null;
+  /* Тайлы одни на обе темы: тёмный холст делает фильтр, а не второй источник.
+     Разные наборы означали бы и разную геометрию — на светлой теме улица есть,
+     на тёмной её нет, — а это одна и та же карта. */
   function tileURL() {
+    return "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png";
+  }
+  /* Подписи — отдельный прозрачный слой поверх холста. Он идёт вторым слоем, а
+     не другим набором тайлов, и потому не проходит через фильтр перекраски:
+     иначе буквы попали бы в классы вместе с домами и покрасились землёй.
+     Слой берётся по теме: на светлой карте нужны тёмные буквы, на тёмной —
+     светлые, а сама геометрия у обоих одна. */
+  function labelURL() {
     return theme === "light"
-      ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
-      : "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
+      ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+      : "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png";
   }
   function tzFor(lon) { return Math.max(-12, Math.min(14, HOME_TZ + Math.round((lon - HOME_LON) / 15))); }
   function coordText(lat, lon) {
@@ -4782,13 +4877,28 @@
     if (/район|округ|поселени|сельсовет|муниципальн|область|край|республик|улус/i.test(n)) return "";
     return n;
   }
+  /* Совпадение имени города с именем региона бывает двух родов, и путать их
+     нельзя. Геокодер иногда кладёт в поле города саму область — «Чувашия»,
+     «Татарстан», — и такое имя местом не является. Но у городов федерального
+     значения регион и город законно называются одинаково: Москва, Петербург,
+     Севастополь, а за границей — Берлин, Вена, Гамбург. Прежнее правило рубило
+     совпадение целиком, и обе столицы показывались координатами.
+     Различает их описание из справки геокодера: город там назван городом. */
+  function isCity(j, name) {
+    var a = (j.localityInfo && j.localityInfo.administrative) || [];
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].name === name && /город|city|stadt|ville/i.test(a[i].description || "")) return true;
+    }
+    return false;
+  }
   function settlement(j) {
     var reg = (j.principalSubdivision || "").trim();
     var names = [j.city, j.locality];
     for (var i = 0; i < names.length; i++) {
       var n = cleanPlace(names[i]);
       if (!n) continue;
-      if (reg && n === reg) continue;          // область, выданная за город
+      // область, выданная за город, — но не столица, чей регион зовётся так же
+      if (reg && n === reg && !isCity(j, n)) continue;
       return n;
     }
     return "";
@@ -4827,6 +4937,10 @@
         geoCity = settlement(j);
         // Область идёт уточнением под именем, но именем не становится никогда
         geoSub = (j.principalSubdivision || j.countryName || "").trim();
+        /* У городов федерального значения регион зовётся так же, как город, и
+           уточнение повторяло бы имя: «Санкт-Петербург» под «Санкт-Петербургом».
+           Пустая строка высоты не держит — под именем просто ничего не стоит */
+        if (geoSub === geoCity) geoSub = "";
         applyGeoNames();
       }).catch(function () {});   // офлайн — остаются координаты
   }
@@ -4850,17 +4964,47 @@
     }
     setLocation(lat, lon);
   }
+  /* Обводка живёт только на крупном плане, и это не настройка вкуса, а разница
+     между двумя картами. Вблизи дом — объект: у него есть форма, и контур эту
+     форму называет. На общем плане застройка — ткань города, обводить в ней
+     нечего: дома там в несколько пикселей, обводка съедает их целиком и
+     квартал рассыпается в рябь. Замерено на Петербурге: на z=13 обводка
+     занимала пятую часть кадра и поднимала среднюю яркость холста с 27 до 50.
+     Дальше z=16 здания различаются заливкой — она светлее земли на две
+     ступени, этого хватает. */
+  function setBldEdge() {
+    var z = lmap ? lmap.getZoom() : 15;
+    /* Ширина кольца равна радиусу и задана в CSS-пикселях: на retina-экране
+       это вдвое больше физических точек, поэтому числа здесь меньше, чем
+       кажется по виду обводки */
+    var r = z <= 15 ? 0 : (z === 16 ? 0.9 : 1.2);
+    ["bldCore", "bldGrow"].forEach(function (id) {
+      var f = document.getElementById(id);
+      if (f) f.setAttribute("radius", r);
+    });
+  }
+  /* Слой подписей заводится только когда его включили: выключенный тумблер
+     не должен стоить ни одного запроса. Снятие слоя тоже полное — прятать его
+     прозрачностью значило бы продолжать качать тайлы впустую. */
+  function setMapLabels(on) {
+    mapLabels = !!on;
+    if (!lmap) return;
+    if (labelTiles) { lmap.removeLayer(labelTiles); labelTiles = null; }
+    if (!mapLabels) return;
+    labelTiles = L.tileLayer(labelURL(), { subdomains: "abcd", maxZoom: 19, pane: "shadowPane" }).addTo(lmap);
+  }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
     lmap = L.map("lmap", { zoomControl: false, attributionControl: false }).setView([LAT, LON], 15);
-    /* Полотно карты зависит от темы. Тёмная получает монохромный холст
-       (dark_nolabels) — он и задумывался как фон для слоя света. Светлой он не
-       годится: чёрная карта под светлым интерфейсом выглядит дырой. Там стоит
-       voyager_nolabels — обычная карта в привычных цветах, тоже без подписей,
-       чтобы имена улиц не спорили с нашей разметкой. */
+    /* Полотно одно на обе темы: voyager_nolabels — обычная карта без подписей,
+       чтобы имена улиц не спорили с нашей разметкой. Тёмную из неё делает
+       фильтр тона. */
     tiles = L.tileLayer(tileURL(), {
-      subdomains: "abcd", maxZoom: 19
+      subdomains: "abcd", maxZoom: 19, className: "tile-canvas"
     }).addTo(lmap);
+    setBldEdge();
+    setMapLabels(mapLabels);
+    lmap.on("zoomend", setBldEdge);
     // Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место
     lmap.on("moveend", function () {
       if (mapQuiet) return;
@@ -8792,6 +8936,13 @@
     this.value = "";
   });
 
+  $("labelsToggle").classList.toggle("on", mapLabels);
+  $("labelsToggle").addEventListener("click", function () {
+    this.classList.toggle("on");
+    setMapLabels(this.classList.contains("on"));
+    saveAll();                       // выбор переживает перезапуск
+  });
+
   $("soundToggle").addEventListener("click", function () {
     this.classList.toggle("on");
     if (this.classList.contains("on")) { initAudio(); tickClick(); }
@@ -9598,16 +9749,6 @@
     var s = isNaN(d) ? "—" : p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
     $("buildInfo").textContent = "сборка " + s;
   })();
-  /* Ступень воды. Таблица из 256 значений — по одному на уровень серого:
-     единица стоит там, где вода (38), везде остальное ноль. Порог тут не
-     годится: 42 встречается в горах, где воды нет вовсе. */
-  (function waterStep() {
-    var f = document.getElementById("waterStep"); if (!f) return;
-    var t = new Array(256);
-    for (var i = 0; i < 256; i++) t[i] = (i === 38) ? "1" : "0";
-    f.setAttribute("tableValues", t.join(" "));
-  })();
-
   applyTheme(theme);
   document.querySelectorAll("#themeSeg button").forEach(function (b) {
     b.addEventListener("click", function () { applyTheme(b.dataset.theme); saveAll(); });
