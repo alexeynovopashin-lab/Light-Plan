@@ -1722,6 +1722,8 @@
     font-family: inherit; font-size: 15px; color: var(--ink); cursor: pointer;
     font-variant-numeric: tabular-nums; }
   .dp-cell.out { color: var(--ink-8); }
+  /* Недоступный день виден, но не нажимается: пустое место сбивало счёт недель */
+  .dp-cell.off { color: var(--ink-9); opacity: 0.45; cursor: default; }
   .dp-cell.today { color: var(--brass); font-weight: 600; }
   .dp-cell.on { background: var(--brass); color: var(--on-brass); font-weight: 600; }
   .dp-cell:active { background: var(--press); }
@@ -6341,8 +6343,12 @@
       + (dir < 0 ? "Назад" : "Вперёд") + '"><svg viewBox="0 0 24 24"><polyline points="'
       + (dir < 0 ? "15 4 8 12 15 20" : "9 4 16 12 9 20") + '"/></svg></button>';
   }
-  function renderDayPick(host, cur, onPick) {
+  /* Границы: конец не бывает раньше начала и не уезжает на полгода — таких
+     съёмок не бывает. Невозможные дни не гасятся молча после выбора, а просто
+     не предлагаются: подмена того, что человек только что нажал, хуже запрета */
+  function renderDayPick(host, cur, onPick, lim) {
     var id = host.id;
+    lim = lim || {};
     var shown = dpShown[id] || new Date(cur.getFullYear(), cur.getMonth(), 1);
     dpShown[id] = shown;
     var mode = dpMode[id] || "days";
@@ -6368,10 +6374,10 @@
       var cells = "";
       for (var i = off; i > 0; i--) {
         var d0 = new Date(first); d0.setDate(1 - i);
-        cells += dpCell(d0, cur, today, true);
+        cells += dpCell(d0, cur, today, true, lim);
       }
       for (var n = 1; n <= days; n++) {
-        cells += dpCell(new Date(shown.getFullYear(), shown.getMonth(), n), cur, today, false);
+        cells += dpCell(new Date(shown.getFullYear(), shown.getMonth(), n), cur, today, false, lim);
       }
       body = '<div class="dp-wk"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span>'
         + '<span>Пт</span><span>Сб</span><span>Вс</span></div>'
@@ -6386,28 +6392,30 @@
         // В месяцах стрелки листают годы: иначе до августа из декабря идти долго
         if (dpMode[id] === "months") dpShown[id] = new Date(shown.getFullYear() + k, shown.getMonth(), 1);
         else dpShown[id] = new Date(shown.getFullYear(), shown.getMonth() + k, 1);
-        renderDayPick(host, cur, onPick);
+        renderDayPick(host, cur, onPick, lim);
       });
     });
     host.querySelector(".dp-title").addEventListener("click", function () {
       dpMode[id] = dpMode[id] === "months" ? "days" : "months";
-      renderDayPick(host, cur, onPick);
+      renderDayPick(host, cur, onPick, lim);
     });
     host.querySelectorAll("[data-m]").forEach(function (b) {
       b.addEventListener("click", function () {
         dpShown[id] = new Date(shown.getFullYear(), +b.dataset.m, 1);
         dpMode[id] = "days";
-        renderDayPick(host, cur, onPick);
+        renderDayPick(host, cur, onPick, lim);
       });
     });
     host.querySelectorAll("[data-d]").forEach(function (b) {
       b.addEventListener("click", function () { onPick(new Date(+b.dataset.d)); });
     });
   }
-  function dpCell(d, cur, today, out) {
-    var cls = "dp-cell" + (out ? " out" : "")
+  function dpCell(d, cur, today, out, lim) {
+    var off = (lim.min && dayDiff(d, lim.min) < 0) || (lim.max && dayDiff(d, lim.max) > 0);
+    var cls = "dp-cell" + (out ? " out" : "") + (off ? " off" : "")
       + (sameDay(d, today) ? " today" : "") + (sameDay(d, cur) ? " on" : "");
-    return '<button type="button" class="' + cls + '" data-d="' + d.getTime() + '">' + d.getDate() + "</button>";
+    return '<button type="button" class="' + cls + '"'
+      + (off ? " disabled" : ' data-d="' + d.getTime() + '"') + ">" + d.getDate() + "</button>";
   }
   /* Открыли пикер — показываем месяц выбранной даты, а не тот, где листали */
   function dpReset(host, cur) {
@@ -6488,11 +6496,13 @@
     }
     if (id === "fEndDate") {
       dpReset(fwEDate, endDate());
+      var endMax = new Date(fDate); endMax.setDate(endMax.getDate() + MAX_DUR / 1440);
+      var endLim = { min: fDate, max: endMax };
       var pickEnd = function (d) {
         setEndFrom(dayDiff(d, fDate), endMinOfDay());
-        refreshForm(); renderDayPick(fwEDate, endDate(), pickEnd);
+        refreshForm(); renderDayPick(fwEDate, endDate(), pickEnd, endLim);
       };
-      renderDayPick(fwEDate, endDate(), pickEnd);
+      renderDayPick(fwEDate, endDate(), pickEnd, endLim);
     }
     if (id === "fStart") {
       var s = ((fMin % 1440) + 1440) % 1440;
@@ -7145,11 +7155,10 @@
     var w = dayWindow(fDate);
     /* Дата у обеих капсул. Коротко — «8 авг»: рядом с временем длинная форма
        не помещается, а год в списке съёмок этого года лишний */
-    /* Год показываем, когда он не текущий: 10 августа 2026 и 10 августа 2027
-       иначе неразличимы, а договариваются в декабре на август сплошь и рядом */
+    /* Год стоит всегда, а не только у чужого года: договариваются в декабре
+       на август, и «10 авг» без года — приглашение перепутать 26-й с 27-м */
     function capDate(d) {
-      var y = d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "";
-      return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + y;
+      return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + " " + d.getFullYear();
     }
     $("fStartDate").textContent = capDate(fDate);
     $("fEndDate").textContent = capDate(endDate());
@@ -9051,8 +9060,7 @@
     return d;
   }
   function shortDate(d) {
-    var y = d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "";
-    return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + y;
+    return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + " " + d.getFullYear();
   }
 
   function renderBlk() {
@@ -9114,11 +9122,14 @@
     }
     if (id === "blkToDate") {
       dpReset(bwTD, blkEndDate());
+      /* Занятость живёт дольше съёмки: отпуск на три недели — обычное дело */
+      var bMax = new Date(blk.from); bMax.setDate(bMax.getDate() + 60);
+      var bLim = { min: blk.from, max: bMax };
       var pickTo = function (d) {
         blk.days = Math.max(1, dayDiff(d, blk.from) + 1);
-        renderBlk(); renderDayPick(bwTD, blkEndDate(), pickTo);
+        renderBlk(); renderDayPick(bwTD, blkEndDate(), pickTo, bLim);
       };
-      renderDayPick(bwTD, blkEndDate(), pickTo);
+      renderDayPick(bwTD, blkEndDate(), pickTo, bLim);
     }
     if (id === "blkFromTime") { syncWheel(bwFH, Math.floor(blk.min / 60)); syncMinWheel(bwFM, blk.min % 60); }
     if (id === "blkToTime") {
