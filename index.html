@@ -4753,6 +4753,36 @@
   /* Имя места — обратное геокодирование: крупно город, мелко более точное место.
      BigDataCloud: без ключа, с CORS, по-русски. Офлайн — остаются координаты. */
   var geoCity = "", geoSub = "", geoKey = null, geoTimer = null;
+  /* Место — это населённый пункт: город, посёлок, село, деревня. Область и
+     район местом не являются: «Московская область» — не то, куда едут снимать,
+     и в карточке она выглядела ошибкой. Геокодер отдаёт всё вперемешку и
+     подставляет заглушки вроде «Место не определено», когда не знает ответа, —
+     их тоже отбрасываем: пусть лучше останутся координаты.
+     Курорт, гора или урочище именуются руками — там геокодеру верить нечему. */
+  function cleanPlace(n) {
+    n = (n || "").trim();
+    if (!n || /не опред|неизвест|unknown/i.test(n)) return "";
+    /* Геокодер кладёт в поле города административную единицу целиком:
+       «Городской округ город Томск». Населённый пункт внутри неё есть —
+       достаём его. */
+    var m = n.match(/(?:^|\s)(?:город|посёлок|поселок|село|деревня|станица|хутор|аул|слобода)\s+([А-ЯЁ][^,]*)$/);
+    if (m) return m[1].trim();
+    /* Единица без имени населённого пункта местом не является: «Зольский район»
+       и «Дмитровский городской округ» — это не то, куда едут снимать */
+    if (/район|округ|поселени|сельсовет|муниципальн|область|край|республик|улус/i.test(n)) return "";
+    return n;
+  }
+  function settlement(j) {
+    var reg = (j.principalSubdivision || "").trim();
+    var names = [j.city, j.locality];
+    for (var i = 0; i < names.length; i++) {
+      var n = cleanPlace(names[i]);
+      if (!n) continue;
+      if (reg && n === reg) continue;          // область, выданная за город
+      return n;
+    }
+    return "";
+  }
   function applyGeoNames() {
     var coords = coordText(LAT, LON);
     var city = geoCity || coords;
@@ -4784,9 +4814,9 @@
     fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + LAT + "&longitude=" + LON + "&localityLanguage=ru")
       .then(function (r) { return r.json(); }).then(function (j) {
         if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) return;   // место успело смениться
-        var city = j.city || j.locality || j.principalSubdivision || "";
-        geoCity = city;
-        geoSub = (j.locality && j.locality !== city) ? j.locality : (j.principalSubdivision || j.countryName || "");
+        geoCity = settlement(j);
+        // Область идёт уточнением под именем, но именем не становится никогда
+        geoSub = (j.principalSubdivision || j.countryName || "").trim();
         applyGeoNames();
       }).catch(function () {});   // офлайн — остаются координаты
   }
@@ -6529,8 +6559,9 @@
     fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=ru")
       .then(function (r) { return r.json(); }).then(function (j) {
         if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;
-        sessionPlace.city = !!(j.city || j.locality);
-        if (!sessionPlace.name) sessionPlace.name = j.city || j.locality || "";
+        var st2 = settlement(j);
+        sessionPlace.city = !!st2;                       // засветка бывает там, где есть посёлок
+        if (!sessionPlace.name) sessionPlace.name = st2;
         renderSessionPlace();
       }).catch(function () {});
   }
@@ -8385,7 +8416,9 @@
       fTrip = false;
       $("fBrief").value = ""; $("fModels").value = "";
       // Новая съёмка начинается там, где сейчас смотрим свет
-      sessionPlace = { name: geoSub || geoCity || "", lat: LAT, lon: LON, city: true };
+      /* Место съёмки — населённый пункт, а не область: раньше сюда попадало
+         уточнение, и новая съёмка открывалась с «Московской областью» */
+      sessionPlace = { name: geoCity || "", lat: LAT, lon: LON, city: true };
       fRefs = [];
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
     }
