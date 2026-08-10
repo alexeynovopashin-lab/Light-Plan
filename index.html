@@ -573,14 +573,19 @@
      самого фильтра наверху страницы). CSS этого не выражает: нужно сжатие
      уровней по каждому каналу отдельно, а не общая яркость. */
   .filter-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
-  /* Красится именно слой холста, а не «все тайлы»: фильтр начинается с заливки
-     землёй и потому непрозрачен по всей своей области. Попав на прозрачный
-     слой — например на подписи, — он превратил бы его в сплошной прямоугольник
-     поверх карты. Проверено на себе */
-  .tile-canvas { filter: url(#tileTone); }
+  /* Фильтр висит на самих тайлах, а не на контейнере слоя. Через контейнер
+     было бы дешевле — один расчёт на слой вместо одного на тайл, и обводка
+     зданий не рвалась бы на швах, — но на iOS карта при этом осталась
+     нефильтрованной в обеих темах. На телефоне выиграл вариант, который там
+     работает, а не тот, который экономнее.
+     Подписи исключены явно: фильтр начинается с заливки землёй и потому
+     непрозрачен по всей своей области — попав на прозрачный слой, он
+     превратил бы его в сплошной прямоугольник поверх карты. */
+  .leaflet-tile { filter: url(#tileTone); }
+  .tile-labels .leaflet-tile { filter: none; }
   /* Светлой теме тайлы годятся как есть: зелень зелёная, вода голубая,
      дороги серые, здания бежевые */
-  :root[data-theme="light"] .tile-canvas { filter: none; }
+  :root[data-theme="light"] .leaflet-tile { filter: none; }
   :root[data-theme="light"] .map-frame,
   :root[data-theme="light"] #lmap,
   :root[data-theme="light"] .leaflet-container { background: #E8E3DA; }
@@ -1770,6 +1775,18 @@
      остаётся на виду. Правило нужно после самого display (DECISIONS) */
   .group input[hidden], .group textarea[hidden] { display: none; }
   .group input::placeholder, .group textarea::placeholder { color: var(--ink-8); }
+  /* Автозаполнение красит поле своим жёлтым, и в тёмной теме заполненная
+     строка выглядит сломанной. Фон у autofill нельзя перекрыть обычным
+     `background` — WebKit рисует его поверх; лечится тенью во всю высоту поля.
+     Цвет текста задаётся отдельным свойством по той же причине. */
+  .group input:-webkit-autofill,
+  .group input:-webkit-autofill:hover,
+  .group input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+    -webkit-text-fill-color: var(--ink);
+    caret-color: var(--ink);
+    transition: background-color 9999s ease-out 0s;
+  }
   .group textarea { resize: none; min-height: 92px; line-height: 1.5; }
 
   /* Оплата: строка «подпись — поле», число прижато вправо и в моно */
@@ -5063,7 +5080,7 @@
     if (!lmap) return;
     if (labelTiles) { lmap.removeLayer(labelTiles); labelTiles = null; }
     if (!mapLabels) return;
-    labelTiles = L.tileLayer(labelURL(), { subdomains: "abcd", maxZoom: 19, pane: "shadowPane" }).addTo(lmap);
+    labelTiles = L.tileLayer(labelURL(), { subdomains: "abcd", maxZoom: 19, pane: "shadowPane", className: "tile-labels" }).addTo(lmap);
   }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
@@ -5072,7 +5089,7 @@
        чтобы имена улиц не спорили с нашей разметкой. Тёмную из неё делает
        фильтр тона. */
     tiles = L.tileLayer(tileURL(), {
-      subdomains: "abcd", maxZoom: 19, className: "tile-canvas"
+      subdomains: "abcd", maxZoom: 19
     }).addTo(lmap);
     setBldEdge();
     setMapLabels(mapLabels);
@@ -6876,11 +6893,22 @@
      Номер набирают как придётся, а показывать его надо одинаково:
      «8 923 412-33-33» или «+7 923 412-33-33». Ведущую цифру не меняем —
      кто пишет через плюс, тот так и продолжит. */
-  function formatTel(v) {
+  /* `pasted` значит, что номер пришёл разом — из автозаполнения или из буфера,
+     а не набирается по цифре. Разница существенная: при наборе подставлять
+     ничего нельзя, иначе на десятой цифре приложение молча перепишет то, что
+     человек только что нажал. */
+  function formatTel(v, pasted) {
     var raw = String(v || "");
     var plus = /^\s*\+/.test(raw);
     var d = raw.replace(/\D/g, "");
-    if (!d) return "";
+    /* Плюс набирают первым, и цифр в этот момент ещё нет. Пустая строка тут
+       стирала бы символ прямо под пальцем — номер с «+» было не начать */
+    if (!d) return plus ? "+" : "";
+    /* Автозаполнение отдаёт номер без кода страны: «9618878078». Первая
+       девятка при этом читается как ведущая цифра, и номер разбивается на
+       разряды со сдвигом — «9 618 878-07-8». Десять цифр, начинающихся с
+       девятки, — это мобильный без кода: код возвращаем на место */
+    if (pasted && d.length === 10 && d[0] === "9") d = (plus ? "7" : "8") + d;
     if (plus && d[0] === "8") d = "7" + d.slice(1);       // «+8» не бывает
     var lead = plus ? "+" + d[0] : d[0];
     var rest = d.slice(1, 11);                            // код 3 + номер 7
@@ -7029,9 +7057,17 @@
   ["fP1Tel", "fP2Tel", "fPhone", "oPhone"].forEach(function (id) {
     var el = $(id);
     if (!el) return;
-    el.addEventListener("input", function () {
+    var lastLen = 0;
+    el.addEventListener("input", function (e) {
+      var digits = this.value.replace(/\D/g, "").length;
+      /* Вставку узнаём по тому, что цифр прибавилось больше одной за раз.
+         На `inputType` полагаться нельзя: автозаполнение на iOS присылает то
+         `insertReplacementText`, то пустое значение */
+      var pasted = digits - lastLen > 1
+        || (e && /paste|replacement|autofill/i.test(e.inputType || ""));
       var end = this.selectionStart === this.value.length;
-      this.value = formatTel(this.value);
+      this.value = formatTel(this.value, pasted);
+      lastLen = this.value.replace(/\D/g, "").length;
       if (end) this.selectionStart = this.selectionEnd = this.value.length;
     });
   });
