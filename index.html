@@ -925,8 +925,34 @@
      Лента идёт по порядку событий, а не по масштабу часов: пропорция сжала бы
      вечер в полоску, а пустую середину дня растянула на весь экран. Сколько
      длится окно, говорят словами — «свободно · 3 ч 30 мин». */
-  .day-line { padding: 0 24px; flex-shrink: 0; }
+  /* Лента прокручивается внутри своей рамки: сутки с четырёх утра до часа
+     ночи — это двадцать один час, и в полный рост они вытолкнули бы с экрана
+     и сводку, и кнопки дня. Видимая часть держит рабочий день, остальное
+     догружается прокруткой — и вверх, к рассвету, и вниз, за полночь */
+  .day-line {
+    padding: 0 24px; flex-shrink: 0;
+    max-height: 46vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .day-line::-webkit-scrollbar { display: none; }
   .day-line[hidden] { display: none; }
+  /* Пустой час. Высота задана и одинакова — по ней и читается плотность дня:
+     чем больше подряд идущих слотов, тем крупнее окно */
+  .dl-slot {
+    display: grid; grid-template-columns: 46px 18px 1fr; align-items: stretch;
+    width: 100%; min-height: 38px; padding: 0; text-align: left;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .dl-slot .dl-time { padding-top: 0; transform: translateY(-6px); color: var(--ink-7); }
+  .dl-slot .dl-axis { position: relative; }
+  .dl-slot .dl-axis::before {
+    content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 1px; margin-left: -0.5px; background: var(--ink-10); opacity: 0.5;
+  }
+  /* Черта часа уходит вправо: она делит сутки, а не подчёркивает строку */
+  .dl-empty { border-top: 1px solid var(--hairline); margin-left: 10px; }
+  .dl-slot:active .dl-empty { border-top-color: var(--brass-dark); }
+  .dl-slot:active .dl-time { color: var(--brass-deep); }
   /* Строка ленты — тот же `.plan-row` ради свайпа и тапа, но раскладка своя.
      `.plan-row` задаёт свой display и паддинги, поэтому оба свойства
      переписываются явно: правило ниже по файлу при равной специфичности
@@ -5716,78 +5742,88 @@
     });
     items.sort(function (x, y) { return x.a - y.a || x.b - y.b; });
 
-    var html = "", prevEnd = null;
-    /* Свободное окно называется только когда оно рабочее. Пятнадцать минут
-       между съёмками — это не окно, а перебежка, и сообщать о ней незачем */
-    /* Окно — не подпись, а место: тап заводит съёмку прямо в него. Иначе
-       фотограф видит «свободно 3 ч 30 мин», а чтобы этим воспользоваться,
-       идёт в кнопку внизу экрана и выставляет время руками — при том что
-       приложение его уже знает.
-       Начало округляется до получаса вверх: время, которое ставят руками,
-       называют получасами («в четыре»), и подставлять 15:58 было бы издёвкой.
-       Это ровно то различение, что записано о шаге времени: свет не
-       округляем никогда, а назначенное человеком — всегда. */
-    function freeGap(from, to) {
-      if (from == null || to - from < 60) return "";
-      var at = Math.min(Math.ceil(from / 30) * 30, to - 30);
-      return '<div class="dl-row free"><div class="dl-time"></div><div class="dl-axis"></div>'
-        + '<button type="button" class="dl-free" data-at="' + at + '">свободно · <b>'
-        + durLabel(to - from) + "</b><i>＋ съёмка</i></button></div>";
-    }
-    /* Отметка света встаёт между событиями своим временем. Это и есть то, чего
-       не умеет обычный календарь: он покажет пустой вечер, но не скажет, что
-       в нём закат */
-    function lightMark(from, to) {
-      if (q === "poor" || from == null) return "";
+    /* Сутки разложены по часам, а не по порядку событий. Прежде лента шла
+       событие за событием, и пустые часы existed только как подпись
+       «свободно · 3 ч 30 мин»: день читался, но в него нельзя было ткнуть.
+       Часовая сетка отвечает на тот же вопрос иначе — она показывает не
+       «сколько свободно», а «куда именно поставить», и это оказалось важнее.
+       Пустой час — слот: тап заводит съёмку ровно на него.
+       Сетка идёт с четырёх утра до часа ночи: рассвет летом в четыре, а
+       банкет кончается за полночь — суток мало, если резать их по календарю.
+       Ниже и выше видимой части лента прокручивается внутри своей рамки,
+       чтобы день не выталкивал с экрана всё остальное. */
+    var HOUR_FROM = 4, HOUR_TO = 25;
+    var html = "", used = {};
+    function lightAt(h) {
+      if (q === "poor") return null;
       var t = Math.round(w.a);
-      if (t <= from || t >= to) return "";
-      return '<div class="dl-row light"><div class="dl-time">' + fmt(t) + "</div>"
-        + '<div class="dl-axis"></div><div class="dl-light"><span class="dl-lic">'
-        + IC.svg(w.label === "закат" ? "sunset" : "sun") + w.label + "</span></div></div>";
+      return Math.floor(t / 60) === h ? t : null;
     }
-    items.forEach(function (it) {
-      html += freeGap(prevEnd, it.a);
-      html += lightMark(prevEnd, it.a);
-      if (it.kind === "busy") {
-        var b = it.blk;
-        var when = b.allDay
-          ? (blockDays(b) > 1
-            ? "весь день · " + blockDays(b) + " " + plural(blockDays(b), ["день", "дня", "дней"])
-            : "весь день")
-          : fmt(b.min) + " – " + fmt(b.min + b.dur);
-        html += '<div class="swipe"><button class="swipe-del" data-b="' + b.id + '">Удалить</button>'
-          + '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
-          + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
-          + '<div class="dl-axis"><i class="dl-dot busy"></i></div>'
-          + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
-          + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
-          + '<div class="dl-sub">' + esc(when) + "</div></div></div></div>";
-      } else {
-        var s = it.s, ds = deliveryState(s), meet = it.kind === "meet";
-        var name = clientName(s) || (meet ? "Встреча" : genreName(s.type));
+    for (var h = HOUR_FROM; h < HOUR_TO; h++) {
+      var hm = (h % 24) * 60, hEnd = hm + 60;
+      /* Событие принадлежит часу, в котором начинается. Занятость на весь
+         день начала не имеет — она встаёт первой строкой сетки */
+      var here = items.filter(function (it, k) {
+        if (used[k]) return false;
+        var a = it.blk && it.blk.allDay ? HOUR_FROM * 60 : it.a;
+        var mine = h === HOUR_FROM ? a < hEnd : (a >= hm && a < hEnd);
+        if (mine) used[k] = 1;
+        return mine;
+      });
+      var lt = lightAt(h % 24);
+      var label = (h % 24 < 10 ? "0" : "") + (h % 24) + ":00";
+
+      if (!here.length && lt === null) {
+        /* Пустой час — предложение. Время подставляется ровно то, что видно
+           слева: тап по «16:00» и должен дать 16:00 */
+        /* Часы после полуночи принадлежат уже следующим суткам: сетка тянется
+           до часа ночи, и съёмка из такого слота должна встать на завтра */
+        html += '<button type="button" class="dl-slot" data-at="' + hm + '"'
+          + (h >= 24 ? ' data-next="1"' : "") + ">"
+          + '<span class="dl-time">' + label + "</span>"
+          + '<span class="dl-axis"></span><span class="dl-empty"></span></button>';
+        continue;
+      }
+      if (lt !== null) {
+        html += '<div class="dl-row light"><div class="dl-time">' + fmt(lt) + "</div>"
+          + '<div class="dl-axis"></div><div class="dl-light"><span class="dl-lic">'
+          + IC.svg(w.label === "закат" ? "sunset" : "sun") + w.label + "</span></div></div>";
+      }
+      here.forEach(function (it) {
+        if (it.kind === "busy") {
+          var b = it.blk;
+          var when = b.allDay
+            ? (blockDays(b) > 1
+              ? "весь день · " + blockDays(b) + " " + plural(blockDays(b), ["день", "дня", "дней"])
+              : "весь день")
+            : fmt(b.min) + " – " + fmt(b.min + b.dur);
+          html += '<div class="swipe"><button class="swipe-del" data-b="' + b.id + '">Удалить</button>'
+            + '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
+            + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
+            + '<div class="dl-axis"><i class="dl-dot busy"></i></div>'
+            + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
+            + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
+            + '<div class="dl-sub">' + esc(when) + "</div></div></div></div>";
+          return;
+        }
+        var s2 = it.s, ds = deliveryState(s2), meet = it.kind === "meet";
+        var name = clientName(s2) || (meet ? "Встреча" : genreName(s2.type));
         html += '<div class="swipe"><button class="swipe-del" data-i="' + it.i + '">Удалить</button>'
           + '<div class="dl-row plan-row" data-i="' + it.i + '">'
           + '<div class="dl-time">' + fmt(it.a) + "</div>"
           + '<div class="dl-axis"><i class="dl-dot' + (meet ? " meet" : "") + '"></i></div>'
-          /* Знак опознаётся быстрее подписи: на площадке читают глазом, а не
-             построчно. У встречи он приглушён — латунь достаётся тому, что
-             про свет */
           + '<div class="dl-body"><div class="dl-title"><span class="dl-ic'
           + (meet ? " meet" : "") + '">'
-          + IC.svg(meet ? "guests" : (GENRE_SIGN[s.type] || "camera")) + "</span>"
+          + IC.svg(meet ? "guests" : (GENRE_SIGN[s2.type] || "camera")) + "</span>"
           + esc(name) + "</div>"
           + '<div class="dl-sub">' + (meet
-              ? "встреча · " + esc(shortGenre(s.type).toLowerCase())
+              ? "встреча · " + esc(shortGenre(s2.type).toLowerCase())
               : fmt(it.a) + " – " + fmt(it.b)) + "</div>"
           + (!meet && ds.rank >= 2
               ? '<div class="dl-due" style="color:' + ds.color + '">' + ds.label + "</div>" : "")
-          + "</div></div></div>";
-      }
-      prevEnd = Math.max(prevEnd == null ? it.b : prevEnd, it.b);
-    });
-    /* Хвост дня: после последней съёмки свет ещё может прийти, и вечернее окно
-       это чаще всего и есть самое ценное время */
-    if (items.length) html += lightMark(prevEnd, 1440);
+          + "</div></div>";
+      });
+    }
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
     /* Концы нити помечаются классами: позиционные псевдоклассы здесь не
        работают — каждая строка лежит в своей обёртке для свайпа */
@@ -5796,6 +5832,12 @@
       rows[0].classList.add("dl-first");
       rows[rows.length - 1].classList.add("dl-last");
     }
+    /* Лента открывается на первом событии дня, а не на четырёх утра: сутки
+       длинные, а смотрят в них то, что записано. Пустой день показывает утро */
+    var firstEvent = box.querySelector(".dl-row");
+    box.scrollTop = firstEvent
+      ? Math.max(0, firstEvent.offsetTop - box.offsetTop - 40)
+      : 0;
 
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -5814,10 +5856,12 @@
     });
     /* Тап по свободному окну заводит съёмку на его время: приложение уже
        знает, когда окно начинается, и спрашивать это второй раз незачем */
-    box.querySelectorAll(".dl-free").forEach(function (b) {
+    box.querySelectorAll(".dl-slot").forEach(function (b) {
       b.addEventListener("click", function () {
         if (closeSwipes()) return;
-        openForm(calSel, +b.dataset.at, null, false);
+        var d = new Date(calSel);
+        if (b.dataset.next) d.setDate(d.getDate() + 1);
+        openForm(d, +b.dataset.at, null, false);
       });
     });
     paintIcons(box);
