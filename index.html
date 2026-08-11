@@ -975,10 +975,7 @@
   }
   .dl-slot .dl-time { padding-top: 0; transform: translateY(-6px); color: var(--ink-7); }
   .dl-slot .dl-axis { position: relative; }
-  .dl-slot .dl-axis::before {
-    content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
-    width: 1px; margin-left: -0.5px; background: var(--ink-10); opacity: 0.5;
-  }
+  .dl-slot .dl-axis { position: relative; }
   /* Черта часа уходит вправо: она делит сутки, а не подчёркивает строку */
   .dl-empty { border-top: 1px solid var(--hairline); margin-left: 10px; }
   .dl-slot:active .dl-empty, .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
@@ -1035,16 +1032,19 @@
   /* Ось: тонкая нить, общая для всего дня. Рисуется фоном колонки, поэтому
      не рвётся между строками и не требует своего элемента в каждой */
   .dl-axis { position: relative; align-self: stretch; }
-  .dl-axis::before {
-    content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
-    width: 1px; margin-left: -0.5px; background: var(--ink-10);
+  /* Нить рисуется своим элементом, а не псевдоэлементом: градиент фазы
+     задаётся в разметке, а `::before` инлайн-стилю недоступен */
+  .dl-line {
+    position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 3px; margin-left: -1.5px; border-radius: 2px;
+    background: var(--ink-10);
   }
   /* Концы ленты подрезаются по классам, а не по `:first-child`. Каждая строка
      лежит в своей обёртке для свайпа, поэтому позиционные псевдоклассы
      срабатывают на всех строках сразу: нить обрезалась с обеих сторон и
      исчезала вовсе. Шестой раз, когда подводит не логика, а селектор */
-  .dl-row.dl-first .dl-axis::before { top: 7px; }
-  .dl-row.dl-last .dl-axis::before { bottom: calc(100% - 8px); }
+  .dl-row.dl-first .dl-line { top: 7px; }
+  .dl-row.dl-last .dl-line { bottom: calc(100% - 8px); }
   /* Знак события. Съёмка залита, встреча пустая, занятость — черта: тип
      читается формой точки, а не размером карточки */
   .dl-dot {
@@ -1075,7 +1075,7 @@
 
   /* Свободное окно — не пробел, а сведение: фотограф решает по нему, влезет ли
      ещё съёмка. Поэтому у него своя строка, а не пустота между событиями */
-  .dl-row.free .dl-axis::before { background: none; border-left: 1px dashed var(--ink-10); left: calc(50% - 0.5px); }
+
   /* Слот приглушён: он предлагает, а не требует. Тап заводит съёмку на это
      время — «＋ съёмка» проступает справа, чтобы предложение было названо, а
      не угадывалось */
@@ -1108,7 +1108,7 @@
     width: 14px; height: 14px; display: block; fill: none;
     stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
   }
-  .dl-row.light .dl-axis::before { background: rgba(201, 133, 63, 0.35); }
+
   .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
 
 
@@ -5790,6 +5790,33 @@
 
   function renderDayPanel() {
     var w = dayWindow(calSel), q = w.q;
+    /* Ось таймлайна красится фазами света — тем же движком, что рисует дугу
+       на «Сегодня» и компас на карте. Полоса читается сверху вниз как сами
+       сутки: ночь, синий час, рассвет, золотой час, день, золотой, закат,
+       синий, ночь. Это и есть разница между нашим календарём и чужим —
+       в чужом вертикальная линия просто разделяет часы.
+       Цвета взяты у модели, но приглушены: ось подсказывает, а событие на
+       ней должно оставаться главным. */
+    var sky = daySky(calSel);
+    function phaseCol(m) {
+      var c;
+      if (sky.rise === null || sky.set === null) c = sky.rise === null ? DEEP : SILVER;
+      else if (m < sky.blueA || m > sky.blueB) c = DEEP;                      // ночь
+      else if (m < sky.rise) c = lerp(DEEP, BLUE, (m - sky.blueA) / Math.max(1, sky.rise - sky.blueA));
+      else if (m < sky.goldA) c = lerp(GOLD, SILVER, (m - sky.rise) / Math.max(1, sky.goldA - sky.rise));
+      else if (m < sky.goldB) c = SILVER;                                     // день
+      else if (m < sky.set) c = lerp(SILVER, GOLD, (m - sky.goldB) / Math.max(1, sky.set - sky.goldB));
+      else c = lerp(SCARLET, BLUE, (m - sky.set) / Math.max(1, sky.blueB - sky.set));
+      return rgba(c, 0.5);
+    }
+    /* Час красится градиентом от своего начала к концу — иначе сутки шли бы
+       ступенями, а свет меняется непрерывно */
+    function axisStyle(h) {
+      var a = (h % 24) * 60, b = a + 59;
+      if (h >= 24) { a = 1439; b = 1439; }
+      return ' style="background:linear-gradient(180deg,' + phaseCol(a) + ',' + phaseCol(b) + ')"';
+    }
+
     /* Лента дат живёт только в дневном виде: в месяце и неделе даты и так на
        экране, и вторая их полоса была бы спором двух навигаций */
     var dates = $("dayDates");
@@ -5883,7 +5910,8 @@
           var when = b.allDay ? "весь день" : fmt(b.min) + " – " + fmt(b.min + b.dur);
           return '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
             + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
-            + '<div class="dl-axis"><i class="dl-dot busy"></i></div>'
+            + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(it.a / 60)) + "></i>"
+            + '<i class="dl-dot busy"></i></div>'
             + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
             + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
             + '<div class="dl-sub">' + esc(when) + "</div></div></div>";
@@ -5930,7 +5958,8 @@
       return '<button type="button" class="dl-slot" data-at="' + km + '"'
         + (k >= 24 ? ' data-next="1"' : "") + ">"
         + '<span class="dl-time">' + ((k % 24 < 10 ? "0" : "") + (k % 24)) + ':00</span>'
-        + '<span class="dl-axis"></span><span class="dl-empty"></span></button>';
+        + '<span class="dl-axis"><i class="dl-line"' + axisStyle(k) + "></i></span>"
+        + '<span class="dl-empty"></span></button>';
     }
     for (var h = HOUR_FROM; h < HOUR_TO; h++) {
       var hm = (h % 24) * 60, hEnd = hm + 60;
@@ -5945,7 +5974,8 @@
       if (!here.length && lt === null) { html += emptyHour(h); continue; }
       if (lt !== null) {
         html += '<div class="dl-row light"><div class="dl-time">' + fmt(lt) + "</div>"
-          + '<div class="dl-axis"></div><div class="dl-light"><span class="dl-lic">'
+          + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(lt / 60)) + "></i></div>"
+          + '<div class="dl-light"><span class="dl-lic">'
           + IC.svg(w.label === "закат" ? "sunset" : "sun") + w.label + "</span></div></div>";
       }
       here.forEach(function (it) {
@@ -5958,7 +5988,8 @@
             : fmt(b.min) + " – " + fmt(b.min + b.dur);
           html += '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
             + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
-            + '<div class="dl-axis"><i class="dl-dot busy"></i></div>'
+            + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(it.a / 60)) + "></i>"
+            + '<i class="dl-dot busy"></i></div>'
             + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
             + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
             + '<div class="dl-sub">' + esc(when) + "</div></div></div>";
@@ -5968,7 +5999,8 @@
         var name = clientName(s2) || (meet ? "Встреча" : genreName(s2.type));
         html += '<div class="dl-row plan-row" data-i="' + it.i + '">'
           + '<div class="dl-time">' + fmt(it.a) + "</div>"
-          + '<div class="dl-axis"><i class="dl-dot' + (meet ? " meet" : "") + '"></i></div>'
+          + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(it.a / 60)) + "></i>"
+            + '<i class="dl-dot' + (meet ? " meet" : "") + '"></i></div>'
           + '<div class="dl-body"><div class="dl-title"><span class="dl-ic'
           + (meet ? " meet" : "") + '">'
           + IC.svg(meet ? "guests" : (GENRE_SIGN[s2.type] || "camera")) + "</span>"
