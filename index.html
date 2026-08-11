@@ -925,16 +925,12 @@
      Лента идёт по порядку событий, а не по масштабу часов: пропорция сжала бы
      вечер в полоску, а пустую середину дня растянула на весь экран. Сколько
      длится окно, говорят словами — «свободно · 3 ч 30 мин». */
-  /* Лента прокручивается внутри своей рамки: сутки с четырёх утра до часа
-     ночи — это двадцать один час, и в полный рост они вытолкнули бы с экрана
-     и сводку, и кнопки дня. Видимая часть держит рабочий день, остальное
-     догружается прокруткой — и вверх, к рассвету, и вниз, за полночь */
-  .day-line {
-    padding: 0 24px; flex-shrink: 0;
-    max-height: 46vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .day-line::-webkit-scrollbar { display: none; }
+  /* Лента прокручивается вместе с экраном, а не внутри себя. Своя прокрутка
+     выглядела аккуратнее, но на телефоне вложенный скролл откусывал нижние
+     часы: край рамки резал строку пополам, и докрутить до неё не выходило.
+     Один прокручиваемый слой на экран — правило, которое дороже экономии
+     места: сводка уезжает вверх, зато лента цела от четырёх утра до часа ночи. */
+  .day-line { padding: 0 24px 20px; flex-shrink: 0; }
   .day-line[hidden] { display: none; }
   /* Пустой час. Высота задана и одинакова — по ней и читается плотность дня:
      чем больше подряд идущих слотов, тем крупнее окно */
@@ -5834,26 +5830,16 @@
       var t = Math.round(w.a);
       return Math.floor(t / 60) === h ? t : null;
     }
-    var run = null;                      // копим подряд идущие пустые часы
-    function flushRun() {
-      if (!run) return;
-      var n = run.to - run.from + 1;
-      var open = openGaps[run.from] ? " open" : "";
-      if (open || n === 1) {
-        for (var k = run.from; k <= run.to; k++) {
-          var km = (k % 24) * 60;
-          html += '<button type="button" class="dl-slot" data-at="' + km + '"'
-            + (k >= 24 ? ' data-next="1"' : "") + ">"
-            + '<span class="dl-time">' + ((k % 24 < 10 ? "0" : "") + (k % 24)) + ':00</span>'
-            + '<span class="dl-axis"></span><span class="dl-empty"></span></button>';
-        }
-      } else {
-        html += '<button type="button" class="dl-gap" data-from="' + run.from + '">'
-          + '<span class="dl-time">' + ((run.from % 24 < 10 ? "0" : "") + (run.from % 24)) + ':00</span>'
-          + '<span class="dl-axis"></span>'
-          + '<span class="dl-gap-b">свободно · <b>' + n + " " + LANG.word("unit.hour", n) + "</b></span></button>";
-      }
-      run = null;
+    /* Пустые часы показываются часами. Схлопывание пробовали — оно экономило
+       место, но отнимало главное: чтобы поставить съёмку на конкретный час, в
+       него нужно ткнуть, а свёрнутое окно требовало сперва его раскрыть.
+       Лишний шаг ради ровного края экрана — плохой обмен. */
+    function emptyHour(k) {
+      var km = (k % 24) * 60;
+      return '<button type="button" class="dl-slot" data-at="' + km + '"'
+        + (k >= 24 ? ' data-next="1"' : "") + ">"
+        + '<span class="dl-time">' + ((k % 24 < 10 ? "0" : "") + (k % 24)) + ':00</span>'
+        + '<span class="dl-axis"></span><span class="dl-empty"></span></button>';
     }
     for (var h = HOUR_FROM; h < HOUR_TO; h++) {
       var hm = (h % 24) * 60, hEnd = hm + 60;
@@ -5865,11 +5851,7 @@
         return mine;
       });
       var lt = lightAt(h % 24);
-      if (!here.length && lt === null) {
-        if (run) run.to = h; else run = { from: h, to: h };
-        continue;
-      }
-      flushRun();
+      if (!here.length && lt === null) { html += emptyHour(h); continue; }
       if (lt !== null) {
         html += '<div class="dl-row light"><div class="dl-time">' + fmt(lt) + "</div>"
           + '<div class="dl-axis"></div><div class="dl-light"><span class="dl-lic">'
@@ -5910,7 +5892,6 @@
           + "</div></div>";
       });
     }
-    flushRun();
     }
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
     /* Концы нити помечаются классами: позиционные псевдоклассы здесь не
@@ -5951,11 +5932,17 @@
        время, вот три рода события.
        Замок — занятость: выходной, дорога, перелёт. Он третий, потому что
        занимают время реже, чем снимают. */
-    function closeSlotMenu() {
+    /* Закрытие панели сворачивает и раскрытые окна: час выбирают ради
+       действия, и, отказавшись от действия, фотограф уже не целится в час.
+       Иначе раскрытые окна копились бы за день в длинную лестницу пустых
+       строк — ровно то, от чего схлопывание и заводили */
+    function closeSlotMenu(keepGaps) {
       var m = box.querySelector(".slot-menu");
       if (m) m.parentNode.removeChild(m);
       box.querySelectorAll(".dl-slot.armed").forEach(function (x) { x.classList.remove("armed"); });
+      if (!keepGaps && !isEmpty(openGaps)) { openGaps = {}; renderDayPanel(); }
     }
+    function isEmpty(o) { for (var k in o) return false; return true; }
     function openSlotMenu(btn) {
       var was = btn.classList.contains("armed");
       closeSlotMenu();
@@ -5974,7 +5961,8 @@
         x.addEventListener("click", function (e) {
           e.stopPropagation();
           var a = x.dataset.a;
-          closeSlotMenu();
+          openGaps = {};                       // час выбран, окно больше не нужно раскрытым
+          closeSlotMenu(true);
           if (a === "shoot") openForm(d, at, null, false);
           else if (a === "meet") openForm(d, at, null, false, "meet");
           else openBlockSheet(null, at, d);
@@ -9728,6 +9716,7 @@
   });
   /* Стрелки листают месяцами или неделями — смотря какой масштаб открыт */
   function stepCal(dir) {
+    openGaps = {};                             // на новом дне свои окна
     if (calScope === "day") {
       calSel = addDays(calSel, dir);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
