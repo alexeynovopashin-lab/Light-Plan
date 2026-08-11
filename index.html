@@ -906,6 +906,33 @@
 
   /* паддинг задан выше, внутри свёртываемого блока */
   .dp-date { font-size: 11px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
+  /* Лента дат: семь дней вокруг выбранного. Выбранный день — залитый круг,
+     сегодняшний — латунное число. Знаки под числом говорят, чем занят день */
+  .day-dates {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 2px; padding: 6px 16px 10px; flex-shrink: 0;
+  }
+  .day-dates[hidden] { display: none; }
+  .dd-day {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; padding: 4px 0 6px; cursor: pointer;
+    font-family: inherit;
+  }
+  .dd-wd { font-size: 10px; letter-spacing: 0.5px; color: var(--ink-7); text-transform: uppercase; }
+  .dd-num {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: var(--ink-2); font-variant-numeric: tabular-nums;
+  }
+  .dd-day.today .dd-num { color: var(--brass); font-weight: 650; }
+  .dd-day.sel .dd-num { background: var(--brass); color: var(--on-brass); font-weight: 650; }
+  .dd-marks { display: flex; gap: 3px; min-height: 12px; align-items: center; }
+  .dd-marks svg {
+    width: 11px; height: 11px; display: block; fill: none; stroke: var(--brass-soft);
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .dd-marks .meet svg { stroke: var(--ink-6); }
+  .dd-more { font-size: 9px; color: var(--ink-6); }
   /* Виджет отдал высоту ленте: дата и вердикт ушли, остались свет, погода и
      загрузка дня. Три строки вместо пяти */
   .dp-main { min-width: 0; padding-top: 2px; }
@@ -2584,6 +2611,10 @@
          времени, и сводка не должна отбирать у неё пол-экрана. Вердикт,
          причина и уверенность прогноза свелись к одной строке, а «посмотреть
          свет» из кнопки-плашки стало ссылкой -->
+    <!-- Неделя дат над днём: переключать день, не уходя в другой вид. Под
+         числом — знаки того, что в этом дне есть: жанр опознаётся быстрее
+         подписи, а пустой день остаётся пустым, без точки-заглушки -->
+    <div class="day-dates" id="dayDates" hidden></div>
     <div class="day-panel" id="dayPanel">
      <!-- Виджет дня отвечает на три вопроса и ни на один лишний: что со
           светом, что с погодой и насколько день занят.
@@ -4079,6 +4110,7 @@
      раскрыл — значит целится в конкретный час, и схлопывать это обратно на
      каждой перерисовке было бы спором с рукой */
   var openGaps = {};
+  var dayScrollDay = null;               // на какой день уже наводили ленту
   var dayPanelOpen = false;              // сводка дня под спойлером: состояние ведёт человек
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
   /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
@@ -5749,6 +5781,42 @@
 
   function renderDayPanel() {
     var w = dayWindow(calSel), q = w.q;
+    /* Лента дат живёт только в дневном виде: в месяце и неделе даты и так на
+       экране, и вторая их полоса была бы спором двух навигаций */
+    var dates = $("dayDates");
+    dates.hidden = calScope !== "day";
+    if (!dates.hidden) {
+      var today0 = new Date(); today0.setHours(0, 0, 0, 0);
+      var wkStart = weekStart(calSel);
+      dates.innerHTML = "";
+      for (var di = 0; di < 7; di++) {
+        var dd = addDays(wkStart, di);
+        /* Знаки дня: до трёх, дальше счётчик. Больше трёх в клетку шириной в
+           палец не влезает, а счёт сообщает не меньше */
+        var marks = sessions.filter(function (x) { return sameDay(x.date, dd); });
+        var mk = marks.slice(0, 3).map(function (x) {
+          return '<span class="' + (isMeet(x) ? "meet" : "") + '">'
+            + IC.svg(isMeet(x) ? "guests" : (GENRE_SIGN[x.type] || "camera")) + "</span>";
+        }).join("");
+        if (marks.length > 3) mk += '<span class="dd-more">+' + (marks.length - 3) + "</span>";
+        if (!marks.length && blocksOn(dd).length) mk = '<span class="meet">' + IC.svg("lock") + "</span>";
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "dd-day" + (sameDay(dd, calSel) ? " sel" : "") + (sameDay(dd, today0) ? " today" : "");
+        b.innerHTML = '<span class="dd-wd">' + WD[dd.getDay()] + "</span>"
+          + '<span class="dd-num">' + dd.getDate() + "</span>"
+          + '<span class="dd-marks">' + mk + "</span>";
+        (function (day) {
+          b.addEventListener("click", function () {
+            calSel = day;
+            calMonth = new Date(day.getFullYear(), day.getMonth(), 1);
+            renderCal(); renderDayPanel();
+          });
+        })(new Date(dd));
+        dates.appendChild(b);
+      }
+    }
+
     /* Свет — первая строка виджета: ради него и держат это приложение.
        Качество передаётся цветом времени, а не отдельным словом: словом его
        уже сказала погода справа */
@@ -5832,7 +5900,13 @@
        окно раскрывается тапом, если в него нужно попасть точнее.
        Сетка идёт с четырёх утра до часа ночи: рассвет летом в четыре, а
        банкет кончается за полночь — суток мало, если резать их по календарю. */
-    var HOUR_FROM = 4, HOUR_TO = 25, used = {};
+    /* Сутки идут от полуночи до полуночи: календарь показывает день целиком,
+       а не рабочий отрезок. Ночная съёмка, отъезд в четыре утра и банкет,
+       кончающийся в час, — всё это части одного дня, и обрезать его сверху
+       значило бы прятать часы, которые у фотографа заняты.
+       Замыкающая строка 00:00 принадлежит уже следующим суткам — она стоит
+       границей, чтобы конец дня был виден, а не обрывался. */
+    var HOUR_FROM = 0, HOUR_TO = 25, used = {};
     function lightAt(h) {
       if (q === "poor") return null;
       var t = Math.round(w.a);
@@ -5907,12 +5981,20 @@
       rows[0].classList.add("dl-first");
       rows[rows.length - 1].classList.add("dl-last");
     }
-    /* Лента открывается на первом событии дня, а не на четырёх утра: сутки
-       длинные, а смотрят в них то, что записано. Пустой день показывает утро */
-    var firstEvent = box.querySelector(".dl-row");
-    box.scrollTop = firstEvent
-      ? Math.max(0, firstEvent.offsetTop - box.offsetTop - 40)
-      : 0;
+    /* Экран открывается на шести утра: ночные часы в сетке есть, но смотреть
+       в них нечего, а начинать день с полуночи значило бы каждый раз
+       прокручивать шесть пустых строк. Прокрутка делается один раз на день:
+       после перерисовки — выбрали действие, добавили съёмку — экран должен
+       остаться там, где его оставила рука. */
+    if (calScope === "day" && dayScrollDay !== +calSel) {
+      dayScrollDay = +calSel;
+      var six = box.querySelector('[data-at="360"]') || box.firstElementChild;
+      var scr = document.getElementById("s-plan");
+      if (six && scr) {
+        var top = six.getBoundingClientRect().top - box.getBoundingClientRect().top;
+        scr.scrollTop = Math.max(0, box.offsetTop + top - 8);
+      }
+    }
 
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
