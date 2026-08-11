@@ -990,8 +990,27 @@
   .dl-slot .dl-time { padding-top: 0; transform: translateY(-6px); color: var(--ink-7); }
   .dl-slot .dl-axis { position: relative; }
   .dl-slot .dl-axis { position: relative; }
-  /* Черта часа уходит вправо: она делит сутки, а не подчёркивает строку */
-  .dl-empty { border-top: 1px solid var(--hairline); margin-left: 10px; }
+  /* Черта часа уходит вправо: она делит сутки, а не подчёркивает строку.
+     Внутри — тонкий пунктир на половине: он показывает, что час делится
+     надвое, и снимает вопрос «во сколько поставится, в 12:00 или 12:30» */
+  .dl-empty {
+    position: relative; border-top: 1px solid var(--hairline); margin-left: 10px;
+  }
+  .dl-slot:not(.busy-hour) .dl-empty::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%;
+    border-top: 1px dashed var(--hairline); opacity: 0.55;
+  }
+  /* Выбранная половина подсвечивается до открытия панели: рука видит, куда
+     попала, а не узнаёт об этом из формы */
+  .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
+  .dl-slot.armed.half-0 .dl-empty { background: linear-gradient(180deg, rgba(226,164,76,0.10), transparent 50%); }
+  .dl-slot.armed.half-30 .dl-empty { background: linear-gradient(180deg, transparent 50%, rgba(226,164,76,0.10)); }
+  /* Час внутри события: занят, поэтому не предлагает себя */
+  .dl-slot.busy-hour { cursor: pointer; }
+  .dl-slot.busy-hour .dl-empty {
+    background: var(--fill-b); border-top-color: transparent;
+  }
+  .dl-slot.busy-hour .dl-time { color: var(--ink-8); }
   .dl-slot:active .dl-empty, .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
   .dl-slot:active .dl-time, .dl-slot.armed .dl-time { color: var(--brass-deep); }
   /* Схлопнутое окно: место на экране принадлежит событиям, а пустым часам
@@ -6005,6 +6024,17 @@
        место, но отнимало главное: чтобы поставить съёмку на конкретный час, в
        него нужно ткнуть, а свёрнутое окно требовало сперва его раскрыть.
        Лишний шаг ради ровного края экрана — плохой обмен. */
+    /* Занятый час: та же строка, но без предложения и с приглушённой заливкой.
+       Тап ведёт в событие, которое его занимает, — это и есть ответ на
+       вопрос «чем занято» */
+    function busyHour(k, it) {
+      var km = (k % 24) * 60;
+      return '<div class="dl-slot busy-hour"' + (it.i != null ? ' data-i="' + it.i + '"' : "")
+        + (it.blk ? ' data-b="' + it.blk.id + '"' : "") + ">"
+        + '<span class="dl-time">' + ((k % 24 < 10 ? "0" : "") + (k % 24)) + ':00</span>'
+        + '<span class="dl-axis"><i class="dl-line"' + axisStyle(k) + "></i></span>"
+        + '<span class="dl-empty"></span></div>';
+    }
     function emptyHour(k) {
       var km = (k % 24) * 60;
       return '<button type="button" class="dl-slot" data-at="' + km + '"'
@@ -6028,7 +6058,20 @@
          порядку часов, и двигать линию внутри часа было бы обещанием
          масштаба, которого у неё нет */
       var nowHere = isToday && Math.floor(nowMin / 60) === (h % 24) && h < 24;
-      if (!here.length && lt === null && !nowHere) { html += emptyHour(h); continue; }
+      /* Час внутри события не предлагает слот: съёмка с 12:30 до 17:00
+         занимает и 13:00, и 14:00, и 15:00, и 16:00 — предлагать в них
+         «поставить съёмку» значило бы врать о свободе.
+         Вынимать такие часы из ленты нельзя: пропадёт масштаб, и съёмка на
+         четыре с половиной часа стала бы на вид короче часовой. Поэтому час
+         остаётся на месте, но закрашен занятым — видно и время, и объём. */
+      var covered = null;
+      items.forEach(function (x) {
+        if (x.a < hEnd && x.b > hm && x.a < hm) covered = x;
+      });
+      if (!here.length && lt === null && !nowHere) {
+        html += covered ? busyHour(h, covered) : emptyHour(h);
+        continue;
+      }
       if (nowHere) html += nowMark();
       if (lt !== null) {
         html += '<div class="dl-row light"><div class="dl-time">' + fmt(lt) + "</div>"
@@ -6090,9 +6133,18 @@
     function closeSlotMenu() {
       var m = box.querySelector(".slot-menu");
       if (m) m.parentNode.removeChild(m);
-      box.querySelectorAll(".dl-slot.armed").forEach(function (x) { x.classList.remove("armed"); });
+      box.querySelectorAll(".dl-slot.armed").forEach(function (x) {
+        x.classList.remove("armed", "half-0", "half-30");
+      });
     }
-    box.querySelectorAll(".dl-slot").forEach(function (b) {
+    // Занятый час — не слот: он ведёт в то событие, которым занят
+    box.querySelectorAll(".dl-slot.busy-hour").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (b.dataset.b) openBlock(b.dataset.b);
+        else if (b.dataset.i != null) openCard(+b.dataset.i);
+      });
+    });
+    box.querySelectorAll(".dl-slot:not(.busy-hour)").forEach(function (b) {
       b.addEventListener("click", function (e) {
         var was = b.classList.contains("armed");
         closeSlotMenu();
@@ -6105,6 +6157,7 @@
            тридцати восьми пикселям не попасть, точное время правится в форме */
         var r = b.getBoundingClientRect();
         var half = (e.clientY - r.top) > r.height / 2 ? 30 : 0;
+        b.classList.add(half ? "half-30" : "half-0");
         var at = +b.dataset.at + half;
         var d = new Date(calSel);
         if (b.dataset.next) d.setDate(d.getDate() + 1);
