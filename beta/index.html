@@ -951,8 +951,41 @@
   }
   /* Черта часа уходит вправо: она делит сутки, а не подчёркивает строку */
   .dl-empty { border-top: 1px solid var(--hairline); margin-left: 10px; }
-  .dl-slot:active .dl-empty { border-top-color: var(--brass-dark); }
-  .dl-slot:active .dl-time { color: var(--brass-deep); }
+  .dl-slot:active .dl-empty, .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
+  .dl-slot:active .dl-time, .dl-slot.armed .dl-time { color: var(--brass-deep); }
+  /* Схлопнутое окно: место на экране принадлежит событиям, а пустым часам
+     достаётся одна строка на всех */
+  .dl-gap {
+    display: grid; grid-template-columns: 46px 18px 1fr; align-items: center;
+    width: 100%; min-height: 34px; padding: 0; text-align: left;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .dl-gap .dl-time { color: var(--ink-7); }
+  .dl-gap .dl-axis { position: relative; align-self: stretch; }
+  .dl-gap .dl-axis::before {
+    content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 0;
+    margin-left: -0.5px; border-left: 1px dashed var(--ink-10);
+  }
+  .dl-gap-b {
+    padding-left: 10px; font-size: 12px; color: var(--ink-6);
+    letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  .dl-gap-b b { color: var(--ink-4); font-weight: 600; letter-spacing: 0; text-transform: none; }
+  .dl-gap:active .dl-gap-b { color: var(--ink-3); }
+  /* Три действия там, где нажали */
+  .slot-menu {
+    display: flex; gap: 8px; margin: 4px 0 8px 64px;
+  }
+  .slot-menu button {
+    flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 9px 4px; border: none; border-radius: 12px; background: var(--sheet);
+    font-family: inherit; font-size: 11px; color: var(--ink-3); cursor: pointer;
+  }
+  .slot-menu svg {
+    width: 19px; height: 19px; fill: none; stroke: var(--brass);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .slot-menu button:active { background: var(--press); }
   /* Строка ленты — тот же `.plan-row` ради свайпа и тапа, но раскладка своя.
      `.plan-row` задаёт свой display и паддинги, поэтому оба свойства
      переписываются явно: правило ниже по файлу при равной специфичности
@@ -4037,6 +4070,10 @@
   var calMonth = new Date();             // месяц в календаре
   var calSel = new Date();               // выбранный день в календаре
   var calScope = "month";                // масштаб: месяц, неделя или один день
+  /* Какие свободные окна фотограф раскрыл по часам. Живёт до ухода с экрана:
+     раскрыл — значит целится в конкретный час, и схлопывать это обратно на
+     каждой перерисовке было бы спором с рукой */
+  var openGaps = {};
   var dayPanelOpen = false;              // сводка дня под спойлером: состояние ведёт человек
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
   /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
@@ -5752,17 +5789,74 @@
        банкет кончается за полночь — суток мало, если резать их по календарю.
        Ниже и выше видимой части лента прокручивается внутри своей рамки,
        чтобы день не выталкивал с экрана всё остальное. */
-    var HOUR_FROM = 4, HOUR_TO = 25;
-    var html = "", used = {};
+    /* Почасовая сетка нужна только дню. Под календарём месяца и в неделе
+       день показывается блоками: там смотрят «что за день», а не «куда
+       поставить», и двадцать один час сетки был бы там свалкой пустых строк. */
+    var html = "";
+    if (calScope !== "day") {
+      html = items.map(function (it) {
+        if (it.kind === "busy") {
+          var b = it.blk;
+          var when = b.allDay ? "весь день" : fmt(b.min) + " – " + fmt(b.min + b.dur);
+          return '<div class="swipe"><button class="swipe-del" data-b="' + b.id + '">Удалить</button>'
+            + '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
+            + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
+            + '<div class="dl-axis"><i class="dl-dot busy"></i></div>'
+            + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
+            + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
+            + '<div class="dl-sub">' + esc(when) + "</div></div></div></div>";
+        }
+        var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet";
+        var nm = clientName(s3) || (meet3 ? "Встреча" : genreName(s3.type));
+        return '<div class="swipe"><button class="swipe-del" data-i="' + it.i + '">Удалить</button>'
+          + '<div class="dl-row plan-row" data-i="' + it.i + '">'
+          + '<div class="dl-time">' + fmt(it.a) + "</div>"
+          + '<div class="dl-axis"><i class="dl-dot' + (meet3 ? " meet" : "") + '"></i></div>'
+          + '<div class="dl-body"><div class="dl-title"><span class="dl-ic' + (meet3 ? " meet" : "") + '">'
+          + IC.svg(meet3 ? "guests" : (GENRE_SIGN[s3.type] || "camera")) + "</span>" + esc(nm) + "</div>"
+          + '<div class="dl-sub">' + (meet3 ? "встреча · " + esc(shortGenre(s3.type).toLowerCase())
+              : fmt(it.a) + " – " + fmt(it.b)) + "</div>"
+          + (!meet3 && ds3.rank >= 2 ? '<div class="dl-due" style="color:' + ds3.color + '">' + ds3.label + "</div>" : "")
+          + "</div></div>";
+      }).join("");
+    } else {
+    /* Сутки разложены по часам: пустой час — место, куда можно поставить
+       съёмку, а не подпись о том, что время свободно.
+       Подряд идущие пустые часы схлопываются в одну строку. Место на экране
+       принадлежит событиям: шесть пустых часов подряд занимали шесть строк и
+       выталкивали вечер за край, ничего при этом не рассказывая. Схлопнутое
+       окно раскрывается тапом, если в него нужно попасть точнее.
+       Сетка идёт с четырёх утра до часа ночи: рассвет летом в четыре, а
+       банкет кончается за полночь — суток мало, если резать их по календарю. */
+    var HOUR_FROM = 4, HOUR_TO = 25, used = {};
     function lightAt(h) {
       if (q === "poor") return null;
       var t = Math.round(w.a);
       return Math.floor(t / 60) === h ? t : null;
     }
+    var run = null;                      // копим подряд идущие пустые часы
+    function flushRun() {
+      if (!run) return;
+      var n = run.to - run.from + 1;
+      var open = openGaps[run.from] ? " open" : "";
+      if (open || n === 1) {
+        for (var k = run.from; k <= run.to; k++) {
+          var km = (k % 24) * 60;
+          html += '<button type="button" class="dl-slot" data-at="' + km + '"'
+            + (k >= 24 ? ' data-next="1"' : "") + ">"
+            + '<span class="dl-time">' + ((k % 24 < 10 ? "0" : "") + (k % 24)) + ':00</span>'
+            + '<span class="dl-axis"></span><span class="dl-empty"></span></button>';
+        }
+      } else {
+        html += '<button type="button" class="dl-gap" data-from="' + run.from + '">'
+          + '<span class="dl-time">' + ((run.from % 24 < 10 ? "0" : "") + (run.from % 24)) + ':00</span>'
+          + '<span class="dl-axis"></span>'
+          + '<span class="dl-gap-b">свободно · <b>' + n + " " + LANG.word("unit.hour", n) + "</b></span></button>";
+      }
+      run = null;
+    }
     for (var h = HOUR_FROM; h < HOUR_TO; h++) {
       var hm = (h % 24) * 60, hEnd = hm + 60;
-      /* Событие принадлежит часу, в котором начинается. Занятость на весь
-         день начала не имеет — она встаёт первой строкой сетки */
       var here = items.filter(function (it, k) {
         if (used[k]) return false;
         var a = it.blk && it.blk.allDay ? HOUR_FROM * 60 : it.a;
@@ -5771,19 +5865,11 @@
         return mine;
       });
       var lt = lightAt(h % 24);
-      var label = (h % 24 < 10 ? "0" : "") + (h % 24) + ":00";
-
       if (!here.length && lt === null) {
-        /* Пустой час — предложение. Время подставляется ровно то, что видно
-           слева: тап по «16:00» и должен дать 16:00 */
-        /* Часы после полуночи принадлежат уже следующим суткам: сетка тянется
-           до часа ночи, и съёмка из такого слота должна встать на завтра */
-        html += '<button type="button" class="dl-slot" data-at="' + hm + '"'
-          + (h >= 24 ? ' data-next="1"' : "") + ">"
-          + '<span class="dl-time">' + label + "</span>"
-          + '<span class="dl-axis"></span><span class="dl-empty"></span></button>';
+        if (run) run.to = h; else run = { from: h, to: h };
         continue;
       }
+      flushRun();
       if (lt !== null) {
         html += '<div class="dl-row light"><div class="dl-time">' + fmt(lt) + "</div>"
           + '<div class="dl-axis"></div><div class="dl-light"><span class="dl-lic">'
@@ -5824,6 +5910,8 @@
           + "</div></div>";
       });
     }
+    flushRun();
+    }
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
     /* Концы нити помечаются классами: позиционные псевдоклассы здесь не
        работают — каждая строка лежит в своей обёртке для свайпа */
@@ -5856,16 +5944,67 @@
     });
     /* Тап по свободному окну заводит съёмку на его время: приложение уже
        знает, когда окно начинается, и спрашивать это второй раз незачем */
+    /* Три действия открываются там, где нажали, а не внизу экрана. Кнопки
+       «Запланировать съёмку» и «Встреча» жили в подвале и всегда говорили про
+       одно время — подсказанное светом; чтобы поставить съёмку на десять
+       утра, приходилось лезть в барабан. Тап по часу отвечает сразу: вот это
+       время, вот три рода события.
+       Замок — занятость: выходной, дорога, перелёт. Он третий, потому что
+       занимают время реже, чем снимают. */
+    function closeSlotMenu() {
+      var m = box.querySelector(".slot-menu");
+      if (m) m.parentNode.removeChild(m);
+      box.querySelectorAll(".dl-slot.armed").forEach(function (x) { x.classList.remove("armed"); });
+    }
+    function openSlotMenu(btn) {
+      var was = btn.classList.contains("armed");
+      closeSlotMenu();
+      if (was) return;                       // повторный тап по тому же часу закрывает
+      btn.classList.add("armed");
+      var at = +btn.dataset.at;
+      var d = new Date(calSel);
+      if (btn.dataset.next) d.setDate(d.getDate() + 1);
+      var m = document.createElement("div");
+      m.className = "slot-menu";
+      m.innerHTML = '<button type="button" data-a="shoot">' + IC.svg("camera") + "<span>съёмка</span></button>"
+        + '<button type="button" data-a="meet">' + IC.svg("guests") + "<span>встреча</span></button>"
+        + '<button type="button" data-a="busy">' + IC.svg("lock") + "<span>занять</span></button>";
+      btn.parentNode.insertBefore(m, btn.nextSibling);
+      m.querySelectorAll("button").forEach(function (x) {
+        x.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var a = x.dataset.a;
+          closeSlotMenu();
+          if (a === "shoot") openForm(d, at, null, false);
+          else if (a === "meet") openForm(d, at, null, false, "meet");
+          else openBlockSheet(null, at, d);
+        });
+      });
+    }
+    /* Схлопнутое окно раскрывается тапом: внутри него может понадобиться
+       конкретный час, а не начало */
+    box.querySelectorAll(".dl-gap").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (closeSwipes()) return;
+        openGaps[+b.dataset.from] = 1;
+        renderDayPanel();
+      });
+    });
     box.querySelectorAll(".dl-slot").forEach(function (b) {
       b.addEventListener("click", function () {
         if (closeSwipes()) return;
-        var d = new Date(calSel);
-        if (b.dataset.next) d.setDate(d.getDate() + 1);
-        openForm(d, +b.dataset.at, null, false);
+        openSlotMenu(b);
       });
     });
     paintIcons(box);
     var shootCount = items.filter(function (x) { return x.kind !== "busy"; }).length;
+    /* В дневном виде действия живут на самой ленте: тап по часу предлагает
+       съёмку, встречу и занятость. Кнопки внизу остаются месяцу и неделе,
+       где ленты часов нет и ткнуть некуда */
+    var onLine = calScope === "day";
+    ["planDay", "planMeet", "planBlock"].forEach(function (id) {
+      if ($(id)) $(id).hidden = onLine;
+    });
     $("plannedLabel").textContent = items.length ? "Запланировано" : "Свободный день";
     $("planDay").querySelector(".lbl").textContent = shootCount ? "Добавить съёмку" : "Запланировать съёмку";
   }
@@ -9838,12 +9977,14 @@
   });
   $("blkNote").addEventListener("input", function () { blk.note = this.value; });
 
-  function openBlockSheet(b) {
+  /* `at` приходит из ленты дня: занятость завели тапом по конкретному часу,
+     и день целиком тут не при чём — заняли два часа на дорогу, а не сутки */
+  function openBlockSheet(b, at, day) {
     blkEditId = b ? b.id : null;
     blk = b ? { k: b.k, note: b.note || "", from: new Date(b.from), allDay: !!b.allDay,
                 days: b.days || 1, min: b.min || 600, dur: b.dur || 120 }
-            : { k: "off", note: "", from: new Date(calSel), allDay: true,
-                days: 1, min: 600, dur: 120 };
+            : { k: "off", note: "", from: new Date(day || calSel), allDay: at == null,
+                days: 1, min: at == null ? 600 : at, dur: 120 };
     blkCloseRows(); renderBlk();
     $("blkSheet").classList.add("open"); $("blkScrim").classList.add("open");
   }
