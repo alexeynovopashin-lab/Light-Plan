@@ -919,13 +919,18 @@
     /* Даты закреплены, лента уезжает под них: навигация не должна уплывать
        вместе с содержимым, иначе к соседнему дню приходится возвращаться
        прокруткой */
-    /* Липнут под шапку, а не к нулю: высота шапки — вырез плюс кнопка в
-       44 pt и отступы. Мерить её на старте нельзя, экран в этот момент
-       скрыт и отдаёт ноль */
+    background: var(--surface);
+  }
+  .now-back.no-day { display: none; }
+  /* Верхний блок дня закреплён целиком: даты, шеврон и сводка. Липнет под
+     шапку — её высота это вырез плюс кнопка в 44 pt и отступы; мерить её на
+     старте нельзя, экран в этот момент скрыт и отдаёт ноль.
+     Липкость включается только в дневном виде: в месяце сверху сетка, и
+     прилипающая сводка мешала бы ей */
+  .day-sticky.on {
     position: sticky; top: calc(env(safe-area-inset-top, 0px) + 62px);
     z-index: 6; background: var(--surface);
   }
-  .now-back.no-day { display: none; }
   .day-dates[hidden] { display: none; }
   .dd-day {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -2624,6 +2629,12 @@
     <!-- Неделя дат стоит первой и закреплена: она навигация, а лента едет под
          ней. Виджет сводки ушёл под даты и сворачивается — свет и погода
          нужны не каждую минуту, а место на экране нужно всегда -->
+    <!-- Даты, шеврон и сводка держатся вместе и закреплены: лента уезжает
+         под них. Прежде сводка стояла над лентой обычным блоком, и, чтобы
+         увидеть погоду, приходилось прокручивать день обратно к полуночи —
+         при том что открывается он на шести утра. Не нужна сводка — её
+         сворачивают, и тогда сверху остаются только даты. -->
+    <div class="day-sticky" id="daySticky">
     <div class="day-dates" id="dayDates" hidden></div>
 
     <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
@@ -2645,6 +2656,7 @@
     </div>
 
     <div class="sec-label" id="plannedLabel">Запланировано</div>
+    </div>
     <div class="day-line" id="dpSessions"></div>
     <div class="undo" id="undoBar"><span id="undoText">Съёмка удалена</span><button id="undoBtn">Вернуть</button></div>
     <button class="action" id="planDay" style="margin: 4px 24px 0;">
@@ -5509,6 +5521,7 @@
        под календарём оставался дневной вид с прошлого раза: лента дат,
        таймлайн с полуночи и всё прочее. Два вида спорили за один экран */
     $("dayDates").hidden = !day;
+    $("daySticky").classList.toggle("on", day);
     setPlanTitle();
     if (day) { renderDayPanel(); markScopeNow(); return; }
     if (week) { renderWeek(); markScopeNow(); return; }
