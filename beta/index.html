@@ -1084,6 +1084,20 @@
   .dl-due { font-size: 12px; margin-top: 3px; }
   .dl-row.busy .dl-title { font-weight: 500; color: var(--ink-3); font-style: italic; }
 
+  /* Линия «сейчас»: где мы в дне прямо сейчас. Ярче отметки света и тоньше
+     события — она не запись в календаре, а положение стрелки на приборе */
+  .dl-row.now .dl-time { color: var(--brass); font-weight: 650; }
+  .dl-dot.now {
+    position: absolute; left: 50%; top: 3px; width: 9px; height: 9px;
+    margin-left: -4.5px; border-radius: 50%; box-sizing: border-box;
+    background: var(--brass); border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--brass);
+  }
+  .dl-nowline {
+    align-self: start; margin: 7px 0 14px 10px; height: 0;
+    border-top: 1px solid var(--brass);
+  }
+
   /* Свободное окно — не пробел, а сведение: фотограф решает по нему, влезет ли
      ещё съёмка. Поэтому у него своя строка, а не пустота между событиями */
 
@@ -5825,6 +5839,13 @@
        Цвета взяты у модели, но приглушены: ось подсказывает, а событие на
        ней должно оставаться главным. */
     var sky = daySky(calSel);
+    var nowD = new Date(), isToday = sameDay(nowD, calSel);
+    var nowMin = nowD.getHours() * 60 + nowD.getMinutes();
+    function nowMark() {
+      return '<div class="dl-row now"><div class="dl-time">' + fmt(nowMin) + "</div>"
+        + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(nowMin / 60)) + "></i>"
+        + '<i class="dl-dot now"></i></div><div class="dl-nowline"></div></div>';
+    }
     function phaseCol(m) {
       var c;
       if (sky.rise === null || sky.set === null) c = sky.rise === null ? DEEP : SILVER;
@@ -5996,7 +6017,13 @@
         return mine;
       });
       var lt = lightAt(h % 24);
-      if (!here.length && lt === null) { html += emptyHour(h); continue; }
+      /* Линия «сейчас» — только у сегодняшнего дня: в прошлом и будущем она
+         означала бы неправду. Час свой, минуты названы точно: лента идёт по
+         порядку часов, и двигать линию внутри часа было бы обещанием
+         масштаба, которого у неё нет */
+      var nowHere = isToday && Math.floor(nowMin / 60) === (h % 24) && h < 24;
+      if (!here.length && lt === null && !nowHere) { html += emptyHour(h); continue; }
+      if (nowHere) html += nowMark();
       if (lt !== null) {
         html += '<div class="dl-row light"><div class="dl-time">' + fmt(lt) + "</div>"
           + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(lt / 60)) + "></i></div>"
@@ -6043,98 +6070,32 @@
     /* Концы нити помечаются классами: позиционные псевдоклассы здесь не
        работают — каждая строка лежит в своей обёртке для свайпа */
 
-    /* Экран открывается на шести утра: ночные часы в сетке есть, но смотреть
-       в них нечего, а начинать день с полуночи значило бы каждый раз
-       прокручивать шесть пустых строк. Прокрутка делается один раз на день:
-       после перерисовки — выбрали действие, добавили съёмку — экран должен
-       остаться там, где его оставила рука. */
+    /* Экран открывается на девяти утра, и под верхним блоком, а не под ним.
+       Раньше прокрутка целилась в час, не зная про закреплённые даты и
+       сводку: они накрывали ленту сверху, и первым видимым часом оказывался
+       не тот, к которому вели. Считаем от нижнего края липкого блока —
+       тогда обещанный час и стоит первым, а свернули сводку — открылось
+       больше утра, а не другой час.
+       Наводка одна на день: после перерисовки экран остаётся там, где его
+       оставила рука. */
     if (calScope === "day" && dayScrollDay !== +calSel) {
       dayScrollDay = +calSel;
-      var six = box.querySelector('[data-at="360"]') || box.firstElementChild;
       var scr = document.getElementById("s-plan");
-      if (six && scr) {
-        var top = six.getBoundingClientRect().top - box.getBoundingClientRect().top;
-        scr.scrollTop = Math.max(0, box.offsetTop + top - 8);
+      /* В девять может стоять событие — тогда слота нет, и целимся в саму
+         строку этого часа. Ищем по подписи времени: она есть у обоих родов */
+      var target = box.querySelector('[data-at="540"]');
+      if (!target) target = [].slice.call(box.querySelectorAll(".dl-time"))
+        .filter(function (t) { return /^09:/.test(t.textContent); })
+        .map(function (t) { return t.parentNode; })[0];
+      if (scr && target) {
+        scr.scrollTop = 0;
+        var sticky = document.getElementById("daySticky").getBoundingClientRect();
+        /* Запас в десяток пикселей: подпись часа приподнята над своей чертой,
+           и без него «09:00» цепляло бы нижний край блока */
+        scr.scrollTop = Math.max(0, target.getBoundingClientRect().top - sticky.bottom - 10);
       }
     }
 
-    box.querySelectorAll(".plan-row").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (b._moved) return;                      // это был свайп, а не тап
-        if (closeSwipes()) return;                 // открытая кнопка сначала закрывается
-        if (b.dataset.b) openBlock(b.dataset.b);
-        else openCard(+b.dataset.i);
-      });
-      attachSwipe(b);
-    });
-    box.querySelectorAll(".swipe-del").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (b.dataset.b) removeBlock(b.dataset.b);
-        else removeSession(+b.dataset.i);
-      });
-    });
-    /* Тап по свободному окну заводит съёмку на его время: приложение уже
-       знает, когда окно начинается, и спрашивать это второй раз незачем */
-    /* Три действия открываются там, где нажали, а не внизу экрана. Кнопки
-       «Запланировать съёмку» и «Встреча» жили в подвале и всегда говорили про
-       одно время — подсказанное светом; чтобы поставить съёмку на десять
-       утра, приходилось лезть в барабан. Тап по часу отвечает сразу: вот это
-       время, вот три рода события.
-       Замок — занятость: выходной, дорога, перелёт. Он третий, потому что
-       занимают время реже, чем снимают. */
-    /* Закрытие панели сворачивает и раскрытые окна: час выбирают ради
-       действия, и, отказавшись от действия, фотограф уже не целится в час.
-       Иначе раскрытые окна копились бы за день в длинную лестницу пустых
-       строк — ровно то, от чего схлопывание и заводили */
-    function closeSlotMenu(keepGaps) {
-      var m = box.querySelector(".slot-menu");
-      if (m) m.parentNode.removeChild(m);
-      box.querySelectorAll(".dl-slot.armed").forEach(function (x) { x.classList.remove("armed"); });
-      if (!keepGaps && !isEmpty(openGaps)) { openGaps = {}; renderDayPanel(); }
-    }
-    function isEmpty(o) { for (var k in o) return false; return true; }
-    function openSlotMenu(btn) {
-      var was = btn.classList.contains("armed");
-      closeSlotMenu();
-      if (was) return;                       // повторный тап по тому же часу закрывает
-      btn.classList.add("armed");
-      var at = +btn.dataset.at;
-      var d = new Date(calSel);
-      if (btn.dataset.next) d.setDate(d.getDate() + 1);
-      var m = document.createElement("div");
-      m.className = "slot-menu";
-      m.innerHTML = '<button type="button" data-a="shoot">' + IC.svg("camera") + "<span>съёмка</span></button>"
-        + '<button type="button" data-a="meet">' + IC.svg("guests") + "<span>встреча</span></button>"
-        + '<button type="button" data-a="busy">' + IC.svg("lock") + "<span>занять</span></button>";
-      btn.parentNode.insertBefore(m, btn.nextSibling);
-      m.querySelectorAll("button").forEach(function (x) {
-        x.addEventListener("click", function (e) {
-          e.stopPropagation();
-          var a = x.dataset.a;
-          openGaps = {};                       // час выбран, окно больше не нужно раскрытым
-          closeSlotMenu(true);
-          if (a === "shoot") openForm(d, at, null, false);
-          else if (a === "meet") openForm(d, at, null, false, "meet");
-          else openBlockSheet(null, at, d);
-        });
-      });
-    }
-    /* Схлопнутое окно раскрывается тапом: внутри него может понадобиться
-       конкретный час, а не начало */
-    box.querySelectorAll(".dl-gap").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (closeSwipes()) return;
-        openGaps[+b.dataset.from] = 1;
-        renderDayPanel();
-      });
-    });
-    box.querySelectorAll(".dl-slot").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (closeSwipes()) return;
-        openSlotMenu(b);
-      });
-    });
-    paintIcons(box);
     var shootCount = items.filter(function (x) { return x.kind !== "busy"; }).length;
     /* Загрузка дня — третий вопрос виджета: сколько на мне и сколько времени
        это занимает. Прежде экран отвечал на него только прокруткой ленты,
