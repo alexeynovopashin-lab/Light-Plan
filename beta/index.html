@@ -766,8 +766,13 @@
   /* Края делят остаток поровну — тогда заголовок стоит по центру экрана.
      Когда заголовок длинный («3 – 9 августа»), края сжимаются до своих кнопок
      и центр съезжает: читаемость важнее симметрии до пикселя */
+  /* Шапка закреплена и непрозрачна: при прокрутке числа календаря уходили
+     под вырез iPhone и читались наполовину. Отступ сверху берёт safe-area,
+     а не фиксированное число — вырез у разных корпусов разной высоты */
   .plan-top {
-    display: flex; align-items: center; gap: 6px; padding: 52px 16px 6px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 6px;
+    position: sticky; top: 0; z-index: 8; background: var(--surface);
   }
   .plan-lead { flex: 1 1 0; display: flex; justify-content: flex-start; }
   /* Кнопка вида: 44 pt — размер, в который попадают пальцем не глядя */
@@ -914,7 +919,11 @@
     /* Даты закреплены, лента уезжает под них: навигация не должна уплывать
        вместе с содержимым, иначе к соседнему дню приходится возвращаться
        прокруткой */
-    position: sticky; top: 0; z-index: 6; background: var(--surface);
+    /* Липнут под шапку, а не к нулю: высота шапки — вырез плюс кнопка в
+       44 pt и отступы. Мерить её на старте нельзя, экран в этот момент
+       скрыт и отдаёт ноль */
+    position: sticky; top: calc(env(safe-area-inset-top, 0px) + 62px);
+    z-index: 6; background: var(--surface);
   }
   .now-back.no-day { display: none; }
   .day-dates[hidden] { display: none; }
@@ -5495,9 +5504,17 @@
     /* Возврат «↺ сегодня» тоже: в ленте дат видно, где сегодня, — число
        светится латунью, выбранный день залит */
     $("calNow").classList.toggle("no-day", day);
+    /* Лента дат принадлежит дню, и прятать её должен тот, кто знает вид.
+       Раньше это делал `renderDayPanel`, а в месяце он не вызывался вовсе —
+       под календарём оставался дневной вид с прошлого раза: лента дат,
+       таймлайн с полуночи и всё прочее. Два вида спорили за один экран */
+    $("dayDates").hidden = !day;
     setPlanTitle();
     if (day) { renderDayPanel(); markScopeNow(); return; }
     if (week) { renderWeek(); markScopeNow(); return; }
+    /* Месяц тоже перерисовывает панель дня: иначе под сеткой остаётся
+       раскладка прошлого вида */
+    renderDayPanel();
 
     var grid = $("cal"); grid.innerHTML = "";
 
@@ -10490,6 +10507,7 @@
     var tabh = document.querySelector(".tabbar").offsetHeight;
     var barh = $("timebar").offsetHeight;
     document.documentElement.style.setProperty("--tabh", tabh + "px");
+
     document.documentElement.style.setProperty("--dockh", (tabh + barh) + "px");
   }
 
