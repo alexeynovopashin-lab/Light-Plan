@@ -1015,7 +1015,13 @@
   .dl-gap:active .dl-gap-b { color: var(--ink-3); }
   /* Три действия там, где нажали */
   .slot-menu {
-    display: flex; gap: 8px; margin: 4px 0 8px 64px;
+    display: flex; align-items: center; gap: 8px; margin: 4px 0 8px 64px;
+  }
+  /* Время названо прямо в панели: половину часа выбирают касанием, и человек
+     должен видеть, что именно выбралось, до того как откроет форму */
+  .sm-at {
+    font-size: 13px; color: var(--brass); font-weight: 650;
+    font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
   .slot-menu button {
     flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -6067,8 +6073,61 @@
     }
     }
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
-    /* Концы нити помечаются классами: позиционные псевдоклассы здесь не
-       работают — каждая строка лежит в своей обёртке для свайпа */
+
+    // Тап по событию открывает карточку — и в ленте дня, и в списке месяца
+    box.querySelectorAll(".plan-row").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (b.dataset.b) openBlock(b.dataset.b);
+        else openCard(+b.dataset.i);
+      });
+    });
+
+    /* Три действия открываются там, где нажали. Кнопки «Запланировать съёмку»
+       и «Встреча» жили в подвале и всегда предлагали одно время — подсказанное
+       светом; чтобы поставить съёмку на десять утра, приходилось лезть в
+       барабан. Тап по часу отвечает сразу: вот это время, вот три рода
+       события. Замок — занятость: время занимают реже, чем снимают. */
+    function closeSlotMenu() {
+      var m = box.querySelector(".slot-menu");
+      if (m) m.parentNode.removeChild(m);
+      box.querySelectorAll(".dl-slot.armed").forEach(function (x) { x.classList.remove("armed"); });
+    }
+    box.querySelectorAll(".dl-slot").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        var was = b.classList.contains("armed");
+        closeSlotMenu();
+        if (was) return;                       // повторный тап по часу закрывает
+        b.classList.add("armed");
+        /* Половина часа берётся из места касания: верх строки — ровный час,
+           низ — половина. Иначе на 13:30 не встать вовсе, а получас — самый
+           частый шаг: «в полвторого» говорят не реже, чем «в час».
+           Мелкий шаг из настроек тут не нужен: пальцем в пять минут по
+           тридцати восьми пикселям не попасть, точное время правится в форме */
+        var r = b.getBoundingClientRect();
+        var half = (e.clientY - r.top) > r.height / 2 ? 30 : 0;
+        var at = +b.dataset.at + half;
+        var d = new Date(calSel);
+        if (b.dataset.next) d.setDate(d.getDate() + 1);
+        var m = document.createElement("div");
+        m.className = "slot-menu";
+        m.innerHTML = '<span class="sm-at">' + fmt(at) + "</span>"
+          + '<button type="button" data-a="shoot">' + IC.svg("camera") + "<span>съёмка</span></button>"
+          + '<button type="button" data-a="meet">' + IC.svg("guests") + "<span>встреча</span></button>"
+          + '<button type="button" data-a="busy">' + IC.svg("lock") + "<span>занять</span></button>";
+        b.parentNode.insertBefore(m, b.nextSibling);
+        m.querySelectorAll("button").forEach(function (x) {
+          x.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            var a = x.dataset.a;
+            closeSlotMenu();
+            if (a === "shoot") openForm(d, at, null, false);
+            else if (a === "meet") openForm(d, at, null, false, "meet");
+            else openBlockSheet(null, at, d);
+          });
+        });
+      });
+    });
+    paintIcons(box);
 
     /* Экран открывается на девяти утра, и под верхним блоком, а не под ним.
        Раньше прокрутка целилась в час, не зная про закреплённые даты и
