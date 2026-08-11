@@ -1039,12 +1039,9 @@
     width: 3px; margin-left: -1.5px; border-radius: 2px;
     background: var(--ink-10);
   }
-  /* Концы ленты подрезаются по классам, а не по `:first-child`. Каждая строка
-     лежит в своей обёртке для свайпа, поэтому позиционные псевдоклассы
-     срабатывают на всех строках сразу: нить обрезалась с обеих сторон и
-     исчезала вовсе. Шестой раз, когда подводит не логика, а селектор */
-  .dl-row.dl-first .dl-line { top: 7px; }
-  .dl-row.dl-last .dl-line { bottom: calc(100% - 8px); }
+  /* Концы нити больше не подрезаются: ось идёт сплошной от полуночи до
+     полуночи, и обрезка на первом и последнем событии рвала её посреди дня —
+     правила остались от прежней ленты, где нить начиналась у события */
   /* Знак события. Съёмка залита, встреча пустая, занятость — черта: тип
      читается формой точки, а не размером карточки */
   .dl-dot {
@@ -5904,29 +5901,27 @@
        поставить», и двадцать один час сетки был бы там свалкой пустых строк. */
     var html = "";
     if (calScope !== "day") {
+      /* В месяце и неделе день показывается простой строкой, а не сеткой:
+         жёсткие колонки таймлайна на узком экране схлопывали текст в столбик
+         по одному слову. Здесь время и название идут одной строкой и переносу
+         не подлежат — это список, а не ось времени. */
       html = items.map(function (it) {
         if (it.kind === "busy") {
           var b = it.blk;
           var when = b.allDay ? "весь день" : fmt(b.min) + " – " + fmt(b.min + b.dur);
-          return '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
-            + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
-            + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(it.a / 60)) + "></i>"
-            + '<i class="dl-dot busy"></i></div>'
-            + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
-            + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
-            + '<div class="dl-sub">' + esc(when) + "</div></div></div>";
+          return '<button type="button" class="plan-row busy" data-b="' + b.id + '">'
+            + '<span class="pr-ic">' + IC.svg(blockKind(b.k).ic) + "</span>"
+            + '<span class="pr-time">' + esc(when) + "</span>"
+            + '<span class="pr-who">' + esc(blockLabel(b)) + "</span></button>";
         }
         var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet";
         var nm = clientName(s3) || (meet3 ? "Встреча" : genreName(s3.type));
-        return '<div class="dl-row plan-row" data-i="' + it.i + '">'
-          + '<div class="dl-time">' + fmt(it.a) + "</div>"
-          + '<div class="dl-axis"><i class="dl-dot' + (meet3 ? " meet" : "") + '"></i></div>'
-          + '<div class="dl-body"><div class="dl-title"><span class="dl-ic' + (meet3 ? " meet" : "") + '">'
-          + IC.svg(meet3 ? "guests" : (GENRE_SIGN[s3.type] || "camera")) + "</span>" + esc(nm) + "</div>"
-          + '<div class="dl-sub">' + (meet3 ? "встреча · " + esc(shortGenre(s3.type).toLowerCase())
-              : fmt(it.a) + " – " + fmt(it.b)) + "</div>"
-          + (!meet3 && ds3.rank >= 2 ? '<div class="dl-due" style="color:' + ds3.color + '">' + ds3.label + "</div>" : "")
-          + "</div>";
+        return '<button type="button" class="plan-row" data-i="' + it.i + '">'
+          + '<span class="pr-time">' + fmt(it.a) + " – " + fmt(it.b) + "</span>"
+          + '<span class="pr-who">' + esc(nm) + "</span>"
+          + (meet3 ? '<span class="pr-due">встреча</span>'
+             : ds3.rank >= 2 ? '<span class="pr-due" style="color:' + ds3.color + '">' + ds3.label + "</span>" : "")
+          + "</button>";
       }).join("");
     } else {
     /* Сутки разложены по часам: пустой час — место, куда можно поставить
@@ -6017,11 +6012,7 @@
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
     /* Концы нити помечаются классами: позиционные псевдоклассы здесь не
        работают — каждая строка лежит в своей обёртке для свайпа */
-    var rows = box.querySelectorAll(".dl-row");
-    if (rows.length) {
-      rows[0].classList.add("dl-first");
-      rows[rows.length - 1].classList.add("dl-last");
-    }
+
     /* Экран открывается на шести утра: ночные часы в сетке есть, но смотреть
        в них нечего, а начинать день с полуночи значило бы каждый раз
        прокручивать шесть пустых строк. Прокрутка делается один раз на день:
