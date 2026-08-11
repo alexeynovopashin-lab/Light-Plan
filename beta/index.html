@@ -910,8 +910,13 @@
      сегодняшний — латунное число. Знаки под числом говорят, чем занят день */
   .day-dates {
     display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 2px; padding: 6px 16px 10px; flex-shrink: 0;
+    gap: 2px; padding: 6px 16px 8px; flex-shrink: 0;
+    /* Даты закреплены, лента уезжает под них: навигация не должна уплывать
+       вместе с содержимым, иначе к соседнему дню приходится возвращаться
+       прокруткой */
+    position: sticky; top: 0; z-index: 6; background: var(--surface);
   }
+  .now-back.no-day { display: none; }
   .day-dates[hidden] { display: none; }
   .dd-day {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -2606,24 +2611,17 @@
     </div>
 
     <!-- Сводка дня спрятана под спойлер: планировщик ведёт съёмками, а не погодой -->
-    <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
     <!-- Шапка дня сжата до трёх строк: главным содержимым экрана стала лента
          времени, и сводка не должна отбирать у неё пол-экрана. Вердикт,
          причина и уверенность прогноза свелись к одной строке, а «посмотреть
          свет» из кнопки-плашки стало ссылкой -->
-    <!-- Неделя дат над днём: переключать день, не уходя в другой вид. Под
-         числом — знаки того, что в этом дне есть: жанр опознаётся быстрее
-         подписи, а пустой день остаётся пустым, без точки-заглушки -->
+    <!-- Неделя дат стоит первой и закреплена: она навигация, а лента едет под
+         ней. Виджет сводки ушёл под даты и сворачивается — свет и погода
+         нужны не каждую минуту, а место на экране нужно всегда -->
     <div class="day-dates" id="dayDates" hidden></div>
+
+    <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
     <div class="day-panel" id="dayPanel">
-     <!-- Виджет дня отвечает на три вопроса и ни на один лишний: что со
-          светом, что с погодой и насколько день занят.
-          Дата отсюда ушла — она стоит в шапке экрана строкой выше, и
-          повторять её значило тратить строку на то, что уже прочитано.
-          Вердикт погоды («Пасмурно») ушёл туда же: справа стоит знак неба,
-          температура и состояние — слово слева было третьим упоминанием
-          одного и того же. Качество света осталось, но перешло в цвет
-          времени: латунь у хорошего окна, тусклое у никакого. -->
      <div class="dp-box">
       <div class="dp-head">
         <div class="dp-main">
@@ -4111,7 +4109,11 @@
      каждой перерисовке было бы спором с рукой */
   var openGaps = {};
   var dayScrollDay = null;               // на какой день уже наводили ленту
-  var dayPanelOpen = false;              // сводка дня под спойлером: состояние ведёт человек
+  /* Виджет дня раскрыт по умолчанию и сворачивается вручную: свет и погода —
+     то, ради чего продукт и заведён, прятать их с порога незачем. Кто свернул,
+     тот не хочет видеть их и завтра, поэтому состояние переживает перезапуск —
+     то же правило, что у свёрнутой сводки карты */
+  var dayPanelOpen = !(saved && saved.dayFold);
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
   /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
      значит, и на одном localStorage. Ключ разводим по каналу, иначе
@@ -4130,7 +4132,7 @@
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
         mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: theme,
-        travelMin: travelMin, tempUnit: tempUnit,
+        travelMin: travelMin, tempUnit: tempUnit, dayFold: !dayPanelOpen,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
           return o;
@@ -5482,13 +5484,20 @@
        весь экран отвечает на один вопрос — что за день */
     /* В неделе нижний блок не нужен: строки дней уже показывают всё,
        что он повторял бы списком */
-    ["dayToggle", "dayPanel", "plannedLabel", "dpSessions", "planDay"].forEach(function (id) {
+    ["dayToggle", "dayPanel", "dpSessions", "planDay"].forEach(function (id) {
       $(id).hidden = week;
     });
-    if (!week) $("dayToggle").hidden = day;
-    /* В сводке дня панель раскрыта всегда; в остальных видах — как оставил
-       пользователь, иначе автоматическое раскрытие остаётся навсегда */
-    $("dayPanel").classList.toggle("open", day || dayPanelOpen);
+    /* Виджет сворачивается во всех видах, включая день: свет и погода нужны
+       не каждую минуту, а место на экране нужно всегда. Раньше в дне он был
+       раскрыт принудительно и шеврон прятался */
+    $("dayPanel").classList.toggle("open", dayPanelOpen);
+    $("dayToggle").classList.toggle("open", dayPanelOpen);
+    /* Заголовок над лентой в дне не нужен: «свободный день» уже сказан
+       виджетом, а «запланировано» пересказывает саму ленту */
+    $("plannedLabel").hidden = week || day;
+    /* Возврат «↺ сегодня» тоже: в ленте дат видно, где сегодня, — число
+       светится латунью, выбранный день залит */
+    $("calNow").classList.toggle("no-day", day);
     setPlanTitle();
     if (day) { renderDayPanel(); markScopeNow(); return; }
     if (week) { renderWeek(); markScopeNow(); return; }
@@ -9893,6 +9902,7 @@
     dayPanelOpen = !dayPanelOpen;
     this.classList.toggle("open", dayPanelOpen);
     $("dayPanel").classList.toggle("open", dayPanelOpen);
+    saveAll();
   });
 
   /* Поиск по съёмкам: клиент, тип, место */
