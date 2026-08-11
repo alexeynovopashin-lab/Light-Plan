@@ -1052,6 +1052,51 @@
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
   }
   .slot-menu button:active { background: var(--press); }
+  /* Сетка часов — фон ленты, события лежат поверх своим слоем. Так у ленты
+     появляется честный масштаб: блок занимает ровно столько, сколько длится
+     съёмка, и сам закрывает часы, которые занимает */
+  .day-line { position: relative; }
+  .dl-grid { position: relative; }
+  .dl-layer { position: absolute; inset: 0; pointer-events: none; }
+  .dl-layer > * { pointer-events: auto; }
+  .dl-slot { height: 38px; min-height: 0; }
+  /* Блок события. Рамка, а не заливка: заливка спорит с текстом в светлой
+     теме и пропадает в тёмной — это уже пробовали. Левый край латунью
+     называет род события, как точка на прежней ленте */
+  .dl-ev {
+    position: absolute; left: 64px; right: 0; overflow: hidden;
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 6px 10px; border-radius: 10px;
+    background: var(--surface); box-sizing: border-box;
+    box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--brass);
+    cursor: pointer;
+  }
+  .dl-ev:active { background: var(--press); }
+  .dl-ev.meet { box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--ink-6); }
+  .dl-ev.busy { box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--ink-8); }
+  .dl-ev-b { min-width: 0; display: flex; flex-direction: column; }
+  .dl-ev .dl-title { font-size: 14px; }
+  .dl-ev .dl-sub { font-size: 12px; }
+  .dl-ev.busy .dl-title { font-style: italic; color: var(--ink-3); font-weight: 500; }
+  /* Отметки поверх сетки: свет и «сейчас» стоят на своей минуте, а не в
+     начале часа — теперь позиция считается от времени, а не от строки */
+  .dl-mark {
+    position: absolute; left: 46px; right: 0; height: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dl-mark::after { content: ""; flex: 1 1 auto; height: 0; border-top: 1px dashed currentColor; opacity: 0.5; }
+  .dl-mark-t {
+    display: flex; align-items: center; gap: 5px; font-size: 11px;
+    background: var(--surface); padding: 0 6px 0 10px; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .dl-mark svg { width: 13px; height: 13px; fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .dl-mark.light { color: var(--brass-deep); }
+  .dl-mark.now { color: var(--brass); }
+  .dl-mark.now .dl-mark-t { font-weight: 650; }
+  .dl-mark.now::after { border-top-style: solid; opacity: 0.85; }
+
   /* Строка ленты — тот же `.plan-row` ради свайпа и тапа, но раскладка своя.
      `.plan-row` задаёт свой display и паддинги, поэтому оба свойства
      переписываются явно: правило ниже по файлу при равной специфичности
@@ -6000,124 +6045,78 @@
           + "</button>";
       }).join("");
     } else {
-    /* Сутки разложены по часам: пустой час — место, куда можно поставить
-       съёмку, а не подпись о том, что время свободно.
-       Подряд идущие пустые часы схлопываются в одну строку. Место на экране
-       принадлежит событиям: шесть пустых часов подряд занимали шесть строк и
-       выталкивали вечер за край, ничего при этом не рассказывая. Схлопнутое
-       окно раскрывается тапом, если в него нужно попасть точнее.
-       Сетка идёт с четырёх утра до часа ночи: рассвет летом в четыре, а
-       банкет кончается за полночь — суток мало, если резать их по календарю. */
     /* Сутки идут от полуночи до полуночи: календарь показывает день целиком,
        а не рабочий отрезок. Ночная съёмка, отъезд в четыре утра и банкет,
-       кончающийся в час, — всё это части одного дня, и обрезать его сверху
-       значило бы прятать часы, которые у фотографа заняты.
-       Замыкающая строка 00:00 принадлежит уже следующим суткам — она стоит
-       границей, чтобы конец дня был виден, а не обрывался. */
-    var HOUR_FROM = 0, HOUR_TO = 25, used = {};
-    function lightAt(h) {
-      if (q === "poor") return null;
-      var t = Math.round(w.a);
-      return Math.floor(t / 60) === h ? t : null;
-    }
-    /* Пустые часы показываются часами. Схлопывание пробовали — оно экономило
-       место, но отнимало главное: чтобы поставить съёмку на конкретный час, в
-       него нужно ткнуть, а свёрнутое окно требовало сперва его раскрыть.
-       Лишний шаг ради ровного края экрана — плохой обмен. */
-    /* Занятый час: та же строка, но без предложения и с приглушённой заливкой.
-       Тап ведёт в событие, которое его занимает, — это и есть ответ на
-       вопрос «чем занято» */
-    function busyHour(k, it) {
-      var km = (k % 24) * 60;
-      return '<div class="dl-slot busy-hour"' + (it.i != null ? ' data-i="' + it.i + '"' : "")
-        + (it.blk ? ' data-b="' + it.blk.id + '"' : "") + ">"
-        + '<span class="dl-time">' + ((k % 24 < 10 ? "0" : "") + (k % 24)) + ':00</span>'
-        + '<span class="dl-axis"><i class="dl-line"' + axisStyle(k) + "></i></span>"
-        + '<span class="dl-empty"></span></div>';
-    }
-    function emptyHour(k) {
-      var km = (k % 24) * 60;
-      return '<button type="button" class="dl-slot" data-at="' + km + '"'
-        + (k >= 24 ? ' data-next="1"' : "") + ">"
-        + '<span class="dl-time">' + ((k % 24 < 10 ? "0" : "") + (k % 24)) + ':00</span>'
-        + '<span class="dl-axis"><i class="dl-line"' + axisStyle(k) + "></i></span>"
+       кончающийся в час, — части одного дня, и обрезать его сверху значило бы
+       прятать занятые часы. Замыкающая строка 00:00 принадлежит уже следующим
+       суткам и стоит границей, чтобы конец дня был виден. */
+    /* Сутки — сетка равных часов, события — блоки поверх неё.
+       Раньше событие было строкой в потоке, и час внутри длинной съёмки
+       приходилось закрашивать отдельно: получалось сыро — в светлой теме
+       заливка лезла под текст, в тёмной её не было видно вовсе.
+       Блок решает это сам: он занимает ровно столько, сколько длится съёмка,
+       и закрывает свои часы собой. Заодно у ленты появился честный масштаб —
+       съёмка на четыре часа вчетверо выше часовой, и это видно без чтения. */
+    var HOUR_H = 38;                       // высота часа в сетке
+    function topOf(min) { return (min / 60) * HOUR_H; }
+
+    var grid = "", layer = "";
+    for (var h = 0; h <= 24; h++) {
+      var hm = (h % 24) * 60;
+      grid += '<button type="button" class="dl-slot" data-at="' + hm + '"'
+        + (h >= 24 ? ' data-next="1"' : "") + ">"
+        + '<span class="dl-time">' + ((h % 24 < 10 ? "0" : "") + (h % 24)) + ':00</span>'
+        + '<span class="dl-axis"><i class="dl-line"' + axisStyle(h) + "></i></span>"
         + '<span class="dl-empty"></span></button>';
     }
-    for (var h = HOUR_FROM; h < HOUR_TO; h++) {
-      var hm = (h % 24) * 60, hEnd = hm + 60;
-      var here = items.filter(function (it, k) {
-        if (used[k]) return false;
-        var a = it.blk && it.blk.allDay ? HOUR_FROM * 60 : it.a;
-        var mine = h === HOUR_FROM ? a < hEnd : (a >= hm && a < hEnd);
-        if (mine) used[k] = 1;
-        return mine;
-      });
-      var lt = lightAt(h % 24);
-      /* Линия «сейчас» — только у сегодняшнего дня: в прошлом и будущем она
-         означала бы неправду. Час свой, минуты названы точно: лента идёт по
-         порядку часов, и двигать линию внутри часа было бы обещанием
-         масштаба, которого у неё нет */
-      var nowHere = isToday && Math.floor(nowMin / 60) === (h % 24) && h < 24;
-      /* Час внутри события не предлагает слот: съёмка с 12:30 до 17:00
-         занимает и 13:00, и 14:00, и 15:00, и 16:00 — предлагать в них
-         «поставить съёмку» значило бы врать о свободе.
-         Вынимать такие часы из ленты нельзя: пропадёт масштаб, и съёмка на
-         четыре с половиной часа стала бы на вид короче часовой. Поэтому час
-         остаётся на месте, но закрашен занятым — видно и время, и объём. */
-      var covered = null;
-      items.forEach(function (x) {
-        if (x.a < hEnd && x.b > hm && x.a < hm) covered = x;
-      });
-      if (!here.length && lt === null && !nowHere) {
-        html += covered ? busyHour(h, covered) : emptyHour(h);
-        continue;
-      }
-      if (nowHere) html += nowMark();
-      if (lt !== null) {
-        html += '<div class="dl-row light"><div class="dl-time">' + fmt(lt) + "</div>"
-          + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(lt / 60)) + "></i></div>"
-          + '<div class="dl-light"><span class="dl-lic">'
-          + IC.svg(w.label === "закат" ? "sunset" : "sun") + w.label + "</span></div></div>";
-      }
-      here.forEach(function (it) {
-        if (it.kind === "busy") {
-          var b = it.blk;
-          var when = b.allDay
-            ? (blockDays(b) > 1
-              ? "весь день · " + blockDays(b) + " " + plural(blockDays(b), ["день", "дня", "дней"])
-              : "весь день")
-            : fmt(b.min) + " – " + fmt(b.min + b.dur);
-          html += '<div class="dl-row busy plan-row" data-b="' + b.id + '">'
-            + '<div class="dl-time">' + (b.allDay ? "" : fmt(b.min)) + "</div>"
-            + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(it.a / 60)) + "></i>"
-            + '<i class="dl-dot busy"></i></div>'
-            + '<div class="dl-body"><div class="dl-title"><span class="dl-ic busy">'
-            + IC.svg(blockKind(b.k).ic) + "</span>" + esc(blockLabel(b)) + "</div>"
-            + '<div class="dl-sub">' + esc(when) + "</div></div></div>";
-          return;
-        }
-        var s2 = it.s, ds = deliveryState(s2), meet = it.kind === "meet";
-        var name = clientName(s2) || (meet ? "Встреча" : genreName(s2.type));
-        html += '<div class="dl-row plan-row" data-i="' + it.i + '">'
-          + '<div class="dl-time">' + fmt(it.a) + "</div>"
-          + '<div class="dl-axis"><i class="dl-line"' + axisStyle(Math.floor(it.a / 60)) + "></i>"
-            + '<i class="dl-dot' + (meet ? " meet" : "") + '"></i></div>'
-          + '<div class="dl-body"><div class="dl-title"><span class="dl-ic'
-          + (meet ? " meet" : "") + '">'
-          + IC.svg(meet ? "guests" : (GENRE_SIGN[s2.type] || "camera")) + "</span>"
-          + esc(name) + "</div>"
-          + '<div class="dl-sub">' + (meet
-              ? "встреча · " + esc(shortGenre(s2.type).toLowerCase())
-              : fmt(it.a) + " – " + fmt(it.b)) + "</div>"
-          + (!meet && ds.rank >= 2
-              ? '<div class="dl-due" style="color:' + ds.color + '">' + ds.label + "</div>" : "")
-          + "</div></div>";
-      });
+    /* Блок события. Высота — по длительности, но не меньше строки: получасовую
+       съёмку тоже надо уметь прочитать. Что поместится внутрь, решает высота:
+       время всегда, срок сдачи — если блок дорос до двух часов. */
+    items.forEach(function (it) {
+      var top = topOf(it.a), hgt = Math.max(34, topOf(it.b) - top - 2);
+      var meet = it.kind === "meet", busy = it.kind === "busy";
+      var s2 = it.s, b = it.blk;
+      var name = busy ? blockLabel(b)
+        : (clientName(s2) || (meet ? "Встреча" : genreName(s2.type)));
+      var sub = busy ? (b.allDay ? "весь день" : fmt(it.a) + " – " + fmt(it.b))
+        : (meet ? "встреча · " + shortGenre(s2.type).toLowerCase()
+                : fmt(it.a) + " – " + fmt(it.b));
+      var ds = busy ? null : deliveryState(s2);
+      var room = hgt >= 2 * HOUR_H;        // хватает ли места на третью строку
+      layer += '<div class="dl-ev' + (meet ? " meet" : "") + (busy ? " busy" : "") + '"'
+        + ' style="top:' + top.toFixed(1) + "px;height:" + hgt.toFixed(1) + 'px"'
+        + (busy ? ' data-b="' + b.id + '"' : ' data-i="' + it.i + '"') + ">"
+        + '<span class="dl-ic' + (meet ? " meet" : busy ? " busy" : "") + '">'
+        + IC.svg(busy ? blockKind(b.k).ic : (meet ? "guests" : (GENRE_SIGN[s2.type] || "camera")))
+        + "</span>"
+        + '<span class="dl-ev-b"><span class="dl-title">' + esc(name) + "</span>"
+        + '<span class="dl-sub">' + esc(sub) + "</span>"
+        + (room && ds && ds.rank >= 2
+            ? '<span class="dl-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "")
+        + "</span></div>";
+    });
+    /* Свет и «сейчас» — тоже поверх сетки и на своей минуте: теперь линия
+       стоит там, где время, а не в начале часа */
+    if (q !== "poor") {
+      var lm = Math.round(w.a);
+      layer += '<div class="dl-mark light" style="top:' + topOf(lm).toFixed(1) + 'px">'
+        + '<span class="dl-mark-t">' + IC.svg(w.label === "закат" ? "sunset" : "sun") + w.label + "</span></div>";
     }
+    if (isToday) {
+      layer += '<div class="dl-mark now" style="top:' + topOf(nowMin).toFixed(1) + 'px">'
+        + '<span class="dl-mark-t">' + fmt(nowMin) + "</span></div>";
+    }
+    html = '<div class="dl-grid">' + grid + '</div><div class="dl-layer">' + layer + "</div>";
     }
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
 
     // Тап по событию открывает карточку — и в ленте дня, и в списке месяца
+    box.querySelectorAll(".dl-ev").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (b.dataset.b) openBlock(b.dataset.b);
+        else openCard(+b.dataset.i);
+      });
+    });
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
         if (b.dataset.b) openBlock(b.dataset.b);
@@ -6138,13 +6137,7 @@
       });
     }
     // Занятый час — не слот: он ведёт в то событие, которым занят
-    box.querySelectorAll(".dl-slot.busy-hour").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (b.dataset.b) openBlock(b.dataset.b);
-        else if (b.dataset.i != null) openCard(+b.dataset.i);
-      });
-    });
-    box.querySelectorAll(".dl-slot:not(.busy-hour)").forEach(function (b) {
+    box.querySelectorAll(".dl-slot").forEach(function (b) {
       b.addEventListener("click", function (e) {
         var was = b.classList.contains("armed");
         closeSlotMenu();
@@ -10048,6 +10041,12 @@
         '<span class="pr-time">' + s.date.getDate() + " " + MON_S[s.date.getMonth()] + "</span>" +
         '<span class="pr-who">' + esc(clientName(s) || s.type) + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
     }).join("");
+    box.querySelectorAll(".dl-ev").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (b.dataset.b) openBlock(b.dataset.b);
+        else openCard(+b.dataset.i);
+      });
+    });
     box.querySelectorAll(".plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
         $("searchOverlay").classList.remove("open");
