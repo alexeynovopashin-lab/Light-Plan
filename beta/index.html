@@ -928,7 +928,20 @@
        прокруткой */
     background: var(--surface);
   }
-  .now-back.no-day { display: none; }
+  /* В дне возврат плавает над лентой, а не стоит первым в потоке. Просто
+     вернуть его было мало: день открывается на девяти утра, и кнопка,
+     лежащая выше закреплённого блока, уезжает за верхний край — она есть, но
+     её нет. Плавающая держится над таб-баром, под большим пальцем, и живёт по
+     тому же правилу, что «↺ сейчас» у ползунка: появляется, только когда от
+     сегодняшнего дня ушли. */
+  .now-back.day-float.show {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(var(--tabh, 74px) + 12px); z-index: 12;
+    display: inline-flex; margin: 0; padding: 9px 16px;
+    background: var(--overlay-2); border-radius: 999px;
+    box-shadow: 0 6px 20px var(--ink-a20), inset 0 0 0 1px var(--hairline);
+    font-size: 12.5px; color: var(--brass-deep);
+  }
   /* Верхний блок дня закреплён целиком: даты, шеврон и сводка. Липнет под
      шапку — её высота это вырез плюс кнопка в 44 pt и отступы; мерить её на
      старте нельзя, экран в этот момент скрыт и отдаёт ноль.
@@ -992,6 +1005,15 @@
      состояниях виджета, а заметно это в свёрнутом — там до верха ленты
      доезжают. */
   .day-line { padding: 8px 24px 20px; flex-shrink: 0; }
+  /* Лента въезжает с той стороны, откуда пришёл день: листнули вперёд —
+     приезжает справа. Смещение маленькое (18 px): это переход, а не карусель */
+  .day-line.slide-l { animation: dl-slide-l 0.22s cubic-bezier(0.25,1,0.4,1); }
+  .day-line.slide-r { animation: dl-slide-r 0.22s cubic-bezier(0.25,1,0.4,1); }
+  @keyframes dl-slide-l { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+  @keyframes dl-slide-r { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .day-line.slide-l, .day-line.slide-r { animation: none; }
+  }
   .day-line[hidden] { display: none; }
   /* Пустой час. Высота задана и одинакова — по ней и читается плотность дня:
      чем больше подряд идущих слотов, тем крупнее окно */
@@ -1014,18 +1036,30 @@
     border-top: 1px dashed var(--hairline); opacity: 0.55;
   }
   /* Выбранная половина подсвечивается до открытия панели: рука видит, куда
-     попала, а не узнаёт об этом из формы */
-  .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
-  .dl-slot.armed.half-0 .dl-empty { background: linear-gradient(180deg, rgba(226,164,76,0.10), transparent 50%); }
+     попала, а не узнаёт об этом из формы.
+     Светится ровно та черта, которая означает выбранное время. Раньше при
+     любом касании загоралась черта часа — тап по 02:30 подсвечивал 02:00, то
+     есть подтверждал не то время, которое подставится. Целый час называет
+     сплошная черта сверху, половину — пунктир посередине, и он на время
+     выбора становится сплошным: пунктир говорит «здесь можно», сплошная —
+     «здесь и будет». */
+  .dl-slot.armed.half-0 .dl-empty { border-top-color: var(--brass-dark);
+    background: linear-gradient(180deg, rgba(226,164,76,0.10), transparent 50%); }
   .dl-slot.armed.half-30 .dl-empty { background: linear-gradient(180deg, transparent 50%, rgba(226,164,76,0.10)); }
+  .dl-slot.armed.half-30 .dl-empty::after {
+    border-top-style: solid; border-top-color: var(--brass-dark); opacity: 1;
+  }
   /* Час внутри события: занят, поэтому не предлагает себя */
   .dl-slot.busy-hour { cursor: pointer; }
   .dl-slot.busy-hour .dl-empty {
     background: var(--fill-b); border-top-color: transparent;
   }
   .dl-slot.busy-hour .dl-time { color: var(--ink-8); }
-  .dl-slot:active .dl-empty, .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
-  .dl-slot:active .dl-time, .dl-slot.armed .dl-time { color: var(--brass-deep); }
+  /* Подпись часа желтеет только тогда, когда выбран сам час. У получаса своя
+     черта, и подписи «02:00» в этот момент желтеть не за что: она называет
+     другое время. `:active` сюда не входит вовсе — он срабатывал раньше, чем
+     станет известна половина, и давал вспышку не на том месте. */
+  .dl-slot.armed.half-0 .dl-time { color: var(--brass-deep); }
   /* Схлопнутое окно: место на экране принадлежит событиям, а пустым часам
      достаётся одна строка на всех */
   .dl-gap {
@@ -1090,7 +1124,11 @@
   .dl-ev-b { min-width: 0; display: flex; flex-direction: column; }
   .dl-ev .dl-title { font-size: 14px; }
   .dl-ev .dl-sub { font-size: 12px; }
-  .dl-ev.busy .dl-title { font-style: italic; color: var(--ink-3); font-weight: 500; }
+  /* Курсива в ленте нет. В клетке месяца он остаётся — там у подписи нет ни
+     знака, ни цветного края, и отличать занятость больше нечем. В ленте оба
+     признака уже есть: свой знак слева и глухой цвет края, — а наклонная
+     строка среди прямых сбивает ритм сетки часов. */
+  .dl-ev.busy .dl-title { color: var(--ink-3); font-weight: 500; }
   /* Отметки поверх сетки: свет и «сейчас» стоят на своей минуте, а не в
      начале часа — теперь позиция считается от времени, а не от строки */
   .dl-mark {
@@ -1165,7 +1203,7 @@
     font-variant-numeric: tabular-nums;
   }
   .dl-due { font-size: 12px; margin-top: 3px; }
-  .dl-row.busy .dl-title { font-weight: 500; color: var(--ink-3); font-style: italic; }
+  .dl-row.busy .dl-title { font-weight: 500; color: var(--ink-3); }
 
   /* Линия «сейчас»: где мы в дне прямо сейчас. Ярче отметки света и тоньше
      события — она не запись в календаре, а положение стрелки на приборе */
@@ -1380,6 +1418,15 @@
   }
   .item .k { color: var(--ink); }
   .item .v { color: var(--ink-4); font-size: 14px; font-variant-numeric: tabular-nums; }
+  /* Стрелка перехода в настройках была обычным символом «›» в потоке значения:
+     четырнадцать пикселей самым бледным тоном, приклеенные к тексту. Её
+     попросту не видели, и строка читалась подписью, а не входом. Знак вырос
+     вдвое, отделён отступом и потемнел — теперь он говорит «здесь откроется
+     ещё экран», как и шеврон в карточке. */
+  .item .v .go-chev {
+    display: inline-block; margin-left: 7px; font-size: 20px; line-height: 1;
+    color: var(--ink-6); vertical-align: -2px;
+  }
   .toggle {
     width: 51px; height: 31px; border-radius: 20px; background: var(--rail-2);
     position: relative; transition: background 0.3s ease; flex-shrink: 0; cursor: pointer;
@@ -1592,9 +1639,15 @@
   #cardOverlay { z-index: 78; }
   /* Строки карточки только читаются — палец не должен ждать отклика */
   #cardOverlay .row { cursor: default; }
+  /* «Заполнить» — пилюля, а не надпись у самого края. Голый текст с отступом
+     в два пикселя означал, что целиться приходится в буквы, стоящие вплотную
+     к границе экрана: промах уводил либо мимо, либо в системный жест «назад».
+     Пилюля даёт кнопке площадь и, по общему правилу формы, называет собой
+     поведение: обведено — значит нажимается. */
   .card-edit {
-    background: none; border: none; padding: 6px 2px; font-family: inherit;
-    font-size: 16px; color: var(--brass); cursor: pointer;
+    background: var(--press); border: none; padding: 9px 15px; border-radius: 999px;
+    font-family: inherit; font-size: 15px; font-weight: 600;
+    color: var(--brass-deep); cursor: pointer;
   }
   .card-edit:active { opacity: 0.6; }
   .card-trust { font-size: 11px; color: var(--ink-7); margin: 9px 4px 0; }
@@ -1611,14 +1664,19 @@
      docs/11_EVENT_CARD.md. Плотные плитки со знаками: фотограф ловит глазом
      на ходу, а не читает строки. Маршрут и референсы разворачиваются. */
 
-  .ev-head { margin: 2px 0 0; text-align: center; }
+  /* Знак жанра стоит слева от имени, а не над ним. Своей строкой он забирал
+     полсотни пикселей высоты шапки — и это в самом верху карточки, куда
+     смотрят первым делом и где дороже всего место. Слева он занимает ту
+     высоту, которую и так занимают две строки имени, а шапка поднимается на
+     эту полусотню: телефон и счёт до события оказываются на экране сразу.
+     Состав шапки не тронут — имена, счёт, телефон, — переставлен только знак. */
+  .ev-head { margin: 2px 0 0; text-align: left; overflow: hidden; }
   .ev-head[hidden] { display: none; }
-  .ev-sign { display: block; margin: 0 auto; }
-  .ev-sign { line-height: 0; }
-  .ev-sign svg { width: 62px; height: 46px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
+  .ev-sign { float: left; line-height: 0; margin: 3px 14px 2px 0; }
+  .ev-sign svg { width: 46px; height: 36px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
   .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
-    line-height: 1.1; margin-top: 8px; }
+    line-height: 1.1; margin-top: 0; }
   .ev-person { font-size: 14.5px; color: var(--ink-2); margin-top: 5px; }
   .ev-person[hidden] { display: none; }
   .ev-when { font-size: 13px; color: var(--green); margin-top: 5px; }
@@ -1658,8 +1716,13 @@
   .pn-v.gold { color: var(--brass); }
   .pn-body { display: block; min-width: 0; flex: 1; }
   .go-btn { display: inline-flex; }
+  /* Шеврон перехода вырос с 8 × 14 до 10 × 17 и потемнел на две ступени.
+     Тестировщики его попросту не видели: восемь пикселей самым бледным тоном
+     в углу строки — это не знак, а пылинка. Знак должен говорить «здесь
+     откроется ещё экран» с расстояния вытянутой руки, иначе строка читается
+     как надпись и в неё не тапают. */
   .chev { flex-shrink: 0; }
-  .chev svg { width: 8px; height: 14px; fill: none; stroke: var(--ink-8); stroke-width: 2;
+  .chev svg { width: 10px; height: 17px; fill: none; stroke: var(--ink-6); stroke-width: 2.1;
     stroke-linecap: round; stroke-linejoin: round; }
   .go-btn {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
@@ -2025,13 +2088,17 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 46px 0 8px;
   }
+  /* Крестик и галочка — 40, а не 32: это две главные кнопки формы, и в них
+     целятся не глядя. Подложка стала полупрозрачной — под шапкой формы едет
+     содержимое, и глухой кружок вырезал в нём дыру; полупрозрачный держит
+     край кнопки и не спорит с тем, что под ним. */
   .round {
-    width: 32px; height: 32px; border-radius: 50%; border: none; padding: 0;
-    background: var(--press); color: var(--ink-3); cursor: pointer;
+    width: 40px; height: 40px; border-radius: 50%; border: none; padding: 0;
+    background: var(--overlay-3); color: var(--ink-3); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .round svg {
-    width: 15px; height: 15px; stroke: currentColor; fill: none;
+    width: 18px; height: 18px; stroke: currentColor; fill: none;
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
   }
   .round.ok { background: var(--ink); color: var(--surface); }
@@ -2816,9 +2883,13 @@
     <p class="seg-note">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
 
     <div class="sec-label">Тема</div>
+    <!-- Третий вариант — не «ещё одна тема», а отказ выбирать: телефон уже
+         знает, вечер сейчас или день, и переспрашивать об этом незачем -->
     <div class="seg" id="themeSeg">
       <button class="active" data-theme="dark">Тёмная</button>
       <button data-theme="light">Светлая</button>
+      <!-- Одно слово: «как в системе» переносилось на две строки и ломало ряд -->
+      <button data-theme="auto">Система</button>
     </div>
     <p class="seg-note">Меняется интерфейс. Небо, свет и карта остаются прежними: закат не зависит от темы.</p>
 
@@ -2868,7 +2939,7 @@
     <div class="sec-label">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
-    <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет ›</span></div>
+    <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
     <!-- Порог дороги между площадками. Значение зашитой константой было
          честным для города и враньём для пригорода: сорок минут между
          разными местами — это про соседние районы, а не про соседний город -->
@@ -2917,7 +2988,7 @@
       <button data-unit="f">°F</button>
     </div>
     <p class="seg-note" id="unitNote">Температура показывается в градусах Цельсия.</p>
-    <div class="item"><span class="k">Язык</span><span class="v">Русский ›</span></div>
+    <div class="item"><span class="k">Язык</span><span class="v">Русский <span class="go-chev">›</span></span></div>
 
     <!-- Копирайт карты переехал сюда с полотна: на экране «Карта» строка
          лицензии занимала правую половину нижнего края и резала компас.
@@ -4257,6 +4328,10 @@
      каждой перерисовке было бы спором с рукой */
   var openGaps = {};
   var dayScrollDay = null;               // на какой день уже наводили ленту
+  /* Куда листнули: вперёд, назад или никуда. Лента въезжает с той стороны,
+     откуда пришёл день, — иначе смена дат выглядит подменой содержимого, а не
+     переходом, и глаз каждый раз перечитывает экран заново */
+  var dayShift = 0;
   /* Виджет дня раскрыт по умолчанию и сворачивается вручную: свет и погода —
      то, ради чего продукт и заведён, прятать их с порога незачем. Кто свернул,
      тот не хочет видеть их и завтра, поэтому состояние переживает перезапуск —
@@ -4279,7 +4354,8 @@
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
-        mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: theme,
+        // Хранится выбор фотографа, а не вычисленная из него тема
+        mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: themePref,
         travelMin: travelMin, tempUnit: tempUnit, dayFold: !dayPanelOpen,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
@@ -4590,14 +4666,25 @@
   /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
      на карте живут своими цветами в этом файле и темой не управляются */
   var booted = false;
-  var theme = (saved && saved.theme === "light") ? "light" : "dark";
-  function applyTheme(t) {
-    theme = t;
+  /* Выбор фотографа и действующая тема — разные величины, и путать их нельзя:
+     «как в системе» это не третья тема, а отказ выбирать. Храним выбор,
+     показываем вычисленное. Старые записи знали только «dark» и «light» —
+     они и читаются как выбор, поэтому ничего не теряется. */
+  var themePref = (saved && /^(light|auto)$/.test(saved.theme)) ? saved.theme : "dark";
+  var sysDark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)");
+  function themeOf(pref) {
+    return pref === "auto" ? (sysDark && sysDark.matches ? "dark" : "light") : pref;
+  }
+  var theme = themeOf(themePref);
+  function applyTheme(pref) {
+    themePref = pref;
+    var t = theme = themeOf(pref);
     document.documentElement.setAttribute("data-theme", t);
     var m = document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute("content", t === "light" ? "#EDE9E1" : "#0F0E0C");
     document.querySelectorAll("#themeSeg button").forEach(function (b) {
-      b.classList.toggle("active", b.dataset.theme === t);
+      // Отмечен выбор, а не результат: при «как в системе» горит именно он
+      b.classList.toggle("active", b.dataset.theme === themePref);
     });
     if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
     // Буквы тоже: на светлой карте они тёмные, на тёмной светлые
@@ -4665,7 +4752,7 @@
     var on = spotHere() >= 0;
     $("mapSave").classList.toggle("on", on);
     $("mapSave").setAttribute("aria-label", on ? "Убрать точку" : "Сохранить точку");
-    if ($("spotCount")) $("spotCount").textContent = spots.length ? spots.length + " ›" : "нет ›";
+    if ($("spotCount")) $("spotCount").innerHTML = (spots.length || "нет") + ' <span class="go-chev">\u203a</span>';
   }
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
@@ -5677,9 +5764,13 @@
     /* Заголовок над лентой в дне не нужен: «свободный день» уже сказан
        виджетом, а «запланировано» пересказывает саму ленту */
     $("plannedLabel").hidden = week || day;
-    /* Возврат «↺ сегодня» тоже: в ленте дат видно, где сегодня, — число
-       светится латунью, выбранный день залит */
-    $("calNow").classList.toggle("no-day", day);
+    /* Возврат «↺ сегодня» в дне вернулся. Он был убран по доводу «в ленте дат
+       видно, где сегодня: число светится латунью, выбранный день залит», и
+       довод верен — но отвечает не на тот вопрос. Видно, где сегодня, только
+       пока сегодня в этой семёрке; отлистав на месяц вперёд, человек ищет
+       способ вернуться, а не подсказку. На людях это проверено: кнопку ищут.
+       Показывается она по прежнему правилу — только когда день не сегодняшний */
+    $("calNow").classList.toggle("day-float", day);
     /* Лента дат принадлежит дню, и прятать её должен тот, кто знает вид.
        Раньше это делал `renderDayPanel`, а в месяце он не вызывался вовсе —
        под календарём оставался дневной вид с прошлого раза: лента дат,
@@ -6042,9 +6133,11 @@
           + '<span class="dd-marks">' + mk + "</span>";
         (function (day) {
           b.addEventListener("click", function () {
+            dayShift = day > calSel ? 1 : day < calSel ? -1 : 0;
             calSel = day;
             calMonth = new Date(day.getFullYear(), day.getMonth(), 1);
             renderCal(); renderDayPanel();
+            if (dayShift) tickClick();     // отклик на смену дня — тот же щелчок, что у детентов
           });
         })(new Date(dd));
         dates.appendChild(b);
@@ -6189,6 +6282,16 @@
     html = '<div class="dl-grid">' + grid + '</div><div class="dl-layer">' + layer + "</div>";
     }
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
+    /* Переход между днями: лента въезжает с той стороны, откуда пришёл день.
+       Анимация короткая (0.22 с) и только по горизонтали — вертикаль в этом
+       экране означает время, и двигать её значило бы сказать неправду.
+       При `prefers-reduced-motion` не проигрывается вовсе. */
+    if (dayShift) {
+      box.classList.remove("slide-l", "slide-r");
+      void box.offsetWidth;                       // иначе класс снимется и вернётся без перезапуска
+      box.classList.add(dayShift > 0 ? "slide-l" : "slide-r");
+      dayShift = 0;
+    }
 
     // Тап по событию открывает карточку — и в ленте дня, и в списке месяца
     box.querySelectorAll(".dl-ev").forEach(function (b) {
@@ -7629,7 +7732,9 @@
     /* Пакет есть у всех, кто работает с людьми: у портретного фотографа это
        «фотосет», «полчаса», «съёмка с визажистом» — тот же продукт, что
        свадебный «загс и прогулка», только свой (docs/12_CARD_ARCHITECTURE.md) */
-    "portrait":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
+    /* Час, а не полтора: портрет столько и снимают, а лишние полчаса каждый
+       раз убирали руками. Правка внутри жанра по-прежнему запоминается */
+    "portrait":     { delivery: true,  client: true,  dur: 60,  pay: ["hourly", "flat", "pack"] },
     "wedding":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
     /* Праздник — день рождения, юбилей, городское событие: что считать
        праздником, решает фотограф. Устроен как событие дня: точки, гости,
@@ -10056,9 +10161,11 @@
   function stepCal(dir) {
     openGaps = {};                             // на новом дне свои окна
     if (calScope === "day") {
+      dayShift = dir;                            // свайп листает так же, как тап по дате
       calSel = addDays(calSel, dir);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
       renderCal(); renderDayPanel();
+      tickClick();
     } else if (calScope === "week") {
       calSel = addDays(calSel, dir * 7);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
@@ -10713,8 +10820,15 @@
     document.documentElement.style.setProperty("--dockh", (tabh + barh) + "px");
   }
 
-  /* ---------- Старт ---------- */
+  /* ---------- Старт ----------
+     Первый запуск открывается «Светом»: он объясняет, чем продукт занят, — а
+     дальше приложение открывается там, где работают. Планировщик и есть то,
+     ради чего его открывают каждый день, и заставлять переходить в него одним
+     тапом каждый раз — тот самый лишний шаг, ради отказа от которого продукт
+     и затевался. Признак «уже видел» — сам факт сохранённых данных: заводить
+     под это отдельный флажок незачем. */
   document.body.dataset.tab = "s-today";
+  if (saved) go("s-plan");
   applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
   // Номер сборки — из даты файла (Last-Modified на Pages), без ручного счётчика
   (function () {
@@ -10722,10 +10836,17 @@
     var s = isNaN(d) ? "—" : p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
     $("buildInfo").textContent = "сборка " + s;
   })();
-  applyTheme(theme);
+  applyTheme(themePref);
   document.querySelectorAll("#themeSeg button").forEach(function (b) {
     b.addEventListener("click", function () { applyTheme(b.dataset.theme); saveAll(); });
   });
+  /* Система переключилась на закате — приложение идёт следом, но только если
+     его об этом просили. Слушаем всегда, применяем при «как в системе» */
+  if (sysDark && sysDark.addEventListener) {
+    sysDark.addEventListener("change", function () {
+      if (themePref === "auto") applyTheme("auto");
+    });
+  }
 
   applyDate();
   booted = true;                 // дальше смена темы перерисовывает экраны сама
