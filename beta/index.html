@@ -161,7 +161,14 @@
   .screen {
     position: absolute; inset: 0 0 0 0;
     display: none; flex-direction: column;
-    overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    /* `-webkit-overflow-scrolling: touch` убран. С iOS 13 инерция у прокрутки
+       и так родная, а само свойство осталось источником одной известной
+       поломки: слой прокрутки запоминает свою высоту и не пересчитывает её,
+       когда содержимое выросло уже после раскладки. Ровно этот случай на
+       карте — раскрыли «Подробно», строк стало вдвое больше, а доехать до
+       нижних нельзя. В браузере ноутбука разницы нет вовсе: свойство только
+       для iOS, и проверяется оно тоже только на телефоне. */
+    overflow-y: auto; scrollbar-width: none;
     overscroll-behavior: contain; touch-action: pan-y;
     padding-bottom: calc(var(--tabh, 74px) + 16px);
   }
@@ -978,7 +985,13 @@
      часы: край рамки резал строку пополам, и докрутить до неё не выходило.
      Один прокручиваемый слой на экран — правило, которое дороже экономии
      места: сводка уезжает вверх, зато лента цела от четырёх утра до часа ночи. */
-  .day-line { padding: 0 24px 20px; flex-shrink: 0; }
+  /* Восемь пикселей сверху — не воздух, а место под приподнятую подпись часа.
+     Подпись сдвинута вверх на шесть пикселей, чтобы стоять на своей черте, и
+     у самой первой строки этот сдвиг уводил «00:00» под закреплённый блок:
+     лента начиналась ровно по его нижнему краю. Полночь откусывало в обоих
+     состояниях виджета, а заметно это в свёрнутом — там до верха ленты
+     доезжают. */
+  .day-line { padding: 8px 24px 20px; flex-shrink: 0; }
   .day-line[hidden] { display: none; }
   /* Пустой час. Высота задана и одинакова — по ней и читается плотность дня:
      чем больше подряд идущих слотов, тем крупнее окно */
@@ -1795,13 +1808,24 @@
   .card-bar-r { display: flex; align-items: center; gap: 10px; }
   .ord-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
   .ord-list[hidden] { display: none; }
+  /* `touch-action: none` снят со строки и отдан ручке. Пока он висел на всей
+     строке, список нельзя было прокрутить: любое движение пальцем по нему
+     считалось перетаскиванием, и страница стояла. Тянут за знак «=», всё
+     остальное в строке — обычное содержимое. */
   .ord-row {
     display: flex; align-items: center; gap: 12px; padding: 14px;
-    background: var(--sheet); border-radius: 14px; touch-action: none; user-select: none;
+    background: var(--sheet); border-radius: 14px; user-select: none;
   }
   .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; }
   .ord-row .badge svg { width: 17px; height: 17px; }
   .ord-n { flex: 1; font-size: 15.5px; color: var(--ink); }
+  /* Ручка — цель для пальца, а не значок: 44 pt по обеим сторонам */
+  .ord-grip {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; margin: -14px -14px -14px 0;
+    touch-action: none; cursor: grab;
+  }
+  .ord-grip:active { cursor: grabbing; }
   .ord-grip svg {
     width: 20px; height: 20px; fill: none; stroke: var(--ink-7); stroke-width: 1.8;
     stroke-linecap: round;
@@ -1810,15 +1834,25 @@
      и в момент перестановки читалась двумя подписями в одной полосе */
   .ord-row.drag { background: var(--press); box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     position: relative; z-index: 5; }
-  .ord-row.off { opacity: 0.4; }              /* блока нет в этой съёмке */
+  /* Блока нет в этой съёмке — приглушается содержимое строки, но не сама
+     строка. Пока гасла вся плашка целиком, полупрозрачные строки читались как
+     «выключенные» или, наоборот, как выбранные, и список спорил сам с собой:
+     непонятно, какая строка сейчас в руке. Плашки теперь одинаковы у всех,
+     разной остаётся только насыщенность подписи — так же, как занятость
+     отличается от съёмки в календаре. */
+  .ord-row.off .badge, .ord-row.off .ord-n { opacity: 0.45; }
   .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
   .ord-foot[hidden] { display: none; }
   .ord-reset, .ord-done {
     flex: 1; padding: 14px; border-radius: 14px; border: none;
     font-family: inherit; font-size: 15px; cursor: pointer;
   }
+  /* Кнопка — часть композиции, а не плашка-CTA (Design System). «Готово» было
+     залито цветом текста: в тёмной теме это светлое пятно, в светлой — чёрный
+     прямоугольник во всю ширину, самое тёмное место экрана. Обе кнопки лежат
+     на одной подложке, а главную из них называет вес и латунь. */
   .ord-reset { background: var(--sheet); color: var(--ink-3); }
-  .ord-done { background: var(--ink); color: var(--surface); font-weight: 650; }
+  .ord-done { background: var(--sheet); color: var(--brass-deep); font-weight: 650; }
 
   /* ---------- Стопка карточек дня ----------
      Карточка — лист. Соседние съёмки лежат под ним и выглядывают краями,
@@ -2103,10 +2137,16 @@
   /* Сетка месяца выше барабана: шесть рядов, шапка и дни недели.
      Без своей высоты она обрезалась на втором ряду */
   .inline.datepick.open { max-height: 420px; }
-  .ip { position: relative; display: flex; height: 136px; }
+  /* Три целых строки, а не четыре с половиной. Прежние 136 px при строке в 34
+     давали полтора ряда над выбранным и полтора под ним — крайние цифры
+     резались пополам, и барабан читался как сломанный. Высота окна должна быть
+     нечётным числом строк, иначе выбранная не встанет в середину: 34 × 3, и
+     отступ ровно в строку. Большой барабан внизу экрана так и устроен
+     (170 = 34 × 5), разошлась только встроенная в форму копия. */
+  .ip { position: relative; display: flex; height: 102px; }
   .ip.time { justify-content: center; }
-  .ip .pick-band { top: 51px; }
-  .ip .wheel { height: 136px; padding: 51px 0; }
+  .ip .pick-band { top: 34px; }
+  .ip .wheel { height: 102px; padding: 34px 0; }
   .ip .wheel.narrow { flex: 0 0 66px; }
   .ip .wheel[data-w="date"] .w-item { justify-content: center; padding-right: 0; }
 
@@ -3002,7 +3042,9 @@
     <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
     <div id="cdOrderList" class="ord-list" hidden></div>
     <div class="ord-foot" id="cdOrderFoot" hidden>
-      <button type="button" class="ord-reset" id="cdOrderReset">Вернуть наш порядок</button>
+      <!-- «По умолчанию», а не «вернуть наш порядок»: кнопка говорит, что
+           получится, а не чей это был порядок -->
+      <button type="button" class="ord-reset" id="cdOrderReset">По умолчанию</button>
       <button type="button" class="ord-done" id="cdOrderDone">Готово</button>
     </div>
 
@@ -4562,7 +4604,10 @@
     if (labelTiles) labelTiles.setUrl(labelURL());
     /* Часть цветов ставится из кода (подписи фаз, метки на карте) — их сменой
        класса не переключить, экраны надо перерисовать */
-    if (booted) { renderToday(); renderMap(); }
+    /* Съёмки перерисовываются тоже: цвет срочности сдачи считается кодом в
+       момент отрисовки, и без этого смена темы оставляла бы на календаре
+       тона прежней */
+    if (booted) { renderToday(); renderMap(); renderCal(); renderDayPanel(); }
   }
 
   /* ---------- Занятое время ----------
@@ -4708,9 +4753,20 @@
     if (d === null) return null;
     var x = new Date(s.date); x.setDate(x.getDate() + d); return x;
   }
-  /* Непрерывная шкала срочности: белое → жёлтое → янтарное → терракота */
+  /* Непрерывная шкала срочности. В тёмной теме она идёт от цвета текста к
+     терракоте: белое → жёлтое → янтарное → терракота.
+     На светлой те же числа читались никак — спокойный конец шкалы это и есть
+     основной цвет текста, а он в светлой теме тёмный, не белый. Жёлтая
+     середина на белом не лучше: «сдать за 14 дн.» терялось ровно там, где
+     срок ещё можно успеть. Поэтому у светлой темы свои остановки — от чернил
+     через тёплую охру к терракоте; шкала остаётся непрерывной, меняются
+     только её концы. Тон срочности везде берётся отсюда, поэтому лечится
+     одним местом, а не десятком строк в разметке. */
+  function urgencyCalm() { return theme === "light" ? [23,21,15] : [239,234,224]; }
   function urgencyRGB(p) {
-    var st = [[0, [239,234,224]], [0.5, [232,208,122]], [0.8, [226,164,76]], [1, [201,102,61]]];
+    var st = theme === "light"
+      ? [[0, [23,21,15]], [0.5, [122,90,34]], [0.8, [166,86,45]], [1, [138,63,34]]]
+      : [[0, [239,234,224]], [0.5, [232,208,122]], [0.8, [226,164,76]], [1, [201,102,61]]];
     p = clamp(p, 0, 1);
     for (var i = 1; i < st.length; i++) {
       if (p <= st[i][0]) return lerp(st[i-1][1], st[i][1], (p - st[i-1][0]) / (st[i][0] - st[i-1][0]));
@@ -4722,7 +4778,7 @@
     if (isMeet(s)) return { rank: 0, c: GREY, breath: false, label: "" };
     var now = Date.now(), shot = s.date.getTime(), r;
     if (s.delivered)   r = { rank: 0, c: GREY, breath: false, label: "материал сдан" };
-    else if (shot > now) r = { rank: 1, c: [239,234,224], breath: false, label: "предстоит" };
+    else if (shot > now) r = { rank: 1, c: urgencyCalm(), breath: false, label: "предстоит" };
     else {
       var dd = deadlineDate(s);
       if (!dd) r = { rank: 1, c: GREY, breath: false, label: "без срока" };
@@ -4730,7 +4786,8 @@
         var p = (now - shot) / (dd.getTime() - shot);
         var left = Math.ceil((dd.getTime() - now) / 86400000);
         r = p >= 1
-          ? { rank: 3, c: [201,102,61], breath: true, label: "просрочено на " + Math.abs(left) + " дн." }
+          ? { rank: 3, c: theme === "light" ? [138,63,34] : [201,102,61], breath: true,
+              label: "просрочено на " + Math.abs(left) + " дн." }
           : { rank: 2, c: urgencyRGB(p), breath: false, label: "сдать за " + left + " дн." };
       }
     }
@@ -5249,7 +5306,11 @@
       svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
         stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
       svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 11, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
-      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: "#14110E", "stroke-width": 2 }));
+      /* Обводка светила отделяет диск от полотна и потому равна цвету полотна,
+         а не чёрному: цвет холста был вписан числом, и на светлой карте солнце
+         получало жирный тёмный контур. Луна рядом уже брала его у `mapInk` —
+         разошлись две строки об одном и том же. */
+      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: mapInk(), "stroke-width": 2 }));
     }
 
     /* Деления с градусами — только в астро. В обычном режиме они спорили бы с
@@ -5362,6 +5423,15 @@
   /* Имя места — обратное геокодирование: крупно город, мелко более точное место.
      BigDataCloud: без ключа, с CORS, по-русски. Офлайн — остаются координаты. */
   var geoCity = "", geoSub = "", geoKey = null, geoTimer = null;
+  /* Имя отстаёт от координат на один запрос, и пока оно в пути, показывать
+     числа нельзя: карта ездит под пальцем, шапка успевала трижды сменить
+     «Лобня» на «56.011 N · 37.483 E» и обратно, а строка уточнения то
+     появлялась, то исчезала — от этого прыгало всё окно.
+     Прежнее имя держится до ответа: при панораме ближайшая известная правда
+     точнее координат, и меняется оно один раз, когда ответ пришёл. Не ответил
+     геокодер вовсе — тогда числа, как и раньше: врать именем чужого места
+     дольше секунды нельзя. */
+  var geoStale = false;
   /* Место — это населённый пункт: город, посёлок, село, деревня. Область и
      район местом не являются: «Московская область» — не то, куда едут снимать,
      и в карточке она выглядела ошибкой. Геокодер отдаёт всё вперемешку и
@@ -5421,7 +5491,7 @@
     /* Точку могли сохранить раньше, чем ответил геокодер, — тогда именем ей
        служат координаты. Ответ пришёл: имя дозревает, а не остаётся числами
        навсегда. Правим только то, что сами и подставили. */
-    if (geoCity) {
+    if (geoCity && !geoStale) {
       var k = spotHere();
       if (k >= 0 && !spots[k].named) {
         spots[k].name = geoCity; spots[k].sub = geoSub || ""; spots[k].named = true;
@@ -5433,11 +5503,14 @@
   function fetchGeoName() {
     if (typeof fetch === "undefined") return;
     var key = LAT.toFixed(3) + "," + LON.toFixed(3);
-    if (key === geoKey && geoCity) return;
+    /* Вернулись на прежние координаты — имя у нас уже верное, и запрашивать
+       его заново незачем; заодно снимается пометка «отстало» */
+    if (key === geoKey && geoCity) { geoStale = false; return; }
     geoKey = key;
     fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + LAT + "&longitude=" + LON + "&localityLanguage=ru")
       .then(function (r) { return r.json(); }).then(function (j) {
         if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) return;   // место успело смениться
+        geoStale = false;
         geoCity = settlement(j);
         // Область идёт уточнением под именем, но именем не становится никогда
         geoSub = (j.principalSubdivision || j.countryName || "").trim();
@@ -5446,14 +5519,17 @@
            Пустая строка высоты не держит — под именем просто ничего не стоит */
         if (geoSub === geoCity) geoSub = "";
         applyGeoNames();
-      }).catch(function () {});   // офлайн — остаются координаты
+      }).catch(function () {
+        /* Не ответил — держать имя прежнего места нельзя, оно уже неправда */
+        if (geoStale) { geoStale = false; geoCity = ""; geoSub = ""; applyGeoNames(); }
+      });
   }
   function scheduleGeoName() { clearTimeout(geoTimer); geoTimer = setTimeout(fetchGeoName, 400); }
 
   function setLocation(lat, lon) {
     LAT = lat; LON = lon; TZ = tzFor(lon);
-    geoCity = ""; geoSub = "";     // прежнее имя недействительно
-    applyGeoNames();               // сразу координаты, город подтянется следом
+    geoStale = true;               // имя прежнего места держится, пока не придёт новое
+    applyGeoNames();
     saveAll();                     // место переживает перезапуск
     applyDate(viewMin);            // весь свет пересчитывается на новое место
     scheduleWeather();             // погода нового места
@@ -8433,13 +8509,20 @@
   }
   /* Перетаскивание пальцем: строка едет за пальцем, соседи расступаются.
      HTML5 drag-and-drop на телефоне не работает вовсе — только указатели. */
+  /* Тянут за ручку, а не за строку. Раньше жест ловила вся строка, и вместе с
+     ним ловилась прокрутка списка: палец, ведённый по экрану, чтобы досмотреть
+     блоки до конца, переставлял тот, с которого начал. Прокрутка и
+     перестановка — оба вертикальные жесты на одном узле, и в таком споре
+     выключать надо явно (грабля про жест-соседа уже записана). */
   function dragRow(row, host, s) {
-    row.addEventListener("pointerdown", function (e) {
+    var grip = row.querySelector(".ord-grip");
+    grip.addEventListener("pointerdown", function (e) {
       if (e.button) return;
+      e.preventDefault();                      // палец на ручке страницу не листает
       var y0 = e.clientY, moved = false;
       /* Захват указателя не обязателен для работы, но Safari умеет бросать
          на нём InvalidPointerId — тогда перетаскивание падало молча */
-      try { row.setPointerCapture(e.pointerId); } catch (err) {}
+      try { grip.setPointerCapture(e.pointerId); } catch (err) {}
 
       /* Считаем не по тому, что под пальцем, а по шагу строки: сколько строк
          палец прошёл, столько раз строка и переставляется. Поиск соседа под
@@ -8470,18 +8553,18 @@
            строка наезжала на соседа, а на её месте зияла дыра */
       }
       function up() {
-        row.removeEventListener("pointermove", move);
-        row.removeEventListener("pointerup", up);
-        row.removeEventListener("pointercancel", up);
+        grip.removeEventListener("pointermove", move);
+        grip.removeEventListener("pointerup", up);
+        grip.removeEventListener("pointercancel", up);
         row.classList.remove("drag");
         row.style.transform = "";
         if (!moved) return;
         cardOrder[groupOf(s.type)] = [].map.call(host.children, function (r) { return r.dataset.k; });
         saveAll();
       }
-      row.addEventListener("pointermove", move);
-      row.addEventListener("pointerup", up);
-      row.addEventListener("pointercancel", up);   // системный жест прервал — не залипаем
+      grip.addEventListener("pointermove", move);
+      grip.addEventListener("pointerup", up);
+      grip.addEventListener("pointercancel", up);   // системный жест прервал — не залипаем
     });
   }
   $("cardOrder").addEventListener("click", function () { setOrderMode(!ordMode); });
@@ -10089,6 +10172,12 @@
       this.classList.toggle("open");
       $(p[1]).classList.toggle("open");
       this.querySelector(".lbl").textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
+      /* Раскрытие идёт анимацией max-height, и высота слоя прокрутки меняется
+         не в момент клика, а через полсекунды. Дочитываем её после конца
+         перехода: чтение scrollHeight заставляет пересчитать раскладку, и
+         экран узнаёт, что стал длиннее. */
+      var scr = this.closest(".screen");
+      if (scr) setTimeout(function () { void scr.scrollHeight; }, 550);
     });
   });
   /* Шеврон карты: свернуть всё, кроме времени. Состояние переживает
