@@ -7804,6 +7804,8 @@
   /* Выезд живёт в листе «Место съёмки»: он про место, и спрашивать про него
      отдельной строкой формы значило бы разложить один вопрос по двум экранам */
   var fTrip = false;
+  /* Имя места ввели руками — поиск его больше не перебивает */
+  var locNameTyped = false;
   var GUESTS_MAX = 2000;
   /* Ноль в поле — это не ответ, а пустая клетка. «Нет» отвечает: гостей не
      будет. Пока в поле не пишут руками, показываем слово */
@@ -10346,6 +10348,7 @@
     locPickName = isSession ? (base.name || "") : "";
     $("locErr").textContent = "";
     $("locPlaceGroup").hidden = !isSession;      // выезд и название — про съёмку
+    locNameTyped = false;                 // новое открытие листа — новая история
     if (isSession) {
       $("locName").value = base.name || "";
       $("locTrip").classList.toggle("on", fTrip);
@@ -10496,6 +10499,8 @@
   }
   $("locScrim").addEventListener("click", closeLocSheet);
   $("locTrip").addEventListener("click", function () { this.classList.toggle("on"); });
+  // Написали имя руками — поиск его больше не перебивает
+  $("locName").addEventListener("input", function () { locNameTyped = true; });
   /* Имя, введённое руками, геокодер больше не перебивает: человек назвал
      место так, как ему удобно, и «уточнять» это до района незачем */
   $("locName").addEventListener("input", function () { locPickName = this.value.trim(); });
@@ -10537,6 +10542,12 @@
         $("locLon").value = h.lon.toFixed(4);
         locPickName = h.name;
         $("locQuery").value = h.name;
+        /* Название места подставляется сразу, а не остаётся от прежнего.
+           Прежде выбор нового места менял только координаты, и в поле висел
+           старый город — его приходилось стирать руками, хотя приложение уже
+           знало новый. Имя, введённое человеком до поиска, не трогаем: он мог
+           назвать место сам, и поиск ему в этом не начальник. */
+        if ($("locName") && !locNameTyped) $("locName").value = h.name;
         box.innerHTML = "";
         $("locErr").textContent = "";
       });
@@ -10580,6 +10591,13 @@
       gotoLocation(la, lo);
     }
     closeLocSheet();
+    /* Отклик обязателен: лист закрывался молча, и правка места выглядела так
+       же, как отказ от неё. Тот же способ, что у закладки на карте — короткая
+       подпись вместо тишины. Правило записано после истории с закладкой:
+       у необратимого на вид действия отклик виден с расстояния вытянутой руки */
+    saveNote(($("locName").value || "").trim() || locPickName
+      ? "место: " + (($("locName").value || "").trim() || locPickName)
+      : "место сохранено");
   });
 
   var tabs = document.querySelectorAll(".tab");
