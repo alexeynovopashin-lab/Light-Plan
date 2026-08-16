@@ -6164,7 +6164,10 @@
              точки, здесь — знаком и словом */
           var meet = isMeet(p.s);
           return '<button type="button" class="wk-card' + (meet ? " meet" : "") + '" data-i="' + p.i + '">'
-            + '<span class="wk-ic">' + meet ? IC.svg("guests") : IC.genreSvg(p.s.type) + "</span>"
+            /* Скобки обязательны: `+` связывает крепче тернарника, и без них
+               условием становится вся склеенная строка — она истинна всегда,
+               а начало разметки и закрывающий тег просто исчезают */
+            + '<span class="wk-ic">' + (meet ? IC.svg("guests") : IC.genreSvg(p.s.type)) + "</span>"
             + '<span class="wk-body"><span class="wk-t">'
             + (meet ? "Встреча · " + esc(shortGenre(p.s.type).toLowerCase())
                     : esc(spec.ev || genreName(p.s.type)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
