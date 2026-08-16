@@ -17,8 +17,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <!-- Словарь знаков: одно место, где живут все SVG приложения (icons.js) -->
-<script src="icons.js"></script>
-<script src="lang.js"></script>
+<!-- Метка версии у обоих файлов: они кэшируются отдельно от страницы, и без
+     неё телефон продолжает читать прежнюю библиотеку знаков даже после
+     обновления самой страницы. Правило: правишь icons.js или lang.js —
+     двигаешь метку, иначе на устройстве правки не будет. -->
+<script src="icons.js?v=2"></script>
+<script src="lang.js?v=2"></script>
 <style>
   /* ============================================================
      ЦВЕТА ОДНИМ СПИСКОМ
@@ -55,8 +59,13 @@
     --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
     --ink-a22: rgba(239,234,224,0.22); --ink-a20: rgba(239,234,224,0.2);
     --ink-a24: rgba(239,234,224,0.24); --ink-a40: rgba(239,234,224,0.4);
+    --ink-a12: rgba(239,234,224,0.12); --ink-a10: rgba(239,234,224,0.10);
+    --ink-a08: rgba(239,234,224,0.08);
     --bg: #070606; --surface: #0F0E0C; --canvas: #14110E;
     --sheet: #17150F; --sheet-2: #131109; --sheet-3: #1A1710;
+    /* Стопка дня: чем глубже лист, тем светлее — и своя тень между ними */
+    --peek-1: #1B1811; --peek-2: #221E16; --stack-shade: rgba(0,0,0,0.55);
+    --stack-edge: rgba(255,255,255,0.07);
     --sheet-4: #1A1712; --warn-bg: #191510; --bad-bg: #1D1512;
     --badge-bg: #241F17; --hatch: #1C1A14; --hairline: #1C1913;
     --on-brass: #16120C; --field: #1C1A16; --field-press: #262218;
@@ -79,8 +88,17 @@
      темнеет ради контраста на светлом, но остаётся латунью. Карта, луна и
      модель света не тронуты — они про небо, а не про интерфейс. */
   :root[data-theme="light"] {
-    /* крупные знаки и число дня: латунь в больших пятнах на светлом мутнеет */
-    --glyph: #2F2A23;
+    /* Крупные знаки и число дня — медь, а не чернила. Записано было обратное:
+       латунь в больших пятнах на светлом мутнеет, — и это верно про саму
+       латунь `#E2A44C`, светлую и тёплую. Вывод из этого сделали неправильный:
+       вместо того чтобы взять медь потемнее, знак и число выкрасили в чёрный,
+       и карточка в светлой теме потеряла единственный тёплый акцент — число
+       дня стало таким же, как любой текст рядом.
+       Медь `#8A5A18` держит контраст на светлом (7 : 1 к подложке карточки) и
+       остаётся тёплой: то же семейство, что латунь тёмной темы, только ниже по
+       светлоте. Правило общее: если фирменный цвет не работает в этой теме,
+       ищут его ступень, а не отказываются от цвета. */
+    --glyph: #8A5A18;
     --pin-ring: #3A352E;
     --arc-mid: #17150F;
     --knob: #FFFFFF; --knob-edge: #C3BBAA; --meter-off: #D2CBBC;
@@ -94,8 +112,12 @@
     --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
     --ink-a22: rgba(23,21,15,0.22); --ink-a20: rgba(23,21,15,0.2);
     --ink-a24: rgba(23,21,15,0.24); --ink-a40: rgba(23,21,15,0.4);
+    --ink-a12: rgba(23,21,15,0.12); --ink-a10: rgba(23,21,15,0.10);
+    --ink-a08: rgba(23,21,15,0.08);
     --bg: #EDE9E1; --surface: #FAF8F3; --sheet: #FFFFFF;
     --sheet-2: #F1EDE4; --sheet-3: #FFFFFF; --sheet-4: #FFFFFF;
+    --peek-1: #FFFFFF; --peek-2: #F6F2E8; --stack-shade: rgba(23,21,15,0.16);
+    --stack-edge: rgba(23,21,15,0.05);
     --warn-bg: #FBF1DE; --bad-bg: #FBE7DC; --badge-bg: #F4F0E6;
     --hatch: #E7E2D8; --hairline: #E2DCD1; --on-brass: #FFFFFF;
     --field: #EAE5DB; --field-press: #DCD6C9; --press: #EDE9E1;
@@ -161,7 +183,14 @@
   .screen {
     position: absolute; inset: 0 0 0 0;
     display: none; flex-direction: column;
-    overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    /* `-webkit-overflow-scrolling: touch` убран. С iOS 13 инерция у прокрутки
+       и так родная, а само свойство осталось источником одной известной
+       поломки: слой прокрутки запоминает свою высоту и не пересчитывает её,
+       когда содержимое выросло уже после раскладки. Ровно этот случай на
+       карте — раскрыли «Подробно», строк стало вдвое больше, а доехать до
+       нижних нельзя. В браузере ноутбука разницы нет вовсе: свойство только
+       для iOS, и проверяется оно тоже только на телефоне. */
+    overflow-y: auto; scrollbar-width: none;
     overscroll-behavior: contain; touch-action: pan-y;
     padding-bottom: calc(var(--tabh, 74px) + 16px);
   }
@@ -320,15 +349,97 @@
     position: absolute; z-index: 97; min-width: 216px; max-width: 280px;
     max-height: 320px; overflow-y: auto; scrollbar-width: none;
     overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-    background: var(--sheet); border-radius: 16px; padding: 6px;
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle; padding: 6px;
     box-shadow: 0 18px 40px rgba(0,0,0,0.55);
     animation: scopeIn 0.16s ease-out;
   }
   .spot-fan::-webkit-scrollbar { display: none; }
   .spot-fan[hidden] { display: none; }
+  /* Удаление в веере названо своим цветом. Терракота, а не красный: показываем
+     осторожность, а не опасность (08_VISUAL_LANGUAGE) */
+  .spot-fan button.del .t1 { color: var(--bad-ink); }
+  .spot-fan button.del .ic svg { stroke: var(--bad-ink); }
+  /* Подвал карточки: корзина слева, удаление справа. Строка, а не две кнопки
+     подряд, потому что это разные роли — одна уносит, вторая возвращает */
+  .card-acts {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin: 22px 0 4px;
+  }
+  .card-bin {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 14px; border: none; border-radius: 999px;
+    background: var(--press); color: var(--ink-3);
+    font-family: inherit; font-size: 13px; cursor: pointer;
+  }
+  .card-bin[hidden] { display: none; }
+  .card-bin:active { opacity: 0.6; }
+  .card-bin .ic { display: flex; }
+  .card-bin .ic svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-4);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .card-bin .n { font-variant-numeric: tabular-nums; }
+  /* Удаление — пилюля, а не текст у края: целиться приходится точно, а раньше
+     это была строка во всю ширину, в которую попадали мимо */
+  .card-del {
+    padding: 10px 16px; border: none; border-radius: 999px;
+    background: var(--bad-bg); color: var(--bad-ink);
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .card-del:active { opacity: 0.6; }
+  .card-del[hidden] { display: none; }
+
+  /* ---------- Корзина ----------
+     Карточка уходит в корзину джинном: уменьшается и стягивается к значку,
+     который на время полёта выезжает снизу. Это не украшение — движение
+     отвечает на вопрос «куда делась запись», и отвечает раньше, чем человек
+     успеет его задать. При `prefers-reduced-motion` полёта нет, запись просто
+     исчезает: смысл от этого не меняется. */
+  .bin-target {
+    position: absolute; left: 50%; bottom: calc(var(--tabh, 74px) + 26px);
+    transform: translate(-50%, 120px); z-index: 96;
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--overlay-2); box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
+    transition: transform 0.34s cubic-bezier(0.25,1,0.4,1);
+  }
+  .bin-target[hidden] { display: none; }
+  .bin-target.up { transform: translate(-50%, 0); }
+  .bin-target svg { width: 24px; height: 24px; fill: none; stroke: var(--ink-3);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .bin-target.gulp { animation: binGulp 0.3s ease-out; }
+  @keyframes binGulp {
+    0% { transform: translate(-50%, 0) scale(1); }
+    40% { transform: translate(-50%, 0) scale(1.16); }
+    100% { transform: translate(-50%, 0) scale(1); }
+  }
+  /* Полёт карточки: своя кривая, потому что джинн не едет равномерно — он
+     сперва отрывается, потом втягивается */
+  .card-sheet.to-bin {
+    transition: transform 0.42s cubic-bezier(0.55,0,0.85,0.35), opacity 0.42s ease-in;
+    opacity: 0;
+  }
+  .bin-row { display: flex; align-items: center; gap: 12px; padding: 12px 0;
+    border-bottom: 1px solid var(--hair-2); }
+  .bin-row .ic { display: flex; flex-shrink: 0; }
+  .bin-row .ic svg { width: 18px; height: 18px; fill: none; stroke: var(--brass);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .bin-row .tx { flex: 1; min-width: 0; }
+  /* Строчные по умолчанию — имя и дата слипались в одну строку и переносились
+     посреди слова. Строки в две ступени: кто, потом когда */
+  .bin-row .t1 { display: block; font-size: 15px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bin-row .t2 { display: block; font-size: 12px; color: var(--ink-5); margin-top: 2px; }
+  .bin-row .back {
+    background: var(--press); border: none; border-radius: 999px; padding: 8px 14px;
+    font-family: inherit; font-size: 13px; color: var(--brass-deep); cursor: pointer;
+  }
+  .bin-empty { padding: 16px 0 4px; font-size: 14px; color: var(--ink-5); }
+  @media (prefers-reduced-motion: reduce) {
+    .bin-target, .card-sheet.to-bin { transition: none; }
+    .bin-target.gulp { animation: none; }
+  }
   .spot-fan button {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px;
-    background: none; border: none; border-radius: 11px; cursor: pointer;
+    background: none; border: none; border-radius: 11px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; text-align: left; color: var(--ink);
   }
   .spot-fan button:active { background: var(--press); }
@@ -395,7 +506,30 @@
   /* Свёрнутая сводка отдаёт место карте — ради него всё и затевалось.
      Без этого на месте семи строк остаётся просто дыра.
      Специфичность выше, чем у `.screen > *` с его flex-shrink: 0 */
-  body.map-shut .map-frame { flex: 1 1 auto; height: auto; min-height: 370px; }
+  /* Свёрнутая сводка отдаёт место карте — но не всё. Потолок нужен потому, что
+     на телефоне кадр съел строку времени вместе с шевроном: карта заняла экран
+     целиком, а свернуть её стало нечем — единственный выход оказался под доком.
+     Хуже того, выбраться было нельзя и прокруткой: вертикальный жест над картой
+     принадлежит карте, а кроме карты на экране не осталось ничего.
+     Потолок считается от `dvh`, а не от измеренной высоты дока: измерение может
+     оказаться устаревшим (адресная строка, поворот, safe-area), а именно на нём
+     всё и держалось. `min-height` при этом сильнее `max-height` — на коротком
+     экране кадр останется прежним, а лента просто станет прокручиваемой. */
+  /* Свёрнутая сводка отдаёт место карте — ради этого сворачивание и заведено.
+     Но рост нужен с потолком: без него кадр забирал всё, и строка времени с
+     шевроном уезжала под док. Свернуть карту становилось нечем, а прокрутки на
+     этом экране нет — вертикальный жест над картой принадлежит карте.
+     Потолок считается от `dvh` и оставляет место шапке, строке времени и доку.
+     Сжимать карту пробовали и отвергли: она становилась квадратной, а холст —
+     это то, ради чего экран и существует. Уступает не карта, а рост карты. */
+  body.map-shut .map-frame { flex: 1 1 auto; height: auto; min-height: 370px;
+    max-height: calc(100dvh - 340px); }
+  /* Липкую строку времени пробовали и отвергли — в симуляторе она встала
+     посреди карты и разрезала её пополам. Причина в природе `sticky`: он
+     удерживает элемент в границах контейнера, а не «прижимает к низу экрана»,
+     и когда контейнеру нечего прокручивать, строка просто всплывает вверх на
+     заданный отступ. Орган управления должен оставаться на своём месте в
+     потоке, а достижимость обеспечивает потолок высоты кадра выше. */
   @media (prefers-reduced-motion: reduce) {
     .map-fold { transition: none; }
     .mr-chev svg { transition: none; }
@@ -458,7 +592,7 @@
   /* Палитра предсказанного неба: не картинка заката, а его температура.
      Переход — только когда меняется прогноз или день; вечной петли нет. */
   .sky-swatch {
-    position: relative; height: 92px; border-radius: 14px; margin-top: 20px;
+    position: relative; height: 92px; border-radius: 14px; corner-shape: squircle; margin-top: 20px;
     display: flex; align-items: flex-end; padding: 12px 14px;
     transition: background 1.2s ease;
   }
@@ -562,7 +696,7 @@
        одним слоем, а порядок внутри неё сохраняется */
     isolation: isolate;
     position: relative; margin: 18px 16px 0; height: 370px;
-    border-radius: 18px; overflow: hidden; background: var(--canvas);
+    border-radius: 18px; corner-shape: squircle; overflow: hidden; background: var(--canvas);
   }
   /* touch-action: none — Leaflet водит палец сам через JS (drag и пинч-зум),
      браузеру тут решать нечего, это и советует сама библиотека */
@@ -656,7 +790,7 @@
   .year-profit-val b.neg { color: var(--terra); }
   .ym {
     background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
-    padding: 12px 10px; border-radius: 12px; color: var(--ink);
+    padding: 12px 10px; border-radius: 12px; corner-shape: squircle; color: var(--ink);
   }
   .ym:active { background: var(--sheet); }
   .ym.now .n { color: var(--brass); }
@@ -700,7 +834,7 @@
     transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
   .day-panel.open { max-height: 420px; }
   .dp-box {
-    border-radius: 16px; padding: 14px 16px 12px;
+    border-radius: 16px; corner-shape: squircle; padding: 14px 16px 12px;
     box-shadow: inset 0 0 0 1px var(--hairline);
   }
   .dp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
@@ -749,7 +883,7 @@
   .undo {
     display: none; align-items: center; justify-content: space-between;
     margin: 8px 24px 0; padding: 11px 14px;
-    background: var(--sheet); border-radius: 12px; font-size: 13px; color: var(--ink-4);
+    background: var(--sheet); border-radius: 12px; corner-shape: squircle; font-size: 13px; color: var(--ink-4);
   }
   .undo.show { display: flex; }
   .undo button {
@@ -779,7 +913,7 @@
   .scope-btn {
     width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
     justify-self: start;
-    background: var(--sheet); border-radius: 13px;
+    background: var(--sheet); border-radius: 13px; corner-shape: squircle;
     display: flex; align-items: center; justify-content: center;
   }
   .scope-btn:active { opacity: 0.7; }
@@ -792,7 +926,7 @@
   .scope-scrim[hidden] { display: none; }
   .scope-menu {
     position: absolute; left: 12px; top: 96px; z-index: 41; min-width: 208px;
-    background: var(--sheet); border-radius: 16px; padding: 6px;
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle; padding: 6px;
     box-shadow: 0 18px 40px rgba(0,0,0,0.55);
     transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
   }
@@ -800,7 +934,7 @@
   @keyframes scopeIn { from { opacity: 0; transform: scale(0.94) translateY(-6px); } }
   .scope-menu button {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 12px;
-    background: none; border: none; border-radius: 11px; cursor: pointer;
+    background: none; border: none; border-radius: 11px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; font-size: 15px; color: var(--ink); text-align: left;
   }
   .scope-menu button:active { background: var(--press); }
@@ -852,7 +986,7 @@
     display: flex; flex-direction: column; align-items: center; gap: 1px;
     padding: 3px 1px 4px;
     font-family: inherit; font-size: 15px; color: var(--ink);
-    position: relative; border-radius: 11px; font-variant-numeric: tabular-nums;
+    position: relative; border-radius: 11px; corner-shape: squircle; font-variant-numeric: tabular-nums;
     transition: background 0.25s ease;
   }
   .cal .d.past { color: var(--ink-8); }
@@ -895,7 +1029,7 @@
   .bookings { margin-top: 12px; }
   .booking {
     display: flex; align-items: center; gap: 14px; width: 100%;
-    background: var(--sheet); border: none; border-radius: 14px;
+    background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
     padding: 12px 15px; margin-bottom: 8px; cursor: pointer;
     color: var(--ink); font-family: inherit; text-align: left;
   }
@@ -921,7 +1055,20 @@
        прокруткой */
     background: var(--surface);
   }
-  .now-back.no-day { display: none; }
+  /* В дне возврат плавает над лентой, а не стоит первым в потоке. Просто
+     вернуть его было мало: день открывается на девяти утра, и кнопка,
+     лежащая выше закреплённого блока, уезжает за верхний край — она есть, но
+     её нет. Плавающая держится над таб-баром, под большим пальцем, и живёт по
+     тому же правилу, что «↺ сейчас» у ползунка: появляется, только когда от
+     сегодняшнего дня ушли. */
+  .now-back.day-float.show {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(var(--tabh, 74px) + 12px); z-index: 12;
+    display: inline-flex; margin: 0; padding: 9px 16px;
+    background: var(--overlay-2); border-radius: 999px;
+    box-shadow: 0 6px 20px var(--ink-a20), inset 0 0 0 1px var(--hairline);
+    font-size: 12.5px; color: var(--brass-deep);
+  }
   /* Верхний блок дня закреплён целиком: даты, шеврон и сводка. Липнет под
      шапку — её высота это вырез плюс кнопка в 44 pt и отступы; мерить её на
      старте нельзя, экран в этот момент скрыт и отдаёт ноль.
@@ -978,7 +1125,22 @@
      часы: край рамки резал строку пополам, и докрутить до неё не выходило.
      Один прокручиваемый слой на экран — правило, которое дороже экономии
      места: сводка уезжает вверх, зато лента цела от четырёх утра до часа ночи. */
-  .day-line { padding: 0 24px 20px; flex-shrink: 0; }
+  /* Восемь пикселей сверху — не воздух, а место под приподнятую подпись часа.
+     Подпись сдвинута вверх на шесть пикселей, чтобы стоять на своей черте, и
+     у самой первой строки этот сдвиг уводил «00:00» под закреплённый блок:
+     лента начиналась ровно по его нижнему краю. Полночь откусывало в обоих
+     состояниях виджета, а заметно это в свёрнутом — там до верха ленты
+     доезжают. */
+  .day-line { padding: 8px 24px 20px; flex-shrink: 0; }
+  /* Лента въезжает с той стороны, откуда пришёл день: листнули вперёд —
+     приезжает справа. Смещение маленькое (18 px): это переход, а не карусель */
+  .day-line.slide-l { animation: dl-slide-l 0.22s cubic-bezier(0.25,1,0.4,1); }
+  .day-line.slide-r { animation: dl-slide-r 0.22s cubic-bezier(0.25,1,0.4,1); }
+  @keyframes dl-slide-l { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+  @keyframes dl-slide-r { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .day-line.slide-l, .day-line.slide-r { animation: none; }
+  }
   .day-line[hidden] { display: none; }
   /* Пустой час. Высота задана и одинакова — по ней и читается плотность дня:
      чем больше подряд идущих слотов, тем крупнее окно */
@@ -1001,18 +1163,30 @@
     border-top: 1px dashed var(--hairline); opacity: 0.55;
   }
   /* Выбранная половина подсвечивается до открытия панели: рука видит, куда
-     попала, а не узнаёт об этом из формы */
-  .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
-  .dl-slot.armed.half-0 .dl-empty { background: linear-gradient(180deg, rgba(226,164,76,0.10), transparent 50%); }
+     попала, а не узнаёт об этом из формы.
+     Светится ровно та черта, которая означает выбранное время. Раньше при
+     любом касании загоралась черта часа — тап по 02:30 подсвечивал 02:00, то
+     есть подтверждал не то время, которое подставится. Целый час называет
+     сплошная черта сверху, половину — пунктир посередине, и он на время
+     выбора становится сплошным: пунктир говорит «здесь можно», сплошная —
+     «здесь и будет». */
+  .dl-slot.armed.half-0 .dl-empty { border-top-color: var(--brass-dark);
+    background: linear-gradient(180deg, rgba(226,164,76,0.10), transparent 50%); }
   .dl-slot.armed.half-30 .dl-empty { background: linear-gradient(180deg, transparent 50%, rgba(226,164,76,0.10)); }
+  .dl-slot.armed.half-30 .dl-empty::after {
+    border-top-style: solid; border-top-color: var(--brass-dark); opacity: 1;
+  }
   /* Час внутри события: занят, поэтому не предлагает себя */
   .dl-slot.busy-hour { cursor: pointer; }
   .dl-slot.busy-hour .dl-empty {
     background: var(--fill-b); border-top-color: transparent;
   }
   .dl-slot.busy-hour .dl-time { color: var(--ink-8); }
-  .dl-slot:active .dl-empty, .dl-slot.armed .dl-empty { border-top-color: var(--brass-dark); }
-  .dl-slot:active .dl-time, .dl-slot.armed .dl-time { color: var(--brass-deep); }
+  /* Подпись часа желтеет только тогда, когда выбран сам час. У получаса своя
+     черта, и подписи «02:00» в этот момент желтеть не за что: она называет
+     другое время. `:active` сюда не входит вовсе — он срабатывал раньше, чем
+     станет известна половина, и давал вспышку не на том месте. */
+  .dl-slot.armed.half-0 .dl-time { color: var(--brass-deep); }
   /* Схлопнутое окно: место на экране принадлежит событиям, а пустым часам
      достаётся одна строка на всех */
   .dl-gap {
@@ -1044,7 +1218,7 @@
   }
   .slot-menu button {
     flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 9px 4px; border: none; border-radius: 12px; background: var(--sheet);
+    padding: 9px 4px; border: none; border-radius: 12px; corner-shape: squircle; background: var(--sheet);
     font-family: inherit; font-size: 11px; color: var(--ink-3); cursor: pointer;
   }
   .slot-menu svg {
@@ -1060,24 +1234,66 @@
   .dl-layer { position: absolute; inset: 0; pointer-events: none; }
   .dl-layer > * { pointer-events: auto; }
   .dl-slot { height: 38px; min-height: 0; }
-  /* Блок события. Рамка, а не заливка: заливка спорит с текстом в светлой
-     теме и пропадает в тёмной — это уже пробовали. Левый край латунью
-     называет род события, как точка на прежней ленте */
+  /* Событие — отрезок на оси, а не плашка поверх неё.
+     Прежний блок был карточкой: своя рамка со всех сторон, свой непрозрачный
+     фон, свои скруглённые углы. Он лежал на ленте чужеродно — предмет,
+     положенный на прибор, а не показание прибора. Разница видна по тому, что
+     он делал с осью: закрывал её собой, и сутки в этом месте прерывались.
+     Теперь занятое время размечено так же, как размечают интервал на шкале:
+       — черта в начале и в конце, латунью, ровно на своей минуте;
+       — вертикальная нить вдоль всего отрезка, впритык к оси;
+       — лёгкая заливка между ними, гаснущая вправо.
+     Заливка здесь не та, что была отвергнута. Тогда закрашивали чужие клетки —
+     часы сетки под длинной съёмкой, — и она лезла под текст в светлой теме и
+     пропадала в тёмной. Эта заливка принадлежит самому событию, взята от
+     латуни (то есть видна на обеих подложках) и уходит в прозрачность к
+     правому краю: область остаётся открытой и не превращается в плашку.
+     Ось при этом цела: нить события идёт рядом с ней, а не поверх — фазы
+     света видны и там, где стоит съёмка. */
   .dl-ev {
-    position: absolute; left: 64px; right: 0; overflow: hidden;
+    position: absolute; left: 70px; right: 0; overflow: hidden;
     display: flex; align-items: flex-start; gap: 8px;
-    padding: 6px 10px; border-radius: 10px;
-    background: var(--surface); box-sizing: border-box;
-    box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--brass);
+    /* Отступ по вертикали — три пикселя, а не пять: часовое событие отдаёт
+       рамкам два пикселя и должно уместить две строки в оставшиеся тридцать.
+       При пяти вторая строка обрезалась ровно у часовых событий, то есть у
+       самых частых */
+    padding: 3px 10px 3px 28px; box-sizing: border-box;
+    background: linear-gradient(90deg,
+      rgba(226,164,76,0.16), rgba(226,164,76,0.05) 58%, rgba(226,164,76,0) 92%);
+    border-top: 1px solid rgba(226,164,76,0.55);
+    border-bottom: 1px solid rgba(226,164,76,0.30);
     cursor: pointer;
   }
-  .dl-ev:active { background: var(--press); }
-  .dl-ev.meet { box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--ink-6); }
-  .dl-ev.busy { box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--ink-8); }
+  /* Нить отрезка: та же ширина, что у оси, и вплотную к ней — событие
+     читается продолжением линии, а не соседом */
+  .dl-ev::before {
+    content: ""; position: absolute; left: 13px; top: 0; bottom: 0;
+    width: 3px; border-radius: 2px; background: var(--brass);
+  }
+  .dl-ev:active { background: linear-gradient(90deg,
+      rgba(226,164,76,0.26), rgba(226,164,76,0.09) 58%, rgba(226,164,76,0) 92%); }
+  /* Встреча и занятость — тот же отрезок, но не про свет: латунь достаётся
+     съёмке, им остаётся чернильный тон. Занятость глуше встречи */
+  .dl-ev.meet {
+    background: linear-gradient(90deg, var(--ink-a10), rgba(0,0,0,0) 78%);
+    border-top-color: var(--ink-a24); border-bottom-color: var(--ink-a12);
+  }
+  .dl-ev.meet::before { background: var(--ink-6); }
+  .dl-ev.busy {
+    background: linear-gradient(90deg, var(--ink-a08), rgba(0,0,0,0) 70%);
+    border-top-color: var(--ink-a12); border-bottom-color: var(--ink-a08);
+  }
+  .dl-ev.busy::before { background: var(--ink-8); }
   .dl-ev-b { min-width: 0; display: flex; flex-direction: column; }
-  .dl-ev .dl-title { font-size: 14px; }
-  .dl-ev .dl-sub { font-size: 12px; }
-  .dl-ev.busy .dl-title { font-style: italic; color: var(--ink-3); font-weight: 500; }
+  /* Плотный интерлиньяж внутри отрезка: две строки обязаны уместиться в час,
+     иначе у часовой съёмки время срезается по нижнему краю */
+  .dl-ev .dl-title { font-size: 14px; line-height: 1.1; }
+  .dl-ev .dl-sub { font-size: 12px; line-height: 1.1; }
+  /* Курсива в ленте нет. В клетке месяца он остаётся — там у подписи нет ни
+     знака, ни цветного края, и отличать занятость больше нечем. В ленте оба
+     признака уже есть: свой знак слева и глухой цвет края, — а наклонная
+     строка среди прямых сбивает ритм сетки часов. */
+  .dl-ev.busy .dl-title { color: var(--ink-3); font-weight: 500; }
   /* Отметки поверх сетки: свет и «сейчас» стоят на своей минуте, а не в
      начале часа — теперь позиция считается от времени, а не от строки */
   .dl-mark {
@@ -1152,7 +1368,7 @@
     font-variant-numeric: tabular-nums;
   }
   .dl-due { font-size: 12px; margin-top: 3px; }
-  .dl-row.busy .dl-title { font-weight: 500; color: var(--ink-3); font-style: italic; }
+  .dl-row.busy .dl-title { font-weight: 500; color: var(--ink-3); }
 
   /* Линия «сейчас»: где мы в дне прямо сейчас. Ярче отметки света и тоньше
      события — она не запись в календаре, а положение стрелки на приборе */
@@ -1219,7 +1435,7 @@
   .week { padding: 6px 20px 0; display: flex; flex-direction: column; gap: 4px; }
   .wk-day-row {
     display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: start;
-    padding: 8px; border-radius: 14px;
+    padding: 8px; border-radius: 14px; corner-shape: squircle;
   }
   /* Выбранный день не меняет тип: у него та же раскладка, только обводка.
      Прежде он получал заливку на всю строку и читался объектом другого рода,
@@ -1245,7 +1461,7 @@
      подложка, внутри строки. */
   .wk-list {
     display: flex; flex-direction: column; min-width: 0;
-    background: var(--sheet); border-radius: 14px; overflow: hidden;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle; overflow: hidden;
   }
   .wk-card {
     display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
@@ -1319,7 +1535,7 @@
   }
   .session {
     display: flex; align-items: center; gap: 16px;
-    background: var(--sheet); border-radius: 16px;
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle;
     padding: 16px 18px; margin: 0 24px 10px; cursor: pointer;
   }
   .s-date { text-align: center; min-width: 40px; }
@@ -1336,9 +1552,9 @@
   .empty { color: var(--ink-7); font-size: 14px; padding: 4px 24px 0; }
 
   /* ---------- Настройки ---------- */
-  .seg { display: flex; background: var(--sheet); border-radius: 12px; padding: 3px; margin: 12px 24px 0; }
+  .seg { display: flex; background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 3px; margin: 12px 24px 0; }
   .seg button {
-    flex: 1; background: none; border: none; border-radius: 10px;
+    flex: 1; background: none; border: none; border-radius: 10px; corner-shape: squircle;
     color: var(--ink-4); font-family: inherit; font-size: 14px; font-weight: 550;
     padding: 11px; cursor: pointer; transition: background 0.3s ease, color 0.3s;
   }
@@ -1349,7 +1565,7 @@
   .data-btn {
     display: flex; align-items: center; gap: 11px; width: calc(100% - 48px);
     margin: 10px 24px 0; padding: 13px 15px;
-    background: var(--press-warm); border: none; border-radius: 12px; cursor: pointer;
+    background: var(--press-warm); border: none; border-radius: 12px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; font-size: 15px; font-weight: 600; color: var(--brass);
   }
   .data-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.7; flex-shrink: 0; }
@@ -1367,6 +1583,15 @@
   }
   .item .k { color: var(--ink); }
   .item .v { color: var(--ink-4); font-size: 14px; font-variant-numeric: tabular-nums; }
+  /* Стрелка перехода в настройках была обычным символом «›» в потоке значения:
+     четырнадцать пикселей самым бледным тоном, приклеенные к тексту. Её
+     попросту не видели, и строка читалась подписью, а не входом. Знак вырос
+     вдвое, отделён отступом и потемнел — теперь он говорит «здесь откроется
+     ещё экран», как и шеврон в карточке. */
+  .item .v .go-chev {
+    display: inline-block; margin-left: 7px; font-size: 20px; line-height: 1;
+    color: var(--ink-6); vertical-align: -2px;
+  }
   .toggle {
     width: 51px; height: 31px; border-radius: 20px; background: var(--rail-2);
     position: relative; transition: background 0.3s ease; flex-shrink: 0; cursor: pointer;
@@ -1416,7 +1641,7 @@
   .scrim.open { opacity: 1; visibility: visible; }
   .sheet {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 70;
-    background: var(--sheet); border-radius: 24px 24px 0 0; padding: 10px 24px 34px;
+    background: var(--sheet); border-radius: 24px 24px 0 0; corner-shape: squircle; padding: 10px 24px 34px;
     transform: translateY(101%); transition: transform 0.38s cubic-bezier(0.25,1,0.4,1);
     /* Список пакетов растёт — лист не должен вылезать за экран */
     max-height: 86vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -1438,7 +1663,7 @@
   .loc-detect {
     display: flex; align-items: center; justify-content: center; gap: 9px;
     width: 100%; margin-top: 18px; padding: 14px;
-    background: var(--press-warm); border: none; border-radius: 12px; cursor: pointer;
+    background: var(--press-warm); border: none; border-radius: 12px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; font-size: 15px; font-weight: 600; color: var(--brass);
   }
   .loc-detect svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
@@ -1450,7 +1675,7 @@
     font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-7); font-weight: 600;
   }
   .loc-fields input {
-    background: var(--sheet); border: none; border-radius: 12px; padding: 13px 14px;
+    background: var(--sheet); border: none; border-radius: 12px; corner-shape: squircle; padding: 13px 14px;
     color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
   }
@@ -1459,7 +1684,7 @@
   /* Поиск места по названию */
   .loc-search {
     display: flex; align-items: center; gap: 10px; margin-top: 10px;
-    background: var(--sheet); border-radius: 12px; padding: 0 14px;
+    background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 0 14px;
   }
   .loc-search svg { width: 17px; height: 17px; stroke: var(--ink-6); fill: none; stroke-width: 1.8; flex-shrink: 0; }
   .loc-search input {
@@ -1487,7 +1712,7 @@
   .picker { position: relative; display: flex; height: 170px; margin-top: 14px; }
   .pick-band {
     position: absolute; left: 0; right: 0; top: 68px; height: 34px;
-    background: rgba(120,120,128,0.16); border-radius: 9px; pointer-events: none;
+    background: rgba(120,120,128,0.16); border-radius: 9px; corner-shape: squircle; pointer-events: none;
   }
   .wheel {
     flex: 1.7; height: 100%; padding: 68px 0;
@@ -1521,7 +1746,7 @@
   .tool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .tool {
     display: flex; flex-direction: column; align-items: center; gap: 6px;
-    background: none; border: none; border-radius: 12px; cursor: pointer;
+    background: none; border: none; border-radius: 12px; corner-shape: squircle; cursor: pointer;
     padding: 11px 2px 9px; font-family: inherit; font-size: 10px;
     color: var(--ink-5); letter-spacing: 0.2px;
     transition: color 0.25s ease, background 0.25s ease;
@@ -1569,7 +1794,7 @@
   .dial-labels span.lit { color: var(--brass); font-weight: 600; }
   .sheet-done {
     width: 100%; margin-top: 20px; padding: 16px;
-    background: var(--brass); border: none; border-radius: 14px;
+    background: var(--brass); border: none; border-radius: 14px; corner-shape: squircle;
     color: var(--on-brass); font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
   }
 
@@ -1579,9 +1804,15 @@
   #cardOverlay { z-index: 78; }
   /* Строки карточки только читаются — палец не должен ждать отклика */
   #cardOverlay .row { cursor: default; }
+  /* «Заполнить» — пилюля, а не надпись у самого края. Голый текст с отступом
+     в два пикселя означал, что целиться приходится в буквы, стоящие вплотную
+     к границе экрана: промах уводил либо мимо, либо в системный жест «назад».
+     Пилюля даёт кнопке площадь и, по общему правилу формы, называет собой
+     поведение: обведено — значит нажимается. */
   .card-edit {
-    background: none; border: none; padding: 6px 2px; font-family: inherit;
-    font-size: 16px; color: var(--brass); cursor: pointer;
+    background: var(--press); border: none; padding: 9px 15px; border-radius: 999px;
+    font-family: inherit; font-size: 15px; font-weight: 600;
+    color: var(--brass-deep); cursor: pointer;
   }
   .card-edit:active { opacity: 0.6; }
   .card-trust { font-size: 11px; color: var(--ink-7); margin: 9px 4px 0; }
@@ -1591,24 +1822,42 @@
   }
   .card-notes {
     font-size: 15px; color: var(--ink-2); line-height: 1.5;
-    background: var(--sheet); border-radius: 14px; padding: 14px 15px;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle; padding: 14px 15px;
     white-space: pre-wrap; word-break: break-word;
   }
   /* ---------- Карточка события ----------
      docs/11_EVENT_CARD.md. Плотные плитки со знаками: фотограф ловит глазом
      на ходу, а не читает строки. Маршрут и референсы разворачиваются. */
 
+  /* Знак жанра стоит над именем и по центру — как и был. Перенос его влево
+     ради высоты был отвергнут: он тянул за собой раскладку всей шапки, и
+     заголовок каждый раз оказывался то не по центру, то поверх знака. Беда
+     была не в том, где знак стоит, а в том, сколько он занимал: 62 × 46 своей
+     строкой. Уменьшенный до 40 × 30 он отдаёт шапке те же пикселы, ничего в
+     ней не двигая. Простое решение нашлось после двух сложных — след оставлен
+     в DECISIONS, чтобы не заходить туда снова. */
   .ev-head { margin: 2px 0 0; text-align: center; }
   .ev-head[hidden] { display: none; }
-  .ev-sign { display: block; margin: 0 auto; }
-  .ev-sign { line-height: 0; }
-  .ev-sign svg { width: 62px; height: 46px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
+  .ev-sign { display: block; margin: 0 auto; line-height: 0; }
+  .ev-sign svg { width: 40px; height: 30px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
+  /* Имя карточки живёт одной строкой и ради этого ужимается. «Елена и
+     Алексей» — не длинное имя, но при 29 пунктах оно ломалось надвое, а
+     разорванное имя перестаёт читаться одним целым: глаз собирает его заново.
+     Ниже 21 не опускаемся — заголовок, ужатый до размера подписи, перестаёт
+     быть заголовком, и там уже честнее перенести. */
   .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
-    line-height: 1.1; margin-top: 8px; }
+    line-height: 1.1; margin-top: 6px; }
+  .ev-names.one { white-space: nowrap; }
   .ev-person { font-size: 14.5px; color: var(--ink-2); margin-top: 5px; }
   .ev-person[hidden] { display: none; }
-  .ev-when { font-size: 13px; color: var(--green); margin-top: 5px; }
+  /* Подпись под именем длиннее строки и переносится — это нормально, ненормально
+     было то, как она переносилась: «через 2» оставалось наверху, а «дня»
+     уезжало вниз одиноким словом. Балансировка делит строку по смыслу, а не по
+     остатку ширины. Браузер, который её не знает, просто переносит по-старому —
+     терять тут нечего. */
+  .ev-when { font-size: 13px; color: var(--green); margin-top: 5px;
+    text-wrap: balance; }
   .ev-when.past { color: var(--ink-6); }
   .ev-tel { display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
     padding: 9px 10px; font-size: 19px; color: var(--brass); text-decoration: none;
@@ -1622,13 +1871,13 @@
   .ev-grid[hidden] { display: none; }
   .pane {
     display: block; width: 100%; text-align: left; padding: 13px 14px;
-    background: var(--sheet); border: none; border-radius: 16px; min-width: 0;
+    background: var(--sheet); border: none; border-radius: 16px; corner-shape: squircle; min-width: 0;
     font-family: inherit; color: var(--ink); cursor: pointer;
   }
   .pane.wide { grid-column: 1 / -1; }
   .pane:active { opacity: 0.75; }
   .badge {
-    width: 38px; height: 38px; border-radius: 12px; background: var(--press);
+    width: 38px; height: 38px; border-radius: 12px; corner-shape: squircle; background: var(--press);
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .badge svg { width: 19px; height: 19px; fill: none; stroke: var(--brass); stroke-width: 1.6;
@@ -1645,12 +1894,17 @@
   .pn-v.gold { color: var(--brass); }
   .pn-body { display: block; min-width: 0; flex: 1; }
   .go-btn { display: inline-flex; }
+  /* Шеврон перехода вырос с 8 × 14 до 10 × 17 и потемнел на две ступени.
+     Тестировщики его попросту не видели: восемь пикселей самым бледным тоном
+     в углу строки — это не знак, а пылинка. Знак должен говорить «здесь
+     откроется ещё экран» с расстояния вытянутой руки, иначе строка читается
+     как надпись и в неё не тапают. */
   .chev { flex-shrink: 0; }
-  .chev svg { width: 8px; height: 14px; fill: none; stroke: var(--ink-8); stroke-width: 2;
+  .chev svg { width: 10px; height: 17px; fill: none; stroke: var(--ink-6); stroke-width: 2.1;
     stroke-linecap: round; stroke-linejoin: round; }
   .go-btn {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
-    background: var(--press); border-radius: 11px; padding: 8px 10px;
+    background: var(--press); border-radius: 11px; corner-shape: squircle; padding: 8px 10px;
     font-size: 13.5px; color: var(--brass); border: none; font-family: inherit;
   }
   .go-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9;
@@ -1658,7 +1912,7 @@
 
   /* Состояние сделки: цепочка звеньев. Закрытое звено золотое и с галкой,
      открытое — пустой кружок; читается без подписи, как лента точек дня */
-  .deal { margin-top: 14px; padding: 14px 12px 12px; background: var(--sheet); border-radius: 18px; }
+  .deal { margin-top: 14px; padding: 14px 12px 12px; background: var(--sheet); border-radius: 18px; corner-shape: squircle; }
   .deal[hidden] { display: none; }
   .deal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .deal-t { font-size: 15px; color: var(--ink); }
@@ -1685,7 +1939,7 @@
   /* Плитка дня */
   .day-tile {
     display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px;
-    margin-top: 14px; padding: 14px 12px; background: var(--sheet); border-radius: 18px;
+    margin-top: 14px; padding: 14px 12px; background: var(--sheet); border-radius: 18px; corner-shape: squircle;
   }
   .day-tile[hidden] { display: none; }
   .dt-date { text-align: center; align-self: center; padding-right: 11px; border-right: 1px solid var(--surface); }
@@ -1741,7 +1995,7 @@
   .pn-wx .pn-t { text-align: right; }
   .wx-hours.wide { margin-left: 0; justify-content: space-between; width: 100%; }
   .wx-pane { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    background: var(--sheet); border-radius: 16px; margin-top: 9px; }
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle; margin-top: 9px; }
   .wx-pane[hidden] { display: none; }
   .wx-now { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
   /* Погодный знак собран из частей: солнце латунное, облако серое, дождь синий */
@@ -1762,7 +2016,7 @@
   .wx-h .pp { font-size: 10px; color: var(--ink-7); }
 
   /* Разворачиваемое: маршрут и референсы. Свёрнуто — знак и суть одной строкой */
-  .fold { margin-top: 9px; background: var(--sheet); border-radius: 16px; overflow: hidden; }
+  .fold { margin-top: 9px; background: var(--sheet); border-radius: 16px; corner-shape: squircle; overflow: hidden; }
   .fold[hidden] { display: none; }
   .fold-head { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
     padding: 13px 14px; background: none; border: none; font-family: inherit; cursor: pointer; }
@@ -1770,8 +2024,8 @@
   .fold.open .fold-body { display: block; }
   .fold.open .chev svg { transform: rotate(90deg); transform-origin: center; }
   .strip { display: flex; gap: 6px; margin-top: 2px; }
-  .strip img { width: 46px; height: 60px; object-fit: cover; border-radius: 9px; flex-shrink: 0; }
-  .strip .ph { width: 46px; height: 60px; border-radius: 9px; flex-shrink: 0;
+  .strip img { width: 46px; height: 60px; object-fit: cover; border-radius: 9px; corner-shape: squircle; flex-shrink: 0; }
+  .strip .ph { width: 46px; height: 60px; border-radius: 9px; corner-shape: squircle; flex-shrink: 0;
     background: repeating-linear-gradient(135deg, var(--hatch) 0 7px, var(--sheet) 7px 14px); }
 
   /* Точки маршрута в развёрнутом виде */
@@ -1795,13 +2049,24 @@
   .card-bar-r { display: flex; align-items: center; gap: 10px; }
   .ord-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
   .ord-list[hidden] { display: none; }
+  /* `touch-action: none` снят со строки и отдан ручке. Пока он висел на всей
+     строке, список нельзя было прокрутить: любое движение пальцем по нему
+     считалось перетаскиванием, и страница стояла. Тянут за знак «=», всё
+     остальное в строке — обычное содержимое. */
   .ord-row {
     display: flex; align-items: center; gap: 12px; padding: 14px;
-    background: var(--sheet); border-radius: 14px; touch-action: none; user-select: none;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle; user-select: none;
   }
-  .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; }
+  .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; corner-shape: squircle; }
   .ord-row .badge svg { width: 17px; height: 17px; }
   .ord-n { flex: 1; font-size: 15.5px; color: var(--ink); }
+  /* Ручка — цель для пальца, а не значок: 44 pt по обеим сторонам */
+  .ord-grip {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; margin: -14px -14px -14px 0;
+    touch-action: none; cursor: grab;
+  }
+  .ord-grip:active { cursor: grabbing; }
   .ord-grip svg {
     width: 20px; height: 20px; fill: none; stroke: var(--ink-7); stroke-width: 1.8;
     stroke-linecap: round;
@@ -1810,15 +2075,25 @@
      и в момент перестановки читалась двумя подписями в одной полосе */
   .ord-row.drag { background: var(--press); box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     position: relative; z-index: 5; }
-  .ord-row.off { opacity: 0.4; }              /* блока нет в этой съёмке */
+  /* Блока нет в этой съёмке — приглушается содержимое строки, но не сама
+     строка. Пока гасла вся плашка целиком, полупрозрачные строки читались как
+     «выключенные» или, наоборот, как выбранные, и список спорил сам с собой:
+     непонятно, какая строка сейчас в руке. Плашки теперь одинаковы у всех,
+     разной остаётся только насыщенность подписи — так же, как занятость
+     отличается от съёмки в календаре. */
+  .ord-row.off .badge, .ord-row.off .ord-n { opacity: 0.45; }
   .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
   .ord-foot[hidden] { display: none; }
   .ord-reset, .ord-done {
-    flex: 1; padding: 14px; border-radius: 14px; border: none;
+    flex: 1; padding: 14px; border-radius: 14px; corner-shape: squircle; border: none;
     font-family: inherit; font-size: 15px; cursor: pointer;
   }
+  /* Кнопка — часть композиции, а не плашка-CTA (Design System). «Готово» было
+     залито цветом текста: в тёмной теме это светлое пятно, в светлой — чёрный
+     прямоугольник во всю ширину, самое тёмное место экрана. Обе кнопки лежат
+     на одной подложке, а главную из них называет вес и латунь. */
   .ord-reset { background: var(--sheet); color: var(--ink-3); }
-  .ord-done { background: var(--ink); color: var(--surface); font-weight: 650; }
+  .ord-done { background: var(--sheet); color: var(--brass-deep); font-weight: 650; }
 
   /* ---------- Стопка карточек дня ----------
      Карточка — лист. Соседние съёмки лежат под ним и выглядывают краями,
@@ -1832,11 +2107,28 @@
     /* Кнопка центрирует содержимое по вертикали — строка уезжала под лист */
     position: absolute; left: 50%; height: 74px; border: none; padding: 4px 16px 0;
     display: flex; align-items: flex-start;
-    cursor: pointer; background: var(--sheet); border-radius: 22px; text-align: left;
+    cursor: pointer; background: var(--sheet); border-radius: 22px; corner-shape: squircle; text-align: left;
     /* Пружина: карточки не приезжают, а отскакивают на место */
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
   }
   .peek, .peek[style] { margin-left: auto; margin-right: auto; left: 0; right: 0; }
+  /* Второй лист был виден, третий сливался с ним: у обоих один цвет и ни одной
+     тени, а разъезжались они только по ширине — десять пикселей с каждой
+     стороны. Разводим двумя признаками сразу.
+     Тон: каждый следующий лист на ступень дальше от переднего. Ступень взята
+     та же, что у плиток внутри карточки, — стопка не заводит своей палитры.
+     Тень: её отбрасывает тот лист, что ближе, — на тот, что за ним. Поэтому
+     она направлена вверх: передний лист лежит ниже по экрану, а стопка растёт
+     от него вверх. Тень и делает края стопкой, а не тремя полосками. */
+  /* Тень на тёмном не работает — чёрное по чёрному не видно, — поэтому там
+     край листа называет тонкий светлый кант по верхней кромке. Это тот же
+     приём, что записан про купол, только вывернутый: светлое от светлого
+     отделяет глубина, тёмное от тёмного — свет на ребре. Живут оба признака
+     одновременно, каждый работает в своей теме. */
+  .peek[data-k="0"] { background: var(--peek-1);
+    box-shadow: 0 -6px 14px -4px var(--stack-shade), inset 0 1px 0 var(--stack-edge); }
+  .peek[data-k="1"] { background: var(--peek-2);
+    box-shadow: inset 0 1px 0 var(--stack-edge); }
   .peek:active { background: var(--press); }
   .peeks.dragging .peek, .card-sheet.dragging { transition: none; }
   .peek-in {
@@ -1853,7 +2145,9 @@
   .card-sheet {
     position: relative; z-index: 1;
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
-    background: var(--sheet-2); border-radius: 22px; padding: 18px 12px 16px;
+    background: var(--sheet-2); border-radius: 22px; corner-shape: squircle; padding: 18px 12px 16px;
+    /* Лист карточки лежит поверх стопки и кладёт на неё свою тень */
+    box-shadow: 0 -7px 18px -4px var(--stack-shade), inset 0 1px 0 var(--stack-edge);
   }
   /* Внутренние плитки чуть светлее листа, иначе он их съедает */
   .card-sheet .pane, .card-sheet .day-tile, .card-sheet .wx-pane,
@@ -1862,7 +2156,7 @@
 
   /* Реплика навигатора: одна строка о том, что делать */
   .say { display: flex; gap: 9px; align-items: flex-start; margin-top: 9px;
-    padding: 11px 14px; border-radius: 14px; background: var(--sheet);
+    padding: 11px 14px; border-radius: 14px; corner-shape: squircle; background: var(--sheet);
     font-size: 13.5px; line-height: 1.45; color: var(--ink-3); }
   .say[hidden] { display: none; }
   .say .s-ic { flex-shrink: 0; margin-top: 1px; }
@@ -1890,7 +2184,7 @@
   .rf-tags { display: flex; gap: 7px; overflow-x: auto; padding: 0 16px 10px;
     flex-shrink: 0; scrollbar-width: none; }
   .rf-tags::-webkit-scrollbar { display: none; }
-  .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; border: 1px solid var(--press);
+  .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; corner-shape: squircle; border: 1px solid var(--press);
     background: none; font-family: inherit; font-size: 13px; color: var(--ink-3); cursor: pointer; }
   .rf-tag.on { background: var(--brass); border-color: var(--brass); color: var(--sheet); }
   .rf-tag .n { color: var(--ink-6); margin-left: 5px; font-variant-numeric: tabular-nums; }
@@ -1900,7 +2194,7 @@
   .rf-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 6px; padding: 0 16px 30px; align-content: start; scrollbar-width: none; }
   .rf-grid::-webkit-scrollbar { display: none; }
-  .rf-cell { aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; border: none;
+  .rf-cell { aspect-ratio: 3/4; border-radius: 10px; corner-shape: squircle; overflow: hidden; border: none;
     padding: 0; background: var(--sheet); cursor: pointer; position: relative; }
   .rf-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .rf-cell.link { display: flex; flex-direction: column; justify-content: flex-end;
@@ -1914,7 +2208,7 @@
   .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
   .rt-row + .rt-row { box-shadow: inset 0 1px 0 var(--surface); }
   .rt-row input {
-    background: var(--surface); border: none; border-radius: 9px; padding: 10px 11px;
+    background: var(--surface); border: none; border-radius: 9px; corner-shape: squircle; padding: 10px 11px;
     color: var(--ink); font-family: inherit; font-size: 15px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
@@ -1931,7 +2225,7 @@
   .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
   .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
-    background: var(--surface); border: none; border-radius: 9px; color: var(--ink-4); cursor: pointer; }
+    background: var(--surface); border: none; border-radius: 9px; corner-shape: squircle; color: var(--ink-4); cursor: pointer; }
   .rt-pick svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
     stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .rt-pick:active { color: var(--brass); }
@@ -1948,10 +2242,10 @@
   .card-money {
     display: flex; justify-content: space-between; align-items: center;
     width: 100%; margin-top: 30px; padding: 14px 15px; min-height: 52px;
-    background: var(--sheet); border: none; border-radius: 14px;
+    background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
     font-family: inherit; font-size: 16px; color: var(--ink); cursor: pointer;
   }
-  .card-money.open { border-radius: 14px 14px 0 0; }
+  .card-money.open { border-radius: 14px 14px 0 0; corner-shape: squircle; }
   .card-money.open + .group { border-radius: 0 0 14px 14px; }
   /* display перебивает hidden — прячем явно (грабли из DECISIONS) */
   .card-money[hidden], #cardOverlay .group[hidden], #cardOverlay .row[hidden],
@@ -1960,12 +2254,12 @@
      а не плашкой, как и все действия продукта */
   .grow-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
     width: 100%; margin-top: 14px; padding: 14px 15px; background: var(--press-warm);
-    border: none; border-radius: 14px; cursor: pointer; font-family: inherit; text-align: left; }
+    border: none; border-radius: 14px; corner-shape: squircle; cursor: pointer; font-family: inherit; text-align: left; }
   .grow-btn[hidden] { display: none; }
   .gb-t { font-size: 16px; font-weight: 600; color: var(--brass); }
   .gb-s { font-size: 12px; color: var(--ink-4); }
   .grow-btn:active { background: var(--press-brass); }
-  .card-grown { margin-top: 12px; padding: 12px 15px; border-radius: 14px;
+  .card-grown { margin-top: 12px; padding: 12px 15px; border-radius: 14px; corner-shape: squircle;
     background: var(--sheet-3); font-size: 14px; color: var(--ink-3); }
   .card-grown[hidden] { display: none; }
   /* В карточке референсы только смотрят: удаление живёт в форме */
@@ -1991,13 +2285,17 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 46px 0 8px;
   }
+  /* Крестик и галочка — 40, а не 32: это две главные кнопки формы, и в них
+     целятся не глядя. Подложка стала полупрозрачной — под шапкой формы едет
+     содержимое, и глухой кружок вырезал в нём дыру; полупрозрачный держит
+     край кнопки и не спорит с тем, что под ним. */
   .round {
-    width: 32px; height: 32px; border-radius: 50%; border: none; padding: 0;
-    background: var(--press); color: var(--ink-3); cursor: pointer;
+    width: 40px; height: 40px; border-radius: 50%; border: none; padding: 0;
+    background: var(--overlay-3); color: var(--ink-3); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .round svg {
-    width: 15px; height: 15px; stroke: currentColor; fill: none;
+    width: 18px; height: 18px; stroke: currentColor; fill: none;
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
   }
   .round.ok { background: var(--ink); color: var(--surface); }
@@ -2010,7 +2308,7 @@
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
     color: var(--ink-7); font-weight: 600; margin: 30px 4px 9px;
   }
-  .group { background: var(--sheet); border-radius: 14px; overflow: hidden; }
+  .group { background: var(--sheet); border-radius: 14px; corner-shape: squircle; overflow: hidden; }
   .group .sep { box-shadow: inset 0 1px 0 var(--surface); }
   .g-chips { padding: 13px 15px 15px; }
   .g-chips .chips { margin-top: 0; }
@@ -2035,7 +2333,7 @@
   .caps { display: flex; align-items: center; gap: 6px; }
   .caps .rv-v { min-width: 72px; text-align: center; }
   .row .rv-v {
-    display: inline-block; padding: 5px 10px; border-radius: 9px; border: none;
+    display: inline-block; padding: 5px 10px; border-radius: 9px; corner-shape: squircle; border: none;
     background: var(--field); color: var(--ink); font-variant-numeric: tabular-nums;
     font-family: inherit; font-size: 16px; cursor: pointer;
     transition: background 0.18s ease, color 0.18s ease;
@@ -2064,11 +2362,11 @@
   .daypick { padding: 4px 10px 12px; }
   .dp-nav { display: flex; align-items: center; gap: 8px; padding: 6px 4px 10px; }
   .dp-title { flex: 1; display: flex; align-items: center; gap: 6px;
-    background: none; border: none; padding: 4px 6px; border-radius: 9px;
+    background: none; border: none; padding: 4px 6px; border-radius: 9px; corner-shape: squircle;
     font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer; }
   .dp-title .pt-chev { transition: transform 0.25s ease; }
   .dp-title.open .pt-chev { transform: rotate(-90deg); }
-  .dp-arrow { width: 34px; height: 34px; border: none; border-radius: 10px;
+  .dp-arrow { width: 34px; height: 34px; border: none; border-radius: 10px; corner-shape: squircle;
     background: var(--field); color: var(--ink-3); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; }
   .dp-arrow svg { width: 8px; height: 13px; fill: none; stroke: currentColor;
@@ -2078,7 +2376,7 @@
     font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase;
     color: var(--ink-6); text-align: center; padding-bottom: 4px; }
   .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-  .dp-cell { height: 38px; border: none; background: none; border-radius: 10px;
+  .dp-cell { height: 38px; border: none; background: none; border-radius: 10px; corner-shape: squircle;
     font-family: inherit; font-size: 15px; color: var(--ink); cursor: pointer;
     font-variant-numeric: tabular-nums; }
   .dp-cell.out { color: var(--ink-8); }
@@ -2090,7 +2388,7 @@
   .dp-cell.on:active { background: var(--brass); }
   /* Выбор месяца и года — второй ярус того же окна, а не отдельный экран */
   .dp-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .dp-months button { height: 42px; border: none; border-radius: 11px; background: var(--field);
+  .dp-months button { height: 42px; border: none; border-radius: 11px; corner-shape: squircle; background: var(--field);
     font-family: inherit; font-size: 14px; color: var(--ink); cursor: pointer; }
   .dp-months button.on { background: var(--brass); color: var(--on-brass); font-weight: 600; }
 
@@ -2103,10 +2401,16 @@
   /* Сетка месяца выше барабана: шесть рядов, шапка и дни недели.
      Без своей высоты она обрезалась на втором ряду */
   .inline.datepick.open { max-height: 420px; }
-  .ip { position: relative; display: flex; height: 136px; }
+  /* Три целых строки, а не четыре с половиной. Прежние 136 px при строке в 34
+     давали полтора ряда над выбранным и полтора под ним — крайние цифры
+     резались пополам, и барабан читался как сломанный. Высота окна должна быть
+     нечётным числом строк, иначе выбранная не встанет в середину: 34 × 3, и
+     отступ ровно в строку. Большой барабан внизу экрана так и устроен
+     (170 = 34 × 5), разошлась только встроенная в форму копия. */
+  .ip { position: relative; display: flex; height: 102px; }
   .ip.time { justify-content: center; }
-  .ip .pick-band { top: 51px; }
-  .ip .wheel { height: 136px; padding: 51px 0; }
+  .ip .pick-band { top: 34px; }
+  .ip .wheel { height: 102px; padding: 34px 0; }
   .ip .wheel.narrow { flex: 0 0 66px; }
   .ip .wheel[data-w="date"] .w-item { justify-content: center; padding-right: 0; }
 
@@ -2155,7 +2459,7 @@
      Исключение — поле во всю строку («Невеста», «Телефон»): там подсказка
      сама говорит, что это ввод, а капсула во всю ширину стала бы плашкой. */
   .pay-in {
-    background: var(--field); border: none; border-radius: 9px; padding: 6px 10px;
+    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle; padding: 6px 10px;
     text-align: right; flex: 0 1 132px; min-width: 84px;
     color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
@@ -2176,7 +2480,7 @@
   .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 12px 15px 0; }
   .ref-grid:empty { display: none; }
   .ref-card {
-    position: relative; aspect-ratio: 1/1; border-radius: 10px; overflow: hidden;
+    position: relative; aspect-ratio: 1/1; border-radius: 10px; corner-shape: squircle; overflow: hidden;
     background: var(--sheet); border: none; padding: 0; cursor: pointer; display: block;
   }
   .ref-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -2207,7 +2511,7 @@
   .ref-add { display: flex; gap: 8px; padding: 12px 15px; }
   .ref-btn {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
-    background: var(--sheet); border: none; border-radius: 10px; padding: 11px;
+    background: var(--sheet); border: none; border-radius: 10px; corner-shape: squircle; padding: 11px;
     color: var(--ink-3); font-family: inherit; font-size: 14px; cursor: pointer;
   }
   .ref-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.6; }
@@ -2220,13 +2524,13 @@
     display: none; align-items: center; justify-content: center; padding: 24px;
   }
   .ref-view.open { display: flex; }
-  .ref-view img { max-width: 100%; max-height: 100%; border-radius: 12px; }
+  .ref-view img { max-width: 100%; max-height: 100%; border-radius: 12px; corner-shape: squircle; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
   /* Количество вводится степпером, не клавиатурой */
   .stepper { display: inline-flex; align-items: center; gap: 2px; }
   .stepper button {
-    width: 38px; height: 34px; border: none; border-radius: 10px;
+    width: 38px; height: 34px; border: none; border-radius: 10px; corner-shape: squircle;
     background: var(--press); color: var(--ink-3); font-family: inherit; font-size: 19px;
     cursor: pointer; line-height: 1;
   }
@@ -2237,7 +2541,7 @@
     width: 58px; padding: 6px 2px; text-align: center; background: var(--field); border: none;
     font-family: inherit; font-size: 16px; color: var(--ink);
     font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none;
-    outline: none; border-radius: 9px;
+    outline: none; border-radius: 9px; corner-shape: squircle;
     transition: background 0.18s ease, color 0.18s ease;
   }
   .stepper .step-in:focus { background: rgba(226,164,76,0.16); color: var(--brass); }
@@ -2257,7 +2561,7 @@
   }
   .pack-item { display: flex; gap: 6px; align-items: center; padding: 0 15px 10px; }
   .pack-item input {
-    background: var(--sheet); border: none; border-radius: 10px; padding: 10px 10px;
+    background: var(--sheet); border: none; border-radius: 10px; corner-shape: squircle; padding: 10px 10px;
     color: var(--ink); font-family: inherit; font-size: 14px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
@@ -2294,7 +2598,7 @@
     color: var(--ink-7); font-weight: 600; display: block; margin-bottom: 9px;
   }
   .field input[type="text"], .field textarea {
-    width: 100%; background: var(--sheet); border: none; border-radius: 12px;
+    width: 100%; background: var(--sheet); border: none; border-radius: 12px; corner-shape: squircle;
     color: var(--ink); font-family: inherit; font-size: 16px;
     padding: 14px 15px; outline: none; -webkit-appearance: none; appearance: none;
   }
@@ -2312,14 +2616,14 @@
 
   /* ---------- Организации и документы ---------- */
   .org-seg { display: flex; gap: 8px; margin: 14px 0 4px; }
-  .org-seg button { flex: 1; padding: 11px; border-radius: 12px; border: none;
+  .org-seg button { flex: 1; padding: 11px; border-radius: 12px; corner-shape: squircle; border: none;
     background: var(--sheet); color: var(--ink-4); font-family: inherit; font-size: 14px; }
   .org-seg button.active { background: var(--press); color: var(--ink); }
   .org-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-    margin-top: 10px; padding: 14px; background: var(--sheet); border: none; border-radius: 16px;
+    margin-top: 10px; padding: 14px; background: var(--sheet); border: none; border-radius: 16px; corner-shape: squircle;
     font-family: inherit; color: var(--ink); }
   .org-item:active { opacity: 0.7; }
-  .org-item .badge { width: 34px; height: 34px; border-radius: 11px; }
+  .org-item .badge { width: 34px; height: 34px; border-radius: 11px; corner-shape: squircle; }
   .org-item .badge svg { width: 17px; height: 17px; }
   .org-b { min-width: 0; flex: 1; }
   .org-n { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2327,7 +2631,7 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Строка документа: вид слева, имя и размер справа. Тап открывает файл */
   .doc-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
-    margin-top: 8px; padding: 12px 14px; background: var(--sheet); border: none; border-radius: 14px;
+    margin-top: 8px; padding: 12px 14px; background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
     font-family: inherit; color: var(--ink); }
   .doc-row:active { opacity: 0.7; }
   .doc-row .k { flex: 0 0 auto; font-size: 11px; color: var(--brass); letter-spacing: 0.2px;
@@ -2342,7 +2646,7 @@
   /* Прогноз против замысла — предупреждаем спокойно, без красного */
   .wish-warn {
     display: none; margin-top: 10px; padding: 12px 14px;
-    background: var(--warn-bg); border-radius: 12px;
+    background: var(--warn-bg); border-radius: 12px; corner-shape: squircle;
     border-left: 2px solid var(--brass-deep); font-size: 13px; line-height: 1.5;
   }
   .wish-warn.show { display: block; }
@@ -2354,14 +2658,14 @@
     position: absolute; top: 12px; left: 10px; right: 10px; z-index: 95;
     background: var(--overlay-3);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border-radius: 18px; padding: 13px 15px; display: flex; gap: 11px;
+    border-radius: 18px; corner-shape: squircle; padding: 13px 15px; display: flex; gap: 11px;
     transform: translateY(-140%); opacity: 0;
     transition: transform 0.5s cubic-bezier(0.25,1,0.4,1), opacity 0.4s ease;
     box-shadow: 0 12px 30px rgba(0,0,0,0.5);
   }
   .notif.show { transform: none; opacity: 1; }
   .n-icon {
-    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    width: 34px; height: 34px; border-radius: 9px; corner-shape: squircle; flex-shrink: 0;
     background: linear-gradient(160deg, var(--brass), var(--brass-dark));
     display: flex; align-items: center; justify-content: center;
   }
@@ -2375,7 +2679,7 @@
 
   .home {
     position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-    width: 134px; height: 5px; border-radius: 10px;
+    width: 134px; height: 5px; border-radius: 10px; corner-shape: squircle;
     background: #fff; opacity: 0.14; z-index: 90; pointer-events: none;
   }
 </style>
@@ -2776,9 +3080,13 @@
     <p class="seg-note">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
 
     <div class="sec-label">Тема</div>
+    <!-- Третий вариант — не «ещё одна тема», а отказ выбирать: телефон уже
+         знает, вечер сейчас или день, и переспрашивать об этом незачем -->
     <div class="seg" id="themeSeg">
       <button class="active" data-theme="dark">Тёмная</button>
       <button data-theme="light">Светлая</button>
+      <!-- Одно слово: «как в системе» переносилось на две строки и ломало ряд -->
+      <button data-theme="auto">Система</button>
     </div>
     <p class="seg-note">Меняется интерфейс. Небо, свет и карта остаются прежними: закат не зависит от темы.</p>
 
@@ -2799,15 +3107,15 @@
     <div class="chips" id="delvDays" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="delvNote">Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней.</p>
 
-    <!-- Съёмки назначают получасами. Мелкий шаг нужен редко, поэтому он
-         включается отдельно, а не мешает каждому вводу времени -->
+    <!-- Умолчание — мелкий шаг: свобода, которую при желании урезают сами.
+         Крупный шаг удобнее, но это удобство, выбранное за фотографа -->
     <div class="sec-label">Шаг времени</div>
     <div class="seg" id="stepSeg">
-      <button class="active" data-step="30">Полчаса</button>
-      <button data-step="15">15 минут</button>
-      <button data-step="5">5 минут</button>
+      <button class="active" data-step="5">5 минут</button>
+      <button data-step="10">10 минут</button>
+      <button data-step="30">Полчаса</button>
     </div>
-    <p class="seg-note" id="stepNote">Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется.</p>
+    <p class="seg-note" id="stepNote">Шаг барабана в форме. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется.</p>
 
     <div class="sec-label">Отклик</div>
     <div class="item"><span class="k">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
@@ -2828,7 +3136,11 @@
     <div class="sec-label">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
-    <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет ›</span></div>
+    <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
+         какая-то карточка, а искать удалённое приходится как раз тогда, когда
+         открывать нечего. Строки нет, пока корзина пуста -->
+    <div class="item" id="binSetRow" hidden><span class="k">Корзина</span><span class="v" id="binSetN">0</span></div>
     <!-- Порог дороги между площадками. Значение зашитой константой было
          честным для города и враньём для пригорода: сорок минут между
          разными местами — это про соседние районы, а не про соседний город -->
@@ -2877,7 +3189,7 @@
       <button data-unit="f">°F</button>
     </div>
     <p class="seg-note" id="unitNote">Температура показывается в градусах Цельсия.</p>
-    <div class="item"><span class="k">Язык</span><span class="v">Русский ›</span></div>
+    <div class="item"><span class="k">Язык</span><span class="v">Русский <span class="go-chev">›</span></span></div>
 
     <!-- Копирайт карты переехал сюда с полотна: на экране «Карта» строка
          лицензии занимала правую половину нижнего края и резала компас.
@@ -3002,7 +3314,9 @@
     <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
     <div id="cdOrderList" class="ord-list" hidden></div>
     <div class="ord-foot" id="cdOrderFoot" hidden>
-      <button type="button" class="ord-reset" id="cdOrderReset">Вернуть наш порядок</button>
+      <!-- «По умолчанию», а не «вернуть наш порядок»: кнопка говорит, что
+           получится, а не чей это был порядок -->
+      <button type="button" class="ord-reset" id="cdOrderReset">По умолчанию</button>
       <button type="button" class="ord-done" id="cdOrderDone">Готово</button>
     </div>
 
@@ -3128,6 +3442,19 @@
       <div class="row sep">Доход<span class="rv" id="cdIncome">—</span></div>
       <div class="row sep">Расходы<span class="rv" id="cdExpense">—</span></div>
       <div class="row">Прибыль<span class="rv" id="cdProfit">—</span></div>
+    </div>
+
+    <!-- Удаление живёт в карточке, а не только в свайпе по списку: карточка
+         это место, где о съёмке принимают решения, и «отменилась» — одно из
+         них.
+         Слева корзина, справа удаление пилюлей. Корзины нет, пока она пуста:
+         функция обязана уметь исчезнуть, и пустая корзина на экране — это
+         обещание работы, которой нет. -->
+    <div class="card-acts">
+      <button class="card-bin" id="cdBin" hidden aria-label="Корзина">
+        <span class="ic" data-ic="trash"></span><span class="n" id="cdBinN">0</span>
+      </button>
+      <button class="card-del" id="cdDelete">Удалить съёмку</button>
     </div>
   </div>
 
@@ -3540,7 +3867,24 @@
   <!-- Веер сохранённых точек: общий на карту, маршрут карточки и настройки.
        Прямой потомок .device — координаты считаются от рамки телефона -->
   <div class="spot-scrim" id="spotScrim" hidden></div>
+
+  <!-- Куда улетает карточка. Появляется только на время полёта: это не элемент
+       экрана, а место назначения — показывать его постоянно незачем -->
+  <div class="bin-target" id="binTarget" hidden><span data-ic="trash"></span></div>
+
+  <div class="scrim" id="binScrim"></div>
+  <div class="sheet" id="binSheet">
+    <div class="grip"></div>
+    <div class="sheet-title">Корзина</div>
+    <!-- Пустой экран называет предмет, а потом пользу (правило записано) -->
+    <div class="sheet-sub">Удалённые съёмки лежат здесь, пока их не вернут или не сотрут насовсем. Клиент возвращается чаще, чем кажется.</div>
+    <div id="binList"></div>
+    <button type="button" class="ghost" id="binClear" hidden style="margin-top:14px;">Очистить корзину</button>
+  </div>
   <div class="spot-fan" id="spotFan" hidden></div>
+  <!-- Веер действий над записью. Язык взят у веера точек, а не придуман
+       заново: второго такого меню в продукте быть не должно (DECISIONS). -->
+  <div class="spot-fan" id="evFan" hidden></div>
 
   <div class="scrim" id="locScrim"></div>
   <div class="sheet" id="locSheet">
@@ -4215,6 +4559,10 @@
      каждой перерисовке было бы спором с рукой */
   var openGaps = {};
   var dayScrollDay = null;               // на какой день уже наводили ленту
+  /* Куда листнули: вперёд, назад или никуда. Лента въезжает с той стороны,
+     откуда пришёл день, — иначе смена дат выглядит подменой содержимого, а не
+     переходом, и глаз каждый раз перечитывает экран заново */
+  var dayShift = 0;
   /* Виджет дня раскрыт по умолчанию и сворачивается вручную: свет и погода —
      то, ради чего продукт и заведён, прятать их с порога незачем. Кто свернул,
      тот не хочет видеть их и завтра, поэтому состояние переживает перезапуск —
@@ -4237,7 +4585,12 @@
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
-        mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: theme,
+        // Хранится выбор фотографа, а не вычисленная из него тема
+        mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: themePref,
+        trashed: trashed.map(function (t) {
+          var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
+          return { rec: r, at: t.at, del: t.del };
+        }),
         travelMin: travelMin, tempUnit: tempUnit, dayFold: !dayPanelOpen,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
@@ -4484,6 +4837,15 @@
     } catch (e) { return null; }
   }
   var saved = loadAll();
+  /* Корзина: удалённые съёмки с их местом в списке и временем удаления.
+     Даты внутри восстанавливаются так же, как у обычных записей.
+     Читается сразу после `loadAll`, а не раньше: `var` поднимается вверх, но
+     значение — нет, и объявленная выше корзина молча оказывалась пустой после
+     каждого перезапуска. Хранилище при этом было в порядке — тем и опасно. */
+  var trashed = (saved && Array.isArray(saved.trashed) ? saved.trashed : []).map(function (t) {
+    var r = {}; for (var k in t.rec) r[k] = (k === "date") ? new Date(t.rec[k]) : t.rec[k];
+    return { rec: r, at: t.at || 0, del: t.del || 0 };
+  });
 
   /* ---------- Жанр: код внутри, имя на экране ----------
      Жанр служил сразу тремя вещами: текстом на экране, ключом в таблицах
@@ -4548,21 +4910,35 @@
   /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
      на карте живут своими цветами в этом файле и темой не управляются */
   var booted = false;
-  var theme = (saved && saved.theme === "light") ? "light" : "dark";
-  function applyTheme(t) {
-    theme = t;
+  /* Выбор фотографа и действующая тема — разные величины, и путать их нельзя:
+     «как в системе» это не третья тема, а отказ выбирать. Храним выбор,
+     показываем вычисленное. Старые записи знали только «dark» и «light» —
+     они и читаются как выбор, поэтому ничего не теряется. */
+  var themePref = (saved && /^(light|auto)$/.test(saved.theme)) ? saved.theme : "dark";
+  var sysDark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)");
+  function themeOf(pref) {
+    return pref === "auto" ? (sysDark && sysDark.matches ? "dark" : "light") : pref;
+  }
+  var theme = themeOf(themePref);
+  function applyTheme(pref) {
+    themePref = pref;
+    var t = theme = themeOf(pref);
     document.documentElement.setAttribute("data-theme", t);
     var m = document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute("content", t === "light" ? "#EDE9E1" : "#0F0E0C");
     document.querySelectorAll("#themeSeg button").forEach(function (b) {
-      b.classList.toggle("active", b.dataset.theme === t);
+      // Отмечен выбор, а не результат: при «как в системе» горит именно он
+      b.classList.toggle("active", b.dataset.theme === themePref);
     });
     if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
     // Буквы тоже: на светлой карте они тёмные, на тёмной светлые
     if (labelTiles) labelTiles.setUrl(labelURL());
     /* Часть цветов ставится из кода (подписи фаз, метки на карте) — их сменой
        класса не переключить, экраны надо перерисовать */
-    if (booted) { renderToday(); renderMap(); }
+    /* Съёмки перерисовываются тоже: цвет срочности сдачи считается кодом в
+       момент отрисовки, и без этого смена темы оставляла бы на календаре
+       тона прежней */
+    if (booted) { renderToday(); renderMap(); renderCal(); renderDayPanel(); }
   }
 
   /* ---------- Занятое время ----------
@@ -4620,7 +4996,7 @@
     var on = spotHere() >= 0;
     $("mapSave").classList.toggle("on", on);
     $("mapSave").setAttribute("aria-label", on ? "Убрать точку" : "Сохранить точку");
-    if ($("spotCount")) $("spotCount").textContent = spots.length ? spots.length + " ›" : "нет ›";
+    if ($("spotCount")) $("spotCount").innerHTML = (spots.length || "нет") + ' <span class="go-chev">\u203a</span>';
   }
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
@@ -4708,9 +5084,20 @@
     if (d === null) return null;
     var x = new Date(s.date); x.setDate(x.getDate() + d); return x;
   }
-  /* Непрерывная шкала срочности: белое → жёлтое → янтарное → терракота */
+  /* Непрерывная шкала срочности. В тёмной теме она идёт от цвета текста к
+     терракоте: белое → жёлтое → янтарное → терракота.
+     На светлой те же числа читались никак — спокойный конец шкалы это и есть
+     основной цвет текста, а он в светлой теме тёмный, не белый. Жёлтая
+     середина на белом не лучше: «сдать за 14 дн.» терялось ровно там, где
+     срок ещё можно успеть. Поэтому у светлой темы свои остановки — от чернил
+     через тёплую охру к терракоте; шкала остаётся непрерывной, меняются
+     только её концы. Тон срочности везде берётся отсюда, поэтому лечится
+     одним местом, а не десятком строк в разметке. */
+  function urgencyCalm() { return theme === "light" ? [23,21,15] : [239,234,224]; }
   function urgencyRGB(p) {
-    var st = [[0, [239,234,224]], [0.5, [232,208,122]], [0.8, [226,164,76]], [1, [201,102,61]]];
+    var st = theme === "light"
+      ? [[0, [23,21,15]], [0.5, [122,90,34]], [0.8, [166,86,45]], [1, [138,63,34]]]
+      : [[0, [239,234,224]], [0.5, [232,208,122]], [0.8, [226,164,76]], [1, [201,102,61]]];
     p = clamp(p, 0, 1);
     for (var i = 1; i < st.length; i++) {
       if (p <= st[i][0]) return lerp(st[i-1][1], st[i][1], (p - st[i-1][0]) / (st[i][0] - st[i-1][0]));
@@ -4722,7 +5109,7 @@
     if (isMeet(s)) return { rank: 0, c: GREY, breath: false, label: "" };
     var now = Date.now(), shot = s.date.getTime(), r;
     if (s.delivered)   r = { rank: 0, c: GREY, breath: false, label: "материал сдан" };
-    else if (shot > now) r = { rank: 1, c: [239,234,224], breath: false, label: "предстоит" };
+    else if (shot > now) r = { rank: 1, c: urgencyCalm(), breath: false, label: "предстоит" };
     else {
       var dd = deadlineDate(s);
       if (!dd) r = { rank: 1, c: GREY, breath: false, label: "без срока" };
@@ -4730,7 +5117,8 @@
         var p = (now - shot) / (dd.getTime() - shot);
         var left = Math.ceil((dd.getTime() - now) / 86400000);
         r = p >= 1
-          ? { rank: 3, c: [201,102,61], breath: true, label: "просрочено на " + Math.abs(left) + " дн." }
+          ? { rank: 3, c: theme === "light" ? [138,63,34] : [201,102,61], breath: true,
+              label: "просрочено на " + Math.abs(left) + " дн." }
           : { rank: 2, c: urgencyRGB(p), breath: false, label: "сдать за " + left + " дн." };
       }
     }
@@ -4739,10 +5127,31 @@
     r.fill = r.rank >= 3 ? rgba(r.c, 0.32) : null;
     return r;
   }
+  /* ---------- Съёмка длиннее суток принадлежит каждому своему дню ----------
+     Свадьба с 19:10 до 03:10 занимает два дня, а календарь знал только день
+     начала: девятнадцатого не было ни заливки в клетке, ни блока в ленте, ни
+     счёта занятого времени — при том что три часа ночи уже проданы.
+     Причина была в том, что днём съёмки считалась её дата начала, а не отрезок,
+     который она занимает. Отсюда одна функция на все места: сколько минут этих
+     суток занято этой записью. Смотрим на двое суток назад — ровно столько
+     длится потолок длительности, дальше заглядывать нечего.
+     Возвращает `tail: true` для продолжения из вчера: такому блоку нельзя
+     показывать «19:10 – 03:10», он в этих сутках начинается в полночь. */
+  function partOfDay(s, d) {
+    var end = s.end != null ? s.end : s.min + (s.dur || 90);
+    for (var k = 0; k <= 2; k++) {
+      if (!sameDay(s.date, addDays(d, -k))) continue;
+      var a = s.min - k * 1440, b = end - k * 1440;
+      if (b <= 0 || a >= 1440) return null;
+      return { a: Math.max(0, a), b: Math.min(1440, b), tail: a < 0, cut: b > 1440 };
+    }
+    return null;
+  }
+  function onDay(s, d) { return !!partOfDay(s, d); }
   function dayMark(d) {
     var best = null;
     sessions.forEach(function (s) {
-      if (!sameDay(s.date, d) || isMeet(s)) return;
+      if (!onDay(s, d) || isMeet(s)) return;
       var st = deliveryState(s);
       if (!best || st.rank > best.rank) best = st;
     });
@@ -5249,7 +5658,11 @@
       svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
         stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
       svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 11, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
-      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: "#14110E", "stroke-width": 2 }));
+      /* Обводка светила отделяет диск от полотна и потому равна цвету полотна,
+         а не чёрному: цвет холста был вписан числом, и на светлой карте солнце
+         получало жирный тёмный контур. Луна рядом уже брала его у `mapInk` —
+         разошлись две строки об одном и том же. */
+      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: mapInk(), "stroke-width": 2 }));
     }
 
     /* Деления с градусами — только в астро. В обычном режиме они спорили бы с
@@ -5362,6 +5775,15 @@
   /* Имя места — обратное геокодирование: крупно город, мелко более точное место.
      BigDataCloud: без ключа, с CORS, по-русски. Офлайн — остаются координаты. */
   var geoCity = "", geoSub = "", geoKey = null, geoTimer = null;
+  /* Имя отстаёт от координат на один запрос, и пока оно в пути, показывать
+     числа нельзя: карта ездит под пальцем, шапка успевала трижды сменить
+     «Лобня» на «56.011 N · 37.483 E» и обратно, а строка уточнения то
+     появлялась, то исчезала — от этого прыгало всё окно.
+     Прежнее имя держится до ответа: при панораме ближайшая известная правда
+     точнее координат, и меняется оно один раз, когда ответ пришёл. Не ответил
+     геокодер вовсе — тогда числа, как и раньше: врать именем чужого места
+     дольше секунды нельзя. */
+  var geoStale = false;
   /* Место — это населённый пункт: город, посёлок, село, деревня. Область и
      район местом не являются: «Московская область» — не то, куда едут снимать,
      и в карточке она выглядела ошибкой. Геокодер отдаёт всё вперемешку и
@@ -5421,7 +5843,7 @@
     /* Точку могли сохранить раньше, чем ответил геокодер, — тогда именем ей
        служат координаты. Ответ пришёл: имя дозревает, а не остаётся числами
        навсегда. Правим только то, что сами и подставили. */
-    if (geoCity) {
+    if (geoCity && !geoStale) {
       var k = spotHere();
       if (k >= 0 && !spots[k].named) {
         spots[k].name = geoCity; spots[k].sub = geoSub || ""; spots[k].named = true;
@@ -5430,30 +5852,85 @@
     }
     renderSpotMark();   // на новом месте закладка может быть уже поставлена
   }
-  function fetchGeoName() {
+  /* ---------- Имя места: два источника, а не один ----------
+     BigDataCloud перестал отвечать с российских адресов — без VPN приходит
+     сбой, и шапка садится на координаты. Сломалось это разом и в бете, и в
+     корне, то есть не правкой, а снаружи: единственный источник имени оказался
+     единственной точкой отказа.
+
+     Поэтому источников два, и первым идёт Nominatim (OpenStreetMap): он уже
+     стоит в продукте — им ищется место по названию, — и отвечает оттуда, где
+     не отвечает BigDataCloud. Второй остаётся запасным: не ответил первый,
+     спрашиваем второй. Ключей не требует ни тот, ни другой.
+
+     Разбор имени общий. Правило «место — это населённый пункт» живёт в
+     `cleanPlace`, а каждый источник только приводит свой ответ к одной паре
+     «город, уточнение»: у Nominatim это `address.city/town/village`, у
+     BigDataCloud — `city/locality` со справкой об административных единицах.
+
+     Nominatim просит не чаще запроса в секунду — пауза перед запросом поднята
+     соответственно. Это не мешает: имя нужно после того, как карту отпустили,
+     а не на каждом кадре. */
+  function geoFromNominatim(j) {
+    var a = j.address || {};
+    /* Порядок от частного к общему: город, посёлок, деревня, хутор. Округ и
+       район сюда не входят — их отбросит то же правило, что и всегда */
+    var name = cleanPlace(a.city || a.town || a.village || a.hamlet || "");
+    return { city: name, sub: (a.state || a.county || j.display_name_country || "").trim() };
+  }
+  function geoFromBDC(j) {
+    return { city: settlement(j), sub: (j.principalSubdivision || j.countryName || "").trim() };
+  }
+  function askGeo(url, pick) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("http " + r.status);
+      return r.json();
+    }).then(pick);
+  }
+  function fetchGeoName(second) {
     if (typeof fetch === "undefined") return;
     var key = LAT.toFixed(3) + "," + LON.toFixed(3);
-    if (key === geoKey && geoCity) return;
+    /* Имя для этих координат уже есть — спрашивать нечего. Проверка `!geoStale`
+       обязательна: пока новое имя едет, в `geoCity` лежит имя прежнего места, и
+       без неё сторож принимал его за готовый ответ. Из-за этого повторная
+       попытка после сбоя не запускалась вовсе, а шапка навсегда оставалась с
+       именем места, откуда уже уехали. */
+    if (key === geoKey && geoCity && !geoStale) return;
     geoKey = key;
-    fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + LAT + "&longitude=" + LON + "&localityLanguage=ru")
-      .then(function (r) { return r.json(); }).then(function (j) {
-        if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) return;   // место успело смениться
-        geoCity = settlement(j);
-        // Область идёт уточнением под именем, но именем не становится никогда
-        geoSub = (j.principalSubdivision || j.countryName || "").trim();
+    var la = LAT, lo = LON;
+    var nom = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&accept-language=ru&lat=" + la + "&lon=" + lo;
+    var bdc = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + la + "&longitude=" + lo + "&localityLanguage=ru";
+    askGeo(nom, geoFromNominatim)
+      .catch(function () { return askGeo(bdc, geoFromBDC); })
+      .then(function (g) {
+        /* Место успело смениться — этот ответ уже не про него. Раньше он просто
+           выбрасывался, и нового запроса никто не назначал: при езде по карте
+           имя не появлялось вовсе. Теперь спрашиваем заново */
+        if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) { scheduleGeoName(); return; }
+        geoStale = false;
+        geoCity = g.city;
+        geoSub = g.sub;
         /* У городов федерального значения регион зовётся так же, как город, и
            уточнение повторяло бы имя: «Санкт-Петербург» под «Санкт-Петербургом».
            Пустая строка высоты не держит — под именем просто ничего не стоит */
         if (geoSub === geoCity) geoSub = "";
         applyGeoNames();
-      }).catch(function () {});   // офлайн — остаются координаты
+      })
+      .catch(function () {
+        if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) { scheduleGeoName(); return; }
+        /* Молчат оба — пробуем ещё раз через полторы секунды: сеть на съёмке
+           отваливается кусками, и один сбой не повод объявлять место
+           безымянным. Не ответили и со второго раза — остаются координаты */
+        if (!second) { setTimeout(function () { fetchGeoName(true); }, 1500); return; }
+        if (geoStale) { geoStale = false; geoCity = ""; geoSub = ""; applyGeoNames(); }
+      });
   }
-  function scheduleGeoName() { clearTimeout(geoTimer); geoTimer = setTimeout(fetchGeoName, 400); }
+  function scheduleGeoName() { clearTimeout(geoTimer); geoTimer = setTimeout(function () { fetchGeoName(); }, 900); }
 
   function setLocation(lat, lon) {
     LAT = lat; LON = lon; TZ = tzFor(lon);
-    geoCity = ""; geoSub = "";     // прежнее имя недействительно
-    applyGeoNames();               // сразу координаты, город подтянется следом
+    geoStale = true;               // имя прежнего места держится, пока не придёт новое
+    applyGeoNames();
     saveAll();                     // место переживает перезапуск
     applyDate(viewMin);            // весь свет пересчитывается на новое место
     scheduleWeather();             // погода нового места
@@ -5601,9 +6078,13 @@
     /* Заголовок над лентой в дне не нужен: «свободный день» уже сказан
        виджетом, а «запланировано» пересказывает саму ленту */
     $("plannedLabel").hidden = week || day;
-    /* Возврат «↺ сегодня» тоже: в ленте дат видно, где сегодня, — число
-       светится латунью, выбранный день залит */
-    $("calNow").classList.toggle("no-day", day);
+    /* Возврат «↺ сегодня» в дне вернулся. Он был убран по доводу «в ленте дат
+       видно, где сегодня: число светится латунью, выбранный день залит», и
+       довод верен — но отвечает не на тот вопрос. Видно, где сегодня, только
+       пока сегодня в этой семёрке; отлистав на месяц вперёд, человек ищет
+       способ вернуться, а не подсказку. На людях это проверено: кнопку ищут.
+       Показывается она по прежнему правилу — только когда день не сегодняшний */
+    $("calNow").classList.toggle("day-float", day);
     /* Лента дат принадлежит дню, и прятать её должен тот, кто знает вид.
        Раньше это делал `renderDayPanel`, а в месяце он не вызывался вовсе —
        под календарём оставался дневной вид с прошлого раза: лента дат,
@@ -5638,7 +6119,7 @@
       var q = qualityOf(d);
       var mk = inMonth ? dayMark(d) : null;
       var lit = mk && mk.fill;
-      var shoots = sessions.filter(function (x) { return sameDay(x.date, d); })
+      var shoots = sessions.filter(function (x) { return onDay(x, d); })
         .sort(function (x, y) { return x.min - y.min; });
       if (shoots.length && inMonth) monthHasShoots = true;
 
@@ -5720,7 +6201,7 @@
     for (var i = 0; i < 7; i++) {
       var d = addDays(start, i);
       var shoots = sessions.map(function (x, k) { return { s: x, i: k }; })
-        .filter(function (p) { return sameDay(p.s.date, d); })
+        .filter(function (p) { return onDay(p.s, d); })
         .sort(function (a, b) {
           var aw = hasRoute(a.s.type) ? 0 : 1, bw = hasRoute(b.s.type) ? 0 : 1;
           return aw - bw || a.s.min - b.s.min;
@@ -5755,7 +6236,10 @@
              точки, здесь — знаком и словом */
           var meet = isMeet(p.s);
           return '<button type="button" class="wk-card' + (meet ? " meet" : "") + '" data-i="' + p.i + '">'
-            + '<span class="wk-ic">' + IC.svg(meet ? "guests" : (GENRE_SIGN[p.s.type] || "camera")) + "</span>"
+            /* Скобки обязательны: `+` связывает крепче тернарника, и без них
+               условием становится вся склеенная строка — она истинна всегда,
+               а начало разметки и закрывающий тег просто исчезают */
+            + '<span class="wk-ic">' + (meet ? IC.svg("guests") : IC.genreSvg(p.s.type)) + "</span>"
             + '<span class="wk-body"><span class="wk-t">'
             + (meet ? "Встреча · " + esc(shortGenre(p.s.type).toLowerCase())
                     : esc(spec.ev || genreName(p.s.type)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
@@ -5951,10 +6435,10 @@
         var dd = addDays(wkStart, di);
         /* Знаки дня: до трёх, дальше счётчик. Больше трёх в клетку шириной в
            палец не влезает, а счёт сообщает не меньше */
-        var marks = sessions.filter(function (x) { return sameDay(x.date, dd); });
+        var marks = sessions.filter(function (x) { return onDay(x, dd); });
         var mk = marks.slice(0, 3).map(function (x) {
           return '<span class="' + (isMeet(x) ? "meet" : "") + '">'
-            + IC.svg(isMeet(x) ? "guests" : (GENRE_SIGN[x.type] || "camera")) + "</span>";
+            + (isMeet(x) ? IC.svg("guests") : IC.genreSvg(x.type)) + "</span>";
         }).join("");
         if (marks.length > 3) mk += '<span class="dd-more">+' + (marks.length - 3) + "</span>";
         if (!marks.length && blocksOn(dd).length) mk = '<span class="meet">' + IC.svg("lock") + "</span>";
@@ -5966,12 +6450,17 @@
           + '<span class="dd-marks">' + mk + "</span>";
         (function (day) {
           b.addEventListener("click", function () {
+            dayShift = day > calSel ? 1 : day < calSel ? -1 : 0;
             calSel = day;
             calMonth = new Date(day.getFullYear(), day.getMonth(), 1);
             renderCal(); renderDayPanel();
+            if (dayShift) tickClick();     // отклик на смену дня — тот же щелчок, что у детентов
           });
         })(new Date(dd));
         dates.appendChild(b);
+        /* Отдача вешается после вставки: у оторванного узла `getComputedStyle`
+           не отдаёт позицию, и накладка встала бы не на кнопку, а на предка */
+        hapticize(b, "12px");     // лента дат рисуется заново — отдача тоже
       }
     }
 
@@ -6002,9 +6491,10 @@
        нельзя было понять ни порядка, ни того, где остались часы. */
     var box = $("dpSessions"), items = [];
     sessions.forEach(function (s, i) {
-      if (!sameDay(s.date, calSel)) return;
-      var end = s.end != null ? s.end : s.min + (s.dur || 90);
-      items.push({ kind: isMeet(s) ? "meet" : "shoot", a: s.min, b: end, s: s, i: i });
+      var part = partOfDay(s, calSel);
+      if (!part) return;
+      items.push({ kind: isMeet(s) ? "meet" : "shoot", a: part.a, b: part.b,
+        tail: part.tail, cut: part.cut, s: s, i: i });
     });
     blocksOn(calSel).forEach(function (b) {
       items.push({ kind: "busy", a: b.allDay ? 0 : b.min, b: b.allDay ? 1440 : b.min + b.dur, blk: b });
@@ -6077,21 +6567,35 @@
        съёмку тоже надо уметь прочитать. Что поместится внутрь, решает высота:
        время всегда, срок сдачи — если блок дорос до двух часов. */
     items.forEach(function (it) {
-      var top = topOf(it.a), hgt = Math.max(34, topOf(it.b) - top - 2);
+      /* Зазора между соседями больше нет. Он был нужен плашкам, чтобы две
+         карточки не слипались в одну; у отрезков на шкале слипаться нечему —
+         одно событие кончается там, где начинается следующее, и это правда о
+         дне, а не теснота. Заодно час снова стоит ровно час: два отнятых
+         пикселя срезали вторую строку у часовой съёмки. */
+      var top = topOf(it.a), hgt = Math.max(34, topOf(it.b) - top);
       var meet = it.kind === "meet", busy = it.kind === "busy";
       var s2 = it.s, b = it.blk;
       var name = busy ? blockLabel(b)
         : (clientName(s2) || (meet ? "Встреча" : genreName(s2.type)));
+      /* Подпись говорит про съёмку, а не про кусок, попавший в эти сутки.
+         Хвост ночной съёмки в своих сутках начинается в полночь — писать
+         «00:00 – 03:10» значило бы сказать, что съёмка началась в полночь.
+         Поэтому у продолжения названы день начала и время конца, а у съёмки,
+         уходящей за полночь, время конца остаётся настоящим. */
+      var realEnd = s2 && (s2.end != null ? s2.end : s2.min + (s2.dur || 90));
       var sub = busy ? (b.allDay ? "весь день" : fmt(it.a) + " – " + fmt(it.b))
         : (meet ? "встреча · " + shortGenre(s2.type).toLowerCase()
-                : fmt(it.a) + " – " + fmt(it.b));
+                : it.tail
+                  ? "с " + s2.date.getDate() + " " + MON_S[s2.date.getMonth()]
+                    + " · до " + fmt(realEnd)
+                  : fmt(s2.min) + " – " + fmt(realEnd));
       var ds = busy ? null : deliveryState(s2);
       var room = hgt >= 2 * HOUR_H;        // хватает ли места на третью строку
       layer += '<div class="dl-ev' + (meet ? " meet" : "") + (busy ? " busy" : "") + '"'
         + ' style="top:' + top.toFixed(1) + "px;height:" + hgt.toFixed(1) + 'px"'
         + (busy ? ' data-b="' + b.id + '"' : ' data-i="' + it.i + '"') + ">"
         + '<span class="dl-ic' + (meet ? " meet" : busy ? " busy" : "") + '">'
-        + IC.svg(busy ? blockKind(b.k).ic : (meet ? "guests" : (GENRE_SIGN[s2.type] || "camera")))
+        + (busy ? IC.svg(blockKind(b.k).ic) : meet ? IC.svg("guests") : IC.genreSvg(s2.type))
         + "</span>"
         + '<span class="dl-ev-b"><span class="dl-title">' + esc(name) + "</span>"
         + '<span class="dl-sub">' + esc(sub) + "</span>"
@@ -6113,19 +6617,26 @@
     html = '<div class="dl-grid">' + grid + '</div><div class="dl-layer">' + layer + "</div>";
     }
     box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
+    /* Переход между днями: лента въезжает с той стороны, откуда пришёл день.
+       Анимация короткая (0.22 с) и только по горизонтали — вертикаль в этом
+       экране означает время, и двигать её значило бы сказать неправду.
+       При `prefers-reduced-motion` не проигрывается вовсе. */
+    if (dayShift) {
+      box.classList.remove("slide-l", "slide-r");
+      void box.offsetWidth;                       // иначе класс снимется и вернётся без перезапуска
+      box.classList.add(dayShift > 0 ? "slide-l" : "slide-r");
+      dayShift = 0;
+    }
 
     // Тап по событию открывает карточку — и в ленте дня, и в списке месяца
-    box.querySelectorAll(".dl-ev").forEach(function (b) {
+    box.querySelectorAll(".dl-ev, .plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
         if (b.dataset.b) openBlock(b.dataset.b);
         else openCard(+b.dataset.i);
       });
-    });
-    box.querySelectorAll(".plan-row").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (b.dataset.b) openBlock(b.dataset.b);
-        else openCard(+b.dataset.i);
-      });
+      /* Удержание открывает веер действий. У занятости его нет: там нет ни
+         формы съёмки, ни сдачи материала — её правят своим листом */
+      if (!b.dataset.b) holdForFan(b, +b.dataset.i);
     });
 
     /* Три действия открываются там, где нажали. Кнопки «Запланировать съёмку»
@@ -6281,26 +6792,89 @@
     row.addEventListener("pointerup", end);
     row.addEventListener("pointercancel", end);
   }
-  /* Удаление обратимо: запись держим в руке, пока не истечёт «Вернуть» */
-  var trash = null, trashTimer = null;
+  /* ---------- Удаление в корзину ----------
+     Удаление перестало быть концом записи. Шести секунд «Вернуть» хватает на
+     промах пальцем и не хватает на «заметил через неделю» — а съёмку, в
+     отличие от события в календаре, по памяти не восстановишь: там клиент,
+     срок сдачи и деньги (docs/NEEDS.md).
+     Поэтому удалённое уезжает в корзину и лежит там, пока его не вернут или не
+     сотрут насовсем. Полоса «Вернуть» осталась — это не второй механизм, а
+     короткий путь к тому же: горизонты разные, хранилище одно.
+     Удалённое остаётся на устройстве: на нашем сервере по-прежнему ничего. */
+  var undoAt = null, trashTimer = null;
   function removeSession(i) {
-    trash = { rec: sessions[i], at: i };
+    var rec = sessions[i];
+    if (!rec) return;
     sessions.splice(i, 1);
+    /* Запись помнит, где стояла и когда её убрали: возвращать надо на место,
+       а не в конец списка */
+    trashed.unshift({ rec: rec, at: i, del: Date.now() });
+    undoAt = 0;
     saveAll();
-    renderSessions(); renderCal(); renderDayPanel();
-    $("undoText").textContent = (trash.rec.contact || genreName(trash.rec.type)) + " · съёмка удалена";
+    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn();
+    $("undoText").textContent = (rec.contact || genreName(rec.type)) + " · в корзине";
     $("undoBar").classList.add("show");
     clearTimeout(trashTimer);
     trashTimer = setTimeout(hideUndo, 6000);
   }
-  function hideUndo() { $("undoBar").classList.remove("show"); trash = null; }
-  $("undoBtn").addEventListener("click", function () {
-    if (!trash) return;
-    sessions.splice(Math.min(trash.at, sessions.length), 0, trash.rec);
+  function hideUndo() { $("undoBar").classList.remove("show"); undoAt = null; }
+  /* Возврат — общий для полосы и для листа корзины: одно действие, одно место */
+  function restoreTrashed(k) {
+    var t = trashed[k];
+    if (!t) return;
+    trashed.splice(k, 1);
+    sessions.splice(Math.min(t.at, sessions.length), 0, t.rec);
     saveAll();
+    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderBin();
+  }
+  $("undoBtn").addEventListener("click", function () {
+    if (undoAt === null) return;
+    restoreTrashed(undoAt);
     hideUndo();
-    renderSessions(); renderCal(); renderDayPanel();
   });
+
+  /* Значок корзины показывается только когда в ней что-то есть */
+  function renderBinBtn() {
+    var b = $("cdBin");
+    if (!b) return;
+    b.hidden = !trashed.length;
+    $("cdBinN").textContent = trashed.length;
+    if (!b.hidden) paintIcons(b);
+    var row = $("binSetRow");
+    if (row) {
+      row.hidden = !trashed.length;
+      $("binSetN").innerHTML = trashed.length + ' <span class="go-chev">\u203a</span>';
+    }
+  }
+  function renderBin() {
+    var host = $("binList");
+    if (!host) return;
+    if (!trashed.length) {
+      host.innerHTML = '<div class="bin-empty">Пока пусто.</div>';
+      $("binClear").hidden = true;
+      return;
+    }
+    $("binClear").hidden = false;
+    host.innerHTML = trashed.map(function (t, k) {
+      var s2 = t.rec, d = new Date(s2.date);
+      var end = s2.end != null ? s2.end : s2.min + (s2.dur || 90);
+      return '<div class="bin-row"><span class="ic">' + IC.genreSvg(s2.type) + "</span>"
+        + '<span class="tx"><span class="t1">' + esc(clientName(s2) || genreName(s2.type)) + "</span>"
+        + '<span class="t2">' + d.getDate() + " " + MON_S[d.getMonth()] + " · "
+        + fmt(s2.min) + " – " + fmt(end) + "</span></span>"
+        + '<button type="button" class="back" data-k="' + k + '">Вернуть</button></div>';
+    }).join("");
+    host.querySelectorAll(".back").forEach(function (b) {
+      b.addEventListener("click", function () { restoreTrashed(+b.dataset.k); });
+    });
+  }
+  function openBin() {
+    renderBin();
+    $("binSheet").classList.add("open"); $("binScrim").classList.add("open");
+  }
+  function closeBin() {
+    $("binSheet").classList.remove("open"); $("binScrim").classList.remove("open");
+  }
 
   function renderSessions() {
     var list = $("sessionList");
@@ -6356,8 +6930,38 @@
         : WD[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()] });
     }
   })();
+  /* Короткие барабаны закольцованы. При шаге в полчаса у минут всего два
+     значения, и барабан упирался в край списка: над «10» пусто, под «30»
+     пусто — прибор выглядел сломанным, хотя работал верно. Настоящие колёса
+     не кончаются, и минуты с часами по природе цикличны: за 23 идёт 00.
+     Поэтому список повторяется нечётное число раз, барабан стоит в средней
+     копии, а после остановки незаметно возвращается в неё же — подписи в
+     копиях одинаковы, и подмены не видно.
+     Даты не кольцуются никогда: за декабрём там идёт январь следующего года,
+     и закольцевать их значило бы соврать о времени. Отсюда порог: кольцуем
+     то, что короче суток. */
   function fill(el2, labels) {
-    el2.innerHTML = labels.map(function (l) { return '<div class="w-item">' + l + "</div>"; }).join("");
+    var n = labels.length;
+    var reps = (n && n <= 60) ? (n >= 24 ? 3 : 2 * Math.ceil(9 / n) + 1) : 1;
+    el2._n = n; el2._reps = reps;
+    var all = [];
+    for (var r = 0; r < reps; r++) all = all.concat(labels);
+    el2.innerHTML = all.map(function (l) { return '<div class="w-item">' + l + "</div>"; }).join("");
+    /* Окно перерисовки помнит номера прежних строк, а список только что стал
+       другой длины: при смене шага с пяти минут на полчаса он ужимается с
+       тридцати девяти строк до двадцати одной, и гашение старого окна лезло
+       за конец списка. Собственная грабля этой итерации: пока копий не было,
+       длина менялась на одну-две строки и промах не всплывал. */
+    el2._win = null;
+  }
+  function wheelMid(el2) { return Math.floor((el2._reps || 1) / 2) * (el2._n || 0); }
+  /* Возврат в среднюю копию после остановки. Позиция кратна строке, поэтому
+     снап её не двигает, а подпись под пальцем остаётся той же самой */
+  function recycleWheel(el2) {
+    if (!el2._n || !el2._reps || el2._reps < 2) return;
+    var raw = Math.round(el2.scrollTop / ITEM);
+    var want = wheelMid(el2) + ((raw % el2._n) + el2._n) % el2._n;
+    if (want !== raw) { el2.scrollTop = want * ITEM; styleWheel(el2); }
   }
   fill(wDate, dateList.map(function (x) { return x.label; }));
   fill(wHour, Array.apply(null, Array(24)).map(function (_, i) { return pad(i); }));
@@ -6367,7 +6971,7 @@
     var c = el2.scrollTop / ITEM, n = el2.children.length;
     var lo = Math.max(0, Math.floor(c) - 7), hi = Math.min(n - 1, Math.ceil(c) + 7);
     var prev = el2._win;
-    if (prev) for (var j = prev[0]; j <= prev[1]; j++) {
+    if (prev) for (var j = prev[0]; j <= Math.min(prev[1], n - 1); j++) {
       if (j < lo || j > hi) el2.children[j].style.opacity = "0";
     }
     for (var i = lo; i <= hi; i++) {
@@ -6377,19 +6981,29 @@
     }
     el2._win = [lo, hi];
   }
-  function wheelIndex(el2) { return clamp(Math.round(el2.scrollTop / ITEM), 0, el2.children.length - 1); }
+  /* Наружу барабан отдаёт номер значения, а не номер строки: копий может быть
+     одиннадцать, значений по-прежнему два */
+  function wheelIndex(el2) {
+    var raw = clamp(Math.round(el2.scrollTop / ITEM), 0, el2.children.length - 1);
+    return (el2._reps > 1 && el2._n) ? ((raw % el2._n) + el2._n) % el2._n : raw;
+  }
   function setWheel(el2, i, smooth) {
-    if (smooth) el2.scrollTo({ top: i * ITEM, behavior: "smooth" });
-    else { el2.scrollTop = i * ITEM; styleWheel(el2); }
+    var row = (el2._reps > 1 && el2._n) ? wheelMid(el2) + (((i % el2._n) + el2._n) % el2._n) : i;
+    if (smooth) el2.scrollTo({ top: row * ITEM, behavior: "smooth" });
+    else { el2.scrollTop = row * ITEM; styleWheel(el2); }
   }
   /* Перспектива пересчитывается на каждый кадр прокрутки;
      onSettle — значение снимается, когда барабан остановился */
   function attachWheel(el2, onSettle) {
     el2.addEventListener("scroll", function () {
       if (!el2._raf) el2._raf = requestAnimationFrame(function () { el2._raf = null; styleWheel(el2); });
-      if (!onSettle) return;
       clearTimeout(el2._settle);
-      el2._settle = setTimeout(function () { if (!el2._quiet) onSettle(); }, 150);
+      el2._settle = setTimeout(function () {
+        /* Возврат в среднюю копию — после остановки, а не по ходу: подвинуть
+           ленту под движущимся пальцем значит сорвать инерцию */
+        if (!el2._quiet) recycleWheel(el2);
+        if (onSettle && !el2._quiet) onSettle();
+      }, 150);
     }, { passive: true });
   }
   [wDate, wHour, wMin].forEach(function (el2) { attachWheel(el2); });
@@ -6430,16 +7044,20 @@
      ============================================================ */
   var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "portrait";
   var wishes = [];   // пожелания к погоде; пусто = «неважно». Мультивыбор: облака+закат
-  /* Съёмку назначают на ровное время. Шаг тот же, что у детентов ползунка, — 15 минут */
   /* ---------- Шаг времени ----------
-     Съёмки назначают получасами: «в двенадцать», «в полвторого». Мелкий шаг
-     нужен редко и включается отдельно, а по умолчанию мешает — чтобы поставить
-     14:00, приходилось проезжать мимо 13:55 и 14:05.
+     По умолчанию пять минут. Прежде было полчаса — по доводу «съёмки назначают
+     получасами: „в двенадцать“, „в полвторого“». Довод верен для большинства
+     съёмок и неверен как умолчание: крупный шаг это удобство, выбранное за
+     фотографа. Тот, кому нужно 14:20, упирается в стену и не догадывается, что
+     дело в настройке, — он решит, что приложение так не умеет. Обратный случай
+     дешевле: кому мелкий шаг мешает, тот его урежет, и это будет его решение.
+     Свобода по умолчанию, ограничение по выбору.
 
-     Исключение — время, подсказанное светом. Золотой час начинается в 19:38,
-     и округлять его до 19:30 значит соврать: снимать надо тогда, когда светло,
-     а не тогда, когда круглое число (docs/03_PRINCIPLES). */
-  var timeStep = (saved && saved.timeStep) || 30;
+     Исключение прежнее и на любом шаге: время, подсказанное светом, не
+     округляется. Золотой час начинается в 19:38, и 19:30 здесь не удобство,
+     а неправда (docs/03_PRINCIPLES). */
+  var STEPS = [5, 10, 30];
+  var timeStep = (saved && STEPS.indexOf(+saved.timeStep) >= 0) ? +saved.timeStep : 5;
   function snapMin(m) { return Math.round(m / timeStep) * timeStep; }
   /* Значения барабана минут: шаг плюс текущая минута, если она не по шагу —
      иначе барабан не сможет показать 19:38, пришедшие от заката */
@@ -7115,7 +7733,7 @@
       var inc = sessionIncome(p.s), pre = +p.s.prepay || 0;
       var tail = inc ? money(inc) + (pre && pre < inc ? " · внесено " + money(pre) : "") : "";
       return '<button type="button" class="org-item" data-i="' + p.i + '">'
-        + '<span class="badge">' + IC.svg(GENRE_SIGN[p.s.type] || "camera") + "</span>"
+        + '<span class="badge">' + IC.genreSvg(p.s.type) + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(genreName(p.s.type)) + " · "
         + p.s.date.getDate() + " " + MONTHS[p.s.date.getMonth()] + " " + p.s.date.getFullYear() + "</span>"
         + '<span class="org-s">' + esc(tail || "сумма не задана") + "</span></span>"
@@ -7553,7 +8171,9 @@
     /* Пакет есть у всех, кто работает с людьми: у портретного фотографа это
        «фотосет», «полчаса», «съёмка с визажистом» — тот же продукт, что
        свадебный «загс и прогулка», только свой (docs/12_CARD_ARCHITECTURE.md) */
-    "portrait":     { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
+    /* Час, а не полтора: портрет столько и снимают, а лишние полчаса каждый
+       раз убирали руками. Правка внутри жанра по-прежнему запоминается */
+    "portrait":     { delivery: true,  client: true,  dur: 60,  pay: ["hourly", "flat", "pack"] },
     "wedding":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
     /* Праздник — день рождения, юбилей, городское событие: что считать
        праздником, решает фотограф. Устроен как событие дня: точки, гости,
@@ -7963,8 +8583,27 @@
        Двигаем начало назад, чтобы золотой час пришёлся на конец съёмки.
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
     var w = dayWindow(fDate);
-    /* Свет не двигает встречу: в кафе идут «к двум», а не в золотой час */
-    if (fAuto && w.q !== "poor" && !meetMode()) {
+    /* ---------- Начало события дня — полдень ----------
+       День-событие (свадьба, праздник) светом не назначается. Из месяца и
+       недели фотограф называет день, а не время, и подставлять туда световое
+       окно бессмысленно вдвойне: свадьба начинается со сборов утром, а не на
+       закате, и длится дольше любого окна. На 13 августа в Томске это выходило
+       прямо нелепо — «20:12 – 04:12» при подписи «в этот день окна света нет».
+       Полдень — то, от чего отсчитывают руками: восемь часов от него кончаются
+       как раз к закату, а зимой начало двигает сам фотограф.
+       Тем же полднем открывается любой жанр в день без светового окна: если
+       окна нет, брать из него начало — противоречие, которое приложение само
+       же и называет строкой рядом.
+       Прежнее правило «двигаем начало назад, чтобы золотой час пришёлся на
+       конец» для событий дня отменено: оно давало разное время в разные дни и
+       не давало взамен ничего — золотой час у восьмичасовой съёмки и так
+       внутри. Для остальных жанров в обычный день свет предлагает время
+       по-прежнему. */
+    var eventDay = !!sp.route;
+    if (fAuto && !meetMode() && (eventDay || w.q === "poor")) {
+      fMin = 720;          // 12:00
+      fLight = false;      // время названо правилом, а не светом
+    } else if (fAuto && w.q !== "poor" && !meetMode()) {
       /* Время от света идёт как есть, без округления: золотой час начинается
          в 19:38, и «полвосьмого» тут — не удобство, а неправда */
       fMin = Math.round(w.a);
@@ -8433,13 +9072,20 @@
   }
   /* Перетаскивание пальцем: строка едет за пальцем, соседи расступаются.
      HTML5 drag-and-drop на телефоне не работает вовсе — только указатели. */
+  /* Тянут за ручку, а не за строку. Раньше жест ловила вся строка, и вместе с
+     ним ловилась прокрутка списка: палец, ведённый по экрану, чтобы досмотреть
+     блоки до конца, переставлял тот, с которого начал. Прокрутка и
+     перестановка — оба вертикальные жесты на одном узле, и в таком споре
+     выключать надо явно (грабля про жест-соседа уже записана). */
   function dragRow(row, host, s) {
-    row.addEventListener("pointerdown", function (e) {
+    var grip = row.querySelector(".ord-grip");
+    grip.addEventListener("pointerdown", function (e) {
       if (e.button) return;
+      e.preventDefault();                      // палец на ручке страницу не листает
       var y0 = e.clientY, moved = false;
       /* Захват указателя не обязателен для работы, но Safari умеет бросать
          на нём InvalidPointerId — тогда перетаскивание падало молча */
-      try { row.setPointerCapture(e.pointerId); } catch (err) {}
+      try { grip.setPointerCapture(e.pointerId); } catch (err) {}
 
       /* Считаем не по тому, что под пальцем, а по шагу строки: сколько строк
          палец прошёл, столько раз строка и переставляется. Поиск соседа под
@@ -8470,18 +9116,18 @@
            строка наезжала на соседа, а на её месте зияла дыра */
       }
       function up() {
-        row.removeEventListener("pointermove", move);
-        row.removeEventListener("pointerup", up);
-        row.removeEventListener("pointercancel", up);
+        grip.removeEventListener("pointermove", move);
+        grip.removeEventListener("pointerup", up);
+        grip.removeEventListener("pointercancel", up);
         row.classList.remove("drag");
         row.style.transform = "";
         if (!moved) return;
         cardOrder[groupOf(s.type)] = [].map.call(host.children, function (r) { return r.dataset.k; });
         saveAll();
       }
-      row.addEventListener("pointermove", move);
-      row.addEventListener("pointerup", up);
-      row.addEventListener("pointercancel", up);   // системный жест прервал — не залипаем
+      grip.addEventListener("pointermove", move);
+      grip.addEventListener("pointerup", up);
+      grip.addEventListener("pointercancel", up);   // системный жест прервал — не залипаем
     });
   }
   $("cardOrder").addEventListener("click", function () { setOrderMode(!ordMode); });
@@ -8516,6 +9162,7 @@
     $("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
     $("cdRefsLabel").hidden = true; $("cdRefs").innerHTML = "";
 
+    renderBinBtn();
     renderEvHead(s, phase);
     renderDayTile(s, route, phase, light);
     renderPanes(s, route, phase, sun);
@@ -8535,7 +9182,7 @@
      Порядок: свадьба всегда первой, остальные по времени начала. */
   function dayStack(s) {
     return sessions.map(function (x, i) { return { s: x, i: i }; })
-      .filter(function (p) { return sameDay(p.s.date, s.date); })
+      .filter(function (p) { return onDay(p.s, s.date); })
       .sort(function (a, b) {
         var aw = hasRoute(a.s.type) ? 0 : 1, bw = hasRoute(b.s.type) ? 0 : 1;
         return aw - bw || a.s.min - b.s.min;
@@ -8560,7 +9207,7 @@
       var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
-        + '<span class="peek-in">' + IC.svg(GENRE_SIGN[p.s.type] || "camera")
+        + '<span class="peek-in">' + IC.genreSvg(p.s.type)
         + "<b>" + esc(spec.ev || genreName(p.s.type)) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
         + "</span></span></button>";
     }).join("");
@@ -8610,12 +9257,42 @@
   })();
 
   /* Шапка: знак события, имена, счёт, телефон */
-  var EV_SIGN = { "wedding": IC.svg("rings", null, 24), "lovestory": IC.svg("heart", null, 24) };
+  /* Таблицы знаков жанра в приложении больше нет. Их было две: `GENRE_SIGN`
+     переводила код жанра в имя знака из общего словаря и не знала ни свадьбы,
+     ни лавстори — обе молча падали в запасной фотоаппарат; `EV_SIGN` держала
+     для них правильные знаки, но только ради шапки карточки. Оттого один жанр
+     выглядел по-разному в разных местах: в форме портрет был человечком, а в
+     стопке дня — камерой.
+     Знак жанра спрашивается у библиотеки: она и так знает все одиннадцать. */
+  /* Кегль заголовка подбирается под ширину: сначала пробуем полный, дальше
+     ступенями вниз, пока имя не встанет одной строкой. Ступени крупные и
+     заранее названные — плавная подгонка дала бы у каждой карточки свой
+     размер заголовка, и стопка карточек перестала бы выглядеть одним прибором.
+     Мерить приходится в браузере: ширина строки зависит от системного шрифта
+     устройства, и посчитать её заранее нельзя.
+     Карточка при этом рисуется до того, как её показали, и в этот момент
+     ширина у строки нулевая — по такой мерке не влезает ничто. Ждём раскладки
+     и меряем тогда, когда есть что мерить. */
+  var TITLE_SIZES = [29, 26, 23, 21];
+  function fitTitle(el, tries) {
+    if (!el.clientWidth) {
+      if ((tries || 0) > 20) return;      // карточку закрыли, не дождавшись, — не крутимся вечно
+      requestAnimationFrame(function () { fitTitle(el, (tries || 0) + 1); });
+      return;
+    }
+    el.classList.add("one");
+    for (var i = 0; i < TITLE_SIZES.length; i++) {
+      el.style.fontSize = TITLE_SIZES[i] + "px";
+      if (el.scrollWidth <= el.clientWidth) return;
+    }
+    el.classList.remove("one");           // не влезло и в самый мелкий — пусть переносится
+  }
   function renderEvHead(s, phase) {
     $("cdEvHead").hidden = false;
     $("cdEvHead").classList.toggle("is-meet", isMeet(s));
     var spec = genreSpec(s.type), gr = groupSpec(s.type);
-    $("cdEvSign").innerHTML = EV_SIGN[s.type] || IC.svg(GENRE_SIGN[s.type] || "camera");
+    $("cdEvSign").innerHTML = IC.genreSvg(s.type, null, 24);
+    setDeleteLabel(s);
 
     /* Крупно — то, чем съёмка называется: пара, клиент, организация.
        Нет клиента — крупно жанр, он и есть имя съёмки */
@@ -8632,6 +9309,7 @@
       }
     }
     $("cdEvNames").textContent = name || (spec.ev || genreName(s.type));
+    fitTitle($("cdEvNames"));
     $("cdEvPerson").hidden = !person;
     $("cdEvPerson").textContent = person;
 
@@ -8659,11 +9337,6 @@
   }
   /* Знак жанра в шапке: свадьба и лавстори рисуются крупным знаком события,
      остальные берут свою пиктограмму из библиотеки */
-  var GENRE_SIGN = {
-    "portrait": "camera", "family": "family", "landscape": "park", "architecture": "city",
-    "street": "street", "report": "mic", "product": "lens", "ad": "flash",
-    "party": "balloons"
-  };
   function afterWord(d) {
     var n = new Date();
     var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate())
@@ -9284,6 +9957,75 @@
   $("cardEdit").addEventListener("click", function () {
     if (cardIdx !== null) openForm(null, null, cardIdx);
   });
+  /* Удаление из карточки — тем же путём, что из списка: запись держится в
+     руке шесть секунд, и «Вернуть» её возвращает. Второго механизма удаления,
+     необратимого, в продукте нет и быть не должно. */
+  /* Подпись называет то, что удаляют: у встречи это встреча, а не съёмка.
+     Мелочь, но кнопка удаления — не то место, где приложение может ошибиться
+     в названии того, что сейчас исчезнет. */
+  function setDeleteLabel(s) {
+    $("cdDelete").textContent = isMeet(s) ? "Удалить встречу" : "Удалить съёмку";
+  }
+  /* Карточка уходит в корзину джинном. Движение отвечает на вопрос «куда
+     делась запись» раньше, чем человек успеет его задать: значок выезжает
+     снизу, лист стягивается к нему и втягивается внутрь.
+     Порядок важен: сперва показываем цель, потом летим — иначе лист улетает в
+     пустоту и полёт ничего не объясняет. */
+  function deleteToBin(i) {
+    var sheet = $("cdSheet"), target = $("binTarget");
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (calm) { closeCard(); removeSession(i); return; }
+    initAudio();
+    target.hidden = false;
+    requestAnimationFrame(function () { target.classList.add("up"); });
+    setTimeout(function () {
+      /* Лист схлопывается в точку корзины, а не едет центром к центру. Разница
+         не косметическая: карточка выше экрана, её геометрический центр лежит
+         за нижним краем, и полёт «центр в центр» уносил лист вверх — то есть
+         в противоположную сторону от корзины.
+         Точка сжатия — центр значка, пересчитанный в координаты самого листа.
+         Она может лежать и вне листа: этого достаточно, чтобы всё стянулось
+         именно туда, куда улетает запись. */
+      var sr = sheet.getBoundingClientRect(), tr = target.getBoundingClientRect();
+      var ox = (tr.left + tr.width / 2) - sr.left;
+      var oy = (tr.top + tr.height / 2) - sr.top;
+      swoosh();
+      sheet.style.transformOrigin = ox.toFixed(1) + "px " + oy.toFixed(1) + "px";
+      sheet.classList.add("to-bin");
+      sheet.style.transform = "scale(0.05)";
+      setTimeout(function () {
+        target.classList.add("gulp");
+        closeCard();
+        /* Лист возвращаем в исходное состояние до отрисовки следующей карточки:
+           иначе она откроется уже улетевшей */
+        sheet.classList.remove("to-bin");
+        sheet.style.transform = "";
+        sheet.style.transformOrigin = "";
+        removeSession(i);
+        setTimeout(function () {
+          target.classList.remove("up", "gulp");
+          setTimeout(function () { target.hidden = true; }, 340);
+        }, 320);
+      }, 430);
+    }, 200);
+  }
+  $("cdDelete").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    deleteToBin(cardIdx);
+  });
+  $("cdBin").addEventListener("click", openBin);
+  $("binScrim").addEventListener("click", closeBin);
+  $("binClear").addEventListener("click", function () {
+    /* Единственное необратимое действие над записями в продукте, и оно названо
+       прямо. Спрашиваем один раз: тихое стирание без вопроса было бы той самой
+       ловушкой, от которой корзина и заводилась */
+    if (!trashed.length) return;
+    if (!confirm("Стереть " + trashed.length + " " + plural(trashed.length,
+      ["съёмку", "съёмки", "съёмок"]) + " насовсем? Вернуть их будет нечем.")) return;
+    trashed = [];
+    saveAll();
+    renderBin(); renderBinBtn();
+  });
 
   /* Встреча → съёмка. Порождение, а не переименование: если бы запись просто
      сменила род и переехала на дату съёмки, календарь забыл бы про два часа
@@ -9700,26 +10442,110 @@
     tick.classList.toggle("show", Math.abs(viewMin - nowMin) > 2);
   }
 
-  /* ---------- Тактильный отклик: щелчки на детентах слайдера ----------
-     На iOS Safari нет доступа к Taptic Engine, поэтому отклик — звуковой
-     (Web Audio), вибрация добавляется там, где поддерживается (Android). */
+  /* ---------- Отклик на детентах ----------
+     Вибрация: `navigator.vibrate` работает на Android и не работает в Safari
+     на iOS. Но «Taptic из веба недоступен» — формулировка неточная, и она
+     завела нас не туда: Taptic на iOS доступен, только не странице. Его даёт
+     система своим собственным элементам управления — барабану `<select>`,
+     системному выбору даты и времени, переключателю `switch`. Поэтому в
+     приложении, где крутилка сделана штатным контролом, отдача есть, а у нас
+     нет: наш барабан нарисован своими `div` со scroll-snap, и системе в нём
+     нечего трогать.
+     Отсюда попытка ниже: скрытый штатный переключатель, который мы щёлкаем
+     программно вместе с детентом. Если Safari отдаёт на нём Taptic — отдача
+     появится во всём приложении разом. Проверяется это только на телефоне;
+     на ноутбуке переключатель молча щёлкает и ничего не значит.
+
+     Звук — второй канал отклика и работает везде. Он сбавлен: щелчок был
+     громким настолько, что читался как звук интерфейса, а не как детент. */
   var audioCtx = null, TICK_MIN = 15, lastTick = null;
   function initAudio() {
     if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     lastTick = Math.round(+$("scrub").value / TICK_MIN);
   }
+  /* ---------- Отдача на iOS: настоящий свитч под пальцем ----------
+     Первая версия щёлкала скрытым свитчем из кода — так делают все библиотеки
+     вокруг этого квирка. На iOS 26.5 Apple это закрыла: программный вызов
+     Taptic больше не заводит, срабатывает только **прямое касание настоящего**
+     `<input type="checkbox" switch>`. Значит свитч должен лежать не за экраном,
+     а поверх самой кнопки, чтобы палец физически попадал в него.
+     Отсюда все ограничения, и они существенные:
+       — тик один и системный: success, error и selection не различить;
+       — только касание. На событие («солнце село», «расчёт готов») отдачи не
+         будет никогда — нечего касаться;
+       — детенты ползунка и барабана остаются без отдачи: там ведут палец, а не
+         касаются, и свитчу нечего перехватывать. Это цена нарисованного
+         барабана, названная в решении о Taptic;
+       — гасится системно: «Звуки, тактильные сигналы» и режим энергосбережения;
+       — это квирк, а не API: умрёт в любом обновлении, поэтому строится только
+         как надстройка — уберут, и не изменится ничего.
+     `appearance` не трогаем: раздетый контрол тика не даёт. Скругление режем
+     `clip-path`, потому что `overflow: hidden` обрезает картинку, но не зону
+     попадания — углы всё равно ловят касание мимо кнопки. */
+  var HAPTIC_OK = /Apple/.test(navigator.vendor || "");
+  function hapticize(el, radius) {
+    if (!HAPTIC_OK || !el || el._hapt || !el.parentNode) return;
+    el._hapt = true;
+    try {
+      if (getComputedStyle(el).position === "static") el.style.position = "relative";
+      var i = document.createElement("input");
+      i.type = "checkbox";
+      i.setAttribute("switch", "");
+      i.setAttribute("aria-hidden", "true");
+      i.tabIndex = -1;
+      var r = radius || getComputedStyle(el).borderRadius || "0";
+      i.style.cssText = "position:absolute;inset:0;width:100%;height:100%;margin:0;"
+        + "opacity:0;z-index:1;clip-path:inset(0 round " + r + ")";
+      /* Состояние свитча ничего не значит — гасим сразу, иначе он копит
+         `checked` и однажды поведёт себя как настоящий переключатель */
+      i.addEventListener("change", function () { i.checked = false; });
+      el.appendChild(i);
+    } catch (e) { }
+  }
+  /* Разом на список: кнопки, которые перерисовываются, просят отдачу заново */
+  function hapticizeAll(root, sel, radius) {
+    if (!HAPTIC_OK || !root) return;
+    root.querySelectorAll(sel).forEach(function (el) { hapticize(el, radius); });
+  }
   function tickClick() {
     if (!$("soundToggle").classList.contains("on")) return;
+    /* Android отдаёт вибрацию честно. В Safari `vibrate` не существует и не
+       появится: WebKit его не отгружал и выступает против — отдача там идёт
+       только через свитч под пальцем (см. выше) */
     if (navigator.vibrate) { try { navigator.vibrate(2); } catch (e) {} }
     if (!audioCtx || audioCtx.state !== "running") return;
-    var ctx = audioCtx, dur = 0.026;
+    /* Тише и мягче: громкость вчетверо ниже прежней, полоса опущена и
+       расширена. Щелчок должен подтверждать шаг, а не объявлять о себе */
+    var ctx = audioCtx, dur = 0.02;
     var buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
     var d = buf.getChannelData(0);
     for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
     var src = ctx.createBufferSource(); src.buffer = buf;
-    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = 1.1;
-    var g = ctx.createGain(); g.gain.value = 0.5;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1900; bp.Q.value = 0.8;
+    var g = ctx.createGain(); g.gain.value = 0.12;
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+    src.start();
+  }
+  /* «Вжух»: шум, уезжающий по частоте вниз, — звук втягивания. Собран из тех
+     же кирпичей, что щелчок детента: свой генератор ради одного события
+     заводить незачем. Молчит там же, где молчит щелчок, — по общему тумблеру. */
+  function swoosh() {
+    if (!$("soundToggle").classList.contains("on")) return;
+    if (navigator.vibrate) { try { navigator.vibrate(14); } catch (e) {} }
+    if (!audioCtx || audioCtx.state !== "running") return;
+    var ctx = audioCtx, dur = 0.34;
+    var buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 3.2;
+    bp.frequency.setValueAtTime(2600, ctx.currentTime);
+    bp.frequency.exponentialRampToValueAtTime(280, ctx.currentTime + dur);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
     src.connect(bp); bp.connect(g); g.connect(ctx.destination);
     src.start();
   }
@@ -9973,9 +10799,11 @@
   function stepCal(dir) {
     openGaps = {};                             // на новом дне свои окна
     if (calScope === "day") {
+      dayShift = dir;                            // свайп листает так же, как тап по дате
       calSel = addDays(calSel, dir);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
       renderCal(); renderDayPanel();
+      tickClick();
     } else if (calScope === "week") {
       calSel = addDays(calSel, dir * 7);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
@@ -10089,6 +10917,12 @@
       this.classList.toggle("open");
       $(p[1]).classList.toggle("open");
       this.querySelector(".lbl").textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
+      /* Раскрытие идёт анимацией max-height, и высота слоя прокрутки меняется
+         не в момент клика, а через полсекунды. Дочитываем её после конца
+         перехода: чтение scrollHeight заставляет пересчитать раскладку, и
+         экран узнаёт, что стал длиннее. */
+      var scr = this.closest(".screen");
+      if (scr) setTimeout(function () { void scr.scrollHeight; }, 550);
     });
   });
   /* Шеврон карты: свернуть всё, кроме времени. Состояние переживает
@@ -10300,8 +11134,8 @@
       b.classList.toggle("active", +b.dataset.step === timeStep);
     });
     $("stepNote").textContent = timeStep === 30
-      ? "Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется."
-      : "Шаг " + timeStep + " минут. Мельче — точнее, но дольше крутить барабан.";
+      ? "Время ставится получасами. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется."
+      : "Шаг " + timeStep + " минут. Крупнее — быстрее крутить барабан, но в точное время не встать.";
   }
   document.querySelectorAll("#stepSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -10371,6 +11205,7 @@
   $("todayLoc").addEventListener("click", function () { openLocSheet("app"); });
   $("mapLoc").addEventListener("click", function () { openLocSheet("app"); });
   $("spotsRow").addEventListener("click", function () { openLocSheet("app"); });
+  $("binSetRow").addEventListener("click", openBin);
 
   /* Закладка в шапке карты: одна кнопка на оба состояния. Имя берём то же,
      что показано в шапке, — человек сохраняет то, что видит. Пока геокодер
@@ -10432,7 +11267,75 @@
     fan.style.top = Math.round(top) + "px";
   }
   function closeSpotFan() { $("spotFan").hidden = true; $("spotScrim").hidden = true; }
-  $("spotScrim").addEventListener("click", closeSpotFan);
+
+  /* ---------- Веер действий над записью ----------
+     Долгое нажатие на событии — «заполнить» и «удалить». Тап остаётся тапом:
+     он открывает карточку, и отнимать у него это нельзя.
+     Почему удержание, а не свайп: свайп по строке уже занят в списке съёмок, а
+     в ленте дня его нет вовсе — блок стоит поверх сетки, и свайп по нему спорил
+     бы с прокруткой дня. Удержание свободно в обоих местах и одинаково
+     работает и на блоке ленты, и на строке месяца.
+     Отклик на срабатывание — тот же щелчок, что у детентов ползунка: Taptic из
+     веба недоступен, и второй механики отклика ради одного жеста не заводим. */
+  function openEvFan(anchor, idx) {
+    var s = sessions[idx];
+    if (!s) return;
+    var fan = $("evFan"), scrim = $("spotScrim"), dev = document.querySelector(".device");
+    fan.innerHTML = "";
+    function item(cls, icon, t1, t2, fn) {
+      var b = document.createElement("button"); b.type = "button";
+      if (cls) b.className = cls;
+      b.innerHTML = '<span class="ic" data-ic="' + icon + '"></span>'
+        + '<span class="tx"><span class="t1"></span><span class="t2"></span></span>';
+      b.querySelector(".t1").textContent = t1;
+      b.querySelector(".t2").textContent = t2 || "";
+      b.addEventListener("click", function () { closeEvFan(); fn(); });
+      fan.appendChild(b);
+    }
+    item("", "note_edit", "Заполнить", clientName(s) || genreName(s.type), function () {
+      openForm(null, null, idx);
+    });
+    /* Подпись говорит, что удаление обратимо: у необратимого на вид действия
+       человек ищет подтверждения, а лишний вопрос здесь не нужен — «Вернуть»
+       стоит шесть секунд */
+    item("del", "trash", "Удалить", "вернуть можно сразу после", function () {
+      closeCard();
+      removeSession(idx);
+    });
+    paintIcons(fan);
+    var dr = dev.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+    fan.hidden = false; scrim.hidden = false;
+    var w = fan.offsetWidth, h = fan.offsetHeight;
+    var left = Math.max(10, Math.min(ar.left - dr.left, dr.width - w - 10));
+    var top = ar.bottom - dr.top + 6;
+    if (top + h > dr.height - 10) top = Math.max(10, ar.top - dr.top - h - 6);
+    fan.style.left = Math.round(left) + "px";
+    fan.style.top = Math.round(top) + "px";
+    tickClick();
+  }
+  function closeEvFan() { $("evFan").hidden = true; $("spotScrim").hidden = true; }
+
+  /* Удержание вешается на каждое событие при отрисовке ленты. Клик после
+     срабатывания гасится явно: иначе веер откроется и тут же откроется
+     карточка под ним — грабля, уже пойманная на закладке места. */
+  function holdForFan(el, idx) {
+    var timer = null, fired = false, sx = 0, sy = 0;
+    function stop() { clearTimeout(timer); timer = null; }
+    el.addEventListener("pointerdown", function (e) {
+      fired = false; sx = e.clientX; sy = e.clientY;
+      timer = setTimeout(function () { fired = true; openEvFan(el, idx); }, 450);
+    });
+    el.addEventListener("pointermove", function (e) {
+      if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) stop();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+      el.addEventListener(t, stop);
+    });
+    el.addEventListener("click", function (e) {
+      if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; }
+    }, true);
+  }
+  $("spotScrim").addEventListener("click", function () { closeSpotFan(); closeEvFan(); });
 
   /* Долгое нажатие на закладке открывает список. Короткий тап сохраняет —
      поэтому после срабатывания долгого жеста клик надо погасить, иначе
@@ -10610,22 +11513,48 @@
     tabs.forEach(function (t) { t.classList.toggle("active", t.dataset.go === id); });
     screens.forEach(function (s) { $(s).classList.toggle("active", s === id); });
     document.body.dataset.tab = id;      // прячет закреплённый ползунок на Съёмках/Настройках
+    measureDockSoon();                   // док на разных экранах разной высоты
     $(id).scrollTop = 0;
     if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
   }
   tabs.forEach(function (t) { t.addEventListener("click", function () { go(t.dataset.go); }); });
 
   /* Реальная высота дока (таб-бар + ползунок) — с учётом safe-area устройства */
+  /* Высота дока — не разовое измерение, а живая величина. Мерили её один раз на
+     старте, и этого хватало в браузере ноутбука, но не на телефоне: safe-area
+     под домашним индикатором и панель Safari приходят позже первой раскладки, и
+     док оказывался выше зарезервированного под него места. Наружу это вышло
+     самым дорогим образом — строка времени с шевроном уезжала под док, свернуть
+     карту становилось нечем, а прокрутки на экране карты нет, потому что
+     вертикальный жест над картой принадлежит карте.
+     Поэтому меряем после первой отрисовки, при смене экрана и при каждом
+     изменении видимой области: адресная строка Safari то появляется, то
+     исчезает, и вместе с ней меняется всё. */
   function measureDock() {
     var tabh = document.querySelector(".tabbar").offsetHeight;
     var barh = $("timebar").offsetHeight;
     document.documentElement.style.setProperty("--tabh", tabh + "px");
-
     document.documentElement.style.setProperty("--dockh", (tabh + barh) + "px");
   }
+  /* Мерить сразу после раскладки, а не в её середине */
+  function measureDockSoon() {
+    requestAnimationFrame(function () {
+      measureDock();
+      /* Второй заход после того, как отработали шрифты и вставки безопасной
+         зоны: первый кадр про них ещё не знает */
+      setTimeout(measureDock, 300);
+    });
+  }
 
-  /* ---------- Старт ---------- */
+  /* ---------- Старт ----------
+     Первый запуск открывается «Светом»: он объясняет, чем продукт занят, — а
+     дальше приложение открывается там, где работают. Планировщик и есть то,
+     ради чего его открывают каждый день, и заставлять переходить в него одним
+     тапом каждый раз — тот самый лишний шаг, ради отказа от которого продукт
+     и затевался. Признак «уже видел» — сам факт сохранённых данных: заводить
+     под это отдельный флажок незачем. */
   document.body.dataset.tab = "s-today";
+  if (saved) go("s-plan");
   applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
   // Номер сборки — из даты файла (Last-Modified на Pages), без ручного счётчика
   (function () {
@@ -10633,19 +11562,44 @@
     var s = isNaN(d) ? "—" : p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
     $("buildInfo").textContent = "сборка " + s;
   })();
-  applyTheme(theme);
+  applyTheme(themePref);
   document.querySelectorAll("#themeSeg button").forEach(function (b) {
     b.addEventListener("click", function () { applyTheme(b.dataset.theme); saveAll(); });
   });
+  /* Система переключилась на закате — приложение идёт следом, но только если
+     его об этом просили. Слушаем всегда, применяем при «как в системе» */
+  if (sysDark && sysDark.addEventListener) {
+    sysDark.addEventListener("change", function () {
+      if (themePref === "auto") applyTheme("auto");
+    });
+  }
 
+  /* Куда вешаем отдачу: туда, где взаимодействие — касание, а не ведение.
+     Переключение экрана и вида, сегменты режимов, шаг по датам, закладка
+     места. Ползунок и барабаны в этом списке отсутствуют намеренно: там палец
+     ведут, и свитчу нечего перехватывать. */
+  if (HAPTIC_OK) {
+    hapticizeAll(document, ".tabbar .tab", "14px");
+    hapticizeAll(document, ".seg button", "12px");
+    hapticizeAll(document, "#scopeMenu button", "11px");
+    hapticize($("scopeBtn"), "13px");
+    hapticize($("mapSave"), "50%");
+    hapticizeAll(document, ".sky-swap button", "50%");
+  }
   applyDate();
   booted = true;                 // дальше смена темы перерисовывает экраны сама
   setMapFold(mapFoldShut);
   renderSpotMark();
   renderDelvSettings();
-  renderCal(); renderDayPanel(); renderSessions();
-  measureDock();
+  renderCal(); renderDayPanel(); renderSessions(); renderBinBtn();
+  measureDockSoon();
   window.addEventListener("resize", measureDock);
+  window.addEventListener("orientationchange", measureDockSoon);
+  if (window.visualViewport) {
+    /* Панель Safari уезжает и приезжает — вместе с ней меняется видимая
+       область, а значит и то, сколько места занимает док */
+    visualViewport.addEventListener("resize", measureDock);
+  }
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
   askPersistence(); renderStorageInfo();   // просим у браузера не стирать наши записи
   yaCatchToken(); yaLoadToken(); renderYaInfo();   // вернулись от Яндекса — забираем токен
