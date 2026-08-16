@@ -1669,10 +1669,15 @@
      смотрят первым делом и где дороже всего место. Слева он занимает ту
      высоту, которую и так занимают две строки имени, а шапка поднимается на
      эту полусотню: телефон и счёт до события оказываются на экране сразу.
-     Состав шапки не тронут — имена, счёт, телефон, — переставлен только знак. */
-  .ev-head { margin: 2px 0 0; text-align: left; overflow: hidden; }
+     Состав шапки не тронут — имена, счёт, телефон, — переставлен только знак.
+     Раскладка — две колонки, а не обтекание. Обтекание казалось дешевле, но
+     развело выравнивание: строка имени вставала по остатку ширины, а подписи
+     под ней — по всей, и центр у них оказывался разный. Колонка держит все
+     строки на одной левой границе, а знак стоит рядом с ними. */
+  .ev-head { margin: 2px 0 0; display: flex; align-items: center; gap: 14px; text-align: left; }
   .ev-head[hidden] { display: none; }
-  .ev-sign { float: left; line-height: 0; margin: 3px 14px 2px 0; }
+  .ev-text { min-width: 0; flex: 1 1 auto; }
+  .ev-sign { flex-shrink: 0; line-height: 0; }
   .ev-sign svg { width: 46px; height: 36px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
   .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
@@ -2910,15 +2915,15 @@
     <div class="chips" id="delvDays" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="delvNote">Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней.</p>
 
-    <!-- Съёмки назначают получасами. Мелкий шаг нужен редко, поэтому он
-         включается отдельно, а не мешает каждому вводу времени -->
+    <!-- Умолчание — мелкий шаг: свобода, которую при желании урезают сами.
+         Крупный шаг удобнее, но это удобство, выбранное за фотографа -->
     <div class="sec-label">Шаг времени</div>
     <div class="seg" id="stepSeg">
-      <button class="active" data-step="30">Полчаса</button>
-      <button data-step="15">15 минут</button>
-      <button data-step="5">5 минут</button>
+      <button class="active" data-step="5">5 минут</button>
+      <button data-step="10">10 минут</button>
+      <button data-step="30">Полчаса</button>
     </div>
-    <p class="seg-note" id="stepNote">Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется.</p>
+    <p class="seg-note" id="stepNote">Шаг барабана в форме. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется.</p>
 
     <div class="sec-label">Отклик</div>
     <div class="item"><span class="k">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
@@ -3094,17 +3099,22 @@
     <div class="stack-wrap">
     <div class="peeks" id="cdPeeks" hidden></div>
     <div class="card-sheet" id="cdSheet">
+    <!-- Знак и текст — две колонки, а не текст, обтекающий знак. Обтекание
+         развело выравнивание: имя вставало по остатку строки, а подпись под
+         ним — по всей ширине, и одно с другим не совпадало -->
     <div class="ev-head" id="cdEvHead" hidden>
       <div class="ev-sign" id="cdEvSign"></div>
-      <div class="ev-names" id="cdEvNames">—</div>
-      <!-- У заказа крупно организация, а контактное лицо строкой ниже:
-           менеджер меняется, юрлицо остаётся (docs/12_CARD_ARCHITECTURE.md) -->
-      <div class="ev-person" id="cdEvPerson" hidden>—</div>
-      <div class="ev-when" id="cdEvWhen">—</div>
-      <a class="ev-tel" id="cdEvTel" href="tel:" hidden>
-        <span id="cdEvTelN">—</span>
-        <span data-ic="phone"></span>
-      </a>
+      <div class="ev-text">
+        <div class="ev-names" id="cdEvNames">—</div>
+        <!-- У заказа крупно организация, а контактное лицо строкой ниже:
+             менеджер меняется, юрлицо остаётся (docs/12_CARD_ARCHITECTURE.md) -->
+        <div class="ev-person" id="cdEvPerson" hidden>—</div>
+        <div class="ev-when" id="cdEvWhen">—</div>
+        <a class="ev-tel" id="cdEvTel" href="tel:" hidden>
+          <span id="cdEvTelN">—</span>
+          <span data-ic="phone"></span>
+        </a>
+      </div>
     </div>
 
     <!-- Стопка дня: соседние съёмки лежат под этой карточкой и выглядывают
@@ -6552,6 +6562,12 @@
     var all = [];
     for (var r = 0; r < reps; r++) all = all.concat(labels);
     el2.innerHTML = all.map(function (l) { return '<div class="w-item">' + l + "</div>"; }).join("");
+    /* Окно перерисовки помнит номера прежних строк, а список только что стал
+       другой длины: при смене шага с пяти минут на полчаса он ужимается с
+       тридцати девяти строк до двадцати одной, и гашение старого окна лезло
+       за конец списка. Собственная грабля этой итерации: пока копий не было,
+       длина менялась на одну-две строки и промах не всплывал. */
+    el2._win = null;
   }
   function wheelMid(el2) { return Math.floor((el2._reps || 1) / 2) * (el2._n || 0); }
   /* Возврат в среднюю копию после остановки. Позиция кратна строке, поэтому
@@ -6570,7 +6586,7 @@
     var c = el2.scrollTop / ITEM, n = el2.children.length;
     var lo = Math.max(0, Math.floor(c) - 7), hi = Math.min(n - 1, Math.ceil(c) + 7);
     var prev = el2._win;
-    if (prev) for (var j = prev[0]; j <= prev[1]; j++) {
+    if (prev) for (var j = prev[0]; j <= Math.min(prev[1], n - 1); j++) {
       if (j < lo || j > hi) el2.children[j].style.opacity = "0";
     }
     for (var i = lo; i <= hi; i++) {
@@ -6643,16 +6659,20 @@
      ============================================================ */
   var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "portrait";
   var wishes = [];   // пожелания к погоде; пусто = «неважно». Мультивыбор: облака+закат
-  /* Съёмку назначают на ровное время. Шаг тот же, что у детентов ползунка, — 15 минут */
   /* ---------- Шаг времени ----------
-     Съёмки назначают получасами: «в двенадцать», «в полвторого». Мелкий шаг
-     нужен редко и включается отдельно, а по умолчанию мешает — чтобы поставить
-     14:00, приходилось проезжать мимо 13:55 и 14:05.
+     По умолчанию пять минут. Прежде было полчаса — по доводу «съёмки назначают
+     получасами: „в двенадцать“, „в полвторого“». Довод верен для большинства
+     съёмок и неверен как умолчание: крупный шаг это удобство, выбранное за
+     фотографа. Тот, кому нужно 14:20, упирается в стену и не догадывается, что
+     дело в настройке, — он решит, что приложение так не умеет. Обратный случай
+     дешевле: кому мелкий шаг мешает, тот его урежет, и это будет его решение.
+     Свобода по умолчанию, ограничение по выбору.
 
-     Исключение — время, подсказанное светом. Золотой час начинается в 19:38,
-     и округлять его до 19:30 значит соврать: снимать надо тогда, когда светло,
-     а не тогда, когда круглое число (docs/03_PRINCIPLES). */
-  var timeStep = (saved && saved.timeStep) || 30;
+     Исключение прежнее и на любом шаге: время, подсказанное светом, не
+     округляется. Золотой час начинается в 19:38, и 19:30 здесь не удобство,
+     а неправда (docs/03_PRINCIPLES). */
+  var STEPS = [5, 10, 30];
+  var timeStep = (saved && STEPS.indexOf(+saved.timeStep) >= 0) ? +saved.timeStep : 5;
   function snapMin(m) { return Math.round(m / timeStep) * timeStep; }
   /* Значения барабана минут: шаг плюс текущая минута, если она не по шагу —
      иначе барабан не сможет показать 19:38, пришедшие от заката */
@@ -10530,8 +10550,8 @@
       b.classList.toggle("active", +b.dataset.step === timeStep);
     });
     $("stepNote").textContent = timeStep === 30
-      ? "Время в форме ставится получасами. Время, подсказанное светом, остаётся точным: золотой час не округляется."
-      : "Шаг " + timeStep + " минут. Мельче — точнее, но дольше крутить барабан.";
+      ? "Время ставится получасами. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется."
+      : "Шаг " + timeStep + " минут. Крупнее — быстрее крутить барабан, но в точное время не встать.";
   }
   document.querySelectorAll("#stepSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
