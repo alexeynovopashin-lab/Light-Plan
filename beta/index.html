@@ -6383,6 +6383,9 @@
           });
         })(new Date(dd));
         dates.appendChild(b);
+        /* Отдача вешается после вставки: у оторванного узла `getComputedStyle`
+           не отдаёт позицию, и накладка встала бы не на кнопку, а на предка */
+        hapticize(b, "12px");     // лента дат рисуется заново — отдача тоже
       }
     }
 
@@ -10367,30 +10370,56 @@
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     lastTick = Math.round(+$("scrub").value / TICK_MIN);
   }
-  /* Попытка достучаться до Taptic через штатный элемент. Переключатель лежит
-     вне экрана, ничего не значит и никем не читается — он нужен ровно затем,
-     чтобы система сама решила дать отдачу. Ошибки глушим: там, где такого
-     элемента нет, это просто ничего не делает. */
-  var hapticSwitch = null;
-  function hapticTap() {
+  /* ---------- Отдача на iOS: настоящий свитч под пальцем ----------
+     Первая версия щёлкала скрытым свитчем из кода — так делают все библиотеки
+     вокруг этого квирка. На iOS 26.5 Apple это закрыла: программный вызов
+     Taptic больше не заводит, срабатывает только **прямое касание настоящего**
+     `<input type="checkbox" switch>`. Значит свитч должен лежать не за экраном,
+     а поверх самой кнопки, чтобы палец физически попадал в него.
+     Отсюда все ограничения, и они существенные:
+       — тик один и системный: success, error и selection не различить;
+       — только касание. На событие («солнце село», «расчёт готов») отдачи не
+         будет никогда — нечего касаться;
+       — детенты ползунка и барабана остаются без отдачи: там ведут палец, а не
+         касаются, и свитчу нечего перехватывать. Это цена нарисованного
+         барабана, названная в решении о Taptic;
+       — гасится системно: «Звуки, тактильные сигналы» и режим энергосбережения;
+       — это квирк, а не API: умрёт в любом обновлении, поэтому строится только
+         как надстройка — уберут, и не изменится ничего.
+     `appearance` не трогаем: раздетый контрол тика не даёт. Скругление режем
+     `clip-path`, потому что `overflow: hidden` обрезает картинку, но не зону
+     попадания — углы всё равно ловят касание мимо кнопки. */
+  var HAPTIC_OK = /Apple/.test(navigator.vendor || "");
+  function hapticize(el, radius) {
+    if (!HAPTIC_OK || !el || el._hapt || !el.parentNode) return;
+    el._hapt = true;
     try {
-      if (!hapticSwitch) {
-        hapticSwitch = document.createElement("input");
-        hapticSwitch.type = "checkbox";
-        hapticSwitch.setAttribute("switch", "");
-        hapticSwitch.setAttribute("aria-hidden", "true");
-        hapticSwitch.tabIndex = -1;
-        hapticSwitch.style.cssText = "position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none";
-        document.body.appendChild(hapticSwitch);
-      }
-      hapticSwitch.checked = !hapticSwitch.checked;
-      hapticSwitch.dispatchEvent(new Event("change", { bubbles: false }));
-    } catch (e) {}
+      if (getComputedStyle(el).position === "static") el.style.position = "relative";
+      var i = document.createElement("input");
+      i.type = "checkbox";
+      i.setAttribute("switch", "");
+      i.setAttribute("aria-hidden", "true");
+      i.tabIndex = -1;
+      var r = radius || getComputedStyle(el).borderRadius || "0";
+      i.style.cssText = "position:absolute;inset:0;width:100%;height:100%;margin:0;"
+        + "opacity:0;z-index:1;clip-path:inset(0 round " + r + ")";
+      /* Состояние свитча ничего не значит — гасим сразу, иначе он копит
+         `checked` и однажды поведёт себя как настоящий переключатель */
+      i.addEventListener("change", function () { i.checked = false; });
+      el.appendChild(i);
+    } catch (e) { }
+  }
+  /* Разом на список: кнопки, которые перерисовываются, просят отдачу заново */
+  function hapticizeAll(root, sel, radius) {
+    if (!HAPTIC_OK || !root) return;
+    root.querySelectorAll(sel).forEach(function (el) { hapticize(el, radius); });
   }
   function tickClick() {
     if (!$("soundToggle").classList.contains("on")) return;
+    /* Android отдаёт вибрацию честно. В Safari `vibrate` не существует и не
+       появится: WebKit его не отгружал и выступает против — отдача там идёт
+       только через свитч под пальцем (см. выше) */
     if (navigator.vibrate) { try { navigator.vibrate(2); } catch (e) {} }
-    hapticTap();
     if (!audioCtx || audioCtx.state !== "running") return;
     /* Тише и мягче: громкость вчетверо ниже прежней, полоса опущена и
        расширена. Щелчок должен подтверждать шаг, а не объявлять о себе */
@@ -10410,7 +10439,6 @@
   function swoosh() {
     if (!$("soundToggle").classList.contains("on")) return;
     if (navigator.vibrate) { try { navigator.vibrate(14); } catch (e) {} }
-    hapticTap();
     if (!audioCtx || audioCtx.state !== "running") return;
     var ctx = audioCtx, dur = 0.34;
     var buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
@@ -11433,6 +11461,18 @@
     });
   }
 
+  /* Куда вешаем отдачу: туда, где взаимодействие — касание, а не ведение.
+     Переключение экрана и вида, сегменты режимов, шаг по датам, закладка
+     места. Ползунок и барабаны в этом списке отсутствуют намеренно: там палец
+     ведут, и свитчу нечего перехватывать. */
+  if (HAPTIC_OK) {
+    hapticizeAll(document, ".tabbar .tab", "14px");
+    hapticizeAll(document, ".seg button", "12px");
+    hapticizeAll(document, "#scopeMenu button", "11px");
+    hapticize($("scopeBtn"), "13px");
+    hapticize($("mapSave"), "50%");
+    hapticizeAll(document, ".sky-swap button", "50%");
+  }
   applyDate();
   booted = true;                 // дальше смена темы перерисовывает экраны сама
   setMapFold(mapFoldShut);
