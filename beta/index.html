@@ -17,8 +17,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <!-- Словарь знаков: одно место, где живут все SVG приложения (icons.js) -->
-<script src="icons.js"></script>
-<script src="lang.js"></script>
+<!-- Метка версии у обоих файлов: они кэшируются отдельно от страницы, и без
+     неё телефон продолжает читать прежнюю библиотеку знаков даже после
+     обновления самой страницы. Правило: правишь icons.js или lang.js —
+     двигаешь метку, иначе на устройстве правки не будет. -->
+<script src="icons.js?v=2"></script>
+<script src="lang.js?v=2"></script>
 <style>
   /* ============================================================
      ЦВЕТА ОДНИМ СПИСКОМ
@@ -4971,10 +4975,31 @@
     r.fill = r.rank >= 3 ? rgba(r.c, 0.32) : null;
     return r;
   }
+  /* ---------- Съёмка длиннее суток принадлежит каждому своему дню ----------
+     Свадьба с 19:10 до 03:10 занимает два дня, а календарь знал только день
+     начала: девятнадцатого не было ни заливки в клетке, ни блока в ленте, ни
+     счёта занятого времени — при том что три часа ночи уже проданы.
+     Причина была в том, что днём съёмки считалась её дата начала, а не отрезок,
+     который она занимает. Отсюда одна функция на все места: сколько минут этих
+     суток занято этой записью. Смотрим на двое суток назад — ровно столько
+     длится потолок длительности, дальше заглядывать нечего.
+     Возвращает `tail: true` для продолжения из вчера: такому блоку нельзя
+     показывать «19:10 – 03:10», он в этих сутках начинается в полночь. */
+  function partOfDay(s, d) {
+    var end = s.end != null ? s.end : s.min + (s.dur || 90);
+    for (var k = 0; k <= 2; k++) {
+      if (!sameDay(s.date, addDays(d, -k))) continue;
+      var a = s.min - k * 1440, b = end - k * 1440;
+      if (b <= 0 || a >= 1440) return null;
+      return { a: Math.max(0, a), b: Math.min(1440, b), tail: a < 0, cut: b > 1440 };
+    }
+    return null;
+  }
+  function onDay(s, d) { return !!partOfDay(s, d); }
   function dayMark(d) {
     var best = null;
     sessions.forEach(function (s) {
-      if (!sameDay(s.date, d) || isMeet(s)) return;
+      if (!onDay(s, d) || isMeet(s)) return;
       var st = deliveryState(s);
       if (!best || st.rank > best.rank) best = st;
     });
@@ -5893,7 +5918,7 @@
       var q = qualityOf(d);
       var mk = inMonth ? dayMark(d) : null;
       var lit = mk && mk.fill;
-      var shoots = sessions.filter(function (x) { return sameDay(x.date, d); })
+      var shoots = sessions.filter(function (x) { return onDay(x, d); })
         .sort(function (x, y) { return x.min - y.min; });
       if (shoots.length && inMonth) monthHasShoots = true;
 
@@ -5975,7 +6000,7 @@
     for (var i = 0; i < 7; i++) {
       var d = addDays(start, i);
       var shoots = sessions.map(function (x, k) { return { s: x, i: k }; })
-        .filter(function (p) { return sameDay(p.s.date, d); })
+        .filter(function (p) { return onDay(p.s, d); })
         .sort(function (a, b) {
           var aw = hasRoute(a.s.type) ? 0 : 1, bw = hasRoute(b.s.type) ? 0 : 1;
           return aw - bw || a.s.min - b.s.min;
@@ -6010,7 +6035,7 @@
              точки, здесь — знаком и словом */
           var meet = isMeet(p.s);
           return '<button type="button" class="wk-card' + (meet ? " meet" : "") + '" data-i="' + p.i + '">'
-            + '<span class="wk-ic">' + IC.svg(meet ? "guests" : (GENRE_SIGN[p.s.type] || "camera")) + "</span>"
+            + '<span class="wk-ic">' + meet ? IC.svg("guests") : IC.genreSvg(p.s.type) + "</span>"
             + '<span class="wk-body"><span class="wk-t">'
             + (meet ? "Встреча · " + esc(shortGenre(p.s.type).toLowerCase())
                     : esc(spec.ev || genreName(p.s.type)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
@@ -6206,10 +6231,10 @@
         var dd = addDays(wkStart, di);
         /* Знаки дня: до трёх, дальше счётчик. Больше трёх в клетку шириной в
            палец не влезает, а счёт сообщает не меньше */
-        var marks = sessions.filter(function (x) { return sameDay(x.date, dd); });
+        var marks = sessions.filter(function (x) { return onDay(x, dd); });
         var mk = marks.slice(0, 3).map(function (x) {
           return '<span class="' + (isMeet(x) ? "meet" : "") + '">'
-            + IC.svg(isMeet(x) ? "guests" : (GENRE_SIGN[x.type] || "camera")) + "</span>";
+            + (isMeet(x) ? IC.svg("guests") : IC.genreSvg(x.type)) + "</span>";
         }).join("");
         if (marks.length > 3) mk += '<span class="dd-more">+' + (marks.length - 3) + "</span>";
         if (!marks.length && blocksOn(dd).length) mk = '<span class="meet">' + IC.svg("lock") + "</span>";
@@ -6259,9 +6284,10 @@
        нельзя было понять ни порядка, ни того, где остались часы. */
     var box = $("dpSessions"), items = [];
     sessions.forEach(function (s, i) {
-      if (!sameDay(s.date, calSel)) return;
-      var end = s.end != null ? s.end : s.min + (s.dur || 90);
-      items.push({ kind: isMeet(s) ? "meet" : "shoot", a: s.min, b: end, s: s, i: i });
+      var part = partOfDay(s, calSel);
+      if (!part) return;
+      items.push({ kind: isMeet(s) ? "meet" : "shoot", a: part.a, b: part.b,
+        tail: part.tail, cut: part.cut, s: s, i: i });
     });
     blocksOn(calSel).forEach(function (b) {
       items.push({ kind: "busy", a: b.allDay ? 0 : b.min, b: b.allDay ? 1440 : b.min + b.dur, blk: b });
@@ -6344,16 +6370,25 @@
       var s2 = it.s, b = it.blk;
       var name = busy ? blockLabel(b)
         : (clientName(s2) || (meet ? "Встреча" : genreName(s2.type)));
+      /* Подпись говорит про съёмку, а не про кусок, попавший в эти сутки.
+         Хвост ночной съёмки в своих сутках начинается в полночь — писать
+         «00:00 – 03:10» значило бы сказать, что съёмка началась в полночь.
+         Поэтому у продолжения названы день начала и время конца, а у съёмки,
+         уходящей за полночь, время конца остаётся настоящим. */
+      var realEnd = s2 && (s2.end != null ? s2.end : s2.min + (s2.dur || 90));
       var sub = busy ? (b.allDay ? "весь день" : fmt(it.a) + " – " + fmt(it.b))
         : (meet ? "встреча · " + shortGenre(s2.type).toLowerCase()
-                : fmt(it.a) + " – " + fmt(it.b));
+                : it.tail
+                  ? "с " + s2.date.getDate() + " " + MON_S[s2.date.getMonth()]
+                    + " · до " + fmt(realEnd)
+                  : fmt(s2.min) + " – " + fmt(realEnd));
       var ds = busy ? null : deliveryState(s2);
       var room = hgt >= 2 * HOUR_H;        // хватает ли места на третью строку
       layer += '<div class="dl-ev' + (meet ? " meet" : "") + (busy ? " busy" : "") + '"'
         + ' style="top:' + top.toFixed(1) + "px;height:" + hgt.toFixed(1) + 'px"'
         + (busy ? ' data-b="' + b.id + '"' : ' data-i="' + it.i + '"') + ">"
         + '<span class="dl-ic' + (meet ? " meet" : busy ? " busy" : "") + '">'
-        + IC.svg(busy ? blockKind(b.k).ic : (meet ? "guests" : (GENRE_SIGN[s2.type] || "camera")))
+        + (busy ? IC.svg(blockKind(b.k).ic) : meet ? IC.svg("guests") : IC.genreSvg(s2.type))
         + "</span>"
         + '<span class="dl-ev-b"><span class="dl-title">' + esc(name) + "</span>"
         + '<span class="dl-sub">' + esc(sub) + "</span>"
@@ -7431,7 +7466,7 @@
       var inc = sessionIncome(p.s), pre = +p.s.prepay || 0;
       var tail = inc ? money(inc) + (pre && pre < inc ? " · внесено " + money(pre) : "") : "";
       return '<button type="button" class="org-item" data-i="' + p.i + '">'
-        + '<span class="badge">' + IC.svg(GENRE_SIGN[p.s.type] || "camera") + "</span>"
+        + '<span class="badge">' + IC.genreSvg(p.s.type) + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(genreName(p.s.type)) + " · "
         + p.s.date.getDate() + " " + MONTHS[p.s.date.getMonth()] + " " + p.s.date.getFullYear() + "</span>"
         + '<span class="org-s">' + esc(tail || "сумма не задана") + "</span></span>"
@@ -8860,7 +8895,7 @@
      Порядок: свадьба всегда первой, остальные по времени начала. */
   function dayStack(s) {
     return sessions.map(function (x, i) { return { s: x, i: i }; })
-      .filter(function (p) { return sameDay(p.s.date, s.date); })
+      .filter(function (p) { return onDay(p.s, s.date); })
       .sort(function (a, b) {
         var aw = hasRoute(a.s.type) ? 0 : 1, bw = hasRoute(b.s.type) ? 0 : 1;
         return aw - bw || a.s.min - b.s.min;
@@ -8885,7 +8920,7 @@
       var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
-        + '<span class="peek-in">' + IC.svg(GENRE_SIGN[p.s.type] || "camera")
+        + '<span class="peek-in">' + IC.genreSvg(p.s.type)
         + "<b>" + esc(spec.ev || genreName(p.s.type)) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
         + "</span></span></button>";
     }).join("");
@@ -8935,7 +8970,13 @@
   })();
 
   /* Шапка: знак события, имена, счёт, телефон */
-  var EV_SIGN = { "wedding": IC.svg("rings", null, 24), "lovestory": IC.svg("heart", null, 24) };
+  /* Таблицы знаков жанра в приложении больше нет. Их было две: `GENRE_SIGN`
+     переводила код жанра в имя знака из общего словаря и не знала ни свадьбы,
+     ни лавстори — обе молча падали в запасной фотоаппарат; `EV_SIGN` держала
+     для них правильные знаки, но только ради шапки карточки. Оттого один жанр
+     выглядел по-разному в разных местах: в форме портрет был человечком, а в
+     стопке дня — камерой.
+     Знак жанра спрашивается у библиотеки: она и так знает все одиннадцать. */
   /* Кегль заголовка подбирается под ширину: сначала пробуем полный, дальше
      ступенями вниз, пока имя не встанет одной строкой. Ступени крупные и
      заранее названные — плавная подгонка дала бы у каждой карточки свой
@@ -8963,7 +9004,7 @@
     $("cdEvHead").hidden = false;
     $("cdEvHead").classList.toggle("is-meet", isMeet(s));
     var spec = genreSpec(s.type), gr = groupSpec(s.type);
-    $("cdEvSign").innerHTML = EV_SIGN[s.type] || IC.svg(GENRE_SIGN[s.type] || "camera");
+    $("cdEvSign").innerHTML = IC.genreSvg(s.type, null, 24);
 
     /* Крупно — то, чем съёмка называется: пара, клиент, организация.
        Нет клиента — крупно жанр, он и есть имя съёмки */
@@ -9008,11 +9049,6 @@
   }
   /* Знак жанра в шапке: свадьба и лавстори рисуются крупным знаком события,
      остальные берут свою пиктограмму из библиотеки */
-  var GENRE_SIGN = {
-    "portrait": "camera", "family": "family", "landscape": "park", "architecture": "city",
-    "street": "street", "report": "mic", "product": "lens", "ad": "flash",
-    "party": "balloons"
-  };
   function afterWord(d) {
     var n = new Date();
     var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate())
