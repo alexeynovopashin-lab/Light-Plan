@@ -59,6 +59,9 @@
     --ink-a08: rgba(239,234,224,0.08);
     --bg: #070606; --surface: #0F0E0C; --canvas: #14110E;
     --sheet: #17150F; --sheet-2: #131109; --sheet-3: #1A1710;
+    /* Стопка дня: чем глубже лист, тем светлее — и своя тень между ними */
+    --peek-1: #1B1811; --peek-2: #221E16; --stack-shade: rgba(0,0,0,0.55);
+    --stack-edge: rgba(255,255,255,0.07);
     --sheet-4: #1A1712; --warn-bg: #191510; --bad-bg: #1D1512;
     --badge-bg: #241F17; --hatch: #1C1A14; --hairline: #1C1913;
     --on-brass: #16120C; --field: #1C1A16; --field-press: #262218;
@@ -100,6 +103,8 @@
     --ink-a08: rgba(23,21,15,0.08);
     --bg: #EDE9E1; --surface: #FAF8F3; --sheet: #FFFFFF;
     --sheet-2: #F1EDE4; --sheet-3: #FFFFFF; --sheet-4: #FFFFFF;
+    --peek-1: #FFFFFF; --peek-2: #F6F2E8; --stack-shade: rgba(23,21,15,0.16);
+    --stack-edge: rgba(23,21,15,0.05);
     --warn-bg: #FBF1DE; --bad-bg: #FBE7DC; --badge-bg: #F4F0E6;
     --hatch: #E7E2D8; --hairline: #E2DCD1; --on-brass: #FFFFFF;
     --field: #EAE5DB; --field-press: #DCD6C9; --press: #EDE9E1;
@@ -1989,6 +1994,23 @@
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
   }
   .peek, .peek[style] { margin-left: auto; margin-right: auto; left: 0; right: 0; }
+  /* Второй лист был виден, третий сливался с ним: у обоих один цвет и ни одной
+     тени, а разъезжались они только по ширине — десять пикселей с каждой
+     стороны. Разводим двумя признаками сразу.
+     Тон: каждый следующий лист на ступень дальше от переднего. Ступень взята
+     та же, что у плиток внутри карточки, — стопка не заводит своей палитры.
+     Тень: её отбрасывает тот лист, что ближе, — на тот, что за ним. Поэтому
+     она направлена вверх: передний лист лежит ниже по экрану, а стопка растёт
+     от него вверх. Тень и делает края стопкой, а не тремя полосками. */
+  /* Тень на тёмном не работает — чёрное по чёрному не видно, — поэтому там
+     край листа называет тонкий светлый кант по верхней кромке. Это тот же
+     приём, что записан про купол, только вывернутый: светлое от светлого
+     отделяет глубина, тёмное от тёмного — свет на ребре. Живут оба признака
+     одновременно, каждый работает в своей теме. */
+  .peek[data-k="0"] { background: var(--peek-1);
+    box-shadow: 0 -6px 14px -4px var(--stack-shade), inset 0 1px 0 var(--stack-edge); }
+  .peek[data-k="1"] { background: var(--peek-2);
+    box-shadow: inset 0 1px 0 var(--stack-edge); }
   .peek:active { background: var(--press); }
   .peeks.dragging .peek, .card-sheet.dragging { transition: none; }
   .peek-in {
@@ -2006,6 +2028,8 @@
     position: relative; z-index: 1;
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
     background: var(--sheet-2); border-radius: 22px; padding: 18px 12px 16px;
+    /* Лист карточки лежит поверх стопки и кладёт на неё свою тень */
+    box-shadow: 0 -7px 18px -4px var(--stack-shade), inset 0 1px 0 var(--stack-edge);
   }
   /* Внутренние плитки чуть светлее листа, иначе он их съедает */
   .card-sheet .pane, .card-sheet .day-tile, .card-sheet .wx-pane,
