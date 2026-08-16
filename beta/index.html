@@ -10345,26 +10345,62 @@
     tick.classList.toggle("show", Math.abs(viewMin - nowMin) > 2);
   }
 
-  /* ---------- Тактильный отклик: щелчки на детентах слайдера ----------
-     На iOS Safari нет доступа к Taptic Engine, поэтому отклик — звуковой
-     (Web Audio), вибрация добавляется там, где поддерживается (Android). */
+  /* ---------- Отклик на детентах ----------
+     Вибрация: `navigator.vibrate` работает на Android и не работает в Safari
+     на iOS. Но «Taptic из веба недоступен» — формулировка неточная, и она
+     завела нас не туда: Taptic на iOS доступен, только не странице. Его даёт
+     система своим собственным элементам управления — барабану `<select>`,
+     системному выбору даты и времени, переключателю `switch`. Поэтому в
+     приложении, где крутилка сделана штатным контролом, отдача есть, а у нас
+     нет: наш барабан нарисован своими `div` со scroll-snap, и системе в нём
+     нечего трогать.
+     Отсюда попытка ниже: скрытый штатный переключатель, который мы щёлкаем
+     программно вместе с детентом. Если Safari отдаёт на нём Taptic — отдача
+     появится во всём приложении разом. Проверяется это только на телефоне;
+     на ноутбуке переключатель молча щёлкает и ничего не значит.
+
+     Звук — второй канал отклика и работает везде. Он сбавлен: щелчок был
+     громким настолько, что читался как звук интерфейса, а не как детент. */
   var audioCtx = null, TICK_MIN = 15, lastTick = null;
   function initAudio() {
     if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     lastTick = Math.round(+$("scrub").value / TICK_MIN);
   }
+  /* Попытка достучаться до Taptic через штатный элемент. Переключатель лежит
+     вне экрана, ничего не значит и никем не читается — он нужен ровно затем,
+     чтобы система сама решила дать отдачу. Ошибки глушим: там, где такого
+     элемента нет, это просто ничего не делает. */
+  var hapticSwitch = null;
+  function hapticTap() {
+    try {
+      if (!hapticSwitch) {
+        hapticSwitch = document.createElement("input");
+        hapticSwitch.type = "checkbox";
+        hapticSwitch.setAttribute("switch", "");
+        hapticSwitch.setAttribute("aria-hidden", "true");
+        hapticSwitch.tabIndex = -1;
+        hapticSwitch.style.cssText = "position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none";
+        document.body.appendChild(hapticSwitch);
+      }
+      hapticSwitch.checked = !hapticSwitch.checked;
+      hapticSwitch.dispatchEvent(new Event("change", { bubbles: false }));
+    } catch (e) {}
+  }
   function tickClick() {
     if (!$("soundToggle").classList.contains("on")) return;
     if (navigator.vibrate) { try { navigator.vibrate(2); } catch (e) {} }
+    hapticTap();
     if (!audioCtx || audioCtx.state !== "running") return;
-    var ctx = audioCtx, dur = 0.026;
+    /* Тише и мягче: громкость вчетверо ниже прежней, полоса опущена и
+       расширена. Щелчок должен подтверждать шаг, а не объявлять о себе */
+    var ctx = audioCtx, dur = 0.02;
     var buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
     var d = buf.getChannelData(0);
     for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
     var src = ctx.createBufferSource(); src.buffer = buf;
-    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = 1.1;
-    var g = ctx.createGain(); g.gain.value = 0.5;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1900; bp.Q.value = 0.8;
+    var g = ctx.createGain(); g.gain.value = 0.12;
     src.connect(bp); bp.connect(g); g.connect(ctx.destination);
     src.start();
   }
@@ -10374,6 +10410,7 @@
   function swoosh() {
     if (!$("soundToggle").classList.contains("on")) return;
     if (navigator.vibrate) { try { navigator.vibrate(14); } catch (e) {} }
+    hapticTap();
     if (!audioCtx || audioCtx.state !== "running") return;
     var ctx = audioCtx, dur = 0.34;
     var buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
@@ -10385,7 +10422,7 @@
     bp.frequency.exponentialRampToValueAtTime(280, ctx.currentTime + dur);
     var g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.28, ctx.currentTime + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + 0.06);
     g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
     src.connect(bp); bp.connect(g); g.connect(ctx.destination);
     src.start();
