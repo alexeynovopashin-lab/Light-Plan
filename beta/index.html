@@ -11623,15 +11623,24 @@
     var dev = document.querySelector(".device");
     var cs = getComputedStyle(document.documentElement);
     var f = document.querySelector(".map-frame").getBoundingClientRect();
+    var kids = [].slice.call(s.children);
+    var sum = 0;
+    var rows = kids.map(function (k) {
+      var h = k.offsetHeight; sum += h;
+      var g = getComputedStyle(k);
+      return "  " + (k.className || k.tagName).toString().slice(0, 13) +
+        " h" + h + " sh" + k.scrollHeight + " shr" + g.flexShrink + " mx" + g.maxHeight;
+    }).join("\n");
     box.textContent =
       "screen sh/ch " + s.scrollHeight + "/" + s.clientHeight + "  top " + Math.round(s.scrollTop) + "\n" +
       "over " + (s.scrollHeight - s.clientHeight) + "  padB " + getComputedStyle(s).paddingBottom + "\n" +
+      "kids sum " + sum + "  disp " + getComputedStyle(s).display + "\n" +
+      rows + "\n" +
       "dockh " + cs.getPropertyValue("--dockh") + " tabh " + cs.getPropertyValue("--tabh") + "\n" +
       "device h " + Math.round(dev.getBoundingClientRect().height) + " ovf " + getComputedStyle(dev).overflow + "\n" +
       "innerH " + window.innerHeight + " vv " + (window.visualViewport ? Math.round(visualViewport.height) : "—") + "\n" +
       "frame " + Math.round(f.width) + "x" + Math.round(f.height) + "\n" +
-      "touch start/move " + starts + "/" + moves + "\n" +
-      "on " + lastTarget;
+      "touch start/move " + starts + "/" + moves + "  on " + lastTarget;
   }, 300);
 })();
 </script>
