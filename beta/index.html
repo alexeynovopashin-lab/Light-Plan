@@ -355,6 +355,18 @@
   }
   .spot-fan::-webkit-scrollbar { display: none; }
   .spot-fan[hidden] { display: none; }
+  /* Удаление в веере названо своим цветом. Терракота, а не красный: показываем
+     осторожность, а не опасность (08_VISUAL_LANGUAGE) */
+  .spot-fan button.del .t1 { color: var(--bad-ink); }
+  .spot-fan button.del .ic svg { stroke: var(--bad-ink); }
+  /* Тихая строка внизу карточки: действие обратимое, плашки оно не заслужило */
+  .card-del {
+    display: block; width: 100%; margin: 22px 0 4px; padding: 12px;
+    background: none; border: none; font-family: inherit;
+    font-size: 14px; color: var(--bad-ink); cursor: pointer;
+  }
+  .card-del:active { opacity: 0.6; }
+  .card-del[hidden] { display: none; }
   .spot-fan button {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px;
     background: none; border: none; border-radius: 11px; corner-shape: squircle; cursor: pointer;
@@ -3334,6 +3346,12 @@
       <div class="row sep">Расходы<span class="rv" id="cdExpense">—</span></div>
       <div class="row">Прибыль<span class="rv" id="cdProfit">—</span></div>
     </div>
+
+    <!-- Удаление живёт в карточке, а не только в свайпе по списку: карточка
+         это место, где о съёмке принимают решения, и «отменилась» — одно из
+         них. Стоит последней и тихой: терракота словом, а не плашкой, —
+         действие обратимое, «Вернуть» держится шесть секунд. -->
+    <button class="card-del" id="cdDelete">Удалить съёмку</button>
   </div>
 
   <!-- ============ ФОРМА СЪЁМКИ ============ -->
@@ -3746,6 +3764,9 @@
        Прямой потомок .device — координаты считаются от рамки телефона -->
   <div class="spot-scrim" id="spotScrim" hidden></div>
   <div class="spot-fan" id="spotFan" hidden></div>
+  <!-- Веер действий над записью. Язык взят у веера точек, а не придуман
+       заново: второго такого меню в продукте быть не должно (DECISIONS). -->
+  <div class="spot-fan" id="evFan" hidden></div>
 
   <div class="scrim" id="locScrim"></div>
   <div class="sheet" id="locSheet">
@@ -6422,17 +6443,14 @@
     }
 
     // Тап по событию открывает карточку — и в ленте дня, и в списке месяца
-    box.querySelectorAll(".dl-ev").forEach(function (b) {
+    box.querySelectorAll(".dl-ev, .plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
         if (b.dataset.b) openBlock(b.dataset.b);
         else openCard(+b.dataset.i);
       });
-    });
-    box.querySelectorAll(".plan-row").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (b.dataset.b) openBlock(b.dataset.b);
-        else openCard(+b.dataset.i);
-      });
+      /* Удержание открывает веер действий. У занятости его нет: там нет ни
+         формы съёмки, ни сдачи материала — её правят своим листом */
+      if (!b.dataset.b) holdForFan(b, +b.dataset.i);
     });
 
     /* Три действия открываются там, где нажали. Кнопки «Запланировать съёмку»
@@ -9005,6 +9023,7 @@
     $("cdEvHead").classList.toggle("is-meet", isMeet(s));
     var spec = genreSpec(s.type), gr = groupSpec(s.type);
     $("cdEvSign").innerHTML = IC.genreSvg(s.type, null, 24);
+    setDeleteLabel(s);
 
     /* Крупно — то, чем съёмка называется: пара, клиент, организация.
        Нет клиента — крупно жанр, он и есть имя съёмки */
@@ -9668,6 +9687,21 @@
   $("cardBack").addEventListener("click", closeCard);
   $("cardEdit").addEventListener("click", function () {
     if (cardIdx !== null) openForm(null, null, cardIdx);
+  });
+  /* Удаление из карточки — тем же путём, что из списка: запись держится в
+     руке шесть секунд, и «Вернуть» её возвращает. Второго механизма удаления,
+     необратимого, в продукте нет и быть не должно. */
+  /* Подпись называет то, что удаляют: у встречи это встреча, а не съёмка.
+     Мелочь, но кнопка удаления — не то место, где приложение может ошибиться
+     в названии того, что сейчас исчезнет. */
+  function setDeleteLabel(s) {
+    $("cdDelete").textContent = isMeet(s) ? "Удалить встречу" : "Удалить съёмку";
+  }
+  $("cdDelete").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    var i = cardIdx;
+    closeCard();
+    removeSession(i);
   });
 
   /* Встреча → съёмка. Порождение, а не переименование: если бы запись просто
@@ -10825,7 +10859,75 @@
     fan.style.top = Math.round(top) + "px";
   }
   function closeSpotFan() { $("spotFan").hidden = true; $("spotScrim").hidden = true; }
-  $("spotScrim").addEventListener("click", closeSpotFan);
+
+  /* ---------- Веер действий над записью ----------
+     Долгое нажатие на событии — «заполнить» и «удалить». Тап остаётся тапом:
+     он открывает карточку, и отнимать у него это нельзя.
+     Почему удержание, а не свайп: свайп по строке уже занят в списке съёмок, а
+     в ленте дня его нет вовсе — блок стоит поверх сетки, и свайп по нему спорил
+     бы с прокруткой дня. Удержание свободно в обоих местах и одинаково
+     работает и на блоке ленты, и на строке месяца.
+     Отклик на срабатывание — тот же щелчок, что у детентов ползунка: Taptic из
+     веба недоступен, и второй механики отклика ради одного жеста не заводим. */
+  function openEvFan(anchor, idx) {
+    var s = sessions[idx];
+    if (!s) return;
+    var fan = $("evFan"), scrim = $("spotScrim"), dev = document.querySelector(".device");
+    fan.innerHTML = "";
+    function item(cls, icon, t1, t2, fn) {
+      var b = document.createElement("button"); b.type = "button";
+      if (cls) b.className = cls;
+      b.innerHTML = '<span class="ic" data-ic="' + icon + '"></span>'
+        + '<span class="tx"><span class="t1"></span><span class="t2"></span></span>';
+      b.querySelector(".t1").textContent = t1;
+      b.querySelector(".t2").textContent = t2 || "";
+      b.addEventListener("click", function () { closeEvFan(); fn(); });
+      fan.appendChild(b);
+    }
+    item("", "note_edit", "Заполнить", clientName(s) || genreName(s.type), function () {
+      openForm(null, null, idx);
+    });
+    /* Подпись говорит, что удаление обратимо: у необратимого на вид действия
+       человек ищет подтверждения, а лишний вопрос здесь не нужен — «Вернуть»
+       стоит шесть секунд */
+    item("del", "trash", "Удалить", "вернуть можно сразу после", function () {
+      closeCard();
+      removeSession(idx);
+    });
+    paintIcons(fan);
+    var dr = dev.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+    fan.hidden = false; scrim.hidden = false;
+    var w = fan.offsetWidth, h = fan.offsetHeight;
+    var left = Math.max(10, Math.min(ar.left - dr.left, dr.width - w - 10));
+    var top = ar.bottom - dr.top + 6;
+    if (top + h > dr.height - 10) top = Math.max(10, ar.top - dr.top - h - 6);
+    fan.style.left = Math.round(left) + "px";
+    fan.style.top = Math.round(top) + "px";
+    tickClick();
+  }
+  function closeEvFan() { $("evFan").hidden = true; $("spotScrim").hidden = true; }
+
+  /* Удержание вешается на каждое событие при отрисовке ленты. Клик после
+     срабатывания гасится явно: иначе веер откроется и тут же откроется
+     карточка под ним — грабля, уже пойманная на закладке места. */
+  function holdForFan(el, idx) {
+    var timer = null, fired = false, sx = 0, sy = 0;
+    function stop() { clearTimeout(timer); timer = null; }
+    el.addEventListener("pointerdown", function (e) {
+      fired = false; sx = e.clientX; sy = e.clientY;
+      timer = setTimeout(function () { fired = true; openEvFan(el, idx); }, 450);
+    });
+    el.addEventListener("pointermove", function (e) {
+      if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) stop();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+      el.addEventListener(t, stop);
+    });
+    el.addEventListener("click", function (e) {
+      if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; }
+    }, true);
+  }
+  $("spotScrim").addEventListener("click", function () { closeSpotFan(); closeEvFan(); });
 
   /* Долгое нажатие на закладке открывает список. Короткий тап сохраняет —
      поэтому после срабатывания долгого жеста клик надо погасить, иначе
