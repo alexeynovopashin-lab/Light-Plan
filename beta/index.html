@@ -592,7 +592,10 @@
   }
   .spoiler:active { color: var(--ink); }
   .spoiler svg { width: 17px; height: 17px; stroke: var(--ink-4); fill: none; stroke-width: 1.6; }
-  .spoiler .chev { transition: transform 0.35s ease; font-size: 12px; }
+  /* Шевроны были набраны кеглем подписи и самым бледным тоном — знак, который
+     говорит «здесь разворачивается», читался хуже, чем текст рядом. Кегль
+     поднят до заметного, тон — на ступень контрастнее */
+  .spoiler .chev { transition: transform 0.35s ease; font-size: 17px; color: var(--ink-3); }
   .spoiler.open .chev { transform: rotate(180deg); }
   .pro-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.25,1,0.4,1); }
   .pro-body.open { max-height: 1600px; }
@@ -853,11 +856,14 @@
   .day-toggle[hidden] { display: none; }
   .day-toggle {
     display: flex; align-items: center; justify-content: center;
-    width: 100%; margin-top: 18px; padding: 6px 0;
+    width: 100%; margin-top: 18px; padding: 11px 0;
     background: none; border: none; border-top: 1px solid rgba(226,164,76,0.35);
-    color: var(--ink-4); cursor: pointer; font-family: inherit;
+    color: var(--ink-3); cursor: pointer; font-family: inherit;
   }
-  .day-toggle .chev { transition: transform 0.35s ease; font-size: 13px; margin-top: -2px; }
+  /* Ручка сводки дня — единственный орган на своей полосе, и её искали глазами:
+     тринадцать пикселей самым бледным тоном на пустой строке видно хуже, чем
+     ничего. Кегль вдвое, тон контрастнее, полоса выше — в неё ещё и попадать */
+  .day-toggle .chev { transition: transform 0.35s ease; font-size: 20px; line-height: 1; }
   .day-toggle.open .chev { transform: rotate(180deg); }
   /* паддинг внутри, иначе свёрнутая панель всё равно занимает место */
   /* Сводка дня — свой контейнер с обводкой. Экран держит две вещи разного
@@ -1643,8 +1649,8 @@
      вдвое, отделён отступом и потемнел — теперь он говорит «здесь откроется
      ещё экран», как и шеврон в карточке. */
   .item .v .go-chev {
-    display: inline-block; margin-left: 7px; font-size: 20px; line-height: 1;
-    color: var(--ink-6); vertical-align: -2px;
+    display: inline-block; margin-left: 7px; font-size: 22px; line-height: 1;
+    color: var(--ink-4); vertical-align: -2px;
   }
   .toggle {
     width: 51px; height: 31px; border-radius: 20px; background: var(--rail-2);
@@ -2116,6 +2122,23 @@
     margin: 0; padding: 0; border: none; box-shadow: none;
     background: var(--sheet); border-radius: 14px; corner-shape: squircle;
     user-select: none;
+  }
+  /* Блок не подменяется заголовком, а сворачивается в него: тап по ползункам
+     иначе читается как переход куда-то ещё, и непонятно, что именно
+     произошло. Движение и объясняет — те же блоки, только сложенные. */
+  #cdEventBlocks.ord > *, #cdEventBlocks > *.ord-back {
+    transition: height 0.26s cubic-bezier(0.25, 1, 0.4, 1);
+  }
+  /* Разворот меряется в один кадр без перехода — иначе не от чего ехать */
+  #cdEventBlocks.no-anim > * { transition: none !important; }
+  /* Возвращающийся блок ещё прячет начинку: она проступает, когда высота уже
+     дошла, — так текст не мелькает в щели */
+  #cdEventBlocks > *.ord-back { overflow: hidden; }
+  .ord-cap { animation: ord-cap-in 0.22s ease both; }
+  @keyframes ord-cap-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    #cdEventBlocks.ord > *, #cdEventBlocks > *.ord-back { transition: none; }
+    .ord-cap { animation: none; }
   }
   /* Начинка блока прячется видимостью, а не `display`: так блок сохраняет свою
      раскладку и разворачивается обратно ровно тем же, чем был */
@@ -2594,6 +2617,10 @@
   .ref-view img { max-width: 100%; max-height: 100%; border-radius: 12px; corner-shape: squircle; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
+  /* Высотой блок правит скрипт, здесь только сам переход и обрезка на время
+     движения: без неё поля вылезали бы за края схлопывающегося блока */
+  #fPayBody { overflow: hidden; transition: height 0.26s cubic-bezier(0.25, 1, 0.4, 1); }
+  @media (prefers-reduced-motion: reduce) { #fPayBody { transition: none; } }
   /* Количество вводится степпером, не клавиатурой */
   .stepper { display: inline-flex; align-items: center; gap: 2px; }
   .stepper button {
@@ -2615,7 +2642,8 @@
   @media (prefers-reduced-motion: reduce) { .stepper .step-in { transition: none; } }
   .stepper .step-in:focus { background: var(--press); }
   .stepper .step-in::placeholder { color: var(--ink-8); font-weight: 400; }
-  #fPayFold .chev { display: inline-block; transition: transform 0.3s ease; color: var(--ink-4); }
+  #fPayFold .chev { display: inline-block; transition: transform 0.3s ease;
+    color: var(--ink-3); font-size: 17px; }
   #fPayFold.open .chev { transform: rotate(180deg); }
   #fPaySumm { font-size: 15px; }
   #fPaySumm b { color: var(--brass); font-weight: 650; font-variant-numeric: tabular-nums; }
@@ -7907,7 +7935,7 @@
       + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net) + "</span>";
     // Сводка спойлера: способ и итог одной строкой
     $("fPaySumm").innerHTML = PAY[fPay].label + " · <b>" + money(net) + "</b>";
-    $("fPayBody").hidden = payFolded;
+    slideFold($("fPayBody"), !payFolded);
     $("fPayFold").classList.toggle("open", !payFolded);
   }
   /* Свёрнутая оплата раскрывается тапом по сводке */
@@ -9123,6 +9151,44 @@
     });
   }
 
+  /* Плавное сворачивание блока с полями. В форме оно оправдано тем, что полей
+     много и блок длинный: мгновенное исчезновение читается как «страница
+     прыгнула», и глаз заново ищет, где он был. Высота считается от содержимого
+     и по окончании отпускается — иначе блок, у которого поля появились или
+     ушли (способ оплаты меняет их состав), остался бы прежней высоты.
+     Повторный вызов в том же состоянии ничего не делает: `renderPay` зовётся
+     на каждый ввод, и без этой проверки блок дёргался бы при наборе. */
+  function slideFold(el, open) {
+    if (!el) return;
+    var was = el.dataset.open === "1";
+    if (was === open && el.dataset.init === "1") {
+      if (open && !el.style.height) return;      // раскрыт и живёт своей высотой
+      if (!open) return;
+    }
+    el.dataset.init = "1";
+    el.dataset.open = open ? "1" : "";
+    if (el._foldT) { clearTimeout(el._foldT); el._foldT = null; }
+    var quick = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (open) {
+      el.hidden = false;
+      if (quick) { el.style.height = ""; return; }
+      var to = el.scrollHeight;
+      el.style.height = (was ? to : 0) + "px";
+      el.offsetHeight;
+      el.style.height = to + "px";
+      el._foldT = setTimeout(function () { el.style.height = ""; }, 280);
+    } else {
+      if (quick) { el.hidden = true; el.style.height = ""; return; }
+      if (el.hidden) return;                     // и так свёрнут — не мигаем
+      el.style.height = el.scrollHeight + "px";
+      el.offsetHeight;
+      el.style.height = "0px";
+      el._foldT = setTimeout(function () {
+        el.hidden = true; el.style.height = "";
+      }, 260);
+    }
+  }
+
   /* ---------- Режим перестановки ----------
      Блоки сворачиваются в заголовки, заголовки таскаются пальцем.
      Порядок сохраняется на группу жанров, «Вернуть наш порядок» — сброс. */
@@ -9134,22 +9200,31 @@
     $("cdOrderFoot").hidden = !on;
     $("cardEdit").hidden = on;
     $("cardOrder").classList.toggle("ok", on);
-    if (on) foldBlocks(s); else { unfoldBlocks(); renderEventCard(s); }
+    if (on) foldBlocks(s);
+    else unfoldBlocks(function () { renderEventCard(s); });
   }
-  /* Блоки сворачиваются в свои заголовки на своих же местах. Блок, которого в
-     этой съёмке нет, показывается приглушённым: порядок ему всё равно нужен —
-     он появится, как только появится поле. Прежнее `hidden` запоминается, чтобы
-     выход из режима вернул карточку ровно такой, какой она была. */
+  /* Сворачиваются только те блоки, которые в этой съёмке есть. Показывать
+     остальные приглушёнными пробовали — от этого отказались: настройка
+     карточки должна говорить про эту карточку, а не про все возможные. Блок,
+     которого нет, и переставлять незачем: он придёт вместе со своим полем и
+     встанет по общему порядку.
+     Высота на время сворачивания фиксируется числом, иначе переход не с чего
+     считать: от «сколько получится» до пятидесяти шести браузер не
+     анимирует. */
+  var ORD_H = 56;
+  /* Порядок берётся у разметки, а не у описания блоков: во время перестановки
+     они и различаются — ради этого всё и затевалось */
+  function ordItems() {
+    return [].filter.call($("cdEventBlocks").children, function (el) {
+      return !el.hidden;
+    });
+  }
   function foldBlocks(s) {
     var host = $("cdEventBlocks");
-    host.classList.add("ord");
     CARD_BLOCKS.forEach(function (b) {
       var el = $(b.el);
-      if (!el) return;
+      if (!el || el.hidden) return;
       el.dataset.k = b.k;
-      el.dataset.wasHidden = el.hidden ? "1" : "";
-      el.classList.toggle("off", el.hidden);
-      el.hidden = false;
       var cap = document.createElement("div");
       cap.className = "ord-cap";
       cap.innerHTML = '<span class="badge">' + IC.svg(b.ic) + "</span>"
@@ -9157,20 +9232,56 @@
         + '<span class="ord-grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">'
         + '<path d="M4 9h16M4 15h16"/></svg></span>';
       el.insertBefore(cap, el.firstChild);
+      el.style.height = el.offsetHeight + "px";   // точка отсчёта перехода
       dragBlock(el, host, s);
     });
+    host.classList.add("ord");
+    /* Снимаем заданную высоту следующим кадром: инлайн сильнее правила, и пока
+       он стоит, блок не поедет. Снятый — отдаёт высоту классу, и переход идёт
+       от измеренной величины к 56 */
+    requestAnimationFrame(function () {
+      ordItems().forEach(function (el) { el.style.height = ""; });
+    });
   }
-  function unfoldBlocks() {
+  function unfoldBlocks(done) {
     var host = $("cdEventBlocks");
+    var items = ordItems();
+    /* Целевую высоту не угадать — её знает только развёрнутый блок. Поэтому
+       разворачиваем без перехода, меряем, возвращаем свёрнутую высоту и уже
+       от неё едем к измеренной. Один кадр разбора экран не успевает показать. */
+    host.classList.add("no-anim");
     host.classList.remove("ord");
+    var to = items.map(function (el) {
+      var cap = el.querySelector(":scope > .ord-cap");
+      if (cap) cap.style.display = "none";
+      return el.offsetHeight;
+    });
+    items.forEach(function (el, i) {
+      el.style.height = ORD_H + "px";
+      el.classList.add("ord-back");
+    });
+    host.offsetHeight;                            // раскладка до снятия запрета
+    host.classList.remove("no-anim");
+    requestAnimationFrame(function () {
+      items.forEach(function (el, i) { el.style.height = to[i] + "px"; });
+      setTimeout(function () {
+        items.forEach(function (el) {
+          el.style.height = "";
+          el.classList.remove("ord-back");
+        });
+        cleanCaps();
+        if (done) done();
+      }, 280);
+    });
+  }
+  function cleanCaps() {
     CARD_BLOCKS.forEach(function (b) {
       var el = $(b.el);
       if (!el) return;
       var cap = el.querySelector(":scope > .ord-cap");
       if (cap) cap.remove();
-      el.classList.remove("off", "drag");
-      el.hidden = el.dataset.wasHidden === "1";
-      delete el.dataset.wasHidden;
+      el.classList.remove("drag");
+      el.style.height = "";
     });
   }
   /* Перетаскивание пальцем: строка едет за пальцем, соседи расступаются.
@@ -9196,8 +9307,13 @@
          пальцем врал — перетаскиваемая строка едет поверх соседей и сама
          оказывается под ним, поэтому она наезжала на чужую, а на её месте
          оставалась дыра. Строки одинаковой высоты, шаг постоянный. */
+      /* Считаем по видимым блокам, а не по всем детям: блоки, которых в этой
+         съёмке нет, остаются в разметке нулевой высоты и стоят между
+         видимыми. Считать их наравне значило бы промахиваться мимо места на
+         столько строк, сколько пустых блоков попалось по дороге. */
       var step = row.offsetHeight + (parseFloat(getComputedStyle(host).rowGap) || 0);
-      var startIndex = [].indexOf.call(host.children, row);
+      var shown = ordItems();
+      var startIndex = shown.indexOf(row);
       var index = startIndex;
 
       function move(ev) {
@@ -9206,12 +9322,13 @@
         if (!moved) { moved = true; row.classList.add("drag"); }
         ev.preventDefault();
 
-        var want = Math.max(0, Math.min(host.children.length - 1,
+        var want = Math.max(0, Math.min(shown.length - 1,
           startIndex + Math.round(dy / step)));
         if (want !== index) {
-          /* Ставим перед той строкой, что займёт наше место. При движении вниз
-             ориентир сдвигается на единицу — сама строка ещё в списке */
-          var ref = host.children[want > index ? want + 1 : want];
+          /* Ставим перед тем блоком, что займёт наше место. При движении вниз
+             ориентир сдвигается на единицу — сам блок ещё в списке */
+          var order = ordItems();
+          var ref = order[want > index ? want + 1 : want];
           host.insertBefore(row, ref || null);
           index = want;
         }
