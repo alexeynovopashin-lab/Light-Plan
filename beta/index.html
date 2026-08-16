@@ -84,8 +84,17 @@
      темнеет ради контраста на светлом, но остаётся латунью. Карта, луна и
      модель света не тронуты — они про небо, а не про интерфейс. */
   :root[data-theme="light"] {
-    /* крупные знаки и число дня: латунь в больших пятнах на светлом мутнеет */
-    --glyph: #2F2A23;
+    /* Крупные знаки и число дня — медь, а не чернила. Записано было обратное:
+       латунь в больших пятнах на светлом мутнеет, — и это верно про саму
+       латунь `#E2A44C`, светлую и тёплую. Вывод из этого сделали неправильный:
+       вместо того чтобы взять медь потемнее, знак и число выкрасили в чёрный,
+       и карточка в светлой теме потеряла единственный тёплый акцент — число
+       дня стало таким же, как любой текст рядом.
+       Медь `#8A5A18` держит контраст на светлом (7 : 1 к подложке карточки) и
+       остаётся тёплой: то же семейство, что латунь тёмной темы, только ниже по
+       светлоте. Правило общее: если фирменный цвет не работает в этой теме,
+       ищут его ступень, а не отказываются от цвета. */
+    --glyph: #8A5A18;
     --pin-ring: #3A352E;
     --arc-mid: #17150F;
     --knob: #FFFFFF; --knob-edge: #C3BBAA; --meter-off: #D2CBBC;
@@ -336,7 +345,7 @@
     position: absolute; z-index: 97; min-width: 216px; max-width: 280px;
     max-height: 320px; overflow-y: auto; scrollbar-width: none;
     overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-    background: var(--sheet); border-radius: 16px; padding: 6px;
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle; padding: 6px;
     box-shadow: 0 18px 40px rgba(0,0,0,0.55);
     animation: scopeIn 0.16s ease-out;
   }
@@ -344,7 +353,7 @@
   .spot-fan[hidden] { display: none; }
   .spot-fan button {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px;
-    background: none; border: none; border-radius: 11px; cursor: pointer;
+    background: none; border: none; border-radius: 11px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; text-align: left; color: var(--ink);
   }
   .spot-fan button:active { background: var(--press); }
@@ -474,7 +483,7 @@
   /* Палитра предсказанного неба: не картинка заката, а его температура.
      Переход — только когда меняется прогноз или день; вечной петли нет. */
   .sky-swatch {
-    position: relative; height: 92px; border-radius: 14px; margin-top: 20px;
+    position: relative; height: 92px; border-radius: 14px; corner-shape: squircle; margin-top: 20px;
     display: flex; align-items: flex-end; padding: 12px 14px;
     transition: background 1.2s ease;
   }
@@ -578,7 +587,7 @@
        одним слоем, а порядок внутри неё сохраняется */
     isolation: isolate;
     position: relative; margin: 18px 16px 0; height: 370px;
-    border-radius: 18px; overflow: hidden; background: var(--canvas);
+    border-radius: 18px; corner-shape: squircle; overflow: hidden; background: var(--canvas);
   }
   /* touch-action: none — Leaflet водит палец сам через JS (drag и пинч-зум),
      браузеру тут решать нечего, это и советует сама библиотека */
@@ -672,7 +681,7 @@
   .year-profit-val b.neg { color: var(--terra); }
   .ym {
     background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
-    padding: 12px 10px; border-radius: 12px; color: var(--ink);
+    padding: 12px 10px; border-radius: 12px; corner-shape: squircle; color: var(--ink);
   }
   .ym:active { background: var(--sheet); }
   .ym.now .n { color: var(--brass); }
@@ -716,7 +725,7 @@
     transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
   .day-panel.open { max-height: 420px; }
   .dp-box {
-    border-radius: 16px; padding: 14px 16px 12px;
+    border-radius: 16px; corner-shape: squircle; padding: 14px 16px 12px;
     box-shadow: inset 0 0 0 1px var(--hairline);
   }
   .dp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
@@ -765,7 +774,7 @@
   .undo {
     display: none; align-items: center; justify-content: space-between;
     margin: 8px 24px 0; padding: 11px 14px;
-    background: var(--sheet); border-radius: 12px; font-size: 13px; color: var(--ink-4);
+    background: var(--sheet); border-radius: 12px; corner-shape: squircle; font-size: 13px; color: var(--ink-4);
   }
   .undo.show { display: flex; }
   .undo button {
@@ -795,7 +804,7 @@
   .scope-btn {
     width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
     justify-self: start;
-    background: var(--sheet); border-radius: 13px;
+    background: var(--sheet); border-radius: 13px; corner-shape: squircle;
     display: flex; align-items: center; justify-content: center;
   }
   .scope-btn:active { opacity: 0.7; }
@@ -808,7 +817,7 @@
   .scope-scrim[hidden] { display: none; }
   .scope-menu {
     position: absolute; left: 12px; top: 96px; z-index: 41; min-width: 208px;
-    background: var(--sheet); border-radius: 16px; padding: 6px;
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle; padding: 6px;
     box-shadow: 0 18px 40px rgba(0,0,0,0.55);
     transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
   }
@@ -816,7 +825,7 @@
   @keyframes scopeIn { from { opacity: 0; transform: scale(0.94) translateY(-6px); } }
   .scope-menu button {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 12px;
-    background: none; border: none; border-radius: 11px; cursor: pointer;
+    background: none; border: none; border-radius: 11px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; font-size: 15px; color: var(--ink); text-align: left;
   }
   .scope-menu button:active { background: var(--press); }
@@ -868,7 +877,7 @@
     display: flex; flex-direction: column; align-items: center; gap: 1px;
     padding: 3px 1px 4px;
     font-family: inherit; font-size: 15px; color: var(--ink);
-    position: relative; border-radius: 11px; font-variant-numeric: tabular-nums;
+    position: relative; border-radius: 11px; corner-shape: squircle; font-variant-numeric: tabular-nums;
     transition: background 0.25s ease;
   }
   .cal .d.past { color: var(--ink-8); }
@@ -911,7 +920,7 @@
   .bookings { margin-top: 12px; }
   .booking {
     display: flex; align-items: center; gap: 14px; width: 100%;
-    background: var(--sheet); border: none; border-radius: 14px;
+    background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
     padding: 12px 15px; margin-bottom: 8px; cursor: pointer;
     color: var(--ink); font-family: inherit; text-align: left;
   }
@@ -1100,7 +1109,7 @@
   }
   .slot-menu button {
     flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 9px 4px; border: none; border-radius: 12px; background: var(--sheet);
+    padding: 9px 4px; border: none; border-radius: 12px; corner-shape: squircle; background: var(--sheet);
     font-family: inherit; font-size: 11px; color: var(--ink-3); cursor: pointer;
   }
   .slot-menu svg {
@@ -1317,7 +1326,7 @@
   .week { padding: 6px 20px 0; display: flex; flex-direction: column; gap: 4px; }
   .wk-day-row {
     display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: start;
-    padding: 8px; border-radius: 14px;
+    padding: 8px; border-radius: 14px; corner-shape: squircle;
   }
   /* Выбранный день не меняет тип: у него та же раскладка, только обводка.
      Прежде он получал заливку на всю строку и читался объектом другого рода,
@@ -1343,7 +1352,7 @@
      подложка, внутри строки. */
   .wk-list {
     display: flex; flex-direction: column; min-width: 0;
-    background: var(--sheet); border-radius: 14px; overflow: hidden;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle; overflow: hidden;
   }
   .wk-card {
     display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
@@ -1417,7 +1426,7 @@
   }
   .session {
     display: flex; align-items: center; gap: 16px;
-    background: var(--sheet); border-radius: 16px;
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle;
     padding: 16px 18px; margin: 0 24px 10px; cursor: pointer;
   }
   .s-date { text-align: center; min-width: 40px; }
@@ -1434,9 +1443,9 @@
   .empty { color: var(--ink-7); font-size: 14px; padding: 4px 24px 0; }
 
   /* ---------- Настройки ---------- */
-  .seg { display: flex; background: var(--sheet); border-radius: 12px; padding: 3px; margin: 12px 24px 0; }
+  .seg { display: flex; background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 3px; margin: 12px 24px 0; }
   .seg button {
-    flex: 1; background: none; border: none; border-radius: 10px;
+    flex: 1; background: none; border: none; border-radius: 10px; corner-shape: squircle;
     color: var(--ink-4); font-family: inherit; font-size: 14px; font-weight: 550;
     padding: 11px; cursor: pointer; transition: background 0.3s ease, color 0.3s;
   }
@@ -1447,7 +1456,7 @@
   .data-btn {
     display: flex; align-items: center; gap: 11px; width: calc(100% - 48px);
     margin: 10px 24px 0; padding: 13px 15px;
-    background: var(--press-warm); border: none; border-radius: 12px; cursor: pointer;
+    background: var(--press-warm); border: none; border-radius: 12px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; font-size: 15px; font-weight: 600; color: var(--brass);
   }
   .data-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.7; flex-shrink: 0; }
@@ -1523,7 +1532,7 @@
   .scrim.open { opacity: 1; visibility: visible; }
   .sheet {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 70;
-    background: var(--sheet); border-radius: 24px 24px 0 0; padding: 10px 24px 34px;
+    background: var(--sheet); border-radius: 24px 24px 0 0; corner-shape: squircle; padding: 10px 24px 34px;
     transform: translateY(101%); transition: transform 0.38s cubic-bezier(0.25,1,0.4,1);
     /* Список пакетов растёт — лист не должен вылезать за экран */
     max-height: 86vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -1545,7 +1554,7 @@
   .loc-detect {
     display: flex; align-items: center; justify-content: center; gap: 9px;
     width: 100%; margin-top: 18px; padding: 14px;
-    background: var(--press-warm); border: none; border-radius: 12px; cursor: pointer;
+    background: var(--press-warm); border: none; border-radius: 12px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; font-size: 15px; font-weight: 600; color: var(--brass);
   }
   .loc-detect svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
@@ -1557,7 +1566,7 @@
     font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-7); font-weight: 600;
   }
   .loc-fields input {
-    background: var(--sheet); border: none; border-radius: 12px; padding: 13px 14px;
+    background: var(--sheet); border: none; border-radius: 12px; corner-shape: squircle; padding: 13px 14px;
     color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
   }
@@ -1566,7 +1575,7 @@
   /* Поиск места по названию */
   .loc-search {
     display: flex; align-items: center; gap: 10px; margin-top: 10px;
-    background: var(--sheet); border-radius: 12px; padding: 0 14px;
+    background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 0 14px;
   }
   .loc-search svg { width: 17px; height: 17px; stroke: var(--ink-6); fill: none; stroke-width: 1.8; flex-shrink: 0; }
   .loc-search input {
@@ -1594,7 +1603,7 @@
   .picker { position: relative; display: flex; height: 170px; margin-top: 14px; }
   .pick-band {
     position: absolute; left: 0; right: 0; top: 68px; height: 34px;
-    background: rgba(120,120,128,0.16); border-radius: 9px; pointer-events: none;
+    background: rgba(120,120,128,0.16); border-radius: 9px; corner-shape: squircle; pointer-events: none;
   }
   .wheel {
     flex: 1.7; height: 100%; padding: 68px 0;
@@ -1628,7 +1637,7 @@
   .tool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .tool {
     display: flex; flex-direction: column; align-items: center; gap: 6px;
-    background: none; border: none; border-radius: 12px; cursor: pointer;
+    background: none; border: none; border-radius: 12px; corner-shape: squircle; cursor: pointer;
     padding: 11px 2px 9px; font-family: inherit; font-size: 10px;
     color: var(--ink-5); letter-spacing: 0.2px;
     transition: color 0.25s ease, background 0.25s ease;
@@ -1676,7 +1685,7 @@
   .dial-labels span.lit { color: var(--brass); font-weight: 600; }
   .sheet-done {
     width: 100%; margin-top: 20px; padding: 16px;
-    background: var(--brass); border: none; border-radius: 14px;
+    background: var(--brass); border: none; border-radius: 14px; corner-shape: squircle;
     color: var(--on-brass); font-family: inherit; font-size: 16px; font-weight: 650; cursor: pointer;
   }
 
@@ -1704,7 +1713,7 @@
   }
   .card-notes {
     font-size: 15px; color: var(--ink-2); line-height: 1.5;
-    background: var(--sheet); border-radius: 14px; padding: 14px 15px;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle; padding: 14px 15px;
     white-space: pre-wrap; word-break: break-word;
   }
   /* ---------- Карточка события ----------
@@ -1753,13 +1762,13 @@
   .ev-grid[hidden] { display: none; }
   .pane {
     display: block; width: 100%; text-align: left; padding: 13px 14px;
-    background: var(--sheet); border: none; border-radius: 16px; min-width: 0;
+    background: var(--sheet); border: none; border-radius: 16px; corner-shape: squircle; min-width: 0;
     font-family: inherit; color: var(--ink); cursor: pointer;
   }
   .pane.wide { grid-column: 1 / -1; }
   .pane:active { opacity: 0.75; }
   .badge {
-    width: 38px; height: 38px; border-radius: 12px; background: var(--press);
+    width: 38px; height: 38px; border-radius: 12px; corner-shape: squircle; background: var(--press);
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .badge svg { width: 19px; height: 19px; fill: none; stroke: var(--brass); stroke-width: 1.6;
@@ -1786,7 +1795,7 @@
     stroke-linecap: round; stroke-linejoin: round; }
   .go-btn {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
-    background: var(--press); border-radius: 11px; padding: 8px 10px;
+    background: var(--press); border-radius: 11px; corner-shape: squircle; padding: 8px 10px;
     font-size: 13.5px; color: var(--brass); border: none; font-family: inherit;
   }
   .go-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9;
@@ -1794,7 +1803,7 @@
 
   /* Состояние сделки: цепочка звеньев. Закрытое звено золотое и с галкой,
      открытое — пустой кружок; читается без подписи, как лента точек дня */
-  .deal { margin-top: 14px; padding: 14px 12px 12px; background: var(--sheet); border-radius: 18px; }
+  .deal { margin-top: 14px; padding: 14px 12px 12px; background: var(--sheet); border-radius: 18px; corner-shape: squircle; }
   .deal[hidden] { display: none; }
   .deal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .deal-t { font-size: 15px; color: var(--ink); }
@@ -1821,7 +1830,7 @@
   /* Плитка дня */
   .day-tile {
     display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px;
-    margin-top: 14px; padding: 14px 12px; background: var(--sheet); border-radius: 18px;
+    margin-top: 14px; padding: 14px 12px; background: var(--sheet); border-radius: 18px; corner-shape: squircle;
   }
   .day-tile[hidden] { display: none; }
   .dt-date { text-align: center; align-self: center; padding-right: 11px; border-right: 1px solid var(--surface); }
@@ -1877,7 +1886,7 @@
   .pn-wx .pn-t { text-align: right; }
   .wx-hours.wide { margin-left: 0; justify-content: space-between; width: 100%; }
   .wx-pane { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    background: var(--sheet); border-radius: 16px; margin-top: 9px; }
+    background: var(--sheet); border-radius: 16px; corner-shape: squircle; margin-top: 9px; }
   .wx-pane[hidden] { display: none; }
   .wx-now { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
   /* Погодный знак собран из частей: солнце латунное, облако серое, дождь синий */
@@ -1898,7 +1907,7 @@
   .wx-h .pp { font-size: 10px; color: var(--ink-7); }
 
   /* Разворачиваемое: маршрут и референсы. Свёрнуто — знак и суть одной строкой */
-  .fold { margin-top: 9px; background: var(--sheet); border-radius: 16px; overflow: hidden; }
+  .fold { margin-top: 9px; background: var(--sheet); border-radius: 16px; corner-shape: squircle; overflow: hidden; }
   .fold[hidden] { display: none; }
   .fold-head { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
     padding: 13px 14px; background: none; border: none; font-family: inherit; cursor: pointer; }
@@ -1906,8 +1915,8 @@
   .fold.open .fold-body { display: block; }
   .fold.open .chev svg { transform: rotate(90deg); transform-origin: center; }
   .strip { display: flex; gap: 6px; margin-top: 2px; }
-  .strip img { width: 46px; height: 60px; object-fit: cover; border-radius: 9px; flex-shrink: 0; }
-  .strip .ph { width: 46px; height: 60px; border-radius: 9px; flex-shrink: 0;
+  .strip img { width: 46px; height: 60px; object-fit: cover; border-radius: 9px; corner-shape: squircle; flex-shrink: 0; }
+  .strip .ph { width: 46px; height: 60px; border-radius: 9px; corner-shape: squircle; flex-shrink: 0;
     background: repeating-linear-gradient(135deg, var(--hatch) 0 7px, var(--sheet) 7px 14px); }
 
   /* Точки маршрута в развёрнутом виде */
@@ -1937,9 +1946,9 @@
      остальное в строке — обычное содержимое. */
   .ord-row {
     display: flex; align-items: center; gap: 12px; padding: 14px;
-    background: var(--sheet); border-radius: 14px; user-select: none;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle; user-select: none;
   }
-  .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; }
+  .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; corner-shape: squircle; }
   .ord-row .badge svg { width: 17px; height: 17px; }
   .ord-n { flex: 1; font-size: 15.5px; color: var(--ink); }
   /* Ручка — цель для пальца, а не значок: 44 pt по обеим сторонам */
@@ -1967,7 +1976,7 @@
   .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
   .ord-foot[hidden] { display: none; }
   .ord-reset, .ord-done {
-    flex: 1; padding: 14px; border-radius: 14px; border: none;
+    flex: 1; padding: 14px; border-radius: 14px; corner-shape: squircle; border: none;
     font-family: inherit; font-size: 15px; cursor: pointer;
   }
   /* Кнопка — часть композиции, а не плашка-CTA (Design System). «Готово» было
@@ -1989,7 +1998,7 @@
     /* Кнопка центрирует содержимое по вертикали — строка уезжала под лист */
     position: absolute; left: 50%; height: 74px; border: none; padding: 4px 16px 0;
     display: flex; align-items: flex-start;
-    cursor: pointer; background: var(--sheet); border-radius: 22px; text-align: left;
+    cursor: pointer; background: var(--sheet); border-radius: 22px; corner-shape: squircle; text-align: left;
     /* Пружина: карточки не приезжают, а отскакивают на место */
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
   }
@@ -2027,7 +2036,7 @@
   .card-sheet {
     position: relative; z-index: 1;
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
-    background: var(--sheet-2); border-radius: 22px; padding: 18px 12px 16px;
+    background: var(--sheet-2); border-radius: 22px; corner-shape: squircle; padding: 18px 12px 16px;
     /* Лист карточки лежит поверх стопки и кладёт на неё свою тень */
     box-shadow: 0 -7px 18px -4px var(--stack-shade), inset 0 1px 0 var(--stack-edge);
   }
@@ -2038,7 +2047,7 @@
 
   /* Реплика навигатора: одна строка о том, что делать */
   .say { display: flex; gap: 9px; align-items: flex-start; margin-top: 9px;
-    padding: 11px 14px; border-radius: 14px; background: var(--sheet);
+    padding: 11px 14px; border-radius: 14px; corner-shape: squircle; background: var(--sheet);
     font-size: 13.5px; line-height: 1.45; color: var(--ink-3); }
   .say[hidden] { display: none; }
   .say .s-ic { flex-shrink: 0; margin-top: 1px; }
@@ -2066,7 +2075,7 @@
   .rf-tags { display: flex; gap: 7px; overflow-x: auto; padding: 0 16px 10px;
     flex-shrink: 0; scrollbar-width: none; }
   .rf-tags::-webkit-scrollbar { display: none; }
-  .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; border: 1px solid var(--press);
+  .rf-tag { flex: 0 0 auto; padding: 8px 13px; border-radius: 11px; corner-shape: squircle; border: 1px solid var(--press);
     background: none; font-family: inherit; font-size: 13px; color: var(--ink-3); cursor: pointer; }
   .rf-tag.on { background: var(--brass); border-color: var(--brass); color: var(--sheet); }
   .rf-tag .n { color: var(--ink-6); margin-left: 5px; font-variant-numeric: tabular-nums; }
@@ -2076,7 +2085,7 @@
   .rf-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 6px; padding: 0 16px 30px; align-content: start; scrollbar-width: none; }
   .rf-grid::-webkit-scrollbar { display: none; }
-  .rf-cell { aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; border: none;
+  .rf-cell { aspect-ratio: 3/4; border-radius: 10px; corner-shape: squircle; overflow: hidden; border: none;
     padding: 0; background: var(--sheet); cursor: pointer; position: relative; }
   .rf-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .rf-cell.link { display: flex; flex-direction: column; justify-content: flex-end;
@@ -2090,7 +2099,7 @@
   .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
   .rt-row + .rt-row { box-shadow: inset 0 1px 0 var(--surface); }
   .rt-row input {
-    background: var(--surface); border: none; border-radius: 9px; padding: 10px 11px;
+    background: var(--surface); border: none; border-radius: 9px; corner-shape: squircle; padding: 10px 11px;
     color: var(--ink); font-family: inherit; font-size: 15px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
@@ -2107,7 +2116,7 @@
   .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
   .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
-    background: var(--surface); border: none; border-radius: 9px; color: var(--ink-4); cursor: pointer; }
+    background: var(--surface); border: none; border-radius: 9px; corner-shape: squircle; color: var(--ink-4); cursor: pointer; }
   .rt-pick svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
     stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .rt-pick:active { color: var(--brass); }
@@ -2124,10 +2133,10 @@
   .card-money {
     display: flex; justify-content: space-between; align-items: center;
     width: 100%; margin-top: 30px; padding: 14px 15px; min-height: 52px;
-    background: var(--sheet); border: none; border-radius: 14px;
+    background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
     font-family: inherit; font-size: 16px; color: var(--ink); cursor: pointer;
   }
-  .card-money.open { border-radius: 14px 14px 0 0; }
+  .card-money.open { border-radius: 14px 14px 0 0; corner-shape: squircle; }
   .card-money.open + .group { border-radius: 0 0 14px 14px; }
   /* display перебивает hidden — прячем явно (грабли из DECISIONS) */
   .card-money[hidden], #cardOverlay .group[hidden], #cardOverlay .row[hidden],
@@ -2136,12 +2145,12 @@
      а не плашкой, как и все действия продукта */
   .grow-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
     width: 100%; margin-top: 14px; padding: 14px 15px; background: var(--press-warm);
-    border: none; border-radius: 14px; cursor: pointer; font-family: inherit; text-align: left; }
+    border: none; border-radius: 14px; corner-shape: squircle; cursor: pointer; font-family: inherit; text-align: left; }
   .grow-btn[hidden] { display: none; }
   .gb-t { font-size: 16px; font-weight: 600; color: var(--brass); }
   .gb-s { font-size: 12px; color: var(--ink-4); }
   .grow-btn:active { background: var(--press-brass); }
-  .card-grown { margin-top: 12px; padding: 12px 15px; border-radius: 14px;
+  .card-grown { margin-top: 12px; padding: 12px 15px; border-radius: 14px; corner-shape: squircle;
     background: var(--sheet-3); font-size: 14px; color: var(--ink-3); }
   .card-grown[hidden] { display: none; }
   /* В карточке референсы только смотрят: удаление живёт в форме */
@@ -2190,7 +2199,7 @@
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
     color: var(--ink-7); font-weight: 600; margin: 30px 4px 9px;
   }
-  .group { background: var(--sheet); border-radius: 14px; overflow: hidden; }
+  .group { background: var(--sheet); border-radius: 14px; corner-shape: squircle; overflow: hidden; }
   .group .sep { box-shadow: inset 0 1px 0 var(--surface); }
   .g-chips { padding: 13px 15px 15px; }
   .g-chips .chips { margin-top: 0; }
@@ -2215,7 +2224,7 @@
   .caps { display: flex; align-items: center; gap: 6px; }
   .caps .rv-v { min-width: 72px; text-align: center; }
   .row .rv-v {
-    display: inline-block; padding: 5px 10px; border-radius: 9px; border: none;
+    display: inline-block; padding: 5px 10px; border-radius: 9px; corner-shape: squircle; border: none;
     background: var(--field); color: var(--ink); font-variant-numeric: tabular-nums;
     font-family: inherit; font-size: 16px; cursor: pointer;
     transition: background 0.18s ease, color 0.18s ease;
@@ -2244,11 +2253,11 @@
   .daypick { padding: 4px 10px 12px; }
   .dp-nav { display: flex; align-items: center; gap: 8px; padding: 6px 4px 10px; }
   .dp-title { flex: 1; display: flex; align-items: center; gap: 6px;
-    background: none; border: none; padding: 4px 6px; border-radius: 9px;
+    background: none; border: none; padding: 4px 6px; border-radius: 9px; corner-shape: squircle;
     font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer; }
   .dp-title .pt-chev { transition: transform 0.25s ease; }
   .dp-title.open .pt-chev { transform: rotate(-90deg); }
-  .dp-arrow { width: 34px; height: 34px; border: none; border-radius: 10px;
+  .dp-arrow { width: 34px; height: 34px; border: none; border-radius: 10px; corner-shape: squircle;
     background: var(--field); color: var(--ink-3); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; }
   .dp-arrow svg { width: 8px; height: 13px; fill: none; stroke: currentColor;
@@ -2258,7 +2267,7 @@
     font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase;
     color: var(--ink-6); text-align: center; padding-bottom: 4px; }
   .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-  .dp-cell { height: 38px; border: none; background: none; border-radius: 10px;
+  .dp-cell { height: 38px; border: none; background: none; border-radius: 10px; corner-shape: squircle;
     font-family: inherit; font-size: 15px; color: var(--ink); cursor: pointer;
     font-variant-numeric: tabular-nums; }
   .dp-cell.out { color: var(--ink-8); }
@@ -2270,7 +2279,7 @@
   .dp-cell.on:active { background: var(--brass); }
   /* Выбор месяца и года — второй ярус того же окна, а не отдельный экран */
   .dp-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .dp-months button { height: 42px; border: none; border-radius: 11px; background: var(--field);
+  .dp-months button { height: 42px; border: none; border-radius: 11px; corner-shape: squircle; background: var(--field);
     font-family: inherit; font-size: 14px; color: var(--ink); cursor: pointer; }
   .dp-months button.on { background: var(--brass); color: var(--on-brass); font-weight: 600; }
 
@@ -2341,7 +2350,7 @@
      Исключение — поле во всю строку («Невеста», «Телефон»): там подсказка
      сама говорит, что это ввод, а капсула во всю ширину стала бы плашкой. */
   .pay-in {
-    background: var(--field); border: none; border-radius: 9px; padding: 6px 10px;
+    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle; padding: 6px 10px;
     text-align: right; flex: 0 1 132px; min-width: 84px;
     color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
@@ -2362,7 +2371,7 @@
   .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 12px 15px 0; }
   .ref-grid:empty { display: none; }
   .ref-card {
-    position: relative; aspect-ratio: 1/1; border-radius: 10px; overflow: hidden;
+    position: relative; aspect-ratio: 1/1; border-radius: 10px; corner-shape: squircle; overflow: hidden;
     background: var(--sheet); border: none; padding: 0; cursor: pointer; display: block;
   }
   .ref-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -2393,7 +2402,7 @@
   .ref-add { display: flex; gap: 8px; padding: 12px 15px; }
   .ref-btn {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
-    background: var(--sheet); border: none; border-radius: 10px; padding: 11px;
+    background: var(--sheet); border: none; border-radius: 10px; corner-shape: squircle; padding: 11px;
     color: var(--ink-3); font-family: inherit; font-size: 14px; cursor: pointer;
   }
   .ref-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.6; }
@@ -2406,13 +2415,13 @@
     display: none; align-items: center; justify-content: center; padding: 24px;
   }
   .ref-view.open { display: flex; }
-  .ref-view img { max-width: 100%; max-height: 100%; border-radius: 12px; }
+  .ref-view img { max-width: 100%; max-height: 100%; border-radius: 12px; corner-shape: squircle; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
   /* Количество вводится степпером, не клавиатурой */
   .stepper { display: inline-flex; align-items: center; gap: 2px; }
   .stepper button {
-    width: 38px; height: 34px; border: none; border-radius: 10px;
+    width: 38px; height: 34px; border: none; border-radius: 10px; corner-shape: squircle;
     background: var(--press); color: var(--ink-3); font-family: inherit; font-size: 19px;
     cursor: pointer; line-height: 1;
   }
@@ -2423,7 +2432,7 @@
     width: 58px; padding: 6px 2px; text-align: center; background: var(--field); border: none;
     font-family: inherit; font-size: 16px; color: var(--ink);
     font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none;
-    outline: none; border-radius: 9px;
+    outline: none; border-radius: 9px; corner-shape: squircle;
     transition: background 0.18s ease, color 0.18s ease;
   }
   .stepper .step-in:focus { background: rgba(226,164,76,0.16); color: var(--brass); }
@@ -2443,7 +2452,7 @@
   }
   .pack-item { display: flex; gap: 6px; align-items: center; padding: 0 15px 10px; }
   .pack-item input {
-    background: var(--sheet); border: none; border-radius: 10px; padding: 10px 10px;
+    background: var(--sheet); border: none; border-radius: 10px; corner-shape: squircle; padding: 10px 10px;
     color: var(--ink); font-family: inherit; font-size: 14px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
@@ -2480,7 +2489,7 @@
     color: var(--ink-7); font-weight: 600; display: block; margin-bottom: 9px;
   }
   .field input[type="text"], .field textarea {
-    width: 100%; background: var(--sheet); border: none; border-radius: 12px;
+    width: 100%; background: var(--sheet); border: none; border-radius: 12px; corner-shape: squircle;
     color: var(--ink); font-family: inherit; font-size: 16px;
     padding: 14px 15px; outline: none; -webkit-appearance: none; appearance: none;
   }
@@ -2498,14 +2507,14 @@
 
   /* ---------- Организации и документы ---------- */
   .org-seg { display: flex; gap: 8px; margin: 14px 0 4px; }
-  .org-seg button { flex: 1; padding: 11px; border-radius: 12px; border: none;
+  .org-seg button { flex: 1; padding: 11px; border-radius: 12px; corner-shape: squircle; border: none;
     background: var(--sheet); color: var(--ink-4); font-family: inherit; font-size: 14px; }
   .org-seg button.active { background: var(--press); color: var(--ink); }
   .org-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-    margin-top: 10px; padding: 14px; background: var(--sheet); border: none; border-radius: 16px;
+    margin-top: 10px; padding: 14px; background: var(--sheet); border: none; border-radius: 16px; corner-shape: squircle;
     font-family: inherit; color: var(--ink); }
   .org-item:active { opacity: 0.7; }
-  .org-item .badge { width: 34px; height: 34px; border-radius: 11px; }
+  .org-item .badge { width: 34px; height: 34px; border-radius: 11px; corner-shape: squircle; }
   .org-item .badge svg { width: 17px; height: 17px; }
   .org-b { min-width: 0; flex: 1; }
   .org-n { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2513,7 +2522,7 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Строка документа: вид слева, имя и размер справа. Тап открывает файл */
   .doc-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
-    margin-top: 8px; padding: 12px 14px; background: var(--sheet); border: none; border-radius: 14px;
+    margin-top: 8px; padding: 12px 14px; background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
     font-family: inherit; color: var(--ink); }
   .doc-row:active { opacity: 0.7; }
   .doc-row .k { flex: 0 0 auto; font-size: 11px; color: var(--brass); letter-spacing: 0.2px;
@@ -2528,7 +2537,7 @@
   /* Прогноз против замысла — предупреждаем спокойно, без красного */
   .wish-warn {
     display: none; margin-top: 10px; padding: 12px 14px;
-    background: var(--warn-bg); border-radius: 12px;
+    background: var(--warn-bg); border-radius: 12px; corner-shape: squircle;
     border-left: 2px solid var(--brass-deep); font-size: 13px; line-height: 1.5;
   }
   .wish-warn.show { display: block; }
@@ -2540,14 +2549,14 @@
     position: absolute; top: 12px; left: 10px; right: 10px; z-index: 95;
     background: var(--overlay-3);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border-radius: 18px; padding: 13px 15px; display: flex; gap: 11px;
+    border-radius: 18px; corner-shape: squircle; padding: 13px 15px; display: flex; gap: 11px;
     transform: translateY(-140%); opacity: 0;
     transition: transform 0.5s cubic-bezier(0.25,1,0.4,1), opacity 0.4s ease;
     box-shadow: 0 12px 30px rgba(0,0,0,0.5);
   }
   .notif.show { transform: none; opacity: 1; }
   .n-icon {
-    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    width: 34px; height: 34px; border-radius: 9px; corner-shape: squircle; flex-shrink: 0;
     background: linear-gradient(160deg, var(--brass), var(--brass-dark));
     display: flex; align-items: center; justify-content: center;
   }
@@ -2561,7 +2570,7 @@
 
   .home {
     position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-    width: 134px; height: 5px; border-radius: 10px;
+    width: 134px; height: 5px; border-radius: 10px; corner-shape: squircle;
     background: #fff; opacity: 0.14; z-index: 90; pointer-events: none;
   }
 </style>
