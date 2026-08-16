@@ -55,6 +55,8 @@
     --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
     --ink-a22: rgba(239,234,224,0.22); --ink-a20: rgba(239,234,224,0.2);
     --ink-a24: rgba(239,234,224,0.24); --ink-a40: rgba(239,234,224,0.4);
+    --ink-a12: rgba(239,234,224,0.12); --ink-a10: rgba(239,234,224,0.10);
+    --ink-a08: rgba(239,234,224,0.08);
     --bg: #070606; --surface: #0F0E0C; --canvas: #14110E;
     --sheet: #17150F; --sheet-2: #131109; --sheet-3: #1A1710;
     --sheet-4: #1A1712; --warn-bg: #191510; --bad-bg: #1D1512;
@@ -94,6 +96,8 @@
     --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
     --ink-a22: rgba(23,21,15,0.22); --ink-a20: rgba(23,21,15,0.2);
     --ink-a24: rgba(23,21,15,0.24); --ink-a40: rgba(23,21,15,0.4);
+    --ink-a12: rgba(23,21,15,0.12); --ink-a10: rgba(23,21,15,0.10);
+    --ink-a08: rgba(23,21,15,0.08);
     --bg: #EDE9E1; --surface: #FAF8F3; --sheet: #FFFFFF;
     --sheet-2: #F1EDE4; --sheet-3: #FFFFFF; --sheet-4: #FFFFFF;
     --warn-bg: #FBF1DE; --bad-bg: #FBE7DC; --badge-bg: #F4F0E6;
@@ -1107,23 +1111,61 @@
   .dl-layer { position: absolute; inset: 0; pointer-events: none; }
   .dl-layer > * { pointer-events: auto; }
   .dl-slot { height: 38px; min-height: 0; }
-  /* Блок события. Рамка, а не заливка: заливка спорит с текстом в светлой
-     теме и пропадает в тёмной — это уже пробовали. Левый край латунью
-     называет род события, как точка на прежней ленте */
+  /* Событие — отрезок на оси, а не плашка поверх неё.
+     Прежний блок был карточкой: своя рамка со всех сторон, свой непрозрачный
+     фон, свои скруглённые углы. Он лежал на ленте чужеродно — предмет,
+     положенный на прибор, а не показание прибора. Разница видна по тому, что
+     он делал с осью: закрывал её собой, и сутки в этом месте прерывались.
+     Теперь занятое время размечено так же, как размечают интервал на шкале:
+       — черта в начале и в конце, латунью, ровно на своей минуте;
+       — вертикальная нить вдоль всего отрезка, впритык к оси;
+       — лёгкая заливка между ними, гаснущая вправо.
+     Заливка здесь не та, что была отвергнута. Тогда закрашивали чужие клетки —
+     часы сетки под длинной съёмкой, — и она лезла под текст в светлой теме и
+     пропадала в тёмной. Эта заливка принадлежит самому событию, взята от
+     латуни (то есть видна на обеих подложках) и уходит в прозрачность к
+     правому краю: область остаётся открытой и не превращается в плашку.
+     Ось при этом цела: нить события идёт рядом с ней, а не поверх — фазы
+     света видны и там, где стоит съёмка. */
   .dl-ev {
-    position: absolute; left: 64px; right: 0; overflow: hidden;
+    position: absolute; left: 70px; right: 0; overflow: hidden;
     display: flex; align-items: flex-start; gap: 8px;
-    padding: 6px 10px; border-radius: 10px;
-    background: var(--surface); box-sizing: border-box;
-    box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--brass);
+    /* Отступ по вертикали — три пикселя, а не пять: часовое событие отдаёт
+       рамкам два пикселя и должно уместить две строки в оставшиеся тридцать.
+       При пяти вторая строка обрезалась ровно у часовых событий, то есть у
+       самых частых */
+    padding: 3px 10px 3px 28px; box-sizing: border-box;
+    background: linear-gradient(90deg,
+      rgba(226,164,76,0.16), rgba(226,164,76,0.05) 58%, rgba(226,164,76,0) 92%);
+    border-top: 1px solid rgba(226,164,76,0.55);
+    border-bottom: 1px solid rgba(226,164,76,0.30);
     cursor: pointer;
   }
-  .dl-ev:active { background: var(--press); }
-  .dl-ev.meet { box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--ink-6); }
-  .dl-ev.busy { box-shadow: inset 0 0 0 1px var(--hairline), inset 3px 0 0 var(--ink-8); }
+  /* Нить отрезка: та же ширина, что у оси, и вплотную к ней — событие
+     читается продолжением линии, а не соседом */
+  .dl-ev::before {
+    content: ""; position: absolute; left: 13px; top: 0; bottom: 0;
+    width: 3px; border-radius: 2px; background: var(--brass);
+  }
+  .dl-ev:active { background: linear-gradient(90deg,
+      rgba(226,164,76,0.26), rgba(226,164,76,0.09) 58%, rgba(226,164,76,0) 92%); }
+  /* Встреча и занятость — тот же отрезок, но не про свет: латунь достаётся
+     съёмке, им остаётся чернильный тон. Занятость глуше встречи */
+  .dl-ev.meet {
+    background: linear-gradient(90deg, var(--ink-a10), rgba(0,0,0,0) 78%);
+    border-top-color: var(--ink-a24); border-bottom-color: var(--ink-a12);
+  }
+  .dl-ev.meet::before { background: var(--ink-6); }
+  .dl-ev.busy {
+    background: linear-gradient(90deg, var(--ink-a08), rgba(0,0,0,0) 70%);
+    border-top-color: var(--ink-a12); border-bottom-color: var(--ink-a08);
+  }
+  .dl-ev.busy::before { background: var(--ink-8); }
   .dl-ev-b { min-width: 0; display: flex; flex-direction: column; }
-  .dl-ev .dl-title { font-size: 14px; }
-  .dl-ev .dl-sub { font-size: 12px; }
+  /* Плотный интерлиньяж внутри отрезка: две строки обязаны уместиться в час,
+     иначе у часовой съёмки время срезается по нижнему краю */
+  .dl-ev .dl-title { font-size: 14px; line-height: 1.1; }
+  .dl-ev .dl-sub { font-size: 12px; line-height: 1.1; }
   /* Курсива в ленте нет. В клетке месяца он остаётся — там у подписи нет ни
      знака, ни цветного края, и отличать занятость больше нечем. В ленте оба
      признака уже есть: свой знак слева и глухой цвет края, — а наклонная
@@ -6259,7 +6301,12 @@
        съёмку тоже надо уметь прочитать. Что поместится внутрь, решает высота:
        время всегда, срок сдачи — если блок дорос до двух часов. */
     items.forEach(function (it) {
-      var top = topOf(it.a), hgt = Math.max(34, topOf(it.b) - top - 2);
+      /* Зазора между соседями больше нет. Он был нужен плашкам, чтобы две
+         карточки не слипались в одну; у отрезков на шкале слипаться нечему —
+         одно событие кончается там, где начинается следующее, и это правда о
+         дне, а не теснота. Заодно час снова стоит ровно час: два отнятых
+         пикселя срезали вторую строку у часовой съёмки. */
+      var top = topOf(it.a), hgt = Math.max(34, topOf(it.b) - top);
       var meet = it.kind === "meet", busy = it.kind === "busy";
       var s2 = it.s, b = it.blk;
       var name = busy ? blockLabel(b)
