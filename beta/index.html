@@ -1664,28 +1664,20 @@
      docs/11_EVENT_CARD.md. Плотные плитки со знаками: фотограф ловит глазом
      на ходу, а не читает строки. Маршрут и референсы разворачиваются. */
 
-  /* Знак жанра стоит слева от имени, а не над ним. Своей строкой он забирал
-     полсотни пикселей высоты шапки — и это в самом верху карточки, куда
-     смотрят первым делом и где дороже всего место. Слева он занимает ту
-     высоту, которую и так занимают две строки имени, а шапка поднимается на
-     эту полусотню: телефон и счёт до события оказываются на экране сразу.
-     Состав шапки не тронут — имена, счёт, телефон, — переставлен только знак.
-     Название карточки стоит по центру: это заголовок, а заголовок центрируют.
-     Знак при этом остаётся у левого края — раскладка шапки-навигации, где
-     ведущий знак живёт в углу, а название держит середину.
-     Центр считается от карточки, а не от остатка строки: знак вынут из потока,
-     а тексту даны равные поля с обеих сторон, шириной со знак. Иначе выходит
-     то, что уже было поймано на обтекании, — имя центрируется по остатку
-     ширины, подпись под ним по всей, и центры у них разные. */
-  .ev-head { margin: 2px 0 0; position: relative; min-height: 36px;
-    display: flex; align-items: center; }
+  /* Знак жанра стоит над именем и по центру — как и был. Перенос его влево
+     ради высоты был отвергнут: он тянул за собой раскладку всей шапки, и
+     заголовок каждый раз оказывался то не по центру, то поверх знака. Беда
+     была не в том, где знак стоит, а в том, сколько он занимал: 62 × 46 своей
+     строкой. Уменьшенный до 40 × 30 он отдаёт шапке те же пикселы, ничего в
+     ней не двигая. Простое решение нашлось после двух сложных — след оставлен
+     в DECISIONS, чтобы не заходить туда снова. */
+  .ev-head { margin: 2px 0 0; text-align: center; }
   .ev-head[hidden] { display: none; }
-  .ev-text { min-width: 0; flex: 1 1 auto; padding: 0 60px; text-align: center; }
-  .ev-sign { position: absolute; left: 0; top: 50%; transform: translateY(-50%); line-height: 0; }
-  .ev-sign svg { width: 46px; height: 36px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
+  .ev-sign { display: block; margin: 0 auto; line-height: 0; }
+  .ev-sign svg { width: 40px; height: 30px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
   .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
-    line-height: 1.1; margin-top: 0; }
+    line-height: 1.1; margin-top: 6px; }
   .ev-person { font-size: 14.5px; color: var(--ink-2); margin-top: 5px; }
   .ev-person[hidden] { display: none; }
   .ev-when { font-size: 13px; color: var(--green); margin-top: 5px; }
@@ -3103,22 +3095,17 @@
     <div class="stack-wrap">
     <div class="peeks" id="cdPeeks" hidden></div>
     <div class="card-sheet" id="cdSheet">
-    <!-- Знак и текст — две колонки, а не текст, обтекающий знак. Обтекание
-         развело выравнивание: имя вставало по остатку строки, а подпись под
-         ним — по всей ширине, и одно с другим не совпадало -->
     <div class="ev-head" id="cdEvHead" hidden>
       <div class="ev-sign" id="cdEvSign"></div>
-      <div class="ev-text">
-        <div class="ev-names" id="cdEvNames">—</div>
-        <!-- У заказа крупно организация, а контактное лицо строкой ниже:
-             менеджер меняется, юрлицо остаётся (docs/12_CARD_ARCHITECTURE.md) -->
-        <div class="ev-person" id="cdEvPerson" hidden>—</div>
-        <div class="ev-when" id="cdEvWhen">—</div>
-        <a class="ev-tel" id="cdEvTel" href="tel:" hidden>
-          <span id="cdEvTelN">—</span>
-          <span data-ic="phone"></span>
-        </a>
-      </div>
+      <div class="ev-names" id="cdEvNames">—</div>
+      <!-- У заказа крупно организация, а контактное лицо строкой ниже:
+           менеджер меняется, юрлицо остаётся (docs/12_CARD_ARCHITECTURE.md) -->
+      <div class="ev-person" id="cdEvPerson" hidden>—</div>
+      <div class="ev-when" id="cdEvWhen">—</div>
+      <a class="ev-tel" id="cdEvTel" href="tel:" hidden>
+        <span id="cdEvTelN">—</span>
+        <span data-ic="phone"></span>
+      </a>
     </div>
 
     <!-- Стопка дня: соседние съёмки лежат под этой карточкой и выглядывают
