@@ -11605,5 +11605,35 @@
   yaCatchToken(); yaLoadToken(); renderYaInfo();   // вернулись от Яндекса — забираем токен
 })();
 </script>
+
+<!-- ВРЕМЕННАЯ ДИАГНОСТИКА прокрутки на устройстве. Снять после разбора. -->
+<div id="dbg" style="position:fixed;left:6px;top:56px;z-index:99999;font:10px/1.35 ui-monospace,monospace;color:#7CFF9B;background:rgba(0,0,0,0.72);padding:5px 7px;white-space:pre;pointer-events:none;border-radius:6px"></div>
+<script>
+(function () {
+  var box = document.getElementById("dbg");
+  var moves = 0, starts = 0, lastTarget = "—";
+  document.addEventListener("touchstart", function (e) {
+    starts++;
+    var t = e.target;
+    lastTarget = (t.tagName || "?").toLowerCase() + "." + ((t.className || "") + "").toString().slice(0, 22);
+  }, { passive: true });
+  document.addEventListener("touchmove", function () { moves++; }, { passive: true });
+  setInterval(function () {
+    var s = document.getElementById("s-map");
+    var dev = document.querySelector(".device");
+    var cs = getComputedStyle(document.documentElement);
+    var f = document.querySelector(".map-frame").getBoundingClientRect();
+    box.textContent =
+      "screen sh/ch " + s.scrollHeight + "/" + s.clientHeight + "  top " + Math.round(s.scrollTop) + "\n" +
+      "over " + (s.scrollHeight - s.clientHeight) + "  padB " + getComputedStyle(s).paddingBottom + "\n" +
+      "dockh " + cs.getPropertyValue("--dockh") + " tabh " + cs.getPropertyValue("--tabh") + "\n" +
+      "device h " + Math.round(dev.getBoundingClientRect().height) + " ovf " + getComputedStyle(dev).overflow + "\n" +
+      "innerH " + window.innerHeight + " vv " + (window.visualViewport ? Math.round(visualViewport.height) : "—") + "\n" +
+      "frame " + Math.round(f.width) + "x" + Math.round(f.height) + "\n" +
+      "touch start/move " + starts + "/" + moves + "\n" +
+      "on " + lastTarget;
+  }, 300);
+})();
+</script>
 </body>
 </html>
