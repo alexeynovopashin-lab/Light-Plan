@@ -4623,6 +4623,7 @@
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: themePref,
+        pro: proMode,
         trashed: trashed.map(function (t) {
           var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
           return { rec: r, at: t.at, del: t.del };
@@ -4937,6 +4938,10 @@
   var mapFoldShut = !!(saved && saved.mapFold);
   // Подписи на карте — выключены, пока их не попросили
   var mapLabels = !!(saved && saved.mapLabels);
+  /* Астро-режим сохраняется наравне с темой. Он не сохранялся вовсе: стоял
+     первым в настройках, включался — и слетал при следующем запуске. Настройка,
+     которую надо ставить заново каждый раз, читается как сломанная. */
+  var proMode = !!(saved && saved.pro);
   /* Порог дороги между площадками. Сорок минут остаются умолчанием — они
      записаны в решении о наложениях, — но перестают быть законом природы */
   var travelMin = (saved && +saved.travelMin) || 40;
@@ -10653,6 +10658,13 @@
   });
   renderUnitSeg();
 
+  /* Сохранённый астро-режим — и на теле, и в самом переключателе: иначе
+     сегмент показывал бы «Просто» там, где на экранах стоят азимуты */
+  document.body.classList.toggle("pro-mode", proMode);
+  document.querySelectorAll("#modeSeg button").forEach(function (b) {
+    b.classList.toggle("active", (b.dataset.mode === "pro") === proMode);
+  });
+
   $("labelsToggle").classList.toggle("on", mapLabels);
   $("labelsToggle").addEventListener("click", function () {
     this.classList.toggle("on");
@@ -10943,7 +10955,9 @@
     b.addEventListener("click", function () {
       document.querySelectorAll("#modeSeg button").forEach(function (x) { x.classList.remove("active"); });
       b.classList.add("active");
-      document.body.classList.toggle("pro-mode", b.dataset.mode === "pro");
+      proMode = b.dataset.mode === "pro";
+      document.body.classList.toggle("pro-mode", proMode);
+      saveAll();
       // Деления компаса живут в SVG, а не в CSS: одним классом их не показать
       renderMap();
     });
