@@ -2099,25 +2099,38 @@
   .bar { height: 6px; border-radius: 3px; background: var(--press); overflow: hidden; margin-top: 8px; }
   .bar span { display: block; height: 100%; background: var(--green); border-radius: 3px; }
 
-  /* Перестановка блоков: карточка сворачивается в список заголовков */
+  /* Перестановка блоков идёт в самой карточке: блок сворачивается в свой
+     заголовок и там же таскается. Прежде рядом жил отдельный список строк —
+     он повторял те же блоки теми же знаками и подписями, то есть заводил
+     вторую сущность на ту же вещь. Переставлять надо предмет, а не его
+     представителя: тогда видно, куда именно встанет блок, и после «Готово»
+     ничего не надо сопоставлять глазами.
+     Заголовок кладётся поверх блока, а не внутрь него: блоки устроены
+     по-разному — сетка плиток, плитка дня, пустой контейнер под разметку из
+     кода, — и вставленный внутрь узел у сетки стал бы ячейкой. Поверх работает
+     одинаково у всех, какой бы ни была начинка. */
   .card-bar-r { display: flex; align-items: center; gap: 10px; }
-  .ord-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-  .ord-list[hidden] { display: none; }
-  /* `touch-action: none` снят со строки и отдан ручке. Пока он висел на всей
-     строке, список нельзя было прокрутить: любое движение пальцем по нему
-     считалось перетаскиванием, и страница стояла. Тянут за знак «=», всё
-     остальное в строке — обычное содержимое. */
-  .ord-row {
-    display: flex; align-items: center; gap: 12px; padding: 14px;
-    background: var(--sheet); border-radius: 14px; corner-shape: squircle; user-select: none;
+  #cdEventBlocks.ord { display: flex; flex-direction: column; gap: 8px; }
+  #cdEventBlocks.ord > * {
+    position: relative; display: block; height: 56px; overflow: hidden;
+    margin: 0; padding: 0; border: none; box-shadow: none;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle;
+    user-select: none;
   }
-  .ord-row .badge { width: 32px; height: 32px; border-radius: 10px; corner-shape: squircle; }
-  .ord-row .badge svg { width: 17px; height: 17px; }
+  /* Начинка блока прячется видимостью, а не `display`: так блок сохраняет свою
+     раскладку и разворачивается обратно ровно тем же, чем был */
+  #cdEventBlocks.ord > * > *:not(.ord-cap) { visibility: hidden; }
+  .ord-cap {
+    position: absolute; inset: 0; visibility: visible;
+    display: flex; align-items: center; gap: 12px; padding: 0 0 0 14px;
+  }
+  .ord-cap .badge { width: 32px; height: 32px; border-radius: 10px; corner-shape: squircle; }
+  .ord-cap .badge svg { width: 17px; height: 17px; }
   .ord-n { flex: 1; font-size: 15.5px; color: var(--ink); }
   /* Ручка — цель для пальца, а не значок: 44 pt по обеим сторонам */
   .ord-grip {
     display: flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px; margin: -14px -14px -14px 0;
+    width: 56px; height: 56px; flex-shrink: 0;
     touch-action: none; cursor: grab;
   }
   .ord-grip:active { cursor: grabbing; }
@@ -2125,17 +2138,17 @@
     width: 20px; height: 20px; fill: none; stroke: var(--ink-7); stroke-width: 1.8;
     stroke-linecap: round;
   }
-  /* Строка в руке идёт поверх соседей: без своего слоя она подлезала под них
-     и в момент перестановки читалась двумя подписями в одной полосе */
-  .ord-row.drag { background: var(--press); box-shadow: 0 8px 24px rgba(0,0,0,0.45);
-    position: relative; z-index: 5; }
+  /* Блок в руке идёт поверх соседей: без своего слоя он подлезал под них
+     и в момент перестановки читался двумя подписями в одной полосе */
+  #cdEventBlocks.ord > *.drag { background: var(--press);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45); z-index: 5; }
   /* Блока нет в этой съёмке — приглушается содержимое строки, но не сама
      строка. Пока гасла вся плашка целиком, полупрозрачные строки читались как
      «выключенные» или, наоборот, как выбранные, и список спорил сам с собой:
      непонятно, какая строка сейчас в руке. Плашки теперь одинаковы у всех,
      разной остаётся только насыщенность подписи — так же, как занятость
      отличается от съёмки в календаре. */
-  .ord-row.off .badge, .ord-row.off .ord-n { opacity: 0.45; }
+  #cdEventBlocks.ord > *.off .badge, #cdEventBlocks.ord > *.off .ord-n { opacity: 0.45; }
   .ord-foot { display: flex; gap: 10px; margin-top: 18px; }
   .ord-foot[hidden] { display: none; }
   .ord-reset, .ord-done {
@@ -3366,13 +3379,6 @@
          краями, как окна в многозадачности. Тап по краю поднимает соседа -->
 
     <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
-    <div id="cdOrderList" class="ord-list" hidden></div>
-    <div class="ord-foot" id="cdOrderFoot" hidden>
-      <!-- «По умолчанию», а не «вернуть наш порядок»: кнопка говорит, что
-           получится, а не чей это был порядок -->
-      <button type="button" class="ord-reset" id="cdOrderReset">По умолчанию</button>
-      <button type="button" class="ord-done" id="cdOrderDone">Готово</button>
-    </div>
 
     <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
     <div id="cdEventBlocks">
@@ -3442,6 +3448,15 @@
       </button>
       <div class="fold-body" id="cdDocBody"></div>
     </div>
+    </div>
+
+    <!-- Подвал настройки стоит под самими блоками, а не над ними: он относится
+         к тому, что фотограф только что переставил, и читается после списка -->
+    <div class="ord-foot" id="cdOrderFoot" hidden>
+      <!-- «По умолчанию», а не «вернуть наш порядок»: кнопка говорит, что
+           получится, а не чей это был порядок -->
+      <button type="button" class="ord-reset" id="cdOrderReset">По умолчанию</button>
+      <button type="button" class="ord-done" id="cdOrderDone">Готово</button>
     </div>
 
     </div><!-- /sheet -->
@@ -9116,24 +9131,47 @@
     var s = sessions[cardIdx];
     if (!s) return;
     ordMode = on;
-    $("cdEventBlocks").hidden = on;
-    $("cdOrderList").hidden = !on;
     $("cdOrderFoot").hidden = !on;
     $("cardEdit").hidden = on;
     $("cardOrder").classList.toggle("ok", on);
-    if (on) renderOrderList(s); else { renderEventCard(s); $("cardOverlay").scrollTop = 0; }
+    if (on) foldBlocks(s); else { unfoldBlocks(); renderEventCard(s); }
   }
-  function renderOrderList(s) {
-    var host = $("cdOrderList");
-    host.innerHTML = orderFor(s.type).map(function (k) {
-      var b = CARD_BLOCKS.filter(function (x) { return x.k === k; })[0];
-      var empty = $(b.el).hidden;              // блока нет в этой съёмке — но порядок ему нужен
-      return '<div class="ord-row' + (empty ? " off" : "") + '" data-k="' + k + '">'
-        + '<span class="badge">' + IC.svg(b.ic) + "</span>"
+  /* Блоки сворачиваются в свои заголовки на своих же местах. Блок, которого в
+     этой съёмке нет, показывается приглушённым: порядок ему всё равно нужен —
+     он появится, как только появится поле. Прежнее `hidden` запоминается, чтобы
+     выход из режима вернул карточку ровно такой, какой она была. */
+  function foldBlocks(s) {
+    var host = $("cdEventBlocks");
+    host.classList.add("ord");
+    CARD_BLOCKS.forEach(function (b) {
+      var el = $(b.el);
+      if (!el) return;
+      el.dataset.k = b.k;
+      el.dataset.wasHidden = el.hidden ? "1" : "";
+      el.classList.toggle("off", el.hidden);
+      el.hidden = false;
+      var cap = document.createElement("div");
+      cap.className = "ord-cap";
+      cap.innerHTML = '<span class="badge">' + IC.svg(b.ic) + "</span>"
         + '<span class="ord-n">' + b.n + "</span>"
-        + '<span class="ord-grip"><svg viewBox="0 0 24 24"><path d="M4 9h16M4 15h16"/></svg></span></div>';
-    }).join("");
-    host.querySelectorAll(".ord-row").forEach(function (row) { dragRow(row, host, s); });
+        + '<span class="ord-grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">'
+        + '<path d="M4 9h16M4 15h16"/></svg></span>';
+      el.insertBefore(cap, el.firstChild);
+      dragBlock(el, host, s);
+    });
+  }
+  function unfoldBlocks() {
+    var host = $("cdEventBlocks");
+    host.classList.remove("ord");
+    CARD_BLOCKS.forEach(function (b) {
+      var el = $(b.el);
+      if (!el) return;
+      var cap = el.querySelector(":scope > .ord-cap");
+      if (cap) cap.remove();
+      el.classList.remove("off", "drag");
+      el.hidden = el.dataset.wasHidden === "1";
+      delete el.dataset.wasHidden;
+    });
   }
   /* Перетаскивание пальцем: строка едет за пальцем, соседи расступаются.
      HTML5 drag-and-drop на телефоне не работает вовсе — только указатели. */
@@ -9142,8 +9180,9 @@
      блоки до конца, переставлял тот, с которого начал. Прокрутка и
      перестановка — оба вертикальные жесты на одном узле, и в таком споре
      выключать надо явно (грабля про жест-соседа уже записана). */
-  function dragRow(row, host, s) {
-    var grip = row.querySelector(".ord-grip");
+  function dragBlock(row, host, s) {
+    var grip = row.querySelector(":scope > .ord-cap > .ord-grip");
+    if (!grip) return;
     grip.addEventListener("pointerdown", function (e) {
       if (e.button) return;
       e.preventDefault();                      // палец на ручке страницу не листает
@@ -9201,7 +9240,12 @@
     var s = sessions[cardIdx];
     if (!s) return;
     delete cardOrder[groupOf(s.type)];
-    saveAll(); renderOrderList(s);
+    saveAll();
+    /* Сброс перекладывает сами блоки: сворачиваем, ставим их по умолчанию и
+       сворачиваем снова — иначе на экране остался бы прежний порядок */
+    unfoldBlocks();
+    applyOrder(s.type, eventPhase(s, isMeet(s) ? [] : routeOf(s)));
+    foldBlocks(s);
   });
 
   function renderEventCard(s) {
