@@ -6535,8 +6535,32 @@
         : WD[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()] });
     }
   })();
+  /* Короткие барабаны закольцованы. При шаге в полчаса у минут всего два
+     значения, и барабан упирался в край списка: над «10» пусто, под «30»
+     пусто — прибор выглядел сломанным, хотя работал верно. Настоящие колёса
+     не кончаются, и минуты с часами по природе цикличны: за 23 идёт 00.
+     Поэтому список повторяется нечётное число раз, барабан стоит в средней
+     копии, а после остановки незаметно возвращается в неё же — подписи в
+     копиях одинаковы, и подмены не видно.
+     Даты не кольцуются никогда: за декабрём там идёт январь следующего года,
+     и закольцевать их значило бы соврать о времени. Отсюда порог: кольцуем
+     то, что короче суток. */
   function fill(el2, labels) {
-    el2.innerHTML = labels.map(function (l) { return '<div class="w-item">' + l + "</div>"; }).join("");
+    var n = labels.length;
+    var reps = (n && n <= 60) ? (n >= 24 ? 3 : 2 * Math.ceil(9 / n) + 1) : 1;
+    el2._n = n; el2._reps = reps;
+    var all = [];
+    for (var r = 0; r < reps; r++) all = all.concat(labels);
+    el2.innerHTML = all.map(function (l) { return '<div class="w-item">' + l + "</div>"; }).join("");
+  }
+  function wheelMid(el2) { return Math.floor((el2._reps || 1) / 2) * (el2._n || 0); }
+  /* Возврат в среднюю копию после остановки. Позиция кратна строке, поэтому
+     снап её не двигает, а подпись под пальцем остаётся той же самой */
+  function recycleWheel(el2) {
+    if (!el2._n || !el2._reps || el2._reps < 2) return;
+    var raw = Math.round(el2.scrollTop / ITEM);
+    var want = wheelMid(el2) + ((raw % el2._n) + el2._n) % el2._n;
+    if (want !== raw) { el2.scrollTop = want * ITEM; styleWheel(el2); }
   }
   fill(wDate, dateList.map(function (x) { return x.label; }));
   fill(wHour, Array.apply(null, Array(24)).map(function (_, i) { return pad(i); }));
@@ -6556,19 +6580,29 @@
     }
     el2._win = [lo, hi];
   }
-  function wheelIndex(el2) { return clamp(Math.round(el2.scrollTop / ITEM), 0, el2.children.length - 1); }
+  /* Наружу барабан отдаёт номер значения, а не номер строки: копий может быть
+     одиннадцать, значений по-прежнему два */
+  function wheelIndex(el2) {
+    var raw = clamp(Math.round(el2.scrollTop / ITEM), 0, el2.children.length - 1);
+    return (el2._reps > 1 && el2._n) ? ((raw % el2._n) + el2._n) % el2._n : raw;
+  }
   function setWheel(el2, i, smooth) {
-    if (smooth) el2.scrollTo({ top: i * ITEM, behavior: "smooth" });
-    else { el2.scrollTop = i * ITEM; styleWheel(el2); }
+    var row = (el2._reps > 1 && el2._n) ? wheelMid(el2) + (((i % el2._n) + el2._n) % el2._n) : i;
+    if (smooth) el2.scrollTo({ top: row * ITEM, behavior: "smooth" });
+    else { el2.scrollTop = row * ITEM; styleWheel(el2); }
   }
   /* Перспектива пересчитывается на каждый кадр прокрутки;
      onSettle — значение снимается, когда барабан остановился */
   function attachWheel(el2, onSettle) {
     el2.addEventListener("scroll", function () {
       if (!el2._raf) el2._raf = requestAnimationFrame(function () { el2._raf = null; styleWheel(el2); });
-      if (!onSettle) return;
       clearTimeout(el2._settle);
-      el2._settle = setTimeout(function () { if (!el2._quiet) onSettle(); }, 150);
+      el2._settle = setTimeout(function () {
+        /* Возврат в среднюю копию — после остановки, а не по ходу: подвинуть
+           ленту под движущимся пальцем значит сорвать инерцию */
+        if (!el2._quiet) recycleWheel(el2);
+        if (onSettle && !el2._quiet) onSettle();
+      }, 150);
     }, { passive: true });
   }
   [wDate, wHour, wMin].forEach(function (el2) { attachWheel(el2); });
