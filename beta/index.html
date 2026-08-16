@@ -1289,11 +1289,13 @@
   .dl-ev {
     position: absolute; left: 70px; right: 0; overflow: hidden;
     display: flex; align-items: flex-start; gap: 8px;
-    /* Отступ по вертикали — три пикселя, а не пять: часовое событие отдаёт
-       рамкам два пикселя и должно уместить две строки в оставшиеся тридцать.
-       При пяти вторая строка обрезалась ровно у часовых событий, то есть у
-       самых частых */
-    padding: 3px 10px 3px 28px; box-sizing: border-box;
+    /* Отступ по вертикали — два пикселя. Ставили три, считая, что две строки
+       просят тридцать, — на деле они просят тридцать один, и часовому событию
+       не хватало ровно пикселя: подпись срезалась по нижней кромке букв.
+       Час = 38, рамки забирают 2, отступы 4, остаётся 32 — теперь с запасом.
+       Событие короче часа двух строк не вмещает никаким отступом: там подпись
+       уходит вправо (см. `.tight`). */
+    padding: 2px 10px 2px 28px; box-sizing: border-box;
     background: linear-gradient(90deg,
       rgba(226,164,76,0.16), rgba(226,164,76,0.05) 58%, rgba(226,164,76,0) 92%);
     border-top: 1px solid rgba(226,164,76,0.55);
@@ -1321,6 +1323,22 @@
   }
   .dl-ev.busy::before { background: var(--ink-8); }
   .dl-ev-b { min-width: 0; display: flex; flex-direction: column; }
+  /* Короткому событию подпись кладётся вправо, а не под заголовок: по высоте
+     места нет вовсе, по ширине его половина строки. Выравнивание по базовой
+     линии, а не по центру, — иначе подпись, которая мельче, всплывает
+     относительно имени и строка перестаёт читаться одной. */
+  .dl-ev.tight .dl-ev-b {
+    flex-direction: row; align-items: baseline; gap: 8px; overflow: hidden;
+  }
+  /* Имя не жмётся, подпись уступает: если резать, то уточнение, а не то,
+     как событие называется */
+  .dl-ev.tight .dl-title { flex: 0 1 auto; min-width: 0; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .dl-ev.tight .dl-sub { flex: 1 1 auto; min-width: 0; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  /* Третья строка у короткого события не показывается вовсе — ей и в колонке
+     не хватало места, а в строке она встала бы третьим столбцом */
+  .dl-ev.tight .dl-due { display: none; }
   /* Плотный интерлиньяж внутри отрезка: две строки обязаны уместиться в час,
      иначе у часовой съёмки время срезается по нижнему краю */
   .dl-ev .dl-title { font-size: 14px; line-height: 1.1; }
@@ -6632,7 +6650,13 @@
                   : fmt(s2.min) + " – " + fmt(realEnd));
       var ds = busy ? null : deliveryState(s2);
       var room = hgt >= 2 * HOUR_H;        // хватает ли места на третью строку
-      layer += '<div class="dl-ev' + (meet ? " meet" : "") + (busy ? " busy" : "") + '"'
+      /* Событие короче часа не вмещает двух строк: у него всего 34 пикселя
+         (минимум отрезка), из которых рамки и отступы забирают восемь, а две
+         строки просят двадцать девять. Подпись обрезалась ровно посередине
+         буквы. Места при этом полно — справа, и туда она и уходит. */
+      var tight = hgt < HOUR_H;
+      layer += '<div class="dl-ev' + (meet ? " meet" : "") + (busy ? " busy" : "")
+        + (tight ? " tight" : "") + '"'
         + ' style="top:' + top.toFixed(1) + "px;height:" + hgt.toFixed(1) + 'px"'
         + (busy ? ' data-b="' + b.id + '"' : ' data-i="' + it.i + '"') + ">"
         + '<span class="dl-ic' + (meet ? " meet" : busy ? " busy" : "") + '">'
