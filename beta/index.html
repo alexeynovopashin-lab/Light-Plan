@@ -5829,31 +5829,80 @@
     }
     renderSpotMark();   // на новом месте закладка может быть уже поставлена
   }
-  function fetchGeoName() {
+  /* ---------- Имя места: два источника, а не один ----------
+     BigDataCloud перестал отвечать с российских адресов — без VPN приходит
+     сбой, и шапка садится на координаты. Сломалось это разом и в бете, и в
+     корне, то есть не правкой, а снаружи: единственный источник имени оказался
+     единственной точкой отказа.
+
+     Поэтому источников два, и первым идёт Nominatim (OpenStreetMap): он уже
+     стоит в продукте — им ищется место по названию, — и отвечает оттуда, где
+     не отвечает BigDataCloud. Второй остаётся запасным: не ответил первый,
+     спрашиваем второй. Ключей не требует ни тот, ни другой.
+
+     Разбор имени общий. Правило «место — это населённый пункт» живёт в
+     `cleanPlace`, а каждый источник только приводит свой ответ к одной паре
+     «город, уточнение»: у Nominatim это `address.city/town/village`, у
+     BigDataCloud — `city/locality` со справкой об административных единицах.
+
+     Nominatim просит не чаще запроса в секунду — пауза перед запросом поднята
+     соответственно. Это не мешает: имя нужно после того, как карту отпустили,
+     а не на каждом кадре. */
+  function geoFromNominatim(j) {
+    var a = j.address || {};
+    /* Порядок от частного к общему: город, посёлок, деревня, хутор. Округ и
+       район сюда не входят — их отбросит то же правило, что и всегда */
+    var name = cleanPlace(a.city || a.town || a.village || a.hamlet || "");
+    return { city: name, sub: (a.state || a.county || j.display_name_country || "").trim() };
+  }
+  function geoFromBDC(j) {
+    return { city: settlement(j), sub: (j.principalSubdivision || j.countryName || "").trim() };
+  }
+  function askGeo(url, pick) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("http " + r.status);
+      return r.json();
+    }).then(pick);
+  }
+  function fetchGeoName(second) {
     if (typeof fetch === "undefined") return;
     var key = LAT.toFixed(3) + "," + LON.toFixed(3);
-    /* Вернулись на прежние координаты — имя у нас уже верное, и запрашивать
-       его заново незачем; заодно снимается пометка «отстало» */
-    if (key === geoKey && geoCity) { geoStale = false; return; }
+    /* Имя для этих координат уже есть — спрашивать нечего. Проверка `!geoStale`
+       обязательна: пока новое имя едет, в `geoCity` лежит имя прежнего места, и
+       без неё сторож принимал его за готовый ответ. Из-за этого повторная
+       попытка после сбоя не запускалась вовсе, а шапка навсегда оставалась с
+       именем места, откуда уже уехали. */
+    if (key === geoKey && geoCity && !geoStale) return;
     geoKey = key;
-    fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + LAT + "&longitude=" + LON + "&localityLanguage=ru")
-      .then(function (r) { return r.json(); }).then(function (j) {
-        if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) return;   // место успело смениться
+    var la = LAT, lo = LON;
+    var nom = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&accept-language=ru&lat=" + la + "&lon=" + lo;
+    var bdc = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + la + "&longitude=" + lo + "&localityLanguage=ru";
+    askGeo(nom, geoFromNominatim)
+      .catch(function () { return askGeo(bdc, geoFromBDC); })
+      .then(function (g) {
+        /* Место успело смениться — этот ответ уже не про него. Раньше он просто
+           выбрасывался, и нового запроса никто не назначал: при езде по карте
+           имя не появлялось вовсе. Теперь спрашиваем заново */
+        if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) { scheduleGeoName(); return; }
         geoStale = false;
-        geoCity = settlement(j);
-        // Область идёт уточнением под именем, но именем не становится никогда
-        geoSub = (j.principalSubdivision || j.countryName || "").trim();
+        geoCity = g.city;
+        geoSub = g.sub;
         /* У городов федерального значения регион зовётся так же, как город, и
            уточнение повторяло бы имя: «Санкт-Петербург» под «Санкт-Петербургом».
            Пустая строка высоты не держит — под именем просто ничего не стоит */
         if (geoSub === geoCity) geoSub = "";
         applyGeoNames();
-      }).catch(function () {
-        /* Не ответил — держать имя прежнего места нельзя, оно уже неправда */
+      })
+      .catch(function () {
+        if (LAT.toFixed(3) + "," + LON.toFixed(3) !== key) { scheduleGeoName(); return; }
+        /* Молчат оба — пробуем ещё раз через полторы секунды: сеть на съёмке
+           отваливается кусками, и один сбой не повод объявлять место
+           безымянным. Не ответили и со второго раза — остаются координаты */
+        if (!second) { setTimeout(function () { fetchGeoName(true); }, 1500); return; }
         if (geoStale) { geoStale = false; geoCity = ""; geoSub = ""; applyGeoNames(); }
       });
   }
-  function scheduleGeoName() { clearTimeout(geoTimer); geoTimer = setTimeout(fetchGeoName, 400); }
+  function scheduleGeoName() { clearTimeout(geoTimer); geoTimer = setTimeout(function () { fetchGeoName(); }, 900); }
 
   function setLocation(lat, lon) {
     LAT = lat; LON = lon; TZ = tzFor(lon);
