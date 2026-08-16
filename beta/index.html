@@ -359,14 +359,84 @@
      осторожность, а не опасность (08_VISUAL_LANGUAGE) */
   .spot-fan button.del .t1 { color: var(--bad-ink); }
   .spot-fan button.del .ic svg { stroke: var(--bad-ink); }
-  /* Тихая строка внизу карточки: действие обратимое, плашки оно не заслужило */
+  /* Подвал карточки: корзина слева, удаление справа. Строка, а не две кнопки
+     подряд, потому что это разные роли — одна уносит, вторая возвращает */
+  .card-acts {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin: 22px 0 4px;
+  }
+  .card-bin {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 14px; border: none; border-radius: 999px;
+    background: var(--press); color: var(--ink-3);
+    font-family: inherit; font-size: 13px; cursor: pointer;
+  }
+  .card-bin[hidden] { display: none; }
+  .card-bin:active { opacity: 0.6; }
+  .card-bin .ic { display: flex; }
+  .card-bin .ic svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-4);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .card-bin .n { font-variant-numeric: tabular-nums; }
+  /* Удаление — пилюля, а не текст у края: целиться приходится точно, а раньше
+     это была строка во всю ширину, в которую попадали мимо */
   .card-del {
-    display: block; width: 100%; margin: 22px 0 4px; padding: 12px;
-    background: none; border: none; font-family: inherit;
-    font-size: 14px; color: var(--bad-ink); cursor: pointer;
+    padding: 10px 16px; border: none; border-radius: 999px;
+    background: var(--bad-bg); color: var(--bad-ink);
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
   }
   .card-del:active { opacity: 0.6; }
   .card-del[hidden] { display: none; }
+
+  /* ---------- Корзина ----------
+     Карточка уходит в корзину джинном: уменьшается и стягивается к значку,
+     который на время полёта выезжает снизу. Это не украшение — движение
+     отвечает на вопрос «куда делась запись», и отвечает раньше, чем человек
+     успеет его задать. При `prefers-reduced-motion` полёта нет, запись просто
+     исчезает: смысл от этого не меняется. */
+  .bin-target {
+    position: absolute; left: 50%; bottom: calc(var(--tabh, 74px) + 26px);
+    transform: translate(-50%, 120px); z-index: 96;
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--overlay-2); box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
+    transition: transform 0.34s cubic-bezier(0.25,1,0.4,1);
+  }
+  .bin-target[hidden] { display: none; }
+  .bin-target.up { transform: translate(-50%, 0); }
+  .bin-target svg { width: 24px; height: 24px; fill: none; stroke: var(--ink-3);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .bin-target.gulp { animation: binGulp 0.3s ease-out; }
+  @keyframes binGulp {
+    0% { transform: translate(-50%, 0) scale(1); }
+    40% { transform: translate(-50%, 0) scale(1.16); }
+    100% { transform: translate(-50%, 0) scale(1); }
+  }
+  /* Полёт карточки: своя кривая, потому что джинн не едет равномерно — он
+     сперва отрывается, потом втягивается */
+  .card-sheet.to-bin {
+    transition: transform 0.42s cubic-bezier(0.55,0,0.85,0.35), opacity 0.42s ease-in;
+    opacity: 0;
+  }
+  .bin-row { display: flex; align-items: center; gap: 12px; padding: 12px 0;
+    border-bottom: 1px solid var(--hair-2); }
+  .bin-row .ic { display: flex; flex-shrink: 0; }
+  .bin-row .ic svg { width: 18px; height: 18px; fill: none; stroke: var(--brass);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .bin-row .tx { flex: 1; min-width: 0; }
+  /* Строчные по умолчанию — имя и дата слипались в одну строку и переносились
+     посреди слова. Строки в две ступени: кто, потом когда */
+  .bin-row .t1 { display: block; font-size: 15px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bin-row .t2 { display: block; font-size: 12px; color: var(--ink-5); margin-top: 2px; }
+  .bin-row .back {
+    background: var(--press); border: none; border-radius: 999px; padding: 8px 14px;
+    font-family: inherit; font-size: 13px; color: var(--brass-deep); cursor: pointer;
+  }
+  .bin-empty { padding: 16px 0 4px; font-size: 14px; color: var(--ink-5); }
+  @media (prefers-reduced-motion: reduce) {
+    .bin-target, .card-sheet.to-bin { transition: none; }
+    .bin-target.gulp { animation: none; }
+  }
   .spot-fan button {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px;
     background: none; border: none; border-radius: 11px; corner-shape: squircle; cursor: pointer;
@@ -3044,6 +3114,10 @@
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
     <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
+         какая-то карточка, а искать удалённое приходится как раз тогда, когда
+         открывать нечего. Строки нет, пока корзина пуста -->
+    <div class="item" id="binSetRow" hidden><span class="k">Корзина</span><span class="v" id="binSetN">0</span></div>
     <!-- Порог дороги между площадками. Значение зашитой константой было
          честным для города и враньём для пригорода: сорок минут между
          разными местами — это про соседние районы, а не про соседний город -->
@@ -3349,9 +3423,16 @@
 
     <!-- Удаление живёт в карточке, а не только в свайпе по списку: карточка
          это место, где о съёмке принимают решения, и «отменилась» — одно из
-         них. Стоит последней и тихой: терракота словом, а не плашкой, —
-         действие обратимое, «Вернуть» держится шесть секунд. -->
-    <button class="card-del" id="cdDelete">Удалить съёмку</button>
+         них.
+         Слева корзина, справа удаление пилюлей. Корзины нет, пока она пуста:
+         функция обязана уметь исчезнуть, и пустая корзина на экране — это
+         обещание работы, которой нет. -->
+    <div class="card-acts">
+      <button class="card-bin" id="cdBin" hidden aria-label="Корзина">
+        <span class="ic" data-ic="trash"></span><span class="n" id="cdBinN">0</span>
+      </button>
+      <button class="card-del" id="cdDelete">Удалить съёмку</button>
+    </div>
   </div>
 
   <!-- ============ ФОРМА СЪЁМКИ ============ -->
@@ -3763,6 +3844,20 @@
   <!-- Веер сохранённых точек: общий на карту, маршрут карточки и настройки.
        Прямой потомок .device — координаты считаются от рамки телефона -->
   <div class="spot-scrim" id="spotScrim" hidden></div>
+
+  <!-- Куда улетает карточка. Появляется только на время полёта: это не элемент
+       экрана, а место назначения — показывать его постоянно незачем -->
+  <div class="bin-target" id="binTarget" hidden><span data-ic="trash"></span></div>
+
+  <div class="scrim" id="binScrim"></div>
+  <div class="sheet" id="binSheet">
+    <div class="grip"></div>
+    <div class="sheet-title">Корзина</div>
+    <!-- Пустой экран называет предмет, а потом пользу (правило записано) -->
+    <div class="sheet-sub">Удалённые съёмки лежат здесь, пока их не вернут или не сотрут насовсем. Клиент возвращается чаще, чем кажется.</div>
+    <div id="binList"></div>
+    <button type="button" class="ghost" id="binClear" hidden style="margin-top:14px;">Очистить корзину</button>
+  </div>
   <div class="spot-fan" id="spotFan" hidden></div>
   <!-- Веер действий над записью. Язык взят у веера точек, а не придуман
        заново: второго такого меню в продукте быть не должно (DECISIONS). -->
@@ -4469,6 +4564,10 @@
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: themePref,
+        trashed: trashed.map(function (t) {
+          var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
+          return { rec: r, at: t.at, del: t.del };
+        }),
         travelMin: travelMin, tempUnit: tempUnit, dayFold: !dayPanelOpen,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
@@ -4715,6 +4814,15 @@
     } catch (e) { return null; }
   }
   var saved = loadAll();
+  /* Корзина: удалённые съёмки с их местом в списке и временем удаления.
+     Даты внутри восстанавливаются так же, как у обычных записей.
+     Читается сразу после `loadAll`, а не раньше: `var` поднимается вверх, но
+     значение — нет, и объявленная выше корзина молча оказывалась пустой после
+     каждого перезапуска. Хранилище при этом было в порядке — тем и опасно. */
+  var trashed = (saved && Array.isArray(saved.trashed) ? saved.trashed : []).map(function (t) {
+    var r = {}; for (var k in t.rec) r[k] = (k === "date") ? new Date(t.rec[k]) : t.rec[k];
+    return { rec: r, at: t.at || 0, del: t.del || 0 };
+  });
 
   /* ---------- Жанр: код внутри, имя на экране ----------
      Жанр служил сразу тремя вещами: текстом на экране, ключом в таблицах
@@ -6606,26 +6714,89 @@
     row.addEventListener("pointerup", end);
     row.addEventListener("pointercancel", end);
   }
-  /* Удаление обратимо: запись держим в руке, пока не истечёт «Вернуть» */
-  var trash = null, trashTimer = null;
+  /* ---------- Удаление в корзину ----------
+     Удаление перестало быть концом записи. Шести секунд «Вернуть» хватает на
+     промах пальцем и не хватает на «заметил через неделю» — а съёмку, в
+     отличие от события в календаре, по памяти не восстановишь: там клиент,
+     срок сдачи и деньги (docs/NEEDS.md).
+     Поэтому удалённое уезжает в корзину и лежит там, пока его не вернут или не
+     сотрут насовсем. Полоса «Вернуть» осталась — это не второй механизм, а
+     короткий путь к тому же: горизонты разные, хранилище одно.
+     Удалённое остаётся на устройстве: на нашем сервере по-прежнему ничего. */
+  var undoAt = null, trashTimer = null;
   function removeSession(i) {
-    trash = { rec: sessions[i], at: i };
+    var rec = sessions[i];
+    if (!rec) return;
     sessions.splice(i, 1);
+    /* Запись помнит, где стояла и когда её убрали: возвращать надо на место,
+       а не в конец списка */
+    trashed.unshift({ rec: rec, at: i, del: Date.now() });
+    undoAt = 0;
     saveAll();
-    renderSessions(); renderCal(); renderDayPanel();
-    $("undoText").textContent = (trash.rec.contact || genreName(trash.rec.type)) + " · съёмка удалена";
+    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn();
+    $("undoText").textContent = (rec.contact || genreName(rec.type)) + " · в корзине";
     $("undoBar").classList.add("show");
     clearTimeout(trashTimer);
     trashTimer = setTimeout(hideUndo, 6000);
   }
-  function hideUndo() { $("undoBar").classList.remove("show"); trash = null; }
-  $("undoBtn").addEventListener("click", function () {
-    if (!trash) return;
-    sessions.splice(Math.min(trash.at, sessions.length), 0, trash.rec);
+  function hideUndo() { $("undoBar").classList.remove("show"); undoAt = null; }
+  /* Возврат — общий для полосы и для листа корзины: одно действие, одно место */
+  function restoreTrashed(k) {
+    var t = trashed[k];
+    if (!t) return;
+    trashed.splice(k, 1);
+    sessions.splice(Math.min(t.at, sessions.length), 0, t.rec);
     saveAll();
+    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderBin();
+  }
+  $("undoBtn").addEventListener("click", function () {
+    if (undoAt === null) return;
+    restoreTrashed(undoAt);
     hideUndo();
-    renderSessions(); renderCal(); renderDayPanel();
   });
+
+  /* Значок корзины показывается только когда в ней что-то есть */
+  function renderBinBtn() {
+    var b = $("cdBin");
+    if (!b) return;
+    b.hidden = !trashed.length;
+    $("cdBinN").textContent = trashed.length;
+    if (!b.hidden) paintIcons(b);
+    var row = $("binSetRow");
+    if (row) {
+      row.hidden = !trashed.length;
+      $("binSetN").innerHTML = trashed.length + ' <span class="go-chev">\u203a</span>';
+    }
+  }
+  function renderBin() {
+    var host = $("binList");
+    if (!host) return;
+    if (!trashed.length) {
+      host.innerHTML = '<div class="bin-empty">Пока пусто.</div>';
+      $("binClear").hidden = true;
+      return;
+    }
+    $("binClear").hidden = false;
+    host.innerHTML = trashed.map(function (t, k) {
+      var s2 = t.rec, d = new Date(s2.date);
+      var end = s2.end != null ? s2.end : s2.min + (s2.dur || 90);
+      return '<div class="bin-row"><span class="ic">' + IC.genreSvg(s2.type) + "</span>"
+        + '<span class="tx"><span class="t1">' + esc(clientName(s2) || genreName(s2.type)) + "</span>"
+        + '<span class="t2">' + d.getDate() + " " + MON_S[d.getMonth()] + " · "
+        + fmt(s2.min) + " – " + fmt(end) + "</span></span>"
+        + '<button type="button" class="back" data-k="' + k + '">Вернуть</button></div>';
+    }).join("");
+    host.querySelectorAll(".back").forEach(function (b) {
+      b.addEventListener("click", function () { restoreTrashed(+b.dataset.k); });
+    });
+  }
+  function openBin() {
+    renderBin();
+    $("binSheet").classList.add("open"); $("binScrim").classList.add("open");
+  }
+  function closeBin() {
+    $("binSheet").classList.remove("open"); $("binScrim").classList.remove("open");
+  }
 
   function renderSessions() {
     var list = $("sessionList");
@@ -8894,6 +9065,7 @@
     $("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
     $("cdRefsLabel").hidden = true; $("cdRefs").innerHTML = "";
 
+    renderBinBtn();
     renderEvHead(s, phase);
     renderDayTile(s, route, phase, light);
     renderPanes(s, route, phase, sun);
@@ -9697,11 +9869,65 @@
   function setDeleteLabel(s) {
     $("cdDelete").textContent = isMeet(s) ? "Удалить встречу" : "Удалить съёмку";
   }
+  /* Карточка уходит в корзину джинном. Движение отвечает на вопрос «куда
+     делась запись» раньше, чем человек успеет его задать: значок выезжает
+     снизу, лист стягивается к нему и втягивается внутрь.
+     Порядок важен: сперва показываем цель, потом летим — иначе лист улетает в
+     пустоту и полёт ничего не объясняет. */
+  function deleteToBin(i) {
+    var sheet = $("cdSheet"), target = $("binTarget");
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (calm) { closeCard(); removeSession(i); return; }
+    initAudio();
+    target.hidden = false;
+    requestAnimationFrame(function () { target.classList.add("up"); });
+    setTimeout(function () {
+      /* Лист схлопывается в точку корзины, а не едет центром к центру. Разница
+         не косметическая: карточка выше экрана, её геометрический центр лежит
+         за нижним краем, и полёт «центр в центр» уносил лист вверх — то есть
+         в противоположную сторону от корзины.
+         Точка сжатия — центр значка, пересчитанный в координаты самого листа.
+         Она может лежать и вне листа: этого достаточно, чтобы всё стянулось
+         именно туда, куда улетает запись. */
+      var sr = sheet.getBoundingClientRect(), tr = target.getBoundingClientRect();
+      var ox = (tr.left + tr.width / 2) - sr.left;
+      var oy = (tr.top + tr.height / 2) - sr.top;
+      swoosh();
+      sheet.style.transformOrigin = ox.toFixed(1) + "px " + oy.toFixed(1) + "px";
+      sheet.classList.add("to-bin");
+      sheet.style.transform = "scale(0.05)";
+      setTimeout(function () {
+        target.classList.add("gulp");
+        closeCard();
+        /* Лист возвращаем в исходное состояние до отрисовки следующей карточки:
+           иначе она откроется уже улетевшей */
+        sheet.classList.remove("to-bin");
+        sheet.style.transform = "";
+        sheet.style.transformOrigin = "";
+        removeSession(i);
+        setTimeout(function () {
+          target.classList.remove("up", "gulp");
+          setTimeout(function () { target.hidden = true; }, 340);
+        }, 320);
+      }, 430);
+    }, 200);
+  }
   $("cdDelete").addEventListener("click", function () {
     if (cardIdx === null) return;
-    var i = cardIdx;
-    closeCard();
-    removeSession(i);
+    deleteToBin(cardIdx);
+  });
+  $("cdBin").addEventListener("click", openBin);
+  $("binScrim").addEventListener("click", closeBin);
+  $("binClear").addEventListener("click", function () {
+    /* Единственное необратимое действие над записями в продукте, и оно названо
+       прямо. Спрашиваем один раз: тихое стирание без вопроса было бы той самой
+       ловушкой, от которой корзина и заводилась */
+    if (!trashed.length) return;
+    if (!confirm("Стереть " + trashed.length + " " + plural(trashed.length,
+      ["съёмку", "съёмки", "съёмок"]) + " насовсем? Вернуть их будет нечем.")) return;
+    trashed = [];
+    saveAll();
+    renderBin(); renderBinBtn();
   });
 
   /* Встреча → съёмка. Порождение, а не переименование: если бы запись просто
@@ -10139,6 +10365,28 @@
     var src = ctx.createBufferSource(); src.buffer = buf;
     var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = 1.1;
     var g = ctx.createGain(); g.gain.value = 0.5;
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+    src.start();
+  }
+  /* «Вжух»: шум, уезжающий по частоте вниз, — звук втягивания. Собран из тех
+     же кирпичей, что щелчок детента: свой генератор ради одного события
+     заводить незачем. Молчит там же, где молчит щелчок, — по общему тумблеру. */
+  function swoosh() {
+    if (!$("soundToggle").classList.contains("on")) return;
+    if (navigator.vibrate) { try { navigator.vibrate(14); } catch (e) {} }
+    if (!audioCtx || audioCtx.state !== "running") return;
+    var ctx = audioCtx, dur = 0.34;
+    var buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 3.2;
+    bp.frequency.setValueAtTime(2600, ctx.currentTime);
+    bp.frequency.exponentialRampToValueAtTime(280, ctx.currentTime + dur);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.28, ctx.currentTime + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
     src.connect(bp); bp.connect(g); g.connect(ctx.destination);
     src.start();
   }
@@ -10798,6 +11046,7 @@
   $("todayLoc").addEventListener("click", function () { openLocSheet("app"); });
   $("mapLoc").addEventListener("click", function () { openLocSheet("app"); });
   $("spotsRow").addEventListener("click", function () { openLocSheet("app"); });
+  $("binSetRow").addEventListener("click", openBin);
 
   /* Закладка в шапке карты: одна кнопка на оба состояния. Имя берём то же,
      что показано в шапке, — человек сохраняет то, что видит. Пока геокодер
@@ -11152,7 +11401,7 @@
   setMapFold(mapFoldShut);
   renderSpotMark();
   renderDelvSettings();
-  renderCal(); renderDayPanel(); renderSessions();
+  renderCal(); renderDayPanel(); renderSessions(); renderBinBtn();
   measureDock();
   window.addEventListener("resize", measureDock);
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
