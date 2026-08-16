@@ -1670,14 +1670,18 @@
      высоту, которую и так занимают две строки имени, а шапка поднимается на
      эту полусотню: телефон и счёт до события оказываются на экране сразу.
      Состав шапки не тронут — имена, счёт, телефон, — переставлен только знак.
-     Раскладка — две колонки, а не обтекание. Обтекание казалось дешевле, но
-     развело выравнивание: строка имени вставала по остатку ширины, а подписи
-     под ней — по всей, и центр у них оказывался разный. Колонка держит все
-     строки на одной левой границе, а знак стоит рядом с ними. */
-  .ev-head { margin: 2px 0 0; display: flex; align-items: center; gap: 14px; text-align: left; }
+     Название карточки стоит по центру: это заголовок, а заголовок центрируют.
+     Знак при этом остаётся у левого края — раскладка шапки-навигации, где
+     ведущий знак живёт в углу, а название держит середину.
+     Центр считается от карточки, а не от остатка строки: знак вынут из потока,
+     а тексту даны равные поля с обеих сторон, шириной со знак. Иначе выходит
+     то, что уже было поймано на обтекании, — имя центрируется по остатку
+     ширины, подпись под ним по всей, и центры у них разные. */
+  .ev-head { margin: 2px 0 0; position: relative; min-height: 36px;
+    display: flex; align-items: center; }
   .ev-head[hidden] { display: none; }
-  .ev-text { min-width: 0; flex: 1 1 auto; }
-  .ev-sign { flex-shrink: 0; line-height: 0; }
+  .ev-text { min-width: 0; flex: 1 1 auto; padding: 0 60px; text-align: center; }
+  .ev-sign { position: absolute; left: 0; top: 50%; transform: translateY(-50%); line-height: 0; }
   .ev-sign svg { width: 46px; height: 36px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
   .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
