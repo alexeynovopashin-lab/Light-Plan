@@ -1676,11 +1676,23 @@
   .ev-sign { display: block; margin: 0 auto; line-height: 0; }
   .ev-sign svg { width: 40px; height: 30px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
+  /* Имя карточки живёт одной строкой и ради этого ужимается. «Елена и
+     Алексей» — не длинное имя, но при 29 пунктах оно ломалось надвое, а
+     разорванное имя перестаёт читаться одним целым: глаз собирает его заново.
+     Ниже 21 не опускаемся — заголовок, ужатый до размера подписи, перестаёт
+     быть заголовком, и там уже честнее перенести. */
   .ev-names { font-size: 29px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px;
     line-height: 1.1; margin-top: 6px; }
+  .ev-names.one { white-space: nowrap; }
   .ev-person { font-size: 14.5px; color: var(--ink-2); margin-top: 5px; }
   .ev-person[hidden] { display: none; }
-  .ev-when { font-size: 13px; color: var(--green); margin-top: 5px; }
+  /* Подпись под именем длиннее строки и переносится — это нормально, ненормально
+     было то, как она переносилась: «через 2» оставалось наверху, а «дня»
+     уезжало вниз одиноким словом. Балансировка делит строку по смыслу, а не по
+     остатку ширины. Браузер, который её не знает, просто переносит по-старому —
+     терять тут нечего. */
+  .ev-when { font-size: 13px; color: var(--green); margin-top: 5px;
+    text-wrap: balance; }
   .ev-when.past { color: var(--ink-6); }
   .ev-tel { display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
     padding: 9px 10px; font-size: 19px; color: var(--brass); text-decoration: none;
@@ -8844,6 +8856,29 @@
 
   /* Шапка: знак события, имена, счёт, телефон */
   var EV_SIGN = { "wedding": IC.svg("rings", null, 24), "lovestory": IC.svg("heart", null, 24) };
+  /* Кегль заголовка подбирается под ширину: сначала пробуем полный, дальше
+     ступенями вниз, пока имя не встанет одной строкой. Ступени крупные и
+     заранее названные — плавная подгонка дала бы у каждой карточки свой
+     размер заголовка, и стопка карточек перестала бы выглядеть одним прибором.
+     Мерить приходится в браузере: ширина строки зависит от системного шрифта
+     устройства, и посчитать её заранее нельзя.
+     Карточка при этом рисуется до того, как её показали, и в этот момент
+     ширина у строки нулевая — по такой мерке не влезает ничто. Ждём раскладки
+     и меряем тогда, когда есть что мерить. */
+  var TITLE_SIZES = [29, 26, 23, 21];
+  function fitTitle(el, tries) {
+    if (!el.clientWidth) {
+      if ((tries || 0) > 20) return;      // карточку закрыли, не дождавшись, — не крутимся вечно
+      requestAnimationFrame(function () { fitTitle(el, (tries || 0) + 1); });
+      return;
+    }
+    el.classList.add("one");
+    for (var i = 0; i < TITLE_SIZES.length; i++) {
+      el.style.fontSize = TITLE_SIZES[i] + "px";
+      if (el.scrollWidth <= el.clientWidth) return;
+    }
+    el.classList.remove("one");           // не влезло и в самый мелкий — пусть переносится
+  }
   function renderEvHead(s, phase) {
     $("cdEvHead").hidden = false;
     $("cdEvHead").classList.toggle("is-meet", isMeet(s));
@@ -8865,6 +8900,7 @@
       }
     }
     $("cdEvNames").textContent = name || (spec.ev || genreName(s.type));
+    fitTitle($("cdEvNames"));
     $("cdEvPerson").hidden = !person;
     $("cdEvPerson").textContent = person;
 
