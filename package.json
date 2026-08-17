@@ -1,0 +1,8 @@
+{
+  "name": "light-plan",
+  "private": true,
+  "description": "Прототип Light Plan. Пакетов в продукте нет — index.html самодостаточен. Здесь только инструмент проверки: playwright гоняет рендер в headless Chromium.",
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}
