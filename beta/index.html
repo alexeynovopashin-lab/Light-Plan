@@ -488,11 +488,26 @@
     color: inherit; font-family: inherit; }
   .spot-name { font-size: 15px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .spot-coord { font-size: 11px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
-  .spot-del { width: 36px; height: 36px; flex-shrink: 0; background: none; border: none;
+  /* Настоящий адрес — своя строка, а не приписка к геокодеру: тот знает
+     район, адрес знает фотограф. Пустая строка не занимает места вовсе. */
+  .spot-address { font-size: 12px; color: var(--ink-4); }
+  .spot-address:empty { display: none; }
+  .spot-edit, .spot-del { width: 36px; height: 36px; flex-shrink: 0; background: none; border: none;
     display: inline-flex; align-items: center; justify-content: center; color: var(--ink-6); cursor: pointer; }
+  .spot-edit svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .spot-edit.on { color: var(--brass); }
   .spot-del svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
   .spot-del:active { color: var(--terra); }
   .spot-empty { font-size: 12px; color: var(--ink-6); padding: 2px 0 12px; }
+  /* Правка имени и адреса — внутри той же строки, не отдельный лист:
+     место одно, ему довольно двух полей */
+  .spot-editbox { padding: 4px 2px 12px; }
+  .spot-editbox input {
+    width: 100%; padding: 10px 12px; margin-top: 6px; border: none; border-radius: 10px;
+    corner-shape: squircle; background: var(--fill-b); color: var(--ink);
+    font-family: inherit; font-size: 14px;
+  }
+  .spot-editbox input::placeholder { color: var(--ink-6); }
 
   /* ---------- Строка времени карты и шеврон ----------
      Карта отвечает про выбранный ползунком момент, а времени этого момента
@@ -3256,7 +3271,7 @@
     <div class="sec-label">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
-    <div class="item" id="spotsRow"><span class="k">Мои точки съёмки</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <div class="item" id="spotsRow"><span class="k">Мои места</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
     <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
          открывать нечего. Строки нет, пока корзина пуста -->
@@ -4019,7 +4034,7 @@
     </button>
     <!-- Сохранённые точки идут выше поиска: вернуться на своё место нужно
          часто, а искать новое — редко -->
-    <div class="sec-label" id="spotLabel" style="padding-left:0;">Мои точки</div>
+    <div class="sec-label" id="spotLabel" style="padding-left:0;">Мои места</div>
     <div class="spot-list" id="spotList"></div>
     <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
     <div class="loc-search">
@@ -11769,7 +11784,9 @@
       var nm = document.createElement("span"); nm.className = "spot-name"; nm.textContent = sp.name;
       var co = document.createElement("span"); co.className = "spot-coord";
       co.textContent = sp.sub || "";                          // имени места достаточно
-      go.appendChild(nm); go.appendChild(co);
+      var ad = document.createElement("span"); ad.className = "spot-address";
+      ad.textContent = sp.address || "";
+      go.appendChild(nm); go.appendChild(co); go.appendChild(ad);
       /* Точка из списка ведёт себя как любое другое место: свет, погода и
          карта следуют за ней. Для съёмки — только заполняет поля листа. */
       go.addEventListener("click", function () {
@@ -11783,14 +11800,43 @@
         gotoLocation(sp.lat, sp.lon);
         closeLocSheet();
       });
+      /* Место — сущность: свой топоним и свой адрес, а не то, что подсказал
+         геокодер. Правка тут же, в строке — второго листа под два поля
+         заводить незачем (docs: «Места как сущность»). */
+      var edit = document.createElement("button"); edit.className = "spot-edit"; edit.type = "button";
+      edit.setAttribute("aria-label", "Изменить место");
+      edit.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/></svg>';
       var del = document.createElement("button"); del.className = "spot-del"; del.type = "button";
       del.setAttribute("aria-label", "Убрать точку");
       del.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       del.addEventListener("click", function () {
         spots.splice(idx, 1); saveAll(); renderSpotMark(); renderSpots();
       });
-      row.appendChild(go); row.appendChild(del);
+      row.appendChild(go); row.appendChild(edit); row.appendChild(del);
       box.appendChild(row);
+
+      var box2 = document.createElement("div"); box2.className = "spot-editbox"; box2.hidden = true;
+      var nameIn = document.createElement("input");
+      nameIn.type = "text"; nameIn.placeholder = "Имя места"; nameIn.value = sp.name || "";
+      var addrIn = document.createElement("input");
+      addrIn.type = "text"; addrIn.placeholder = "Адрес — улица, дом";
+      addrIn.value = sp.address || "";
+      /* Сохраняем по мере набора, а не по отдельной кнопке: два поля,
+         отдельное «Готово» им не по чину */
+      nameIn.addEventListener("input", function () {
+        sp.name = nameIn.value.trim(); nm.textContent = sp.name || coordText(sp.lat, sp.lon);
+        saveAll();
+      });
+      addrIn.addEventListener("input", function () {
+        sp.address = addrIn.value.trim(); ad.textContent = sp.address; saveAll();
+      });
+      box2.appendChild(nameIn); box2.appendChild(addrIn);
+      box.appendChild(box2);
+      edit.addEventListener("click", function () {
+        box2.hidden = !box2.hidden;
+        edit.classList.toggle("on", !box2.hidden);
+        if (!box2.hidden) nameIn.focus();
+      });
     });
   }
   $("locScrim").addEventListener("click", closeLocSheet);
