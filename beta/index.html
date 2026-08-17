@@ -806,6 +806,16 @@
   :root[data-theme="light"] .map-frame,
   :root[data-theme="light"] #lmap,
   :root[data-theme="light"] .leaflet-container { background: #E8E3DA; }
+  /* Звёзды на дневной карте не читаются вовсе: полоса Млечного Пути светлее
+     бежевого холста, и слой пропадает. Поэтому со звёздами холст уходит в
+     ночь даже в светлой теме — но только холст. Тема приложения не трогается:
+     это карта сменила время суток, а не человек передумал про интерфейс.
+     Отдельного «ночного режима» под это не заводим: слой включён — небо
+     тёмное, выключен — обычная карта, второго переключателя не нужно. */
+  :root[data-theme="light"] body.mw-sky .leaflet-tile { filter: url(#tileTone); }
+  :root[data-theme="light"] body.mw-sky .map-frame,
+  :root[data-theme="light"] body.mw-sky #lmap,
+  :root[data-theme="light"] body.mw-sky .leaflet-container { background: #14110E; }
 
   /* ---------- Календарь ---------- */
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
@@ -2908,6 +2918,18 @@
     <feComposite in="cWat" in2="mWat" operator="in" result="lWat"/>
     <feComposite in="lWat" in2="s4" operator="over"/>
   </filter>
+
+  <!-- Заливка полосы Млечного Пути. Градиент, а не фильтр: размытие на iOS
+       в PWA стоит дорого и на движении ползунка заметно, а нужна ровно
+       неоднородность вдоль ленты — у ядра теплее и плотнее, к антицентру
+       холоднее и почти прозрачно. Направление горизонтальное: полоса едет по
+       кругу, точное совпадение с её ходом не нужно — важен сам перепад. -->
+  <linearGradient id="mwFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="358" y2="0">
+    <stop offset="0" stop-color="#F0DCE4" stop-opacity="0.30"/>
+    <stop offset="0.3" stop-color="#D9C2E8" stop-opacity="0.20"/>
+    <stop offset="0.7" stop-color="#B9A8DC" stop-opacity="0.10"/>
+    <stop offset="1" stop-color="#9AA0CE" stop-opacity="0.05"/>
+  </linearGradient>
 </defs></svg>
 
 <div class="device">
@@ -3083,6 +3105,13 @@
         <div class="t-row"><span class="t-label">Синий час</span><span class="t-value" id="mBlue">—</span></div>
         <div class="t-row"><span class="t-label">Луна</span><span class="t-value" id="mMoon">—</span></div>
         <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
+        <!-- Астро-строки приходят вместе со слоем и уходят вместе с ним:
+             отдельного режима под них не заводим, они просто про то, что
+             сейчас нарисовано. Вердикт важнее картинки: дуга без ответа
+             «ехать или нет» — красивая, но бесполезная. -->
+        <div class="t-row" id="mwCoreRow" hidden><span class="t-label">Ядро</span><span class="t-value" id="mwCore">—</span></div>
+        <div class="t-row" id="mwNightRow" hidden><span class="t-label">Ночь</span><span class="t-value" id="mwNight">—</span></div>
+        <div class="t-row" id="mwVerdictRow" hidden><span class="t-label">Съёмка</span><span class="t-value" id="mwVerdict">—</span></div>
       </div>
 
       <div class="pro">
@@ -4181,7 +4210,19 @@
     var eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g)
            - 0.014615 * Math.cos(2*g) - 0.040849 * Math.sin(2*g));
     solarNoon = 720 - 4 * LON - eq + TZ * 60;
-    MINT = solarNoon - 720; MAXT = solarNoon + 720;
+    /* Сутки идут от полудня до полудня, когда включены звёзды. Обычные сутки
+       центрированы на полдне (00:36 → 24:36 для Лобни), и ночь на шкале
+       разрезана: вечер у правого края, утро у левого. Для света это неважно —
+       его смотрят днём, — а для астросъёмки окно оказывается разорванным
+       ровно посередине работы.
+       Сдвиг, а не расширение до двух суток: длина остаётся 1440, поэтому
+       плотность делений прежняя (при двух сутках шаг ползунка стал бы вдвое
+       грубее, а в астро ловят минуты), и линейка с меткой «сейчас» считают
+       по-старому. Ползунок общий с «Сегодня», поэтому едут оба экрана — но
+       это и правильно: включив звёзды, человек планирует ночь, и она не
+       должна рваться нигде. */
+    var mwShift = (typeof mapLayers !== "undefined" && mapLayers && mapLayers.mw) ? 720 : 0;
+    MINT = solarNoon - 720 + mwShift; MAXT = MINT + 1440;
 
     SUN.rise = tAtElev(-0.833, true);  SUN.set = tAtElev(-0.833, false);
     SUN.goldA = tAtElev(6, true);      SUN.goldB = tAtElev(6, false);
@@ -4263,18 +4304,108 @@
     var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(m.dec) * Math.cos(phi));
     return { alt: deg(alt), az: (deg(az) + 180 + 360) % 360, dist: m.dist };
   }
-  /* Ядро Млечного Пути — не выдумка, а настоящая точка неба: Sgr A*, центр
-     галактики, координаты постоянны (звёзды так далеко, что смещением можно
-     пренебречь). Тот же перевод «часовой угол → высота/азимут», что и у луны,
-     только без своей орбиты — прямое восхождение и склонение фиксированы. */
-  var MW_RA = rad(266.4168), MW_DEC = rad(-29.0078);
-  function milkyWayAt(date, t) {
-    var d = toDays(instant(date, t));
+  /* ============================================================
+     МЛЕЧНЫЙ ПУТЬ
+     Раньше здесь была одна точка — Sgr A*, — и слой звался «Млечный Путь»,
+     хотя рисовал ядро. Фотографу нужна полоса: куда она встанет и под каким
+     углом ляжет к горизонту. Ядро — не отдельная сущность, а место на этой
+     полосе (l ≈ 0), и рисуется маркером на ней.
+
+     Считается галактический экватор: точки с галактической широтой b = 0,
+     долгота l по кругу. Перевод gal → equatorial (J2000) — поворот на
+     положение северного галактического полюса; проверено контрольными
+     точками: l=0 даёт 266.405 / −28.936, l=180 даёт 86.405 / +28.936.
+
+     Экваториальные координаты полосы — константы: небо не меняется, меняется
+     только то, как оно повёрнуто над головой. Поэтому вся тригонометрия
+     gal → eq делается ОДИН раз при загрузке, а на каждый кадр остаётся
+     только eq → alt/az — ровно столько же работы, сколько уже тратится на
+     луну. Считать поворот галактики заново при каждом движении ползунка
+     значило бы пересчитывать константу. */
+  var GAL_POLE_RA = rad(192.85948), GAL_POLE_DEC = rad(27.12825), GAL_THETA = rad(122.93192);
+  function galToEq(l, b) {
+    var L = rad(l), B = rad(b), dT = GAL_THETA - L;
+    var dec = Math.asin(Math.sin(GAL_POLE_DEC) * Math.sin(B)
+      + Math.cos(GAL_POLE_DEC) * Math.cos(B) * Math.cos(dT));
+    var ra = GAL_POLE_RA + Math.atan2(Math.cos(B) * Math.sin(dT),
+      Math.cos(GAL_POLE_DEC) * Math.sin(B) - Math.sin(GAL_POLE_DEC) * Math.cos(B) * Math.cos(dT));
+    return { ra: ra, dec: dec };
+  }
+  /* Общий перевод «точка неба → над головой»: тот же аппарат, что у луны,
+     но без своей орбиты — RA и Dec постоянны, меняется часовой угол */
+  function eqToAltAz(ra, dec, d) {
     var phi = rad(LAT);
-    var H = rad(280.16 + 360.9856235 * d) - rad(-LON) - MW_RA;
-    var alt = Math.asin(Math.sin(phi) * Math.sin(MW_DEC) + Math.cos(phi) * Math.cos(MW_DEC) * Math.cos(H));
-    var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(MW_DEC) * Math.cos(phi));
+    var H = rad(280.16 + 360.9856235 * d) - rad(-LON) - ra;
+    var alt = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+    var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi));
     return { alt: deg(alt), az: (deg(az) + 180 + 360) % 360 };
+  }
+  /* Полоса неоднородна, и это информация, а не украшение: у ядра балдж около
+     двадцати градусов в поперечнике, к антицентру рукав сужается втрое.
+     Полуширина считается от углового расстояния до центра. */
+  function mwHalfWidth(l) {
+    var dl = Math.abs(((l + 180) % 360) - 180);        // 0 у ядра, 180 у антицентра
+    var k = Math.cos(rad(dl) / 2);
+    return 3 + 7 * k * k;
+  }
+  /* Шаг 3°: 120 точек на круг. На двойке разницы в рисунке нет — проверено
+     глазом на кадре 408 px, — а точек в полтора раза больше, и все они
+     пересчитываются на каждое движение ползунка. */
+  var MW_BAND = (function () {
+    var out = [];
+    for (var l = 0; l <= 360; l += 3) {
+      var w = mwHalfWidth(l);
+      out.push({ l: l % 360, w: w,
+        c: galToEq(l, 0), up: galToEq(l, w), dn: galToEq(l, -w) });
+    }
+    return out;
+  })();
+  var MW_CORE = galToEq(0, 0);      // ядро — точка на полосе, а не своя константа
+
+  /* Есть ли этой ночью астрономическая темнота. Считается той же формулой,
+     что `tAtElev(−18)`, но для произвольной даты: нужно уметь заглядывать
+     вперёд, а глобальная модель знает только выбранный день. */
+  function hasAstroNight(date) {
+    var dec = sunEq(toDays(instant(date, 720))).dec, phi = rad(LAT);
+    var c = (Math.sin(rad(-18)) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec));
+    return c <= 1 && c >= -1;
+  }
+  /* Когда темнота вернётся. Дату не пишем числом в строку: она зависит от
+     широты — в Томске одна, в Сочи её не бывает вовсе. Ищем вперёд, но не
+     дальше полугода: за этот срок она возвращается везде, где вообще бывает. */
+  function nextAstroNight(date) {
+    var d = new Date(date);
+    for (var i = 1; i <= 190; i++) {
+      d.setDate(d.getDate() + 1);
+      if (hasAstroNight(d)) return new Date(d);
+    }
+    return null;
+  }
+  /* Окно астросъёмки — пересечение трёх условий, а не одно из них:
+     ядро выше рабочей высоты, солнце ниже −18°, луна не светит в кадр.
+     Луна оценивается высотой вместе с фазой, а не одной фазой: шестьдесят
+     процентов под горизонтом не мешают вовсе, тридцать в зените — мешают. */
+  function mwWindow(date) {
+    var best = { alt: -99, t: null }, from = null, to = null, moonBlocks = false, darkAny = false;
+    for (var x = Math.round(MINT); x <= Math.round(MAXT); x += 5) {
+      var core = milkyWayAt(date, x);
+      if (core.alt > best.alt) { best = { alt: core.alt, t: x }; }
+      var dark = elevAt(x) <= -18;
+      if (dark) darkAny = true;
+      if (!dark || core.alt < MW_WORK_LO) continue;
+      var mo = moonAt(date, x);
+      var moonLit = mo.alt > 0 && moonPhase(date, x).fraction > 0.4;
+      if (moonLit) { moonBlocks = true; continue; }
+      if (from === null) from = x;
+      to = x;
+    }
+    return { best: best, from: from, to: to, dark: darkAny, moonBlocks: moonBlocks };
+  }
+  function mwDateShort(d) {
+    return d.getDate() + " " + MON_S[d.getMonth()];
+  }
+  function milkyWayAt(date, t) {
+    return eqToAltAz(MW_CORE.ra, MW_CORE.dec, toDays(instant(date, t)));
   }
   /* fraction — какая доля диска освещена, phase — 0 новолуние, 0.5 полнолуние */
   function moonPhase(date, t) {
@@ -5642,7 +5773,14 @@
      ============================================================ */
   /* Фон полотна карты: на тёмной теме это наш холст, на светлой — обычная
      карта. Метки обводятся им же, чтобы читаться на любом из двух */
-  function mapInk() { return theme === "light" ? "#FBF9F5" : "#14110E"; }
+  /* Цвет холста карты, которым обводятся светила. Зависит уже не от одной
+     темы: со звёздами холст уходит в ночь и в светлой теме, и обводка обязана
+     уйти вместе с ним — иначе солнце получит светлый контур на тёмной карте.
+     Это та же грабля, что была с числом вместо `mapInk()`, только на шаг
+     дальше: величина зависит от двух условий, а спрашивали её об одном. */
+  function mapInk() {
+    return (theme === "light" && !mapLayers.mw) ? "#FBF9F5" : "#14110E";
+  }
   /* Кольца компаса рисуются поверх полотна: на тёмном светлым, на светлом тёмным */
   function ringColor(a) {
     return theme === "light" ? "rgba(30,26,20," + (a * 1.5).toFixed(2) + ")"
@@ -5660,6 +5798,12 @@
      сторон света, и градусы, одним кольцом. Раздельные кольца съедали радиус,
      из-за которого компас и казался мелким. */
   var COMPASS_R = 160;
+  /* Рабочая высота для астропейзажа. Ниже десяти градусов снимать нечего:
+     атмосфера съедает свет по касательной, снизу подмешивается городская
+     засветка и дымка. Выше пятнадцати — уже честно. Между ними зона, где
+     «как повезёт», и она рисуется двумя кольцами, а не одним: своей
+     неопределённостью прибор обязан сказать вслух. */
+  var MW_WORK_LO = 10, MW_WORK_HI = 15;
   var TICK_OUT = 154, TICK_IN = 147;               // деления — внутри обода, под текстом
   var HOUR_LBL_MAX = 142;                          // дальше подписи часов не уходят
   function altR(alt) {
@@ -5707,6 +5851,43 @@
     return [MPX + r * Math.sin(a), MPY - r * Math.cos(a)];
   }
   /* Компас света рисуется поверх реальной карты, центр — точка съёмки */
+  /* Строки про звёзды приходят и уходят вместе со слоем — отдельного режима
+     под них нет. Три вопроса по порядку: докуда поднимается ядро, есть ли
+     вообще ночь, и главный — ехать или нет. */
+  function renderMwRows() {
+    var on = !!mapLayers.mw;
+    ["mwCoreRow", "mwNightRow", "mwVerdictRow"].forEach(function (id) { $(id).hidden = !on; });
+    if (!on) return;
+    var w = mwWindow(selDate);
+    var peak = w.best.alt;
+    $("mwCore").textContent = peak < 0
+      ? "не восходит"
+      : "макс " + peak.toFixed(1) + "° в " + fmt(w.best.t);
+    /* Ниже рабочей высоты — не «плохо видно», а «снимать нельзя»: у прибора
+       нет права смягчать. На 56° это ровно тот случай, и слой обязан сказать
+       это сам, а не оставить фотографа гадать над красивой дугой. */
+    $("mwCore").style.color = peak >= MW_WORK_HI ? "#C6AAE8"
+      : peak >= MW_WORK_LO ? "var(--ink-2)" : "var(--ink-4)";
+
+    if (w.dark) {
+      $("mwNight").textContent = SUN.astB !== null && SUN.astA !== null
+        ? range(SUN.astB, SUN.astA + 1440) : "есть";
+      $("mwNight").style.color = "var(--ink-2)";
+    } else {
+      var back = nextAstroNight(selDate);
+      $("mwNight").textContent = back ? "нет до " + mwDateShort(back) : "нет";
+      $("mwNight").style.color = "var(--ink-4)";
+    }
+
+    var v, dim = true;
+    if (!w.dark) v = "темноты нет";
+    else if (peak < MW_WORK_LO) v = "ядро низко · " + peak.toFixed(0) + "° из " + MW_WORK_LO;
+    else if (w.from === null) v = w.moonBlocks ? "мешает луна" : "окна нет";
+    else { v = range(w.from, w.to); dim = false; }
+    $("mwVerdict").textContent = v;
+    $("mwVerdict").style.color = dim ? "var(--ink-4)" : "#C6AAE8";
+  }
+
   function renderMap() {
     var svg = $("mapLight"); if (!svg) return; svg.innerHTML = "";
     var t = viewMin, e = elevAt(t), az = azAt(t), sh = shadowAt(t);
@@ -5721,6 +5902,21 @@
        глазу не за что зацепиться, чтобы понять, где горизонт, а где стороны света */
     svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: COMPASS_R - 8, fill: "none",
       stroke: ringColor(0.13), "stroke-width": 1 }));
+
+    /* Пояс рабочей высоты — только со звёздами: солнцу и луне он не нужен, а
+       на пустом холсте был бы ещё двумя кольцами без причины. Кольцо молча
+       говорит правду про широту: на 56° ядро внутрь этого пояса не заходит
+       никогда, и никакой дугой этого не спрятать. */
+    if (mapLayers.mw) {
+      var rLo = altR(MW_WORK_LO), rHi = altR(MW_WORK_HI);
+      svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: (rLo + rHi) / 2, fill: "none",
+        stroke: "rgba(198,170,232,0.07)", "stroke-width": Math.abs(rLo - rHi) }));
+      [rLo, rHi].forEach(function (r) {
+        svg.appendChild(el("circle", { cx: MPX, cy: MPY, r: r, fill: "none",
+          stroke: "rgba(198,170,232,0.22)", "stroke-width": 0.8,
+          "stroke-dasharray": "3 5" }));
+      });
+    }
 
     /* Путь солнца за сутки: от местной полуночи до следующей — так сутки
        остаются целыми в дни перевода часов, когда их 23 или 25.
@@ -5819,25 +6015,94 @@
     }
     }
 
-    /* Ядро Млечного Пути — та же проекция, что у луны: пунктир пути и точка
-       текущего положения, но своим тоном, чтобы не путать со светилами.
-       Видно только когда ядро поднялось над горизонтом — это честная астрономия,
-       не декорация: в средних широтах зимой оно вообще не всходит. */
+    /* ---------- Млечный Путь ----------
+       Полоса — мгновенный снимок неба на выбранный момент, и она едет по
+       ползунку: крутишь ручку — небо поворачивается. Пунктирный трек ядра
+       живёт по другому закону, он про всю ночь сразу, и потому статичен.
+       Две разные вещи разведены двумя разными приёмами.
+
+       Ширина полосы считается из проекции, а не назначается в пикселях: у
+       зенита градус занимает одно расстояние, у горизонта другое, и лента
+       постоянной толщины врала бы о геометрии. Поэтому края (b = ±w) —
+       такие же точки неба, как центр, и полоса собирается полигоном между
+       ними. Заодно сужение к антицентру получается само. */
     if (mapLayers.mw) (function milkyWay() {
-      var mwp = "", mwf = true, mwNow = milkyWayAt(selDate, t);
-      for (var wt = 0; wt <= 1440; wt += 8) {
+      var dNow = toDays(instant(selDate, t));
+      var pts = MW_BAND.map(function (p) {
+        return { l: p.l,
+                 c: eqToAltAz(p.c.ra, p.c.dec, dNow),
+                 up: eqToAltAz(p.up.ra, p.up.dec, dNow),
+                 dn: eqToAltAz(p.dn.ra, p.dn.dec, dNow) };
+      });
+      /* Градиент кладётся вдоль самой ленты — от ядра к антицентру, — а не по
+         рамке фигуры. По рамке он получался случайным: полоса поворачивается
+         за ночь, и «теплее слева» означало бы то ядро, то хвост. Концы
+         пересчитываются каждый кадр, потому что вместе с небом едут и они. */
+      var gCore = A(pts[0].c.az, altR(pts[0].c.alt));
+      var iAnti = Math.round(pts.length / 2);
+      var gAnti = A(pts[iAnti].c.az, altR(pts[iAnti].c.alt));
+      var grad = document.getElementById("mwFill");
+      grad.setAttribute("x1", gCore[0].toFixed(1)); grad.setAttribute("y1", gCore[1].toFixed(1));
+      grad.setAttribute("x2", gAnti[0].toFixed(1)); grad.setAttribute("y2", gAnti[1].toFixed(1));
+      /* Полосу режем на куски по горизонту: над ним — лента, под ним — тонкий
+         бледный пунктир. Подгоризонтную часть не прячем совсем: молчащий слой
+         читается как сломанный, а бледная нить отвечает «инструмент работает,
+         просто смотреть пока не на что». Глубже −18° не рисуем вовсе: там
+         проекция упирается в предел и всё сливается в кольцо. */
+      var run = null, faint = "";
+      function flushBand() {
+        if (run && run.up.length >= 2) {
+          svg.appendChild(el("path", {
+            d: "M" + run.up.join(" L") + " L" + run.dn.reverse().join(" L") + " Z",
+            fill: "url(#mwFill)", stroke: "none"
+          }));
+        }
+        run = null;
+      }
+      pts.forEach(function (p) {
+        if (p.c.alt >= 0) {
+          if (!run) run = { up: [], dn: [] };
+          var u = A(p.up.az, altR(p.up.alt)), dpt = A(p.dn.az, altR(p.dn.alt));
+          run.up.push(u[0].toFixed(1) + "," + u[1].toFixed(1));
+          run.dn.push(dpt[0].toFixed(1) + "," + dpt[1].toFixed(1));
+          return;
+        }
+        flushBand();
+        if (p.c.alt >= PATH_MIN_ALT) {
+          var f = A(p.c.az, altR(p.c.alt));
+          faint += (faint ? " L" : "M") + f[0].toFixed(1) + " " + f[1].toFixed(1);
+        }
+      });
+      flushBand();
+      if (faint) svg.appendChild(el("path", { d: faint, fill: "none",
+        stroke: "rgba(168,140,214,0.16)", "stroke-width": 1,
+        "stroke-dasharray": "1 5", "stroke-linecap": "round" }));
+
+      /* Трек ядра — только внутри астрономической ночи. За её пределами это
+         была бы справка о небе, которого не видно; внутри — окно съёмки.
+         Солнце уже посчитано, второй раз считать нечего. */
+      var mwp = "", mwf = true;
+      for (var wt = Math.round(MINT); wt <= Math.round(MAXT); wt += 8) {
         var wo = milkyWayAt(selDate, wt);
-        if (wo.alt < -2) { mwf = true; continue; }
+        if (wo.alt < 0 || elevAt(wt) > -18) { mwf = true; continue; }
         var wpt = A(wo.az, altR(wo.alt));
         mwp += (mwf ? "M" : "L") + wpt[0].toFixed(1) + " " + wpt[1].toFixed(1) + " ";
         mwf = false;
       }
-      if (mwp) svg.appendChild(el("path", { d: mwp.trim(), fill: "none", stroke: "rgba(168,140,214,0.32)",
-        "stroke-width": 1.2, "stroke-dasharray": "1 4", "stroke-linecap": "round" }));
-      if (mwNow.alt > -2) {
+      if (mwp) svg.appendChild(el("path", { d: mwp.trim(), fill: "none", stroke: "rgba(198,170,232,0.5)",
+        "stroke-width": 1.3, "stroke-dasharray": "2 4", "stroke-linecap": "round" }));
+
+      /* Ядро — мишень, а не заполненный круг: солнце и луна залиты, и третий
+         диск рядом читался бы третьим светилом. Кольцо говорит «это место на
+         полосе», а не «это тело». */
+      var mwNow = milkyWayAt(selDate, t);
+      if (mwNow.alt >= PATH_MIN_ALT) {
         var wpos = A(mwNow.az, altR(mwNow.alt));
-        svg.appendChild(el("circle", { cx: wpos[0], cy: wpos[1], r: 4,
-          fill: "rgba(168,140,214,0.5)", stroke: mapInk(), "stroke-width": 1.5 }));
+        var live = mwNow.alt >= MW_WORK_LO;
+        svg.appendChild(el("circle", { cx: wpos[0], cy: wpos[1], r: 5.5, fill: "none",
+          stroke: live ? "#C6AAE8" : "rgba(198,170,232,0.4)", "stroke-width": 1.6 }));
+        svg.appendChild(el("circle", { cx: wpos[0], cy: wpos[1], r: 1.6,
+          fill: live ? "#C6AAE8" : "rgba(198,170,232,0.4)" }));
       }
     })();
 
@@ -5917,6 +6182,7 @@
       : mArc.none ? "сегодня не восходит" : "под горизонтом · взойдёт " + fmt(mArc.rise);
     $("mPoint").textContent = e > 0 ? "на свету" : "в тени";
     $("mPoint").style.color = e > 0 ? "#E2A44C" : "#8A8478";
+    renderMwRows();
 
     $("mProBody").innerHTML = proHTML([
       ["sun", "Солнце в этот момент", [
@@ -11119,7 +11385,10 @@
       date: selDate, min: viewMin,
       onDone: function (d, t) {
         selDate = d; computeSun(selDate);
-        if (t < solarNoon - 720) t += 1440;
+        /* Начало суток спрашиваем у самих суток, а не считаем заново: со
+           звёздами шкала сдвинута на полдень, и вписанное число разошлось бы
+           с настоящей границей — время уехало бы под нижний край */
+        if (t < MINT) t += 1440;
         applyDate(t);
       }
     });
@@ -11173,6 +11442,7 @@
      а не данность, и виден он сразу на кнопке, не только в открытом списке. */
   function paintMapLayersBtn() {
     $("mapLayersBtn").classList.toggle("on", mapLayers.sun || mapLayers.moon || mapLayers.mw);
+    document.body.classList.toggle("mw-sky", !!mapLayers.mw);
   }
   function openMapLayers(on) {
     $("mapLayersMenu").hidden = !on;
@@ -11194,7 +11464,11 @@
       mapLayers[k] = !mapLayers[k];
       b.classList.toggle("on", mapLayers[k]);
       paintMapLayersBtn();
-      saveAll(); renderMap();
+      saveAll();
+      /* Звёзды двигают границы суток, а от них считается всё остальное —
+         поэтому пересобираем день целиком, а не перерисовываем одну карту.
+         Время под пальцем сохраняем: человек смотрел на свой момент. */
+      if (k === "mw") applyDate(viewMin); else renderMap();
     });
   });
   paintMapLayersBtn();
