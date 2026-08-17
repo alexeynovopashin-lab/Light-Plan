@@ -5795,9 +5795,11 @@
     }
 
     /* Луна: та же проекция, но пунктиром — у неё свой ход и своя высота.
-       Отдельного кольца ей больше не нужно: радиус разводит светила сам. */
-    if (mapLayers.moon) {
+       Отдельного кольца ей больше не нужно: радиус разводит светила сам.
+       Считается всегда, рисуется по слою: слой управляет тем, что на холсте,
+       а строка «Луна» в сводке — текст, и он остаётся при любых слоях. */
     var mArc = moonArc(selDate, t), mNow = moonAt(selDate, t);
+    if (mapLayers.moon) {
     (function moonPath() {
       var mp = "", mf = true;
       for (var mt = 0; mt <= 1440; mt += 8) {
@@ -11781,7 +11783,11 @@
     spots.forEach(function (sp, idx) {
       var row = document.createElement("div"); row.className = "spot-row";
       var go = document.createElement("button"); go.className = "spot-go"; go.type = "button";
-      var nm = document.createElement("span"); nm.className = "spot-name"; nm.textContent = sp.name;
+      /* Имя могли стереть при правке — тогда строку называют координаты.
+         То же правило, что и у шапки: числа это крайнее средство, но
+         безымянная строка в списке хуже — её не за что взять глазами */
+      var nm = document.createElement("span"); nm.className = "spot-name";
+      nm.textContent = sp.name || coordText(sp.lat, sp.lon);
       var co = document.createElement("span"); co.className = "spot-coord";
       co.textContent = sp.sub || "";                          // имени места достаточно
       var ad = document.createElement("span"); ad.className = "spot-address";
