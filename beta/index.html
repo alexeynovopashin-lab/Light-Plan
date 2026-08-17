@@ -2929,12 +2929,6 @@
        неоднородность вдоль ленты — у ядра теплее и плотнее, к антицентру
        холоднее и почти прозрачно. Направление горизонтальное: полоса едет по
        кругу, точное совпадение с её ходом не нужно — важен сам перепад. -->
-  <linearGradient id="mwFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="358" y2="0">
-    <stop offset="0" stop-color="#F0DCE4" stop-opacity="0.30"/>
-    <stop offset="0.3" stop-color="#D9C2E8" stop-opacity="0.20"/>
-    <stop offset="0.7" stop-color="#B9A8DC" stop-opacity="0.10"/>
-    <stop offset="1" stop-color="#9AA0CE" stop-opacity="0.05"/>
-  </linearGradient>
 
   <!-- Дорожка между картой и шкалой. На карте города лимб тонул в улицах:
        деления и буквы там одного веса с дорожной сеткой. Не чёрное кольцо, как
@@ -4380,12 +4374,67 @@
     var out = [];
     for (var l = 0; l <= 360; l += 3) {
       var w = mwHalfWidth(l);
-      out.push({ l: l % 360, w: w,
-        c: galToEq(l, 0), up: galToEq(l, w), dn: galToEq(l, -w) });
+      out.push({ l: l % 360, w: w, c: galToEq(l, 0) });
     }
     return out;
   })();
   var MW_CORE = galToEq(0, 0);      // ядро — точка на полосе, а не своя константа
+
+  /* ---------- Облако точек ----------
+     Сплошная лента была единственным залитым пятном на экране из тонких линий и
+     спорила с чертёжной природой остального. Точки говорят то же самое и попадают
+     в язык продукта: точками уже сказаны часы на дуге и съёмки в календаре.
+
+     Строится один раз, в галактических координатах — как и полоса до него: небо
+     не меняется, меняется только его поворот, и на кадр остаётся `eqToAltAz`.
+     Заодно уходит `linearGradient` с пересчётом концов на каждое движение
+     ползунка: у точки яркость — её собственное свойство, посчитанное из `l`.
+
+     Генератор — свой LCG с зашитым зерном, а не `Math.random`: поле обязано быть
+     одинаковым при каждом запуске и на каждом устройстве. Звёзды, пляшущие между
+     запусками, читаются как брак, а не как небо. */
+  var MW_DUST = (function () {
+    var seed = 20260817;                       // дата решения; важно лишь, что оно не меняется
+    function rnd() {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    }
+    var STEP = 3, TOTAL = 700, out = [];
+    /* Плотность — информация: у ядра балдж, к антицентру рукав сужается втрое,
+       и облако обязано это показать. Поэтому точек на градус долготы столько,
+       какова полуширина полосы в этом месте. */
+    var weights = [], sum = 0;
+    for (var l = 0; l < 360; l += STEP) { var w = mwHalfWidth(l); weights.push(w); sum += w; }
+    weights.forEach(function (w, i) {
+      var l0 = i * STEP, n = Math.max(1, Math.round(TOTAL * w / sum));
+      for (var k = 0; k < n; k++) {
+        var lp = l0 + rnd() * STEP;
+        /* Поперёк полосы — колокол из суммы трёх равномерных, а не ровная
+           засыпка: равномерная дала бы плашку из точек с резкими краями,
+           а у настоящей полосы плотность падает от середины. */
+        var bell = (rnd() + rnd() + rnd()) / 1.5 - 1;
+        var wl = mwHalfWidth(lp);
+        var dl = Math.abs(((lp + 180) % 360) - 180);
+        /* Яркость падает от ядра к хвосту и от середины полосы к краям.
+           Ярус выбирается из неё же — три ступени вместо плавной прозрачности,
+           потому что рисуются они тремя элементами, а не шестьюстами. */
+        var bright = (0.35 + 0.65 * Math.cos(rad(dl) / 2)) * (1 - 0.55 * Math.abs(bell));
+        var r = rnd();
+        out.push({
+          eq: galToEq(lp, bell * wl),
+          tier: r < bright * 0.30 ? 0 : r < bright * 0.75 ? 1 : 2,
+          /* Свой порог угасания у горизонта. Точки гаснут не разом по линейке,
+             а по одной, и всегда одни и те же: случайность на кадр давала бы
+             мерцание при каждом движении ползунка. */
+          fade: rnd()
+        });
+      }
+    });
+    return out;
+  })();
+  /* Ниже нуля точек нет вовсе, между нулём и восемью градусами облако тает:
+     так лента честно уходит в дымку, а не обрывается по линейке. */
+  var MW_HAZE = 8;
 
   /* Есть ли этой ночью астрономическая темнота. Считается той же формулой,
      что `tAtElev(−18)`, но для произвольной даты: нужно уметь заглядывать
@@ -6108,52 +6157,45 @@
        ними. Заодно сужение к антицентру получается само. */
     if (mapLayers.mw) (function milkyWay() {
       var dNow = toDays(instant(selDate, t));
-      var pts = MW_BAND.map(function (p) {
-        return { l: p.l,
-                 c: eqToAltAz(p.c.ra, p.c.dec, dNow),
-                 up: eqToAltAz(p.up.ra, p.up.dec, dNow),
-                 dn: eqToAltAz(p.dn.ra, p.dn.dec, dNow) };
-      });
-      /* Градиент кладётся вдоль самой ленты — от ядра к антицентру, — а не по
-         рамке фигуры. По рамке он получался случайным: полоса поворачивается
-         за ночь, и «теплее слева» означало бы то ядро, то хвост. Концы
-         пересчитываются каждый кадр, потому что вместе с небом едут и они. */
-      var gCore = A(pts[0].c.az, altR(pts[0].c.alt));
-      var iAnti = Math.round(pts.length / 2);
-      var gAnti = A(pts[iAnti].c.az, altR(pts[iAnti].c.alt));
-      var grad = document.getElementById("mwFill");
-      grad.setAttribute("x1", gCore[0].toFixed(1)); grad.setAttribute("y1", gCore[1].toFixed(1));
-      grad.setAttribute("x2", gAnti[0].toFixed(1)); grad.setAttribute("y2", gAnti[1].toFixed(1));
-      /* Полосу режем на куски по горизонту: над ним — лента, под ним — тонкий
-         бледный пунктир. Подгоризонтную часть не прячем совсем: молчащий слой
-         читается как сломанный, а бледная нить отвечает «инструмент работает,
-         просто смотреть пока не на что». Глубже −18° не рисуем вовсе: там
-         проекция упирается в предел и всё сливается в кольцо. */
-      var run = null, faint = "";
-      function flushBand() {
-        if (run && run.up.length >= 2) {
-          svg.appendChild(el("path", {
-            d: "M" + run.up.join(" L") + " L" + run.dn.reverse().join(" L") + " Z",
-            fill: "url(#mwFill)", stroke: "none"
-          }));
-        }
-        run = null;
+
+      /* Три яруса — три элемента, а не шестьсот. Точка рисуется нулевым
+         сегментом (`M x y h 0.01`) с круглым концом обводки: размер задаёт
+         толщина линии, и весь ярус укладывается в один `path`. Отдельные
+         `<circle>` на каждую точку дали бы четыреста узлов в DOM на каждое
+         движение ползунка. */
+      var TIERS = [
+        { w: 1.1, a: 0.55, d: "" },
+        { w: 0.8, a: 0.35, d: "" },
+        { w: 0.55, a: 0.20, d: "" }
+      ];
+      for (var i = 0; i < MW_DUST.length; i++) {
+        var dp = MW_DUST[i];
+        var pos = eqToAltAz(dp.eq.ra, dp.eq.dec, dNow);
+        if (pos.alt < 0) continue;                       // под горизонтом точек нет
+        /* Гаснут по одной и всегда одни и те же: у каждой свой порог, а не
+           случайность на кадр — иначе облако мерцало бы при движении ручки */
+        if (pos.alt < MW_HAZE && pos.alt / MW_HAZE < dp.fade) continue;
+        var xy = A(pos.az, altR(pos.alt));
+        TIERS[dp.tier].d += "M" + xy[0].toFixed(1) + " " + xy[1].toFixed(1) + "h.01";
       }
-      pts.forEach(function (p) {
-        if (p.c.alt >= 0) {
-          if (!run) run = { up: [], dn: [] };
-          var u = A(p.up.az, altR(p.up.alt)), dpt = A(p.dn.az, altR(p.dn.alt));
-          run.up.push(u[0].toFixed(1) + "," + u[1].toFixed(1));
-          run.dn.push(dpt[0].toFixed(1) + "," + dpt[1].toFixed(1));
-          return;
-        }
-        flushBand();
-        if (p.c.alt >= PATH_MIN_ALT) {
-          var f = A(p.c.az, altR(p.c.alt));
-          faint += (faint ? " L" : "M") + f[0].toFixed(1) + " " + f[1].toFixed(1);
-        }
+      TIERS.forEach(function (tr) {
+        if (!tr.d) return;
+        svg.appendChild(el("path", { d: tr.d, fill: "none", stroke: "#C6AAE8",
+          "stroke-opacity": tr.a, "stroke-width": tr.w, "stroke-linecap": "round" }));
       });
-      flushBand();
+
+      /* Подгоризонтная нить остаётся: слой, который молчит целиком, читается
+         как сломанный, а бледный пунктир отвечает «инструмент работает, просто
+         смотреть пока не на что». Глубже −18° не рисуем — там проекция упирается
+         в предел и всё сливается в кольцо. */
+      var faint = "", fBreak = true;
+      MW_BAND.forEach(function (p) {
+        var c = eqToAltAz(p.c.ra, p.c.dec, dNow);
+        if (c.alt >= 0 || c.alt < PATH_MIN_ALT) { fBreak = true; return; }
+        var f = A(c.az, altR(c.alt));
+        faint += (fBreak ? "M" : " L") + f[0].toFixed(1) + " " + f[1].toFixed(1);
+        fBreak = false;
+      });
       if (faint) svg.appendChild(el("path", { d: faint, fill: "none",
         stroke: "rgba(168,140,214,0.16)", "stroke-width": 1,
         "stroke-dasharray": "1 5", "stroke-linecap": "round" }));
