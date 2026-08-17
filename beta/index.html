@@ -773,10 +773,8 @@
   /* Слои — тот же кружок, зеркально к «моему месту». Активный набор виден
      сразу, чтобы не открывать список ради вопроса «а Млечный Путь включён?» */
   .map-layers-btn.on { color: var(--brass); }
-  /* `.map-frame` уже `position: relative` — меню встаёт над своей кнопкой,
-     а не там, где привык `.scope-menu` в «Съёмках» */
-  #mapLayersMenu { position: absolute; left: 12px; top: auto; bottom: 54px; z-index: 471;
-    transform-origin: 20px 100%; }
+  /* Позицию задаёт скрипт от самой кнопки; здесь только слой поверх скрима */
+  #mapLayersMenu { position: fixed; z-index: 41; transform-origin: 20px 100%; }
 
   /* Тёмный Leaflet: карта — холст, а не интерфейс */
   .leaflet-container { background: var(--canvas); font-family: inherit; outline: none; }
@@ -3079,13 +3077,20 @@
       <button class="map-here" id="mapHere" aria-label="Моё место">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
-      <div class="scope-menu map-layers-menu" id="mapLayersMenu" hidden>
-        <button data-layer="sun"><span class="mk" data-ic="check"></span><span class="ic" data-ic="sun"></span>Солнце</button>
-        <button data-layer="moon"><span class="mk" data-ic="check"></span><span class="ic" data-ic="moon"></span>Луна</button>
-        <button data-layer="mw"><span class="mk" data-ic="check"></span><span class="ic" data-ic="stars"></span>Млечный Путь</button>
-      </div>
     </div>
+    <!-- Меню стоит рядом со скримом, а не внутри кадра карты. В кадре у него
+         `isolation: isolate` (он держит слои Leaflet), и всё внутри заперто в
+         своём контексте наложения: скрим, объявленный снаружи и позже, ложился
+         поверх меню, и палец попадал в него, а не в кнопку. Мышью в браузере
+         этого не видно — там клик шёл программно, мимо попадания.
+         Место меню считается от кнопки при открытии: раскладка кадра меняется
+         вместе со свёрнутой сводкой, и вписанный отступ разъехался бы. -->
     <div class="scope-scrim" id="mapLayersScrim" hidden></div>
+    <div class="scope-menu map-layers-menu" id="mapLayersMenu" hidden>
+      <button data-layer="sun"><span class="mk" data-ic="check"></span><span class="ic" data-ic="sun"></span>Солнце</button>
+      <button data-layer="moon"><span class="mk" data-ic="check"></span><span class="ic" data-ic="moon"></span>Луна</button>
+      <button data-layer="mw"><span class="mk" data-ic="check"></span><span class="ic" data-ic="stars"></span>Млечный Путь</button>
+    </div>
 
     <!-- Время выбранного момента — единственное, что переживает сворачивание -->
     <button class="map-read" id="mapRead" aria-expanded="true" aria-controls="mapFold">
@@ -11448,7 +11453,12 @@
     $("mapLayersMenu").hidden = !on;
     $("mapLayersScrim").hidden = !on;
     if (on) {
-      $("mapLayersMenu").querySelectorAll("button").forEach(function (b) {
+      var menu = $("mapLayersMenu"), r = $("mapLayersBtn").getBoundingClientRect();
+      menu.style.left = r.left + "px";
+      menu.style.top = "auto";
+      /* Растёт вверх от кнопки: вниз ей мешает край кадра и док */
+      menu.style.bottom = (window.innerHeight - r.top + 8) + "px";
+      menu.querySelectorAll("button").forEach(function (b) {
         b.classList.toggle("on", !!mapLayers[b.dataset.layer]);
       });
       paintIcons($("mapLayersMenu"));
