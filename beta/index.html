@@ -755,6 +755,13 @@
   }
   .map-here svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
   .map-here:active { color: var(--brass); }
+  /* Слои — тот же кружок, зеркально к «моему месту». Активный набор виден
+     сразу, чтобы не открывать список ради вопроса «а Млечный Путь включён?» */
+  .map-layers-btn.on { color: var(--brass); }
+  /* `.map-frame` уже `position: relative` — меню встаёт над своей кнопкой,
+     а не там, где привык `.scope-menu` в «Съёмках» */
+  #mapLayersMenu { position: absolute; left: 12px; top: auto; bottom: 54px; z-index: 471;
+    transform-origin: 20px 100%; }
 
   /* Тёмный Leaflet: карта — холст, а не интерфейс */
   .leaflet-container { background: var(--canvas); font-family: inherit; outline: none; }
@@ -3026,10 +3033,22 @@
       <div id="lmap"></div>
       <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
       <div class="map-pin"><i></i></div>
+      <!-- Слои — не переключатель темы карты, а выбор, что на ней светится:
+           солнце и луна включены по умолчанию (так компас работал и раньше),
+           Млечный Путь — по запросу, это нишевый слой для тех, кто его ищет -->
+      <button class="map-here map-layers-btn" id="mapLayersBtn" aria-label="Слои карты" style="left:12px;right:auto;">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+      </button>
       <button class="map-here" id="mapHere" aria-label="Моё место">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
+      <div class="scope-menu map-layers-menu" id="mapLayersMenu" hidden>
+        <button data-layer="sun"><span class="mk" data-ic="check"></span><span class="ic" data-ic="sun"></span>Солнце</button>
+        <button data-layer="moon"><span class="mk" data-ic="check"></span><span class="ic" data-ic="moon"></span>Луна</button>
+        <button data-layer="mw"><span class="mk" data-ic="check"></span><span class="ic" data-ic="stars"></span>Млечный Путь</button>
+      </div>
     </div>
+    <div class="scope-scrim" id="mapLayersScrim" hidden></div>
 
     <!-- Время выбранного момента — единственное, что переживает сворачивание -->
     <button class="map-read" id="mapRead" aria-expanded="true" aria-controls="mapFold">
@@ -4229,6 +4248,19 @@
     var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(m.dec) * Math.cos(phi));
     return { alt: deg(alt), az: (deg(az) + 180 + 360) % 360, dist: m.dist };
   }
+  /* Ядро Млечного Пути — не выдумка, а настоящая точка неба: Sgr A*, центр
+     галактики, координаты постоянны (звёзды так далеко, что смещением можно
+     пренебречь). Тот же перевод «часовой угол → высота/азимут», что и у луны,
+     только без своей орбиты — прямое восхождение и склонение фиксированы. */
+  var MW_RA = rad(266.4168), MW_DEC = rad(-29.0078);
+  function milkyWayAt(date, t) {
+    var d = toDays(instant(date, t));
+    var phi = rad(LAT);
+    var H = rad(280.16 + 360.9856235 * d) - rad(-LON) - MW_RA;
+    var alt = Math.asin(Math.sin(phi) * Math.sin(MW_DEC) + Math.cos(phi) * Math.cos(MW_DEC) * Math.cos(H));
+    var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(MW_DEC) * Math.cos(phi));
+    return { alt: deg(alt), az: (deg(az) + 180 + 360) % 360 };
+  }
   /* fraction — какая доля диска освещена, phase — 0 новолуние, 0.5 полнолуние */
   function moonPhase(date, t) {
     var d = toDays(instant(date, t)), s = sunEq(d), m = moonEq(d), SD = 149598000;
@@ -4689,7 +4721,7 @@
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
-        mapFold: mapFoldShut, mapLabels: mapLabels, spots: spots, theme: themePref,
+        mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
         pro: proMode,
         trashed: trashed.map(function (t) {
           var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
@@ -5005,6 +5037,10 @@
   var mapFoldShut = !!(saved && saved.mapFold);
   // Подписи на карте — выключены, пока их не попросили
   var mapLabels = !!(saved && saved.mapLabels);
+  /* Слои компаса. Солнце и луна были на карте всегда — умолчание сохраняет
+     это, чтобы включение слоёв ничего не поменяло тем, кто их не открывал.
+     Млечный Путь — новый слой и нишевый, включается по запросу */
+  var mapLayers = (saved && saved.mapLayers) || { sun: true, moon: true, mw: false };
   /* Астро-режим сохраняется наравне с темой. Он не сохранялся вовсе: стоял
      первым в настройках, включался — и слетал при следующем запуске. Настройка,
      которую надо ставить заново каждый раз, читается как сломанная. */
@@ -5677,7 +5713,7 @@
        Пройденная часть тоньше и приглушённее — прошлое читается, но не спорит
        с тем, что впереди. Делит не «сейчас», а положение ползунка: карта
        отвечает про выбранный момент, а не про часы на телефоне. */
-    (function sunPath() {
+    if (mapLayers.sun) (function sunPath() {
       var run = null, DELTA = 12;   // суммарная разница RGB, после которой начинаем новый сегмент
       function flush() {
         if (run && run.pts.length >= 2) {
@@ -5708,7 +5744,10 @@
 
     /* Часовые засечки превращают дугу в циферблат: «в котором часу солнце
        будет вон над той крышей» отвечается без ползунка вообще. Подпись
-       каждые три часа — двадцать четыре подписи в этот круг не помещаются. */
+       каждые три часа — двадцать четыре подписи в этот круг не помещаются.
+       Часть солнечного слоя: без него засечки указывали бы на путь, которого
+       на холсте нет */
+    if (mapLayers.sun) {
     function nearRiseSet(x) {
       return (SUN.rise !== null && Math.abs(x - SUN.rise) < 34)
           || (SUN.set !== null && Math.abs(x - SUN.set) < 34);
@@ -5738,9 +5777,11 @@
         "text-anchor": m[1], "font-family": "-apple-system, sans-serif", "font-weight": 600 });
       tx.textContent = fmt(m[0]); svg.appendChild(tx);
     });
+    }
 
     /* Луна: та же проекция, но пунктиром — у неё свой ход и своя высота.
        Отдельного кольца ей больше не нужно: радиус разводит светила сам. */
+    if (mapLayers.moon) {
     var mArc = moonArc(selDate, t), mNow = moonAt(selDate, t);
     (function moonPath() {
       var mp = "", mf = true;
@@ -5759,9 +5800,32 @@
       svg.appendChild(el("circle", { cx: mpos[0], cy: mpos[1], r: 4.5,
         fill: mNow.alt > 0 ? "#CFD6DE" : "rgba(207,214,222,0.45)", stroke: mapInk(), "stroke-width": 1.5 }));
     }
+    }
+
+    /* Ядро Млечного Пути — та же проекция, что у луны: пунктир пути и точка
+       текущего положения, но своим тоном, чтобы не путать со светилами.
+       Видно только когда ядро поднялось над горизонтом — это честная астрономия,
+       не декорация: в средних широтах зимой оно вообще не всходит. */
+    if (mapLayers.mw) (function milkyWay() {
+      var mwp = "", mwf = true, mwNow = milkyWayAt(selDate, t);
+      for (var wt = 0; wt <= 1440; wt += 8) {
+        var wo = milkyWayAt(selDate, wt);
+        if (wo.alt < -2) { mwf = true; continue; }
+        var wpt = A(wo.az, altR(wo.alt));
+        mwp += (mwf ? "M" : "L") + wpt[0].toFixed(1) + " " + wpt[1].toFixed(1) + " ";
+        mwf = false;
+      }
+      if (mwp) svg.appendChild(el("path", { d: mwp.trim(), fill: "none", stroke: "rgba(168,140,214,0.32)",
+        "stroke-width": 1.2, "stroke-dasharray": "1 4", "stroke-linecap": "round" }));
+      if (mwNow.alt > -2) {
+        var wpos = A(mwNow.az, altR(mwNow.alt));
+        svg.appendChild(el("circle", { cx: wpos[0], cy: wpos[1], r: 4,
+          fill: "rgba(168,140,214,0.5)", stroke: mapInk(), "stroke-width": 1.5 }));
+      }
+    })();
 
     // Луч и солнце — на радиусе своей высоты
-    if (e > PATH_MIN_ALT) {
+    if (mapLayers.sun && e > PATH_MIN_ALT) {
       var sp = A(az, altR(e)), sc = e > 0 ? "#E2A44C" : "#7C9CC4";
       svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
         stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
@@ -8846,8 +8910,43 @@
   function placeKey(s) {
     return String(s.place || "").split(",")[0].trim().toLowerCase();
   }
+  /* ---------- Честная дорога между точками дня ----------
+     Знаем координаты обеих точек — говорим настоящее время в пути, а не порог
+     «меньше сорока минут». Не знаем (сеть, координат нет) — молчим числом и
+     предупреждаем как раньше, порогом. Один адрес на две точки уже отсекается
+     выше: `otherPlace !== place`.
+     OSRM — тот же принцип, что у Open-Meteo и Nominatim: без ключа, свободный
+     сервер, синхронный интерфейс поверх честно предупреждает об офлайне. */
+  var travelCache = {};   // key → минуты, null — сеть не ответила
+  var travelInFlight = {};
+  function travelKey(aLat, aLon, bLat, bLon) {
+    var A = aLat.toFixed(3) + "," + aLon.toFixed(3);
+    var B = bLat.toFixed(3) + "," + bLon.toFixed(3);
+    return A < B ? A + "|" + B : B + "|" + A;
+  }
+  /* Тем же координатам — тот же ответ: пересчитывать дорогу между одними и
+     теми же двумя точками при каждой перерисовке карточки незачем */
+  function travelMinutes(aLat, aLon, bLat, bLon, onReady) {
+    var key = travelKey(aLat, aLon, bLat, bLon);
+    if (key in travelCache) return travelCache[key];
+    if (!travelInFlight[key] && typeof fetch !== "undefined") {
+      travelInFlight[key] = true;
+      var url = "https://router.project-osrm.org/route/v1/driving/"
+        + aLon + "," + aLat + ";" + bLon + "," + bLat + "?overview=false";
+      fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+        var sec = j && j.routes && j.routes[0] && j.routes[0].duration;
+        travelCache[key] = sec != null ? Math.round(sec / 60) : null;
+      }).catch(function () {
+        travelCache[key] = null;   // сеть не ответила — не спрашиваем снова в этом сеансе
+      }).then(function () {
+        delete travelInFlight[key];
+        if (onReady) onReady();
+      });
+    }
+    return undefined;   // ответа ещё нет — вызывающий сам решает, что сказать тем временем
+  }
   /* Съёмка, с которой сравниваем: та, что сейчас в форме, либо сохранённая */
-  function clashesFor(day, min, end, place, skipIdx, wants) {
+  function clashesFor(day, min, end, place, skipIdx, wants, fromLat, fromLon) {
     var out = [];
     /* Занятое время спорит со съёмкой наравне с другой съёмкой — ради этого
        занятость и заводилась. Но запрета по-прежнему нет: выходной можно и
@@ -8876,14 +8975,26 @@
       }
       /* Дорога: съёмки не пересекаются, но времени между ними меньше порога,
          а места разные. Порог задаёт фотограф: в городе хватает двадцати
-         минут, в пригороде и полутора часов бывает мало */
+         минут, в пригороде и полутора часов бывает мало.
+         Знаем координаты обеих точек — порог уступает честному ответу: не
+         «меньше сорока», а «нужно пятнадцать, а есть только десять». */
       var gap = min >= sEnd ? min - sEnd : s.min - end;
       var otherPlace = placeKey(s);
-      if (gap < travelMin && otherPlace && place && otherPlace !== place) {
-        out.push({ w: 2, t: "Мало времени на дорогу",
-          m: "Между «" + name + "» (" + when + ") и этой съёмкой " + gap
-            + " мин, а места разные." });
-        return;
+      if (otherPlace && place && otherPlace !== place) {
+        var haveCoords = fromLat != null && fromLon != null && s.placeLat != null && s.placeLon != null;
+        var mins = haveCoords ? travelMinutes(fromLat, fromLon, s.placeLat, s.placeLon, clashesRefresh) : undefined;
+        if (mins != null && gap < mins) {
+          out.push({ w: 2, t: "Дороги не хватит",
+            m: "От «" + name + "» (" + when + ") ехать примерно " + mins
+              + " мин, а в запасе " + gap + "." });
+          return;
+        }
+        if (mins == null && gap < travelMin) {
+          out.push({ w: 2, t: "Мало времени на дорогу",
+            m: "Между «" + name + "» (" + when + ") и этой съёмкой " + gap
+              + " мин, а места разные." });
+          return;
+        }
       }
       /* Спор за свет: две съёмки одного дня заказали закат, а золотой час один.
          Единственное предупреждение, которое рождается из световой модели */
@@ -8900,7 +9011,13 @@
     var s = sessions[idx];
     if (!s) return [];
     return clashesFor(s.date, s.min, shootEnd(s), placeKey(s), idx,
-      Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []));
+      Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []), s.placeLat, s.placeLon);
+  }
+  /* Ответ OSRM пришёл позже, чем нарисовалось предупреждение: перерисовываем
+     ровно то, что сейчас открыто, — форму или карточку, — а не всё приложение */
+  function clashesRefresh() {
+    if ($("formOverlay").classList.contains("open")) refreshForm();
+    if (cardIdx !== null && sessions[cardIdx]) renderClash(sessions[cardIdx]);
   }
 
   function refreshForm() {
@@ -8947,7 +9064,7 @@
     /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
        а прогноз — про то, каким будет свет. Показываем то, что тяжелее */
     var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name }),
-      editIdx, wishes)[0];
+      editIdx, wishes, sessionPlace.lat, sessionPlace.lon)[0];
     var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
@@ -11034,6 +11151,37 @@
       renderCal();
     });
   });
+  /* ---------- Слои карты ----------
+     Компас рисовал солнце и луну всегда и без вопросов — теперь это выбор,
+     а не данность, и виден он сразу на кнопке, не только в открытом списке. */
+  function paintMapLayersBtn() {
+    $("mapLayersBtn").classList.toggle("on", mapLayers.sun || mapLayers.moon || mapLayers.mw);
+  }
+  function openMapLayers(on) {
+    $("mapLayersMenu").hidden = !on;
+    $("mapLayersScrim").hidden = !on;
+    if (on) {
+      $("mapLayersMenu").querySelectorAll("button").forEach(function (b) {
+        b.classList.toggle("on", !!mapLayers[b.dataset.layer]);
+      });
+      paintIcons($("mapLayersMenu"));
+    }
+  }
+  $("mapLayersBtn").addEventListener("click", function () {
+    openMapLayers($("mapLayersMenu").hidden);
+  });
+  $("mapLayersScrim").addEventListener("click", function () { openMapLayers(false); });
+  $("mapLayersMenu").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.dataset.layer;
+      mapLayers[k] = !mapLayers[k];
+      b.classList.toggle("on", mapLayers[k]);
+      paintMapLayersBtn();
+      saveAll(); renderMap();
+    });
+  });
+  paintMapLayersBtn();
+
   /* Стрелки листают месяцами или неделями — смотря какой масштаб открыт */
   function stepCal(dir) {
     openGaps = {};                             // на новом дне свои окна
