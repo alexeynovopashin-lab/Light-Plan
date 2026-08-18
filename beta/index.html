@@ -989,9 +989,6 @@
      экране и пустым, и скрытым одновременно, пока у года не было данных. */
   .icon-btn[hidden] { display: none; }
   .icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.7; }
-  /* Организации и документы: знак спокойнее календаря и поиска — сюда
-     заходят раз в неделю, а не каждый день */
-  .icon-btn#planOrgs { color: var(--ink-3); }
   .icon-btn#planSearch { color: var(--ink); }
 
   /* Спойлер сводки дня */
@@ -3325,7 +3322,13 @@
         <button class="icon-btn" id="planAdd" aria-label="Новая съёмка">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
         </button>
-        <button class="icon-btn" id="planOrgs" aria-label="Организации и документы" data-ic="doc"></button>
+        <!-- Организации переехали в настройки: кнопка тут почти никогда не
+             нажималась и не вспоминалась (Алексей), а статистике — раз добавить,
+             раз посмотреть срок — самое место рядом с добавлением и поиском,
+             одна и та же тройка во всех трёх видах календаря. -->
+        <button class="icon-btn" id="planStats" aria-label="Статистика">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V13M12 20V8M18 20V4"/></svg>
+        </button>
         <button class="icon-btn" id="planSearch" aria-label="Поиск">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
         </button>
@@ -3483,6 +3486,12 @@
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
     <div class="item" id="spotsRow"><span class="k">Мои места</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <div class="sec-label">Заказчики</div>
+    <!-- Экран организаций живёт и здесь: раньше единственный путь был кнопкой
+         в шапке «Съёмок», её место занял вход в статистику. Строка в форме
+         съёмки («Заказчик») по-прежнему открывает тот же список для выбора,
+         а этот пункт — для того, чтобы просто посмотреть архив без съёмки под рукой -->
+    <div class="item" id="orgsSetRow"><span class="k">Организации и документы</span><span class="go-chev">›</span></div>
     <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
          открывать нечего. Строки нет, пока корзина пуста -->
@@ -4075,8 +4084,6 @@
          за ними ведёт отдельный экран. -->
     <div class="year-cal-list" id="yearGrid"></div>
     <div class="year-sum" id="yearSum">—</div>
-    <!-- Год по жанрам: что отснято и что предстоит -->
-    <div class="year-stat" id="yearStat"></div>
   </div>
 
   <!-- Инфографика — деньги и сроки сдачи, отдельным экраном поверх года.
@@ -4097,7 +4104,15 @@
          навигационный экран: там ей было не место (два тона сразу — свет и
          срочность сдачи), здесь — весь экран об этом (docs: DECISIONS). -->
     <div class="sec-label" id="monthsLabel" hidden style="padding-left:0;">Занятость по месяцам</div>
+    <!-- Число само по себе не говорит, что оно считает — рядом с полосой
+         оно читалось то ли как часы, то ли как дни (Алексей). Подпись под
+         заголовком снимает вопрос одной строкой на весь список, а не
+         повторяет слово в каждой из двенадцати. -->
+    <p class="seg-note" id="monthsNote" hidden style="margin:-4px 0 10px;">Число — съёмок в месяце</p>
     <div class="year-months" id="yearMonthBars" hidden></div>
+    <!-- Жанры переехали сюда из стандартного экрана: это тоже статистика
+         года, не навигация — там ей было не место (docs: DECISIONS) -->
+    <div class="year-stat" id="yearStat" style="margin-top:18px;"></div>
     <div class="sec-label" id="profitLabel" hidden style="padding-left:0;margin-top:22px;">Прибыль</div>
     <div class="year-profit-val" id="yearProfitVal" hidden></div>
     <!-- Сроки сдачи — за всё время, не за этот год: жанру нужна выборка,
@@ -7543,6 +7558,7 @@
     var maxN = Math.max.apply(null, stats.map(function (s) { return s.n; }).concat([1]));
     var has = stats.some(function (s) { return s.n > 0; });
     $("monthsLabel").hidden = !has;
+    $("monthsNote").hidden = !has;
     $("yearMonthBars").hidden = !has;
     if (!has) return;
     $("yearMonthBars").innerHTML = stats.map(function (s, m) {
@@ -8828,7 +8844,7 @@
     paintIcons($("orgOverlay"));
     $("orgOverlay").classList.add("open");
   }
-  $("planOrgs").addEventListener("click", openOrgs);
+  $("orgsSetRow").addEventListener("click", openOrgs);
   $("orgBack").addEventListener("click", function () {
     orgPick = null;                    // ушли без выбора — заказчик остался прежним
     $("orgOverlay").classList.remove("open");
@@ -12574,6 +12590,14 @@
     $("yearOverlay").classList.add("open");
   });
   $("yearClose").addEventListener("click", function () { $("yearOverlay").classList.remove("open"); });
+  /* Прямой вход в статистику из шапки «Съёмок» — минуя год: реже нужно
+     смотреть месяцы, чтобы узнать прибыль. Год за кулисами всё равно
+     считается — та же переменная, тот же renderYear() */
+  $("planStats").addEventListener("click", function () {
+    yearShown = calMonth.getFullYear();
+    renderYear();
+    $("statsOverlay").classList.add("open");
+  });
   $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); });
   $("yNext").addEventListener("click", function () { yearShown++; renderYear(); });
   $("yearNow").addEventListener("click", function () {
