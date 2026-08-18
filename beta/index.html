@@ -782,12 +782,24 @@
   .map-rotor { position: absolute; inset: 0; transform-origin: 50% 50%; }
   /* touch-action: none — Leaflet водит палец сам через JS (drag и пинч-зум),
      браузеру тут решать нечего, это и советует сама библиотека */
-  #lmap { position: absolute; inset: 0; background: var(--canvas); touch-action: none; }
+  /* Квадрат со стороной в диагональ кадра (--rotor-d, JS: measureMapRotor) —
+     единственный размер, покрывающий прямоугольный кадр на любом угле
+     поворота живого компаса. `inset: 0` без этого оставлял клин пустоты по
+     краям, кроме как строго на 0/90/180/270° (DECISIONS). Резервное 150% —
+     на случай кадра до первого рендера карты, с запасом больше нужного. */
+  #lmap {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: var(--rotor-d, 150%); height: var(--rotor-d, 150%);
+    background: var(--canvas); touch-action: none;
+  }
   /* Ночная вуаль лежит между картой и компасом: город под ней темнеет, прибор
      поверх остаётся в полную силу. Переход мягкий, но короче шага ползунка —
-     иначе при быстрой прокрутке вуаль отстаёт от неба и врёт. */
+     иначе при быстрой прокрутке вуаль отстаёт от неба и врёт. Тот же квадрат,
+     что у карты под ней — иначе вуаль сама стала бы клином на повороте. */
   #mapNight {
-    position: absolute; inset: 0; z-index: 440; pointer-events: none;
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: var(--rotor-d, 150%); height: var(--rotor-d, 150%);
+    z-index: 440; pointer-events: none;
     background: #05070C; opacity: 0; transition: opacity 0.18s linear;
   }
   /* Слой света поверх тайлов — компас не перехватывает жесты карты */
@@ -6233,7 +6245,28 @@
     $("mwVerdict").style.color = dim ? "var(--ink-4)" : "#C6AAE8";
   }
 
+  /* Ротор вращается вместе с живым компасом (setCompassLive), а подложка
+     карты внутри него была ровно того же размера, что и кадр, — прямоугольник
+     4:5, а не квадрат. Повёрнутый прямоугольник не достаёт углами до углов
+     своего же кадра ни при каком угле, кроме 0/90/180/270, и в остальных
+     положениях по краям остаётся клин пустоты (нашли на телефоне: DECISIONS).
+     Лечится не квадратом наугад, а диагональю кадра — она единственный размер,
+     при котором квадрат гарантированно перекрывает прямоугольник на любом угле
+     поворота (вписанная в квадрат окружность своим диаметром покрывает всю
+     диагональ кадра). Меряем сам кадр, а не полагаемся на % от родителя: тот
+     же довод, что и у --tabh/--dockh — верить измеренному, а не вычисленному
+     каскадом, который на разных вьюпортах ведёт себя по-разному. */
+  function measureMapRotor() {
+    var frame = document.querySelector(".map-frame");
+    if (!frame) return;
+    var w = frame.offsetWidth, h = frame.offsetHeight;
+    if (!w || !h) return;
+    var d = Math.ceil(Math.sqrt(w * w + h * h));
+    document.documentElement.style.setProperty("--rotor-d", d + "px");
+  }
+  window.addEventListener("resize", measureMapRotor);
   function renderMap() {
+    measureMapRotor();
     var svg = $("mapLight"); if (!svg) return; svg.innerHTML = "";
     var t = viewMin, e = elevAt(t), az = azAt(t), sh = shadowAt(t);
 
@@ -6956,6 +6989,10 @@
   }
   /* Экран карты показывается — Leaflet должен пересчитать размер и встать на место */
   function showMap() {
+    /* Кадр невидим при загрузке (boot зовёт renderMap() до первого показа
+       экрана), и offsetWidth/Height тогда нулевые — измерение молча
+       пропускает себя. Экран уже виден здесь, мерим заново */
+    measureMapRotor();
     initMap();
     if (!lmap) return;
     mapQuiet = true;
@@ -8054,6 +8091,10 @@
      {k:"link", url}. Миниатюр у них не бывает — показываем именем */
   var fDocs = [];
   var fDelvChoice = "auto";     // "auto" | число дней | null
+  /* Момент, когда отметили «сдано» — не сам факт, а когда он случился. Без
+     метки времени статистика опозданий взять неоткуда: галочка одна и та же
+     что в день сдачи, что через месяц (docs: статистика сроков сдачи). */
+  var fDeliveredAt = null;
   /* Крайние деления шкалы — состояния, середина — ручной срок */
   var DELV_OPTS = [["auto", "жанр"], [3, "3 дн"], [7, "нед"], [14, "2 нед"],
                    [30, "мес"], [90, "3 мес"], [null, "∞"]];
@@ -11285,6 +11326,7 @@
       wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
       fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
       $("fDone").classList.toggle("on", !!s.delivered);
+      fDeliveredAt = s.deliveredAt || null;
       sessionPlace = (s.placeLat != null)
         ? { name: s.place || "", lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
         : { name: s.place || "", lat: LAT, lon: LON, city: true };   // старые записи знали только имя
@@ -11334,6 +11376,7 @@
       fLight = !!fromLight;
       fDate = new Date(d); fMin = fromLight ? Math.round(startMin) : snapMin(startMin);
       $("fDone").classList.remove("on");
+      fDeliveredAt = null;
       $("fContact").value = ""; $("fClientTel").value = ""; $("fNotes").value = "";
       fOrgId = null; $("fPerson").value = ""; $("fPhone").value = "";
       $("fP1Name").value = ""; $("fP1Tel").value = "";
@@ -11367,7 +11410,13 @@
     $("formOverlay").scrollTop = 0;
     $("formOverlay").classList.add("open");
   }
-  $("fDone").addEventListener("click", function () { this.classList.toggle("on"); });
+  $("fDone").addEventListener("click", function () {
+    var on = this.classList.toggle("on");
+    /* Дата ставится один раз, в момент отметки — не «сейчас» при каждой правке
+       карточки после. Сняли отметку по ошибке и поставили заново — время новое,
+       так честнее, чем помнить старое несостоявшееся «сдано». */
+    fDeliveredAt = on ? new Date().toISOString() : null;
+  });
   $("fDelete").addEventListener("click", function () {
     if (editIdx === null) return;
     sessions.splice(editIdx, 1);
@@ -11575,6 +11624,7 @@
       place: sessionPlace.name, placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
+      deliveredAt: $("fDone").classList.contains("on") ? fDeliveredAt : null,
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
       /* Пустое поле не пишется значением: гости нулём и выезд ложью — те же
          пустые поля, и в карточке их быть не должно */
