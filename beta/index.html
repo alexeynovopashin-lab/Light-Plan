@@ -3976,9 +3976,18 @@
     <div class="year-sum" id="yearSum">—</div>
     <!-- Год по жанрам: что отснято и что предстоит -->
     <div class="year-stat" id="yearStat"></div>
+    <!-- Перегруз — не прячем за кнопкой, как прибыль: это не то, что ищут
+         из любопытства, а то, чего не видно самому изнутри (04_ANTI_GOALS).
+         Молчит, пока условие не выполнено, и гаснет само, без кнопки «скрыть» —
+         как только просрочка закрылась, разговор закончился сам собой. -->
+    <div class="say bad" id="yearOverload" hidden><span class="s-ic" data-ic="warn"></span><span id="yearOverloadT"></span></div>
     <!-- Прибыль под скрытой кнопкой: деньги не первое, что видишь (Anti-Goals) -->
     <button class="year-profit" id="yearProfitBtn" hidden>Показать прибыль за год ›</button>
     <div class="year-profit-val" id="yearProfitVal" hidden></div>
+    <!-- Сроки сдачи — за всё время, не за этот год: жанру нужна выборка, а не
+         календарь. Появляется, только когда есть что сказать (docs: DECISIONS) -->
+    <button class="year-profit" id="yearDelvBtn" hidden>Показать сроки сдачи ›</button>
+    <div class="year-profit-val" id="yearDelvVal" hidden></div>
   </div>
 
   <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
@@ -7313,6 +7322,7 @@
   }
   function renderYear() {
     var now = new Date();
+    renderOverloadSignal();
     $("yTitle").textContent = yearShown;
     $("yearNow").classList.toggle("show", yearShown !== now.getFullYear());
     $("yearNowLbl").textContent = now.getFullYear();
@@ -7361,8 +7371,78 @@
     $("yearProfitBtn").hidden = !all.length;
     $("yearProfitBtn").textContent = "Показать прибыль за год ›";
     $("yearProfitVal").hidden = true;
+    renderDeliveryStats();
   }
   var yearProfitAmt = 0;
+  /* ---------- Статистика сроков сдачи ----------
+     За всё время, не за просматриваемый год: жанру нужна выборка, а не
+     календарная граница — свадьба, снятая в декабре прошлого года, о своих
+     сроках говорит не меньше, чем снятая на этой неделе.
+     Опоздание — тихая фраза с числом. Опережение — молчим совсем: снимать
+     раньше срока не проблема, и предлагать «можно сократить» значило бы
+     учить фотографа тому, о чём не просили (Алексей: «не нужно предлагать
+     сокращать сроки»). Порог в пять сдач с меткой времени — не с потолка:
+     меньше пяти точек означает угадывание, а не статистику. */
+  var DELV_STAT_MIN = 5;
+  function renderDeliveryStats() {
+    var byGenre = {};
+    sessions.forEach(function (s) {
+      if (!s.deliveredAt) return;
+      var dl = deadlineDate(s);
+      if (!dl) return;
+      var lateDays = (new Date(s.deliveredAt) - dl) / 86400000;
+      (byGenre[s.type] || (byGenre[s.type] = [])).push(lateDays);
+    });
+    var lines = [];
+    Object.keys(byGenre).forEach(function (g) {
+      var arr = byGenre[g];
+      if (arr.length < DELV_STAT_MIN) return;
+      var avg = arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
+      if (avg < 0.5) return;                       // вовремя или раньше — не наш разговор
+      var n = Math.round(avg);
+      if (n < 1) return;                            // округлилось в ноль — сказать нечего
+      /* Название жанра — своя категория, не подлежащее: «Свадьбы» уже во
+         множественном числе, «Портрет» — нет, и согласовывать с ним глагол
+         означало бы гадать. Двоеточие снимает вопрос: жанр — тема фразы,
+         а не её грамматический субъект */
+      lines.push("«" + genreName(g) + "»: в среднем сдают на <b>" + n + " "
+        + plural(n, ["день", "дня", "дней"]) + "</b> позже срока");
+    });
+    $("yearDelvBtn").hidden = !lines.length;
+    $("yearDelvBtn").textContent = "Показать сроки сдачи ›";
+    $("yearDelvVal").hidden = true;
+    $("yearDelvVal").innerHTML = lines.join("<br>");
+  }
+  /* ---------- Сигнал перегруза ----------
+     Не среднее и не тренд — текущий факт: сколько уже просрочено сдачей
+     прямо сейчас, и сколько нового уже стоит в календаре впереди. Пороги
+     ниже условны и не откалиброваны на реальных числах (Алексей их ещё не
+     видел живьём) — трогать при первой обратной связи, не раньше. Не нужна
+     history за пять сдач, как у DELV_STAT_MIN: текущая просрочка — факт
+     сегодняшнего дня, а не статистика, ей не у чего «накапливать опыт». */
+  var OVERLOAD_OVERDUE_MIN = 3;      // просроченных сдач одновременно
+  var OVERLOAD_UPCOMING_MIN = 3;     // новых съёмок в ближайший месяц
+  var OVERLOAD_WINDOW_DAYS = 30;
+  function renderOverloadSignal() {
+    var now = new Date(), soon = new Date(now.getTime() + OVERLOAD_WINDOW_DAYS * 86400000);
+    var overdue = 0, upcoming = 0;
+    sessions.forEach(function (s) {
+      if (isMeet(s)) return;
+      if (!s.delivered) {
+        var dl = deadlineDate(s);
+        if (dl && dl < now) overdue++;
+      }
+      if (s.date > now && s.date <= soon) upcoming++;
+    });
+    var el = $("yearOverload");
+    if (overdue < OVERLOAD_OVERDUE_MIN || upcoming < OVERLOAD_UPCOMING_MIN) { el.hidden = true; return; }
+    el.hidden = false;
+    /* Факты рядом, без совета — как реплика о свете в карточке: «банкет
+       попадает в золотой час», а не «поезжайте туда-то». Вывод — дело
+       фотографа, не приложения (04_ANTI_GOALS). */
+    $("yearOverloadT").innerHTML = "Просрочено сдачей: <b>" + overdue + "</b>. Впереди ещё <b>"
+      + upcoming + "</b> " + plural(upcoming, ["съёмка", "съёмки", "съёмок"]) + " за ближайший месяц.";
+  }
   /* «5 свадеб · 8 портретов» — формы жанров живут в словаре (`genreN.*`),
      как и все слова, согласуемые с числом */
   /* Правило множественного числа переехало в язык (`lang.js`): у русского три
@@ -12271,6 +12351,10 @@
     this.hidden = true;
     var v = $("yearProfitVal"); v.hidden = false;
     v.innerHTML = "Прибыль за " + yearShown + " · <b" + (yearProfitAmt < 0 ? ' class="neg"' : "") + ">" + money(yearProfitAmt) + "</b>";
+  });
+  $("yearDelvBtn").addEventListener("click", function () {
+    this.hidden = true;
+    $("yearDelvVal").hidden = false;
   });
   /* Вернуться в сегодня из любой отмотки */
   $("calNow").addEventListener("click", function () {
