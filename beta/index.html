@@ -900,10 +900,26 @@
     background: none; border: none; color: var(--ink-4); font-family: inherit;
     font-size: 22px; cursor: pointer; padding: 6px 14px; line-height: 1;
   }
-  .year-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    column-gap: 8px; row-gap: 26px; margin-top: 28px;
+  /* Сетка из 12 табличек уступила строкам: имя месяца — не число, сравнивать
+     его с соседями глазами по столбцу-сетке незачем, а вот длину полосы —
+     легко, и она сразу говорит про загрузку месяца, не только про то, что она
+     не пуста. Тот же приём, что у экспонометра света на «Сегодня»: узкая
+     горизонтальная полоса, деление закрашено — деление открыто. */
+  .year-months { margin-top: 26px; }
+  .ym {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
+    padding: 9px 2px; color: var(--ink); border-bottom: 1px solid var(--hair);
   }
+  .ym:last-child { border-bottom: none; }
+  .ym:active { background: var(--sheet); }
+  .ym.now .n { color: var(--brass); }
+  .ym.empty .n { color: var(--ink-7); font-weight: 500; }
+  .ym .n { width: 74px; flex-shrink: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.1px; }
+  .ym .bar { flex: 1; height: 4px; border-radius: 2px; background: var(--meter-off); overflow: hidden; }
+  .ym .bar i { display: block; height: 100%; border-radius: 2px; }
+  .ym .c { width: 18px; flex-shrink: 0; text-align: right; font-size: 13px; color: var(--ink-4);
+    font-variant-numeric: tabular-nums; }
   .year-sum {
     margin-top: 34px; padding-top: 18px; font-size: 13px; color: var(--ink-6);
     border-top: 1px solid var(--hair);
@@ -917,23 +933,27 @@
     margin-top: 12px; padding: 0; font-size: 13px; color: var(--ink-4);
   }
   .year-profit:active { color: var(--brass); }
-  .year-profit-val { margin-top: 12px; font-size: 13px; color: var(--ink-6); font-variant-numeric: tabular-nums; }
-  .year-profit-val b { color: var(--brass); font-weight: 650; font-size: 20px; letter-spacing: -0.3px; }
-  .year-profit-val b.neg { color: var(--terra); }
-  .ym {
-    background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
-    padding: 12px 10px; border-radius: 12px; corner-shape: squircle; color: var(--ink);
+  /* Приборная панель вместо строки текста: число — центр внимания, спарклайн
+     под ним — та же кумулятивная линия, что заканчивается ровно в этом числе.
+     Тот же язык, что у тренда облачности на «Сегодня» — линия, а не столбики:
+     доход фотографа месяц от месяца скачет, а трасса нарастания читается
+     спокойнее */
+  .year-profit-val {
+    margin-top: 12px; background: var(--sheet-2); border-radius: 16px; corner-shape: squircle;
+    padding: 18px 18px 16px;
   }
-  .ym:active { background: var(--sheet); }
-  .ym.now .n { color: var(--brass); }
-  .ym.empty .n { color: var(--ink-7); }
-  .ym .n { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
-  /* Строка под именем месяца: точка срочности и число съёмок. Пусто — значит пусто */
-  .ym .c {
-    display: flex; align-items: center; gap: 6px; margin-top: 7px; min-height: 14px;
-    font-size: 12px; color: var(--ink-4); font-variant-numeric: tabular-nums;
-  }
-  .ym .c i { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+  .year-profit-lbl { font-size: 11px; color: var(--ink-4); text-transform: uppercase;
+    letter-spacing: 1.3px; font-weight: 600; }
+  .year-profit-num { font-size: 30px; font-weight: 300; color: var(--brass); letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums; margin-top: 6px; }
+  .year-profit-num.neg { color: var(--terra); }
+  .year-profit-spark { display: block; margin-top: 14px; width: 100%; height: 42px; }
+  .year-delv-list { margin-top: 12px; }
+  .delv-row { display: flex; align-items: center; gap: 14px; padding: 10px 2px; }
+  .delv-row + .delv-row { border-top: 1px solid var(--hair); }
+  .delv-gauge { width: 52px; height: 30px; flex-shrink: 0; }
+  .delv-name { font-size: 14px; color: var(--ink); font-weight: 600; }
+  .delv-sub { font-size: 12px; color: var(--ink-4); margin-top: 2px; }
   .icon-btn {
     background: none; border: none; cursor: pointer; padding: 8px 5px;
     display: flex; color: var(--brass);
@@ -3988,7 +4008,7 @@
       <span class="y" id="yTitle">2026</span>
       <button id="yNext" aria-label="Следующий год">›</button>
     </div>
-    <div class="year-grid" id="yearGrid"></div>
+    <div class="year-months" id="yearGrid"></div>
     <div class="year-sum" id="yearSum">—</div>
     <!-- Год по жанрам: что отснято и что предстоит -->
     <div class="year-stat" id="yearStat"></div>
@@ -4003,7 +4023,7 @@
     <!-- Сроки сдачи — за всё время, не за этот год: жанру нужна выборка, а не
          календарь. Появляется, только когда есть что сказать (docs: DECISIONS) -->
     <button class="year-profit" id="yearDelvBtn" hidden>Показать сроки сдачи ›</button>
-    <div class="year-profit-val" id="yearDelvVal" hidden></div>
+    <div class="year-delv-list" id="yearDelvVal" hidden></div>
   </div>
 
   <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
@@ -7344,13 +7364,19 @@
     $("yearNowLbl").textContent = now.getFullYear();
     $("yearCloseLbl").textContent = MONTHS_N[calMonth.getMonth()];
     var grid = $("yearGrid"); grid.innerHTML = "";
+    var stats = [];
+    for (var mi = 0; mi < 12; mi++) stats.push(monthStat(yearShown, mi));
+    var maxN = Math.max.apply(null, stats.map(function (s) { return s.n; }).concat([1]));
     for (var m = 0; m < 12; m++) {
-      var st = monthStat(yearShown, m);
+      var st = stats[m];
       var b = document.createElement("button");
       b.className = "ym" + (st.n ? "" : " empty")
         + (yearShown === now.getFullYear() && m === now.getMonth() ? " now" : "");
-      b.innerHTML = '<div class="n">' + MONTHS_N[m] + "</div><div class=\"c\">"
-        + (st.n ? '<i style="background:' + st.color + '"></i>' + st.n : "") + "</div>";
+      var pct = st.n ? Math.max(8, Math.round(st.n / maxN * 100)) : 0;
+      var barColor = (yearShown === now.getFullYear() && m === now.getMonth()) ? "var(--brass)" : st.color;
+      b.innerHTML = '<span class="n">' + MONTHS_N[m] + '</span>'
+        + '<span class="bar">' + (st.n ? '<i style="width:' + pct + '%;background:' + barColor + '"></i>' : "") + '</span>'
+        + '<span class="c">' + (st.n || "") + '</span>';
       (function (mm) {
         b.addEventListener("click", function () {
           calMonth = new Date(yearShown, mm, 1);
@@ -7384,12 +7410,22 @@
       + (todo.length ? '<div><span class="ys-k">Предстоит</span>' + genreLine(todo) + "</div>" : "");
     // Прибыль — под скрытой кнопкой; при перерисовке года прячем снова
     yearProfitAmt = all.reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
+    /* Кумулятивно по месяцам — спарклайн заканчивается ровно в том числе,
+       что стоит над ним крупно: одна и та же прибыль, два взгляда на неё */
+    var run = 0;
+    yearProfitCum = [];
+    for (var pm = 0; pm < 12; pm++) {
+      run += all.filter(function (s) { return s.date.getMonth() === pm; })
+        .reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
+      yearProfitCum.push(run);
+    }
     $("yearProfitBtn").hidden = !all.length;
     $("yearProfitBtn").textContent = "Показать прибыль за год ›";
     $("yearProfitVal").hidden = true;
     renderDeliveryStats();
   }
   var yearProfitAmt = 0;
+  var yearProfitCum = [];
   /* ---------- Статистика сроков сдачи ----------
      За всё время, не за просматриваемый год: жанру нужна выборка, а не
      календарная граница — свадьба, снятая в декабре прошлого года, о своих
@@ -7409,7 +7445,7 @@
       var lateDays = (new Date(s.deliveredAt) - dl) / 86400000;
       (byGenre[s.type] || (byGenre[s.type] = [])).push(lateDays);
     });
-    var lines = [];
+    var rows = [];
     Object.keys(byGenre).forEach(function (g) {
       var arr = byGenre[g];
       if (arr.length < DELV_STAT_MIN) return;
@@ -7417,17 +7453,39 @@
       if (avg < 0.5) return;                       // вовремя или раньше — не наш разговор
       var n = Math.round(avg);
       if (n < 1) return;                            // округлилось в ноль — сказать нечего
-      /* Название жанра — своя категория, не подлежащее: «Свадьбы» уже во
-         множественном числе, «Портрет» — нет, и согласовывать с ним глагол
-         означало бы гадать. Двоеточие снимает вопрос: жанр — тема фразы,
-         а не её грамматический субъект */
-      lines.push("«" + genreName(g) + "»: в среднем сдают на <b>" + n + " "
-        + plural(n, ["день", "дня", "дней"]) + "</b> позже срока");
+      rows.push({ g: g, n: n });
     });
-    $("yearDelvBtn").hidden = !lines.length;
+    rows.sort(function (a, b) { return b.n - a.n; });
+    $("yearDelvBtn").hidden = !rows.length;
     $("yearDelvBtn").textContent = "Показать сроки сдачи ›";
     $("yearDelvVal").hidden = true;
-    $("yearDelvVal").innerHTML = lines.join("<br>");
+    /* Название жанра — своя категория, не подлежащее: «Свадьбы» уже во
+       множественном числе, «Портрет» — нет, и согласовывать с ним глагол
+       означало бы гадать. Двоеточие снимает вопрос — жанр как тема строки,
+       не её грамматический субъект. Манометр не гонится за точностью дальше
+       десяти дней: цифра рядом уже сказала число, дуге довольно передать
+       порядок величины тем же непрерывным тоном срочности, что у месяцев года. */
+    $("yearDelvVal").innerHTML = rows.map(function (r) {
+      var frac = Math.min(1, r.n / 10);
+      var color = rgb(urgencyRGB(frac));
+      return '<div class="delv-row">' + halfGaugeSVG(frac, color)
+        + '<div><div class="delv-name">«' + esc(genreName(r.g)) + '»</div>'
+        + '<div class="delv-sub">в среднем на ' + r.n + ' ' + plural(r.n, ["день", "дня", "дней"])
+        + ' позже срока</div></div></div>';
+    }).join("");
+  }
+  /* Полукруглый манометр: дуга-трасса плюс закрашенная часть до точки-
+     маркера. Угол считается от левого конца (180°) к правому (0°) —
+     frac 0 стоит там же, где начинается трасса, frac 1 — там, где кончается */
+  function halfGaugeSVG(frac, color) {
+    frac = Math.max(0, Math.min(1, frac));
+    var cx = 28, cy = 28, r = 24, theta = Math.PI * (1 - frac);
+    var x = (cx + r * Math.cos(theta)).toFixed(1), y = (cy - r * Math.sin(theta)).toFixed(1);
+    return '<svg class="delv-gauge" viewBox="0 0 56 32" aria-hidden="true">'
+      + '<path d="M4 28 A24 24 0 0 1 52 28" fill="none" stroke="var(--sheet-3)" stroke-width="4" stroke-linecap="round"/>'
+      + (frac > 0.03 ? '<path d="M4 28 A24 24 0 0 1 ' + x + " " + y + '" fill="none" stroke="' + color
+        + '" stroke-width="4" stroke-linecap="round"/>' : "")
+      + '<circle cx="' + x + '" cy="' + y + '" r="3" fill="' + color + '"/></svg>';
   }
   /* ---------- Сигнал перегруза ----------
      Не среднее и не тренд — текущий факт: сколько уже просрочено сдачей
@@ -12363,10 +12421,31 @@
     yearShown = new Date().getFullYear(); renderYear();
   });
   // Скрытая кнопка прибыли: раскрывает сумму за просматриваемый год
+  /* Ломаная спарклайна: диапазон берёт и ноль тоже — год, ушедший в минус
+     целиком, должен читаться как низкая линия, а не как линия, занявшая
+     всю высоту сама у себя */
+  function sparkPoints(vals, w, h, pad) {
+    var min = Math.min.apply(null, vals.concat([0])), max = Math.max.apply(null, vals.concat([0]));
+    var range = (max - min) || 1, n = vals.length;
+    return vals.map(function (v, i) {
+      var x = pad + (w - 2 * pad) * (i / (n - 1));
+      var y = pad + (h - 2 * pad) * (1 - (v - min) / range);
+      return x.toFixed(1) + "," + y.toFixed(1);
+    });
+  }
   $("yearProfitBtn").addEventListener("click", function () {
     this.hidden = true;
     var v = $("yearProfitVal"); v.hidden = false;
-    v.innerHTML = "Прибыль за " + yearShown + " · <b" + (yearProfitAmt < 0 ? ' class="neg"' : "") + ">" + money(yearProfitAmt) + "</b>";
+    var neg = yearProfitAmt < 0;
+    var pts = sparkPoints(yearProfitCum, 320, 42, 4);
+    var last = pts[pts.length - 1].split(",");
+    var lineColor = neg ? "var(--terra)" : "var(--brass-soft)", dotColor = neg ? "var(--terra)" : "var(--brass)";
+    v.innerHTML = '<div class="year-profit-lbl">Прибыль · ' + yearShown + '</div>'
+      + '<div class="year-profit-num' + (neg ? " neg" : "") + '">' + money(yearProfitAmt) + '</div>'
+      + '<svg class="year-profit-spark" viewBox="0 0 320 42" preserveAspectRatio="none">'
+      + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + lineColor
+      + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+      + '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3.2" fill="' + dotColor + '"/></svg>';
   });
   $("yearDelvBtn").addEventListener("click", function () {
     this.hidden = true;
