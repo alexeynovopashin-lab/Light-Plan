@@ -759,6 +759,10 @@
     height: 447px; min-height: 370px; max-height: calc(100dvh - 400px);
     border-radius: 18px; corner-shape: squircle; overflow: hidden; background: var(--canvas);
   }
+  /* Ротор поворачивается вокруг центра кадра — той же точки, где стоит
+     наблюдатель (.map-pin). Без transition: угол ставит rAF каждый кадр,
+     css-переход между кадрами только запаздывал бы за сглаживанием в JS. */
+  .map-rotor { position: absolute; inset: 0; transform-origin: 50% 50%; }
   /* touch-action: none — Leaflet водит палец сам через JS (drag и пинч-зум),
      браузеру тут решать нечего, это и советует сама библиотека */
   #lmap { position: absolute; inset: 0; background: var(--canvas); touch-action: none; }
@@ -787,6 +791,10 @@
   /* Слои — тот же кружок, зеркально к «моему месту». Активный набор виден
      сразу, чтобы не открывать список ради вопроса «а Млечный Путь включён?» */
   .map-layers-btn.on { color: var(--brass); }
+  /* Живой компас — та же кнопка-кружок, включённая тем же приёмом, что и слои */
+  .map-heading-btn.on { color: var(--brass); }
+  .map-heading-btn.on svg { animation: heading-pulse 1.6s ease-in-out infinite; }
+  @keyframes heading-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   /* Позицию задаёт скрипт от самой кнопки; здесь только слой поверх скрима */
   #mapLayersMenu { position: fixed; z-index: 41; transform-origin: 20px 100%; }
 
@@ -3086,20 +3094,30 @@
     </div>
 
     <div class="map-frame">
-      <div id="lmap"></div>
-      <!-- Ночь на карте. Подложка темнеет вместе с настоящим небом: ползунок
-           едет к закату — город гаснет. Это не приём для читаемости, а то же
-           показание, что и всё вокруг, только сказанное холстом. Читаемость
-           достаётся заодно: звёздам нужен тёмный фон, и ночью он появляется
-           сам, без отдельного режима. -->
-      <div id="mapNight" aria-hidden="true"></div>
-      <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-      <div class="map-pin"><i></i></div>
+      <!-- Ротор держит карту и прибор одним слоем: живой компас поворачивает
+           обоих разом, кнопки управления снаружи и не крутятся вместе с ними -->
+      <div class="map-rotor" id="mapRotor">
+        <div id="lmap"></div>
+        <!-- Ночь на карте. Подложка темнеет вместе с настоящим небом: ползунок
+             едет к закату — город гаснет. Это не приём для читаемости, а то же
+             показание, что и всё вокруг, только сказанное холстом. Читаемость
+             достаётся заодно: звёздам нужен тёмный фон, и ночью он появляется
+             сам, без отдельного режима. -->
+        <div id="mapNight" aria-hidden="true"></div>
+        <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        <div class="map-pin"><i></i></div>
+      </div>
       <!-- Слои — не переключатель темы карты, а выбор, что на ней светится:
            солнце и луна включены по умолчанию (так компас работал и раньше),
            Млечный Путь — по запросу, это нишевый слой для тех, кто его ищет -->
       <button class="map-here map-layers-btn" id="mapLayersBtn" aria-label="Слои карты" style="left:12px;right:auto;">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+      </button>
+      <!-- Живой компас — по умолчанию выключен: карта смотрит на север, как
+           обычная карта. Включённый разворачивает ротор по датчику ориентации,
+           «вперёд» на экране становится «куда смотрит телефон» -->
+      <button class="map-here map-heading-btn" id="mapHeadingBtn" aria-label="Живой компас" style="left:12px;right:auto;bottom:auto;top:12px;">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M15 9l-2 5-4 1 2-5z"/></svg>
       </button>
       <button class="map-here" id="mapHere" aria-label="Моё место">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
@@ -11979,6 +11997,62 @@
       if (k === "mw") applyDate(viewMin); else renderMap();
     });
   });
+
+  /* ---------- Живой компас ----------
+     По умолчанию карта смотрит на север, как любая карта. Включённый разворачивает
+     ротор — карту и прибор одним слоем, как «следовать» в нативных картах: «вперёд»
+     на экране становится «куда сейчас смотрит телефон». Логика чтения датчика взята
+     из беты Солнечного компаса, там она уже проверена на реальных телефонах.
+     Угол не хранится между запусками: разрешение датчика на iOS просят жестом,
+     и с чистого экрана понятнее снова начинать с севера сверху. */
+  var compassLive = false, headingReal = 0, headingVisual = 0, headingRAF = null, headingListening = false;
+  function normalizeAngle(a) { return ((a % 360) + 360) % 360; }
+  function smoothHeading(target, current) {
+    var diff = target - current;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+    return current + diff * 0.15;
+  }
+  function handleHeading(e) {
+    var h = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? 360 - e.alpha : null);
+    if (h != null) headingReal = normalizeAngle(h);
+  }
+  function tickHeading() {
+    headingVisual = smoothHeading(headingReal, headingVisual);
+    $("mapRotor").style.transform = "rotate(" + (-headingVisual) + "deg)";
+    headingRAF = requestAnimationFrame(tickHeading);
+  }
+  function setCompassLive(on) {
+    compassLive = on;
+    $("mapHeadingBtn").classList.toggle("on", on);
+    var rotor = $("mapRotor");
+    if (on) {
+      if (!headingListening) {
+        headingListening = true;
+        window.addEventListener("deviceorientation", handleHeading, true);
+      }
+      if (lmap) lmap.dragging.disable();   // под поворотом пиксели жеста врут — тянуть нельзя
+      rotor.style.transition = "";
+      if (!headingRAF) tickHeading();
+    } else {
+      if (lmap) lmap.dragging.enable();
+      if (headingRAF) { cancelAnimationFrame(headingRAF); headingRAF = null; }
+      rotor.style.transition = "transform .3s ease";
+      rotor.style.transform = "rotate(0deg)";
+      setTimeout(function () { rotor.style.transition = ""; }, 320);
+      headingVisual = 0; headingReal = 0;
+    }
+  }
+  $("mapHeadingBtn").addEventListener("click", function () {
+    if (compassLive) { setCompassLive(false); return; }
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      DeviceOrientationEvent.requestPermission().then(function (state) {
+        if (state === "granted") setCompassLive(true);
+      }).catch(function () {});
+    } else {
+      setCompassLive(true);   // Android и старый iOS разрешения не спрашивают
+    }
+  });
   paintMapLayersBtn();
 
   /* Стрелки листают месяцами или неделями — смотря какой масштаб открыт */
@@ -12739,6 +12813,7 @@
     measureDockSoon();                   // док на разных экранах разной высоты
     $(id).scrollTop = 0;
     if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
+    else if (compassLive) setCompassLive(false);   // уходя с карты, гасим датчик — не нужен нигде больше
   }
   tabs.forEach(function (t) { t.addEventListener("click", function () { go(t.dataset.go); }); });
 
