@@ -892,6 +892,7 @@
   /* ---------- Год ---------- */
   /* Ниже таб-бара: из года видно, где ты в приложении, и можно уйти на другой раздел */
   #yearOverlay { z-index: 25; padding-bottom: calc(var(--tabh, 84px) + 16px); }
+  .year-head-acts { display: flex; align-items: center; gap: 2px; }
   .year-nav {
     display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
   }
@@ -928,14 +929,19 @@
   .year-cal-grid button:active { background: var(--sheet); }
   .year-cal-grid button.today { background: var(--brass); color: var(--on-brass, #16120C); font-weight: 700; }
   .year-cal-grid span.pad { visibility: hidden; }
-  .year-stats-btn {
-    display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
-    margin-top: 20px; padding: 14px; background: var(--sheet-2); border: none; border-radius: 14px;
-    corner-shape: squircle; color: var(--brass-soft); font-family: inherit; font-size: 14px;
-    font-weight: 600; cursor: pointer;
-  }
-  .year-stats-btn:active { background: var(--sheet-3); }
-  .year-stats-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }
+  /* Занятость по месяцам — на экране статистики, не навигации: полоса несёт
+     цвет срочности сдачи, а это и есть язык всего экрана вокруг неё.
+     Не кнопки — здесь только смотрят, тап никуда не ведёт */
+  .year-months { margin-top: 10px; }
+  .ym-row { display: flex; align-items: center; gap: 12px; padding: 8px 2px;
+    border-bottom: 1px solid var(--hair); }
+  .ym-row:last-child { border-bottom: none; }
+  .ym-row.empty .ym-n { color: var(--ink-7); font-weight: 500; }
+  .ym-row .ym-n { width: 70px; flex-shrink: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .ym-row .ym-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--meter-off); overflow: hidden; }
+  .ym-row .ym-bar i { display: block; height: 100%; border-radius: 2px; }
+  .ym-row .ym-c { width: 16px; flex-shrink: 0; text-align: right; font-size: 12.5px; color: var(--ink-4);
+    font-variant-numeric: tabular-nums; }
   .year-sum {
     margin-top: 34px; padding-top: 18px; font-size: 13px; color: var(--ink-6);
     border-top: 1px solid var(--hair);
@@ -978,6 +984,10 @@
     background: none; border: none; cursor: pointer; padding: 8px 5px;
     display: flex; color: var(--brass);
   }
+  /* display:flex сильнее браузерного [hidden] — тот же каскад, что уже не раз
+     подводил карточку (DECISIONS): без этого правила #statsBtn оставался на
+     экране и пустым, и скрытым одновременно, пока у года не было данных. */
+  .icon-btn[hidden] { display: none; }
   .icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.7; }
   /* Организации и документы: знак спокойнее календаря и поиска — сюда
      заходят раз в неделю, а не каждый день */
@@ -4040,7 +4050,19 @@
       <button class="back" id="yearClose">
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span id="yearCloseLbl">Июль</span>
       </button>
-      <button class="now-back" id="yearNow">↺ <span id="yearNowLbl">2026</span></button>
+      <!-- Справа от «‹ Август» пустовало место на всю высоту шапки — крутить
+           весь год до кнопки внизу списка ради статистики было бы глупо
+           (Алексей). Вход на статистику и поиск переехали сюда же, рядом
+           с «↺ сейчас» — тот тоже показывается не всегда. -->
+      <div class="year-head-acts">
+        <button class="now-back" id="yearNow">↺ <span id="yearNowLbl">2026</span></button>
+        <button class="icon-btn" id="yearSearchBtn" aria-label="Поиск">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+        </button>
+        <button class="icon-btn" id="statsBtn" aria-label="Статистика" hidden>
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V13M12 20V8M18 20V4"/></svg>
+        </button>
+      </div>
     </div>
     <div class="year-nav">
       <button id="yPrev" aria-label="Прошлый год">‹</button>
@@ -4055,10 +4077,6 @@
     <div class="year-sum" id="yearSum">—</div>
     <!-- Год по жанрам: что отснято и что предстоит -->
     <div class="year-stat" id="yearStat"></div>
-    <button class="year-stats-btn" id="statsBtn" hidden>
-      Показать статистику
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-    </button>
   </div>
 
   <!-- Инфографика — деньги и сроки сдачи, отдельным экраном поверх года.
@@ -4075,7 +4093,12 @@
          не видно самому изнутри (04_ANTI_GOALS). Молчит, пока условие не
          выполнено, и гаснет само — без кнопки «скрыть». -->
     <div class="say bad" id="yearOverload" hidden><span class="s-ic" data-ic="warn"></span><span id="yearOverloadT"></span></div>
-    <div class="sec-label" id="profitLabel" hidden style="padding-left:0;">Прибыль</div>
+    <!-- Занятость по месяцам — вернулась из первой версии, но сюда, не на
+         навигационный экран: там ей было не место (два тона сразу — свет и
+         срочность сдачи), здесь — весь экран об этом (docs: DECISIONS). -->
+    <div class="sec-label" id="monthsLabel" hidden style="padding-left:0;">Занятость по месяцам</div>
+    <div class="year-months" id="yearMonthBars" hidden></div>
+    <div class="sec-label" id="profitLabel" hidden style="padding-left:0;margin-top:22px;">Прибыль</div>
     <div class="year-profit-val" id="yearProfitVal" hidden></div>
     <!-- Сроки сдачи — за всё время, не за этот год: жанру нужна выборка,
          а не календарная граница (docs: DECISIONS) -->
@@ -7497,8 +7520,37 @@
         .reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
       yearProfitCum.push(run);
     }
+    renderMonthBars();
     renderProfitPlate(all.length > 0);
     renderDeliveryStats();
+  }
+  /* Занятость по месяцам — вернулась из первой версии годового экрана, но
+     теперь на статистике, не на навигации: полоса несёт цвет срочности
+     сдачи, и это уместно ровно там, где весь экран про статистику. Только
+     смотрят — не кнопки, тап никуда не ведёт. */
+  function renderMonthBars() {
+    var stats = [];
+    for (var m = 0; m < 12; m++) {
+      var n = 0, worst = null;
+      sessions.forEach(function (s) {
+        if (s.date.getFullYear() !== yearShown || s.date.getMonth() !== m) return;
+        n++;
+        var st = deliveryState(s);
+        if (!worst || st.rank > worst.rank) worst = st;
+      });
+      stats.push({ n: n, color: worst ? worst.color : null });
+    }
+    var maxN = Math.max.apply(null, stats.map(function (s) { return s.n; }).concat([1]));
+    var has = stats.some(function (s) { return s.n > 0; });
+    $("monthsLabel").hidden = !has;
+    $("yearMonthBars").hidden = !has;
+    if (!has) return;
+    $("yearMonthBars").innerHTML = stats.map(function (s, m) {
+      var pct = s.n ? Math.max(8, Math.round(s.n / maxN * 100)) : 0;
+      return '<div class="ym-row' + (s.n ? "" : " empty") + '"><span class="ym-n">' + MONTHS_N[m] + '</span>'
+        + '<span class="ym-bar">' + (s.n ? '<i style="width:' + pct + '%;background:' + s.color + '"></i>' : "") + '</span>'
+        + '<span class="ym-c">' + (s.n || "") + '</span></div>';
+    }).join("");
   }
   /* Панель прибыли строится сразу при перерисовке года, не по клику — сам
      вход на экран статистики уже был тем самым «деньги не первое, что
@@ -12597,11 +12649,14 @@
       });
     });
   }
-  $("planSearch").addEventListener("click", function () {
+  function openSearch() {
     $("searchInput").value = ""; renderSearch();
     $("searchOverlay").classList.add("open");
     setTimeout(function () { $("searchInput").focus(); }, 350);
-  });
+  }
+  $("planSearch").addEventListener("click", openSearch);
+  // Тот же поиск, вход из года — не заводить второй список ради одной кнопки
+  $("yearSearchBtn").addEventListener("click", openSearch);
   $("searchBack").addEventListener("click", function () { $("searchOverlay").classList.remove("open"); });
   $("searchInput").addEventListener("input", renderSearch);
 
