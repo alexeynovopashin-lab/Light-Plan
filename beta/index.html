@@ -3497,7 +3497,15 @@
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
     <div class="item" id="spotsRow"><span class="k">Мои места</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
-    <div class="sec-label">Заказчики</div>
+    <!-- Хранилище — общий вход в то, что накопилось по пути: референсы жанра
+         и снимки из съёмок, ссылки отовсюду, документы организаций. Каждое
+         уже жило своей жизнью в своём экране (docs: DECISIONS, «жанру нужна
+         выборка»), но спросить «где у меня вообще все фото» было решительно
+         некуда — раздел не заводит новых данных, только сводит уже
+         существующие в одном месте (Алексей). -->
+    <div class="sec-label">Хранилище</div>
+    <div class="item" id="storePhotosRow"><span class="k">Фото</span><span class="v" id="storePhotosN">— <span class="go-chev">›</span></span></div>
+    <div class="item" id="storeLinksRow"><span class="k">Ссылки</span><span class="v" id="storeLinksN">— <span class="go-chev">›</span></span></div>
     <!-- Экран организаций живёт и здесь: раньше единственный путь был кнопкой
          в шапке «Съёмок», её место занял вход в статистику. Строка в форме
          съёмки («Заказчик») по-прежнему открывает тот же список для выбора,
@@ -3521,7 +3529,7 @@
 
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
     <div class="sec-label">Данные</div>
-    <div class="item"><span class="k">Хранилище</span><span class="v" id="storeState">—</span></div>
+    <div class="item"><span class="k">Постоянность</span><span class="v" id="storeState">—</span></div>
     <div class="item"><span class="k">Записей</span><span class="v" id="storeCount">—</span></div>
     <div class="item"><span class="k">Последняя копия</span><span class="v" id="backupWhen">не делали</span></div>
     <button class="data-btn" id="backupSave">
@@ -4231,6 +4239,32 @@
     <div id="oShoots"></div>
 
     <button class="danger" id="oDelete">Удалить организацию</button>
+  </div>
+
+  <!-- ============ ХРАНИЛИЩЕ: ФОТО ============
+       Референсы жанра («альбом») и фото, приложенные к конкретным съёмкам —
+       вперемешку, одним взглядом по жанрам: съёмке всё равно не важно, откуда
+       взялась картинка, важно, что она относится к портрету или к свадьбе.
+       Экран только показывает; добавлять и удалять по-прежнему в «Моих
+       жанрах» и в форме съёмки — второй вход, не вторая копия данных. -->
+  <div class="overlay pad" id="storePhotosOverlay">
+    <button class="back" id="storePhotosBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Настройки
+    </button>
+    <div class="rf-tags wrap" id="storePhotoTags"></div>
+    <div class="ref-grid" id="storePhotoGrid" style="margin-top:4px;"></div>
+  </div>
+
+  <!-- ============ ХРАНИЛИЩЕ: ССЫЛКИ ============
+       Та же логика, что у фото, но для ссылок — и сюда же документы-ссылки:
+       ссылка на договор в облаке ничем не отличается от ссылки на референс,
+       кроме подписи в первой колонке (docs: DECISIONS). -->
+  <div class="overlay pad" id="storeLinksOverlay">
+    <button class="back" id="storeLinksBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Настройки
+    </button>
+    <div class="rf-tags wrap" id="storeLinkTags"></div>
+    <div id="storeLinkList" style="margin-top:4px;"></div>
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
@@ -8865,6 +8899,129 @@
     });
   }
 
+  /* ============================================================
+     ХРАНИЛИЩЕ: ФОТО И ССЫЛКИ СО ВСЕГО ПРИЛОЖЕНИЯ
+     ============================================================
+     Три места складывают референсы и документы каждое по своим правилам —
+     набор жанра, форма съёмки, карточка организации — и это правильно,
+     каждому нужен свой контекст добавления. Но спросить «где у меня вообще
+     все фото» или «куда я дел ту ссылку» эти места поодиночке не отвечают.
+     Здесь — только чтение: список сводит существующие массивы в один
+     взгляд по жанру (фото) или по виду (ссылки), а добавлять и удалять
+     остаётся там же, где оно всегда было — вторая копия того же архива
+     готовила бы почву для расхождения. */
+  function allPhotos() {
+    var out = [];
+    ALL_GENRES.forEach(function (g) {
+      (genreRefs[g] || []).forEach(function (r) {
+        if (r.k !== "link") out.push({ r: r, g: g });
+      });
+    });
+    sessions.forEach(function (s) {
+      (Array.isArray(s.refs) ? s.refs : []).forEach(function (r) {
+        if (r.k !== "link") out.push({ r: r, g: s.type });
+      });
+    });
+    return out;
+  }
+  var storePhotoTag = null;
+  function renderStorePhotos() {
+    var all = allPhotos();
+    var genresPresent = ALL_GENRES.filter(function (g) {
+      return all.some(function (p) { return p.g === g; });
+    });
+    if (storePhotoTag && genresPresent.indexOf(storePhotoTag) < 0) storePhotoTag = null;
+    $("storePhotoTags").innerHTML = genresPresent.map(function (g) {
+      var n = all.filter(function (p) { return p.g === g; }).length;
+      return '<button type="button" class="rf-tag' + (storePhotoTag === g ? " on" : "") + '" data-g="' + g + '">'
+        + genreName(g) + '<span class="n">' + n + "</span></button>";
+    }).join("");
+    $("storePhotoTags").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        storePhotoTag = storePhotoTag === b.dataset.g ? null : b.dataset.g;
+        renderStorePhotos();
+      });
+    });
+    var shown = all.filter(function (p) { return !storePhotoTag || p.g === storePhotoTag; });
+    $("storePhotoGrid").innerHTML = shown.map(function (p, i) {
+      return '<button type="button" class="ref-card" data-i="' + i + '">'
+        + (p.r.thumb ? '<img src="' + p.r.thumb + '" alt="">' : "")
+        + (p.r.pending ? '<span class="wait">…</span>' : "")
+        + "</button>";
+    }).join("") || '<div class="rt-empty" style="padding:8px 2px">Пока нет фото — референсы жанра и снимки, приложенные к съёмкам, соберутся здесь сами.</div>';
+    $("storePhotoGrid").querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function () { openRef(shown[+b.dataset.i].r); });
+    });
+  }
+  /* Ссылка-документ и ссылка-референс отличаются только подписью в первой
+     колонке: договору нужен вид («Договор», «Счёт»), референсу — нет, его
+     вид один и тот же. LINK_KINDS задаёт порядок чипов фильтра. */
+  var LINK_KINDS = ["Референс"].concat(DOC_KINDS, ["Документ"]);
+  function allLinks() {
+    var out = [];
+    ALL_GENRES.forEach(function (g) {
+      (genreRefs[g] || []).forEach(function (r) {
+        if (r.k === "link") out.push({ r: r, who: genreName(g), when: null, kind: "Референс" });
+      });
+    });
+    sessions.forEach(function (s) {
+      (Array.isArray(s.refs) ? s.refs : []).forEach(function (r) {
+        if (r.k === "link") out.push({ r: r, who: clientName(s) || genreName(s.type), when: s.date, kind: "Референс" });
+      });
+      (Array.isArray(s.docs) ? s.docs : []).forEach(function (r) {
+        if (r.k === "link") out.push({ r: r, who: clientName(s) || genreName(s.type), when: s.date, kind: docKind(r) || "Документ" });
+      });
+    });
+    orgs.forEach(function (o) {
+      (o.docs || []).forEach(function (r) {
+        if (r.k === "link") out.push({ r: r, who: o.name || "Организация", when: null, kind: docKind(r) || "Документ" });
+      });
+    });
+    return out.sort(function (a, b) { return (b.when ? b.when.getTime() : 0) - (a.when ? a.when.getTime() : 0); });
+  }
+  var storeLinkFilter = null, storeLinkList = [];
+  function renderStoreLinks() {
+    var all = allLinks();
+    storeLinkList = all.filter(function (l) { return !storeLinkFilter || l.kind === storeLinkFilter; });
+    $("storeLinkTags").innerHTML = LINK_KINDS.map(function (k) {
+      var n = all.filter(function (l) { return l.kind === k; }).length;
+      if (!n && storeLinkFilter !== k) return "";
+      return '<button type="button" class="rf-tag' + (storeLinkFilter === k ? " on" : "") + '" data-k="' + k + '">'
+        + k + '<span class="n">' + n + "</span></button>";
+    }).join("");
+    $("storeLinkTags").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        storeLinkFilter = storeLinkFilter === b.dataset.k ? null : b.dataset.k;
+        renderStoreLinks();
+      });
+    });
+    $("storeLinkList").innerHTML = storeLinkList.map(function (l, i) {
+      return '<button type="button" class="doc-row" data-i="' + i + '">'
+        + '<span class="k">' + esc(l.kind) + "</span>"
+        + '<span class="n">' + esc(refHost(l.r.url)) + "</span>"
+        + '<span class="w">' + esc(refTail(l.r.url)) + "</span></button>"
+        + '<div class="org-empty" style="padding:2px 14px 0">' + esc(l.who)
+        + (l.when ? " · " + l.when.getDate() + " " + MONTHS[l.when.getMonth()] : "") + "</div>";
+    }).join("") || '<div class="org-empty">Пока нет ссылок — референсы и документы со ссылками соберутся здесь сами.</div>';
+    $("storeLinkList").querySelectorAll(".doc-row").forEach(function (b) {
+      b.addEventListener("click", function () { window.open(storeLinkList[+b.dataset.i].r.url, "_blank", "noopener"); });
+    });
+  }
+  function renderStoreCounts() {
+    if ($("storePhotosN")) $("storePhotosN").innerHTML = (allPhotos().length || "нет") + ' <span class="go-chev">›</span>';
+    if ($("storeLinksN")) $("storeLinksN").innerHTML = (allLinks().length || "нет") + ' <span class="go-chev">›</span>';
+  }
+  $("storePhotosRow").addEventListener("click", function () {
+    renderStorePhotos();
+    $("storePhotosOverlay").classList.add("open");
+  });
+  $("storePhotosBack").addEventListener("click", function () { $("storePhotosOverlay").classList.remove("open"); });
+  $("storeLinksRow").addEventListener("click", function () {
+    renderStoreLinks();
+    $("storeLinksOverlay").classList.add("open");
+  });
+  $("storeLinksBack").addEventListener("click", function () { $("storeLinksOverlay").classList.remove("open"); });
+
   function renderOrgList() {
     $("orgList").innerHTML = orgs.map(function (o, i) {
       var sh = orgShoots(o.id);
@@ -8908,6 +9065,7 @@
   $("orgBack").addEventListener("click", function () {
     orgPick = null;                    // ушли без выбора — заказчик остался прежним
     $("orgOverlay").classList.remove("open");
+    renderStoreCounts();                // документы-ссылки правились тут же, счётчик мог устареть
   });
   $("orgSeg").querySelectorAll("button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -13483,6 +13641,7 @@
     measureDockSoon();                   // док на разных экранах разной высоты
     $(id).scrollTop = 0;
     if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
+    else if (id === "s-set") renderStoreCounts();  // считаем свежо: фото и ссылки копятся где угодно
     else if (compassLive) setCompassLive(false);   // уходя с карты, гасим датчик — не нужен нигде больше
   }
   tabs.forEach(function (t) { t.addEventListener("click", function () { go(t.dataset.go); }); });
