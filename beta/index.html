@@ -892,6 +892,10 @@
   /* ---------- Год ---------- */
   /* Ниже таб-бара: из года видно, где ты в приложении, и можно уйти на другой раздел */
   #yearOverlay { z-index: 25; padding-bottom: calc(var(--tabh, 84px) + 16px); }
+  /* Липнет к верху прокручиваемого экрана — список ниже идёт на два года
+     подряд, и без липкой шапки прокрутка в декабре оставляла бы стрелки ‹›
+     недоступными, пока не вернёшься наверх (docs: DECISIONS) */
+  .year-sticky-head { position: sticky; top: 0; z-index: 5; background: var(--surface); padding-bottom: 4px; }
   .year-head-acts { display: flex; align-items: center; gap: 2px; }
   .year-nav {
     display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
@@ -909,6 +913,13 @@
      смысл экрана. */
   .year-cal-list { margin-top: 22px; }
   .year-cal-month { margin-bottom: 26px; }
+  /* Граница между годами при непрерывной прокрутке — называет год прямо,
+     а не оставляет догадываться, что декабрь кончился */
+  .year-divider {
+    margin: 6px 0 24px; padding-top: 24px; border-top: 1px solid var(--hair);
+    font-size: 26px; font-weight: 650; letter-spacing: -0.5px; color: var(--ink-4);
+    font-variant-numeric: tabular-nums;
+  }
   .year-cal-name {
     background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
     display: block; width: 100%; padding: 0 0 8px; color: var(--ink);
@@ -4055,33 +4066,41 @@
   <!-- ============ ГОД ============ -->
   <!-- Тот же календарь в меньшем масштабе: год — это масштаб, а не шаг назад -->
   <div class="overlay pad" id="yearOverlay">
-    <div class="form-top">
-      <button class="back" id="yearClose">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span id="yearCloseLbl">Июль</span>
-      </button>
-      <!-- Справа от «‹ Август» пустовало место на всю высоту шапки — крутить
-           весь год до кнопки внизу списка ради статистики было бы глупо
-           (Алексей). Вход на статистику и поиск переехали сюда же, рядом
-           с «↺ сейчас» — тот тоже показывается не всегда. -->
-      <div class="year-head-acts">
-        <button class="now-back" id="yearNow">↺ <span id="yearNowLbl">2026</span></button>
-        <button class="icon-btn" id="yearSearchBtn" aria-label="Поиск">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+    <!-- Шапка и заголовок года липнут сверху при прокрутке: список идёт на
+         два года разом (docs: DECISIONS, «год не должен упираться в конец»),
+         и без липкой плашки было бы непонятно, что прокрутка уже увела в
+         январь следующего года — а стрелки ‹› стали бы недоступны, пока не
+         вернёшься наверх. -->
+    <div class="year-sticky-head">
+      <div class="form-top">
+        <button class="back" id="yearClose">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span id="yearCloseLbl">Июль</span>
         </button>
-        <button class="icon-btn" id="statsBtn" aria-label="Статистика" hidden>
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V13M12 20V8M18 20V4"/></svg>
-        </button>
+        <!-- Справа от «‹ Август» пустовало место на всю высоту шапки — крутить
+             весь год до кнопки внизу списка ради статистики было бы глупо
+             (Алексей). Вход на статистику и поиск переехали сюда же, рядом
+             с «↺ сейчас» — тот тоже показывается не всегда. -->
+        <div class="year-head-acts">
+          <button class="now-back" id="yearNow">↺ <span id="yearNowLbl">2026</span></button>
+          <button class="icon-btn" id="yearSearchBtn" aria-label="Поиск">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+          </button>
+          <button class="icon-btn" id="statsBtn" aria-label="Статистика" hidden>
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V13M12 20V8M18 20V4"/></svg>
+          </button>
+        </div>
       </div>
-    </div>
-    <div class="year-nav">
-      <button id="yPrev" aria-label="Прошлый год">‹</button>
-      <span class="y" id="yTitle">2026</span>
-      <button id="yNext" aria-label="Следующий год">›</button>
+      <div class="year-nav">
+        <button id="yPrev" aria-label="Прошлый год">‹</button>
+        <span class="y" id="yTitle">2026</span>
+        <button id="yNext" aria-label="Следующий год">›</button>
+      </div>
     </div>
     <!-- Стандартный вид — чистая навигация, свет и занятость её не украшают:
          мини-календари месяца, тап по числу ведёт в день (docs: DECISIONS,
          «два вида годового экрана»). Ни денег, ни сроков сдачи здесь нет —
-         за ними ведёт отдельный экран. -->
+         за ними ведёт отдельный экран. Список рисует сразу два года подряд —
+         декабрь перетекает в январь следующего без остановки. -->
     <div class="year-cal-list" id="yearGrid"></div>
     <div class="year-sum" id="yearSum">—</div>
   </div>
@@ -7451,6 +7470,64 @@
 
   /* ---------- Год: тот же календарь в меньшем масштабе ---------- */
   var yearShown = calMonth.getFullYear();
+  var YEAR_WD_ROW = '<span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>';
+  /* Один месяц мини-календаря — своя функция, а не кусок цикла: список
+     теперь строит два года подряд, и без вынесения тело цикла пришлось бы
+     повторять дважды или городить вложенный цикл ради одной переменной y */
+  function buildMonthEl(y, m, now) {
+    var isNow = y === now.getFullYear() && m === now.getMonth();
+    var first = new Date(y, m, 1);
+    var offset = (first.getDay() + 6) % 7;
+    var daysN = new Date(y, m + 1, 0).getDate();
+    var wrap = document.createElement("div"); wrap.className = "year-cal-month";
+    var nameBtn = document.createElement("button");
+    nameBtn.className = "year-cal-name" + (isNow ? " now" : "");
+    nameBtn.textContent = MONTHS_N[m];
+    var wd = document.createElement("div"); wd.className = "year-cal-wd"; wd.innerHTML = YEAR_WD_ROW;
+    var dgrid = document.createElement("div"); dgrid.className = "year-cal-grid";
+    for (var k = 0; k < offset; k++) dgrid.appendChild(document.createElement("span"));
+    for (var d = 1; d <= daysN; d++) {
+      var db = document.createElement("button");
+      if (isNow && d === now.getDate()) db.className = "today";
+      db.textContent = d;
+      (function (yy, mm, dd) {
+        db.addEventListener("click", function () {
+          calMonth = new Date(yy, mm, 1);
+          calSel = new Date(yy, mm, dd);
+          // число — это день, а не месяц: тап ведёт прямо в сводку дня
+          setScope("day");
+          $("yearOverlay").classList.remove("open");
+          renderCal(); renderDayPanel();
+        });
+      })(y, m, d);
+      dgrid.appendChild(db);
+    }
+    (function (yy, mm) {
+      nameBtn.addEventListener("click", function () {
+        calMonth = new Date(yy, mm, 1);
+        // выбранным становится сегодня, если оно в этом месяце, иначе первое число
+        calSel = (yy === now.getFullYear() && mm === now.getMonth())
+          ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          : new Date(yy, mm, 1);
+        setScope("month");
+        $("yearOverlay").classList.remove("open");
+        renderCal(); renderDayPanel();
+      });
+    })(y, m);
+    wrap.appendChild(nameBtn); wrap.appendChild(wd); wrap.appendChild(dgrid);
+    return wrap;
+  }
+  /* Прокрутка к нужному месяцу — после рендера, следующим кадром: список
+     должен успеть встать на место, иначе offsetTop меряет ещё старую высоту */
+  function scrollYearTo(y, m) {
+    requestAnimationFrame(function () {
+      var block = $("yearGrid").querySelector('.year-block[data-year="' + y + '"]');
+      var el = block && block.querySelectorAll(".year-cal-month")[m];
+      if (!el) { $("yearOverlay").scrollTop = 0; return; }
+      var headH = document.querySelector(".year-sticky-head").offsetHeight;
+      $("yearOverlay").scrollTop = Math.max(0, el.offsetTop - headH - 8);
+    });
+  }
   function renderYear() {
     var now = new Date();
     renderOverloadSignal();
@@ -7461,52 +7538,23 @@
     /* Мини-календарь на месяц: та же неделя-с-понедельника и то же имя
        месяца, что и в основном виде (docs: DECISIONS). Число — прямой тап
        в день, имя месяца — тап в месяц целиком; ни то, ни другое не несёт
-       цвета срочности — экран быстрой навигации, не инфографики. */
+       цвета срочности — экран быстрой навигации, не инфографики.
+       Список рисует год и следующий за ним подряд, одним потоком: декабрь
+       перетекает в январь без остановки, а не упирается в конец списка
+       (Алексей). Разделитель перед следующим годом называет его прямо —
+       «сразу видеть, что это январь следующего года». */
     var grid = $("yearGrid"); grid.innerHTML = "";
-    var WD_ROW = '<span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>';
-    for (var m = 0; m < 12; m++) {
-      var isNow = yearShown === now.getFullYear() && m === now.getMonth();
-      var first = new Date(yearShown, m, 1);
-      var offset = (first.getDay() + 6) % 7;
-      var daysN = new Date(yearShown, m + 1, 0).getDate();
-      var wrap = document.createElement("div"); wrap.className = "year-cal-month";
-      var nameBtn = document.createElement("button");
-      nameBtn.className = "year-cal-name" + (isNow ? " now" : "");
-      nameBtn.textContent = MONTHS_N[m];
-      var wd = document.createElement("div"); wd.className = "year-cal-wd"; wd.innerHTML = WD_ROW;
-      var dgrid = document.createElement("div"); dgrid.className = "year-cal-grid";
-      for (var k = 0; k < offset; k++) dgrid.appendChild(document.createElement("span"));
-      for (var d = 1; d <= daysN; d++) {
-        var db = document.createElement("button");
-        if (isNow && d === now.getDate()) db.className = "today";
-        db.textContent = d;
-        (function (mm, dd) {
-          db.addEventListener("click", function () {
-            calMonth = new Date(yearShown, mm, 1);
-            calSel = new Date(yearShown, mm, dd);
-            // число — это день, а не месяц: тап ведёт прямо в сводку дня
-            setScope("day");
-            $("yearOverlay").classList.remove("open");
-            renderCal(); renderDayPanel();
-          });
-        })(m, d);
-        dgrid.appendChild(db);
+    [yearShown, yearShown + 1].forEach(function (y, yi) {
+      var block = document.createElement("div");
+      block.className = "year-block"; block.dataset.year = y;
+      if (yi > 0) {
+        var div = document.createElement("div"); div.className = "year-divider";
+        div.textContent = y;
+        block.appendChild(div);
       }
-      (function (mm) {
-        nameBtn.addEventListener("click", function () {
-          calMonth = new Date(yearShown, mm, 1);
-          // выбранным становится сегодня, если оно в этом месяце, иначе первое число
-          calSel = (yearShown === now.getFullYear() && mm === now.getMonth())
-            ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            : new Date(yearShown, mm, 1);
-          setScope("month");
-          $("yearOverlay").classList.remove("open");
-          renderCal(); renderDayPanel();
-        });
-      })(m);
-      wrap.appendChild(nameBtn); wrap.appendChild(wd); wrap.appendChild(dgrid);
-      grid.appendChild(wrap);
-    }
+      for (var m = 0; m < 12; m++) block.appendChild(buildMonthEl(y, m, now));
+      grid.appendChild(block);
+    });
     // Год одной строкой: сколько съёмок и когда ближайшая впереди
     /* Год считает съёмки: встречи в «столько-то съёмок» и в прибыль не идут */
     var all = sessions.filter(function (s) { return s.date.getFullYear() === yearShown && !isMeet(s); });
@@ -12583,11 +12631,14 @@
       stepCal(dx < 0 ? 1 : -1);
     }, { passive: true });
   })();
-  /* Год — масштаб, а не шаг назад: открываем календарь целиком */
+  /* Год — масштаб, а не шаг назад: открываем календарь целиком.
+     Открывается на текущем месяце, а не всегда с января — крутить десять
+     месяцев, чтобы найти август, глупо (Алексей) */
   $("planTitle").addEventListener("click", function () {
     yearShown = calMonth.getFullYear();
     renderYear();
     $("yearOverlay").classList.add("open");
+    scrollYearTo(calMonth.getFullYear(), calMonth.getMonth());
   });
   $("yearClose").addEventListener("click", function () { $("yearOverlay").classList.remove("open"); });
   /* Прямой вход в статистику из шапки «Съёмок» — минуя год: реже нужно
@@ -12598,11 +12649,28 @@
     renderYear();
     $("statsOverlay").classList.add("open");
   });
-  $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); });
-  $("yNext").addEventListener("click", function () { yearShown++; renderYear(); });
+  $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); $("yearOverlay").scrollTop = 0; });
+  $("yNext").addEventListener("click", function () { yearShown++; renderYear(); $("yearOverlay").scrollTop = 0; });
   $("yearNow").addEventListener("click", function () {
-    yearShown = new Date().getFullYear(); renderYear();
+    var now = new Date();
+    yearShown = now.getFullYear(); renderYear();
+    scrollYearTo(now.getFullYear(), now.getMonth());
   });
+  /* Плашка года липнет сверху и сама называет себя: список идёт на два года
+     подряд, и по мере прокрутки в январь следующего заголовок переключается
+     на него — то самое «сразу видеть, что это январь следующего года».
+     yearShown (данные статистики) при этом не трогаем: прокрутка — не выбор,
+     выбор — explicit тап по ‹›/названию месяца/числу. */
+  $("yearOverlay").addEventListener("scroll", function () {
+    var headH = document.querySelector(".year-sticky-head").offsetHeight;
+    var blocks = $("yearGrid").querySelectorAll(".year-block");
+    var top = this.scrollTop;
+    var active = blocks[0];
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].offsetTop - top <= headH + 4) active = blocks[i];
+    }
+    if (active) $("yTitle").textContent = active.dataset.year;
+  }, { passive: true });
   // Скрытая кнопка прибыли: раскрывает сумму за просматриваемый год
   /* Ломаная спарклайна: диапазон берёт и ноль тоже — год, ушедший в минус
      целиком, должен читаться как низкая линия, а не как линия, занявшая
