@@ -4217,12 +4217,22 @@
       <input id="locQuery" type="text" placeholder="Лагерный сад, Томск" autocomplete="off"/>
     </div>
     <div class="loc-results" id="locResults"></div>
-    <!-- Название спрашиваем прямым текстом: геокодер знает район, а человек
-         думает населённым пунктом — «Томск», «деревня Иваново» -->
+    <!-- Название спрашиваем прямым текстом, не населённым пунктом: геокодер
+         предлагает город, но место может быть и своим — «Студия Маяк», а не
+         только «Томск». Тот же набор полей и та же лексика, что в редакторе
+         сохранённых мест (docs: DECISIONS, «места как сущность») — иначе одно
+         и то же слово называлось бы по-разному в двух формах приложения. -->
     <div class="group" id="locPlaceGroup" hidden style="margin-top:12px;">
-      <input class="sep" type="text" id="locName" placeholder="Населённый пункт"/>
+      <input class="sep" type="text" id="locName" placeholder="Имя места"/>
+      <input class="sep" type="text" id="locAddress" placeholder="Адрес — улица, дом"/>
       <div class="row sep"><span class="rl">Выезд в другой город</span>
         <span class="rv"><span class="toggle" id="locTrip"></span></span>
+      </div>
+      <!-- Раньше сохранить место можно было только закладкой на карте, а имя
+           и адрес — вторым заходом в настройках. Теперь то же самое одним
+           шагом: не отдельная сущность, а свойство этой самой точки. -->
+      <div class="row sep"><span class="rl">Сохранить в моих местах</span>
+        <span class="rv"><span class="toggle" id="locSaveSpot"></span></span>
       </div>
     </div>
     <!-- Координаты — запасной путь, поэтому парой, а не в разные концы строки -->
@@ -12795,6 +12805,8 @@
     locNameTyped = false;                 // новое открытие листа — новая история
     if (isSession) {
       $("locName").value = base.name || "";
+      $("locAddress").value = "";
+      $("locSaveSpot").classList.remove("on");
       $("locTrip").classList.toggle("on", fTrip);
     }
     $("locDetectLbl").textContent = "Определить моё место";
@@ -13092,6 +13104,7 @@
   }
   $("locScrim").addEventListener("click", closeLocSheet);
   $("locTrip").addEventListener("click", function () { this.classList.toggle("on"); });
+  $("locSaveSpot").addEventListener("click", function () { this.classList.toggle("on"); });
   // Написали имя руками — поиск его больше не перебивает
   $("locName").addEventListener("input", function () { locNameTyped = true; });
   /* Имя, введённое руками, геокодер больше не перебивает: человек назвал
@@ -13179,7 +13192,25 @@
     if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = "Долгота — число от −180 до 180"; return; }
     if (locTarget === "session") {
       fTrip = $("locTrip").classList.contains("on");
-      setSessionPlace(la, lo, ($("locName").value || "").trim() || locPickName);
+      var placeName = ($("locName").value || "").trim() || locPickName;
+      setSessionPlace(la, lo, placeName);
+      /* Раньше сохранить место можно было только закладкой на карте — здесь,
+         одним тумблером, то же самое сразу с именем и адресом, без второго
+         захода в настройки. Совпадение координат обновляет существующую
+         точку, а не плодит дубль рядом. */
+      if ($("locSaveSpot").classList.contains("on")) {
+        var addr = ($("locAddress").value || "").trim();
+        var idx = -1;
+        for (var si = 0; si < spots.length; si++) if (sameSpot(spots[si], la, lo)) { idx = si; break; }
+        if (idx >= 0) {
+          if (placeName) spots[idx].name = placeName;
+          if (addr) spots[idx].address = addr;
+        } else {
+          spots.unshift({ id: newSpotId(), name: placeName || coordText(la, lo), address: addr,
+            lat: +la.toFixed(5), lon: +lo.toFixed(5) });
+        }
+        saveAll(); renderSpotMark(); renderSpots();
+      }
     } else {
       gotoLocation(la, lo);
     }
@@ -13188,8 +13219,10 @@
        же, как отказ от неё. Тот же способ, что у закладки на карте — короткая
        подпись вместо тишины. Правило записано после истории с закладкой:
        у необратимого на вид действия отклик виден с расстояния вытянутой руки */
-    saveNote(($("locName").value || "").trim() || locPickName
-      ? "место: " + (($("locName").value || "").trim() || locPickName)
+    var savedAsSpot = locTarget === "session" && $("locSaveSpot").classList.contains("on");
+    var shownName = ($("locName").value || "").trim() || locPickName;
+    saveNote(shownName
+      ? "место: " + shownName + (savedAsSpot ? " · в моих местах" : "")
       : "место сохранено");
   });
 
