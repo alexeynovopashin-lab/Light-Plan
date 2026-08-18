@@ -3588,6 +3588,10 @@
          На «Сегодня» и «Карту» не выходит никогда (04_ANTI_GOALS) -->
     <div class="say warn" id="cdClash" hidden><span class="s-ic" data-ic="warn"></span><span id="cdClashT"></span></div>
 
+    <!-- Студийный час — тихо, пока не подошёл: за 10 минут и ближе, не раньше.
+         Живёт, только пока текущая точка маршрута ссылается на почасовое место. -->
+    <div class="say" id="cdStudio" hidden><span class="s-ic" id="cdStudioIc"></span><span id="cdStudioT"></span></div>
+
     <div class="say" id="cdSay" hidden><span class="s-ic" id="cdSayIc"></span><span id="cdSayT"></span></div>
 
     <!-- Место и следующее событие — парой, как в наброске -->
@@ -10542,6 +10546,8 @@
       $("cdDayLeft").textContent = fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
     }
 
+    renderStudioTimer(s, route, phase, cur, nowMin2);
+
     var pts = lanePoints(s, route, light);
     var curP = -1;
     if (nowMin2 !== null && phase === "during")
@@ -10565,6 +10571,55 @@
         ? IC.svg("warn") : IC.svg("sun");
       $("cdSayT").innerHTML = light.text;
     }
+  }
+  /* ---------- Студийный час ----------
+     Тихо, пока не подошёл: банкетный зал тоже бывает почасовым, а «студия»
+     иногда бесплатная — функция читает тумблер на месте, а не имя точки.
+     Буфер выхода не повторяется на каждый час брони — только в самом конце
+     окна (следующая точка маршрута или конец съёмки), поэтому многочасовая
+     студийная сессия предупреждает один раз, а не после каждого часа. */
+  function renderStudioTimer(s, route, phase, cur, nowMin2) {
+    var el = $("cdStudio");
+    if (phase !== "during" || cur < 0 || nowMin2 === null) { el.hidden = true; return; }
+    var pt = route[cur];
+    var sp = pt.placeId ? spotById(pt.placeId) : null;
+    if (!sp || !sp.hourly) { el.hidden = true; return; }
+    var dur = s.dur || 90, endMin = s.end != null ? s.end : s.min + dur;
+    var nx = route[cur + 1];
+    var windowEnd = nx ? nx.t : endMin;
+    var deadline = windowEnd - (60 - (sp.studioMinutes || 55));
+    var left = deadline - nowMin2;
+    /* Дальше десяти минут молчим — уведомление существует для того, чего
+       не видно самому, а не как счётчик с самого начала часа (04_ANTI_GOALS).
+       Дальше часа после дедлайна тоже молчим — точка явно уже не студия, а
+       банкет, который идёт дольше записанного, и старое предупреждение
+       превращается в шум, а не в пользу. */
+    if (left > 10 || left < -60) { el.hidden = true; return; }
+    el.hidden = false;
+    el.className = "say" + (left > 0 ? " warn" : " bad");
+    $("cdStudioIc").innerHTML = IC.svg("warn");
+    $("cdStudioT").innerHTML = left > 0
+      ? "Студийный час — выйти через <b>" + left + " " + plural(left, ["минуту", "минуты", "минут"]) + "</b>"
+      : (left === 0 ? "Студийный час — пора выходить"
+        : "Студийный час — вышли " + (-left) + " " + plural(-left, ["минуту", "минуты", "минут"]) + " назад");
+  }
+  /* Тикает, только пока карточка открыта и точка почасовая: секундная точность
+     тут не нужна, минутной хватает, а второй rAF-цикл в приложении — лишний. */
+  var studioTickId = null;
+  function startStudioTick() {
+    stopStudioTick();
+    studioTickId = setInterval(function () {
+      if (cardIdx === null) { stopStudioTick(); return; }
+      var s = sessions[cardIdx];
+      if (!s) { stopStudioTick(); return; }
+      var route = isMeet(s) ? [] : routeOf(s);
+      var phase = eventPhase(s, route);
+      var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
+      renderStudioTimer(s, route, phase, curIndex(route, nowMin2), nowMin2);
+    }, 20000);
+  }
+  function stopStudioTick() {
+    if (studioTickId) { clearInterval(studioTickId); studioTickId = null; }
   }
   function curIndex(route, nowMin2) {
     var c = -1;
@@ -11097,9 +11152,11 @@
 
     $("cardOverlay").scrollTop = wasAt;
     $("cardOverlay").classList.add("open");
+    startStudioTick();
   }
   function closeCard() {
     if (ordMode) setOrderMode(false);
+    stopStudioTick();
     cardIdx = null;
     $("cardOverlay").classList.remove("open");
   }
