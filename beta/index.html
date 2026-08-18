@@ -1079,8 +1079,12 @@
   /* Веер: список под кнопкой, а не диалог поверх экрана — вид меняют мимоходом */
   .scope-scrim { position: fixed; inset: 0; z-index: 40; }
   .scope-scrim[hidden] { display: none; }
+  /* Позиция раньше была зашита числом (left:12/top:96) относительно
+     прокручиваемого экрана — в дне он открывается с автопрокруткой, и меню
+     улетало на сотни пикселей выше видимой шапки (DECISIONS). fixed + JS-
+     расчёт от кнопки, тот же приём, что у веера точек. */
   .scope-menu {
-    position: absolute; left: 12px; top: 96px; z-index: 41; min-width: 208px;
+    position: fixed; z-index: 41; min-width: 208px;
     background: var(--sheet); border-radius: 16px; corner-shape: squircle; padding: 6px;
     box-shadow: 0 18px 40px rgba(0,0,0,0.55);
     transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
@@ -12270,9 +12274,19 @@
     });
   }
   function openScopeMenu(on) {
-    $("scopeMenu").hidden = !on;
+    var menu = $("scopeMenu");
+    menu.hidden = !on;
     $("scopeScrim").hidden = !on;
-    if (on) paintIcons($("scopeMenu"));
+    if (!on) return;
+    paintIcons(menu);
+    /* Позиция считается от кнопки, а не зашита числом: экран под меню
+       прокручиваемый, и в дне открывается с автопрокруткой — то, что
+       выглядело «под шапкой» в месяце и неделе, в дне улетало на сотни
+       пикселей выше экрана (DECISIONS). Тот же приём, что у веера точек. */
+    var dev = document.querySelector(".device"), dr = dev.getBoundingClientRect();
+    var ar = $("scopeBtn").getBoundingClientRect();
+    menu.style.left = Math.round(ar.left - dr.left) + "px";
+    menu.style.top = Math.round(ar.bottom - dr.top + 8) + "px";
   }
   $("scopeBtn").addEventListener("click", function () {
     openScopeMenu($("scopeMenu").hidden);
