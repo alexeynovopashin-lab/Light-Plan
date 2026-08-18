@@ -508,6 +508,23 @@
     font-family: inherit; font-size: 14px;
   }
   .spot-editbox input::placeholder { color: var(--ink-6); }
+  /* Почасовая аренда — не тип места, а отдельный факт: банкетный зал тоже
+     бывает почасовым, а «студия» иногда бесплатная (docs: тумблер, а не
+     каталог типов). Минуты открываются только вместе с тумблером — нечего
+     показывать поле, которое нечем наполнить. */
+  .spot-hourly { display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 2px 2px; margin-top: 4px; border-top: 1px solid var(--hair); }
+  .spot-hourly .sh-lbl { font-size: 14px; color: var(--ink-3); }
+  /* [hidden] сильнее не станет сам — тот же каскад уже подводил карточку не раз
+     (DECISIONS: «display сильнее браузерного [hidden]»), правило пишем сразу */
+  .spot-mins { display: flex; align-items: center; gap: 8px; padding: 8px 2px 2px; }
+  .spot-mins[hidden] { display: none; }
+  .spot-mins .sm-lbl { font-size: 12px; color: var(--ink-6); flex: 1; }
+  .spot-mins input {
+    width: 56px; padding: 7px 8px; border: none; border-radius: 9px; corner-shape: squircle;
+    background: var(--fill-b); color: var(--ink); font-family: inherit; font-size: 14px;
+    text-align: center; font-variant-numeric: tabular-nums;
+  }
 
   /* ---------- Строка времени карты и шеврон ----------
      Карта отвечает про выбранный ползунком момент, а времени этого момента
@@ -2377,6 +2394,8 @@
   .rt-pick svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
     stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .rt-pick:active { color: var(--brass); }
+  /* Латунь — не действие, а состояние: точка ссылается на сохранённое место */
+  .rt-pick.on { color: var(--brass); }
   .rt-row input::placeholder { color: var(--ink-8); }
   .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: var(--ink-7);
     font-size: 15px; padding: 6px; cursor: pointer; }
@@ -5503,6 +5522,23 @@
      на пустом месте. Список один на приложение: и закладка в шапке карты, и
      «Мои точки съёмки» в настройках, и лист «Где снимаем» смотрят сюда же. */
   var spots = (saved && saved.spots) || [];
+  function newSpotId() {
+    return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+  /* Точки существовали до ссылок на них: адрес в карточке копировал имя
+     строкой, и id был не нужен. Строка маршрута, привязанная к почасовому
+     месту, обязана читать его настройки живыми — id раздаём один раз, задним
+     числом, тем записям, что успели накопиться без него. */
+  (function migrateSpotIds() {
+    var touched = false;
+    spots.forEach(function (sp) { if (!sp.id) { sp.id = newSpotId(); touched = true; } });
+    if (touched) saveAll();
+  })();
+  function spotById(id) {
+    if (!id) return null;
+    for (var i = 0; i < spots.length; i++) if (spots[i].id === id) return spots[i];
+    return null;
+  }
   /* Две точки считаем одной, если они ближе примерно 60 метров: карта ездит
      под пальцем, и попасть в ту же тысячную долю градуса невозможно */
   function sameSpot(a, lat, lon) {
@@ -9424,20 +9460,26 @@
       row.querySelector(".rt-in-n").addEventListener("input", function () {
         r.n = this.value; fRouteSeeded = false;
       });
+      /* Ручная правка текста рвёт ссылку на место: строка теперь говорит
+         что-то своё, и таймер студийного часа не должен идти за ней вслепую */
       row.querySelector(".rt-in-p").addEventListener("input", function () {
-        r.p = this.value; fRouteSeeded = false;
+        r.p = this.value; r.placeId = null; fRouteSeeded = false;
+        row.querySelector(".rt-pick").classList.remove("on");
       });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRouteSeeded = false;
         fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
       });
-      /* Место из сохранённых точек. Веер тот же, что на карте, — отличается
-         только тем, что делает выбор: там переезд, здесь заполнение поля */
+      /* Место из сохранённых точек — не просто копия имени, а ссылка (r.placeId):
+         почасовая аренда читается с живого места, а не с замороженной строки.
+         Веер тот же, что на карте, отличается лишь тем, что делает выбор. */
       var pick = row.querySelector(".rt-pick");
+      pick.classList.toggle("on", !!r.placeId);
       pick.addEventListener("click", function () {
         openSpotFan(pick, function (sp) {
-          r.p = sp.name; fRouteSeeded = false;
+          r.p = sp.name; r.placeId = sp.id; fRouteSeeded = false;
           row.querySelector(".rt-in-p").value = sp.name;
+          pick.classList.add("on");
         });
       });
     });
@@ -9482,7 +9524,7 @@
   });
   /* Черновик → запись: время в минуты, порядок по времени */
   function routeFromEditor() {
-    return fRoute.map(function (r) { return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim() }; })
+    return fRoute.map(function (r) { return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim(), placeId: r.placeId || null }; })
       .filter(function (r) { return r.t !== null && r.n; })
       .sort(function (a, b) { return a.t - b.t; });
   }
@@ -11219,7 +11261,7 @@
           })
         : [];
       fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
-      fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "" }; });
+      fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
       payFolded = true;
     } else {
       /* Подстраивать начало под свет можно только тогда, когда его и предложил
@@ -12495,11 +12537,20 @@
     clearTimeout(saveNoteTimer);
     saveNoteTimer = setTimeout(function () { n.classList.remove("show"); }, 1900);
   }
+  /* Точки маршрута, привязанные к месту, переживают его удаление как ссылку
+     на заказчика — теряют id, а не превращаются в пустоту (docs: orgId). */
+  function unlinkSpot(id) {
+    sessions.forEach(function (s) {
+      (Array.isArray(s.route) ? s.route : []).forEach(function (r) {
+        if (r.placeId === id) r.placeId = null;
+      });
+    });
+  }
   $("mapSave").addEventListener("click", function () {
     var i = spotHere();
-    if (i >= 0) { spots.splice(i, 1); saveNote("точка убрана"); }
+    if (i >= 0) { unlinkSpot(spots[i].id); spots.splice(i, 1); saveNote("точка убрана"); }
     else {
-      spots.unshift({ name: geoCity || coordText(LAT, LON), sub: geoSub || "",
+      spots.unshift({ id: newSpotId(), name: geoCity || coordText(LAT, LON), sub: geoSub || "",
                       named: !!geoCity,          // именем служат координаты — дождёмся геокодера
                       lat: +LAT.toFixed(5), lon: +LON.toFixed(5) });
       saveNote("точка сохранена");
@@ -12688,6 +12739,7 @@
       del.setAttribute("aria-label", "Убрать точку");
       del.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       del.addEventListener("click", function () {
+        unlinkSpot(sp.id);
         spots.splice(idx, 1); saveAll(); renderSpotMark(); renderSpots();
       });
       row.appendChild(go); row.appendChild(edit); row.appendChild(del);
@@ -12709,6 +12761,41 @@
         sp.address = addrIn.value.trim(); ad.textContent = sp.address; saveAll();
       });
       box2.appendChild(nameIn); box2.appendChild(addrIn);
+
+      /* Почасовая аренда — своя строка, не тип места: подходит и студии, и
+         банкетному залу, которые снимают на час. Минуты — реальная длина
+         рабочего часа: студийный обычно 55, но у каждой студии по-своему. */
+      var hRow = document.createElement("div"); hRow.className = "spot-hourly";
+      var hLbl = document.createElement("span"); hLbl.className = "sh-lbl";
+      hLbl.textContent = "Почасовая аренда";
+      var hToggle = document.createElement("span"); hToggle.className = "toggle";
+      hToggle.classList.toggle("on", !!sp.hourly);
+      hRow.appendChild(hLbl); hRow.appendChild(hToggle);
+      box2.appendChild(hRow);
+
+      var mRow = document.createElement("div"); mRow.className = "spot-mins";
+      mRow.hidden = !sp.hourly;
+      var mLbl = document.createElement("span"); mLbl.className = "sm-lbl";
+      mLbl.textContent = "Минут в оплаченном часе — предупредим за 10 и 5 до конца";
+      var mIn = document.createElement("input");
+      mIn.type = "number"; mIn.inputMode = "numeric"; mIn.min = "1"; mIn.max = "60";
+      mIn.value = sp.studioMinutes || 55;
+      mRow.appendChild(mLbl); mRow.appendChild(mIn);
+      box2.appendChild(mRow);
+
+      hToggle.addEventListener("click", function () {
+        sp.hourly = !sp.hourly;
+        hToggle.classList.toggle("on", sp.hourly);
+        mRow.hidden = !sp.hourly;
+        if (sp.hourly && !sp.studioMinutes) { sp.studioMinutes = 55; mIn.value = 55; }
+        saveAll();
+      });
+      mIn.addEventListener("input", function () {
+        var v = Math.round(+mIn.value);
+        sp.studioMinutes = (v > 0 && v <= 60) ? v : 55;
+        saveAll();
+      });
+
       box.appendChild(box2);
       edit.addEventListener("click", function () {
         box2.hidden = !box2.hidden;
