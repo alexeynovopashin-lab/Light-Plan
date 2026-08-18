@@ -532,7 +532,14 @@
      котором часу это будет, не сказано. Строка несворачиваемая: свёрнутая
      карта — это холст, время и ползунок, режим «стою на площадке». */
   .map-read {
-    display: flex; align-items: baseline; gap: 11px; width: 100%;
+    /* flex-start, не baseline: «Астрономические сумерки» — самая длинная из
+       меток фазы — не помещается в одну строку рядом с часами и переносится.
+       На baseline вторая строка подписи вешалась ниже базовой линии времени
+       и вваливалась в отступ к своду под кнопкой (margin-bottom всего 2px) —
+       выглядело так, будто строка снизу «съедена». На flex-start обе строки
+       подписи умещаются в высоту самих часов (34px против ~26px двух строк
+       11px) и никуда не вылезают. */
+    display: flex; align-items: flex-start; gap: 11px; width: 100%;
     margin: 14px 0 2px; padding: 0 24px; background: none; border: none;
     color: inherit; font-family: inherit; text-align: left; cursor: pointer;
   }
@@ -542,7 +549,12 @@
   }
   .mr-phase {
     font-size: 11px; color: var(--brass-soft); text-transform: uppercase; letter-spacing: 1.4px;
-    font-weight: 600; flex: 1; min-width: 0; transition: color 0.4s ease;
+    font-weight: 600; line-height: 1.35; flex: 1; min-width: 0; transition: color 0.4s ease;
+    /* Верх подписи вровень с верхом цифр, не с их серединой — flex-start сам
+       по себе выравнивает по верхнему краю бокса, а не по видимой шапке
+       глифа: у 34px цифр над самим глифом есть надстрочный запас, и без этого
+       отступа подпись казалась прилипшей к самому верху кнопки */
+    margin-top: 6px;
   }
   .mr-chev { display: inline-flex; align-self: center; flex-shrink: 0; }
   .mr-chev svg { width: 9px; height: 15px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
@@ -3179,10 +3191,6 @@
       <div class="telemetry">
         <!-- «Свет идёт с ЗЮЗ» повторяет луч, который и так виден на карте:
              нарисованное не дублируем словами, строка ушла в астро -->
-        <!-- Затмение — событие дня, а не показание момента, поэтому стоит
-             первым и приходит только в тот самый день. Локальной фазы здесь
-             нет: она не берётся из таблицы, а посчитать её нечем. -->
-        <div class="t-row" id="mEclRow" hidden><span class="t-label">Затмение</span><span class="t-value" id="mEcl">—</span></div>
         <div class="t-row pro-only"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
         <div class="t-row pro-only"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
         <div class="t-row pro-only"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
@@ -3199,6 +3207,14 @@
              ради чего режим включают: гражданские кончились, навигационные идут,
              астрономические впереди. -->
         <div class="t-row pro-only" id="mTwiRow"><span class="t-label">Сумерки</span><span class="t-value" id="mTwi">—</span></div>
+        <!-- Затмение — событие дня, а не показание момента, и приходит
+             только в тот самый день. Локальной фазы здесь нет: она не
+             берётся из таблицы, а посчитать её нечем. Раньше стояло первой
+             строкой свода — но затмение бывает раз в несколько лет, и отдавать
+             ему верхнюю строку рядом с золотым часом, который смотрят каждый
+             день, было не по чину редкости. Соседствует с Млечным Путём —
+             тоже нечастый повод открыть подробности. -->
+        <div class="t-row" id="mEclRow" hidden><span class="t-label">Затмение</span><span class="t-value" id="mEcl">—</span></div>
         <!-- Астро-строки приходят вместе со слоем и уходят вместе с ним:
              отдельного режима под них не заводим, они просто про то, что
              сейчас нарисовано. Вердикт важнее картинки: дуга без ответа
