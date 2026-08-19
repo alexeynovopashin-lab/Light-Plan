@@ -13798,7 +13798,19 @@
 
   var tabs = document.querySelectorAll(".tab");
   var screens = ["s-today", "s-map", "s-plan", "s-set"];
+  /* Таб-бар переключает вкладки, но не знает про открытые сверху экраны —
+     год, поиск, форму съёмки, любую шторку. Без этой уборки тап по другой
+     вкладке подменял экран под ними незаметно: снаружи выглядело так, будто
+     ничего не произошло, и «Настройки» открывались только вторым тапом,
+     после ручного закрытия года (Алексей). Один список на все — overlay,
+     overlay-right, sheet, scrim — а не по экрану на каждый: новый экран с
+     этим классом получает уборку бесплатно, без отдельной правки здесь. */
+  function closeAllOverlays() {
+    document.querySelectorAll(".overlay.open, .overlay-right.open, .sheet.open, .scrim.open")
+      .forEach(function (el) { el.classList.remove("open"); });
+  }
   function go(id) {
+    closeAllOverlays();
     tabs.forEach(function (t) { t.classList.toggle("active", t.dataset.go === id); });
     screens.forEach(function (s) { $(s).classList.toggle("active", s === id); });
     document.body.dataset.tab = id;      // прячет закреплённый ползунок на Съёмках/Настройках
