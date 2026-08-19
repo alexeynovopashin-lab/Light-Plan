@@ -975,7 +975,20 @@
     font-size: 13.5px; font-variant-numeric: tabular-nums;
   }
   .year-cal-grid button:active { background: var(--sheet); }
-  .year-cal-grid button.today { background: var(--brass); color: var(--on-brass, #16120C); font-weight: 700; }
+  /* Кружок «сегодня» — фиксированные 30px по центру ячейки, тот же диаметр,
+     что у .dd-num в дне (Алексей: «диаметр совпадал»). Раньше кругом была
+     сама ячейка (aspect-ratio: 1 растягивал background на всю клетку —
+     ~49px на этом экране), и получались два разных по размеру «сегодня» в
+     двух видах одного приложения. */
+  .year-cal-grid button.today {
+    position: relative; z-index: 0; background: none;
+    color: var(--on-brass, #16120C); font-weight: 700;
+  }
+  .year-cal-grid button.today::before {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: 30px; height: 30px; transform: translate(-50%, -50%);
+    background: var(--brass); border-radius: 50%; z-index: -1;
+  }
   .year-cal-grid span.pad { visibility: hidden; }
   /* ---------- Год целиком: 12 месяцев на одном экране ----------
      Лента месяцев (выше) — навигация числом, для неё и была задумана: тап
