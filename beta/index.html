@@ -7750,38 +7750,49 @@
     }
     btn.appendChild(name); btn.appendChild(grid);
     (function (yy, mm) {
-      btn.addEventListener("click", function () { zoomYear12ToMonth(btn, yy, mm); });
+      btn.addEventListener("click", function (e) { zoomYear12ToMonth(yy, mm, e.target); });
     })(y, m);
     return btn;
   }
-  /* Тап по месяцу в «Годе целиком» — не мгновенный переход, а зум: плитка
-     месяца растёт на месте своего мини-календаря в ленте (Алексей: «между
-     годом и месяцем должна быть анимация зума»). Клон плитки встаёт поверх
-     на её же месте, лента прокручивается к нужному месяцу за кадром, и
-     когда цель известна — клон едет и растёт до её размера и гаснет,
-     открывая настоящую ленту под собой. Больше нигде в приложении такого
-     клона нет: только здесь план и факт — один и тот же месяц, просто в
-     разном масштабе, зум читается буквально, а не метафорой. */
-  function zoomYear12ToMonth(tile, yy, mm) {
-    var r0 = tile.getBoundingClientRect();
+  /* Тап по месяцу в «Годе целиком» — не мгновенный переход, а зум (Алексей:
+     «между годом и месяцем должна быть анимация зума»). Первая версия
+     клонировала плитку и растила клон до места цели — но клон и уже готовый
+     экран под ним были видны ОДНОВРЕМЕННО (слайд-закрытие `#year12Overlay`
+     шло своим чередом 0.42s, гонка с клоном), получался «призрак»: два
+     календаря просвечивают друг сквозь друга (Алексей прислал скриншоты).
+
+     Вторая версия ничего не клонирует — растёт сам целевой экран, через
+     `clip-path`. По прямому указанию: «экран сразу переключается, а сверху
+     анимация, экран должен появиться в конце». `#yearOverlay` сразу
+     обрезается в точку (`circle(0px at ...)`) РОВНО там, где тапнули —
+     «точка роста должна быть из даты», а не из угла плитки. «Год целиком»
+     в тот же миг убирается без своего перехода (`transition:none` —
+     обычный slide-close тут только мешал бы). Пока лента дорастает до
+     нужного места и года — вырез нулевой, экрана не видно совсем, никакого
+     кадра с неверным местом не проскочит. Как только `scrollYearTo`
+     подтвердил, что цель на месте, вырез растёт кругом от точки тапа и
+     раскрывает уже готовый, правильный кадр — календарь показывается
+     ровно один раз. */
+  function zoomYear12ToMonth(yy, mm, originEl) {
     var dev = document.querySelector(".device"), devR = dev.getBoundingClientRect();
-    var ghost = tile.cloneNode(true);
-    ghost.style.cssText = "position:absolute; margin:0; z-index:90; pointer-events:none;"
-      + "left:" + (r0.left - devR.left) + "px; top:" + (r0.top - devR.top) + "px;"
-      + "width:" + r0.width + "px; height:" + r0.height + "px; transform-origin: top left;";
-    dev.appendChild(ghost);
-    $("year12Overlay").classList.remove("open");
+    var r0 = originEl.getBoundingClientRect();
+    var cx = r0.left + r0.width / 2 - devR.left, cy = r0.top + r0.height / 2 - devR.top;
+    var yo = $("year12Overlay"), target = $("yearOverlay");
+    target.style.transition = "none";
+    target.style.clipPath = "circle(0px at " + cx + "px " + cy + "px)";
+    yo.style.transition = "none";
+    yo.classList.remove("open");
     scrollYearTo(yy, mm, function () {
-      var block = $("yearGrid").querySelector('.year-block[data-year="' + yy + '"]');
-      var el = block && block.querySelectorAll(".year-cal-month")[mm];
-      var r1 = el ? el.getBoundingClientRect() : r0;
+      yo.style.transition = "";     // возвращаем — следующее открытие/закрытие снова со своей анимацией
+      var maxR = Math.hypot(Math.max(cx, devR.width - cx), Math.max(cy, devR.height - cy));
       requestAnimationFrame(function () {
-        var scale = r1.width / r0.width;
-        ghost.style.transition = "transform 0.32s cubic-bezier(0.3,0.8,0.4,1), opacity 0.28s ease 0.08s";
-        ghost.style.transform = "translate(" + (r1.left - r0.left) + "px," + (r1.top - r0.top) + "px) scale(" + scale + ")";
-        ghost.style.opacity = "0";
+        target.style.transition = "clip-path 0.36s cubic-bezier(0.3,0.8,0.4,1)";
+        target.style.clipPath = "circle(" + maxR + "px at " + cx + "px " + cy + "px)";
       });
-      setTimeout(function () { ghost.remove(); }, 340);
+      setTimeout(function () {
+        target.style.transition = "";
+        target.style.clipPath = "";
+      }, 400);
     });
   }
   function renderYear12() {
