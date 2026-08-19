@@ -693,14 +693,52 @@
      второй строкой мельче и тише (ROADMAP, «Прибор карты» § 2.2) */
   .edge-txt { display: flex; flex-direction: column; line-height: 1.3; }
   .edge-az { font-size: 9px; color: var(--ink-6); font-weight: 500; }
-  .track-wrap { position: relative; padding-bottom: 16px; }
-  /* ---------- Лента времени ----------
-     Раньше здесь был `<input type=range>`: бегунок ездит по неподвижной
-     шкале от MINT до MAXT. Теперь наоборот — едет лента, метка стоит в
-     центре (docs: DECISIONS, ROADMAP «Прибор карты» § 4). Окно — трое
-     суток при постоянном масштабе px/мин; у края лента перецентровывается
-     на новые сутки, а не растягивает масштаб. */
-  .ribbon-wrap { position: relative; height: 34px; }
+  /* Старый слайдер остался как был — это основной, всегда доступный контроль
+     (Алексей: «у нас был отличный слайдер, надо его оставить»). Лента ниже —
+     второй, ДОПОЛНИТЕЛЬНЫЙ контроль, а не замена: включается только вместе
+     с «Просто/Астро», синхронна со слайдером в обе стороны (docs: DECISIONS,
+     «Лента времени: второй контроль, не замена»). */
+  .track-wrap { position: relative; padding-bottom: 6px; }
+  /* Гравировка: риски каждый час, крупные каждые шесть — под дорожкой ползунка */
+  .ruler {
+    position: absolute; left: 13px; right: 13px; top: 24px; height: 10px;
+    width: calc(100% - 26px); pointer-events: none;
+  }
+  .ruler line { stroke: var(--rail-5); stroke-width: 1; }
+  .ruler line.major { stroke: var(--ink-7); }
+  .scrub {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 36px;
+    background: transparent; outline: none; cursor: pointer; display: block; margin: 0;
+  }
+  /* Свет на дорожке — не украшение, а тот же расчёт, что у пути солнца:
+     остановки ставит `drawRail()` из `stopAt()` по высоте светила. */
+  .scrub::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px;
+    background-color: var(--rail);
+    background-image: var(--rail-img, none);
+  }
+  .scrub::-moz-range-track {
+    height: 4px; border-radius: 2px;
+    background-color: var(--rail);
+    background-image: var(--rail-img, none);
+  }
+  .scrub::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--knob); border: 3px solid var(--knob-edge);
+    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55); margin-top: -11px;
+  }
+  .scrub::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--knob); border: 3px solid var(--knob-edge);
+    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55);
+  }
+  /* Лента — контекст суток вокруг выбранного дня, видна только в «Астро».
+     Едет лента, метка стоит в центре (docs: DECISIONS, ROADMAP «Прибор
+     карты» § 4). Окно — трое суток при постоянном масштабе px/мин; у края
+     лента перецентровывается на новые сутки, а не растягивает масштаб. */
+  .ribbon-wrap { position: relative; height: 30px; display: none; }
+  body.pro-mode .ribbon-wrap { display: block; }
   .ribbon-scroll {
     position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden;
     display: flex; scrollbar-width: none; -ms-overflow-style: none;
@@ -714,42 +752,31 @@
      не на каждый кадр прокрутки (docs: DECISIONS, «Свет на рельсе считается,
      а не рисуется на глаз») */
   .rd-rail { position: absolute; left: 0; right: 0; bottom: 2px; height: 4px; border-radius: 2px; }
-  .rd-tick { position: absolute; bottom: 10px; width: 1px; height: 8px; background: var(--rail-5); }
-  .rd-tick.major { background: var(--ink-7); height: 10px; }
+  .rd-tick { position: absolute; bottom: 10px; width: 1px; height: 6px; background: var(--rail-5); }
+  .rd-tick.major { background: var(--ink-7); height: 8px; }
   .rd-date {
-    position: absolute; top: 0; left: 6px; font-size: 8.5px; letter-spacing: 0.5px;
+    position: absolute; top: 0; left: 6px; font-size: 8px; letter-spacing: 0.5px;
     color: var(--ink-6); font-weight: 600; text-transform: uppercase;
     white-space: nowrap; pointer-events: none;
   }
   .rd-seam { position: absolute; top: 0; bottom: 0; left: 0; width: 1px; background: var(--hair); }
-  /* Метка стоит на месте — едет лента под ней. Кружок наверху — тот же язык,
-     что был у бегунка старого ползунка */
+  /* Тонкая метка — лента вторична, не спорит толщиной со слайдером над ней */
   .ribbon-marker {
-    position: absolute; left: 50%; top: -6px; bottom: -2px; width: 2px;
-    transform: translateX(-50%); background: var(--knob); border-radius: 1px;
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+    transform: translateX(-50%); background: var(--knob-edge); border-radius: 1px;
     pointer-events: none; z-index: 3;
-  }
-  .ribbon-marker::after {
-    content: ""; position: absolute; left: 50%; top: -3px; transform: translateX(-50%);
-    width: 16px; height: 16px; border-radius: 50%;
-    background: var(--knob); border: 3px solid var(--knob-edge);
-    box-shadow: 0 0 0 1px var(--ink-a22), 0 3px 10px rgba(0,0,0,0.5);
   }
   /* Появляется, только когда отмотал время от настоящего момента. Тап →
      возврат к нему; подпись меняется на «сегодня», когда ушёл ещё и днём
      (docs: DECISIONS) */
   .now-tick {
-    position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
-    display: none; align-items: center; background: none; border: none;
+    display: none; align-items: center; justify-content: center;
+    align-self: center; background: none; border: none;
     cursor: pointer; font-family: inherit; line-height: 1;
     font-size: 11px; letter-spacing: 0.4px; color: var(--brass-deep); font-weight: 600;
-    white-space: nowrap; padding: 8px 12px;
+    white-space: nowrap; padding: 4px 12px 0;
   }
   .now-tick.show { display: inline-flex; }
-  .now-tick::before {
-    content: ""; position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
-    width: 2px; height: 7px; border-radius: 1px; background: var(--brass-deep);
-  }
 
   /* Действие — часть композиции, а не плашка-CTA: строка со сводочным ритмом */
   .action {
@@ -3704,14 +3731,19 @@
       <span class="edge" id="edgeSet"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M8.2 13a3.8 3.8 0 0 1 7.6 0M12 7.5v-4M9.8 5.3L12 7.5l2.2-2.2"/></svg><span>—</span></span>
     </div>
     <div class="track-wrap">
-      <!-- Лента едет под неподвижной меткой в центре — три дня рисует JS
-           (buildRibbonDay), сама разметка пуста (docs: DECISIONS) -->
-      <div class="ribbon-wrap">
-        <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Время суток"></div>
-        <div class="ribbon-marker" aria-hidden="true"></div>
-      </div>
-      <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
+      <!-- Гравировка прибора: час — риска, шесть часов — риска выше -->
+      <svg class="ruler" id="ruler" viewBox="0 0 342 10" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
     </div>
+    <!-- Второй, дополнительный контроль — контекст суток вокруг слайдера,
+         только в «Астро» (Алексей: «должен включаться вместе с астро»).
+         Три дня рисует JS (buildRibbonDay), сама разметка пуста (docs:
+         DECISIONS, «Лента времени: второй контроль, не замена») -->
+    <div class="ribbon-wrap">
+      <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"></div>
+      <div class="ribbon-marker" aria-hidden="true"></div>
+    </div>
+    <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
   </div>
 
   <nav class="tabbar">
@@ -12751,8 +12783,11 @@
 
     viewMin = keepTime !== undefined ? keepTime : (nowMin !== null ? nowMin : solarNoon);
 
+    var s = $("scrub"); s.min = Math.round(MINT); s.max = Math.round(MAXT); s.value = clamp(Math.round(viewMin), MINT, MAXT);
+
     paintDate();
     updateEdges();
+    drawRuler();
     renderRibbon();
 
     updateNowTick();
@@ -12789,13 +12824,15 @@
       $("hNote").textContent = sameDay(d, n) ? "сегодня" : (d > n ? "прогноз" : "архив");
     }
   }
-  /* Тот же момент, что и `viewMin`, только для купола (docs: DECISIONS) —
-     дуга солнца/луны на «Сегодня» тянется пальцем внутри одних суток
-     (`domeDrag`, ниже), лента должна ехать вместе с ней, а не жить своей
-     жизнью: это один прибор с двумя ручками. `syncRibbonScroll` не строит
-     дни заново — купол не выходит за пределы уже отрисованных трёх суток. */
+  /* Общая точка входа для купола (`domeDrag`) и слайдера (`#scrub`) — оба
+     тянутся пальцем внутри одних суток, оба должны двигать друг друга и
+     ленту заодно: это один прибор с несколькими ручками, а не три разных
+     (docs: DECISIONS, «Лента времени: второй контроль, не замена»).
+     `syncRibbonScroll` не строит дни заново — ни купол, ни слайдер не
+     выходят за пределы уже отрисованных трёх суток ленты. */
   function setView(t) {
     viewMin = t;
+    $("scrub").value = t;
     paintDate();
     renderToday(); renderMap(); updateNowTick();
     syncRibbonScroll();
@@ -12819,28 +12856,67 @@
     tick.classList.toggle("show", Math.abs(viewMin - nowRel(selDate)) > 2);
   }
 
+  /* ---------- Свет на рельсе слайдера ----------
+     Дорожка ползунка красится тем же расчётом, что и путь солнца на карте:
+     `stopAt()` по высоте светила, а не название окна. Остановки — раз в
+     десять минут, посчитаны один раз на смену дня, не на каждый кадр
+     движения ручки. Цвет кладётся в CSS-переменную: псевдоэлемент
+     `::-webkit-slider-runnable-track` из скрипта не достать напрямую, но
+     пользовательские свойства он наследует от самого `<input>`. */
+  function drawRuler() {
+    var out = "";
+    for (var h = 0; h < 48; h++) {
+      var t = h * 60;
+      if (t < MINT || t > MAXT) continue;
+      var x = ((t - MINT) / 1440 * 342).toFixed(1);
+      var major = h % 6 === 0;
+      out += '<line x1="' + x + '" y1="' + (major ? 0 : 4) + '" x2="' + x + '" y2="10"'
+        + (major ? ' class="major"' : "") + "/>";
+    }
+    $("ruler").innerHTML = out;
+    drawRail();
+  }
+  function drawRail() {
+    var s = $("scrub"); if (!s) return;
+    var stops = [];
+    for (var t = MINT; t <= MAXT; t += 10) {
+      var c = stopAt(elevAt(t));
+      var p = ((t - MINT) / (MAXT - MINT) * 100).toFixed(2);
+      stops.push("rgba(" + c.rgb.join(",") + "," + c.a.toFixed(2) + ") " + p + "%");
+    }
+    s.style.setProperty("--rail-img", "linear-gradient(90deg," + stops.join(",") + ")");
+  }
+
   /* ============================================================
-     ЛЕНТА ВРЕМЕНИ
-     Раньше здесь был `<input type=range>`: бегунок едет по неподвижной
-     шкале одних суток. Теперь наоборот — едет лента, метка стоит в центре
-     (тот же приём, что удобен в Sun Surveyor; решение — DECISIONS,
-     «Ползунок переворачивается»). Заодно решается переход через сутки —
-     не жестом «дальше», а продолжением того же движения.
+     ЛЕНТА ВРЕМЕНИ — второй контроль, не замена слайдеру
+     Первая версия заменяла слайдер лентой целиком. Алексей вернул это
+     решение: «у нас был отличный слайдер, надо его оставить» — прежний
+     `<input type=range>` вернулся неизменным (docs: DECISIONS, «Лента
+     времени: второй контроль, не замена»). Лента живёт под ним отдельной
+     полосой контекста — вчера/сегодня/завтра — и включается только вместе
+     с «Просто/Астро» (Алексей: «должен включаться вместе с астро»):
+     `.ribbon-wrap` скрыт в простом режиме через `body.pro-mode`.
+
+     Едет лента, метка стоит в центре — тот же приём, что удобен в Sun
+     Surveyor. Слайдер остаётся привязан к одним суткам (`MINT…MAXT`, как
+     и всегда), а через сутки умеет переходить только лента — когда это
+     происходит, слайдер и его дорожка света перестраиваются вслед за ней
+     (`drawRuler`/`s.min/max/value`), а не наоборот: не бывает так, что
+     лента показывает один день, а слайдер — другой.
 
      Устройство: окно в трое суток (вчера/`selDate`/завтра) при постоянном
      масштабе px/мин — один день ровно в ширину видимой полосы. `scrollLeft`
-     переводится в `viewMin` каждый кадр прокрутки. У края (дальше 8 часов
-     от соседних суток — есть куда отступить, не долистав до конца
-     отрисованного) лента перецентровывается: `selDate` сдвигается на сутки,
-     три дня строятся заново вокруг новой даты, а `scrollLeft` подгоняется
-     так, что метка не сдвигается ни на пиксель — граница видна только в
-     подписи даты наверху, не в самом движении.
+     переводится в `viewMin` каждый кадр прокрутки. У края лента
+     перецентровывается: `selDate` сдвигается на сутки, три дня строятся
+     заново вокруг новой даты, а `scrollLeft` подгоняется так, что метка не
+     сдвигается ни на пиксель.
 
      Масштаб не растягивается у краёв: у бесконечной ленты нет причины
      ловить палец у стены, которой нет, а плавающая плотность делений
      сломала бы ловлю минут в астро (второй масштаб под щипок — отдельная,
      более поздняя веха). */
-  var ribbonPxPerMin = 342 / 1440, ribbonHourMark = null, ribbonLastSet = null, ribbonRAF = false;
+  var ribbonPxPerMin = 342 / 1440, ribbonHourMark = null, ribbonLastSet = null, ribbonRAF = false,
+      ribbonRecenterT = null;
   function measureRibbon() {
     var el = $("ribbonScroll"); if (!el || !el.clientWidth) return;
     ribbonPxPerMin = el.clientWidth / 1440;
@@ -12905,45 +12981,64 @@
   }
   /* Полная перестройка — три дня вокруг `selDate` и метка сразу на
      `viewMin`, без анимации: если сюда пришли, значит уже решили, что это
-     нужное место (смена даты извне, первый показ) */
+     нужное место (смена даты извне, первый показ). Заодно подгоняет
+     слайдер — оба контроля должны в любой момент смотреть на один день. */
   function renderRibbon() {
     measureRibbon();
     rebuildRibbonDays();
     placeRibbon(ribbonCenterPx());
     ribbonHourMark = Math.floor((((viewMin % 1440) + 1440) % 1440) / 60);
   }
-  /* Только позиция, дни не трогает — купол уводит `viewMin` в пределах уже
-     построенных суток, перестраивать нечего (см. `setView`) */
+  /* Только позиция, дни не трогает — купол и слайдер не выходят за пределы
+     уже построенных суток, перестраивать нечего (см. `setView`) */
   function syncRibbonScroll() { placeRibbon(ribbonCenterPx()); }
+  /* Перецентровка — не сразу на пересечении порога, а через паузу без
+     новых событий прокрутки (docs: DECISIONS, «Гонка на краю ленты»).
+     Причина: пока палец физически лежит на упоре (овершут/резиновый
+     скролл iOS), браузер САМ каждый кадр возвращает `scrollLeft` к
+     границе — а мгновенная перецентровка читала это как «опять край» и
+     сдвигала сутки заново, кадр за кадром, пока палец не отпустят: даты
+     «бежали» ускоренно (Алексей). Пауза в 140 мс ждёт, пока жест — палец,
+     мышь, колесо, инерция — действительно затихнет, и тогда переставляет
+     ровно один раз. Во время паузы лента просто упирается в свой предел,
+     как любой обычный скролл, — ничего не едет само по себе. */
+  function recenterRibbon() {
+    var scroll = $("ribbonScroll"); if (!scroll) return;
+    var raw = scroll.scrollLeft + scroll.clientWidth / 2;
+    var t = raw / ribbonPxPerMin - 1440;
+    if (t >= -480 && t <= 1920) return;   // за время паузы само вернулось в норму
+    var dir = t < 0 ? -1 : 1;
+    selDate = addDays(selDate, dir);
+    computeSun(selDate);
+    curWeather = dayWeather(selDate);
+    var n2 = new Date();
+    nowMin = sameDay(selDate, n2) ? n2.getHours() * 60 + n2.getMinutes() : null;
+    t -= dir * 1440;
+    rebuildRibbonDays();
+    placeRibbon((1440 + t) * ribbonPxPerMin - scroll.clientWidth / 2);
+    drawRuler();
+    var s = $("scrub"); s.min = Math.round(MINT); s.max = Math.round(MAXT); s.value = clamp(Math.round(t), MINT, MAXT);
+    updateEdges();
+    viewMin = t;
+    paintDate(); updateNowTick();
+    renderToday(); renderMap();
+  }
   function stepRibbon() {
     var scroll = $("ribbonScroll"); if (!scroll) return;
     var raw = scroll.scrollLeft + scroll.clientWidth / 2;
     var t = raw / ribbonPxPerMin - 1440;
-    var dateBefore = selDate;
-
-    if (t < -480 || t > 1920) {
-      var dir = t < 0 ? -1 : 1;
-      selDate = addDays(selDate, dir);
-      computeSun(selDate);
-      curWeather = dayWeather(selDate);
-      var n2 = new Date();
-      nowMin = sameDay(selDate, n2) ? n2.getHours() * 60 + n2.getMinutes() : null;
-      t -= dir * 1440;
-      rebuildRibbonDays();
-      placeRibbon((1440 + t) * ribbonPxPerMin - scroll.clientWidth / 2);
-      updateEdges();
-    }
 
     var hr = Math.floor((((t % 1440) + 1440) % 1440) / 60);
-    if (ribbonHourMark !== hr) {
-      tickClick();
-      if (selDate !== dateBefore) tickClick();   // полночь — тот же щелчок, но дважды, заметнее
-    }
+    if (ribbonHourMark !== hr) tickClick();
     ribbonHourMark = hr;
 
     viewMin = t;
+    $("scrub").value = clamp(Math.round(t), MINT, MAXT);
     paintDate(); updateNowTick(); showMapChip("drag");
     renderToday(); renderMap();
+
+    clearTimeout(ribbonRecenterT);
+    ribbonRecenterT = (t < -480 || t > 1920) ? setTimeout(recenterRibbon, 140) : null;
   }
   function onRibbonScroll() {
     var scroll = $("ribbonScroll"); if (!scroll) return;
@@ -12984,19 +13079,27 @@
       else if (e.key === "ArrowRight") { el.scrollLeft += step; e.preventDefault(); }
     });
   })();
-  /* Тот же день — едем анимацией внутри уже построенных трёх суток, дальше
-     — прыжком (ROADMAP: «не прыжком», но это про соседний экран, а не про
-     то, что отлистали на неделю вперёд: анимировать через несуществующие
-     дни нечем, `applyDate` строит ленту заново вокруг сегодня и сама
-     ставит `viewMin` на настоящий момент) */
+  /* Тот же день — переставляем виджет сразу, тем же путём, что и обычное
+     движение слайдера (лента в «Просто» скрыта, ей нечем анимировать).
+     Другой день — через `applyDate()`: строит ленту и слайдер заново
+     вокруг сегодня и сама ставит `viewMin` на настоящий момент. */
   $("nowTick").addEventListener("click", function () {
     var today = new Date();
     if (sameDay(selDate, today)) {
-      $("ribbonScroll").scrollTo({ left: (1440 + nowRel(selDate)) * ribbonPxPerMin - $("ribbonScroll").clientWidth / 2, behavior: "smooth" });
+      setView(nowRel(selDate));
     } else {
       selDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       applyDate();
     }
+  });
+  $("scrub").addEventListener("pointerdown", initAudio);
+  $("scrub").addEventListener("touchstart", initAudio, { passive: true });
+  $("scrub").addEventListener("input", function () {
+    var v = +this.value, tk = Math.round(v / TICK_MIN);
+    if (tk !== lastTick) { lastTick = tk; tickClick(); }
+    // Чип азимута — числа по требованию, пока идёт движение (ROADMAP, «Прибор карты» § 2.1)
+    showMapChip("drag");
+    setView(v);
   });
 
   /* ---------- Отклик на детентах ----------
