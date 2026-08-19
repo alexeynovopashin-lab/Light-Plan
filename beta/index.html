@@ -902,6 +902,12 @@
      занимает всё, что осталось снизу, и скроллится сам по себе, не зная о
      шапке вообще. */
   #yearOverlay { z-index: 25; overflow: hidden; padding: 0; }
+  /* Тот же z-index, что у ленты — без него #year12Overlay наследует
+     базовые 80 у .overlay и перекрывает таб-бар (z-index:30) целиком: меню
+     пропадало, пока «Год целиком» был открыт (Алексей). Своего разделения
+     на слои этому экрану не нужно — он не листает контент под липкой
+     шапкой, обычный .overlay.pad со своим отступом снизу достаточен. */
+  #year12Overlay { z-index: 25; padding-bottom: calc(var(--tabh, 84px) + 16px); }
   .year-sticky-head {
     position: absolute; top: 0; left: 0; right: 0; z-index: 5; background: var(--surface);
     padding: 0 24px 4px;
@@ -923,6 +929,9 @@
   .year-nav {
     display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
   }
+  /* В ленте месяцев в .year-nav остался один ребёнок (число года, стрелки
+     убраны) — space-between прижимал бы его к левому краю */
+  #yearOverlay .year-nav { justify-content: center; }
   .year-nav .y { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
   /* Только число в ленте месяцев ведёт в год целиком — кликабельно значит
      только оно, второе такое же число (в самом годе целиком) листается
@@ -4177,14 +4186,13 @@
           </button>
         </div>
       </div>
+      <!-- Свои стрелки ‹› тут были — убраны: рядом с «‹ Август» (кнопка
+           назад) это были два похожих шеврона с разным смыслом в одном
+           месте шапки, и Алексей путал их на ощупь («промахивался и нажимал
+           на шеврон года»). Года теперь листает только «Год целиком»
+           (year12Prev/Next) — тап по числу открывает его же. -->
       <div class="year-nav">
-        <button id="yPrev" aria-label="Прошлый год">‹</button>
-        <!-- Тап по числу года — на экран «год целиком», 12 месяцев разом:
-             лента выше про число (быстрый переход к дате), этот про то, где
-             год стоит целиком (Алексей: «нажатие на год должно перекинуть
-             нас в ленту 12 месяцев»). -->
         <span class="y" id="yTitle">2026</span>
-        <button id="yNext" aria-label="Следующий год">›</button>
       </div>
     </div>
     <div class="year-scroll" id="yearScroll">
@@ -13143,9 +13151,9 @@
     renderYear();
     $("statsOverlay").classList.add("open");
   });
-  $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); $("yearScroll").scrollTop = 0; });
-  $("yNext").addEventListener("click", function () { yearShown++; renderYear(); $("yearScroll").scrollTop = 0; });
-  /* Число года в ленте — вход в обзор года целиком, не ещё один счётчик:
+  /* Свои ‹› у ленты убраны (docs: DECISIONS, «шевроны на шевроне») — год
+     теперь листает только «Год целиком» (year12Prev/Next ниже). Число года
+     в ленте — вход в обзор года целиком, не ещё один счётчик:
      лента остаётся открытой под ним, назад возвращает ровно туда же */
   $("yTitle").addEventListener("click", function () {
     renderYear12();
