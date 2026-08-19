@@ -7622,13 +7622,26 @@
     requestAnimationFrame(function () {
       var block = $("yearGrid").querySelector('.year-block[data-year="' + y + '"]');
       var el = block && block.querySelectorAll(".year-cal-month")[m];
+      var head = document.querySelector(".year-sticky-head");
       if (el) {
-        var headH = document.querySelector(".year-sticky-head").offsetHeight;
+        var headH = head.offsetHeight;
         $("yearOverlay").scrollTop = Math.max(0, el.offsetTop - headH - 8);
       } else {
         $("yearOverlay").scrollTop = 0;
       }
-      if (then) then();
+      /* WebKit на живом iPhone после программного скачка scrollTop иногда
+         оставлял "тень" прежнего кадра прокрутки прямо под липкой шапкой —
+         обрезок строки, которая уже должна была уехать. Толчок transform на
+         самой шапке заставляет WebKit перерисовать её композитный слой с
+         нуля (известный обходной приём для этого класса багов sticky).
+         Двух попыток без него (запас под safe-area, потом устранение гонки
+         с анимацией открытия) не хватило — баг всплывал на любом кадре
+         прокрутки, не только при первом открытии (docs: DECISIONS). */
+      head.style.transform = "translateZ(0)";
+      requestAnimationFrame(function () {
+        head.style.transform = "";
+        if (then) then();
+      });
     });
   }
   function renderYear() {
