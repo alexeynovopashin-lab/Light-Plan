@@ -7601,14 +7601,21 @@
     return wrap;
   }
   /* Прокрутка к нужному месяцу — после рендера, следующим кадром: список
-     должен успеть встать на место, иначе offsetTop меряет ещё старую высоту */
-  function scrollYearTo(y, m) {
+     должен успеть встать на место, иначе offsetTop меряет ещё старую высоту.
+     Необязательный `then` зовётся уже после скролла — открывающий экран
+     пользуется этим, чтобы не показывать себя, пока прокрутка не легла на
+     место (docs: DECISIONS, «шапка года и скачок скролла») */
+  function scrollYearTo(y, m, then) {
     requestAnimationFrame(function () {
       var block = $("yearGrid").querySelector('.year-block[data-year="' + y + '"]');
       var el = block && block.querySelectorAll(".year-cal-month")[m];
-      if (!el) { $("yearOverlay").scrollTop = 0; return; }
-      var headH = document.querySelector(".year-sticky-head").offsetHeight;
-      $("yearOverlay").scrollTop = Math.max(0, el.offsetTop - headH - 8);
+      if (el) {
+        var headH = document.querySelector(".year-sticky-head").offsetHeight;
+        $("yearOverlay").scrollTop = Math.max(0, el.offsetTop - headH - 8);
+      } else {
+        $("yearOverlay").scrollTop = 0;
+      }
+      if (then) then();
     });
   }
   function renderYear() {
@@ -12947,8 +12954,16 @@
   $("planTitle").addEventListener("click", function () {
     yearShown = calMonth.getFullYear();
     renderYear();
-    $("yearOverlay").classList.add("open");
-    scrollYearTo(calMonth.getFullYear(), calMonth.getMonth());
+    /* Скролл ставим, пока экран ещё скрыт (visibility: hidden — не display:
+       none, лист верстается и прокручивается и невидимым), а открываем уже
+       на готовое место. Раньше .open и скролл на август запускались одним
+       тактом: полтора кадра WebKit склеивал выезжающий transform с прыжком
+       scrollTop и на живом телефоне рисовал хвост чужой строки над шапкой
+       (Алексей прислал скриншот с симулятора) — в браузере на столе это не
+       воспроизводилось никогда, только на настоящем экране. */
+    scrollYearTo(calMonth.getFullYear(), calMonth.getMonth(), function () {
+      $("yearOverlay").classList.add("open");
+    });
   });
   $("yearClose").addEventListener("click", function () { $("yearOverlay").classList.remove("open"); });
   /* Прямой вход в статистику из шапки «Съёмок» — минуя год: реже нужно
