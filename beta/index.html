@@ -890,12 +890,35 @@
   .now-back.show { display: inline-flex; }
 
   /* ---------- Год ---------- */
-  /* Ниже таб-бара: из года видно, где ты в приложении, и можно уйти на другой раздел */
-  #yearOverlay { z-index: 25; padding-bottom: calc(var(--tabh, 84px) + 16px); }
-  /* Липнет к верху прокручиваемого экрана — список ниже идёт на два года
-     подряд, и без липкой шапки прокрутка в декабре оставляла бы стрелки ‹›
-     недоступными, пока не вернёшься наверх (docs: DECISIONS) */
-  .year-sticky-head { position: sticky; top: 0; z-index: 5; background: var(--surface); padding-bottom: 4px; }
+  /* Три попытки подряд (safe-area padding, устранение гонки со scrollTop,
+     принудительная перерисовка) не сняли баг на живом iPhone: sticky и
+     fixed внутри общего скроллера так или иначе делят с ним композитный
+     слой, и WebKit время от времени оставлял обрезок чужого кадра
+     прокрутки под шапкой (docs: DECISIONS, «шапка года»). Настоящее
+     решение — не чинить общий скролл, а вовсе не делить его: шапка и
+     список теперь два независимых слоя. `#yearOverlay` сам больше не
+     скроллится (`overflow: hidden`, без своих отступов — оба отданы
+     детям), шапка стоит `position: absolute` сверху него, `#yearScroll`
+     занимает всё, что осталось снизу, и скроллится сам по себе, не зная о
+     шапке вообще. */
+  #yearOverlay { z-index: 25; overflow: hidden; padding: 0; }
+  .year-sticky-head {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 5; background: var(--surface);
+    padding: 0 24px 4px;
+  }
+  @media (max-width: 500px) {
+    .year-sticky-head { padding-top: calc(env(safe-area-inset-top) + 14px); }
+  }
+  /* `top` — единственное, что живёт в JS (`syncYearHeadSpace()`): высота
+     шапки не постоянна, «Статистика» показывается не всегда. Остальное —
+     обычный `.overlay` без него самого: тот же скролл, те же отступы,
+     просто на дочернем элементе, а не на самом `#yearOverlay`. */
+  .year-scroll {
+    position: absolute; left: 0; right: 0; bottom: 0; overflow-y: auto;
+    scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y;
+    padding: 0 24px calc(var(--tabh, 84px) + 16px);
+  }
+  .year-scroll::-webkit-scrollbar { display: none; }
   .year-head-acts { display: flex; align-items: center; gap: 2px; }
   .year-nav {
     display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
@@ -2538,19 +2561,6 @@
        так же, как обычный `.overlay` — фиксированное число тут работало
        только на макете в браузере, не на живом телефоне. */
     .overlay.pad { padding-top: calc(env(safe-area-inset-top) + 14px); }
-    /* Того же лечения ждала и сама липкая шапка года. Запас под чёлку —
-       это краска родителя (`#yearOverlay`), не собственный фон шапки: она
-       стоит НИЖЕ этого запаса и начинает закрашивать только со своей
-       границы. На вебклипе iOS в этот шов иногда попадал обрезок
-       проскроленной строки грида — составной слой WebKit не всегда успевал
-       склеить прокрутку под запасом без наложения. Отрицательный
-       margin-top тянет саму шапку (и её фон) до истинного верха экрана,
-       тот же по величине padding-top возвращает содержимому прежнее
-       место — типовой приём для sticky-шапок под чёлкой/островом. */
-    .year-sticky-head {
-      margin-top: calc(-1 * (env(safe-area-inset-top) + 14px));
-      padding-top: calc(env(safe-area-inset-top) + 14px);
-    }
   }
   /* Инфографика выезжает сбоку, не снизу: она не модальный лист поверх
      всего экрана, а следующий шаг того же разговора — «год» и «статистика»
@@ -4096,11 +4106,13 @@
   <!-- ============ ГОД ============ -->
   <!-- Тот же календарь в меньшем масштабе: год — это масштаб, а не шаг назад -->
   <div class="overlay pad" id="yearOverlay">
-    <!-- Шапка и заголовок года липнут сверху при прокрутке: список идёт на
-         два года разом (docs: DECISIONS, «год не должен упираться в конец»),
-         и без липкой плашки было бы непонятно, что прокрутка уже увела в
-         январь следующего года — а стрелки ‹› стали бы недоступны, пока не
-         вернёшься наверх. -->
+    <!-- Шапка не в потоке прокрутки вовсе — отдельный слой над отдельным
+         скроллером (docs: DECISIONS, «шапка года: третий заход»). Раньше
+         пробовали sticky, потом fixed внутри общего скролла — оба делили
+         композитный слой с прокруткой и на живом iPhone оставляли обрезки
+         чужих кадров. Разделение на два independent блока эту почву убирает
+         совсем: скроллится только `#yearScroll`, шапка не участвует в этом
+         вообще, ей нечего клеить и не с чем сливаться. -->
     <div class="year-sticky-head">
       <div class="form-top">
         <button class="back" id="yearClose">
@@ -4108,13 +4120,11 @@
         </button>
         <!-- Справа от «‹ Август» пустовало место на всю высоту шапки — крутить
              весь год до кнопки внизу списка ради статистики было бы глупо
-             (Алексей). Вход на статистику и поиск переехали сюда же, рядом
-             с «↺ сейчас» — тот тоже показывается не всегда. Добавить съёмку
-             тут раньше было нечем — та же тройка добавить/статистика/поиск,
-             что в месяце, неделе и дне, а год выпадал (Алексей: «нет кнопки
-             для создания съёмки»). -->
+             (Алексей). Вход на статистику и поиск переехали сюда же. Добавить
+             съёмку тут раньше было нечем — та же тройка добавить/статистика/
+             поиск, что в месяце, неделе и дне, а год выпадал (Алексей: «нет
+             кнопки для создания съёмки»). -->
         <div class="year-head-acts">
-          <button class="now-back" id="yearNow">↺ <span id="yearNowLbl">2026</span></button>
           <button class="icon-btn" id="yearAdd" aria-label="Новая съёмка">
             <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
           </button>
@@ -4132,6 +4142,7 @@
         <button id="yNext" aria-label="Следующий год">›</button>
       </div>
     </div>
+    <div class="year-scroll" id="yearScroll">
     <!-- Стандартный вид — чистая навигация, свет и занятость её не украшают:
          мини-календари месяца, тап по числу ведёт в день (docs: DECISIONS,
          «два вида годового экрана»). Ни денег, ни сроков сдачи здесь нет —
@@ -4139,6 +4150,12 @@
          декабрь перетекает в январь следующего без остановки. -->
     <div class="year-cal-list" id="yearGrid"></div>
     <div class="year-sum" id="yearSum">—</div>
+    </div>
+    <!-- «Сейчас» — не в шапке: рядом с крупным числом года это читалось как
+         второй год в одном месте (Алексей: «год на годе»). Плавающая плашка
+         под большим пальцем — тот же приём и тот же класс, что «↺ сегодня»
+         в дне (docs/DECISIONS): появляется, только когда год не текущий. -->
+    <button class="now-back day-float" id="yearNow">↺ сейчас</button>
   </div>
 
   <!-- Инфографика — деньги и сроки сдачи, отдельным экраном поверх года.
@@ -7622,34 +7639,31 @@
     requestAnimationFrame(function () {
       var block = $("yearGrid").querySelector('.year-block[data-year="' + y + '"]');
       var el = block && block.querySelectorAll(".year-cal-month")[m];
-      var head = document.querySelector(".year-sticky-head");
+      var ys = $("yearScroll");
+      /* Шапка больше не делит систему координат со скроллом (docs:
+         DECISIONS, «шапка года: третий заход») — `#yearScroll` начинается
+         уже под ней, вычитать её высоту второй раз не нужно, это было бы
+         тем же зазором, посчитанным дважды. */
       if (el) {
-        var headH = head.offsetHeight;
-        $("yearOverlay").scrollTop = Math.max(0, el.offsetTop - headH - 8);
+        ys.scrollTop = Math.max(0, el.offsetTop - 8);
       } else {
-        $("yearOverlay").scrollTop = 0;
+        ys.scrollTop = 0;
       }
-      /* WebKit на живом iPhone после программного скачка scrollTop иногда
-         оставлял "тень" прежнего кадра прокрутки прямо под липкой шапкой —
-         обрезок строки, которая уже должна была уехать. Толчок transform на
-         самой шапке заставляет WebKit перерисовать её композитный слой с
-         нуля (известный обходной приём для этого класса багов sticky).
-         Двух попыток без него (запас под safe-area, потом устранение гонки
-         с анимацией открытия) не хватило — баг всплывал на любом кадре
-         прокрутки, не только при первом открытии (docs: DECISIONS). */
-      head.style.transform = "translateZ(0)";
-      requestAnimationFrame(function () {
-        head.style.transform = "";
-        if (then) then();
-      });
+      if (then) then();
     });
+  }
+  /* Шапка — отдельный слой (position: absolute) над `#yearScroll`, а не
+     часть его потока: высота шапки не постоянна («Статистика» и «сейчас»
+     показываются не всегда), поэтому `#yearScroll` каждый раз получает её
+     актуальный рост через `top`, а не фиксированное число в CSS. */
+  function syncYearHeadSpace() {
+    $("yearScroll").style.top = document.querySelector(".year-sticky-head").offsetHeight + "px";
   }
   function renderYear() {
     var now = new Date();
     renderOverloadSignal();
     $("yTitle").textContent = yearShown;
     $("yearNow").classList.toggle("show", yearShown !== now.getFullYear());
-    $("yearNowLbl").textContent = now.getFullYear();
     $("yearCloseLbl").textContent = MONTHS_N[calMonth.getMonth()];
     /* Мини-календарь на месяц: та же неделя-с-понедельника и то же имя
        месяца, что и в основном виде (docs: DECISIONS). Число — прямой тап
@@ -7707,6 +7721,7 @@
     // проверяем по факту, а не по одному только all.length
     $("statsEmpty").hidden = !($("yearOverload").hidden && $("monthsLabel").hidden
       && $("profitLabel").hidden && $("delvLabel").hidden);
+    syncYearHeadSpace();
   }
   /* Занятость по месяцам — вернулась из первой версии годового экрана, но
      теперь на статистике, не на навигации: полоса несёт цвет срочности
@@ -13000,8 +13015,8 @@
     renderYear();
     $("statsOverlay").classList.add("open");
   });
-  $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); $("yearOverlay").scrollTop = 0; });
-  $("yNext").addEventListener("click", function () { yearShown++; renderYear(); $("yearOverlay").scrollTop = 0; });
+  $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); $("yearScroll").scrollTop = 0; });
+  $("yNext").addEventListener("click", function () { yearShown++; renderYear(); $("yearScroll").scrollTop = 0; });
   $("yearNow").addEventListener("click", function () {
     var now = new Date();
     yearShown = now.getFullYear(); renderYear();
@@ -13021,13 +13036,16 @@
      на него — то самое «сразу видеть, что это январь следующего года».
      yearShown (данные статистики) при этом не трогаем: прокрутка — не выбор,
      выбор — explicit тап по ‹›/названию месяца/числу. */
-  $("yearOverlay").addEventListener("scroll", function () {
-    var headH = document.querySelector(".year-sticky-head").offsetHeight;
+  $("yearScroll").addEventListener("scroll", function () {
+    /* Координаты #yearGrid теперь считаются от верха #yearScroll напрямую —
+       шапка в этот скролл не встроена, добавлять её высоту сюда, как
+       раньше, значило бы вычитать то, что уже не мешает (docs: DECISIONS,
+       «шапка года: третий заход») */
     var blocks = $("yearGrid").querySelectorAll(".year-block");
     var top = this.scrollTop;
     var active = blocks[0];
     for (var i = 0; i < blocks.length; i++) {
-      if (blocks[i].offsetTop - top <= headH + 4) active = blocks[i];
+      if (blocks[i].offsetTop - top <= 4) active = blocks[i];
     }
     if (active) $("yTitle").textContent = active.dataset.year;
   }, { passive: true });
