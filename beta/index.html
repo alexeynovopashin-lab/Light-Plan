@@ -688,7 +688,11 @@
   /* Пиктограмма вместо слова: половинка солнца над горизонтом,
      стрелка в центре говорит — всходит или садится */
   .edge { display: inline-flex; align-items: center; gap: 7px; }
-  .edge svg { width: 19px; height: 19px; stroke: var(--brass-deep); fill: none; stroke-width: 1.6; }
+  .edge svg { width: 19px; height: 19px; stroke: var(--brass-deep); fill: none; stroke-width: 1.6; flex-shrink: 0; }
+  /* Время и азимут — своя колонка под пиктограммой: время как раньше, азимут
+     второй строкой мельче и тише (ROADMAP, «Прибор карты» § 2.2) */
+  .edge-txt { display: flex; flex-direction: column; line-height: 1.3; }
+  .edge-az { font-size: 9px; color: var(--ink-6); font-weight: 500; }
   .track-wrap { position: relative; padding-bottom: 16px; }
   /* Гравировка: риски каждый час, крупные каждые шесть — под дорожкой ползунка */
   .ruler {
@@ -6455,6 +6459,12 @@
   function brassRing(a) {
     return "rgba(226,164,76," + (theme === "light" ? Math.min(1, a * 1.6) : a).toFixed(2) + ")";
   }
+  /* Подложка чипа азимута — та же логика инверсии, что у ringColor: чип должен
+     читаться поверх и тёмного, и светлого холста, а не быть заготовкой под
+     один из них. */
+  function chipBg(a) {
+    return theme === "light" ? "rgba(251,249,245," + a + ")" : "rgba(20,17,14," + a + ")";
+  }
   var MPX = 179, MPY = 170, MR = 118;   // центр и радиус горизонта в системе viewBox 358×340
   var scrimStops = null;                // стопы дорожки — ищутся один раз, красятся по теме
 
@@ -6475,6 +6485,20 @@
      неопределённостью прибор обязан сказать вслух. */
   var MW_WORK_LO = 10, MW_WORK_HI = 15;
   var TICK_OUT = 154;                              // общий внешний край делений, он же обод
+  /* Чип азимута — числа по требованию (ROADMAP, «Прибор карты» § 2), не
+     постоянная шкала. Три источника одного и того же вида: палец на
+     ползунке даёт оба чипа разом (солнце и луна, если их слои включены),
+     тап по светилу — один, с высотой в придачу. `mapChipMode` определяет,
+     что рисовать, `mapTapAz/Alt` держат значения тапа отдельно от живого
+     `viewMin` — тронув светило, ответ не должен потом уехать вместе с
+     ползунком, если тот вдруг двинется по другой причине. */
+  var mapChipMode = null, mapChipTimer = null, mapTapAz = null, mapTapAlt = null;
+  function showMapChip(mode) {
+    mapChipMode = mode;
+    clearTimeout(mapChipTimer);
+    var life = mode === "drag" ? 1200 : 2200;
+    mapChipTimer = setTimeout(function () { mapChipMode = null; renderMap(); }, life);
+  }
   var HOUR_LBL_MAX = 142;                          // дальше подписи часов не уходят
   function altR(alt) {
     return Math.max(8, Math.min(PATH_MAX_R, MR * (1 - alt / 90)));
@@ -6708,20 +6732,26 @@
       svg.appendChild(el("line", { x1: t1[0], y1: t1[1], x2: t2[0], y2: t2[1],
         stroke: big ? brassRing(0.42) : ringColor(0.10),
         "stroke-width": big ? 1.2 : 1 }));
-      /* Числа пока остаются в астро и уйдут вместе с чипом азимута — правка
-         разложена в ROADMAP отдельным пунктом. Четверти пропущены: «90°»
-         рядом с «В» это два слова об одном. */
+      /* Восемь чисел — «Просто/Астро» и есть настройка «всегда показывать
+         градусы»: постоянной шкалы без причины на холсте нет, а решение уже
+         спрашивает об этом же самом (§ Открытые вопросы: «Астро режим
+         добавляет на экраны азимуты»). Четверти пропущены: «90°» рядом с
+         «В» — два слова об одном. Радиус — 160, тот же, что у букв: числа и
+         буквы делят одно кольцо, а не спорят за разные. Без знака «°» и
+         кеглем восемь, вчетверо тише главных делений (0.38 против 0.42
+         латуни) — шкала должна читаться фактурой, а не перекрикивать
+         буквы, которые остаются точками отсчёта. */
       if (!big || !document.body.classList.contains("pro-mode")) continue;
       /* Отступ радиальный, а не вертикальный: constant `y + 3.4` сдвигал
          каждое число вниз по экрану на одну и ту же величину, а не наружу
          от центра — на боках круга (90°/270°) числа съезжали с окружности
          вместо того, чтобы идти вдоль неё. `dominant-baseline: middle`
-         центрирует цифру на самой точке, а точка берётся уже за ободом. */
-      var gp = A(g, COMPASS_R + 9);
-      var gt = el("text", { x: gp[0], y: gp[1], fill: "rgba(138,132,120,0.70)", "font-size": 9,
+         центрирует цифру на самой точке. */
+      var gp = A(g, COMPASS_R);
+      var gt = el("text", { x: gp[0], y: gp[1], fill: ringColor(0.38), "font-size": 8,
         "text-anchor": "middle", "dominant-baseline": "middle",
         "font-family": "ui-monospace, monospace" });
-      gt.textContent = g + "°"; svg.appendChild(gt);
+      gt.textContent = String(g); svg.appendChild(gt);
     }
 
     /* Две оси, и только две. Частой радиальной сеткой читают азимут там, где
@@ -6740,18 +6770,28 @@
        читаются остальные три, и в темноте глаз ищет именно его. Раньше «С»
        отличалась от «В» одной ступенью тона, разницей в полтора раза там, где
        нужна разница в три. */
+    /* Когда рядом встают восемь чисел, буквы уступают им кегль — трёхкратная
+       разница веса (8 у чисел против 12 у букв) держит иерархию: шкала
+       читается фактурой, буквы остаются ориентирами, а не тонут в ней.
+       Разрядка — тот же довод, что у самой шкалы: пусть буква и одна, воздух
+       вокруг неё не даёт ей слипнуться с соседним числом на том же кольце. */
+    var proDegrees = document.body.classList.contains("pro-mode");
     [[0, "С"], [90, "В"], [180, "Ю"], [270, "З"]].forEach(function (c) {
       /* Север крупнее на два пункта кегля — та же иерархия, что уже несёт
          латунь: по «С» ищут остальные три, и она должна быть заметна первой,
          не только цветом. Риска севера стоит внутри обода (см. northMark) и
          не достаёт до буквы — раньше выходили на один и тот же радиус и
-         срастались в одно неразборчивое пятно. */
+         срастались в одно неразборчивое пятно. Это отличие остаётся и с
+         числами: три чернильные буквы равняются на 12, «С» держит разницу
+         латунью и кеглем даже тогда. */
       var north = c[0] === 0;
-      var size = north ? 13 : 11;
+      var size = proDegrees ? 12 : (north ? 13 : 11);
       var cp = A(c[0], COMPASS_R);
-      var ct = el("text", { x: cp[0], y: cp[1] + size * 0.36, fill: north ? "#E2A44C" : "#8A8478",
+      var attrs = { x: cp[0], y: cp[1] + size * 0.36, fill: north ? "#E2A44C" : "#8A8478",
         "font-size": size, "text-anchor": "middle",
-        "font-family": "-apple-system, sans-serif", "font-weight": 700 });
+        "font-family": "-apple-system, sans-serif", "font-weight": 700 };
+      if (proDegrees) attrs["letter-spacing"] = "1px";
+      var ct = el("text", attrs);
       ct.textContent = c[1]; svg.appendChild(ct);
     });
     /* Метка севера на самом ободе: короткий медный штрих в разрыве, где стоит
@@ -6875,6 +6915,23 @@
       var mpos = A(mNow.az, altR(mNow.alt));
       svg.appendChild(el("circle", { cx: mpos[0], cy: mpos[1], r: 4.5,
         fill: mNow.alt > 0 ? "#CFD6DE" : "rgba(207,214,222,0.45)", stroke: mapInk(), "stroke-width": 1.5 }));
+      /* Тап по луне — азимут с высотой, без раскрытия «Подробно» целиком
+         (ROADMAP, «Прибор карты» § 2.3). `#mapLight` целиком non-interactive
+         (карта под ним должна тащиться пальцем), но у одного своего элемента
+         `pointer-events` можно переопределить явно — родительское «none» не
+         наследуется молча, если сказать обратное. Прицел на 16 px шире диска:
+         4.5 px пальцем не попасть. */
+      var moonHit = el("circle", { cx: mpos[0], cy: mpos[1], r: 16, fill: "transparent" });
+      moonHit.setAttribute("pointer-events", "all");
+      moonHit.style.cursor = "pointer";
+      (function (mAz, mAlt) {
+        moonHit.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          mapTapAz = mAz; mapTapAlt = mAlt;
+          showMapChip("tap-moon"); renderMap();
+        });
+      })(mNow.az, mNow.alt);
+      svg.appendChild(moonHit);
     }
     }
 
@@ -6975,7 +7032,68 @@
          получало жирный тёмный контур. Луна рядом уже брала его у `mapInk` —
          разошлись две строки об одном и том же. */
       svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: mapInk(), "stroke-width": 2 }));
+      // Тап по солнцу — тот же приём, что у луны (docs: DECISIONS)
+      var sunHit = el("circle", { cx: sp[0], cy: sp[1], r: 16, fill: "transparent" });
+      sunHit.setAttribute("pointer-events", "all");
+      sunHit.style.cursor = "pointer";
+      (function (sAz, sAlt) {
+        sunHit.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          mapTapAz = sAz; mapTapAlt = sAlt;
+          showMapChip("tap-sun"); renderMap();
+        });
+      })(az, e);
+      svg.appendChild(sunHit);
     }
+
+    /* Чип азимута — верхний слой прибора, поверх делений и светил (ROADMAP,
+       «Прибор карты» § 2.1/2.3). Палец на ползунке даёт чипы сразу для всех
+       включённых слоёв (солнце, луна); тап по светилу — один чип, с высотой.
+       Ближайшая риска светится под чипом до 0.5 — та же геометрия, что у
+       основного цикла делений выше, лишний штрих поверх старого. */
+    (function azChip() {
+      if (!mapChipMode) return;
+      var chips = [];
+      if (mapChipMode === "drag") {
+        if (mapLayers.sun && e > PATH_MIN_ALT) chips.push({ az: az, alt: null, color: "#E2A44C" });
+        if (mapLayers.moon && mNow.alt > -3) chips.push({ az: mNow.az, alt: null, color: "#CFD6DE" });
+      } else if (mapChipMode === "tap-sun") {
+        chips.push({ az: mapTapAz, alt: mapTapAlt, color: "#E2A44C" });
+      } else if (mapChipMode === "tap-moon") {
+        chips.push({ az: mapTapAz, alt: mapTapAlt, color: "#CFD6DE" });
+      }
+      if (!chips.length) return;
+      // Схождение: чипы солнца и луны ближе 14° — лунный уезжает внутрь,
+      // иначе на низких широтах в полдень они садятся один в другой
+      if (chips.length === 2) {
+        var dAz = Math.abs(((chips[0].az - chips[1].az + 540) % 360) - 180);
+        if (dAz < 14) chips[1].rIn = 12;
+      }
+      chips.forEach(function (c) {
+        var nearDeg = Math.round((((c.az % 360) + 360) % 360) / 10) * 10 % 360;
+        if (nearDeg % 90 !== 0) {
+          var big2 = nearDeg % 30 === 0;
+          var n1 = A(nearDeg, TICK_OUT - (big2 ? 6 : 3)), n2 = A(nearDeg, TICK_OUT);
+          svg.appendChild(el("line", { x1: n1[0], y1: n1[1], x2: n2[0], y2: n2[1],
+            stroke: ringColor(0.5), "stroke-width": big2 ? 1.6 : 1.3 }));
+        }
+        var r = COMPASS_R - (c.rIn || 0);
+        var p = A(c.az, r), size = c.alt !== null ? 11 : 10;
+        var label = Math.round(((c.az % 360) + 360) % 360) + "°"
+          + (c.alt !== null ? "  " + (c.alt >= 0 ? "+" : "−") + Math.abs(Math.round(c.alt)) + "°" : "");
+        var txt = el("text", { x: p[0], y: p[1] + size * 0.36, fill: c.color, "font-size": size,
+          "text-anchor": "middle", "font-family": "ui-monospace, monospace", "font-weight": 600 });
+        txt.textContent = label;
+        svg.appendChild(txt);
+        // Ширина мерится по факту — "47°" и "138°  +34°" разной длины
+        var bw = txt.getComputedTextLength();
+        var padX = 6, padY = 3.5, bh = size + 2;
+        var bg = el("rect", { x: p[0] - bw / 2 - padX, y: p[1] - bh / 2 - padY,
+          width: bw + padX * 2, height: bh + padY * 2, rx: (bh + padY * 2) / 2,
+          fill: chipBg(0.86), stroke: c.color, "stroke-opacity": 0.5, "stroke-width": 1 });
+        svg.insertBefore(bg, txt);
+      });
+    })();
 
     /* Время выбранного момента — в языке купола, тем же словарём фаз.
        Это ответ на исходную беду: солнце ехало, градусы менялись, а в котором
@@ -12873,6 +12991,8 @@
   $("scrub").addEventListener("input", function () {
     var v = +this.value, tk = Math.round(v / TICK_MIN);
     if (tk !== lastTick) { lastTick = tk; tickClick(); }
+    // Чип азимута — числа по требованию, пока идёт движение (ROADMAP, «Прибор карты» § 2.1)
+    showMapChip("drag");
     setView(v);
   });
   $("nowTick").addEventListener("click", function () { if (nowMin !== null) setView(nowMin); });
@@ -12935,9 +13055,14 @@
     mup:  '<path d="M2.5 16.5h19"/><g transform="translate(7 2.4) scale(0.56)"><path stroke-width="2.85" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g><path d="M4.6 11.8V5.6M2.8 7.4l1.8-1.8 1.8 1.8"/>',
     mdown:'<path d="M2.5 16.5h19"/><g transform="translate(7 2.4) scale(0.56)"><path stroke-width="2.85" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g><path d="M4.6 5.6v6.2M2.8 10l1.8 1.8 1.8-1.8"/>'
   };
-  function edgeHTML(icon, t) {
+  /* Азимут второй строкой, приглушённо: восход и закат — единственные два
+     азимута, которые нужны заранее, а не в момент (ROADMAP, «Прибор карты»
+     § 2.2). В своде они уже сказаны текстом, на картинке их не было. */
+  function edgeHTML(icon, t, azV) {
+    var azLine = (t !== null && azV !== null && azV !== undefined)
+      ? '<span class="edge-az">' + Math.round(((azV % 360) + 360) % 360) + "°</span>" : "";
     return '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">'
-      + EDGE_IC[icon] + "</svg><span>" + fmt(t) + "</span>";
+      + EDGE_IC[icon] + '</svg><span class="edge-txt"><span class="edge-t">' + fmt(t) + "</span>" + azLine + "</span>";
   }
   function updateEdges() {
     if (skyMode === "moon") {
@@ -12946,16 +13071,17 @@
         $("edgeRise").innerHTML = edgeHTML("mup", null);
         $("edgeSet").innerHTML = edgeHTML("mdown", null);
       } else {
-        $("edgeRise").innerHTML = edgeHTML("mup", arc.rise);
-        $("edgeSet").innerHTML = edgeHTML("mdown", arc.set);
+        $("edgeRise").innerHTML = edgeHTML("mup", arc.rise, moonAt(selDate, arc.rise).az);
+        $("edgeSet").innerHTML = edgeHTML("mdown", arc.set, moonAt(selDate, arc.set).az);
       }
     } else if (SUN.polar !== 0) {
       // Полярный день/ночь: восхода и заката нет — честная подпись вместо «—»
-      $("edgeRise").innerHTML = '<span>' + (SUN.polar === 1 ? "солнце не заходит" : "солнце не восходит") + "</span>";
+      $("edgeRise").innerHTML = '<span class="edge-txt"><span class="edge-t">'
+        + (SUN.polar === 1 ? "солнце не заходит" : "солнце не восходит") + "</span></span>";
       $("edgeSet").innerHTML = "";
     } else {
-      $("edgeRise").innerHTML = edgeHTML("up", SUN.rise);
-      $("edgeSet").innerHTML = edgeHTML("down", SUN.set);
+      $("edgeRise").innerHTML = edgeHTML("up", SUN.rise, azAt(SUN.rise));
+      $("edgeSet").innerHTML = edgeHTML("down", SUN.set, azAt(SUN.set));
     }
   }
   /* Риски перерисовываются с датой: солнечный полдень плывёт, и часы вместе с ним */
