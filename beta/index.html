@@ -7508,6 +7508,20 @@
       }
       b.innerHTML = html;
       b.addEventListener("click", function () {
+        /* Второй тап по уже выбранному дню — вход в день. Масштаб идёт
+           лесенкой (год → месяц → день → час), и без этого шага из месяца в
+           день можно было попасть только через веер видов: Алексей тапал по
+           числу, ждал перехода и не получал ничего. Первый тап по-прежнему
+           только выбирает — сводка под сеткой на месте, ничего не отнято. */
+        if (!out && calScope === "month" && sameDay(d, calSel)) {
+          var cells = Array.prototype.slice.call($("cal").children);
+          partMonthIntoDay(cells, cells.indexOf(b), $("s-plan"), "cal", function () {
+            setScope("day");
+            calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+            renderCal();
+          });
+          return;
+        }
         calSel = d;
         // Тап по чужому дню перелистывает месяц: иначе он выбран, но не виден
         if (out) calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
@@ -7685,16 +7699,24 @@
       var db = document.createElement("button");
       if (isNow && d === now.getDate()) db.className = "today";
       db.textContent = d;
-      (function (yy, mm, dd) {
+      (function (yy, mm, dd, cellEl) {
         db.addEventListener("click", function () {
           calMonth = new Date(yy, mm, 1);
           calSel = new Date(yy, mm, dd);
-          // число — это день, а не месяц: тап ведёт прямо в сводку дня
-          setScope("day");
-          $("yearOverlay").classList.remove("open");
-          renderCal(); renderDayPanel();
+          // число — это день, а не месяц: тап ведёт прямо в сводку дня.
+          // Не выездом оверлея, а размыканием месяца — неделя тапнутого дня
+          // остаётся и становится шапкой дня (docs: DECISIONS)
+          var cells = Array.prototype.slice.call(dgrid.children);
+          partMonthIntoDay(cells, cells.indexOf(cellEl), $("yearOverlay"), "year-cal-grid", function () {
+            var yo = $("yearOverlay");
+            yo.style.transition = "none";       // лента уже заменена снимками, свой слайд ей только помешает
+            yo.classList.remove("open");
+            requestAnimationFrame(function () { yo.style.transition = ""; });
+            setScope("day");
+            renderCal(); renderDayPanel();
+          });
         });
-      })(y, m, d);
+      })(y, m, d, db);
       dgrid.appendChild(db);
     }
     (function (yy, mm) {
@@ -7750,49 +7772,68 @@
     }
     btn.appendChild(name); btn.appendChild(grid);
     (function (yy, mm) {
-      btn.addEventListener("click", function (e) { zoomYear12ToMonth(yy, mm, e.target); });
+      btn.addEventListener("click", function (e) {
+        // Растём от тронутого числа, а не от угла плитки — если попали по числу
+        zoomYear12ToMonth(yy, mm, e.target !== btn ? e.target : null, btn);
+      });
     })(y, m);
     return btn;
   }
-  /* Тап по месяцу в «Годе целиком» — не мгновенный переход, а зум (Алексей:
-     «между годом и месяцем должна быть анимация зума»). Первая версия
-     клонировала плитку и растила клон до места цели — но клон и уже готовый
-     экран под ним были видны ОДНОВРЕМЕННО (слайд-закрытие `#year12Overlay`
-     шло своим чередом 0.42s, гонка с клоном), получался «призрак»: два
-     календаря просвечивают друг сквозь друга (Алексей прислал скриншоты).
+  /* Тап по месяцу в «Годе целиком» — зум (Алексей: «между годом и месяцем
+     должна быть анимация зума»). Две прошлые версии не годились.
 
-     Вторая версия ничего не клонирует — растёт сам целевой экран, через
-     `clip-path`. По прямому указанию: «экран сразу переключается, а сверху
-     анимация, экран должен появиться в конце». `#yearOverlay` сразу
-     обрезается в точку (`circle(0px at ...)`) РОВНО там, где тапнули —
-     «точка роста должна быть из даты», а не из угла плитки. «Год целиком»
-     в тот же миг убирается без своего перехода (`transition:none` —
-     обычный slide-close тут только мешал бы). Пока лента дорастает до
-     нужного места и года — вырез нулевой, экрана не видно совсем, никакого
-     кадра с неверным местом не проскочит. Как только `scrollYearTo`
-     подтвердил, что цель на месте, вырез растёт кругом от точки тапа и
-     раскрывает уже готовый, правильный кадр — календарь показывается
-     ровно один раз. */
-  function zoomYear12ToMonth(yy, mm, originEl) {
+     Первая клонировала плитку и растила клон до места цели — но клон и уже
+     готовый экран под ним были видны ОДНОВРЕМЕННО (слайд-закрытие
+     `#year12Overlay` шло своим чередом 0.42s, гонка с клоном): два
+     календаря просвечивали друг сквозь друга, «призрак».
+
+     Вторая раскрывала целевой экран через `clip-path: circle()`. Призрак
+     ушёл, но зумом это не было: приближения нет, экран не растёт — из
+     точки расползается пятно. Алексей назвал это прямо: «вместо зума
+     развертка».
+
+     Здесь двигается сам «Год целиком»: сетка двенадцати месяцев растёт от
+     точки тапа (`transform-origin` — ровно тронутое число, «точка роста
+     должна быть из даты»), пока плитка месяца не займёт ширину экрана.
+     Лента месяцев всё это время стоит под ним — уже прокрученная на нужный
+     месяц, но полностью закрытая: на экране в любой момент ровно один
+     календарь, наложения нет по построению. В конце «Год целиком»
+     снимается разом, без своего слайда (`transition: none`), а лента
+     подхватывает движение последним коротким шагом с 1.06 до 1 — чтобы
+     стык читался продолжением зума, а не склейкой двух кадров. */
+  function zoomYear12ToMonth(yy, mm, originEl, tileEl) {
     var dev = document.querySelector(".device"), devR = dev.getBoundingClientRect();
-    var r0 = originEl.getBoundingClientRect();
+    var r0 = (originEl || tileEl).getBoundingClientRect();
     var cx = r0.left + r0.width / 2 - devR.left, cy = r0.top + r0.height / 2 - devR.top;
+    var tr = tileEl.getBoundingClientRect();
+    var k = Math.max(2, devR.width / Math.max(1, tr.width));   // плитка дорастает до ширины экрана
     var yo = $("year12Overlay"), target = $("yearOverlay");
-    target.style.transition = "none";
-    target.style.clipPath = "circle(0px at " + cx + "px " + cy + "px)";
-    yo.style.transition = "none";
-    yo.classList.remove("open");
+    // Лента встаёт на место, пока её не видно — промежуточный месяц не мелькнёт
     scrollYearTo(yy, mm, function () {
-      yo.style.transition = "";     // возвращаем — следующее открытие/закрытие снова со своей анимацией
-      var maxR = Math.hypot(Math.max(cx, devR.width - cx), Math.max(cy, devR.height - cy));
-      requestAnimationFrame(function () {
-        target.style.transition = "clip-path 0.36s cubic-bezier(0.3,0.8,0.4,1)";
-        target.style.clipPath = "circle(" + maxR + "px at " + cx + "px " + cy + "px)";
-      });
+      yo.style.transition = "none";
+      yo.style.transformOrigin = cx + "px " + cy + "px";
+      yo.style.transform = "scale(1)";
+      void yo.offsetWidth;                                     // фиксируем стартовый кадр
+      yo.style.transition = "transform 0.32s cubic-bezier(0.4,0,0.75,0.85)";
+      yo.style.transform = "scale(" + k + ")";
       setTimeout(function () {
-        target.style.transition = "";
-        target.style.clipPath = "";
-      }, 400);
+        yo.style.transition = "none";
+        yo.classList.remove("open");
+        yo.style.transform = "";
+        yo.style.transformOrigin = "";
+        target.style.transition = "none";
+        target.style.transformOrigin = cx + "px " + cy + "px";
+        target.style.transform = "scale(1.06)";
+        void target.offsetWidth;
+        target.style.transition = "transform 0.18s cubic-bezier(0.2,0.7,0.3,1)";
+        target.style.transform = "scale(1)";
+        requestAnimationFrame(function () { yo.style.transition = ""; });
+        setTimeout(function () {
+          target.style.transition = "";
+          target.style.transform = "";
+          target.style.transformOrigin = "";
+        }, 220);
+      }, 320);
     });
   }
   function renderYear12() {
@@ -13023,70 +13064,116 @@
     openScopeMenu($("scopeMenu").hidden);
   });
   $("scopeScrim").addEventListener("click", function () { openScopeMenu(false); });
-  /* Месяц → день — своя анимация, не выезд оверлея: строка текущей недели
-     в сетке месяца и лента дат в шапке дня — один и тот же диапазон дат,
-     просто в двух видах (Алексей: «эта полоска текущей недели становится
-     шапкой, всё остальное уезжает»). У них нет общей разметки (`.d` и
-     `.dd-day` — разные классы, разный рендер), общее — только дата, поэтому
-     переход строится клонами: семь ячеек недели едут и сжимаются до места
-     семи ячеек ленты дат, остаток месяца одним клоном уезжает вверх и
-     гаснет — а под клонами уже стоит настоящий дневной вид, отрисованный
-     заранее. */
-  function zoomMonthToDay() {
-    var cal = $("cal");
-    var weekCells = [], beforeRects = [];
-    if (cal && !cal.hidden) {
-      var cells = Array.prototype.slice.call(cal.querySelectorAll(".d"));
-      var selIdx = cells.findIndex(function (c) { return c.classList.contains("sel"); });
-      if (selIdx >= 0) {
-        var rowStart = Math.floor(selIdx / 7) * 7;
-        weekCells = cells.slice(rowStart, rowStart + 7);
-        beforeRects = weekCells.map(function (c) { return c.getBoundingClientRect(); });
+  /* Месяц → день — не выезд оверлея, а размыкание месяца. Алексей описал
+     дословно: «остальной месяц уезжает, эта полоска текущей недели
+     становится шапкой, всё, что ниже текущей недели, уезжает с экрана, а
+     под ним дневной вид».
+
+     Строка недели в сетке месяца и лента дат в шапке дня — один и тот же
+     диапазон в двух видах, но общей разметки у них нет (`.cal .d` и
+     `.dd-day` — разные классы, разный рендер), общее только даты. Поэтому:
+
+     — экран-источник заменяется двумя своими снимками, обрезанными ровно
+       по строке недели: верх уезжает вверх, низ вниз — месяц размыкается;
+     — сами семь ячеек недели не копируются, а вынимаются настоящими и
+       едут на место семи клеток ленты дат. Ячейку оборачиваем в пустую
+       оболочку с классом её сетки (`.cal` / `.year-cal-grid`): вид у обеих
+       задан через предка, и без оболочки вынутая ячейка растеряла бы всё
+       оформление;
+     — настоящая лента дат на это время спрятана. Иначе неделя была бы на
+       экране дважды — тот самый «призрак», из-за которого переписывался
+       зум года.
+
+     Так на каждом кадре каждый элемент существует ровно в одном виде. */
+  function partMonthIntoDay(cells, selIdx, srcEl, shellClass, commit) {
+    var dev = document.querySelector(".device");
+    var start = selIdx >= 0 ? Math.floor(selIdx / 7) * 7 : -1;
+    var row = start >= 0 ? cells.slice(start, start + 7) : [];
+    if (row.length !== 7) { commit(); return; }     // недели не нашли — просто переключаемся
+    var devR = dev.getBoundingClientRect(), srcR = srcEl.getBoundingClientRect();
+    var rowR = row.map(function (c) { return c.getBoundingClientRect(); });
+    var rowTop = Math.min.apply(null, rowR.map(function (r) { return r.top; }));
+    var rowBot = Math.max.apply(null, rowR.map(function (r) { return r.bottom; }));
+
+    /* Снимок источника, обрезанный по строке недели. Прокрутку копируем
+       руками: cloneNode её не переносит, и лента месяцев в снимке встала бы
+       на январь вместо того месяца, что сейчас на экране. Заодно снимаем
+       все id — иначе $() начал бы находить снимок вместо живого экрана. */
+    function half(topCut, botCut) {
+      var g = srcEl.cloneNode(true);
+      g.removeAttribute("id");
+      g.style.cssText = "position:absolute; margin:0; z-index:28; pointer-events:none;"
+        + "display:" + getComputedStyle(srcEl).display + ";"
+        + "left:" + (srcR.left - devR.left) + "px; top:" + (srcR.top - devR.top) + "px;"
+        + "width:" + srcR.width + "px; height:" + srcR.height + "px;"
+        + "visibility:visible; opacity:1; transform:none; overflow:hidden;"
+        + "clip-path:inset(" + topCut + "px 0 " + botCut + "px 0);";
+      dev.appendChild(g);
+      var a = srcEl.querySelectorAll("*"), b = g.querySelectorAll("*");
+      for (var i = 0; i < a.length; i++) {
+        if (b[i].id) b[i].removeAttribute("id");
+        if (a[i].scrollTop) b[i].scrollTop = a[i].scrollTop;
       }
+      return g;
     }
-    var dev = document.querySelector(".device"), devR = dev.getBoundingClientRect();
-    var monthGhost = null, weekGhosts = [];
-    if (weekCells.length === 7) {
-      var headR = $("calHead").getBoundingClientRect(), calR = cal.getBoundingClientRect();
-      monthGhost = document.createElement("div");
-      monthGhost.style.cssText = "position:absolute; z-index:88; pointer-events:none; overflow:hidden;"
-        + "left:" + (headR.left - devR.left) + "px; top:" + (headR.top - devR.top) + "px; width:" + calR.width + "px;";
-      monthGhost.appendChild($("calHead").cloneNode(true));
-      monthGhost.appendChild(cal.cloneNode(true));
-      dev.appendChild(monthGhost);
-      weekGhosts = weekCells.map(function (c, i) {
-        var g = c.cloneNode(true), r = beforeRects[i];
-        g.style.cssText = "position:absolute; margin:0; z-index:90; pointer-events:none;"
-          + "left:" + (r.left - devR.left) + "px; top:" + (r.top - devR.top) + "px; width:" + r.width + "px; height:" + r.height + "px;";
-        dev.appendChild(g);
-        return g;
-      });
-    }
-    setScope("day");
-    calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
-    renderCal();
-    if (!monthGhost) return;
+    var upper = half(0, Math.max(0, srcR.bottom - rowTop));
+    var lower = half(Math.max(0, rowBot - srcR.top), 0);
+
+    // Неделя — настоящие ячейки в оболочке своей сетки, копий не остаётся
+    var shells = row.map(function (c, i) {
+      var r = rowR[i];
+      var w = document.createElement("div");
+      w.className = shellClass;
+      w.style.cssText = "position:absolute; display:block; padding:0; margin:0; gap:0;"
+        + "z-index:29; pointer-events:none;"
+        + "left:" + (r.left - devR.left) + "px; top:" + (r.top - devR.top) + "px;"
+        + "width:" + r.width + "px; height:" + r.height + "px;";
+      c.style.width = "100%"; c.style.height = "100%"; c.style.margin = "0";
+      w.appendChild(c);
+      dev.appendChild(w);
+      return w;
+    });
+
+    commit();          // дневной вид уже готов под снимками, ждать его не придётся
+
+    var dd = $("dayDates");
+    var ddCells = Array.prototype.slice.call(dd.querySelectorAll(".dd-day"));
+    dd.style.visibility = "hidden";
+    var EASE = "cubic-bezier(0.4,0,0.2,1)";
     requestAnimationFrame(function () {
-      // Остаток месяца — одним снимком вверх и в ноль
-      monthGhost.style.transition = "transform 0.3s ease, opacity 0.3s ease";
-      monthGhost.style.transform = "translateY(-36px)";
-      monthGhost.style.opacity = "0";
-      // Неделя — семь клонов на место семи ячеек ленты дат
-      var ddCells = $("dayDates") ? Array.prototype.slice.call($("dayDates").querySelectorAll(".dd-day")) : [];
-      weekGhosts.forEach(function (g, i) {
-        var target = ddCells[i];
-        if (!target) { g.style.transition = "opacity 0.2s"; g.style.opacity = "0"; return; }
-        var tr = target.getBoundingClientRect(), r = beforeRects[i];
-        var scale = tr.height / r.height;
-        g.style.transition = "transform 0.32s cubic-bezier(0.3,0.8,0.4,1), opacity 0.24s ease 0.12s";
-        g.style.transform = "translate(" + (tr.left - r.left) + "px," + (tr.top - r.top) + "px) scale(" + scale + ")";
-        g.style.opacity = "0";
+      upper.style.transition = "transform 0.34s " + EASE + ", opacity 0.26s ease 0.08s";
+      upper.style.transform = "translateY(" + -(rowTop - devR.top + 12) + "px)";
+      upper.style.opacity = "0";
+      lower.style.transition = upper.style.transition;
+      lower.style.transform = "translateY(" + (devR.bottom - rowBot + 12) + "px)";
+      lower.style.opacity = "0";
+      shells.forEach(function (w, i) {
+        var t = ddCells[i], r = rowR[i];
+        if (!t) { w.style.transition = "opacity 0.2s ease"; w.style.opacity = "0"; return; }
+        var tr = t.getBoundingClientRect();
+        w.style.transformOrigin = "top left";
+        w.style.transition = "transform 0.34s " + EASE + ", opacity 0.1s ease 0.26s";
+        w.style.transform = "translate(" + (tr.left - r.left) + "px," + (tr.top - r.top) + "px)"
+          + " scale(" + (tr.width / r.width) + "," + (tr.height / r.height) + ")";
+        w.style.opacity = "0";
       });
     });
+    // Настоящая лента встаёт ровно туда, куда приехали ячейки — подмены не видно
+    setTimeout(function () { dd.style.visibility = ""; }, 280);
     setTimeout(function () {
-      monthGhost.remove();
-      weekGhosts.forEach(function (g) { g.remove(); });
-    }, 360);
+      upper.remove(); lower.remove();
+      shells.forEach(function (w) { w.remove(); });
+    }, 400);
+  }
+  /* Тот же переход из веера видов: выбранный день там уже помечен `.sel` */
+  function zoomMonthToDay() {
+    var cells = Array.prototype.slice.call($("cal").children);
+    var idx = cells.findIndex(function (c) { return c.classList.contains("sel"); });
+    partMonthIntoDay(cells, idx, $("s-plan"), "cal", function () {
+      setScope("day");
+      calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
+      renderCal();
+    });
   }
   $("scopeMenu").querySelectorAll("button").forEach(function (b) {
     b.addEventListener("click", function () {
