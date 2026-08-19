@@ -3497,15 +3497,14 @@
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
     <div class="item" id="spotsRow"><span class="k">Мои места</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
-    <!-- Хранилище — общий вход в то, что накопилось по пути: референсы жанра
-         и снимки из съёмок, ссылки отовсюду, документы организаций. Каждое
-         уже жило своей жизнью в своём экране (docs: DECISIONS, «жанру нужна
-         выборка»), но спросить «где у меня вообще все фото» было решительно
-         некуда — раздел не заводит новых данных, только сводит уже
-         существующие в одном месте (Алексей). -->
+    <!-- Хранилище — вход в мудборды: у съёмки и у жанра уже был свой набор
+         референсов, но раскладывать кадры по разделам и переносить между
+         съёмкой и жанровой подборкой было либо неоткуда, либо неудобно —
+         через настройку карточки (Алексей: «тут это делать удобнее»).
+         Раздел не заводит новых данных, только даёт разложить по полочкам
+         то, что уже лежит в `s.refs` и `genreRefs` (docs: DECISIONS). -->
     <div class="sec-label">Хранилище</div>
-    <div class="item" id="storePhotosRow"><span class="k">Фото</span><span class="v" id="storePhotosN">— <span class="go-chev">›</span></span></div>
-    <div class="item" id="storeLinksRow"><span class="k">Ссылки</span><span class="v" id="storeLinksN">— <span class="go-chev">›</span></span></div>
+    <div class="item" id="mbRow"><span class="k">Мудборды</span><span class="v" id="mbRowN">— <span class="go-chev">›</span></span></div>
     <!-- Экран организаций живёт и здесь: раньше единственный путь был кнопкой
          в шапке «Съёмок», её место занял вход в статистику. Строка в форме
          съёмки («Заказчик») по-прежнему открывает тот же список для выбора,
@@ -4241,30 +4240,57 @@
     <button class="danger" id="oDelete">Удалить организацию</button>
   </div>
 
-  <!-- ============ ХРАНИЛИЩЕ: ФОТО ============
-       Референсы жанра («альбом») и фото, приложенные к конкретным съёмкам —
-       вперемешку, одним взглядом по жанрам: съёмке всё равно не важно, откуда
-       взялась картинка, важно, что она относится к портрету или к свадьбе.
-       Экран только показывает; добавлять и удалять по-прежнему в «Моих
-       жанрах» и в форме съёмки — второй вход, не вторая копия данных. -->
-  <div class="overlay pad" id="storePhotosOverlay">
-    <button class="back" id="storePhotosBack">
+  <!-- ============ МУДБОРДЫ ============
+       Галерея папок: съёмки с референсами и жанровые подборки. Съёмочная
+       папка одноразовая (собрал, отснял, дальше архив), жанровая — живёт
+       годами и пополняется отовсюду. Обе читают уже существующие массивы
+       (s.refs, genreRefs) — это редактор над ними, не новый склад. -->
+  <div class="overlay pad" id="mbOverlay">
+    <button class="back" id="mbBack">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Настройки
     </button>
-    <div class="rf-tags wrap" id="storePhotoTags"></div>
-    <div class="ref-grid" id="storePhotoGrid" style="margin-top:4px;"></div>
+    <div id="mbGallery"></div>
   </div>
 
-  <!-- ============ ХРАНИЛИЩЕ: ССЫЛКИ ============
-       Та же логика, что у фото, но для ссылок — и сюда же документы-ссылки:
-       ссылка на договор в облаке ничем не отличается от ссылки на референс,
-       кроме подписи в первой колонке (docs: DECISIONS). -->
-  <div class="overlay pad" id="storeLinksOverlay">
-    <button class="back" id="storeLinksBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Настройки
+  <!-- Папка мудборда — съёмка или жанровая подборка. Разделы (чипы) — то же
+       поле tag, что и раньше было только у жанра (docs/DECISIONS): у съёмки
+       оно просто не имело интерфейса, а не отсутствовало как возможность. -->
+  <div class="overlay pad" id="mbFolderOverlay">
+    <button class="back" id="mbFolderBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Мудборды
     </button>
-    <div class="rf-tags wrap" id="storeLinkTags"></div>
-    <div id="storeLinkList" style="margin-top:4px;"></div>
+    <h2 class="form-title" id="mbFolderTitle" style="font-size:22px;">—</h2>
+    <p class="form-sub" id="mbFolderSub">—</p>
+    <div class="rf-tags wrap" id="mbTags" style="padding-left:0;padding-right:0;"></div>
+    <div class="ref-grid" id="mbGrid" style="margin-top:4px;"></div>
+    <div class="ref-add sep">
+      <button type="button" class="ref-btn" id="mbAddPhoto">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+        Фото
+      </button>
+      <button type="button" class="ref-btn" id="mbAddLink">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
+        Ссылка
+      </button>
+    </div>
+    <div class="ref-note" id="mbNote" hidden></div>
+  </div>
+
+  <!-- Действие с материалом: переложить в раздел, перенести в жанровую
+       подборку (только у съёмочных материалов), открыть, убрать. Один тап,
+       не тап-и-надейся: свайпов и долгих нажатий в приложении нигде нет,
+       заводить их тут ради одного экрана значило бы учить новому жесту. -->
+  <div class="scrim" id="mbItemScrim"></div>
+  <div class="sheet" id="mbItemSheet">
+    <div class="grip"></div>
+    <div class="sheet-title">Материал</div>
+    <div class="g-label" style="margin:18px 4px 9px;">Раздел</div>
+    <div class="rf-tags wrap" id="mbItemTags" style="padding:0 13px;"></div>
+    <div class="group" style="margin-top:16px;">
+      <button type="button" class="row" id="mbItemOpen">Открыть</button>
+      <button type="button" class="row sep" id="mbItemMove" hidden>—</button>
+    </div>
+    <button class="danger" id="mbItemRemove" style="margin-top:14px;">Убрать из мудборда</button>
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
@@ -8900,127 +8926,226 @@
   }
 
   /* ============================================================
-     ХРАНИЛИЩЕ: ФОТО И ССЫЛКИ СО ВСЕГО ПРИЛОЖЕНИЯ
+     МУДБОРДЫ
      ============================================================
-     Три места складывают референсы и документы каждое по своим правилам —
-     набор жанра, форма съёмки, карточка организации — и это правильно,
-     каждому нужен свой контекст добавления. Но спросить «где у меня вообще
-     все фото» или «куда я дел ту ссылку» эти места поодиночке не отвечают.
-     Здесь — только чтение: список сводит существующие массивы в один
-     взгляд по жанру (фото) или по виду (ссылки), а добавлять и удалять
-     остаётся там же, где оно всегда было — вторая копия того же архива
-     готовила бы почву для расхождения. */
-  function allPhotos() {
+     Разбор в DECISIONS: мудборд — не новая сущность, а тег `tag` на уже
+     существующих референсах. У жанра это поле давно было (GENRE_TAGS,
+     refTagsOf) — просто без интерфейса у съёмки. Здесь ровно тот же
+     механизм получил вторую дверь: заходишь не через форму съёмки или
+     «Мои жанры», а через Хранилище, и раскладываешь по разделам то, что
+     уже лежит в `s.refs`/`genreRefs`. Копирования нет нигде — «Переложить»
+     переносит запись из одного списка в другой (splice + push), а не
+     дублирует путь на Диске: два указателя на один файл — верный способ
+     потерять превью, когда один из них уберут. */
+  function mbFolders() {
     var out = [];
-    ALL_GENRES.forEach(function (g) {
-      (genreRefs[g] || []).forEach(function (r) {
-        if (r.k !== "link") out.push({ r: r, g: g });
-      });
+    sessions.forEach(function (s, i) {
+      if (Array.isArray(s.refs) && s.refs.length) out.push({ kind: "session", si: i });
     });
-    sessions.forEach(function (s) {
-      (Array.isArray(s.refs) ? s.refs : []).forEach(function (r) {
-        if (r.k !== "link") out.push({ r: r, g: s.type });
-      });
+    ALL_GENRES.forEach(function (g) {
+      if ((genreRefs[g] || []).length) out.push({ kind: "genre", g: g });
     });
     return out;
   }
-  var storePhotoTag = null;
-  function renderStorePhotos() {
-    var all = allPhotos();
-    var genresPresent = ALL_GENRES.filter(function (g) {
-      return all.some(function (p) { return p.g === g; });
-    });
-    if (storePhotoTag && genresPresent.indexOf(storePhotoTag) < 0) storePhotoTag = null;
-    $("storePhotoTags").innerHTML = genresPresent.map(function (g) {
-      var n = all.filter(function (p) { return p.g === g; }).length;
-      return '<button type="button" class="rf-tag' + (storePhotoTag === g ? " on" : "") + '" data-g="' + g + '">'
-        + genreName(g) + '<span class="n">' + n + "</span></button>";
-    }).join("");
-    $("storePhotoTags").querySelectorAll(".rf-tag").forEach(function (b) {
+  function mbList(f) {
+    if (f.kind === "session") {
+      var s = sessions[f.si];
+      return Array.isArray(s.refs) ? s.refs : (s.refs = []);
+    }
+    return genreRefList(f.g);
+  }
+  function mbGenre(f) { return f.kind === "session" ? sessions[f.si].type : f.g; }
+  function mbTitle(f) {
+    if (f.kind === "session") {
+      var s = sessions[f.si];
+      return clientName(s) || genreName(s.type);
+    }
+    return genreName(f.g);
+  }
+  function mbSub(f) {
+    if (f.kind === "session") {
+      var s = sessions[f.si];
+      return genreName(s.type) + " · " + s.date.getDate() + " " + MONTHS[s.date.getMonth()] + " " + s.date.getFullYear()
+        + (s.place ? " · " + shortPlace(s.place) : "");
+    }
+    return "Жанровая подборка";
+  }
+  /* Папка съёмки грузит файлы в ту же «app:/refs», что и форма съёмки,
+     жанровая — в «app:/genre-refs», как «Мои жанры»: своих папок на Диске
+     мудборды не заводят, это тот же архив со второй дверью. */
+  function mbDir(f) { return f.kind === "session" ? "refs" : "genre-refs"; }
+
+  function renderMbGallery() {
+    var folders = mbFolders();
+    var sessionsF = folders.filter(function (f) { return f.kind === "session"; })
+      .sort(function (a, b) { return sessions[b.si].date - sessions[a.si].date; });
+    var genresF = folders.filter(function (f) { return f.kind === "genre"; });
+    function row(f, i, listId) {
+      var n = mbList(f).length;
+      return '<button type="button" class="org-item" data-list="' + listId + '" data-i="' + i + '">'
+        + '<span class="badge">' + IC.genreSvg(mbGenre(f)) + "</span>"
+        + '<span class="org-b"><span class="org-n">' + esc(mbTitle(f)) + "</span>"
+        + '<span class="org-s">' + esc(mbSub(f)) + " · " + n + " " + plural(n, ["материал", "материала", "материалов"]) + "</span></span>"
+        + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
+    }
+    var html = '<div class="sec-label" style="padding-left:0;">Съёмки</div>';
+    html += sessionsF.length
+      ? sessionsF.map(function (f, i) { return row(f, i, "s"); }).join("")
+      : '<div class="org-empty">Съёмок с материалами пока нет — добавьте фото или ссылку прямо в форме съёмки, папка появится сама.</div>';
+    html += '<div class="sec-label" style="padding-left:0;margin-top:18px;">Подборки</div>';
+    html += genresF.length
+      ? genresF.map(function (f, i) { return row(f, i, "g"); }).join("")
+      : '<div class="org-empty">Жанровые подборки пока пусты — заведите первый референс в «Моих жанрах».</div>';
+    $("mbGallery").innerHTML = html;
+    $("mbGallery").querySelectorAll(".org-item").forEach(function (b) {
       b.addEventListener("click", function () {
-        storePhotoTag = storePhotoTag === b.dataset.g ? null : b.dataset.g;
-        renderStorePhotos();
+        var list = b.dataset.list === "s" ? sessionsF : genresF;
+        openMbFolder(list[+b.dataset.i]);
       });
     });
-    var shown = all.filter(function (p) { return !storePhotoTag || p.g === storePhotoTag; });
-    $("storePhotoGrid").innerHTML = shown.map(function (p, i) {
-      return '<button type="button" class="ref-card" data-i="' + i + '">'
+  }
+  function renderMbCount() {
+    if ($("mbRowN")) $("mbRowN").innerHTML = (mbFolders().length || "нет") + ' <span class="go-chev">›</span>';
+  }
+
+  var mbOpen = null;    // открытая папка: {kind, si|g}
+  var mbTag = null;     // выбранный раздел-фильтр внутри папки
+  function openMbFolder(f) {
+    mbOpen = f; mbTag = null;
+    renderMbFolder();
+    $("mbFolderOverlay").classList.add("open");
+  }
+  function renderMbFolder() {
+    var f = mbOpen;
+    if (!f) return;
+    var list = mbList(f), g = mbGenre(f);
+    $("mbFolderTitle").textContent = mbTitle(f);
+    $("mbFolderSub").textContent = mbSub(f);
+    var tags = refTagsOf(g, list);
+    if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
+    $("mbTags").innerHTML = tags.map(function (t) {
+      var n = list.filter(function (r) { return r.tag === t; }).length;
+      return '<button type="button" class="rf-tag' + (mbTag === t ? " on" : "") + '" data-t="' + t + '">'
+        + t + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
+    }).join("");
+    $("mbTags").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        mbTag = mbTag === b.dataset.t ? null : b.dataset.t;
+        renderMbFolder();
+      });
+    });
+    var shown = list.map(function (r, i) { return { r: r, i: i }; })
+      .filter(function (p) { return !mbTag || p.r.tag === mbTag; });
+    $("mbGrid").innerHTML = shown.map(function (p) {
+      if (p.r.k === "link") {
+        return '<button type="button" class="ref-card link" data-i="' + p.i + '">'
+          + '<span class="host">' + refHost(p.r.url) + "</span>"
+          + '<span class="path">' + refTail(p.r.url) + "</span></button>";
+      }
+      return '<button type="button" class="ref-card" data-i="' + p.i + '">'
         + (p.r.thumb ? '<img src="' + p.r.thumb + '" alt="">' : "")
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + "</button>";
-    }).join("") || '<div class="rt-empty" style="padding:8px 2px">Пока нет фото — референсы жанра и снимки, приложенные к съёмкам, соберутся здесь сами.</div>';
-    $("storePhotoGrid").querySelectorAll(".ref-card").forEach(function (b) {
-      b.addEventListener("click", function () { openRef(shown[+b.dataset.i].r); });
+    }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
+      + (mbTag ? "В разделе «" + mbTag + "» пока пусто" : "Пока пусто — добавьте фото или ссылку") + "</div>";
+    $("mbGrid").querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function () { openMbItem(+b.dataset.i); });
     });
   }
-  /* Ссылка-документ и ссылка-референс отличаются только подписью в первой
-     колонке: договору нужен вид («Договор», «Счёт»), референсу — нет, его
-     вид один и тот же. LINK_KINDS задаёт порядок чипов фильтра. */
-  var LINK_KINDS = ["Референс"].concat(DOC_KINDS, ["Документ"]);
-  function allLinks() {
-    var out = [];
-    ALL_GENRES.forEach(function (g) {
-      (genreRefs[g] || []).forEach(function (r) {
-        if (r.k === "link") out.push({ r: r, who: genreName(g), when: null, kind: "Референс" });
-      });
-    });
-    sessions.forEach(function (s) {
-      (Array.isArray(s.refs) ? s.refs : []).forEach(function (r) {
-        if (r.k === "link") out.push({ r: r, who: clientName(s) || genreName(s.type), when: s.date, kind: "Референс" });
-      });
-      (Array.isArray(s.docs) ? s.docs : []).forEach(function (r) {
-        if (r.k === "link") out.push({ r: r, who: clientName(s) || genreName(s.type), when: s.date, kind: docKind(r) || "Документ" });
-      });
-    });
-    orgs.forEach(function (o) {
-      (o.docs || []).forEach(function (r) {
-        if (r.k === "link") out.push({ r: r, who: o.name || "Организация", when: null, kind: docKind(r) || "Документ" });
-      });
-    });
-    return out.sort(function (a, b) { return (b.when ? b.when.getTime() : 0) - (a.when ? a.when.getTime() : 0); });
+  $("mbRow").addEventListener("click", function () {
+    renderMbGallery();
+    $("mbOverlay").classList.add("open");
+  });
+  $("mbBack").addEventListener("click", function () { $("mbOverlay").classList.remove("open"); });
+  $("mbFolderBack").addEventListener("click", function () {
+    $("mbFolderOverlay").classList.remove("open");
+    renderMbGallery(); renderMbCount();   // счётчики папки могли поменяться
+  });
+  /* Загрузка фото не требует Диска только формально — без него uploadToDisk
+     покажет «подключите Яндекс.Диск» и ничего не добавит (тот же экран, что
+     и в форме съёмки). Ссылки работают всегда, это не зависит от Диска —
+     локальное хранение фото придёт позже отдельной задачей. */
+  $("mbAddPhoto").addEventListener("click", function () {
+    if (!mbOpen) return;
+    useRefCtx(mbList(mbOpen), renderMbFolder, "mbNote", mbDir(mbOpen), mbTag);
+    $("refFile").click();
+  });
+  $("mbAddLink").addEventListener("click", function () {
+    if (!mbOpen) return;
+    var url = askLink();
+    if (!url) return;
+    mbList(mbOpen).push({ k: "link", url: url, tag: mbTag });
+    saveAll(); renderMbFolder();
+  });
+
+  var mbItem = null;   // индекс материала в открытом листе действия
+  function openMbItem(i) {
+    if (!mbOpen) return;
+    mbItem = i;
+    renderMbItemSheet();
+    $("mbItemSheet").classList.add("open"); $("mbItemScrim").classList.add("open");
   }
-  var storeLinkFilter = null, storeLinkList = [];
-  function renderStoreLinks() {
-    var all = allLinks();
-    storeLinkList = all.filter(function (l) { return !storeLinkFilter || l.kind === storeLinkFilter; });
-    $("storeLinkTags").innerHTML = LINK_KINDS.map(function (k) {
-      var n = all.filter(function (l) { return l.kind === k; }).length;
-      if (!n && storeLinkFilter !== k) return "";
-      return '<button type="button" class="rf-tag' + (storeLinkFilter === k ? " on" : "") + '" data-k="' + k + '">'
-        + k + '<span class="n">' + n + "</span></button>";
+  function closeMbItem() {
+    $("mbItemSheet").classList.remove("open"); $("mbItemScrim").classList.remove("open");
+    mbItem = null;
+  }
+  $("mbItemScrim").addEventListener("click", closeMbItem);
+  function renderMbItemSheet() {
+    var f = mbOpen, list = mbList(f), r = list[mbItem];
+    if (!r) { closeMbItem(); return; }
+    var tags = refTagsOf(mbGenre(f), list);
+    $("mbItemTags").innerHTML = tags.map(function (t) {
+      return '<button type="button" class="rf-tag' + (r.tag === t ? " on" : "") + '" data-t="' + t + '">' + t + "</button>";
     }).join("");
-    $("storeLinkTags").querySelectorAll(".rf-tag").forEach(function (b) {
+    $("mbItemTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
-        storeLinkFilter = storeLinkFilter === b.dataset.k ? null : b.dataset.k;
-        renderStoreLinks();
+        r.tag = r.tag === b.dataset.t ? null : b.dataset.t;
+        saveAll(); renderMbFolder(); closeMbItem();
       });
     });
-    $("storeLinkList").innerHTML = storeLinkList.map(function (l, i) {
-      return '<button type="button" class="doc-row" data-i="' + i + '">'
-        + '<span class="k">' + esc(l.kind) + "</span>"
-        + '<span class="n">' + esc(refHost(l.r.url)) + "</span>"
-        + '<span class="w">' + esc(refTail(l.r.url)) + "</span></button>"
-        + '<div class="org-empty" style="padding:2px 14px 0">' + esc(l.who)
-        + (l.when ? " · " + l.when.getDate() + " " + MONTHS[l.when.getMonth()] : "") + "</div>";
-    }).join("") || '<div class="org-empty">Пока нет ссылок — референсы и документы со ссылками соберутся здесь сами.</div>';
-    $("storeLinkList").querySelectorAll(".doc-row").forEach(function (b) {
-      b.addEventListener("click", function () { window.open(storeLinkList[+b.dataset.i].r.url, "_blank", "noopener"); });
-    });
+    $("mbItemOpen").textContent = r.k === "link" ? "Открыть ссылку" : "Смотреть фото";
+    var mv = $("mbItemMove");
+    if (f.kind === "session") {
+      mv.hidden = false;
+      mv.textContent = "Переложить в подборку «" + genreName(mbGenre(f)).toLowerCase() + "»";
+    } else {
+      mv.hidden = true;
+    }
   }
-  function renderStoreCounts() {
-    if ($("storePhotosN")) $("storePhotosN").innerHTML = (allPhotos().length || "нет") + ' <span class="go-chev">›</span>';
-    if ($("storeLinksN")) $("storeLinksN").innerHTML = (allLinks().length || "нет") + ' <span class="go-chev">›</span>';
-  }
-  $("storePhotosRow").addEventListener("click", function () {
-    renderStorePhotos();
-    $("storePhotosOverlay").classList.add("open");
+  $("mbItemOpen").addEventListener("click", function () {
+    if (!mbOpen) return;
+    var r = mbList(mbOpen)[mbItem];
+    if (!r) return;
+    closeMbItem();
+    openRef(r);
   });
-  $("storePhotosBack").addEventListener("click", function () { $("storePhotosOverlay").classList.remove("open"); });
-  $("storeLinksRow").addEventListener("click", function () {
-    renderStoreLinks();
-    $("storeLinksOverlay").classList.add("open");
+  /* Переезд — не копия: splice из одного списка, push в другой. Второй
+     указатель на тот же путь на Диске было бы легче сделать, чем безопасно
+     удалить — тот, кто уберёт «свою» копию первым, стирает файл для
+     обеих. Одна запись — один список, всегда. */
+  $("mbItemMove").addEventListener("click", function () {
+    var f = mbOpen;
+    if (!f || f.kind !== "session") return;
+    var list = mbList(f), r = list[mbItem];
+    if (!r) return;
+    list.splice(mbItem, 1);
+    var g = mbGenre(f), target = genreRefList(g), targetTags = refTagsFor(g);
+    target.push({ k: r.k, url: r.url, path: r.path, thumb: r.thumb,
+      tag: r.tag && targetTags.indexOf(r.tag) >= 0 ? r.tag : null });
+    saveAll();
+    closeMbItem();
+    renderMbFolder(); renderMbGallery();
   });
-  $("storeLinksBack").addEventListener("click", function () { $("storeLinksOverlay").classList.remove("open"); });
+  $("mbItemRemove").addEventListener("click", function () {
+    if (!mbOpen) return;
+    var list = mbList(mbOpen), r = list[mbItem];
+    if (!r) return;
+    if (r.k === "img" && r.path) yaDelete(r.path);
+    list.splice(mbItem, 1);
+    saveAll();
+    closeMbItem();
+    renderMbFolder(); renderMbGallery();
+  });
 
   function renderOrgList() {
     $("orgList").innerHTML = orgs.map(function (o, i) {
@@ -9065,7 +9190,6 @@
   $("orgBack").addEventListener("click", function () {
     orgPick = null;                    // ушли без выбора — заказчик остался прежним
     $("orgOverlay").classList.remove("open");
-    renderStoreCounts();                // документы-ссылки правились тут же, счётчик мог устареть
   });
   $("orgSeg").querySelectorAll("button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -13641,7 +13765,7 @@
     measureDockSoon();                   // док на разных экранах разной высоты
     $(id).scrollTop = 0;
     if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
-    else if (id === "s-set") renderStoreCounts();  // считаем свежо: фото и ссылки копятся где угодно
+    else if (id === "s-set") renderMbCount();  // считаем свежо: мудборды копятся где угодно
     else if (compassLive) setCompassLive(false);   // уходя с карты, гасим датчик — не нужен нигде больше
   }
   tabs.forEach(function (t) { t.addEventListener("click", function () { go(t.dataset.go); }); });
