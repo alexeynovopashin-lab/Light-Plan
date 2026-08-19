@@ -7750,12 +7750,39 @@
     }
     btn.appendChild(name); btn.appendChild(grid);
     (function (yy, mm) {
-      btn.addEventListener("click", function () {
-        $("year12Overlay").classList.remove("open");
-        scrollYearTo(yy, mm);
-      });
+      btn.addEventListener("click", function () { zoomYear12ToMonth(btn, yy, mm); });
     })(y, m);
     return btn;
+  }
+  /* Тап по месяцу в «Годе целиком» — не мгновенный переход, а зум: плитка
+     месяца растёт на месте своего мини-календаря в ленте (Алексей: «между
+     годом и месяцем должна быть анимация зума»). Клон плитки встаёт поверх
+     на её же месте, лента прокручивается к нужному месяцу за кадром, и
+     когда цель известна — клон едет и растёт до её размера и гаснет,
+     открывая настоящую ленту под собой. Больше нигде в приложении такого
+     клона нет: только здесь план и факт — один и тот же месяц, просто в
+     разном масштабе, зум читается буквально, а не метафорой. */
+  function zoomYear12ToMonth(tile, yy, mm) {
+    var r0 = tile.getBoundingClientRect();
+    var dev = document.querySelector(".device"), devR = dev.getBoundingClientRect();
+    var ghost = tile.cloneNode(true);
+    ghost.style.cssText = "position:absolute; margin:0; z-index:90; pointer-events:none;"
+      + "left:" + (r0.left - devR.left) + "px; top:" + (r0.top - devR.top) + "px;"
+      + "width:" + r0.width + "px; height:" + r0.height + "px; transform-origin: top left;";
+    dev.appendChild(ghost);
+    $("year12Overlay").classList.remove("open");
+    scrollYearTo(yy, mm, function () {
+      var block = $("yearGrid").querySelector('.year-block[data-year="' + yy + '"]');
+      var el = block && block.querySelectorAll(".year-cal-month")[mm];
+      var r1 = el ? el.getBoundingClientRect() : r0;
+      requestAnimationFrame(function () {
+        var scale = r1.width / r0.width;
+        ghost.style.transition = "transform 0.32s cubic-bezier(0.3,0.8,0.4,1), opacity 0.28s ease 0.08s";
+        ghost.style.transform = "translate(" + (r1.left - r0.left) + "px," + (r1.top - r0.top) + "px) scale(" + scale + ")";
+        ghost.style.opacity = "0";
+      });
+      setTimeout(function () { ghost.remove(); }, 340);
+    });
   }
   function renderYear12() {
     var now = new Date();
@@ -12985,10 +13012,76 @@
     openScopeMenu($("scopeMenu").hidden);
   });
   $("scopeScrim").addEventListener("click", function () { openScopeMenu(false); });
+  /* Месяц → день — своя анимация, не выезд оверлея: строка текущей недели
+     в сетке месяца и лента дат в шапке дня — один и тот же диапазон дат,
+     просто в двух видах (Алексей: «эта полоска текущей недели становится
+     шапкой, всё остальное уезжает»). У них нет общей разметки (`.d` и
+     `.dd-day` — разные классы, разный рендер), общее — только дата, поэтому
+     переход строится клонами: семь ячеек недели едут и сжимаются до места
+     семи ячеек ленты дат, остаток месяца одним клоном уезжает вверх и
+     гаснет — а под клонами уже стоит настоящий дневной вид, отрисованный
+     заранее. */
+  function zoomMonthToDay() {
+    var cal = $("cal");
+    var weekCells = [], beforeRects = [];
+    if (cal && !cal.hidden) {
+      var cells = Array.prototype.slice.call(cal.querySelectorAll(".d"));
+      var selIdx = cells.findIndex(function (c) { return c.classList.contains("sel"); });
+      if (selIdx >= 0) {
+        var rowStart = Math.floor(selIdx / 7) * 7;
+        weekCells = cells.slice(rowStart, rowStart + 7);
+        beforeRects = weekCells.map(function (c) { return c.getBoundingClientRect(); });
+      }
+    }
+    var dev = document.querySelector(".device"), devR = dev.getBoundingClientRect();
+    var monthGhost = null, weekGhosts = [];
+    if (weekCells.length === 7) {
+      var headR = $("calHead").getBoundingClientRect(), calR = cal.getBoundingClientRect();
+      monthGhost = document.createElement("div");
+      monthGhost.style.cssText = "position:absolute; z-index:88; pointer-events:none; overflow:hidden;"
+        + "left:" + (headR.left - devR.left) + "px; top:" + (headR.top - devR.top) + "px; width:" + calR.width + "px;";
+      monthGhost.appendChild($("calHead").cloneNode(true));
+      monthGhost.appendChild(cal.cloneNode(true));
+      dev.appendChild(monthGhost);
+      weekGhosts = weekCells.map(function (c, i) {
+        var g = c.cloneNode(true), r = beforeRects[i];
+        g.style.cssText = "position:absolute; margin:0; z-index:90; pointer-events:none;"
+          + "left:" + (r.left - devR.left) + "px; top:" + (r.top - devR.top) + "px; width:" + r.width + "px; height:" + r.height + "px;";
+        dev.appendChild(g);
+        return g;
+      });
+    }
+    setScope("day");
+    calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);
+    renderCal();
+    if (!monthGhost) return;
+    requestAnimationFrame(function () {
+      // Остаток месяца — одним снимком вверх и в ноль
+      monthGhost.style.transition = "transform 0.3s ease, opacity 0.3s ease";
+      monthGhost.style.transform = "translateY(-36px)";
+      monthGhost.style.opacity = "0";
+      // Неделя — семь клонов на место семи ячеек ленты дат
+      var ddCells = $("dayDates") ? Array.prototype.slice.call($("dayDates").querySelectorAll(".dd-day")) : [];
+      weekGhosts.forEach(function (g, i) {
+        var target = ddCells[i];
+        if (!target) { g.style.transition = "opacity 0.2s"; g.style.opacity = "0"; return; }
+        var tr = target.getBoundingClientRect(), r = beforeRects[i];
+        var scale = tr.height / r.height;
+        g.style.transition = "transform 0.32s cubic-bezier(0.3,0.8,0.4,1), opacity 0.24s ease 0.12s";
+        g.style.transform = "translate(" + (tr.left - r.left) + "px," + (tr.top - r.top) + "px) scale(" + scale + ")";
+        g.style.opacity = "0";
+      });
+    });
+    setTimeout(function () {
+      monthGhost.remove();
+      weekGhosts.forEach(function (g) { g.remove(); });
+    }, 360);
+  }
   $("scopeMenu").querySelectorAll("button").forEach(function (b) {
     b.addEventListener("click", function () {
       openScopeMenu(false);
       if (calScope === b.dataset.scope) return;
+      if (calScope === "month" && b.dataset.scope === "day") { zoomMonthToDay(); return; }
       setScope(b.dataset.scope);
       calMonth = new Date(calSel.getFullYear(), calSel.getMonth(), 1);   // масштабы синхронны по выбранному дню
       renderCal();
