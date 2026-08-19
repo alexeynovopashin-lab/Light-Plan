@@ -924,6 +924,11 @@
     display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
   }
   .year-nav .y { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+  /* Только число в ленте месяцев ведёт в год целиком — кликабельно значит
+     только оно, второе такое же число (в самом годе целиком) листается
+     стрелками рядом, тапать по нему самому некуда */
+  #yTitle { cursor: pointer; }
+  #year12Title.now { color: var(--brass); }
   .year-nav button {
     background: none; border: none; color: var(--ink-4); font-family: inherit;
     font-size: 22px; cursor: pointer; padding: 6px 14px; line-height: 1;
@@ -963,6 +968,42 @@
   .year-cal-grid button:active { background: var(--sheet); }
   .year-cal-grid button.today { background: var(--brass); color: var(--on-brass, #16120C); font-weight: 700; }
   .year-cal-grid span.pad { visibility: hidden; }
+  /* ---------- Год целиком: 12 месяцев на одном экране ----------
+     Лента месяцев (выше) — навигация числом, для неё и была задумана: тап
+     в дату. Этому экрану дата не нужна — только «где в году я сейчас» и
+     «прыгнуть в нужный месяц», тот же язык, что у годового вида Apple
+     Calendar (Алексей прислал референс). Тап по месяцу — сразу в ленту на
+     нужный месяц, без своего входа в день: масштаб не тот. */
+  .year12-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 12px; padding: 4px 0 20px; }
+  .year12-month {
+    background: none; border: none; font-family: inherit; text-align: center;
+    padding: 0; cursor: pointer; color: inherit;
+  }
+  .year12-name { font-size: 12.5px; font-weight: 650; letter-spacing: 0.1px; color: var(--ink); margin-bottom: 7px; }
+  .year12-month.now .year12-name { color: var(--brass); }
+  .year12-days { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; }
+  .year12-days span {
+    display: block; font-size: 8.5px; line-height: 1.9; color: var(--ink-4);
+    font-variant-numeric: tabular-nums; position: relative;
+  }
+  .year12-days span.today { color: var(--on-brass, #16120C); font-weight: 700; }
+  /* Кружок, не овал: ячейка не квадратная (шире, чем выше), поэтому метка
+     фиксированного размера с центрированием — inset в процентах давал
+     эллипс, вытянутый по высоте ячейки (Алексей: «надо кружочком») */
+  .year12-days span.today::before {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
+    transform: translate(-50%, -50%); background: var(--brass); border-radius: 50%; z-index: -1;
+  }
+  /* Точка — есть съёмка; у нескольких точка крупнее и ярче. Алексей просил
+     «точка, если много — точка и цифра», но в ячейке 9px второй цифре
+     физически негде стоять рядом с числом дня — крупная точка передаёт
+     ту же мысль («тут не одна съёмка»), не притворяясь точным счётом. */
+  .year12-days span.busy::after {
+    content: ""; position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%);
+    width: 3px; height: 3px; border-radius: 50%; background: var(--brass-soft);
+  }
+  .year12-days span.busy.many::after { width: 4.5px; height: 4.5px; background: var(--brass); }
+  .year12-days span.busy.many { color: var(--ink); font-weight: 700; }
   /* Занятость по месяцам — на экране статистики, не навигации: полоса несёт
      цвет срочности сдачи, а это и есть язык всего экрана вокруг неё.
      Не кнопки — здесь только смотрят, тап никуда не ведёт */
@@ -4138,6 +4179,10 @@
       </div>
       <div class="year-nav">
         <button id="yPrev" aria-label="Прошлый год">‹</button>
+        <!-- Тап по числу года — на экран «год целиком», 12 месяцев разом:
+             лента выше про число (быстрый переход к дате), этот про то, где
+             год стоит целиком (Алексей: «нажатие на год должно перекинуть
+             нас в ленту 12 месяцев»). -->
         <span class="y" id="yTitle">2026</span>
         <button id="yNext" aria-label="Следующий год">›</button>
       </div>
@@ -4151,11 +4196,40 @@
     <div class="year-cal-list" id="yearGrid"></div>
     <div class="year-sum" id="yearSum">—</div>
     </div>
-    <!-- «Сейчас» — не в шапке: рядом с крупным числом года это читалось как
-         второй год в одном месте (Алексей: «год на годе»). Плавающая плашка
-         под большим пальцем — тот же приём и тот же класс, что «↺ сегодня»
-         в дне (docs/DECISIONS): появляется, только когда год не текущий. -->
-    <button class="now-back day-float" id="yearNow">↺ сейчас</button>
+    <!-- Не в шапке: рядом с крупным числом года это читалось как второй год
+         в одном месте (Алексей: «год на годе»). Плавающая плашка под большим
+         пальцем — тот же приём и тот же класс, что «↺ сегодня» в дне
+         (docs/DECISIONS): появляется, только когда год не текущий. Слово
+         «сегодня», не «сейчас» — кнопка переводит на дату, а «сейчас» в
+         приложении означает позицию на шкале времени (Алексей: «сейчас» и
+         «сегодня» — разный смысл, кнопка возврата к дате должна звучать как
+         дата). -->
+    <button class="now-back day-float" id="yearNow">↺ сегодня</button>
+  </div>
+
+  <!-- ============ ГОД ЦЕЛИКОМ ============
+       12 месяцев на одном экране, как годовой вид Apple Calendar. Лента
+       выше (#yearOverlay) — навигация по числу, скроллится по месяцам;
+       этот экран — обзор года целиком, без прокрутки. Тап по месяцу ведёт
+       в ленту на нужный месяц, не в день — масштаб экрана этого не
+       предполагает (docs: DECISIONS). -->
+  <div class="overlay pad" id="year12Overlay">
+    <button class="back" id="year12Back">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Год
+    </button>
+    <!-- Та же пара стрелок и тот же приём, что в ленте месяцев (.year-nav)
+         этажом выше: год целиком тоже листается, а не только открывается
+         заново с другим числом (Алексей: «года должны листаться так же») -->
+    <div class="year-nav" style="margin-top:14px;">
+      <button id="year12Prev" aria-label="Прошлый год">‹</button>
+      <span class="y" id="year12Title">2026</span>
+      <button id="year12Next" aria-label="Следующий год">›</button>
+    </div>
+    <div class="year12-grid" id="year12Grid"></div>
+    <!-- Раз экран научился уходить с текущего года, ему нужен и путь
+         обратно — тот же приём, что у «сейчас» в ленте месяцев и у
+         «сегодня» в дне -->
+    <button class="now-back day-float" id="year12Now">↺ сегодня</button>
   </div>
 
   <!-- Инфографика — деньги и сроки сдачи, отдельным экраном поверх года.
@@ -7629,6 +7703,60 @@
     })(y, m);
     wrap.appendChild(nameBtn); wrap.appendChild(wd); wrap.appendChild(dgrid);
     return wrap;
+  }
+  /* ---------- Год целиком: 12 месяцев на одном экране ----------
+     Не в день и не в месяц — тап ведёт в ленту (#yearOverlay) на нужный
+     месяц, тот же переход, что у имени месяца в ленте. Сетке этого масштаба
+     нечего делать в дне: она отвечает на «где я в году», а не «что снимаю
+     завтра». */
+  function buildMiniMonth12(y, m, now) {
+    var isNow = y === now.getFullYear() && m === now.getMonth();
+    var first = new Date(y, m, 1);
+    var offset = (first.getDay() + 6) % 7;
+    var daysN = new Date(y, m + 1, 0).getDate();
+    /* Считаем съёмки на день — встречи в счёт не идут, тот же фильтр, что
+       у остальной статистики года (isMeet) */
+    var counts = {};
+    sessions.forEach(function (s) {
+      if (isMeet(s) || s.date.getFullYear() !== y || s.date.getMonth() !== m) return;
+      var d = s.date.getDate();
+      counts[d] = (counts[d] || 0) + 1;
+    });
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "year12-month" + (isNow ? " now" : "");
+    var name = document.createElement("div");
+    name.className = "year12-name";
+    name.textContent = MONTHS_N[m];
+    var grid = document.createElement("div");
+    grid.className = "year12-days";
+    for (var k = 0; k < offset; k++) grid.appendChild(document.createElement("span"));
+    for (var d = 1; d <= daysN; d++) {
+      var cell = document.createElement("span");
+      cell.textContent = d;
+      if (isNow && d === now.getDate()) cell.classList.add("today");
+      var n = counts[d] || 0;
+      if (n === 1) cell.classList.add("busy");
+      else if (n > 1) cell.classList.add("busy", "many");
+      grid.appendChild(cell);
+    }
+    btn.appendChild(name); btn.appendChild(grid);
+    (function (yy, mm) {
+      btn.addEventListener("click", function () {
+        $("year12Overlay").classList.remove("open");
+        scrollYearTo(yy, mm);
+      });
+    })(y, m);
+    return btn;
+  }
+  function renderYear12() {
+    var now = new Date();
+    $("year12Title").textContent = yearShown;
+    // Латунь — тот же язык, что у «сейчас»-меток по всему приложению
+    $("year12Title").classList.toggle("now", yearShown === now.getFullYear());
+    $("year12Now").classList.toggle("show", yearShown !== now.getFullYear());
+    var grid = $("year12Grid"); grid.innerHTML = "";
+    for (var m = 0; m < 12; m++) grid.appendChild(buildMiniMonth12(yearShown, m, now));
   }
   /* Прокрутка к нужному месяцу — после рендера, следующим кадром: список
      должен успеть встать на место, иначе offsetTop меряет ещё старую высоту.
@@ -13017,6 +13145,23 @@
   });
   $("yPrev").addEventListener("click", function () { yearShown--; renderYear(); $("yearScroll").scrollTop = 0; });
   $("yNext").addEventListener("click", function () { yearShown++; renderYear(); $("yearScroll").scrollTop = 0; });
+  /* Число года в ленте — вход в обзор года целиком, не ещё один счётчик:
+     лента остаётся открытой под ним, назад возвращает ровно туда же */
+  $("yTitle").addEventListener("click", function () {
+    renderYear12();
+    $("year12Overlay").classList.add("open");
+  });
+  $("year12Back").addEventListener("click", function () { $("year12Overlay").classList.remove("open"); });
+  /* Год листается стрелками, как и в ленте на экран выше (Алексей: «года
+     должны листаться также как в виде на месяцы»). renderYear() тоже
+     зовём — иначе лента под годом целиком осталась бы со старым числом,
+     когда до неё дойдёт очередь после «Год» */
+  $("year12Prev").addEventListener("click", function () { yearShown--; renderYear12(); renderYear(); });
+  $("year12Next").addEventListener("click", function () { yearShown++; renderYear12(); renderYear(); });
+  $("year12Now").addEventListener("click", function () {
+    yearShown = new Date().getFullYear();
+    renderYear12(); renderYear();
+  });
   $("yearNow").addEventListener("click", function () {
     var now = new Date();
     yearShown = now.getFullYear(); renderYear();
