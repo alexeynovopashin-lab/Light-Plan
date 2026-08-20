@@ -13188,6 +13188,12 @@
      некуда двигать, не смог бы довести дело до конца. */
   var WIND_NEED = 42, DWELL_RATE = 30, STRAIN_MAX = 6;
   var windRaw = 0, windSide = 0, windRAF = 0, windLast = 0, windSnap = false, windBleedT = null;
+  /* Один срыв за одно усилие. После срыва палец всё ещё лежит на упоре, и
+     без этого флага взвод немедленно копится заново: на живом телефоне за
+     одно удержание дата ушла на три дня вперёд разом (22 → 25 августа).
+     Сбрасывается только отпусканием — как у настоящего механизма, где
+     после передачи разряда рукоятку надо взять заново. */
+  var windSpent = false;
 
   function windPaint() {
     var p = Math.min(Math.abs(windRaw) / WIND_NEED, 1);
@@ -13227,7 +13233,7 @@
      противоположный конец суток, ярус въезжает с другой стороны. Это и
      есть видимая передача разряда — не «прыжок даты», а переполнение. */
   function windSnapOver(dir) {
-    windSnap = true;
+    windSnap = true; windSpent = true;
     if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
     var lane = $("strainLane");
     swoosh();
@@ -13250,7 +13256,7 @@
   }
   function windLoop(now) {
     windRAF = 0;
-    if (!windSide || windSnap) return;
+    if (!windSide || windSnap || windSpent) return;
     windRaw += windSide * DWELL_RATE * (now - windLast) / 1000;
     windLast = now;
     if (Math.abs(windRaw) >= WIND_NEED) { windPaint(); windSnapOver(windSide); return; }
@@ -13260,10 +13266,10 @@
   (function scrubEdge() {
     var s = $("scrub"), held = false, lastX = 0;
     s.addEventListener("pointerdown", function (e) {
-      held = true; lastX = e.clientX; windReset();
+      held = true; windSpent = false; lastX = e.clientX; windReset();
     });
     s.addEventListener("pointermove", function (e) {
-      if (!held || windSnap) return;
+      if (!held || windSnap || windSpent) return;
       var v = +s.value, r = s.getBoundingClientRect();
       var atMax = v >= +s.max - 0.5, atMin = v <= +s.min + 0.5;
       /* Взвод начинается, только когда обе вещи разом: значение уже на
@@ -13280,7 +13286,7 @@
       if (!windRAF) { windLast = performance.now(); windRAF = requestAnimationFrame(windLoop); }
     });
     function release() {
-      held = false;
+      held = false; windSpent = false;      // рукоятку отпустили — следующий срыв снова доступен
       if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
       windSide = 0;
       if (windRaw && !windSnap) windBleed(); else if (!windSnap) windReset();
