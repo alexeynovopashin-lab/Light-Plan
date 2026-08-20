@@ -633,6 +633,13 @@
      нет цифрой: времена окон, луну и вердикт точки съёмки */
   .pro-only { display: none; }
   body.pro-mode .t-row.pro-only { display: flex; }
+  /* Та же гонка специфичности, что и у `.t-row[hidden]` выше, только для
+     строк «Просто/Астро»: `body.pro-mode .t-row.pro-only` (0,3,1) весит
+     больше простого `.t-row[hidden]` (0,2,0) и снова включал display —
+     mTwiRow оставался виден с прочерком, даже когда сумерек нет вовсе
+     (солнце высоко), потому что и `hidden`, и `pro-only` правят одним
+     свойством разом (Алексей прислал скриншот второй раз). */
+  body.pro-mode .t-row.pro-only[hidden] { display: none; }
   /* Заметная, но лёгкая: иконка + текст + стрелка, без обводки и заливки */
   .spoiler {
     display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -7171,7 +7178,7 @@
       var eclDt = eclipseDate(eclShow);
       $("mEcl").textContent = eclToday
         ? eclToday.kind + " · " + eclToday.where
-        : eclShow.kind + " · " + mwDateShort(eclDt) + " " + eclDt.getFullYear();
+        : eclShow.kind + " · " + mwDateShort(eclDt) + " " + eclDt.getFullYear() + " · " + eclShow.where;
       $("mEcl").style.color = eclToday ? "var(--terra)" : "";
     }
     /* Под горизонтом строка не сдаётся словами «солнце под горизонтом» — она
@@ -7248,27 +7255,17 @@
         ["Долгота", Math.abs(LON).toFixed(4) + "° " + (LON >= 0 ? "E" : "W")],
         ["Часовой пояс", "UTC" + (TZ >= 0 ? "+" : "") + TZ + " · оценка по долготе"]
       ]]
-    ].concat(mwProGroup()).concat(eclipseProGroup()));
+    ].concat(mwProGroup()));
   }
   /* Млечный Путь в «Подробно» — только когда слой включён: группа про то, что
      сейчас нарисовано, а не про всё, что приложение умеет посчитать.
      В своде под картой у звёзд три строки, и они отвечают на вопрос дня —
      докуда поднимется, есть ли ночь, ехать ли. Здесь измерения самого момента,
-     как у солнца выше: где ядро сию минуту и насколько мешает луна. */
-  /* Ближайшее затмение — в «Подробно», а не в своде: до него могут быть годы,
-     и держать эту строку на виду каждый день незачем. А когда день настал,
-     говорит свод. */
-  function eclipseProGroup() {
-    var e = nextEclipse(selDate);
-    if (!e) return [];
-    var dt = eclipseDate(e), today = sameDay(dt, selDate);
-    var days = Math.round((dt - new Date(selDate.getFullYear(), selDate.getMonth(), selDate.getDate())) / 86400000);
-    return [["sun", "Ближайшее затмение", [
-      ["Когда", today ? "сегодня" : mwDateShort(dt) + " " + dt.getFullYear() + " · через " + days + " " + plural(days, ["день", "дня", "дней"])],
-      ["Вид", e.kind],
-      ["Где видно", e.where]
-    ]]];
-  }
+     как у солнца выше: где ядро сию минуту и насколько мешает луна.
+     Своя группа про затмение отсюда убрана: строка «Затмение» в своде
+     теперь и сама всегда называет ближайшее (docs: DECISIONS, «Прочерки
+     в своде карты...») — те же дата и место дважды на одном экране читались
+     как дублирование, а не как подробность (Алексей). */
   function mwProGroup() {
     if (!mapLayers.mw) return [];
     var core = milkyWayAt(selDate, viewMin);
