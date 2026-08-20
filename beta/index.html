@@ -719,6 +719,21 @@
   }
   .ruler line { stroke: var(--rail-5); stroke-width: 1; }
   .ruler line.major { stroke: var(--ink-7); }
+  /* ---------- Передача разряда: взвод и срыв ----------
+     Сутки и часы — два разряда одного механизма, как в одометре: младший
+     переполняется и толкает старший (docs: ROADMAP, «Таймбар: передача
+     между разрядами»). Пока идёт взвод, весь ярус слайдера натягивается в
+     сторону усилия (`--strain`), ползунок сплющивается (`--thumb-w/h`), а
+     конец дорожки разогревается — три признака одного нарастающего
+     сопротивления, чтобы намерение читалось до срыва, а не после. */
+  .strain-lane { position: relative; transform: translateX(var(--strain, 0px)); }
+  .rail-heat {
+    position: absolute; top: 16px; height: 4px; width: 34px; border-radius: 2px;
+    background: var(--brass); opacity: 0; pointer-events: none;
+    transition: opacity .08s linear;
+  }
+  .rail-heat.l { left: 0; }
+  .rail-heat.r { right: 0; }
   .scrub {
     -webkit-appearance: none; appearance: none; width: 100%; height: 36px;
     background: transparent; outline: none; cursor: pointer; display: block; margin: 0;
@@ -735,14 +750,18 @@
     background-color: var(--rail);
     background-image: var(--rail-img, none);
   }
+  /* Размер ползунка — переменными: на взводе он сплющивается по горизонтали
+     и растёт по вертикали, как резина под нагрузкой. `margin-top` считается
+     из высоты, иначе при сплющивании ползунок сползал бы с дорожки. */
   .scrub::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
-    width: 26px; height: 26px; border-radius: 50%;
+    width: var(--thumb-w, 26px); height: var(--thumb-h, 26px); border-radius: 50%;
     background: var(--knob); border: 3px solid var(--knob-edge);
-    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55); margin-top: -11px;
+    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55);
+    margin-top: calc((4px - var(--thumb-h, 26px)) / 2);
   }
   .scrub::-moz-range-thumb {
-    width: 26px; height: 26px; border-radius: 50%;
+    width: var(--thumb-w, 26px); height: var(--thumb-h, 26px); border-radius: 50%;
     background: var(--knob); border: 3px solid var(--knob-edge);
     box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55);
   }
@@ -3760,9 +3779,16 @@
       <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
     </div>
     <div class="track-wrap">
-      <!-- Гравировка прибора: час — риска, шесть часов — риска выше -->
-      <svg class="ruler" id="ruler" viewBox="0 0 342 10" preserveAspectRatio="none" aria-hidden="true"></svg>
-      <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
+      <!-- Ярус натягивается целиком: риски, дорожка и ползунок — одна деталь
+           под нагрузкой, а не три независимо дрожащих (docs: ROADMAP,
+           «Таймбар: передача между разрядами») -->
+      <div class="strain-lane" id="strainLane">
+        <!-- Гравировка прибора: час — риска, шесть часов — риска выше -->
+        <svg class="ruler" id="ruler" viewBox="0 0 342 10" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <i class="rail-heat l" id="heatL" aria-hidden="true"></i>
+        <i class="rail-heat r" id="heatR" aria-hidden="true"></i>
+        <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
+      </div>
     </div>
     <!-- Второй, дополнительный контроль — контекст суток вокруг слайдера,
          только в «Астро» (Алексей: «должен включаться вместе с астро»).
@@ -13139,6 +13165,129 @@
     showMapChip("drag");
     setView(v);
   });
+
+  /* ============================================================
+     ПЕРЕДАЧА РАЗРЯДА: ВЗВОД И СРЫВ
+     Сутки и часы — два разряда одного механизма, как в одометре: младший
+     переполняется и толкает старший (docs: ROADMAP, «Таймбар: передача
+     между разрядами»). Ползунок упирается в конец суток; давишь дальше —
+     копится взвод, на пороге срыв: дата меняется, ярус улетает за край и
+     въезжает с другой стороны. Отпустил раньше — стравливается, дата
+     прежняя.
+
+     Почему это слушает `pointermove`, а не `input`. Нативный `range`
+     клампит значение и на упоре **перестаёт слать `input` вовсе** —
+     замерено: ноль событий, сколько пальцем ни дави. А `pointermove`
+     приходят все, включая те, где палец уже за краем трека (implicit
+     pointer capture, который браузер ставит на время перетаскивания).
+     Значит намерение «давлю дальше» читается только оттуда. Своего
+     слайдера ради этого заводить не пришлось.
+
+     Взвод копится и от продолжающегося движения пальца, и просто от
+     удержания у края (`DWELL_RATE`) — иначе упершийся палец, который уже
+     некуда двигать, не смог бы довести дело до конца. */
+  var WIND_NEED = 42, DWELL_RATE = 30, STRAIN_MAX = 6;
+  var windRaw = 0, windSide = 0, windRAF = 0, windLast = 0, windSnap = false, windBleedT = null;
+
+  function windPaint() {
+    var p = Math.min(Math.abs(windRaw) / WIND_NEED, 1);
+    var lane = $("strainLane"), s = $("scrub");
+    lane.style.setProperty("--strain", (windSide * STRAIN_MAX * (1 - Math.pow(1 - p, 1.8))).toFixed(2) + "px");
+    var sq = p * 4.5;
+    s.style.setProperty("--thumb-w", (26 - sq).toFixed(2) + "px");
+    s.style.setProperty("--thumb-h", (26 + sq * 0.7).toFixed(2) + "px");
+    $("heatR").style.opacity = windSide > 0 ? (p * p * 0.55).toFixed(3) : 0;
+    $("heatL").style.opacity = windSide < 0 ? (p * p * 0.55).toFixed(3) : 0;
+  }
+  function windReset() {
+    windRaw = 0; windSide = 0;
+    if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
+    windPaint();
+  }
+  /* Стравливание: отпустили, не дожав — накопленное уходит обратно, дата
+     не меняется. Без него взвод был бы ловушкой: тронул край, отвлёкся,
+     вернулся — а день уже другой. */
+  function windBleed() {
+    if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
+    var w0 = windRaw, t0 = performance.now();
+    (function step(now) {
+      var k = Math.min((now - t0) / 200, 1);
+      windRaw = w0 * (1 - (1 - Math.pow(1 - k, 3)));
+      windPaint();
+      if (k < 1) windRAF = requestAnimationFrame(step); else windReset();
+    })(t0);
+    /* Страховка на случай, когда кадры не идут: свернули приложение прямо
+       на взводе — `requestAnimationFrame` замирает, и ползунок остался бы
+       сплющенным до возвращения. Таймер доводит до чистого состояния и без
+       кадров; сработать дважды он не мешает — `windReset` идемпотентен. */
+    clearTimeout(windBleedT);
+    windBleedT = setTimeout(windReset, 260);
+  }
+  /* Срыв: ярус уезжает за край, дата переключается, ползунок встаёт на
+     противоположный конец суток, ярус въезжает с другой стороны. Это и
+     есть видимая передача разряда — не «прыжок даты», а переполнение. */
+  function windSnapOver(dir) {
+    windSnap = true;
+    if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
+    var lane = $("strainLane");
+    swoosh();
+    lane.style.transition = "transform .09s ease-in, opacity .09s ease-in";
+    lane.style.setProperty("--strain", (dir * 34) + "px");
+    lane.style.opacity = "0";
+    setTimeout(function () {
+      selDate = addDays(selDate, dir);
+      applyDate(dir > 0 ? MINT : MAXT);          // встаём на противоположный край новых суток
+      lane.style.transition = "none";
+      lane.style.setProperty("--strain", (-dir * 34) + "px");
+      void lane.offsetWidth;
+      lane.style.transition = "transform .2s cubic-bezier(.2,.8,.3,1), opacity .16s ease";
+      lane.style.opacity = "1";
+      lane.style.setProperty("--strain", "0px");
+      setTimeout(function () {
+        lane.style.transition = ""; windSnap = false; windReset();
+      }, 210);
+    }, 95);
+  }
+  function windLoop(now) {
+    windRAF = 0;
+    if (!windSide || windSnap) return;
+    windRaw += windSide * DWELL_RATE * (now - windLast) / 1000;
+    windLast = now;
+    if (Math.abs(windRaw) >= WIND_NEED) { windPaint(); windSnapOver(windSide); return; }
+    windPaint();
+    windRAF = requestAnimationFrame(windLoop);
+  }
+  (function scrubEdge() {
+    var s = $("scrub"), held = false, lastX = 0;
+    s.addEventListener("pointerdown", function (e) {
+      held = true; lastX = e.clientX; windReset();
+    });
+    s.addEventListener("pointermove", function (e) {
+      if (!held || windSnap) return;
+      var v = +s.value, r = s.getBoundingClientRect();
+      var atMax = v >= +s.max - 0.5, atMin = v <= +s.min + 0.5;
+      /* Взвод начинается, только когда обе вещи разом: значение уже на
+         упоре И палец продолжает идти наружу. Одного упора мало — иначе
+         взвод копился бы у всякого, кто просто доехал до края и замер. */
+      var side = (atMax && e.clientX > r.right - 14) ? 1
+               : (atMin && e.clientX < r.left + 14) ? -1 : 0;
+      var dx = e.clientX - lastX; lastX = e.clientX;
+      if (!side) { if (windRaw) windBleed(); windSide = 0; return; }
+      if (windSide !== side) { windRaw = 0; windSide = side; windLast = performance.now(); }
+      if (dx * side > 0) windRaw += dx * side * side;      // движение наружу добавляет к удержанию
+      if (Math.abs(windRaw) >= WIND_NEED) { windPaint(); windSnapOver(side); return; }
+      windPaint();
+      if (!windRAF) { windLast = performance.now(); windRAF = requestAnimationFrame(windLoop); }
+    });
+    function release() {
+      held = false;
+      if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
+      windSide = 0;
+      if (windRaw && !windSnap) windBleed(); else if (!windSnap) windReset();
+    }
+    s.addEventListener("pointerup", release);
+    s.addEventListener("pointercancel", release);
+  })();
 
   /* ---------- Отклик на детентах ----------
      Вибрация: `navigator.vibrate` работает на Android и не работает в Safari
