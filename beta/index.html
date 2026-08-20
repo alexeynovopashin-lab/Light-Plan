@@ -605,6 +605,12 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 9px 0 8px; border-bottom: 1px solid var(--hair-2); font-size: 14px;
   }
+  /* `display: flex` выше побеждает атрибут `hidden` при равной специфичности
+     (оба 0,1,0) — побеждает поздний в файле, а не более верный. Строки,
+     которые JS то прячет, то показывает (mEclRow, mwCoreRow…), оставались
+     видны всегда, с прочерком-заглушкой из разметки, даже когда условие
+     было ложным (Алексей: «пункты с прочерками не понимаю»). */
+  .t-row[hidden] { display: none; }
   .t-label { color: var(--ink-4); flex-shrink: 0; }
   .t-value { font-weight: 500; letter-spacing: 0.1px; white-space: nowrap; text-align: right;
     display: inline-flex; align-items: center; }
@@ -7146,13 +7152,27 @@
 
     // Сводка карты — честная физика, без выдуманных зданий
     $("mDate").textContent = dateLabel(viewMin);   // за полночью на экране уже следующее число
-    /* Затмение в этот день. Терракота — не тревога, а редкость: такое бывает
-       раз в несколько лет, и пропустить его обиднее, чем закат. */
-    var ecl = eclipseOn(viewDate(viewMin));
-    $("mEclRow").hidden = !ecl;
-    if (ecl) {
-      $("mEcl").textContent = ecl.kind + " · " + ecl.where;
-      $("mEcl").style.color = "var(--terra)";
+    /* Затмение. Раньше строка молчала почти всегда — показывала только
+       затмение этого дня, а такое бывает раз в несколько лет. Молчание и
+       обернулось прочерком-заглушкой из разметки: атрибут `hidden` был
+       выставлен верно, просто CSS его не слушал (см. `.t-row[hidden]`
+       выше). Алексей, увидев прочерк, спросил не «почему скрыто», а
+       «почему нет ответа» — и это справедливее: раз строка на экране,
+       у неё должен быть ответ. Теперь она отвечает всегда: сегодняшнее
+       затмение, если оно есть, иначе ближайшее из таблицы. Терракота —
+       не тревога, а редкость — остаётся только у сегодняшнего; будущее
+       не горит тем же цветом, оно не событие момента. Точного времени в
+       таблице нет и взять его неоткуда (та же причина, что и у локальной
+       фазы) — год и число есть, час — нет, и выдумывать его нечестно. */
+    var eclToday = eclipseOn(viewDate(viewMin));
+    var eclShow = eclToday || nextEclipse(viewDate(viewMin));
+    $("mEclRow").hidden = !eclShow;
+    if (eclShow) {
+      var eclDt = eclipseDate(eclShow);
+      $("mEcl").textContent = eclToday
+        ? eclToday.kind + " · " + eclToday.where
+        : eclShow.kind + " · " + mwDateShort(eclDt) + " " + eclDt.getFullYear();
+      $("mEcl").style.color = eclToday ? "var(--terra)" : "";
     }
     /* Под горизонтом строка не сдаётся словами «солнце под горизонтом» — она
        называет, откуда зарево. В сумерках это рабочая величина: снимать на фоне
