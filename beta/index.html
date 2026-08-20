@@ -694,7 +694,11 @@
   }
   body[data-tab="s-plan"] .timebar, body[data-tab="s-set"] .timebar { display: none; }
   .screen-action { margin: auto 24px 0; }
+  /* `relative` — под кнопку «сейчас», которая живёт в пустом центре этой
+     строки (см. `.now-tick`): между временем восхода слева и заката справа
+     место есть всегда, и ряд читается как «восход · сейчас · закат». */
   .edges {
+    position: relative;
     display: flex; justify-content: space-between;
     font-size: 11px; color: var(--ink-4); font-weight: 500; font-variant-numeric: tabular-nums;
   }
@@ -778,12 +782,19 @@
   /* Появляется, только когда отмотал время от настоящего момента. Тап →
      возврат к нему; подпись меняется на «сегодня», когда ушёл ещё и днём
      (docs: DECISIONS) */
+  /* Кнопка не занимает места в потоке вовсе — иначе её появление добавляло
+     бы строку и толкало вверх всё, что выше. С одним слайдером это ещё
+     сходило за «просто появилась», но в «Астро», где под слайдером стоит
+     ещё и лента, разом подпрыгивали оба (Алексей). Место ей — пустой центр
+     строки кромок: та существует всегда, её высоту держит иконка восхода,
+     и абсолютная кнопка внутри не может эту высоту изменить. */
   .now-tick {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     display: none; align-items: center; justify-content: center;
-    align-self: center; background: none; border: none;
+    background: none; border: none;
     cursor: pointer; font-family: inherit; line-height: 1;
     font-size: 11px; letter-spacing: 0.4px; color: var(--brass-deep); font-weight: 600;
-    white-space: nowrap; padding: 4px 12px 0;
+    white-space: nowrap; padding: 9px 14px;   /* палец бьёт по 30 pt, строка от этого не растёт */
   }
   .now-tick.show { display: inline-flex; }
 
@@ -3743,6 +3754,10 @@
     <div class="edges">
       <span class="edge" id="edgeRise"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M8.2 13a3.8 3.8 0 0 1 7.6 0M12 3.5v4M9.8 5.7L12 3.5l2.2 2.2"/></svg><span>—</span></span>
       <span class="edge" id="edgeSet"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M8.2 13a3.8 3.8 0 0 1 7.6 0M12 7.5v-4M9.8 5.3L12 7.5l2.2-2.2"/></svg><span>—</span></span>
+      <!-- Возврат к текущему моменту стоит между восходом и закатом, в пустом
+           центре строки: абсолютной кнопке нечего добавить к высоте, и её
+           появление больше не двигает ни слайдер, ни ленту под ним -->
+      <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
     </div>
     <div class="track-wrap">
       <!-- Гравировка прибора: час — риска, шесть часов — риска выше -->
@@ -3757,7 +3772,6 @@
       <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"></div>
       <div class="ribbon-marker" aria-hidden="true"></div>
     </div>
-    <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
   </div>
 
   <nav class="tabbar">
