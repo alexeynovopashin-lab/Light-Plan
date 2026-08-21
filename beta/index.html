@@ -794,6 +794,19 @@
     white-space: nowrap; pointer-events: none;
   }
   .rd-seam { position: absolute; top: 0; bottom: 0; left: 0; width: 1px; background: var(--hair); }
+  /* Барабан — второй вид ленты: знак в ячейке, а не масштаб (docs: DECISIONS,
+     ROADMAP «В ячейку — знак, а не шкала»). Ячейка фиксированной ширины,
+     не привязана к px/мин — суточная лента и барабан делят один трек и
+     один драг, отличается только то, что в него кладут. */
+  .drum-cell {
+    position: relative; flex: 0 0 auto; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  }
+  .dc-num { font-size: 11px; font-weight: 600; color: var(--ink-5); font-variant-numeric: tabular-nums; }
+  .drum-cell.center .dc-num { color: var(--ink); }
+  .dc-ic { width: 13px; height: 13px; color: var(--ink-5); line-height: 0; }
+  .dc-ic svg { width: 100%; height: 100%; }
+  .drum-cell.center .dc-ic { color: var(--terra); }
   /* Тонкая метка — лента вторична, не спорит толщиной со слайдером над ней */
   .ribbon-marker {
     position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
@@ -3617,6 +3630,16 @@
     </div>
     <p class="seg-note">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
 
+    <!-- Лента под слайдером — только в астро, поэтому и настройка живёт
+         сразу под переключателем режима, а не отдельным разделом внизу
+         списка (docs: DECISIONS, «Барабан вместо ленты — и лента рядом») -->
+    <div class="sec-label">Лента суток</div>
+    <div class="seg" id="ribbonSeg">
+      <button data-ribbon="drum">Барабан</button>
+      <button data-ribbon="lane">Лента</button>
+    </div>
+    <p class="seg-note" id="ribbonNote"></p>
+
     <div class="sec-label">Тема</div>
     <!-- Третий вариант — не «ещё одна тема», а отказ выбирать: телефон уже
          знает, вечер сейчас или день, и переспрашивать об этом незачем -->
@@ -5606,7 +5629,7 @@
           return o;
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
-        cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep,
+        cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
         defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
@@ -9016,6 +9039,10 @@
      а неправда (docs/03_PRINCIPLES). */
   var STEPS = [5, 10, 30];
   var timeStep = (saved && STEPS.indexOf(+saved.timeStep) >= 0) ? +saved.timeStep : 5;
+  /* Барабан — умолчание: ячейки-знаки видно сразу, лента с непрерывной
+     дорожкой света остаётся вариантом (docs: ROADMAP, «Барабан вместо
+     ленты — и лента рядом»). */
+  var ribbonMode = (saved && saved.ribbonMode === "lane") ? "lane" : "drum";
   function snapMin(m) { return Math.round(m / timeStep) * timeStep; }
   /* Значения барабана минут: шаг плюс текущая минута, если она не по шагу —
      иначе барабан не сможет показать 19:38, пришедшие от заката */
@@ -13025,7 +13052,42 @@
     day.appendChild(lbl);
     return day;
   }
+  /* Барабан — второй вид того же трека: вместо трёх суток шириной в экран
+     каждая — девять узких ячеек-знаков (docs: ROADMAP, «В ячейку — знак,
+     а не шкала»). Знак берётся из купола, а не заводит свою настройку:
+     `skyMode` уже решает, солнце сейчас на экране или луна — барабан
+     просто следует (Алексей: «дуга у нас умеет переключаться в лунную,
+     ...ячейки барабана могут наполняться инфой о фазах луны»). Погодный
+     знак рисуется только если для даты есть настоящий прогноз Open-Meteo
+     (`wxReal`) — за пределами 16-дневного окна `dayWeather` тихо
+     подставляет правдоподобную выдумку, а барабану лгать нельзя, честнее
+     оставить ячейку пустой. У луны такого ограничения нет — фаза считается
+     точно на любую дату. */
+  var DRUM_CELL_W = 44, DRUM_SPAN = 4;
+  function buildDrumCell(date, r) {
+    var day = document.createElement("div");
+    day.className = "drum-cell" + (r === 0 ? " center" : "");
+    day.style.width = DRUM_CELL_W + "px";
+    var num = document.createElement("span"); num.className = "dc-num";
+    num.textContent = date.getDate();
+    day.appendChild(num);
+    var ic = document.createElement("span"); ic.className = "dc-ic";
+    if (skyMode === "moon") {
+      var f = moonPhase(date, 720).fraction;
+      ic.innerHTML = '<svg viewBox="-4 -4 8 8"><path d="' + litPath(f, 3.4) + '" fill="currentColor"/></svg>';
+    } else if (wxReal[dkey(date)]) {
+      ic.innerHTML = skyIcon(wxReal[dkey(date)].q);
+    }
+    day.appendChild(ic);
+    return day;
+  }
+  function rebuildDrumCells() {
+    var track = $("ribbonTrack"); if (!track) return;
+    track.innerHTML = "";
+    for (var r = -DRUM_SPAN; r <= DRUM_SPAN; r++) track.appendChild(buildDrumCell(addDays(selDate, r), r));
+  }
   function rebuildRibbonDays() {
+    if (ribbonMode === "drum") { rebuildDrumCells(); return; }
     var track = $("ribbonTrack"); if (!track) return;
     track.innerHTML = "";
     [-1, 0, 1].forEach(function (i) { track.appendChild(buildRibbonDay(addDays(selDate, i))); });
@@ -13033,6 +13095,13 @@
   function ribbonCenterPx() {
     var scroll = $("ribbonScroll");
     return (1440 + viewMin) * ribbonPxPerMin - scroll.clientWidth / 2;
+  }
+  /* Позиция барабана — та же дорожка `#ribbonTrack`, но в единицах ячеек,
+     не минут: `pos` — дробное смещение от центральной (сегодняшней) ячейки,
+     ±0.5 — граница, за которой начинается соседняя. */
+  function drumCenterPx(pos) {
+    var scroll = $("ribbonScroll");
+    return (DRUM_SPAN + pos) * DRUM_CELL_W + DRUM_CELL_W / 2 - scroll.clientWidth / 2;
   }
   /* Позиция ленты — не нативный `scrollLeft`, а `transform: translateX()`
      на самом флекс-контейнере (docs: DECISIONS, «Лента без нативного
@@ -13053,12 +13122,14 @@
   function renderRibbon() {
     measureRibbon();
     rebuildRibbonDays();
-    placeRibbon(ribbonCenterPx());
+    placeRibbon(ribbonMode === "drum" ? drumCenterPx(0) : ribbonCenterPx());
     ribbonHourMark = Math.floor((((viewMin % 1440) + 1440) % 1440) / 60);
   }
   /* Только позиция, дни не трогает — купол и слайдер не выходят за пределы
-     уже построенных суток, перестраивать нечего (см. `setView`) */
-  function syncRibbonScroll() { placeRibbon(ribbonCenterPx()); }
+     уже построенных суток, перестраивать нечего (см. `setView`). Барабан
+     не следит за временем суток вовсе — своя ячейка и так всегда по
+     центру, пересобирать её незачем. */
+  function syncRibbonScroll() { if (ribbonMode !== "drum") placeRibbon(ribbonCenterPx()); }
   /* Переход через полночь — сутки в ленте перестраиваются сразу, как
      только `t` вышел за [0, 1440), без паузы и без порога-«зоны»: лента
      больше не читает своё собственное положение (это и было источником
@@ -13090,6 +13161,35 @@
     paintDate(); updateNowTick(); showMapChip("drag");
     renderToday(); renderMap();
   }
+  /* Барабан двигает только разряд суток — время внутри дня (`viewMin`,
+     слайдер) не трогает вовсе, ровно так, как в одометре младший разряд не
+     трогает старший, пока сам не переполнится (docs: DECISIONS, «Передача
+     разряда»). Переход через границу — сразу, тем же приёмом, что и в
+     ленте: читать нечего, значит и рассинхронизироваться нечему. */
+  function drumDayFlip(pos) {
+    var flipped = false;
+    while (pos < -0.5 || pos > 0.5) {
+      var dir = pos > 0 ? 1 : -1;
+      selDate = addDays(selDate, dir);
+      computeSun(selDate);
+      curWeather = dayWeather(selDate);
+      var n2 = new Date();
+      nowMin = sameDay(selDate, n2) ? n2.getHours() * 60 + n2.getMinutes() : null;
+      pos -= dir;
+      rebuildDrumCells();
+      drawRuler();
+      var s = $("scrub"); s.min = Math.round(MINT); s.max = Math.round(MAXT); s.value = clamp(Math.round(viewMin), MINT, MAXT);
+      updateEdges();
+      flipped = true;
+    }
+    if (flipped) swoosh();
+    return pos;
+  }
+  function drumApply(pos) {
+    placeRibbon(drumCenterPx(pos));
+    paintDate(); updateNowTick(); showMapChip("drag");
+    renderToday(); renderMap();
+  }
   /* Прямое ведение пальцем/мышью, как у слайдера, а не нативный скролл-
      контейнер — тот же приём, что и в `scrubEdge` ниже (docs: DECISIONS,
      «Лента без нативного скролла»): жест читает только `pointermove`,
@@ -13097,28 +13197,54 @@
      что и убегать/упираться нечему. */
   (function ribbonDrag() {
     var el = $("ribbonScroll");
-    var dragging = false, sx = 0, st = 0;
+    var dragging = false, sx = 0, sy = 0, st = 0, moved = 0;
     el.addEventListener("pointerdown", function (e) {
-      dragging = true; sx = e.clientX; st = viewMin;
+      dragging = true; sx = e.clientX; sy = e.clientY; st = ribbonMode === "drum" ? 0 : viewMin; moved = 0;
       el.classList.add("grabbing");
       try { el.setPointerCapture(e.pointerId); } catch (x) {}
       initAudio();
     });
     el.addEventListener("pointermove", function (e) {
       if (!dragging) return;
-      var t = ribbonDayFlip(st + (sx - e.clientX) / ribbonPxPerMin);
-      st = t; sx = e.clientX;
-      ribbonApply(t);
+      moved += Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy);
+      if (ribbonMode === "drum") {
+        var pos = drumDayFlip(st + (sx - e.clientX) / DRUM_CELL_W);
+        st = pos; sx = e.clientX;
+        drumApply(pos);
+      } else {
+        var t = ribbonDayFlip(st + (sx - e.clientX) / ribbonPxPerMin);
+        st = t; sx = e.clientX;
+        ribbonApply(t);
+      }
     });
-    function endDrag() { dragging = false; el.classList.remove("grabbing"); }
+    function endDrag(e) {
+      if (dragging && ribbonMode === "drum") {
+        // Тап, не жест — прыжок сразу на ту ячейку, по которой попали, а не
+        // ползти к ней по одной суточной перегрузке за раз.
+        if (moved < 6 && e && e.target && e.target.closest) {
+          var cell = e.target.closest(".drum-cell");
+          if (cell) {
+            var cells = [].slice.call($("ribbonTrack").children), r = cells.indexOf(cell) - DRUM_SPAN;
+            if (r) { drumApply(drumDayFlip(r)); }
+          }
+        }
+      }
+      dragging = false; el.classList.remove("grabbing");
+    }
     el.addEventListener("pointerup", endDrag);
     el.addEventListener("pointercancel", endDrag);
     el.addEventListener("wheel", function (e) {
       var d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-      ribbonApply(ribbonDayFlip(viewMin + d / ribbonPxPerMin));
+      if (ribbonMode === "drum") drumApply(drumDayFlip(d > 0 ? 1 : d < 0 ? -1 : 0));
+      else ribbonApply(ribbonDayFlip(viewMin + d / ribbonPxPerMin));
       e.preventDefault();
     }, { passive: false });
     el.addEventListener("keydown", function (e) {
+      if (ribbonMode === "drum") {
+        if (e.key === "ArrowLeft") { drumApply(drumDayFlip(-1)); e.preventDefault(); }
+        else if (e.key === "ArrowRight") { drumApply(drumDayFlip(1)); e.preventDefault(); }
+        return;
+      }
       var step = e.shiftKey ? 60 : 15;
       if (e.key === "ArrowLeft") { ribbonApply(ribbonDayFlip(viewMin - step)); e.preventDefault(); }
       else if (e.key === "ArrowRight") { ribbonApply(ribbonDayFlip(viewMin + step)); e.preventDefault(); }
@@ -13573,6 +13699,9 @@
     $("swMoon").classList.toggle("on", skyMode === "moon");
     updateEdges();
     renderToday();
+    // Знак в ячейке барабана следует куполу, а не заводит свой переключатель —
+    // смена солнце/луна должна перерисовать и его (docs: DECISIONS)
+    if (ribbonMode === "drum" && typeof rebuildDrumCells === "function") rebuildDrumCells();
   });
 
   $("readout").addEventListener("click", function () {
@@ -14289,6 +14418,26 @@
     });
   });
   renderStepSeg();
+
+  /* Смена вида — перестройка сразу, дата и время под пальцем не меняются,
+     только то, как их показывают (docs: DECISIONS) */
+  function renderRibbonSeg() {
+    document.querySelectorAll("#ribbonSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.ribbon === ribbonMode);
+    });
+    $("ribbonNote").textContent = ribbonMode === "drum"
+      ? "Сутки отдельными ячейками — знак вместо шкалы: фаза луны или облачность на несколько дней вперёд."
+      : "Одна лента с непрерывной дорожкой света — вчера/сегодня/завтра.";
+  }
+  document.querySelectorAll("#ribbonSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.ribbon === ribbonMode) return;
+      ribbonMode = b.dataset.ribbon;
+      saveAll(); renderRibbonSeg();
+      if (typeof renderRibbon === "function") renderRibbon();
+    });
+  });
+  renderRibbonSeg();
 
   document.querySelectorAll("#calSync button").forEach(function (b) {
     b.addEventListener("click", function () {
