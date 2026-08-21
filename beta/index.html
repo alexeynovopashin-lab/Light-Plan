@@ -13717,6 +13717,10 @@
     if (navigator.vibrate) { try { navigator.vibrate(2); } catch (e) {} }
     if (!audioCtx || audioCtx.state !== "running" || !clickBuf) return;
     var src = audioCtx.createBufferSource(); src.buffer = clickBuf;
+    // Тон ниже через playbackRate — своего питч-шифтера в Web Audio нет,
+    // а для щелчка в 44 мс небольшое растяжение по времени не слышно
+    // отдельно от понижения тона (Алексей: «можешь понизить звук тоново?»)
+    src.playbackRate.value = 0.8;
     var g = audioCtx.createGain(); g.gain.value = 0.08;   // ещё -80% по живой проверке на телефоне
     src.connect(g); g.connect(audioCtx.destination);
     src.start();
