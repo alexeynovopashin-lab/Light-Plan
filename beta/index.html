@@ -771,6 +771,12 @@
      лента перецентровывается на новые сутки, а не растягивает масштаб. */
   .ribbon-wrap { position: relative; height: 30px; display: none; }
   body.pro-mode .ribbon-wrap { display: block; }
+  /* Лента ниже барабана не отдаёт риске полосу целиком — под цифры часов
+     и стрелку нужна своя строка, а не потеснённые дата и деления (docs:
+     DECISIONS, «Риска ленты — стрелка и часы, не голая черта»). Барабан
+     эту строку не заводит: ячейка и так помещает всё, что нужно, в свои
+     30px, растить нечего. */
+  .ribbon-wrap:not(.drum) { height: 44px; }
   .ribbon-scroll {
     position: absolute; inset: 0; overflow: hidden;
     touch-action: none; cursor: grab; border-radius: 8px;
@@ -806,6 +812,14 @@
     color: var(--ink-6); font-weight: 600; text-transform: uppercase;
     white-space: nowrap; pointer-events: none;
   }
+  /* Цифры часов у главных делений — Алексей: «на риски ленты добавить
+     обозначения часов, 6, 12, 18». Полночь своей цифры не просит — её и
+     так называет `.rd-date` и шов `.rd-seam` рядом */
+  .rd-hournum {
+    position: absolute; top: 17px; font-size: 7px; letter-spacing: 0.2px;
+    color: var(--ink-5); font-variant-numeric: tabular-nums;
+    transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  }
   .rd-seam { position: absolute; top: 0; bottom: 0; left: 0; width: 1px; background: var(--hair); }
   /* Барабан — второй вид ленты: знак в ячейке, а не масштаб (docs: DECISIONS,
      ROADMAP «В ячейку — знак, а не шкала»). Ячейка фиксированной ширины,
@@ -833,10 +847,17 @@
   }
   .ribbon-wrap.drum .drum-frame { display: block; }
   .ribbon-wrap.drum .ribbon-marker { display: none; }
-  /* Тонкая метка — лента вторична, не спорит толщиной со слайдером над ней */
+  /* Стрелка-треугольник вместо сплошной риски через всю строку — Алексей:
+     «риска-стрелка... откусывает от дат пиксели, не неся полезной
+     нагрузки», прислал свой макет в Фотошопе. Треугольник читается как
+     «середина здесь» не хуже полосы через всю высоту, но не режет ни
+     дату сверху, ни цифры часов снизу — сидит в узкой пустой строке между
+     ними, до текста в обе стороны не дотягивается. */
   .ribbon-marker {
-    position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
-    transform: translateX(-50%); background: var(--knob-edge); border-radius: 1px;
+    position: absolute; left: 50%; top: 10px; width: 0; height: 0;
+    transform: translateX(-50%);
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-bottom: 5px solid var(--terra);
     pointer-events: none; z-index: 3;
   }
   /* Появляется, только когда отмотал время от настоящего момента. Тап →
@@ -13078,6 +13099,13 @@
       tick.className = "rd-tick" + (h % 6 === 0 ? " major" : "");
       tick.style.left = (h * 60 * ribbonPxPerMin).toFixed(1) + "px";
       day.appendChild(tick);
+      // Полночь называет `.rd-date`/`.rd-seam` рядом — своей цифры не просит
+      if (h === 6 || h === 12 || h === 18) {
+        var hn = document.createElement("span"); hn.className = "rd-hournum";
+        hn.style.left = (h * 60 * ribbonPxPerMin).toFixed(1) + "px";
+        hn.textContent = h;
+        day.appendChild(hn);
+      }
     }
     var seam = document.createElement("i"); seam.className = "rd-seam"; day.appendChild(seam);
     var lbl = document.createElement("span"); lbl.className = "rd-date";
@@ -13607,7 +13635,10 @@
       shutterBuf = buf;
     }, function () { shutterLoading = false; });
   }
-  var audioCtx = null, TICK_MIN = 15, lastTick = null;
+  /* Шаг детента удвоен 15 → 30 мин — Алексей: «снизим частоту щелчков в
+     2 раза». Один тумблер калибровки на все контролы (слайдер, купол,
+     лента) — не по отдельности (docs: DECISIONS). */
+  var audioCtx = null, TICK_MIN = 30, lastTick = null;
   function initAudio() {
     if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
@@ -13672,7 +13703,7 @@
     if (navigator.vibrate) { try { navigator.vibrate(2); } catch (e) {} }
     if (!audioCtx || audioCtx.state !== "running" || !clickBuf) return;
     var src = audioCtx.createBufferSource(); src.buffer = clickBuf;
-    var g = audioCtx.createGain(); g.gain.value = 0.5;
+    var g = audioCtx.createGain(); g.gain.value = 0.4;    // -20% по отзыву Алексея
     src.connect(g); g.connect(audioCtx.destination);
     src.start();
   }
