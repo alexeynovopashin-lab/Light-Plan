@@ -776,6 +776,19 @@
     touch-action: none; cursor: grab; border-radius: 8px;
   }
   .ribbon-scroll.grabbing { cursor: grabbing; }
+  /* Окно прибора: ячейки барабана уходят вбок и гаснут, а не обрезаются
+     ножом по краю (в прототипе — `drumMask`). У ленты маски нет: её
+     дорожка света непрерывна, гасить её у края значило бы врать про свет. */
+  .ribbon-scroll.drum {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 17%, #000 83%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 17%, #000 83%, transparent);
+  }
+  /* Подложка окна — светлее к центру (в прототипе `laneShade`): даёт понять,
+     что смотришь в прорезь прибора, а не на плоский список */
+  .ribbon-wrap.drum::before {
+    content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--hair) 34%, var(--hair) 66%, transparent);
+  }
   /* Контейнер клипует (inset:0, статичен), а едет только дорожка внутри
      него — раньше `transform` стоял прямо на клип-контейнере и уводил всё
      окно просмотра за экран вместе с содержимым (docs: DECISIONS). */
@@ -800,13 +813,26 @@
      один драг, отличается только то, что в него кладут. */
   .drum-cell {
     position: relative; flex: 0 0 auto; height: 100%;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
   }
-  .dc-num { font-size: 11px; font-weight: 600; color: var(--ink-5); font-variant-numeric: tabular-nums; }
+  .dc-num {
+    font-size: 9.5px; font-weight: 600; letter-spacing: 0.3px; white-space: nowrap;
+    color: var(--ink-5); font-variant-numeric: tabular-nums;
+  }
   .drum-cell.center .dc-num { color: var(--ink); }
-  .dc-ic { width: 13px; height: 13px; color: var(--ink-5); line-height: 0; }
+  .dc-ic { width: 11px; height: 11px; color: var(--ink-5); line-height: 0; }
   .dc-ic svg { width: 100%; height: 100%; }
   .drum-cell.center .dc-ic { color: var(--terra); }
+  /* Выбранные сутки — рамка вокруг ячейки, а не риска сквозь неё. У ленты
+     метка режет непрерывную шкалу и потому вертикальная; у барабана резать
+     нечего — выделять надо саму ячейку (в прототипе — `frameRect`). */
+  .drum-frame {
+    position: absolute; left: 50%; top: 50%; width: 50px; height: 27px;
+    transform: translate(-50%, -50%); border: 1px solid var(--terra);
+    border-radius: 7px; opacity: 0.9; pointer-events: none; z-index: 3; display: none;
+  }
+  .ribbon-wrap.drum .drum-frame { display: block; }
+  .ribbon-wrap.drum .ribbon-marker { display: none; }
   /* Тонкая метка — лента вторична, не спорит толщиной со слайдером над ней */
   .ribbon-marker {
     position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
@@ -3822,6 +3848,7 @@
     <div class="ribbon-wrap">
       <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"><div class="ribbon-track" id="ribbonTrack"></div></div>
       <div class="ribbon-marker" aria-hidden="true"></div>
+      <div class="drum-frame" aria-hidden="true"></div>
     </div>
   </div>
 
@@ -13063,13 +13090,15 @@
      подставляет правдоподобную выдумку, а барабану лгать нельзя, честнее
      оставить ячейку пустой. У луны такого ограничения нет — фаза считается
      точно на любую дату. */
-  var DRUM_CELL_W = 44, DRUM_SPAN = 4;
+  var DRUM_CELL_W = 50, DRUM_SPAN = 4;
   function buildDrumCell(date, r) {
     var day = document.createElement("div");
     day.className = "drum-cell" + (r === 0 ? " center" : "");
     day.style.width = DRUM_CELL_W + "px";
     var num = document.createElement("span"); num.className = "dc-num";
-    num.textContent = date.getDate();
+    // Число и месяц, как в прототипе: без месяца переход через первое число
+    // читался бы как «31 → 1» без понимания, куда именно уехал
+    num.textContent = date.getDate() + " " + MONTHS_N[date.getMonth()].slice(0, 3).toUpperCase();
     day.appendChild(num);
     var ic = document.createElement("span"); ic.className = "dc-ic";
     if (skyMode === "moon") {
@@ -13121,8 +13150,12 @@
      слайдер — оба контроля должны в любой момент смотреть на один день. */
   function renderRibbon() {
     measureRibbon();
+    var drum = ribbonMode === "drum";
+    document.querySelector(".ribbon-wrap").classList.toggle("drum", drum);
+    $("ribbonScroll").classList.toggle("drum", drum);
     rebuildRibbonDays();
-    placeRibbon(ribbonMode === "drum" ? drumCenterPx(0) : ribbonCenterPx());
+    drumStopSettle(); drumPos = 0;
+    placeRibbon(drum ? drumCenterPx(0) : ribbonCenterPx());
     ribbonHourMark = Math.floor((((viewMin % 1440) + 1440) % 1440) / 60);
   }
   /* Только позиция, дни не трогает — купол и слайдер не выходят за пределы
@@ -13186,9 +13219,31 @@
     return pos;
   }
   function drumApply(pos) {
+    drumPos = pos;
     placeRibbon(drumCenterPx(pos));
     paintDate(); updateNowTick(); showMapChip("drag");
     renderToday(); renderMap();
+  }
+  /* Доводка после отпускания. Без неё барабан оставался стоять там, где
+     палец бросил, — до полуячейки мимо центра, и рамка обводила ячейку,
+     съехавшую вбок; следующий хват дёргал его на место рывком. Барабан
+     обязан довернуть до своей ячейки сам — это то же, что механизм с
+     фиксатором: щёлкает в положение, а не замирает между. */
+  var drumPos = 0, drumSettleRAF = 0;
+  function drumStopSettle() {
+    if (drumSettleRAF) { cancelAnimationFrame(drumSettleRAF); drumSettleRAF = 0; }
+  }
+  function drumSettle() {
+    drumStopSettle();
+    if (!drumPos) return;
+    var from = drumPos, t0 = performance.now();
+    drumSettleRAF = requestAnimationFrame(function step(now) {
+      var p = Math.min((now - t0) / 210, 1);
+      drumPos = from * Math.pow(1 - p, 3);
+      placeRibbon(drumCenterPx(drumPos));
+      drumSettleRAF = p < 1 ? requestAnimationFrame(step) : 0;
+      if (p >= 1) drumPos = 0;
+    });
   }
   /* Прямое ведение пальцем/мышью, как у слайдера, а не нативный скролл-
      контейнер — тот же приём, что и в `scrubEdge` ниже (docs: DECISIONS,
@@ -13199,7 +13254,10 @@
     var el = $("ribbonScroll");
     var dragging = false, sx = 0, sy = 0, st = 0, moved = 0;
     el.addEventListener("pointerdown", function (e) {
-      dragging = true; sx = e.clientX; sy = e.clientY; st = ribbonMode === "drum" ? 0 : viewMin; moved = 0;
+      dragging = true; sx = e.clientX; sy = e.clientY; moved = 0;
+      // Барабан подхватывают с того места, где он стоит, — доводку обрываем,
+      // но накопленный сдвиг не обнуляем, иначе он прыгнет под пальцем
+      if (ribbonMode === "drum") { drumStopSettle(); st = drumPos; } else st = viewMin;
       el.classList.add("grabbing");
       try { el.setPointerCapture(e.pointerId); } catch (x) {}
       initAudio();
@@ -13221,13 +13279,15 @@
       if (dragging && ribbonMode === "drum") {
         // Тап, не жест — прыжок сразу на ту ячейку, по которой попали, а не
         // ползти к ней по одной суточной перегрузке за раз.
+        var tapped = false;
         if (moved < 6 && e && e.target && e.target.closest) {
           var cell = e.target.closest(".drum-cell");
           if (cell) {
             var cells = [].slice.call($("ribbonTrack").children), r = cells.indexOf(cell) - DRUM_SPAN;
-            if (r) { drumApply(drumDayFlip(r)); }
+            if (r) { drumApply(drumDayFlip(r)); tapped = true; }
           }
         }
+        if (!tapped) drumSettle();
       }
       dragging = false; el.classList.remove("grabbing");
     }
