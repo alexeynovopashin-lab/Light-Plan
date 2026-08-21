@@ -3829,6 +3829,21 @@
            появление больше не двигает ни слайдер, ни ленту под ним -->
       <button type="button" class="now-tick" id="nowTick">↺ сейчас</button>
     </div>
+    <!-- Второй, дополнительный контроль — контекст суток вокруг слайдера,
+         только в «Астро» (Алексей: «должен включаться вместе с астро»).
+         Три дня рисует JS (buildRibbonDay), сама разметка пуста (docs:
+         DECISIONS, «Лента времени: второй контроль, не замена»).
+
+         Стоит НАД слайдером, не под ним: палец, держащий ползунок, приходит
+         снизу экрана и закрывает собой всё, что ниже точки касания —
+         барабан под слайдером оказывался под самим большим пальцем (Алексей:
+         «кладу палец на ползунок, а под пальцем оказывается вся полезная
+         информация»). Выше слайдера то же самое касание его не закрывает. -->
+    <div class="ribbon-wrap">
+      <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"><div class="ribbon-track" id="ribbonTrack"></div></div>
+      <div class="ribbon-marker" aria-hidden="true"></div>
+      <div class="drum-frame" id="ribbonFrame" aria-hidden="true"></div>
+    </div>
     <div class="track-wrap">
       <!-- Ярус натягивается целиком: риски, дорожка и ползунок — одна деталь
            под нагрузкой, а не три независимо дрожащих (docs: ROADMAP,
@@ -3840,15 +3855,6 @@
         <i class="rail-heat r" id="heatR" aria-hidden="true"></i>
         <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
       </div>
-    </div>
-    <!-- Второй, дополнительный контроль — контекст суток вокруг слайдера,
-         только в «Астро» (Алексей: «должен включаться вместе с астро»).
-         Три дня рисует JS (buildRibbonDay), сама разметка пуста (docs:
-         DECISIONS, «Лента времени: второй контроль, не замена») -->
-    <div class="ribbon-wrap">
-      <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"><div class="ribbon-track" id="ribbonTrack"></div></div>
-      <div class="ribbon-marker" aria-hidden="true"></div>
-      <div class="drum-frame" aria-hidden="true"></div>
     </div>
   </div>
 
@@ -13102,8 +13108,13 @@
     day.appendChild(num);
     var ic = document.createElement("span"); ic.className = "dc-ic";
     if (skyMode === "moon") {
-      var f = moonPhase(date, 720).fraction;
-      ic.innerHTML = '<svg viewBox="-4 -4 8 8"><path d="' + litPath(f, 3.4) + '" fill="currentColor"/></svg>';
+      // litPath всегда рисует освещённой правую половину — купол разворачивает
+      // её зеркально для убывающей луны (`paintMoon`, `$("moonFace")`), тот же
+      // приём нужен и здесь: без него ячейка показывала бы одну и ту же
+      // сторону всегда, независимо от того, растёт луна или убывает (Алексей)
+      var ph = moonPhase(date, 720);
+      ic.innerHTML = '<svg viewBox="-4 -4 8 8"><g' + (ph.phase >= 0.5 ? ' transform="scale(-1,1)"' : '')
+        + '><path d="' + litPath(ph.fraction, 3.4) + '" fill="currentColor"/></g></svg>';
     } else if (wxReal[dkey(date)]) {
       ic.innerHTML = skyIcon(wxReal[dkey(date)].q);
     }
@@ -13140,23 +13151,60 @@
      пока палец не отпустят: даты «убегали» непредсказуемо (Алексей,
      «поведение непредсказуемое»). `transform` эту гонку убирает целиком —
      позицию всегда ставит только JS, браузеру скроллить нечего. */
+  var ribbonLastPx = 0;
   function placeRibbon(px) {
     var track = $("ribbonTrack"); if (!track) return;
+    ribbonLastPx = px;
     track.style.transform = "translateX(" + (-px).toFixed(1) + "px)";
   }
   /* Полная перестройка — три дня вокруг `selDate` и метка сразу на
      `viewMin`, без анимации: если сюда пришли, значит уже решили, что это
      нужное место (смена даты извне, первый показ). Заодно подгоняет
      слайдер — оба контроля должны в любой момент смотреть на один день. */
+  /* Направление срыва, о котором лента/барабан должны узнать раньше, чем
+     `applyDate` их перестроит — сам срыв ставит флаг, `renderRibbon` его
+     читает и сбрасывает (docs: DECISIONS, «Пружина: лента и барабан
+     срываются вместе со слайдером»). */
+  var ribbonSpringDir = 0;
   function renderRibbon() {
     measureRibbon();
     var drum = ribbonMode === "drum";
     document.querySelector(".ribbon-wrap").classList.toggle("drum", drum);
     $("ribbonScroll").classList.toggle("drum", drum);
-    rebuildRibbonDays();
+    var dir = ribbonSpringDir; ribbonSpringDir = 0;
     drumStopSettle(); drumPos = 0;
+    if (dir) { ribbonSpring(dir, drum); return; }
+    rebuildRibbonDays();
     placeRibbon(drum ? drumCenterPx(0) : ribbonCenterPx());
     ribbonHourMark = Math.floor((((viewMin % 1440) + 1440) % 1440) / 60);
+  }
+  /* Срыв слайдера меняет сутки — лента/барабан обязаны срываться тем же
+     движением, а не просто мгновенно переключить содержимое, пока ярус
+     слайдера ещё едет своей отдельной анимацией (Алексей: «в прототипе
+     лента барабана и рамка анимировались при смене дня, ...рамка
+     наполняется ползунком и срывается»). Раньше `renderRibbon()` вызывал
+     `rebuildRibbonDays()` мгновенно — ярус плавно уезжал за край 300 мс,
+     а барабан над ним в это время уже стоял на новой дате без единого
+     кадра перехода: два разряда одного механизма визуально не были
+     связаны. Тайминг и лёгкость взяты у самого яруса (`windSnapOver`) —
+     тот же приём «выезд → подмена → въезд», те же 90/200 мс. */
+  function ribbonSpring(dir, drum) {
+    var track = $("ribbonTrack"), OFF = drum ? 34 : 40;
+    var rest = drum ? drumCenterPx(0) : ribbonCenterPx();
+    track.style.transition = "transform .09s ease-in, opacity .09s ease-in";
+    track.style.opacity = "0";
+    placeRibbon(rest - dir * OFF);
+    setTimeout(function () {
+      rebuildRibbonDays();
+      track.style.transition = "none";
+      placeRibbon(rest + dir * OFF);
+      void track.offsetWidth;
+      track.style.transition = "transform .2s cubic-bezier(.2,.8,.3,1), opacity .16s ease";
+      track.style.opacity = "1";
+      placeRibbon(rest);
+      ribbonHourMark = Math.floor((((viewMin % 1440) + 1440) % 1440) / 60);
+      setTimeout(function () { track.style.transition = ""; }, 210);
+    }, 95);
   }
   /* Только позиция, дни не трогает — купол и слайдер не выходят за пределы
      уже построенных суток, перестраивать нечего (см. `setView`). Барабан
@@ -13366,6 +13414,7 @@
      края. Задержка снижена с 1.4 до 1.06 с. */
   var WIND_NEED = 34, DWELL_RATE = 32, STRAIN_MAX = 6, EDGE_ZONE = 28;
   var windRaw = 0, windSide = 0, windRAF = 0, windLast = 0, windSnap = false, windBleedT = null;
+  var heldPointerId = null;
   /* Один срыв за одно усилие. После срыва палец всё ещё лежит на упоре, и
      без этого флага взвод немедленно копится заново: на живом телефоне за
      одно удержание дата ушла на три дня вперёд разом (22 → 25 августа).
@@ -13376,12 +13425,19 @@
   function windPaint() {
     var p = Math.min(Math.abs(windRaw) / WIND_NEED, 1);
     var lane = $("strainLane"), s = $("scrub");
-    lane.style.setProperty("--strain", (windSide * STRAIN_MAX * (1 - Math.pow(1 - p, 1.8))).toFixed(2) + "px");
+    var strain = windSide * STRAIN_MAX * (1 - Math.pow(1 - p, 1.8));
+    lane.style.setProperty("--strain", strain.toFixed(2) + "px");
     var sq = p * 4.5;
     s.style.setProperty("--thumb-w", (26 - sq).toFixed(2) + "px");
     s.style.setProperty("--thumb-h", (26 + sq * 0.7).toFixed(2) + "px");
     $("heatR").style.opacity = windSide > 0 ? (p * p * 0.55).toFixed(3) : 0;
     $("heatL").style.opacity = windSide < 0 ? (p * p * 0.55).toFixed(3) : 0;
+    // Рамка барабана чуть подаётся вслед за натяжением слайдера, ещё до
+    // самого срыва — тот же приём, что в прототипе (`frameEl` на `strain*.6`):
+    // ощущается, что дата уже под нагрузкой, а не дёргается внезапно из
+    // состояния покоя (Алексей, «рамка наполняется ползунком»)
+    var frame = $("ribbonFrame");
+    if (frame) frame.style.transform = "translate(-50%,-50%) translateX(" + (strain * 0.6).toFixed(2) + "px)";
   }
   function windReset() {
     windRaw = 0; windSide = 0;
@@ -13409,10 +13465,26 @@
   }
   /* Срыв: ярус уезжает за край, дата переключается, ползунок встаёт на
      противоположный конец суток, ярус въезжает с другой стороны. Это и
-     есть видимая передача разряда — не «прыжок даты», а переполнение. */
+     есть видимая передача разряда — не «прыжок даты», а переполнение.
+
+     `releasePointerCapture` здесь обязателен, не украшение. Implicit pointer
+     capture, который держит нативный `<input type=range>` во время
+     перетаскивания, не только пропускает к нам `pointermove` за краем трека
+     (см. разбор выше) — он же заставляет САМ браузер, в обход всего нашего
+     JS, непрерывно пересчитывать `.value` из физической позиции пальца и
+     сам стрелять `input`. Пока палец лежит неподвижно у правого края экрана,
+     а мы силой ставим `.value = MINT` (начало новых суток, левый край) —
+     нативный пересчёт следующим же кадром возвращает значение обратно
+     туда, где физически палец: назад к правому краю. Снаружи это выглядело
+     как «перескочил и тут же прыгнул обратно» (Алексей). `windSpent` не
+     спасает — это наш собственный флаг, браузер о нём не знает и его не
+     слушает. Освобождаем захват в момент срыва — нативный пересчёт
+     останавливается вместе с ним, а `windSpent` дальше держит значение на
+     месте до нового касания (docs: DECISIONS). */
   function windSnapOver(dir) {
     windSnap = true; windSpent = true;
     if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
+    if (heldPointerId !== null) { try { $("scrub").releasePointerCapture(heldPointerId); } catch (x) {} }
     var lane = $("strainLane");
     swoosh();
     lane.style.transition = "transform .09s ease-in, opacity .09s ease-in";
@@ -13420,6 +13492,7 @@
     lane.style.opacity = "0";
     setTimeout(function () {
       selDate = addDays(selDate, dir);
+      ribbonSpringDir = dir;                     // лента/барабан срываются тем же движением
       applyDate(dir > 0 ? MINT : MAXT);          // встаём на противоположный край новых суток
       lane.style.transition = "none";
       lane.style.setProperty("--strain", (-dir * 34) + "px");
@@ -13444,7 +13517,7 @@
   (function scrubEdge() {
     var s = $("scrub"), held = false, lastX = 0;
     s.addEventListener("pointerdown", function (e) {
-      held = true; windSpent = false; lastX = e.clientX; windReset();
+      held = true; windSpent = false; lastX = e.clientX; heldPointerId = e.pointerId; windReset();
     });
     s.addEventListener("pointermove", function (e) {
       if (!held || windSnap || windSpent) return;
@@ -13465,6 +13538,7 @@
     });
     function release() {
       held = false; windSpent = false;      // рукоятку отпустили — следующий срыв снова доступен
+      heldPointerId = null;
       if (windRAF) { cancelAnimationFrame(windRAF); windRAF = 0; }
       windSide = 0;
       if (windRaw && !windSnap) windBleed(); else if (!windSnap) windReset();
