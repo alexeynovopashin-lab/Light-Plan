@@ -772,12 +772,14 @@
   .ribbon-wrap { position: relative; height: 30px; display: none; }
   body.pro-mode .ribbon-wrap { display: block; }
   .ribbon-scroll {
-    position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden;
-    display: flex; scrollbar-width: none; -ms-overflow-style: none;
-    touch-action: pan-x; cursor: grab; border-radius: 8px;
+    position: absolute; inset: 0; overflow: hidden;
+    touch-action: none; cursor: grab; border-radius: 8px;
   }
-  .ribbon-scroll::-webkit-scrollbar { display: none; }
   .ribbon-scroll.grabbing { cursor: grabbing; }
+  /* Контейнер клипует (inset:0, статичен), а едет только дорожка внутри
+     него — раньше `transform` стоял прямо на клип-контейнере и уводил всё
+     окно просмотра за экран вместе с содержимым (docs: DECISIONS). */
+  .ribbon-track { position: absolute; top: 0; left: 0; height: 100%; display: flex; will-change: transform; }
   .ribbon-day { position: relative; flex: 0 0 auto; height: 100%; }
   /* Дорожка света — тот же расчёт, что у пути солнца на карте: `stopAt()`
      по высоте светила, посчитан для целых суток разом при постройке дня,
@@ -3795,7 +3797,7 @@
          Три дня рисует JS (buildRibbonDay), сама разметка пуста (docs:
          DECISIONS, «Лента времени: второй контроль, не замена») -->
     <div class="ribbon-wrap">
-      <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"></div>
+      <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"><div class="ribbon-track" id="ribbonTrack"></div></div>
       <div class="ribbon-marker" aria-hidden="true"></div>
     </div>
   </div>
@@ -12979,8 +12981,7 @@
      ловить палец у стены, которой нет, а плавающая плотность делений
      сломала бы ловлю минут в астро (второй масштаб под щипок — отдельная,
      более поздняя веха). */
-  var ribbonPxPerMin = 342 / 1440, ribbonHourMark = null, ribbonLastSet = null, ribbonRAF = false,
-      ribbonRecenterT = null;
+  var ribbonPxPerMin = 342 / 1440, ribbonHourMark = null;
   function measureRibbon() {
     var el = $("ribbonScroll"); if (!el || !el.clientWidth) return;
     ribbonPxPerMin = el.clientWidth / 1440;
@@ -13025,23 +13026,25 @@
     return day;
   }
   function rebuildRibbonDays() {
-    var scroll = $("ribbonScroll"); if (!scroll) return;
-    scroll.innerHTML = "";
-    [-1, 0, 1].forEach(function (i) { scroll.appendChild(buildRibbonDay(addDays(selDate, i))); });
+    var track = $("ribbonTrack"); if (!track) return;
+    track.innerHTML = "";
+    [-1, 0, 1].forEach(function (i) { track.appendChild(buildRibbonDay(addDays(selDate, i))); });
   }
   function ribbonCenterPx() {
     var scroll = $("ribbonScroll");
     return (1440 + viewMin) * ribbonPxPerMin - scroll.clientWidth / 2;
   }
-  /* Ставит прокрутку программно и запоминает значение — следующий нативный
-     `scroll` с тем же числом это эхо собственной перестановки, а не жест
-     пользователя, и цикл обработки его пропускает (см. `onRibbonScroll`).
-     Точнее, чем сравнивать по времени: событию `scroll` не обещано прийти
-     ровно в следующий кадр, а значению — да. */
+  /* Позиция ленты — не нативный `scrollLeft`, а `transform: translateX()`
+     на самом флекс-контейнере (docs: DECISIONS, «Лента без нативного
+     скролла»). Раньше лента ездила через `scrollLeft` — резиновая прокрутка
+     iOS на упоре сама, кадр за кадром, отодвигала значение обратно к
+     границе, а код это читал как «опять край» и переставлял сутки заново,
+     пока палец не отпустят: даты «убегали» непредсказуемо (Алексей,
+     «поведение непредсказуемое»). `transform` эту гонку убирает целиком —
+     позицию всегда ставит только JS, браузеру скроллить нечего. */
   function placeRibbon(px) {
-    var scroll = $("ribbonScroll"); if (!scroll) return;
-    ribbonLastSet = px;
-    scroll.scrollLeft = px;
+    var track = $("ribbonTrack"); if (!track) return;
+    track.style.transform = "translateX(" + (-px).toFixed(1) + "px)";
   }
   /* Полная перестройка — три дня вокруг `selDate` и метка сразу на
      `viewMin`, без анимации: если сюда пришли, значит уже решили, что это
@@ -13056,91 +13059,69 @@
   /* Только позиция, дни не трогает — купол и слайдер не выходят за пределы
      уже построенных суток, перестраивать нечего (см. `setView`) */
   function syncRibbonScroll() { placeRibbon(ribbonCenterPx()); }
-  /* Перецентровка — не сразу на пересечении порога, а через паузу без
-     новых событий прокрутки (docs: DECISIONS, «Гонка на краю ленты»).
-     Причина: пока палец физически лежит на упоре (овершут/резиновый
-     скролл iOS), браузер САМ каждый кадр возвращает `scrollLeft` к
-     границе — а мгновенная перецентровка читала это как «опять край» и
-     сдвигала сутки заново, кадр за кадром, пока палец не отпустят: даты
-     «бежали» ускоренно (Алексей). Пауза в 140 мс ждёт, пока жест — палец,
-     мышь, колесо, инерция — действительно затихнет, и тогда переставляет
-     ровно один раз. Во время паузы лента просто упирается в свой предел,
-     как любой обычный скролл, — ничего не едет само по себе. */
-  function recenterRibbon() {
-    var scroll = $("ribbonScroll"); if (!scroll) return;
-    var raw = scroll.scrollLeft + scroll.clientWidth / 2;
-    var t = raw / ribbonPxPerMin - 1440;
-    if (t >= -480 && t <= 1920) return;   // за время паузы само вернулось в норму
-    var dir = t < 0 ? -1 : 1;
-    selDate = addDays(selDate, dir);
-    computeSun(selDate);
-    curWeather = dayWeather(selDate);
-    var n2 = new Date();
-    nowMin = sameDay(selDate, n2) ? n2.getHours() * 60 + n2.getMinutes() : null;
-    t -= dir * 1440;
-    rebuildRibbonDays();
-    placeRibbon((1440 + t) * ribbonPxPerMin - scroll.clientWidth / 2);
-    drawRuler();
-    var s = $("scrub"); s.min = Math.round(MINT); s.max = Math.round(MAXT); s.value = clamp(Math.round(t), MINT, MAXT);
-    updateEdges();
-    viewMin = t;
-    paintDate(); updateNowTick();
-    renderToday(); renderMap();
+  /* Переход через полночь — сутки в ленте перестраиваются сразу, как
+     только `t` вышел за [0, 1440), без паузы и без порога-«зоны»: лента
+     больше не читает своё собственное положение (это и было источником
+     гонки выше), а только пишет то, что ей сказал жест. Возвращает `t`,
+     уже приведённый к текущим суткам. */
+  function ribbonDayFlip(t) {
+    while (t < 0 || t >= 1440) {
+      var dir = t < 0 ? -1 : 1;
+      selDate = addDays(selDate, dir);
+      computeSun(selDate);
+      curWeather = dayWeather(selDate);
+      var n2 = new Date();
+      nowMin = sameDay(selDate, n2) ? n2.getHours() * 60 + n2.getMinutes() : null;
+      t -= dir * 1440;
+      rebuildRibbonDays();
+      drawRuler();
+      var s = $("scrub"); s.min = Math.round(MINT); s.max = Math.round(MAXT);
+      updateEdges();
+    }
+    return t;
   }
-  function stepRibbon() {
-    var scroll = $("ribbonScroll"); if (!scroll) return;
-    var raw = scroll.scrollLeft + scroll.clientWidth / 2;
-    var t = raw / ribbonPxPerMin - 1440;
-
+  function ribbonApply(t) {
     var hr = Math.floor((((t % 1440) + 1440) % 1440) / 60);
     if (ribbonHourMark !== hr) tickClick();
     ribbonHourMark = hr;
-
     viewMin = t;
     $("scrub").value = clamp(Math.round(t), MINT, MAXT);
+    placeRibbon(ribbonCenterPx());
     paintDate(); updateNowTick(); showMapChip("drag");
     renderToday(); renderMap();
-
-    clearTimeout(ribbonRecenterT);
-    ribbonRecenterT = (t < -480 || t > 1920) ? setTimeout(recenterRibbon, 140) : null;
   }
-  function onRibbonScroll() {
-    var scroll = $("ribbonScroll"); if (!scroll) return;
-    if (ribbonLastSet !== null && Math.abs(scroll.scrollLeft - ribbonLastSet) < 1) return;
-    ribbonLastSet = null;
-    if (ribbonRAF) return;
-    ribbonRAF = true;
-    requestAnimationFrame(function () { ribbonRAF = false; stepRibbon(); });
-  }
-  $("ribbonScroll").addEventListener("scroll", onRibbonScroll, { passive: true });
-  $("ribbonScroll").addEventListener("pointerdown", initAudio);
-  $("ribbonScroll").addEventListener("touchstart", initAudio, { passive: true });
-  /* Десктоп не забыт: `range` давал клавиатуру и мышь бесплатно,
-     прокручиваемый контейнер — нет ничего (ROADMAP, «Прибор карты» § 4) */
-  (function ribbonDesktopInput() {
+  /* Прямое ведение пальцем/мышью, как у слайдера, а не нативный скролл-
+     контейнер — тот же приём, что и в `scrubEdge` ниже (docs: DECISIONS,
+     «Лента без нативного скролла»): жест читает только `pointermove`,
+     позицию всегда ставит JS, инерции и резинового скролла нет вовсе, так
+     что и убегать/упираться нечему. */
+  (function ribbonDrag() {
     var el = $("ribbonScroll");
-    el.addEventListener("wheel", function (e) {
-      el.scrollLeft += Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-      e.preventDefault();
-    }, { passive: false });
-    var dragging = false, sx = 0, startLeft = 0;
+    var dragging = false, sx = 0, st = 0;
     el.addEventListener("pointerdown", function (e) {
-      if (e.pointerType !== "mouse") return;
-      dragging = true; sx = e.clientX; startLeft = el.scrollLeft;
+      dragging = true; sx = e.clientX; st = viewMin;
       el.classList.add("grabbing");
       try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      initAudio();
     });
     el.addEventListener("pointermove", function (e) {
       if (!dragging) return;
-      el.scrollLeft = startLeft - (e.clientX - sx);
+      var t = ribbonDayFlip(st + (sx - e.clientX) / ribbonPxPerMin);
+      st = t; sx = e.clientX;
+      ribbonApply(t);
     });
     function endDrag() { dragging = false; el.classList.remove("grabbing"); }
     el.addEventListener("pointerup", endDrag);
     el.addEventListener("pointercancel", endDrag);
+    el.addEventListener("wheel", function (e) {
+      var d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      ribbonApply(ribbonDayFlip(viewMin + d / ribbonPxPerMin));
+      e.preventDefault();
+    }, { passive: false });
     el.addEventListener("keydown", function (e) {
-      var step = (e.shiftKey ? 60 : 15) * ribbonPxPerMin;
-      if (e.key === "ArrowLeft") { el.scrollLeft -= step; e.preventDefault(); }
-      else if (e.key === "ArrowRight") { el.scrollLeft += step; e.preventDefault(); }
+      var step = e.shiftKey ? 60 : 15;
+      if (e.key === "ArrowLeft") { ribbonApply(ribbonDayFlip(viewMin - step)); e.preventDefault(); }
+      else if (e.key === "ArrowRight") { ribbonApply(ribbonDayFlip(viewMin + step)); e.preventDefault(); }
     });
   })();
   /* Тот же день — переставляем виджет сразу, тем же путём, что и обычное
