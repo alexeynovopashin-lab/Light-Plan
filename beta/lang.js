@@ -695,7 +695,7 @@
     /* Неразрывный пробел после минуса: иначе строка рвётся сразу за ним,
        и на первой строке остаётся висячий «−», а слово уезжает вниз */
     "pane.minusExp":   "−\u00A0расходы {sum}",
-    "pane.prepayRest": "предоплата {prepay} · остаток {rest}",
+    "pane.prepayRest": "{word} {prepay} · остаток {rest}",
     "pane.handover":   "Сдача",
     "pane.models":     "Модели · {n}",
 
@@ -720,7 +720,7 @@
        языка, и русское «ТЗ» от него превращалось в «тз» */
     "deal.title":    "Сделка",
     "deal.allDone":  "всё закрыто",
-    "deal.prepaid":  "внесена предоплата · ждём остаток",
+    "deal.prepaid":  "внесён {word} · ждём остаток",
     "deal.waitOne":  "ждём: {step}",
     "deal.left":     "осталось {n}",
     "deal.step":     ["шаг", "шага", "шагов"],
@@ -834,7 +834,7 @@
     "form.rateHour":    "Ставка, {sign}/час",
     "form.priceEach":   "Цена, {sign}",
     "form.sumFlat":     "Сумма, {sign}",
-    "form.prepayLbl":   "Предоплата, {sign}",
+    "form.prepayLbl":   "{word}, {sign}",
     "form.expenseLbl":  "Расходы, {sign}",
     "form.incomeIs":    "Доход {sum}",
     "form.minusExp":    "− расход {sum}",
@@ -1237,6 +1237,46 @@
     "set.unitNoteC":    "Температура показывается в градусах Цельсия.",
     "set.unitNoteF":    "Температура показывается в градусах Фаренгейта.",
     "set.currency":     "Валюта",
+    "set.practice":     "Ведение дел",
+
+    /* ---- Практика ведения дел: третья ось, от языка не зависит ----
+       Договор, предоплата и бумаги оформляются по территории права. Здесь
+       лежат имена практик и их пояснения; состав цепочки — в коде. */
+    "practice.ru": "Россия и СНГ",
+    "practice.us": "США",
+    "practice.uk": "Великобритания",
+    "practice.eu": "Европа",
+    "practice.note.ru": "Договор, счёт, оплата, акт выполненных работ. С частным клиентом договариваются на словах — цепочка сделки только у заказов.",
+    "practice.note.us": "Договор, невозвратный ретейнер, остаток, релиз модели. Акта нет. Цепочка есть и у частной съёмки: договор с парой — норма.",
+    "practice.note.uk": "Договор, возвратный депозит, остаток, передача материала. Акта нет. Цепочка есть и у частной съёмки.",
+    "practice.note.eu": "Договор, счёт с НДС, оплата, протокол приёмки. Цепочка есть и у частной съёмки.",
+
+    /* Слово для предоплаты принадлежит практике, а не языку и не говору:
+       у американца ретейнер не возвращается, у британца депозит возвращается,
+       и это разные вещи по существу, а не два перевода одного */
+    "prepayW.ru": "предоплата",
+    "prepayW.us": "ретейнер",
+    "prepayW.uk": "депозит",
+    "prepayW.eu": "депозит",
+
+    /* Звенья цепочки, которых нет в российской практике */
+    "dealN.retainer":   "Ретейнер",
+    "dealN.deposit":    "Депозит",
+    "dealN.balance":    "Остаток",
+    "dealN.release":    "Релиз",
+    "dealN.delivery":   "Передача",
+    "dealN.acceptance": "Приёмка",
+    "dealW.retainer":   "ретейнер",
+    "dealW.deposit":    "депозит",
+    "dealW.balance":    "остаток",
+    "dealW.release":    "релиз модели",
+    "dealW.delivery":   "передачу материала",
+    "dealW.acceptance": "протокол приёмки",
+    "doc.release":    "Релиз модели",
+    "doc.acceptance": "Протокол приёмки",
+
+    "start.title": "Как вы оформляете дела",
+    "start.sub":   "От этого зависят бумаги и цепочка сделки — договор, счёт, предоплата. Язык интерфейса на это не влияет: его можно менять когда угодно.",
     "set.curNote":      "Знак денег в ставках, пакетах и итогах: {sample}. От языка не зависит — со сменой языка валюта остаётся прежней.",
     "set.legal":        "Правовая информация",
     "set.privacy":      "Съёмки, места и настройки хранятся на устройстве. На наш сервер не уходит ничего — его нет.",
@@ -1839,7 +1879,7 @@
     "pane.tripAny":    "another city",
     "pane.fee":        "Fee",
     "pane.minusExp":   "−\u00A0expenses {sum}",
-    "pane.prepayRest": "prepaid {prepay} · {rest} left",
+    "pane.prepayRest": "{word} {prepay} · {rest} left",
     "pane.handover":   "Delivery",
     "pane.models":     "Models · {n}",
 
@@ -1863,7 +1903,7 @@
        то есть «sign-off». Термин помечен к проверке носителем. */
     "deal.title":    "Deal",
     "deal.allDone":  "all closed",
-    "deal.prepaid":  "deposit paid · balance outstanding",
+    "deal.prepaid":  "{word} paid · balance outstanding",
     "deal.waitOne":  "waiting on {step}",
     "deal.left":     "{n} to go",
     "deal.step":     ["step", "steps"],
@@ -1967,7 +2007,7 @@
     "form.rateHour":    "Rate, {sign}/hr",
     "form.priceEach":   "Price, {sign}",
     "form.sumFlat":     "Total, {sign}",
-    "form.prepayLbl":   "Deposit, {sign}",
+    "form.prepayLbl":   "{word}, {sign}",
     "form.expenseLbl":  "Expenses, {sign}",
     "form.incomeIs":    "Income {sum}",
     "form.minusExp":    "− expenses {sum}",
@@ -2352,6 +2392,39 @@
     "set.unitNoteC":    "Temperature is shown in degrees Celsius.",
     "set.unitNoteF":    "Temperature is shown in degrees Fahrenheit.",
     "set.currency":     "Currency",
+    "set.practice":     "Business practice",
+
+    "practice.ru": "Russia and CIS",
+    "practice.us": "United States",
+    "practice.uk": "United Kingdom",
+    "practice.eu": "Europe",
+    "practice.note.ru": "Contract, invoice, payment, acceptance act. Private clients are handled on a handshake — the deal chain appears only for orders.",
+    "practice.note.us": "Contract, non-refundable retainer, balance, model release. No acceptance act. The chain also appears for private shoots: a contract with the couple is the norm.",
+    "practice.note.uk": "Contract, refundable deposit, balance, delivery. No acceptance act. The chain also appears for private shoots.",
+    "practice.note.eu": "Contract, VAT invoice, payment, acceptance protocol. The chain also appears for private shoots.",
+
+    "prepayW.ru": "prepayment",
+    "prepayW.us": "retainer",
+    "prepayW.uk": "deposit",
+    "prepayW.eu": "deposit",
+
+    "dealN.retainer":   "Retainer",
+    "dealN.deposit":    "Deposit",
+    "dealN.balance":    "Balance",
+    "dealN.release":    "Release",
+    "dealN.delivery":   "Delivery",
+    "dealN.acceptance": "Acceptance",
+    "dealW.retainer":   "the retainer",
+    "dealW.deposit":    "the deposit",
+    "dealW.balance":    "the balance",
+    "dealW.release":    "the model release",
+    "dealW.delivery":   "delivery",
+    "dealW.acceptance": "the acceptance protocol",
+    "doc.release":    "Model release",
+    "doc.acceptance": "Acceptance protocol",
+
+    "start.title": "How do you handle the paperwork",
+    "start.sub":   "This decides the papers and the deal chain — contract, invoice, prepayment. The interface language has nothing to do with it: change that whenever you like.",
     "set.curNote":      "The money sign in rates, packages and totals: {sample}. It does not follow the language — changing the language keeps the currency.",
     "set.legal":        "Legal",
     "set.privacy":      "Shoots, spots and settings are kept on your device. Nothing goes to our server — there is none.",
@@ -2417,11 +2490,10 @@
     /* Корзина: британская «bin» против американской «trash» */
     "card.bin": "Trash",
 
-    /* Предоплата — не вкусовое расхождение, а юридическое. У американского
-       фотографа «deposit» возвращается, а «retainer» нет, и это первое, что
-       спрашивает клиент. Британец говорит «deposit» и в том же смысле. */
-    "deal.prepaid":    "retainer paid · balance outstanding",
-    "pane.prepayRest": "retainer {prepay} · {rest} left"
+    /* Предоплата отсюда ушла. Она казалась расхождением говоров, а
+       оказалась расхождением юрисдикций: ретейнер не возвращается, депозит
+       возвращается, и по-русски это различие тоже есть. Живёт в
+       `prepayW.*` и выбирается практикой, а не языком. */
   };
 
   /* Британский — это и есть основа: своих отличий у него нет. Словарь заведён

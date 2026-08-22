@@ -3862,6 +3862,14 @@
     <div class="chips" id="curChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="curNote"></p>
 
+    <!-- Практика ведения дел — третья ось. Договор и бумаги оформляются по
+         территории права, а не по языку: американец, снятый на свадьбу в
+         Будапеште, выставляет счёт из США. Ставится один раз при первом
+         запуске; сменил страну — приходишь сюда (DECISIONS, «Практика») -->
+    <div class="sec-label" data-i18n="set.practice">Ведение дел</div>
+    <div class="chips" id="practiceChips" style="padding: 12px 24px 0;"></div>
+    <p class="seg-note" id="practiceNote"></p>
+
     <!-- Копирайт карты переехал сюда с полотна: на экране «Карта» строка
          лицензии занимала правую половину нижнего края и резала компас.
          Лицензии OSM и CARTO это допускают — требование в доступности
@@ -4741,6 +4749,23 @@
     <div id="binList"></div>
     <button type="button" class="ghost" id="binClear" hidden style="margin-top:14px;" data-i18n="bin.clear">Очистить корзину</button>
   </div>
+  <!-- ============ ПЕРВЫЙ ЗАПУСК ============
+       Единственный вопрос, который нельзя вывести ни из чего: по каким
+       правилам фотограф оформляет дела. Язык подсказкой не служит — русский
+       в Штатах работает по американским правилам, — поэтому ответ
+       подставляется по часовому поясу: пояс это география, а юрисдикция и
+       есть география. Ничего не блокируем: ответ можно поменять в настройках,
+       а закрытие шторки означает согласие с подставленным. -->
+  <div class="scrim" id="startScrim"></div>
+  <div class="sheet" id="startSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="start.title">Как вы оформляете дела</div>
+    <div class="sheet-sub" data-i18n="start.sub">От этого зависят бумаги и цепочка сделки — договор, счёт, предоплата. Язык интерфейса на это не влияет: его можно менять когда угодно.</div>
+    <div class="chips" id="startPractice" style="padding: 14px 0 0;"></div>
+    <p class="seg-note" id="startNote" style="padding-left:0;"></p>
+    <button class="sheet-done" id="startDone" data-i18n="pick.done">Готово</button>
+  </div>
+
   <div class="spot-fan" id="spotFan" hidden></div>
   <!-- Веер действий над записью. Язык взят у веера точек, а не придуман
        заново: второго такого меню в продукте быть не должно (DECISIONS). -->
@@ -5921,6 +5946,9 @@
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
         pro: proMode,
+        /* Практика пишется, только когда её выбрали: пока вопрос не задан,
+           в записи её нет, и первый запуск остаётся первым */
+        practice: practiceAsked ? practice : undefined,
         trashed: trashed.map(function (t) {
           var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
           return { rec: r, at: t.at, del: t.del };
@@ -6293,6 +6321,66 @@
     return d;
   }
   saved = migrateRefTags(saved);
+
+  /* ---------- Практика ведения дел ----------
+     Третья ось, рядом с языком и валютой, и от них не зависящая. Договор,
+     предоплата и набор бумаг оформляются по территории права, а не по языку:
+     американец, снятый на свадьбу в Будапеште, выставляет счёт из США;
+     русский, переехавший в Штаты, ведёт записи по-русски, а работает по
+     американским правилам. Язык и документы не пересекаются вовсе.
+
+     Практика задаёт три вещи: состав цепочки сделки, набор видов документов
+     и слово для предоплаты. Имена всего этого по-прежнему у языка. */
+  var PRACTICE = {
+    /* Россия и СНГ: пять звеньев кончаются актом выполненных работ. У частной
+       съёмки сделки нет — договариваются на словах, и это местный обычай,
+       а не свойство продукта */
+    ru: { chain: ["brief", "contract", "invoice", "pay", "act"],
+          docs: ["contract", "invoice", "receipt", "act", "brief"],
+          dealForAll: false },
+    /* США: акта нет вовсе, зато есть релиз модели, и платят в два приёма —
+       невозвратный ретейнер и остаток. Договор с парой на свадьбу — норма,
+       без него фотограф не выезжает, поэтому цепочка нужна и частной съёмке */
+    us: { chain: ["brief", "contract", "retainer", "balance", "release"],
+          docs: ["contract", "invoice", "receipt", "release", "brief"],
+          dealForAll: true },
+    /* Британия: то же, но предоплата возвратная и называется депозитом,
+       а кончается всё передачей материала, а не подписанной бумагой */
+    uk: { chain: ["brief", "contract", "deposit", "balance", "delivery"],
+          docs: ["contract", "invoice", "receipt", "release", "brief"],
+          dealForAll: true },
+    /* Континентальная Европа: счёт с НДС и протокол приёмки — ближе к нашему
+       акту, чем к британской передаче */
+    eu: { chain: ["brief", "contract", "invoice", "pay", "acceptance"],
+          docs: ["contract", "invoice", "receipt", "acceptance", "brief"],
+          dealForAll: true }
+  };
+  var PRACTICES = ["ru", "us", "uk", "eu"];
+  /* Догадка по часовому поясу, а не по языку: пояс — это география, то есть
+     ровно то, чем юрисдикция и определяется. Догадка только подставляет
+     ответ в вопросе при первом запуске; решает всё равно человек. */
+  function guessPractice() {
+    var tz = "";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    if (/^America\//.test(tz)) return "us";
+    if (tz === "Europe/London" || /^Europe\/(Belfast|Guernsey|Isle_of_Man|Jersey)$/.test(tz)) return "uk";
+    if (/^(Europe\/(Moscow|Kaliningrad|Samara|Volgograd|Saratov|Astrakhan|Ulyanovsk|Kirov|Minsk|Kiev|Simferopol)|Asia\/(Yekaterinburg|Omsk|Novosibirsk|Krasnoyarsk|Irkutsk|Yakutsk|Vladivostok|Magadan|Kamchatka|Almaty|Tashkent|Tbilisi|Yerevan|Baku|Bishkek))$/.test(tz)) return "ru";
+    if (/^Europe\//.test(tz)) return "eu";
+    return "";
+  }
+  var practice = (saved && PRACTICE[saved.practice]) ? saved.practice : null;
+  /* Записи есть, а практики нет — это тот, кто работал до появления настройки.
+     У него была российская цепочка, ею и остаётся: он ничего не выбирал, и
+     менять правила задним числом нечестно. Спросим только новичка. */
+  if (!practice && saved && ((saved.sessions || []).length || (saved.orgs || []).length)) practice = "ru";
+  var practiceAsked = !!practice;
+  if (!practice) practice = guessPractice() || "ru";
+  function practiceSpec() { return PRACTICE[practice] || PRACTICE.ru; }
+  /* Слово для предоплаты принадлежит практике, а не говору. В волне 5 оно
+     лежало в наложении en-US — это была ошибка ровно того рода, о которой
+     весь этот пункт: у американца ретейнер не возвращается, а депозит
+     возвращается, и по-русски это различие тоже есть. */
+  function prepayWord() { return LANG.t("prepayW." + practice); }
   // Восстанавливаем место до первого расчёта света
   if (saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon)) {
     LAT = saved.loc.lat; LON = saved.loc.lon;
@@ -9745,7 +9833,11 @@
      списке стоят имя, тип и размер, а тап открывает файл. */
   /* Виды документов заказа. Порядок — порядок сделки: чем открывают работу,
      тем и начинается список; акт закрывает (docs/12_CARD_ARCHITECTURE.md) */
-  var DOC_KINDS = ["contract", "invoice", "receipt", "act", "brief"];
+  /* Набор видов предлагается по практике: акт спрашивать у британца
+     незачем, релиз модели у нас не подписывают. Но имя знает словарь для
+     любого кода, а не только для нынешних: сменивший практику не должен
+     увидеть, что его старые бумаги вдруг стали безымянными. */
+  function docKinds() { return practiceSpec().docs; }
   /* Имя вида для экрана. Терпима к старым записям, как и `genreName`:
      пришло русское слово — переводим в код на лету */
   function docKindName(k) {
@@ -9764,7 +9856,12 @@
     [/чек|chek|check|cheque|receipt|kassa/i, "receipt"],
     [/счёт|счет|invoice|schet|schyot/i, "invoice"],
     [/акт(?![а-яё])|akt(?![a-z])|act(?![a-z])/i, "act"],
-    [/тз|бриф|brief|task|tz(?![a-z])/i, "brief"]
+    [/тз|бриф|brief|task|tz(?![a-z])/i, "brief"],
+    /* Виды, которых нет в российской практике, но которые могут прийти
+       файлом: угадывать их стоит всегда — вид, угаданный неверно, правится
+       одним нажатием, а неугаданный приходится ставить руками каждому файлу */
+    [/release|релиз|соглас(ие|ия)\s*модел/i, "release"],
+    [/acceptance|protok|протокол|приём?к|приемк/i, "acceptance"]
   ];
   function guessDocKind(name) {
     for (var i = 0; i < DOC_GUESS.length; i++) {
@@ -9773,7 +9870,7 @@
     return null;
   }
   function renderDocKinds() {
-    $("docKinds").innerHTML = DOC_KINDS.map(function (k) {
+    $("docKinds").innerHTML = docKinds().map(function (k) {
       var n = fDocs.filter(function (r) { return r.kind === k; }).length;
       return '<button type="button" class="rf-tag' + (fDocKind === k ? " on" : "") + '" data-k="' + k + '">'
         + esc(docKindName(k)) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
@@ -9918,7 +10015,7 @@
     allDocList = all.filter(function (d) {
       return !allDocFilter || docKind(d.r) === allDocFilter;
     });
-    var kinds = DOC_KINDS.concat(["req"]);
+    var kinds = docKinds().concat(["req"]);
     $("allDocKinds").innerHTML = kinds.map(function (k) {
       var n = all.filter(function (d) { return docKind(d.r) === k; }).length;
       if (!n && allDocFilter !== k) return "";
@@ -10343,7 +10440,7 @@
      кладутся прямо в организацию. Вид выбирается тем же чипсом */
   var oDocKind = null;
   function renderOrgDocKinds() {
-    $("oDocKinds").innerHTML = DOC_KINDS.map(function (k) {
+    $("oDocKinds").innerHTML = docKinds().map(function (k) {
       return '<button type="button" class="rf-tag' + (oDocKind === k ? " on" : "") + '" data-k="' + k + '">'
         + esc(docKindName(k)) + "</button>";
     }).join("");
@@ -10508,7 +10605,7 @@
     $("fPayTotal").innerHTML =
       '<span class="lbl">' + esc(LANG.t("form.incomeIs", { sum: money(inc) })) + hrs
       + (fExpense ? " " + esc(LANG.t("form.minusExp", { sum: money(fExpense) })) : "")
-      + (fPrepay ? "<br>" + esc(LANG.t("pane.prepayRest", { prepay: money(fPrepay), rest: money(rest) })) : "") + "</span>"
+      + (fPrepay ? "<br>" + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(fPrepay), rest: money(rest) })) : "") + "</span>"
       + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net) + "</span>";
     // Сводка спойлера: способ и итог одной строкой
     $("fPaySumm").innerHTML = esc(LANG.t("pay." + fPay)) + " · <b>" + money(net) + "</b>";
@@ -12451,7 +12548,7 @@
         /* Строка длинная, а обрезать в ней нечего: остаток — ровно то число,
            ради которого сюда смотрят. Поэтому перенос, а не многоточие */
         + (pre ? '<span class="pn-s" style="margin-top:3px;white-space:normal">'
-          + esc(LANG.t("pane.prepayRest", { prepay: money(pre), rest: money(rest) })) + "</span>" : "")
+          + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(pre), rest: money(rest) })) + "</span>" : "")
         + "</span>"
         + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp) + "</span></div></div>"
       : "";
@@ -12599,20 +12696,38 @@
     /* Оплата закрыта, когда получено всё. Нет суммы вовсе — звено не считается
        ни закрытым, ни просроченным: фотограф просто ещё не назвал цену */
     var paid = inc > 0 && pre >= inc;
-    /* Звено названо кодом, как и вид бумаги: «Оплата» — единственное, у
-       которого своей бумаги нет, поэтому у него свой ключ */
-    return [
-      { k: "brief",    done: !!(s.brief || has("brief")) },
-      { k: "contract", done: has("contract") },
-      { k: "invoice",  done: has("invoice") },
-      { k: "pay",      done: paid, half: !paid && pre > 0 },
-      { k: "act",      done: has("act") }
-    ];
+    /* Состав цепочки задаёт практика: акт есть только у нас, релиз модели
+       только за океаном, а платят где в один приём, где в два. Условие
+       закрытия у каждого звена своё и живёт здесь, рядом с остальными. */
+    var DONE = {
+      brief:      function () { return !!(s.brief || has("brief")); },
+      contract:   function () { return has("contract"); },
+      invoice:    function () { return has("invoice"); },
+      pay:        function () { return paid; },
+      act:        function () { return has("act"); },
+      retainer:   function () { return pre > 0; },
+      deposit:    function () { return pre > 0; },
+      balance:    function () { return paid; },
+      release:    function () { return has("release"); },
+      delivery:   function () { return !!s.delivered; },
+      acceptance: function () { return has("acceptance"); }
+    };
+    /* «Внесена часть» бывает только у одноходовой оплаты: там, где практика
+       развела ретейнер и остаток, половинчатого состояния нет — есть два
+       разных звена, и каждое либо закрыто, либо нет */
+    return practiceSpec().chain.map(function (k) {
+      var d = DONE[k] ? DONE[k]() : false;
+      var o = { k: k, done: d };
+      if (k === "pay") o.half = !d && pre > 0;
+      return o;
+    });
   }
   function renderDeal(s) {
-    /* Блок только у группы заказчика: у частной съёмки сделки нет,
-       есть договорённость на словах */
-    if (!groupSpec(s.type).order) { $("cdDeal").hidden = true; return; }
+    /* У нас блок только у заказчика: с частным клиентом договариваются на
+       словах. Но это местный обычай, а не свойство продукта — у американского
+       свадебного фотографа договор и ретейнер с парой обязательны, и прятать
+       от него цепочку значило бы навязывать чужие правила. Решает практика. */
+    if (!groupSpec(s.type).order && !practiceSpec().dealForAll) { $("cdDeal").hidden = true; return; }
     var chain = dealChain(s), left = chain.filter(function (l) { return !l.done; });
     $("cdDeal").hidden = false;
 
@@ -12620,7 +12735,7 @@
        отчёт, «ждём акт» — работа */
     var half = chain.filter(function (l) { return l.half; })[0];
     var tail = left.length === 0 ? LANG.t("deal.allDone")
-      : half ? LANG.t("deal.prepaid")
+      : half ? LANG.t("deal.prepaid", { word: prepayWord() })
       : left.length === 1 ? LANG.t("deal.waitOne", { step: dealName(left[0].k, true) })
       : LANG.t("deal.left", { n: LANG.count("deal.step", left.length) });
 
@@ -14365,6 +14480,8 @@
     /* Настройки — тот самый экран, с которого меняют язык: его строки видно
        первыми, и половина из них собирается в коде, а не лежит в разметке */
     if ($("fDelvLabels")) buildDelvDial();
+    if ($("practiceChips")) renderPracticeChips();
+    if ($("startPractice") && $("startSheet").classList.contains("open")) renderStartSheet();
     if (typeof updateNowTick === "function" && $("nowTick")) updateNowTick();
     if ($("travelNote")) renderTravelSeg();
     if ($("unitNote")) renderUnitSeg();
@@ -14388,14 +14505,62 @@
 
   /* Подписи денежных полей. Они стоят в разметке, а знак валюты меняется —
      значит подпись собирается, а не лежит готовой строкой */
+  /* Слово практики набрано строчными: внутри фразы «внесён ретейнер» оно
+     так и стоит, а в подписи поля начинает строку. Заглавная буква тут —
+     свойство места, а не слова, поэтому ставится на месте. */
+  function capFirst(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
   function renderMoneyLabels() {
     var sign = currencySign();
     var pre = $("fPrepayLabel"), exp = $("fExpenseLabel"), grate = $("gRateLabel");
-    if (pre) pre.textContent = LANG.t("form.prepayLbl", { sign: sign });
+    if (pre) pre.textContent = capFirst(LANG.t("form.prepayLbl", { word: prepayWord(), sign: sign }));
     if (exp) exp.textContent = LANG.t("form.expenseLbl", { sign: sign });
     if (grate) grate.textContent = LANG.t("gen.rateLbl", { sign: sign });
   }
 
+  /* ---------- Практика: чипсы в настройках и вопрос при первом запуске ----------
+     Смена практики перерисовывает карточку и форму: меняется состав цепочки
+     сделки и набор видов документов, а это видно сразу. */
+  function practiceChips(host, cur, onPick) {
+    $(host).innerHTML = PRACTICES.map(function (k) {
+      return '<button class="chip' + (cur === k ? " active" : "") + '" data-p="' + k + '">'
+        + esc(LANG.t("practice." + k)) + "</button>";
+    }).join("");
+    $(host).querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () { onPick(b.dataset.p); });
+    });
+  }
+  function renderPracticeChips() {
+    if (!$("practiceChips")) return;
+    practiceChips("practiceChips", practice, function (k) {
+      practice = k; practiceAsked = true; saveAll();
+      renderPracticeChips();
+      renderDocKinds(); renderDelv();
+      if (cardIdx !== null && $("cardOverlay").classList.contains("open")) openCard(cardIdx, true);
+    });
+    $("practiceNote").textContent = LANG.t("practice.note." + practice);
+  }
+  function renderStartSheet() {
+    practiceChips("startPractice", practice, function (k) {
+      practice = k; renderStartSheet();
+    });
+    $("startNote").textContent = LANG.t("practice.note." + practice);
+  }
+  function openStartSheet() {
+    renderStartSheet();
+    $("startScrim").classList.add("show");
+    $("startSheet").classList.add("open");
+  }
+  function closeStartSheet() {
+    practiceAsked = true;
+    saveAll();
+    $("startScrim").classList.remove("show");
+    $("startSheet").classList.remove("open");
+    renderPracticeChips();
+  }
+  $("startDone").addEventListener("click", closeStartSheet);
+  $("startScrim").addEventListener("click", closeStartSheet);
+
+  renderPracticeChips();
   renderLangChips();
   renderCurChips();
   renderClockSeg();
@@ -15832,6 +15997,10 @@
   renderSpotMark();
   renderDelvSettings();
   renderCal(); renderDayPanel(); renderSessions(); renderBinBtn();
+  /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
+     После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
+     потом спрашивают о правилах. */
+  if (!practiceAsked) setTimeout(openStartSheet, 600);
   measureDockSoon();
   window.addEventListener("resize", measureDock);
   window.addEventListener("orientationchange", measureDockSoon);
