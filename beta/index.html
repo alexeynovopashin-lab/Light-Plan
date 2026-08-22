@@ -2358,6 +2358,11 @@
   .pn-v { display: block; font-size: 17px; color: var(--ink); margin-top: 2px;
     font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pn-v.gold { color: var(--brass); }
+  /* Гонорар с расходом в одну строку не помещается: справа стоит прибыль,
+     и приписка наезжала на неё. Перенос, а не многоточие — обрезать тут
+     нечего, оба числа и есть то, ради чего в плитку смотрят. Видно это
+     только на больших суммах, поэтому и всплыло поздно. */
+  .pn-v.fee { white-space: normal; }
   .pn-body { display: block; min-width: 0; flex: 1; }
   .go-btn { display: inline-flex; }
   /* Шеврон перехода вырос с 8 × 14 до 10 × 17 и потемнел на две ступени.
@@ -3969,12 +3974,12 @@
        в форме, и открываются только кнопкой «Изменить». -->
   <div class="overlay" id="cardOverlay">
     <div class="form-bar">
-      <button class="round" id="cardBack" aria-label="Закрыть">
+      <button class="round" id="cardBack" aria-label="Закрыть" data-i18n-aria="card.close">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
       <div class="card-bar-r">
-        <button class="card-edit" id="cardEdit">Заполнить</button>
-        <button class="round" id="cardOrder" aria-label="Настроить карточку" hidden data-ic="sliders"></button>
+        <button class="card-edit" id="cardEdit" data-i18n="card.fill">Заполнить</button>
+        <button class="round" id="cardOrder" aria-label="Настроить карточку" data-i18n-aria="card.tune" hidden data-ic="sliders"></button>
       </div>
     </div>
     <h2 class="form-title" id="cardTitle">Съёмка</h2>
@@ -4071,7 +4076,7 @@
     <div class="fold" id="cdDocFold" hidden>
       <button type="button" class="fold-head" id="cdDocHead">
         <span class="badge" data-ic="doc"></span>
-        <span class="pn-body"><span class="pn-t">Документы</span><span class="pn-s" id="cdDocS">—</span></span>
+        <span class="pn-body"><span class="pn-t" data-i18n="card.docs">Документы</span><span class="pn-s" id="cdDocS">—</span></span>
         <span class="chev" data-ic="chevron"></span>
       </button>
       <div class="fold-body" id="cdDocBody"></div>
@@ -4083,44 +4088,44 @@
     <div class="ord-foot" id="cdOrderFoot" hidden>
       <!-- «По умолчанию», а не «вернуть наш порядок»: кнопка говорит, что
            получится, а не чей это был порядок -->
-      <button type="button" class="ord-reset" id="cdOrderReset">По умолчанию</button>
-      <button type="button" class="ord-done" id="cdOrderDone">Готово</button>
+      <button type="button" class="ord-reset" id="cdOrderReset" data-i18n="card.orderReset">По умолчанию</button>
+      <button type="button" class="ord-done" id="cdOrderDone" data-i18n="card.orderDone">Готово</button>
     </div>
 
     </div><!-- /sheet -->
     </div><!-- /stack-wrap -->
 
-    <div class="g-label" id="cdWhenLabel">Когда</div>
+    <div class="g-label" id="cdWhenLabel" data-i18n="card.when">Когда</div>
     <div class="group" id="cdWhenGroup">
-      <div class="row">Дата<span class="rv" id="cdDate">—</span></div>
-      <div class="row sep">Время
+      <div class="row"><span class="rl" data-i18n="card.date">Дата</span><span class="rv" id="cdDate">—</span></div>
+      <div class="row sep"><span class="rl" data-i18n="card.time">Время</span>
         <span class="rv"><span id="cdTime">—</span><span class="sub" id="cdDur">—</span></span>
       </div>
-      <div class="row sep" id="cdPlaceLine">Место<span class="rv" id="cdPlace">—</span></div>
+      <div class="row sep" id="cdPlaceLine"><span class="rl" data-i18n="card.place">Место</span><span class="rv" id="cdPlace">—</span></div>
     </div>
 
     <!-- Ради этого блока планировщик и существует: обычный календарь
          знает время, но не знает, какой свет в это время будет -->
-    <div class="g-label" id="cdLightLabel">Свет и погода</div>
+    <div class="g-label" id="cdLightLabel" data-i18n="card.lightWx">Свет и погода</div>
     <div class="group" id="cdLightGroup">
-      <div class="row">Свет<span class="rv" id="cdLight">—</span></div>
-      <div class="row sep">Тени<span class="rv" id="cdShadow">—</span></div>
-      <div class="row sep">Небо<span class="rv" id="cdSky">—</span></div>
-      <div class="row sep" id="cdSunsetRow">Закат<span class="rv" id="cdSunset">—</span></div>
-      <div class="row">Золотой час<span class="rv" id="cdGold">—</span></div>
+      <div class="row"><span class="rl" data-i18n="tele.light">Свет</span><span class="rv" id="cdLight">—</span></div>
+      <div class="row sep"><span class="rl" data-i18n="tele.shadow">Тени</span><span class="rv" id="cdShadow">—</span></div>
+      <div class="row sep"><span class="rl" data-i18n="tele.sky">Небо</span><span class="rv" id="cdSky">—</span></div>
+      <div class="row sep" id="cdSunsetRow"><span class="rl" data-i18n="tele.sunset">Закат</span><span class="rv" id="cdSunset">—</span></div>
+      <div class="row"><span class="rl" data-i18n="tele.golden">Золотой час</span><span class="rv" id="cdGold">—</span></div>
     </div>
     <p class="card-trust" id="cdTrust">—</p>
     <p class="card-warn" id="cdWarn" hidden></p>
 
-    <div class="g-label" id="cdDelvLabel">Сдача материала</div>
+    <div class="g-label" id="cdDelvLabel" data-i18n="card.delivery">Сдача материала</div>
     <div class="group" id="cdDelvGroup">
-      <div class="row" id="cdDelvRow">Статус<span class="rv" id="cdDelv">—</span></div>
+      <div class="row" id="cdDelvRow"><span class="rl" data-i18n="card.status">Статус</span><span class="rv" id="cdDelv">—</span></div>
     </div>
 
-    <div class="g-label" id="cdRefsLabel">Референсы</div>
+    <div class="g-label" id="cdRefsLabel" data-i18n="card.refs">Референсы</div>
     <div class="ref-grid" id="cdRefs"></div>
 
-    <div class="g-label" id="cdNotesLabel">Заметки</div>
+    <div class="g-label" id="cdNotesLabel" data-i18n="card.notes">Заметки</div>
     <p class="card-notes" id="cdNotes"></p>
 
     <!-- Встреча кончается решением. Кнопка не переименовывает запись, а
@@ -4128,17 +4133,17 @@
          съёмка встаёт на свою дату. Стереть встречу, которой не было, можно
          свайпом — а вот восстановить стёртую историю нечем. -->
     <button class="grow-btn" id="cdGrow" hidden>
-      <span class="gb-t">Назначить съёмку</span>
-      <span class="gb-s">встреча останется в календаре</span>
+      <span class="gb-t" data-i18n="card.growT">Назначить съёмку</span>
+      <span class="gb-s" data-i18n="card.growS">встреча останется в календаре</span>
     </button>
     <div class="card-grown" id="cdGrown" hidden></div>
 
     <!-- Деньги не первое, что видишь: строка сворачивается (04_ANTI_GOALS) -->
-    <button class="card-money" id="cdMoneyBtn" hidden>Деньги<span class="rv" id="cdMoneySum">—</span></button>
+    <button class="card-money" id="cdMoneyBtn" hidden><span class="rl" data-i18n="card.money">Деньги</span><span class="rv" id="cdMoneySum">—</span></button>
     <div class="group" id="cdMoneyGroup" hidden>
-      <div class="row sep">Доход<span class="rv" id="cdIncome">—</span></div>
-      <div class="row sep">Расходы<span class="rv" id="cdExpense">—</span></div>
-      <div class="row">Прибыль<span class="rv" id="cdProfit">—</span></div>
+      <div class="row sep"><span class="rl" data-i18n="card.income">Доход</span><span class="rv" id="cdIncome">—</span></div>
+      <div class="row sep"><span class="rl" data-i18n="card.expense">Расходы</span><span class="rv" id="cdExpense">—</span></div>
+      <div class="row"><span class="rl" data-i18n="card.profit">Прибыль</span><span class="rv" id="cdProfit">—</span></div>
     </div>
 
     <!-- Удаление живёт в карточке, а не только в свайпе по списку: карточка
@@ -4148,7 +4153,7 @@
          функция обязана уметь исчезнуть, и пустая корзина на экране — это
          обещание работы, которой нет. -->
     <div class="card-acts">
-      <button class="card-bin" id="cdBin" hidden aria-label="Корзина">
+      <button class="card-bin" id="cdBin" hidden aria-label="Корзина" data-i18n-aria="card.bin">
         <span class="ic" data-ic="trash"></span><span class="n" id="cdBinN">0</span>
       </button>
       <button class="card-del" id="cdDelete">Удалить съёмку</button>
@@ -6235,6 +6240,27 @@
     return d;
   }
   saved = migrateWishes(saved);
+  /* Вид документа — тот же приём в шестой раз, и это уже не совпадение:
+     строка, которую где-то сравнивают, всегда оказывается ключом. Вид лежал
+     русским словом в каждой бумаге (`kind`), по нему шёл фильтр в списках и
+     по нему же считалась цепочка сделки (`has("Договор")`). Перевести его,
+     не разведя код и имя, значило бы порвать и фильтры, и сделку. */
+  var DOC_KIND_CODE = {
+    "Договор": "contract", "Счёт": "invoice", "Чек": "receipt",
+    "Акт": "act", "ТЗ": "brief", "Реквизиты": "req"
+  };
+  function migrateDocKinds(d) {
+    if (!d) return d;
+    var fix = function (list) {
+      (Array.isArray(list) ? list : []).forEach(function (r) {
+        if (r && DOC_KIND_CODE[r.kind]) r.kind = DOC_KIND_CODE[r.kind];
+      });
+    };
+    (Array.isArray(d.sessions) ? d.sessions : []).forEach(function (s) { if (s) fix(s.docs); });
+    (Array.isArray(d.orgs) ? d.orgs : []).forEach(function (o) { if (o) fix(o.docs); });
+    return d;
+  }
+  saved = migrateDocKinds(saved);
   // Восстанавливаем место до первого расчёта света
   if (saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon)) {
     LAT = saved.loc.lat; LON = saved.loc.lon;
@@ -6425,9 +6451,11 @@
      currency — у настройки. */
   /* Число с разделителями разрядов. Разделитель — свойство языка: русский
      ставит пробел, английский запятую. Раньше здесь стояло жёсткое "ru-RU" */
-  function num(n) {
-    try { return new Intl.NumberFormat(LANG.code).format(n); }
-    catch (e) { return String(n); }
+  function num(n, digits) {
+    try {
+      return new Intl.NumberFormat(LANG.code, digits == null ? undefined
+        : { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
+    } catch (e) { return String(n); }
   }
   var CURRENCIES = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"];
   var currency = (saved && CURRENCIES.indexOf(saved.currency) >= 0) ? saved.currency : "RUB";
@@ -8032,8 +8060,20 @@
   /* В клетке помещается одно слово: жанр в именительном и без хвоста */
   /* Короткое имя для тесной клетки календаря: «Свадьба» вместо «Свадьбы»,
      «Архитект.» вместо «Архитектуры». Где сокращать нечего — обычное имя */
-  var SHORT_GENRE = { "wedding": "Свадьба", "architecture": "Архитект.", "product": "Предметка" };
-  function shortGenre(t) { return SHORT_GENRE[t] || genreName(t); }
+  /* Короткое имя жанра — для узких мест: ячейка календаря, лента дня.
+     Своё оно не у каждого жанра, и заводить всем незачем: где ключа нет,
+     встаёт обычное имя. Раньше короткие имена лежали таблицей в коде — то
+     есть код знал язык интерфейса, хотя его дело ширина ячейки. */
+  function shortGenre(t) {
+    var k = "genreShort." + (GENRE_CODE[t] || t), v = LANG.t(k);
+    return v === k ? genreName(t) : v;
+  }
+  /* Имя события: жанр названием чипса стоит во множественном («Свадьбы»),
+     а событие — одно («Свадьба»). Тот же приём с запасным именем. */
+  function evName(t) {
+    var k = "genreEv." + (GENRE_CODE[t] || t), v = LANG.t(k);
+    return v === k ? genreName(t) : v;
+  }
 
   function renderCal() {
     if (window.ICONS) paintIcons(document);      // знаки видов в шапке
@@ -8823,7 +8863,7 @@
        Качество передаётся цветом времени, а не отдельным словом: словом его
        уже сказала погода справа */
     $("dpWindow").innerHTML = q === "poor"
-      ? '<span class="dim">Окна света нет</span>'
+      ? '<span class="dim">' + esc(LANG.t("day.noWindowCap")) + "</span>"
       : w.label + ' <span class="t">' + range(w.a, w.b) + "</span>";
     $("dpWindow").style.color = q === "poor" ? "" : QUAL[q].vcol;
     // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
@@ -9677,18 +9717,26 @@
      списке стоят имя, тип и размер, а тап открывает файл. */
   /* Виды документов заказа. Порядок — порядок сделки: чем открывают работу,
      тем и начинается список; акт закрывает (docs/12_CARD_ARCHITECTURE.md) */
-  var DOC_KINDS = ["Договор", "Счёт", "Чек", "Акт", "ТЗ"];
+  var DOC_KINDS = ["contract", "invoice", "receipt", "act", "brief"];
+  /* Имя вида для экрана. Терпима к старым записям, как и `genreName`:
+     пришло русское слово — переводим в код на лету */
+  function docKindName(k) {
+    if (!k) return "";
+    var code = DOC_KIND_CODE[k] || k;
+    var s = LANG.t("doc." + code);
+    return s === "doc." + code ? k : s;
+  }
   var fDocKind = null;                 // выбранный вид: и фильтр, и метка новым
   /* Имя файла обычно уже говорит, что это: «dogovor-romashka.pdf». Угадываем,
      чтобы не заставлять выбирать вид у каждого файла заново */
   /* Файлы называют и кириллицей, и транслитом: «akt-vypolnennyh», «chek-2214».
      Ловим оба написания — иначе вид приходится ставить руками каждому файлу */
   var DOC_GUESS = [
-    [/догов|contract|dogovor/i, "Договор"],
-    [/чек|chek|check|cheque|receipt|kassa/i, "Чек"],
-    [/счёт|счет|invoice|schet|schyot/i, "Счёт"],
-    [/акт(?![а-яё])|akt(?![a-z])|act(?![a-z])/i, "Акт"],
-    [/тз|бриф|brief|task|tz(?![a-z])/i, "ТЗ"]
+    [/догов|contract|dogovor/i, "contract"],
+    [/чек|chek|check|cheque|receipt|kassa/i, "receipt"],
+    [/счёт|счет|invoice|schet|schyot/i, "invoice"],
+    [/акт(?![а-яё])|akt(?![a-z])|act(?![a-z])/i, "act"],
+    [/тз|бриф|brief|task|tz(?![a-z])/i, "brief"]
   ];
   function guessDocKind(name) {
     for (var i = 0; i < DOC_GUESS.length; i++) {
@@ -9700,7 +9748,7 @@
     $("docKinds").innerHTML = DOC_KINDS.map(function (k) {
       var n = fDocs.filter(function (r) { return r.kind === k; }).length;
       return '<button type="button" class="rf-tag' + (fDocKind === k ? " on" : "") + '" data-k="' + k + '">'
-        + k + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
+        + esc(docKindName(k)) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
     }).join("");
     $("docKinds").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -9712,12 +9760,15 @@
 
   function docSize(b) {
     if (!b) return "";
-    return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + " КБ"
-      : (b / 1048576).toFixed(b < 10485760 ? 1 : 0).replace(".", ",") + " МБ";
+    /* Число тоже пишется по-местному: у русского запятая, у английского
+       точка. Разделитель ставит Intl, а не мы вручную. */
+    return b < 1048576
+      ? LANG.t("doc.kb", { n: num(Math.max(1, Math.round(b / 1024))) })
+      : LANG.t("doc.mb", { n: num(b / 1048576, b < 10485760 ? 1 : 0) });
   }
   function docExt(name) {
     var m = /\.([a-z0-9]+)$/i.exec(name || "");
-    return m ? m[1].toUpperCase() : "файл";
+    return m ? m[1].toUpperCase() : LANG.t("doc.file");
   }
   function renderDocs() {
     var box = $("docGrid");
@@ -9726,7 +9777,7 @@
       .filter(function (p) { return !fDocKind || p.r.kind === fDocKind; });
     box.innerHTML = shown.map(function (p) {
       var r = p.r, i = p.i;
-      var top = r.kind || (r.k === "link" ? refHost(r.url) : docExt(r.name));
+      var top = docKindName(r.kind) || (r.k === "link" ? refHost(r.url) : docExt(r.name));
       var sub = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || "документ");
       return '<button type="button" class="ref-card link" data-i="' + i + '">'
         + '<span class="host">' + esc(top) + "</span>"
@@ -9754,7 +9805,7 @@
       window.open(href, "_blank", "noopener");
     }).catch(function () {
       $("docNote").hidden = false;
-      $("docNote").textContent = "Файл не открылся: нет связи с Диском.";
+      $("docNote").textContent = LANG.t("doc.openFail");
     });
   }
   function addDocFiles(files) {
@@ -9801,7 +9852,7 @@
       });
       (o.reqFiles || []).forEach(function (r, j) {
         out.push({ r: { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
-          thumb: r.thumb, kind: "Реквизиты" }, from: "req", oi: i, di: j, when: null, who: o.name });
+          thumb: r.thumb, kind: "req" }, from: "req", oi: i, di: j, when: null, who: o.name });
       });
     });
     /* Свежие сверху: к бумагам возвращаются от последней к первой */
@@ -9816,7 +9867,7 @@
   }
   function docTitle(r) {
     if (r.k === "link") return refTail(r.url).split("/").pop() || refHost(r.url);
-    return r.name || "документ";
+    return r.name || LANG.t("doc.any");
   }
   function docWeight(r) {
     if (r.k === "link") return refHost(r.url);
@@ -9824,7 +9875,7 @@
   }
   function docRow(d, i, kill) {
     return '<button type="button" class="doc-row" data-i="' + i + '">'
-      + '<span class="k">' + esc(docKind(d.r) || "документ") + "</span>"
+      + '<span class="k">' + esc(docKindName(docKind(d.r)) || LANG.t("doc.any")) + "</span>"
       + '<span class="n">' + esc(docTitle(d.r)) + "</span>"
       + '<span class="w">' + esc(docWeight(d.r)) + "</span>"
       /* Убрать можно только свою бумагу: документ съёмки живёт в съёмке,
@@ -9839,12 +9890,12 @@
     allDocList = all.filter(function (d) {
       return !allDocFilter || docKind(d.r) === allDocFilter;
     });
-    var kinds = DOC_KINDS.concat(["Реквизиты"]);
+    var kinds = DOC_KINDS.concat(["req"]);
     $("allDocKinds").innerHTML = kinds.map(function (k) {
       var n = all.filter(function (d) { return docKind(d.r) === k; }).length;
       if (!n && allDocFilter !== k) return "";
       return '<button type="button" class="rf-tag' + (allDocFilter === k ? " on" : "") + '" data-k="' + k + '">'
-        + k + '<span class="n">' + n + "</span></button>";
+        + esc(docKindName(k)) + '<span class="n">' + n + "</span></button>";
     }).join("");
     $("allDocKinds").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -10268,7 +10319,7 @@
   function renderOrgDocKinds() {
     $("oDocKinds").innerHTML = DOC_KINDS.map(function (k) {
       return '<button type="button" class="rf-tag' + (oDocKind === k ? " on" : "") + '" data-k="' + k + '">'
-        + k + "</button>";
+        + esc(docKindName(k)) + "</button>";
     }).join("");
     $("oDocKinds").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -10781,11 +10832,11 @@
     /* Час, а не полтора: портрет столько и снимают, а лишние полчаса каждый
        раз убирали руками. Правка внутри жанра по-прежнему запоминается */
     "portrait":     { delivery: true,  client: true,  dur: 60,  pay: ["hourly", "flat", "pack"] },
-    "wedding":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true, ev: "Свадьба" },
+    "wedding":     { delivery: true,  client: true,  dur: 480, pay: ["hourly", "pack"], route: true },
     /* Праздник — день рождения, юбилей, городское событие: что считать
        праздником, решает фотограф. Устроен как событие дня: точки, гости,
        пакеты — только повод другой */
-    "party":    { delivery: true,  client: true,  dur: 240, pay: ["hourly", "pack"], route: true, ev: "Праздник" },
+    "party":    { delivery: true,  client: true,  dur: 240, pay: ["hourly", "pack"], route: true },
     "lovestory":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "family":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "landscape":      { delivery: false, client: false, dur: null, pay: ["flat"] },
@@ -11566,14 +11617,17 @@
     return (h > 23 || mm > 59) ? null : h * 60 + mm;
   }
   /* «Свадьбы · через 2 дня» — счёт дней вместо даты: до неё живут заботами,
-     а не календарём. Дальше недели дни уже не считают. */
+     а не календарём. Дальше недели дни уже не считают.
+     Сегодня — пусто, и это не пропуск: дата стоит в той же строке, и слово
+     «сегодня» рядом с ней ничего не добавляет. Раньше слово возвращалось, а
+     звавший его сравнивал с «сегодня», чтобы выбросить, — то есть русская
+     строка опять работала ключом. Теперь решение принимает сам счёт дней. */
   function whenWord(d) {
     var n = new Date();
     var days = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate())
       - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
-    if (days === 0) return " · сегодня";
-    if (days === 1) return " · завтра";
-    if (days > 1 && days <= 7) return " · через " + days + " " + plural(days, ["день", "дня", "дней"]);
+    if (days === 1) return LANG.t("when.tomorrow");
+    if (days > 1 && days <= 7) return LANG.t("when.inDays", { n: LANG.count("unit.day", days) });
     return "";
   }
   function routeOf(s) {
@@ -11644,7 +11698,7 @@
     // Без точек роль точки играет сама съёмка — её начало и конец
     var pts = route.length ? route : (function () {
       var end = s.end != null ? s.end : s.min + (s.dur || 90);
-      return [{ t: s.min, n: "Съёмка" }, { t: end, n: "Съёмка" }];
+      return [{ t: s.min, n: LANG.t("card.shootPoint") }, { t: end, n: LANG.t("card.shootPoint") }];
     })();
     var hit = null, near = null, gap = 1e9;
     pts.forEach(function (r) {
@@ -11655,19 +11709,20 @@
 
     var q = qualityOf(s.date), wx = dayWeather(s.date), bad = q === "poor" || q === "fog";
     if (bad) {
-      return { bad: true, text: (hit ? hit.n : "Съёмка") + " ждала закат, а прогноз обещает "
-        + QUAL[q].cond.toLowerCase() + " · облачность " + wx.cloud + "%." };
+      return { bad: true, text: LANG.t("light.waitedSunset", {
+        name: hit ? hit.n : LANG.t("card.shootPoint"),
+        cond: QUAL[q].cond.toLowerCase(), cloud: wx.cloud }) };
     }
     if (hit) {
-      return { bad: false, text: "«" + hit.n + "» попадает в золотой час: "
-        + range(sun.goldB, sun.blueB) + ". Свет тёплый и мягкий." };
+      return { bad: false, text: LANG.t("light.inGolden", {
+        name: hit.n, range: range(sun.goldB, sun.blueB) }) };
     }
     /* Мимо на час — стоит сказать, мимо на полдня — нет: утренняя съёмка
        не имеет отношения к вечернему золотому часу */
     if (near && gap <= 180) {
-      return { bad: false, text: "Золотой час " + range(sun.goldB, sun.blueB)
-        + " — ближайшая точка «" + near.n + "» мимо на " + durLabel(Math.round(gap))
-        + ". Сдвиньте, если свет важен." };
+      return { bad: false, text: LANG.t("light.missGolden", {
+        range: range(sun.goldB, sun.blueB), name: near.n,
+        gap: durLabel(Math.round(gap)) }) };
     }
     return null;
   }
@@ -11677,21 +11732,24 @@
      свой, поэтому порядок можно переложить — и он запоминается по группе
      жанров, а не по отдельной съёмке (docs/12_CARD_ARCHITECTURE.md). */
   var CARD_BLOCKS = [
-    { k: "deal",     el: "cdDeal",     n: "Сделка",       ic: "doc" },
-    { k: "day",      el: "cdDay",      n: "Плитка дня",   ic: "clock" },
-    { k: "clash",    el: "cdClash",    n: "Наложение",    ic: "warn" },
-    { k: "light",    el: "cdSay",      n: "Свет",         ic: "sun" },
-    { k: "place",    el: "cdPanes",    n: "Место и дальше", ic: "pin" },
-    { k: "weather",  el: "cdWx",       n: "Погода",       ic: "cloud" },
-    { k: "route",    el: "cdRouteFold", n: "Маршрут дня", ic: "route" },
-    { k: "refs",     el: "cdRefFold",  n: "Референсы",    ic: "camera" },
-    { k: "brief",    el: "cdBriefBlk", n: "Задание",      ic: "note_edit" },
-    { k: "models",   el: "cdModelsBlk", n: "Модели",      ic: "guests" },
-    { k: "docs",     el: "cdDocFold",  n: "Документы",    ic: "doc" },
-    { k: "notes",    el: "cdNotesBlk", n: "Заметки",      ic: "note" },
-    { k: "delivery", el: "cdDelvBlk",  n: "Сдача",        ic: "clock" },
-    { k: "money",    el: "cdMoneyBlk", n: "Гонорар",      ic: "purse" }
+    { k: "deal",     el: "cdDeal",      ic: "doc" },
+    { k: "day",      el: "cdDay",       ic: "clock" },
+    { k: "clash",    el: "cdClash",     ic: "warn" },
+    { k: "light",    el: "cdSay",       ic: "sun" },
+    { k: "place",    el: "cdPanes",     ic: "pin" },
+    { k: "weather",  el: "cdWx",        ic: "cloud" },
+    { k: "route",    el: "cdRouteFold", ic: "route" },
+    { k: "refs",     el: "cdRefFold",   ic: "camera" },
+    { k: "brief",    el: "cdBriefBlk",  ic: "note_edit" },
+    { k: "models",   el: "cdModelsBlk", ic: "guests" },
+    { k: "docs",     el: "cdDocFold",   ic: "doc" },
+    { k: "notes",    el: "cdNotesBlk",  ic: "note" },
+    { k: "delivery", el: "cdDelvBlk",   ic: "clock" },
+    { k: "money",    el: "cdMoneyBlk",  ic: "purse" }
   ];
+  /* Имя блока в режиме перестановки. Раньше лежало в самой таблице рядом с
+     кодом — и таблица знала язык интерфейса, хотя её дело порядок */
+  function blockName(k) { return LANG.t("cdBlock." + k); }
   var DEFAULT_ORDER = CARD_BLOCKS.map(function (b) { return b.k; });
 
   /* У заказа порядок другой не по вкусу, а по существу: сделка отвечает на
@@ -11803,7 +11861,7 @@
       var cap = document.createElement("div");
       cap.className = "ord-cap";
       cap.innerHTML = '<span class="badge">' + IC.svg(b.ic) + "</span>"
-        + '<span class="ord-n">' + b.n + "</span>"
+        + '<span class="ord-n">' + esc(blockName(b.k)) + "</span>"
         + '<span class="ord-grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">'
         + '<path d="M4 9h16M4 15h16"/></svg></span>';
       el.insertBefore(cap, el.firstChild);
@@ -12109,7 +12167,7 @@
         if (parts.length > 1) { name = parts[0]; person = parts.slice(1).join(", "); }
       }
     }
-    $("cdEvNames").textContent = name || (spec.ev || genreName(s.type));
+    $("cdEvNames").textContent = name || evName(s.type);
     fitTitle($("cdEvNames"));
     $("cdEvPerson").hidden = !person;
     $("cdEvPerson").textContent = person;
@@ -12117,16 +12175,16 @@
     /* Строка под именем обязана содержать жанр, дату и время — это первое,
        что человек ищет в карточке (замечание с тестов) */
     var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
-    var when = whenWord(s.date).replace(/^ · /, "");
+    var when = whenWord(s.date);
     var bits = [];
     /* Встреча называет себя встречей и говорит, о чём она: «Встреча · свадьба».
        Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
-    if (isMeet(s)) bits.push("Встреча · " + shortGenre(s.type).toLowerCase());
-    else if (name) bits.push(spec.ev || genreName(s.type));
+    if (isMeet(s)) bits.push(LANG.t("card.meetAbout", { genre: shortGenre(s.type).toLowerCase() }));
+    else if (name) bits.push(evName(s.type));
     bits.push(dMon(s.date));
     bits.push(range(s.min, end));
     $("cdEvWhen").textContent = bits.join(" · ")
-      + (phase === "after" ? afterWord(s.date) : (when && when !== "сегодня" ? " · " + when : ""));
+      + (phase === "after" ? afterWord(s.date) : (when ? " · " + when : ""));
     $("cdEvWhen").classList.toggle("past", phase === "after");
 
     var tel = firstPhone(s);
@@ -12143,8 +12201,8 @@
     var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate())
       - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
     if (days <= 0) return "";
-    if (days === 1) return " вчера";
-    return days <= 7 ? " " + days + " " + plural(days, ["день", "дня", "дней"]) + " назад" : "";
+    if (days === 1) return " " + LANG.t("when.yesterday");
+    return days <= 7 ? " " + LANG.t("when.daysAgo", { n: LANG.count("unit.day", days) }) : "";
   }
 
   /* Плитка дня: дата, навигатор, лента знаков */
@@ -12165,32 +12223,34 @@
     if (!route.length) {
       /* Съёмка без точек — это отрезок: когда начинается и сколько идёт */
       if (phase === "during") {
-        $("cdDayNow").textContent = "Идёт съёмка";
-        $("cdDayLeft").innerHTML = "осталось <b>" + durLabel(Math.max(0, endMin - nowMin2)) + "</b> · до " + fmt(endMin);
+        $("cdDayNow").textContent = LANG.t("day.running");
+        $("cdDayLeft").innerHTML = LANG.t("day.leftUntil", {
+          left: "<b>" + esc(durLabel(Math.max(0, endMin - nowMin2))) + "</b>", t: esc(fmt(endMin)) });
       } else if (phase === "after") {
-        $("cdDayNow").textContent = isMeet(s) ? "Встреча прошла" : "Съёмка отработана";
+        $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : "day.shootDone");
         $("cdDayLeft").textContent = range(s.min, endMin) + " · " + durLabel(dur);
       } else {
         $("cdDayNow").textContent = range(s.min, endMin);
         $("cdDayLeft").textContent = durLabel(dur)
-          + (today ? " · через " + durLabel(Math.max(0, s.min - nowMin2)) : "");
+          + (today ? " · " + LANG.t("day.startsIn", { in: durLabel(Math.max(0, s.min - nowMin2)) }) : "");
       }
     } else if (phase === "during" && cur >= 0) {
       var nx = route[cur + 1];
-      $("cdDayNow").textContent = "Сейчас: " + route[cur].n;
+      $("cdDayNow").textContent = LANG.t("day.nowAt", { name: route[cur].n });
       $("cdDayLeft").innerHTML = nx
-        ? "осталось <b>" + durLabel(nx.t - nowMin2) + "</b> · дальше " + nx.n
-        : "последняя точка дня";
+        ? LANG.t("day.leftNext", { left: "<b>" + esc(durLabel(nx.t - nowMin2)) + "</b>", next: esc(nx.n) })
+        : LANG.t("day.lastPoint");
     } else if (phase === "before" && today) {
-      $("cdDayNow").textContent = "Скоро: " + route[0].n;
-      $("cdDayLeft").innerHTML = "через <b>" + durLabel(route[0].t - nowMin2) + "</b> · в " + fmt(route[0].t);
+      $("cdDayNow").textContent = LANG.t("day.soonAt", { name: route[0].n });
+      $("cdDayLeft").innerHTML = LANG.t("day.inAt", {
+        left: "<b>" + esc(durLabel(route[0].t - nowMin2)) + "</b>", t: esc(fmt(route[0].t)) });
     } else if (phase === "before") {
-      $("cdDayNow").textContent = fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
+      $("cdDayNow").textContent = range(route[0].t, route[route.length - 1].t);
       $("cdDayLeft").textContent = durLabel(route[route.length - 1].t - route[0].t)
-        + " · " + route.length + " " + plural(route.length, ["точка", "точки", "точек"]);
+        + " · " + LANG.count("unit.point", route.length);
     } else {
-      $("cdDayNow").textContent = isMeet(s) ? "Встреча прошла" : "Съёмка отработана";
-      $("cdDayLeft").textContent = fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
+      $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : "day.shootDone");
+      $("cdDayLeft").textContent = range(route[0].t, route[route.length - 1].t);
     }
 
     renderStudioTimer(s, route, phase, cur, nowMin2);
@@ -12246,9 +12306,9 @@
     el.className = "say" + (left > 0 ? " warn" : " bad");
     $("cdStudioIc").innerHTML = IC.svg("warn");
     $("cdStudioT").innerHTML = left > 0
-      ? "Студийный час — выйти через <b>" + left + " " + plural(left, ["минуту", "минуты", "минут"]) + "</b>"
-      : (left === 0 ? "Студийный час — пора выходить"
-        : "Студийный час — вышли " + (-left) + " " + plural(-left, ["минуту", "минуты", "минут"]) + " назад");
+      ? LANG.t("studio.leaveIn", { left: "<b>" + esc(LANG.count("unit.min", left)) + "</b>" })
+      : (left === 0 ? LANG.t("studio.leaveNow")
+        : LANG.t("studio.late", { over: esc(LANG.count("unit.min", -left)) }));
   }
   /* Тикает, только пока карточка открыта и точка почасовая: секундная точность
      тут не нужна, минутной хватает, а второй rAF-цикл в приложении — лишний. */
@@ -12279,13 +12339,14 @@
       ? route.map(function (r) { return { t: r.t, n: r.n, light: false }; })
       /* Без своих точек день всё равно имеет форму: начало и конец съёмки.
          Это делает ленту одинаковой у свадьбы и у портрета */
-      : [{ t: s.min, n: "Начало", light: false }, { t: end, n: "Конец", light: false }];
+      : [{ t: s.min, n: LANG.t("lane.start"), light: false },
+         { t: end, n: LANG.t("lane.end"), light: false }];
     if (light && !light.bad) {
       var g = cardSun(s).goldB;
       var from = pts[0].t - 60, to = pts[pts.length - 1].t + 60;
       if (g !== null && g >= from && g <= to
           && !pts.some(function (p) { return Math.abs(p.t - g) < 20; })) {
-        pts.push({ t: Math.round(g), n: "Золотой", light: true });
+        pts.push({ t: Math.round(g), n: LANG.t("lane.golden"), light: true });
         pts.sort(function (a, b) { return a.t - b.t; });
       }
     }
@@ -12321,9 +12382,12 @@
     if (nx) {
       top.push('<div class="pane"><div class="pane-row">'
         + '<span class="badge">' + laneIcon(nx.n) + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Дальше</span>'
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.next")) + "</span>"
         + '<span class="pn-t" style="margin-top:2px">' + esc(nx.n) + "</span></span></div>"
-        + '<div class="pn-s" style="margin-top:8px">через ' + durLabel(nx.in) + ' · <span style="color:#E2A44C">' + fmt(nx.t) + "</span></div></div>");
+        + '<div class="pn-s" style="margin-top:8px">'
+        + LANG.t("pane.inAt", { in: esc(durLabel(nx.in)),
+            t: '<span style="color:#E2A44C">' + esc(fmt(nx.t)) + "</span>" })
+        + "</div></div>");
     }
 
     /* Гости и выезд — плитки, а не строки: число и город читаются знаком.
@@ -12331,14 +12395,14 @@
     if (s.guests) {
       top.push('<div class="pane"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.guests + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Гостей</span>'
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.guests")) + "</span>"
         + '<span class="pn-v">' + s.guests + "</span></span></div></div>");
     }
     if (s.trip) {
       top.push('<div class="pane"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.car + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Выезд</span>'
-        + '<span class="pn-t" style="margin-top:2px">' + esc(s.tripPlace || "в другой город") + "</span></span></div></div>");
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.trip")) + "</span>"
+        + '<span class="pn-t" style="margin-top:2px">' + esc(s.tripPlace || LANG.t("pane.tripAny")) + "</span></span></div></div>");
     }
 
     var inc = sessionIncome(s), exp = +s.expense || 0, pre = +s.prepay || 0;
@@ -12348,12 +12412,14 @@
     var moneyHtml = (inc > 0 || exp > 0)
       ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.purse + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Гонорар</span>'
-        + '<span class="pn-v">' + money(inc) + (exp ? ' <span style="font-size:12px;color:#635E54">− расходы ' + money(exp) + "</span>" : "") + "</span>"
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.fee")) + "</span>"
+        + '<span class="pn-v' + (exp ? " fee" : "") + '">' + money(inc)
+        + (exp ? ' <span style="font-size:12px;color:#635E54">'
+            + esc(LANG.t("pane.minusExp", { sum: money(exp) })) + "</span>" : "") + "</span>"
         /* Строка длинная, а обрезать в ней нечего: остаток — ровно то число,
            ради которого сюда смотрят. Поэтому перенос, а не многоточие */
-        + (pre ? '<span class="pn-s" style="margin-top:3px;white-space:normal">предоплата ' + money(pre)
-          + " · остаток " + money(rest) + "</span>" : "")
+        + (pre ? '<span class="pn-s" style="margin-top:3px;white-space:normal">'
+          + esc(LANG.t("pane.prepayRest", { prepay: money(pre), rest: money(rest) })) + "</span>" : "")
         + "</span>"
         + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp) + "</span></div></div>"
       : "";
@@ -12363,16 +12429,17 @@
       var ds = deliveryState(s), dd = deadlineDate(s);
       delvHtml = '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.clock + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Сдача</span>'
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.handover")) + "</span>"
         + '<span class="pn-t" style="color:' + ds.color + ';margin-top:2px">' + ds.label
-        + (dd && !s.delivered ? ' <span style="color:#635E54;font-size:12.5px">· до ' + dMon(dd) + "</span>" : "")
+        + (dd && !s.delivered ? ' <span style="color:#635E54;font-size:12.5px">· '
+            + esc(LANG.t("card.byDate", { d: dMon(dd) })) + "</span>" : "")
         + "</span></span></div></div>";
     }
 
     var notesHtml = s.notes
       ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge blue">' + PANE_IC.note + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Заметки</span>'
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("card.notes")) + "</span>"
         + '<span class="pn-s" style="white-space:normal;margin-top:3px;color:#C9C2B6;font-size:13px;line-height:1.45">'
         + esc(s.notes) + "</span></span></div></div>"
       : "";
@@ -12452,9 +12519,9 @@
     $("cdRouteFold").hidden = !show;
     if (!show) return;
     $("cdRouteFold").classList.remove("open");
-    $("cdRouteT").textContent = "Маршрут дня";
-    $("cdRouteS").textContent = route.length + " " + plural(route.length, ["точка", "точки", "точек"])
-      + " · " + fmt(route[0].t) + " — " + fmt(route[route.length - 1].t);
+    $("cdRouteT").textContent = LANG.t("card.route");
+    $("cdRouteS").textContent = LANG.count("unit.point", route.length)
+      + " · " + range(route[0].t, route[route.length - 1].t);
 
     var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
     var cur = curIndex(route, nowMin2);
@@ -12476,7 +12543,7 @@
     if (!show) return;
     var c = list[0];
     $("cdClashT").innerHTML = "<b>" + esc(c.t) + ".</b> " + esc(c.m)
-      + (list.length > 1 ? " И ещё " + (list.length - 1) + "." : "");
+      + (list.length > 1 ? " " + LANG.t("card.clashMore", { n: list.length - 1 }) : "");
     paintIcons($("cdClash"));
   }
 
@@ -12484,6 +12551,13 @@
      Пять звеньев в порядке работы: ТЗ, договор, счёт, оплата, акт. Каждое либо
      закрыто, либо его ждут; новых полей под это не заводили — звено считается
      из того, что в записи уже есть (docs/11_EVENT_CARD.md). */
+  /* Имя звена. Два набора вместо `toLowerCase`: строчная буква — это правило
+     языка, а не строки. В немецком существительное с большой всегда, в
+     японском регистра нет вовсе, а русское «ТЗ» превращалось в «тз».
+     Внутри фразы стоит своё слово («ждём: техзадание»), а не обрезанное. */
+  function dealName(k, inPhrase) {
+    return LANG.t((inPhrase ? "dealW." : "dealN.") + k);
+  }
   function dealChain(s) {
     var docs = Array.isArray(s.docs) ? s.docs : [];
     function has(kind) {
@@ -12493,12 +12567,14 @@
     /* Оплата закрыта, когда получено всё. Нет суммы вовсе — звено не считается
        ни закрытым, ни просроченным: фотограф просто ещё не назвал цену */
     var paid = inc > 0 && pre >= inc;
+    /* Звено названо кодом, как и вид бумаги: «Оплата» — единственное, у
+       которого своей бумаги нет, поэтому у него свой ключ */
     return [
-      { n: "ТЗ", done: !!(s.brief || has("ТЗ")) },
-      { n: "Договор", done: has("Договор") },
-      { n: "Счёт", done: has("Счёт") },
-      { n: "Оплата", done: paid, half: !paid && pre > 0 },
-      { n: "Акт", done: has("Акт") }
+      { k: "brief",    done: !!(s.brief || has("brief")) },
+      { k: "contract", done: has("contract") },
+      { k: "invoice",  done: has("invoice") },
+      { k: "pay",      done: paid, half: !paid && pre > 0 },
+      { k: "act",      done: has("act") }
     ];
   }
   function renderDeal(s) {
@@ -12511,12 +12587,12 @@
     /* Подпись говорит, что осталось, а не сколько сделано: «закрыто 3 из 5» —
        отчёт, «ждём акт» — работа */
     var half = chain.filter(function (l) { return l.half; })[0];
-    var tail = left.length === 0 ? "всё закрыто"
-      : half ? "внесена предоплата · ждём остаток"
-      : left.length === 1 ? "ждём: " + left[0].n.toLowerCase()
-      : "осталось " + left.length + " " + plural(left.length, ["шаг", "шага", "шагов"]);
+    var tail = left.length === 0 ? LANG.t("deal.allDone")
+      : half ? LANG.t("deal.prepaid")
+      : left.length === 1 ? LANG.t("deal.waitOne", { step: dealName(left[0].k, true) })
+      : LANG.t("deal.left", { n: LANG.count("deal.step", left.length) });
 
-    $("cdDeal").innerHTML = '<div class="deal-top"><span class="deal-t">Сделка</span>'
+    $("cdDeal").innerHTML = '<div class="deal-top"><span class="deal-t">' + esc(LANG.t("deal.title")) + "</span>"
       + '<span class="deal-s">' + esc(tail) + "</span></div>"
       + '<div class="deal-chain">' + chain.map(function (l, i) {
           var isNext = !l.done && left.length && left[0] === l;
@@ -12524,7 +12600,7 @@
           return '<div class="deal-l' + cls + '"><span class="deal-dot">'
             + (l.done ? '<svg viewBox="0 0 24 24"><polyline points="5 12.5 10 17.5 19 6.5"/></svg>' : "")
             + "</span>"
-            + '<span class="deal-n">' + l.n + "</span></div>";
+            + '<span class="deal-n">' + esc(dealName(l.k)) + "</span></div>";
         }).join("") + "</div>";
   }
 
@@ -12536,7 +12612,7 @@
     fillBlock("cdBriefBlk", s.brief
       ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge blue">' + PANE_IC.brief + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Задание</span>'
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("cdBlock.brief")) + "</span>"
         + '<span class="pn-s" style="white-space:normal;margin-top:3px;color:#C9C2B6;font-size:13px;line-height:1.45">'
         + esc(s.brief) + "</span></span></div></div>"
       : "");
@@ -12547,7 +12623,8 @@
     fillBlock("cdModelsBlk", models.length
       ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.guests + "</span>"
-        + '<span class="pn-body"><span class="pn-k">Модели · ' + models.length + "</span>"
+        + '<span class="pn-body"><span class="pn-k">'
+        + esc(LANG.t("pane.models", { n: models.length })) + "</span>"
         + '<span class="pn-s" style="white-space:normal;margin-top:3px;color:#C9C2B6;font-size:13px;line-height:1.5">'
         + models.map(esc).join("<br>") + "</span></span></div></div>"
       : "");
@@ -12556,11 +12633,11 @@
     $("cdDocFold").hidden = !docs.length;
     if (!docs.length) return;
     $("cdDocFold").classList.remove("open");
-    $("cdDocS").textContent = docs.length + " " + plural(docs.length, ["документ", "документа", "документов"]);
+    $("cdDocS").textContent = LANG.count("unit.doc", docs.length);
     $("cdDocBody").innerHTML = docs.map(function (r, i) {
       /* У ссылки именем служит последний кусок пути: «i/dogovor.pdf» —
          это путь, а не имя документа */
-      var name = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || "документ");
+      var name = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || LANG.t("doc.any"));
       var kind = r.k === "link" ? refHost(r.url) : docExt(r.name) + (r.size ? " · " + docSize(r.size) : "");
       return '<div class="sc-item" data-i="' + i + '"><span class="sc-ic">' + PANE_IC.doc + "</span>"
         + '<span><span class="sc-n">' + esc(name) + "</span>"
@@ -12582,9 +12659,10 @@
     if (!show) return;
     $("cdRefFold").classList.remove("open");
     var stage = currentStage(s, route);
-    $("cdRefT").textContent = "Референсы" + (stage ? ": " + stage : "");
-    $("cdRefS").textContent = all.length + " " + plural(all.length, ["кадр", "кадра", "кадров"])
-      + " · набор жанра и съёмки";
+    $("cdRefT").textContent = stage
+      ? LANG.t("card.refsAt", { stage: stage }) : LANG.t("card.refs");
+    $("cdRefS").textContent = LANG.count("unit.frame", all.length)
+      + " · " + LANG.t("card.refsFrom");
     $("cdRefStrip").innerHTML = all.slice(0, 7).map(function (r) {
       return r.thumb ? '<img src="' + r.thumb + '" alt="">' : '<span class="ph"></span>';
     }).join("");
@@ -12622,7 +12700,7 @@
     });
     $("rfTags").innerHTML = (tags.length ? [""].concat(tags) : []).map(function (t) {
       return '<button type="button" class="rf-tag' + ((rfTag === (t || null)) ? " on" : "") + '" data-t="' + t + '">'
-        + (t || "Все") + "</button>";
+        + esc(t || LANG.t("refs.all")) + "</button>";
     }).join("");
     $("rfTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () { rfTag = b.dataset.t || null; renderRefsFull(); });
@@ -12637,8 +12715,7 @@
       }
       return '<button type="button" class="rf-cell" data-i="' + i + '">'
         + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "") + "</button>";
-    }).join("") || '<div class="rf-empty">Пусто. Набор жанра собирается в «Мои жанры» — '
-      + "он подскажет, что снять, когда мысль встала.</div>";
+    }).join("") || '<div class="rf-empty">' + esc(LANG.t("refs.empty")) + "</div>";
     $("rfGrid").querySelectorAll(".rf-cell").forEach(function (b) {
       b.addEventListener("click", function () { openRef(shown[+b.dataset.i]); });
     });
@@ -12673,7 +12750,7 @@
     var ps = (Array.isArray(s.persons) ? s.persons : [])
       .map(function (p) { return firstName(p.n); })
       .filter(function (x) { return x; });
-    if (ps.length) return ps.join(" и ");
+    if (ps.length) return ps.join(LANG.t("card.and"));
     /* У заказа съёмку называет организация: «ИП Иванов И.И.», а не вся строка
        с контактным лицом и телефоном — в списке дня для неё нет места */
     var org = orgById(s.orgId);
@@ -12695,18 +12772,21 @@
     /* Встреча — та же карточка, но заголовком «Встреча»: жанр уходит в
        подзаголовок, потому что он тут предмет разговора, а не вид работы */
     var meet = isMeet(s);
-    $("cardTitle").textContent = meet ? "Встреча" : s.type;
+    /* Заголовок брал `s.type` напрямую — это работало, пока жанр был русским
+       словом. После разделения кода и имени он показывал бы «wedding»:
+       перевод вскрывает такие места сразу, потому что имя видно на экране. */
+    $("cardTitle").textContent = meet ? LANG.t("plan.meet") : genreName(s.type);
     $("cardSub").textContent = meet
       ? (s.contact ? s.contact + " · " + shortGenre(s.type).toLowerCase()
-                   : "по теме: " + shortGenre(s.type).toLowerCase())
-      : (s.contact || "без клиента");
+                   : LANG.t("card.meetTopic", { genre: shortGenre(s.type).toLowerCase() }))
+      : (s.contact || LANG.t("card.noClient"));
 
     /* Эволюция: кнопка есть, пока съёмка из встречи не назначена */
     $("cdGrow").hidden = !meet || !!s.grewOn;
     $("cdGrown").hidden = !(meet && s.grewOn);
     if (meet && s.grewOn) {
       var g = new Date(s.grewOn);
-      $("cdGrown").textContent = "Съёмка назначена на " + dMon(g) + ".";
+      $("cdGrown").textContent = LANG.t("card.grownOn", { d: dMon(g) });
     }
 
     $("cdDate").textContent = wdShort(s.date) + " · " + dMon(s.date);
@@ -12727,21 +12807,24 @@
       $("cdSunset").textContent = sunsetShort(sc) + " · " + sc + " / 100";
       $("cdSunset").style.color = sc >= 75 ? "#E2A44C" : sc >= 50 ? "#A8B49B" : sc >= 28 ? "#C0B8AA" : "#7C9CC4";
     } else {
-      $("cdSunset").textContent = wxLive ? "нет данных на этот день" : "прогноз имитируется";
+      $("cdSunset").textContent = LANG.t(wxLive ? "card.noDataDay" : "card.forecastFake");
       $("cdSunset").style.color = "#8A8478";
     }
     $("cdGold").textContent = (sun.goldB === null || sun.set === null) ? "—" : range(sun.goldB, sun.blueB);
 
     $("cdTrust").textContent = trustOf(s.date)
-      + (placeFar(s) ? " · погода показана для места, выбранного в приложении" : "");
+      + (placeFar(s) ? " · " + LANG.t("card.wxOtherPlace") : "");
 
     // Съёмка ждала свет, а прогноз обещает другое — сказать заранее, не постфактум
     // (имя не wishes: так называется рабочий набор формы, затирать его нельзя)
     var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "any" ? [s.wish] : []);
     var bad = want.length && (q === "poor" || q === "fog");
     $("cdWarn").hidden = !bad;
-    if (bad) $("cdWarn").textContent = "Съёмка ждала: " + want.join(", ").toLowerCase()
-      + ". Прогноз на этот день — " + QUAL[q].cond.toLowerCase() + ".";
+    /* `want` хранит коды пожеланий с волны 1 — печатать их напрямую значило
+       бы показать «sunset, clear». Имя берётся у словаря, как везде */
+    if (bad) $("cdWarn").textContent = LANG.t("card.wishMissed", {
+      wish: want.map(function (w) { return wishName(w).toLowerCase(); }).join(", "),
+      cond: QUAL[q].cond.toLowerCase() });
 
     // Сдача материала — только у жанров, где есть что сдавать
     var hasDelv = spec.delivery !== false;
@@ -12750,7 +12833,7 @@
     if (hasDelv) {
       var ds = deliveryState(s), dd = deadlineDate(s);
       $("cdDelv").textContent = ds.label + (dd && !s.delivered
-        ? " · до " + dMon(dd) : "");
+        ? " · " + LANG.t("card.byDate", { d: dMon(dd) }) : "");
       $("cdDelv").style.color = ds.color;
     }
 
@@ -12783,7 +12866,7 @@
     if (hasMoney) {
       $("cdMoneySum").textContent = money(inc - exp);
       $("cdIncome").textContent = money(inc);
-      $("cdExpense").textContent = exp ? money(exp) : "нет";
+      $("cdExpense").textContent = exp ? money(exp) : LANG.t("card.none");
       $("cdProfit").textContent = money(inc - exp);
     }
 
@@ -12818,7 +12901,7 @@
      Мелочь, но кнопка удаления — не то место, где приложение может ошибиться
      в названии того, что сейчас исчезнет. */
   function setDeleteLabel(s) {
-    $("cdDelete").textContent = isMeet(s) ? "Удалить встречу" : "Удалить съёмку";
+    $("cdDelete").textContent = LANG.t(isMeet(s) ? "card.delMeet" : "card.delShoot");
   }
   /* Карточка уходит в корзину джинном. Движение отвечает на вопрос «куда
      делась запись» раньше, чем человек успеет его задать: значок выезжает
@@ -12874,8 +12957,7 @@
        прямо. Спрашиваем один раз: тихое стирание без вопроса было бы той самой
        ловушкой, от которой корзина и заводилась */
     if (!trashed.length) return;
-    if (!confirm("Стереть " + trashed.length + " " + plural(trashed.length,
-      ["съёмку", "съёмки", "съёмок"]) + " насовсем? Вернуть их будет нечем.")) return;
+    if (!confirm(LANG.t("bin.wipeAsk", { n: LANG.count("unit.shoot", trashed.length) }))) return;
     trashed = [];
     saveAll();
     renderBin(); renderBinBtn();
@@ -14246,6 +14328,10 @@
     paintDate();           // дата в шапке живёт отдельно от renderToday
     renderToday(); renderMap(); renderWeek(); renderDayPanel(); renderSessions(); renderCal();
     if ($("fWish").children.length) { renderGenres(); renderWishes(); renderPay(); }
+    /* Карточка перерисовывается целиком: её содержимое собирается разом, и
+       половину заново собрать нечем. Прокрутка сохраняется — иначе смена
+       языка выбрасывала бы читателя в начало длинной карточки. */
+    if (cardIdx !== null && $("cardOverlay").classList.contains("open")) openCard(cardIdx, true);
   }
 
   /* Подписи денежных полей. Они стоят в разметке, а знак валюты меняется —

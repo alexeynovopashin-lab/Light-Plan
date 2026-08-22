@@ -498,6 +498,8 @@
 
     /* Панель дня */
     "day.noWindow":   "окна света нет",
+    /* То же самое, но первой строкой виджета — с прописной */
+    "day.noWindowCap": "Окна света нет",
     "day.startsAt":   "начало {t}",
     "day.allDay":     "весь день",
     "day.meet":       "Встреча",
@@ -604,7 +606,175 @@
     "genreN.street":       ["стрит", "стрита", "стритов"],
     "genreN.report":       ["репортаж", "репортажа", "репортажей"],
     "genreN.product":      ["предметка", "предметки", "предметок"],
-    "genreN.ad":           ["реклама", "рекламы", "реклам"]
+    "genreN.ad":           ["реклама", "рекламы", "реклам"],
+
+    /* ---- Карточка съёмки ----
+       Верхний уровень: съёмка для чтения. Разделы, плитки, цепочка сделки. */
+    "card.close":       "Закрыть",
+    "card.tune":        "Настроить карточку",
+    "card.fill":        "Заполнить",
+    "card.bin":         "Корзина",
+    "card.when":        "Когда",
+    "card.date":        "Дата",
+    "card.time":        "Время",
+    "card.place":       "Место",
+    "card.lightWx":     "Свет и погода",
+    "card.delivery":    "Сдача материала",
+    "card.status":      "Статус",
+    "card.refs":        "Референсы",
+    "card.notes":       "Заметки",
+    "card.route":       "Маршрут дня",
+    "card.docs":        "Документы",
+    "card.money":       "Деньги",
+    "card.income":      "Доход",
+    "card.expense":     "Расходы",
+    "card.profit":      "Прибыль",
+    "card.none":        "нет",
+    "card.orderReset":  "По умолчанию",
+    "card.orderDone":   "Готово",
+    "card.delShoot":    "Удалить съёмку",
+    "card.delMeet":     "Удалить встречу",
+    "card.growT":       "Назначить съёмку",
+    "card.growS":       "встреча останется в календаре",
+    "card.grownOn":     "Съёмка назначена на {d}.",
+
+    /* Имена в шапке: «Алексей и Елена». Соединитель — со своими пробелами,
+       потому что в японском их не будет, а список собирается склейкой */
+    "card.and":         " и ",
+    "card.noClient":    "без клиента",
+    "card.meetTopic":   "по теме: {genre}",
+    "card.meetAbout":   "Встреча · {genre}",
+
+    /* Свет и погода в карточке */
+    "card.byDate":      "до {d}",
+    "card.noDataDay":   "нет данных на этот день",
+    "card.forecastFake": "прогноз имитируется",
+    "card.wxOtherPlace": "погода показана для места, выбранного в приложении",
+    "card.wishMissed":  "Съёмка ждала: {wish}. Прогноз на этот день — {cond}.",
+    "card.clashMore":   "И ещё {n}.",
+    "card.shootPoint":  "Съёмка",
+    "card.refsAt":      "Референсы: {stage}",
+    "card.refsFrom":    "набор жанра и съёмки",
+
+    /* Реплика о свете: одна из трёх, и каждая — законченная фраза.
+       Собирать её из кусков нельзя: в английском порядок слов другой */
+    "light.waitedSunset": "{name} ждала закат, а прогноз обещает {cond} · облачность {cloud}%.",
+    "light.inGolden":     "«{name}» попадает в золотой час: {range}. Свет тёплый и мягкий.",
+    "light.missGolden":   "Золотой час {range} — ближайшая точка «{name}» мимо на {gap}. Сдвиньте, если свет важен.",
+
+    /* Плитка дня: навигатор по съёмке. Жирным набрано то, что меняется
+       на глазах, — поэтому {left} приходит уже размеченным */
+    "day.running":    "Идёт съёмка",
+    "day.leftUntil":  "осталось {left} · до {t}",
+    "day.meetDone":   "Встреча прошла",
+    "day.shootDone":  "Съёмка отработана",
+    "day.startsIn":   "через {in}",
+    "day.nowAt":      "Сейчас: {name}",
+    "day.leftNext":   "осталось {left} · дальше {next}",
+    "day.lastPoint":  "последняя точка дня",
+    "day.soonAt":     "Скоро: {name}",
+    "day.inAt":       "через {left} · в {t}",
+
+    /* Лента дня: два-три знака подписаны одним словом */
+    "lane.start":  "Начало",
+    "lane.end":    "Конец",
+    "lane.golden": "Золотой",
+
+    /* Студийный час: буфер выхода из почасового места */
+    "studio.leaveIn":  "Студийный час — выйти через {left}",
+    "studio.leaveNow": "Студийный час — пора выходить",
+    "studio.late":     "Студийный час — вышли {over} назад",
+
+    /* Плитки: подпись сверху мелким, значение крупным */
+    "pane.next":       "Дальше",
+    "pane.inAt":       "через {in} · {t}",
+    "pane.guests":     "Гостей",
+    "pane.trip":       "Выезд",
+    "pane.tripAny":    "в другой город",
+    "pane.fee":        "Гонорар",
+    /* Неразрывный пробел после минуса: иначе строка рвётся сразу за ним,
+       и на первой строке остаётся висячий «−», а слово уезжает вниз */
+    "pane.minusExp":   "−\u00A0расходы {sum}",
+    "pane.prepayRest": "предоплата {prepay} · остаток {rest}",
+    "pane.handover":   "Сдача",
+    "pane.models":     "Модели · {n}",
+
+    /* Имена блоков в режиме перестановки. Ключи те же, что у самих блоков */
+    "cdBlock.deal":     "Сделка",
+    "cdBlock.day":      "Плитка дня",
+    "cdBlock.clash":    "Наложение",
+    "cdBlock.light":    "Свет",
+    "cdBlock.place":    "Место и дальше",
+    "cdBlock.weather":  "Погода",
+    "cdBlock.route":    "Маршрут дня",
+    "cdBlock.refs":     "Референсы",
+    "cdBlock.brief":    "Задание",
+    "cdBlock.models":   "Модели",
+    "cdBlock.docs":     "Документы",
+    "cdBlock.notes":    "Заметки",
+    "cdBlock.delivery": "Сдача",
+    "cdBlock.money":    "Гонорар",
+
+    /* Цепочка сделки. Два набора имён: чипс в цепочке и слово внутри фразы.
+       Строчную букву даёт словарь, а не `toLowerCase`: регистр — правило
+       языка, и русское «ТЗ» от него превращалось в «тз» */
+    "deal.title":    "Сделка",
+    "deal.allDone":  "всё закрыто",
+    "deal.prepaid":  "внесена предоплата · ждём остаток",
+    "deal.waitOne":  "ждём: {step}",
+    "deal.left":     "осталось {n}",
+    "deal.step":     ["шаг", "шага", "шагов"],
+    "dealN.brief":    "ТЗ",
+    "dealN.contract": "Договор",
+    "dealN.invoice":  "Счёт",
+    "dealN.pay":      "Оплата",
+    "dealN.act":      "Акт",
+    "dealW.brief":    "техзадание",
+    "dealW.contract": "договор",
+    "dealW.invoice":  "счёт",
+    "dealW.pay":      "оплату",
+    "dealW.act":      "акт",
+
+    /* Вид документа: код внутри записи, имя на экране */
+    "doc.contract": "Договор",
+    "doc.invoice":  "Счёт",
+    "doc.receipt":  "Чек",
+    "doc.act":      "Акт",
+    "doc.brief":    "ТЗ",
+    "doc.req":      "Реквизиты",
+    "doc.any":      "документ",
+    "doc.file":     "файл",
+    "doc.kb":       "{n} КБ",
+    "doc.mb":       "{n} МБ",
+    "doc.openFail": "Файл не открылся: нет связи с Диском.",
+
+    /* Референсы на весь экран */
+    "refs.all":   "Все",
+    "refs.empty": "Пусто. Набор жанра собирается в «Мои жанры» — он подскажет, что снять, когда мысль встала.",
+
+    /* Счёт дней до съёмки и после неё */
+    "when.tomorrow":  "завтра",
+    "when.yesterday": "вчера",
+    "when.inDays":    "через {n}",
+    "when.daysAgo":   "{n} назад",
+
+    "unit.point": ["точка", "точки", "точек"],
+    "unit.frame": ["кадр", "кадра", "кадров"],
+    "unit.doc":   ["документ", "документа", "документов"],
+    "unit.min":   ["минуту", "минуты", "минут"],
+
+    "bin.wipeAsk": "Стереть {n} насовсем? Вернуть их будет нечем.",
+
+    /* Короткое имя жанра — для ячеек календаря и ленты. Заводится только
+       там, где обычное имя не влезает; остальные падают на `genre.*`. */
+    "genreShort.wedding":      "Свадьба",
+    "genreShort.architecture": "Архитект.",
+    "genreShort.product":      "Предметка",
+
+    /* Имя события в единственном числе: чипс жанра говорит «Свадьбы»,
+       а конкретная съёмка — «Свадьба» */
+    "genreEv.wedding": "Свадьба",
+    "genreEv.party":   "Праздник"
   };
 
   /* ---- Английский --------------------------------------------------------
@@ -994,6 +1164,7 @@
     "win.sunset": "sunset",
 
     "day.noWindow":   "no light window",
+    "day.noWindowCap": "No light window",
     "day.startsAt":   "starts {t}",
     "day.allDay":     "all day",
     "day.meet":       "Meeting",
@@ -1089,7 +1260,154 @@
     "genreN.street":       ["street shoot", "street shoots"],
     "genreN.report":       ["reportage", "reportages"],
     "genreN.product":      ["product shoot", "product shoots"],
-    "genreN.ad":           ["advertising shoot", "advertising shoots"]
+    "genreN.ad":           ["advertising shoot", "advertising shoots"],
+
+    /* ---- Карточка съёмки ---- */
+    "card.close":       "Close",
+    "card.tune":        "Arrange card",
+    "card.fill":        "Fill in",
+    "card.bin":         "Bin",
+    "card.when":        "When",
+    "card.date":        "Date",
+    "card.time":        "Time",
+    "card.place":       "Place",
+    "card.lightWx":     "Light and weather",
+    "card.delivery":    "Delivery",
+    "card.status":      "Status",
+    "card.refs":        "References",
+    "card.notes":       "Notes",
+    "card.route":       "Day route",
+    "card.docs":        "Documents",
+    "card.money":       "Money",
+    "card.income":      "Income",
+    "card.expense":     "Expenses",
+    "card.profit":      "Profit",
+    "card.none":        "none",
+    "card.orderReset":  "Default",
+    "card.orderDone":   "Done",
+    "card.delShoot":    "Delete shoot",
+    "card.delMeet":     "Delete meeting",
+    "card.growT":       "Schedule the shoot",
+    "card.growS":       "the meeting stays in the calendar",
+    "card.grownOn":     "Shoot scheduled for {d}.",
+
+    "card.and":         " and ",
+    "card.noClient":    "no client",
+    "card.meetTopic":   "about: {genre}",
+    "card.meetAbout":   "Meeting · {genre}",
+
+    "card.byDate":      "by {d}",
+    "card.noDataDay":   "no data for this day",
+    "card.forecastFake": "forecast is simulated",
+    "card.wxOtherPlace": "weather shown for the place selected in the app",
+    "card.wishMissed":  "The shoot wanted {wish}. The forecast for that day is {cond}.",
+    "card.clashMore":   "And {n} more.",
+    "card.shootPoint":  "The shoot",
+    "card.refsAt":      "References: {stage}",
+    "card.refsFrom":    "genre set and this shoot",
+
+    "light.waitedSunset": "{name} wanted the sunset, but the forecast says {cond} · {cloud}% cloud.",
+    "light.inGolden":     "“{name}” falls in the golden hour: {range}. Warm, soft light.",
+    "light.missGolden":   "Golden hour {range} — the nearest stop, “{name}”, misses it by {gap}. Shift it if the light matters.",
+
+    "day.running":    "Shoot in progress",
+    "day.leftUntil":  "{left} left · until {t}",
+    "day.meetDone":   "Meeting is over",
+    "day.shootDone":  "Shoot is done",
+    "day.startsIn":   "in {in}",
+    "day.nowAt":      "Now: {name}",
+    "day.leftNext":   "{left} left · next {next}",
+    "day.lastPoint":  "last stop of the day",
+    "day.soonAt":     "Soon: {name}",
+    "day.inAt":       "in {left} · at {t}",
+
+    "lane.start":  "Start",
+    "lane.end":    "End",
+    "lane.golden": "Golden",
+
+    "studio.leaveIn":  "Studio hour — leave in {left}",
+    "studio.leaveNow": "Studio hour — time to leave",
+    "studio.late":     "Studio hour — {over} over",
+
+    "pane.next":       "Next",
+    "pane.inAt":       "in {in} · {t}",
+    "pane.guests":     "Guests",
+    "pane.trip":       "Travel",
+    "pane.tripAny":    "another city",
+    "pane.fee":        "Fee",
+    "pane.minusExp":   "−\u00A0expenses {sum}",
+    "pane.prepayRest": "prepaid {prepay} · {rest} left",
+    "pane.handover":   "Delivery",
+    "pane.models":     "Models · {n}",
+
+    "cdBlock.deal":     "Deal",
+    "cdBlock.day":      "Day tile",
+    "cdBlock.clash":    "Overlap",
+    "cdBlock.light":    "Light",
+    "cdBlock.place":    "Place and next",
+    "cdBlock.weather":  "Weather",
+    "cdBlock.route":    "Day route",
+    "cdBlock.refs":     "References",
+    "cdBlock.brief":    "Brief",
+    "cdBlock.models":   "Models",
+    "cdBlock.docs":     "Documents",
+    "cdBlock.notes":    "Notes",
+    "cdBlock.delivery": "Delivery",
+    "cdBlock.money":    "Fee",
+
+    /* «Акт выполненных работ» — постсоветский документ, и слова к слову у
+       него на Западе нет. По делу это согласие заказчика, что работа принята,
+       то есть «sign-off». Термин помечен к проверке носителем. */
+    "deal.title":    "Deal",
+    "deal.allDone":  "all closed",
+    "deal.prepaid":  "deposit paid · balance outstanding",
+    "deal.waitOne":  "waiting on {step}",
+    "deal.left":     "{n} to go",
+    "deal.step":     ["step", "steps"],
+    "dealN.brief":    "Brief",
+    "dealN.contract": "Contract",
+    "dealN.invoice":  "Invoice",
+    "dealN.pay":      "Payment",
+    "dealN.act":      "Sign-off",
+    "dealW.brief":    "the brief",
+    "dealW.contract": "the contract",
+    "dealW.invoice":  "the invoice",
+    "dealW.pay":      "payment",
+    "dealW.act":      "the sign-off",
+
+    "doc.contract": "Contract",
+    "doc.invoice":  "Invoice",
+    "doc.receipt":  "Receipt",
+    "doc.act":      "Sign-off",
+    "doc.brief":    "Brief",
+    "doc.req":      "Bank details",
+    "doc.any":      "document",
+    "doc.file":     "file",
+    "doc.kb":       "{n} KB",
+    "doc.mb":       "{n} MB",
+    "doc.openFail": "The file did not open: no connection to the Drive.",
+
+    "refs.all":   "All",
+    "refs.empty": "Empty. The genre set is built in “My genres” — it prompts what to shoot when your mind goes blank.",
+
+    "when.tomorrow":  "tomorrow",
+    "when.yesterday": "yesterday",
+    "when.inDays":    "in {n}",
+    "when.daysAgo":   "{n} ago",
+
+    "unit.point": ["stop", "stops"],
+    "unit.frame": ["frame", "frames"],
+    "unit.doc":   ["document", "documents"],
+    "unit.min":   ["minute", "minutes"],
+
+    "bin.wipeAsk": "Erase {n} for good? There will be no way to bring them back.",
+
+    "genreShort.wedding":      "Wedding",
+    "genreShort.architecture": "Architecture",
+    "genreShort.product":      "Product",
+
+    "genreEv.wedding": "Wedding",
+    "genreEv.party":   "Celebration"
   };
 
 
@@ -1110,7 +1428,16 @@
     "genre.ad":     "Commercial",
 
     "genreN.report": ["photojournalism shoot", "photojournalism shoots"],
-    "genreN.ad":     ["commercial shoot", "commercial shoots"]
+    "genreN.ad":     ["commercial shoot", "commercial shoots"],
+
+    /* Корзина: британская «bin» против американской «trash» */
+    "card.bin": "Trash",
+
+    /* Предоплата — не вкусовое расхождение, а юридическое. У американского
+       фотографа «deposit» возвращается, а «retainer» нет, и это первое, что
+       спрашивает клиент. Британец говорит «deposit» и в том же смысле. */
+    "deal.prepaid":    "retainer paid · balance outstanding",
+    "pane.prepayRest": "retainer {prepay} · {rest} left"
   };
 
   /* Британский — это и есть основа: своих отличий у него нет. Словарь заведён
