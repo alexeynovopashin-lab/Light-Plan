@@ -3449,7 +3449,7 @@
          Широта с долготой ушли в астро-детали: продукт не про навигацию,
          человек думает «Лагерный сад», а не «56.4536» -->
     <div class="header">
-      <button class="loc" id="mapLoc" aria-label="Сменить место">
+      <button class="loc" id="mapLoc" aria-label="Сменить место" data-i18n-aria="today.changePlace">
         <div class="name"><span id="mLocName">—</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
         <div class="head-sub" id="mLocSub">—</div>
         <div class="date" id="mDate">ЧТ · 16 июля</div>
@@ -3457,7 +3457,7 @@
       <!-- Освободившийся угол берёт сохранение точки: стоишь на месте — оставь
            его себе. Список — общий с «Моими точками съёмки» в настройках -->
       <span class="save-note" id="saveNote" aria-live="polite"></span>
-      <button class="map-save" id="mapSave" aria-label="Сохранить точку" data-ic="bookmark"></button>
+      <button class="map-save" id="mapSave" aria-label="Сохранить точку" data-i18n-aria="map.savePoint" data-ic="bookmark"></button>
     </div>
 
     <div class="map-frame">
@@ -3477,16 +3477,16 @@
       <!-- Слои — не переключатель темы карты, а выбор, что на ней светится:
            солнце и луна включены по умолчанию (так компас работал и раньше),
            Млечный Путь — по запросу, это нишевый слой для тех, кто его ищет -->
-      <button class="map-here map-layers-btn" id="mapLayersBtn" aria-label="Слои карты" style="left:12px;right:auto;">
+      <button class="map-here map-layers-btn" id="mapLayersBtn" aria-label="Слои карты" data-i18n-aria="map.layers" style="left:12px;right:auto;">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
       </button>
       <!-- Живой компас — по умолчанию выключен: карта смотрит на север, как
            обычная карта. Включённый разворачивает ротор по датчику ориентации,
            «вперёд» на экране становится «куда смотрит телефон» -->
-      <button class="map-here map-heading-btn" id="mapHeadingBtn" aria-label="Живой компас" style="left:12px;right:auto;bottom:auto;top:12px;">
+      <button class="map-here map-heading-btn" id="mapHeadingBtn" aria-label="Живой компас" data-i18n-aria="map.liveCompass" style="left:12px;right:auto;bottom:auto;top:12px;">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M15 9l-2 5-4 1 2-5z"/></svg>
       </button>
-      <button class="map-here" id="mapHere" aria-label="Моё место">
+      <button class="map-here" id="mapHere" aria-label="Моё место" data-i18n-aria="map.myPlace">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
     </div>
@@ -3499,9 +3499,9 @@
          вместе со свёрнутой сводкой, и вписанный отступ разъехался бы. -->
     <div class="scope-scrim" id="mapLayersScrim" hidden></div>
     <div class="scope-menu map-layers-menu" id="mapLayersMenu" hidden>
-      <button data-layer="sun"><span class="mk" data-ic="check"></span><span class="ic" data-ic="sun_disc"></span>Солнце</button>
-      <button data-layer="moon"><span class="mk" data-ic="check"></span><span class="ic" data-ic="moon"></span>Луна</button>
-      <button data-layer="mw"><span class="mk" data-ic="check"></span><span class="ic" data-ic="stars"></span>Млечный Путь</button>
+      <button data-layer="sun"><span class="mk" data-ic="check"></span><span class="ic" data-ic="sun_disc"></span><span data-i18n="layer.sun">Солнце</span></button>
+      <button data-layer="moon"><span class="mk" data-ic="check"></span><span class="ic" data-ic="moon"></span><span data-i18n="layer.moon">Луна</span></button>
+      <button data-layer="mw"><span class="mk" data-ic="check"></span><span class="ic" data-ic="stars"></span><span data-i18n="layer.mw">Млечный Путь</span></button>
     </div>
 
     <!-- Время выбранного момента — единственное, что переживает сворачивание -->
@@ -3515,22 +3515,22 @@
       <div class="telemetry">
         <!-- «Свет идёт с ЗЮЗ» повторяет луч, который и так виден на карте:
              нарисованное не дублируем словами, строка ушла в астро -->
-        <div class="t-row pro-only"><span class="t-label">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
-        <div class="t-row pro-only"><span class="t-label">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
-        <div class="t-row pro-only"><span class="t-label">Тень</span><span class="t-value" id="mShadow">—</span></div>
-        <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
-        <div class="t-row"><span class="t-label">Синий час</span><span class="t-value" id="mBlue">—</span></div>
-        <div class="t-row"><span class="t-label">Луна</span><span class="t-value" id="mMoon">—</span></div>
-        <div class="t-row"><span class="t-label">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
+        <div class="t-row pro-only"><span class="t-label" data-i18n="map.lightFrom">Свет идёт</span><span class="t-value" id="mDir">—</span></div>
+        <div class="t-row pro-only"><span class="t-label" data-i18n="map.sunElev">Высота солнца</span><span class="t-value" id="mElev">—</span></div>
+        <div class="t-row pro-only"><span class="t-label" data-i18n="map.shadow">Тень</span><span class="t-value" id="mShadow">—</span></div>
+        <div class="t-row"><span class="t-label" data-i18n="map.golden">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
+        <div class="t-row"><span class="t-label" data-i18n="map.blue">Синий час</span><span class="t-value" id="mBlue">—</span></div>
+        <div class="t-row"><span class="t-label" data-i18n="map.moon">Луна</span><span class="t-value" id="mMoon">—</span></div>
+        <div class="t-row"><span class="t-label" data-i18n="map.spot">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
         <!-- Ближайшее событие с отсчётом. Диапазоны выше отвечают на вопрос дня
              («когда золотой час»), а эта строка — на вопрос момента: сколько
              осталось. Она единственная в своде живёт вместе с ползунком, и
              ночью, когда все диапазоны уже в прошлом, говорит одна. -->
-        <div class="t-row" id="mNextRow"><span class="t-label">Ближайшее</span><span class="t-value" id="mNext">—</span></div>
+        <div class="t-row" id="mNextRow"><span class="t-label" data-i18n="map.next">Ближайшее</span><span class="t-value" id="mNext">—</span></div>
         <!-- Сумерки целиком — три ступени в одной строке. В астро это ровно то,
              ради чего режим включают: гражданские кончились, навигационные идут,
              астрономические впереди. -->
-        <div class="t-row pro-only" id="mTwiRow"><span class="t-label">Сумерки</span><span class="t-value" id="mTwi">—</span></div>
+        <div class="t-row pro-only" id="mTwiRow"><span class="t-label" data-i18n="map.twilight">Сумерки</span><span class="t-value" id="mTwi">—</span></div>
         <!-- Затмение — событие дня, а не показание момента, и приходит
              только в тот самый день. Локальной фазы здесь нет: она не
              берётся из таблицы, а посчитать её нечем. Раньше стояло первой
@@ -3538,7 +3538,7 @@
              ему верхнюю строку рядом с золотым часом, который смотрят каждый
              день, было не по чину редкости. Соседствует с Млечным Путём —
              тоже нечастый повод открыть подробности. -->
-        <div class="t-row" id="mEclRow" hidden><span class="t-label">Затмение</span><span class="t-value" id="mEcl">—</span></div>
+        <div class="t-row" id="mEclRow" hidden><span class="t-label" data-i18n="map.eclipse">Затмение</span><span class="t-value" id="mEcl">—</span></div>
         <!-- Астро-строки приходят вместе со слоем и уходят вместе с ним:
              отдельного режима под них не заводим, они просто про то, что
              сейчас нарисовано. Вердикт важнее картинки: дуга без ответа
@@ -3549,15 +3549,15 @@
              путь, в отрыве это путает»). Та же величина живёт в группе
              «Млечный Путь» под «Подробно», где рядом стоят азимут, высота
              и рабочая высота — там она в контексте и не спорит с соседями. -->
-        <div class="t-row" id="mwNightRow" hidden><span class="t-label">Ночь</span><span class="t-value" id="mwNight">—</span></div>
+        <div class="t-row" id="mwNightRow" hidden><span class="t-label" data-i18n="map.night">Ночь</span><span class="t-value" id="mwNight">—</span></div>
         <!-- Засветка луной — своя строка, а не примечание к вердикту: это
              самая частая причина пустой ясной ночи, и молчать о ней нельзя -->
-        <div class="t-row" id="mwGlareRow" hidden><span class="t-label">Луна для звёзд</span><span class="t-value" id="mwGlare">—</span></div>
-        <div class="t-row" id="mwVerdictRow" hidden><span class="t-label">Съёмка</span><span class="t-value" id="mwVerdict">—</span></div>
+        <div class="t-row" id="mwGlareRow" hidden><span class="t-label" data-i18n="map.moonGlare">Луна для звёзд</span><span class="t-value" id="mwGlare">—</span></div>
+        <div class="t-row" id="mwVerdictRow" hidden><span class="t-label" data-i18n="map.verdict">Съёмка</span><span class="t-value" id="mwVerdict">—</span></div>
       </div>
 
       <div class="pro">
-        <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
+        <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl" data-i18n="today.details">Подробно</span><span class="chev">▾</span></button>
         <div class="pro-body" id="mProBody"></div>
       </div>
     </div>
@@ -5318,18 +5318,18 @@
      строкой, когда понадобится.
      ============================================================ */
   var ECLIPSES = [
-    { d: "2026-02-17", kind: "кольцевое", where: "Антарктида, юг Атлантики" },
-    { d: "2026-08-12", kind: "полное",    where: "Исландия, север Испании" },
-    { d: "2027-02-06", kind: "кольцевое", where: "юг Аргентины и Чили" },
-    { d: "2027-08-02", kind: "полное",    where: "Испания, север Африки, Египет" },
-    { d: "2028-01-26", kind: "кольцевое", where: "Америка, Испания, Португалия" },
-    { d: "2028-07-22", kind: "полное",    where: "Австралия, Сидней" },
-    { d: "2029-01-14", kind: "частное",   where: "Северная и Центральная Америка" },
-    { d: "2029-06-12", kind: "частное",   where: "север Европы, Гренландия" },
-    { d: "2029-07-11", kind: "частное",   where: "юг Южной Америки" },
-    { d: "2029-12-05", kind: "частное",   where: "юг Южной Америки, Антарктида" },
-    { d: "2030-06-01", kind: "кольцевое", where: "Европа, Россия, Китай, Япония" },
-    { d: "2030-11-25", kind: "полное",    where: "юг Африки, Австралия" }
+    { d: "2026-02-17", kind: "ecl.annular", where: "eclW.2026-02-17" },
+    { d: "2026-08-12", kind: "ecl.total",    where: "eclW.2026-08-12" },
+    { d: "2027-02-06", kind: "ecl.annular", where: "eclW.2027-02-06" },
+    { d: "2027-08-02", kind: "ecl.total",    where: "eclW.2027-08-02" },
+    { d: "2028-01-26", kind: "ecl.annular", where: "eclW.2028-01-26" },
+    { d: "2028-07-22", kind: "ecl.total",    where: "eclW.2028-07-22" },
+    { d: "2029-01-14", kind: "ecl.partial",   where: "eclW.2029-01-14" },
+    { d: "2029-06-12", kind: "ecl.partial",   where: "eclW.2029-06-12" },
+    { d: "2029-07-11", kind: "ecl.partial",   where: "eclW.2029-07-11" },
+    { d: "2029-12-05", kind: "ecl.partial",   where: "eclW.2029-12-05" },
+    { d: "2030-06-01", kind: "ecl.annular", where: "eclW.2030-06-01" },
+    { d: "2030-11-25", kind: "ecl.total",    where: "eclW.2030-11-25" }
   ];
   function eclipseDate(rec) {
     var p = rec.d.split("-");
@@ -5364,14 +5364,16 @@
     return { fraction: (1 + Math.cos(inc)) / 2,
              phase: 0.5 + 0.5 * inc * (angle < 0 ? -1 : 1) / Math.PI };
   }
+  /* Границы фаз и коды к ним. Граница — число, код — ключ словаря:
+     фаза считается по доле освещённого диска и от языка не зависит */
   var PHASES = [
-    [0.02, "Новолуние"], [0.24, "Растущий серп"], [0.28, "Первая четверть"],
-    [0.48, "Растущая луна"], [0.52, "Полнолуние"], [0.72, "Убывающая луна"],
-    [0.76, "Последняя четверть"], [0.98, "Убывающий серп"], [1.01, "Новолуние"]
+    [0.02, "moon.new"], [0.24, "moon.waxCres"], [0.28, "moon.firstQ"],
+    [0.48, "moon.waxGib"], [0.52, "moon.full"], [0.72, "moon.wanGib"],
+    [0.76, "moon.lastQ"], [0.98, "moon.wanCres"], [1.01, "moon.new"]
   ];
   function phaseName(p) {
-    for (var i = 0; i < PHASES.length; i++) if (p < PHASES[i][0]) return PHASES[i][1];
-    return "Новолуние";
+    for (var i = 0; i < PHASES.length; i++) if (p < PHASES[i][0]) return LANG.t(PHASES[i][1]);
+    return LANG.t("moon.new");
   }
 
   /* Восход и заход выбранного дня. Луна всходит почти на час позже каждые сутки,
@@ -5584,7 +5586,10 @@
     return tempUnit === "f" ? Math.round(c * 9 / 5 + 32) : c;
   }
   function unitLabel() { return tempUnit === "f" ? "°F" : "°C"; }
-  function windWord(w) { return w <= 1 ? "штиль" : w <= 3 ? "слабый" : w <= 6 ? "умеренный" : "сильный"; }
+  function windWord(w) {
+    return w <= 1 ? LANG.t("wind.calm") : w <= 3 ? LANG.t("wind.light")
+      : w <= 6 ? LANG.t("wind.moderate") : LANG.t("wind.strong");
+  }
   function durShort(m) {
     m = Math.max(0, Math.round(m));
     if (m < 60) return LANG.t("durS.minutes", { m: m });
@@ -6940,10 +6945,10 @@
      в полярных широтах, и тогда их просто нет, а не «через NaN». */
   function nextLightEvent(t) {
     var ev = [
-      [SUN.astA, "рассвет", false], [SUN.blueA, "синий час", false],
-      [SUN.rise, "восход", true], [SUN.goldA, "день", false],
-      [SUN.goldB, "золотой час", true], [SUN.set, "закат", true],
-      [SUN.blueB, "синий час", false], [SUN.astB, "тьма", false]
+      [SUN.astA, "ev.dawn", false], [SUN.blueA, "ev.blue", false],
+      [SUN.rise, "ev.rise", true], [SUN.goldA, "ev.day", false],
+      [SUN.goldB, "ev.golden", true], [SUN.set, "ev.sunset", true],
+      [SUN.blueB, "ev.blue", false], [SUN.astB, "ev.dark", false]
     ];
     var best = null;
     ev.forEach(function (x) {
@@ -6951,7 +6956,7 @@
       /* Событие, уже прошедшее сегодня, повторится завтра в то же время —
          за полночью именно оно и есть ближайшее */
       var m = x[0] > t ? x[0] : x[0] + 1440;
-      if (!best || m < best.min) best = { min: m, name: x[1], warm: x[2] };
+      if (!best || m < best.min) best = { min: m, name: LANG.t(x[1]), warm: x[2] };
     });
     return best;
   }
@@ -6959,7 +6964,7 @@
      точнее и читаются быстрее, дальше часа дробность не нужна */
   function gapLabel(d) {
     d = Math.max(0, Math.round(d));
-    if (d < 60) return d + " мин";
+    if (d < 60) return LANG.t("gap.minutes", { m: d });
     return Math.floor(d / 60) + ":" + (d % 60 < 10 ? "0" : "") + (d % 60);
   }
   /* Три ступени сумерек одной строкой: какая идёт сейчас и до которого часа.
@@ -6967,15 +6972,15 @@
   function twilightLabel(t) {
     var e2 = elevAt(t);
     if (e2 > -0.833 || e2 < -18) return null;
-    var step = e2 > -6 ? ["гражданские", SUN.civB, SUN.civA]
-             : e2 > -12 ? ["навигационные", SUN.nauB, SUN.nauA]
-             : ["астрономические", SUN.astB, SUN.astA];
+    var step = e2 > -6 ? [LANG.t("twi.civil"), SUN.civB, SUN.civA]
+             : e2 > -12 ? [LANG.t("twi.nautical"), SUN.nauB, SUN.nauA]
+             : [LANG.t("twi.astro"), SUN.astB, SUN.astA];
     /* До какой границы идём: вечером — до нижней, утром — до верхней */
     var falling = t > solarNoon;
     var edge = falling ? step[1] : step[2];
     if (edge === null || edge === undefined) return step[0];
     var to = edge > t ? edge : edge + 1440;
-    return step[0] + " · до " + fmt(edge % 1440) + " · " + gapLabel(to - t);
+    return LANG.t("twi.till", { step: step[0], t: fmt(edge % 1440), gap: gapLabel(to - t) });
   }
 
   function renderMwRows() {
@@ -6987,11 +6992,11 @@
 
     if (w.dark) {
       $("mwNight").textContent = SUN.astB !== null && SUN.astA !== null
-        ? range(SUN.astB, SUN.astA + 1440) : "есть";
+        ? range(SUN.astB, SUN.astA + 1440) : LANG.t("mw.nightYes");
       $("mwNight").style.color = "var(--ink-2)";
     } else {
       var back = nextAstroNight(selDate);
-      $("mwNight").textContent = back ? "нет до " + mwDateShort(back) : "нет";
+      $("mwNight").textContent = back ? LANG.t("mw.nightUntil", { date: mwDateShort(back) }) : LANG.t("mw.nightNo");
       $("mwNight").style.color = "var(--ink-4)";
     }
 
@@ -7005,17 +7010,17 @@
     glareRow.hidden = !(w.dark && mg.level > 0);
     if (!glareRow.hidden) {
       $("mwGlare").textContent = mg.level === 2
-        ? "засветит · диск " + mg.pct + "%"
-        : "помешает · диск " + mg.pct + "%";
+        ? LANG.t("mw.glareWash", { pct: mg.pct })
+        : LANG.t("mw.glareDim", { pct: mg.pct });
       $("mwGlare").style.color = mg.level === 2 ? "var(--terra)" : "var(--ink-2)";
     }
 
     var v, dim = true;
-    if (!w.dark) v = "темноты нет";
-    else if (peak < MW_WORK_LO) v = "ядро низко · " + peak.toFixed(0) + "° из " + MW_WORK_LO;
-    else if (mg.level === 2) v = "луна засветит";
-    else if (w.from === null) v = w.moonBlocks ? "мешает луна" : "окна нет";
-    else { v = range(w.from, w.to) + (mg.level === 1 ? " · луна мешает" : ""); dim = mg.level === 1; }
+    if (!w.dark) v = LANG.t("mw.noDark");
+    else if (peak < MW_WORK_LO) v = LANG.t("mw.coreLow", { alt: peak.toFixed(0), need: MW_WORK_LO });
+    else if (mg.level === 2) v = LANG.t("mw.moonWashes");
+    else if (w.from === null) v = w.moonBlocks ? LANG.t("mw.moonBlocks") : LANG.t("mw.noWindow");
+    else { v = range(w.from, w.to) + (mg.level === 1 ? LANG.t("mw.moonDims") : ""); dim = mg.level === 1; }
     $("mwVerdict").textContent = v;
     $("mwVerdict").style.color = dim ? "var(--ink-4)" : "#C6AAE8";
   }
@@ -7150,7 +7155,7 @@
        Разрядка — тот же довод, что у самой шкалы: пусть буква и одна, воздух
        вокруг неё не даёт ей слипнуться с соседним числом на том же кольце. */
     var proDegrees = document.body.classList.contains("pro-mode");
-    [[0, "С"], [90, "В"], [180, "Ю"], [270, "З"]].forEach(function (c) {
+    [[0, "card.n"], [90, "card.e"], [180, "card.s"], [270, "card.w"]].forEach(function (c) {
       /* Север крупнее на два пункта кегля — та же иерархия, что уже несёт
          латунь: по «С» ищут остальные три, и она должна быть заметна первой,
          не только цветом. Риска севера стоит внутри обода (см. northMark) и
@@ -7166,7 +7171,7 @@
         "font-family": "-apple-system, sans-serif", "font-weight": 700 };
       if (proDegrees) attrs["letter-spacing"] = "1px";
       var ct = el("text", attrs);
-      ct.textContent = c[1]; svg.appendChild(ct);
+      ct.textContent = LANG.t(c[1]); svg.appendChild(ct);
     });
     /* Метка севера на самом ободе: короткий медный штрих в разрыве, где стоит
        буква. Он и делает кольцо шкалой с началом отсчёта, а не просто кольцом.
@@ -7496,7 +7501,7 @@
     var eclToday = eclipseOn(viewDate(viewMin));
     $("mEclRow").hidden = !eclToday;
     if (eclToday) {
-      $("mEcl").textContent = eclToday.kind + " · " + eclToday.where;
+      $("mEcl").textContent = LANG.t("ecl.line", { kind: LANG.t(eclToday.kind), where: LANG.t(eclToday.where) });
       $("mEcl").style.color = "var(--terra)";
     }
     /* Под горизонтом строка не сдаётся словами «солнце под горизонтом» — она
@@ -7506,10 +7511,10 @@
        что сказать нечего. */
     var dirRow = $("mDir").closest(".t-row");
     if (e > 0) {
-      $("mDir").textContent = "с " + dirOf(az) + " · " + az.toFixed(0) + "°";
+      $("mDir").textContent = LANG.t("map.dirFrom", { dir: dirOf(az), az: az.toFixed(0) });
       dirRow.hidden = false;
     } else if (e > -12) {
-      $("mDir").textContent = "заря с " + dirOf(az) + " · " + az.toFixed(0) + "°";
+      $("mDir").textContent = LANG.t("map.glowFrom", { dir: dirOf(az), az: az.toFixed(0) });
       dirRow.hidden = false;
     } else {
       dirRow.hidden = true;
@@ -7518,12 +7523,13 @@
     /* Теней нет — значит и строки нет. «Теней нет» занимало место, ничего не
        сообщая: это ровно то, что уже решено правилом «ноль — пустая клетка». */
     $("mShadow").closest(".t-row").hidden = !sh;
-    if (sh) $("mShadow").textContent = "×" + (sh < 10 ? sh.toFixed(1) : Math.round(sh)) + " роста · на " + dirOf((az + 180) % 360);
+    if (sh) $("mShadow").textContent = LANG.t("map.shadowTo",
+      { n: sh < 10 ? sh.toFixed(1) : Math.round(sh), dir: dirOf((az + 180) % 360) });
     // Окна света: время и азимут — куда смотреть, а не только когда
     $("mGolden").textContent = (SUN.goldB === null || SUN.blueB === null) ? "—"
-      : range(SUN.goldB, SUN.blueB) + " · " + dirOf(azAt(SUN.goldB));
+      : LANG.t("map.rangeDir", { range: range(SUN.goldB, SUN.blueB), dir: dirOf(azAt(SUN.goldB)) });
     $("mBlue").textContent = (SUN.blueB === null || SUN.civB === null) ? "—"
-      : range(SUN.blueB, SUN.civB) + " · " + dirOf(azAt(SUN.blueB));
+      : LANG.t("map.rangeDir", { range: range(SUN.blueB, SUN.civB), dir: dirOf(azAt(SUN.blueB)) });
     /* Луна над горизонтом: в астро — измерения, в обычном — то, чего на карте
        нет цифрой. Азимут с высотой повторяют лунный диск, который и так нарисован,
        а «зайдёт в 03:10» и доля света не повторяют ничего. */
@@ -7531,24 +7537,24 @@
     var moonLit = Math.round(moonPhase(selDate, t).fraction * 100);
     $("mMoon").textContent = mNow.alt > 0
       ? (moonPro
-          ? dirOf(mNow.az) + " · " + mNow.alt.toFixed(0) + "° · " + moonLit + "%"
-          : "освещена " + moonLit + "%"
-            + (mArc && !mArc.none && mArc.set !== null ? " · зайдёт " + fmt(mArc.set) : ""))
-      : mArc.none ? "сегодня не восходит" : "под горизонтом · взойдёт " + fmt(mArc.rise);
+          ? LANG.t("map.moonPro", { dir: dirOf(mNow.az), alt: mNow.alt.toFixed(0), pct: moonLit })
+          : LANG.t("map.moonLit", { pct: moonLit })
+            + (mArc && !mArc.none && mArc.set !== null ? LANG.t("map.moonSetsAt", { t: fmt(mArc.set) }) : ""))
+      : mArc.none ? LANG.t("map.moonNoRise") : LANG.t("map.moonBelow", { t: fmt(mArc.rise) });
     /* «Точка съёмки: в тени» ночью — не ответ, а заполненная строка: в тени
        ночью всё. Держим её, пока солнце вообще светит. */
     $("mPoint").closest(".t-row").hidden = e <= -4;
     /* «Освещается», а не «на свету» (Алексей): строка отвечает на вопрос
        «падает ли на точку прямое солнце», а «на свету» звучит как общее
        состояние места — светло вокруг или нет. */
-    $("mPoint").textContent = e > 0 ? "освещается" : "в тени";
+    $("mPoint").textContent = e > 0 ? LANG.t("map.spotLit") : LANG.t("map.spotShade");
     $("mPoint").style.color = e > 0 ? "#E2A44C" : "#8A8478";
 
     /* Ближайшее событие и отсчёт до него */
     var nx = nextLightEvent(t);
     $("mNextRow").hidden = !nx;
     if (nx) {
-      $("mNext").textContent = nx.name + " через " + gapLabel(nx.min - t);
+      $("mNext").textContent = LANG.t("map.nextIn", { name: nx.name, gap: gapLabel(nx.min - t) });
       $("mNext").style.color = nx.warm ? "#E2A44C" : "var(--ink-2)";
     }
     /* Сумерки тремя ступенями — только в астро: в обычном режиме это цифры без
@@ -7559,22 +7565,23 @@
 
     renderMwRows();
 
+    var azDir = function (a) { return LANG.t("mpro.azDir", { az: a.toFixed(1), dir: dirOf(a) }); };
     $("mProBody").innerHTML = proHTML([
-      ["sun", "Солнце в этот момент", [
-        ["Азимут", az.toFixed(1) + "° · " + dirOf(az)],
-        ["Высота", (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°"],
-        ["Длина тени", sh ? "×" + (sh < 10 ? sh.toFixed(2) : sh.toFixed(1)) + " роста" : "—"],
-        ["Тень падает на", ((az + 180) % 360).toFixed(1) + "° · " + dirOf((az + 180) % 360)]
+      ["sun", "pro.sunNow", [
+        ["pro.azimuth", azDir(az)],
+        ["pro.altitude", (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°"],
+        ["pro.shadowLen", sh ? LANG.t("pro.shadowOf", { n: sh < 10 ? sh.toFixed(2) : sh.toFixed(1) }) : "—"],
+        ["mpro.shadowFalls", azDir((az + 180) % 360)]
       ]],
-      ["compass", "Азимуты дня", [
-        ["Восход", azAt(SUN.rise).toFixed(1) + "° · " + dirOf(azAt(SUN.rise))],
-        ["Закат", azAt(SUN.set).toFixed(1) + "° · " + dirOf(azAt(SUN.set))],
-        ["Сектор за день", Math.abs(azAt(SUN.set) - azAt(SUN.rise)).toFixed(0) + "°"]
+      ["compass", "mpro.dayAzimuths", [
+        ["pro.rise", azDir(azAt(SUN.rise))],
+        ["pro.sunset", azDir(azAt(SUN.set))],
+        ["mpro.sector", Math.abs(azAt(SUN.set) - azAt(SUN.rise)).toFixed(0) + "°"]
       ]],
-      ["compass", "Место", [
-        ["Широта", Math.abs(LAT).toFixed(4) + "° " + (LAT >= 0 ? "N" : "S")],
-        ["Долгота", Math.abs(LON).toFixed(4) + "° " + (LON >= 0 ? "E" : "W")],
-        ["Часовой пояс", "UTC" + (TZ >= 0 ? "+" : "") + TZ + " · оценка по долготе"]
+      ["compass", "mpro.place", [
+        ["mpro.lat", Math.abs(LAT).toFixed(4) + "° " + (LAT >= 0 ? "N" : "S")],
+        ["mpro.lon", Math.abs(LON).toFixed(4) + "° " + (LON >= 0 ? "E" : "W")],
+        ["mpro.tz", LANG.t("mpro.tzGuess", { off: (TZ >= 0 ? "+" : "") + TZ })]
       ]]
     ].concat(mwProGroup()).concat(eclipseProGroup()));
   }
@@ -7593,10 +7600,12 @@
     if (!e) return [];
     var dt = eclipseDate(e), today = sameDay(dt, selDate);
     var days = Math.round((dt - new Date(selDate.getFullYear(), selDate.getMonth(), selDate.getDate())) / 86400000);
-    return [["sun", "Ближайшее затмение", [
-      ["Когда", today ? "сегодня" : mwDateShort(dt) + " " + dt.getFullYear() + " · через " + days + " " + plural(days, ["день", "дня", "дней"])],
-      ["Вид", e.kind],
-      ["Где видно", e.where]
+    return [["sun", "mpro.nextEcl", [
+      ["mpro.when", today ? LANG.t("mpro.eclToday")
+        : LANG.t("mpro.eclIn", { date: mwDateShort(dt), year: dt.getFullYear(),
+                                 days: LANG.count("unit.day", days) })],
+      ["mpro.kind", LANG.t(e.kind)],
+      ["mpro.whereSeen", LANG.t(e.where)]
     ]]];
   }
   function mwProGroup() {
@@ -7605,28 +7614,28 @@
     var w = mwWindow(selDate);
     var mo = moonAt(selDate, viewMin), lit = Math.round(moonPhase(selDate, viewMin).fraction * 100);
     var rows = [
-      ["Азимут ядра", core.az.toFixed(1) + "° · " + dirOf(core.az)],
-      ["Высота ядра", (core.alt >= 0 ? "+" : "−") + Math.abs(core.alt).toFixed(1) + "°"],
+      ["mpro.coreAz", LANG.t("mpro.azDir", { az: core.az.toFixed(1), dir: dirOf(core.az) })],
+      ["mpro.coreAlt", (core.alt >= 0 ? "+" : "−") + Math.abs(core.alt).toFixed(1) + "°"],
       /* «За сутки», не «за ночь»: `mwWindow` ищет пик по всем суткам
          подряд, не только по тёмному времени, и на нашей широте он часто
          приходится на светлые часы — 20:24 при ночи с 22:49. Прежнее имя
          обещало ночь и тем сбивало: выходило, что пик уже в темноте, хотя
          до неё ещё два часа. Рядом стоит «Астрономическая ночь» — сверить
          одно с другим теперь можно, не гадая. */
-      ["Максимум за сутки", w.best.alt < 0 ? "не восходит"
-        : w.best.alt.toFixed(1) + "° в " + fmt(w.best.t)],
-      ["Рабочая высота", MW_WORK_LO + "–" + MW_WORK_HI + "° · " +
-        (w.best.alt >= MW_WORK_HI ? "достаётся"
-          : w.best.alt >= MW_WORK_LO ? "с натяжкой" : "не достаётся")],
-      ["Астрономическая ночь", w.dark && SUN.astB !== null && SUN.astA !== null
+      ["mpro.maxDay", w.best.alt < 0 ? LANG.t("mpro.noRise")
+        : LANG.t("mpro.altAt", { alt: w.best.alt.toFixed(1), t: fmt(w.best.t) })],
+      ["mpro.workAlt", LANG.t("mpro.workRange", { lo: MW_WORK_LO, hi: MW_WORK_HI,
+        verdict: w.best.alt >= MW_WORK_HI ? LANG.t("mpro.reaches")
+          : w.best.alt >= MW_WORK_LO ? LANG.t("mpro.barely") : LANG.t("mpro.reachesNot") })],
+      ["pro.astroNight", w.dark && SUN.astB !== null && SUN.astA !== null
         ? range(SUN.astB, SUN.astA + 1440) : null],
-      ["Луна сейчас", mo.alt > 0
-        ? "над горизонтом · " + mo.alt.toFixed(0) + "° · " + lit + "%"
-        : "под горизонтом · не мешает"],
-      ["Окно съёмки", w.from !== null ? range(w.from, w.to)
-        : (!w.dark ? null : w.moonBlocks ? "закрыто луной" : null)]
+      ["mpro.moonNow", mo.alt > 0
+        ? LANG.t("mpro.moonUp", { alt: mo.alt.toFixed(0), pct: lit })
+        : LANG.t("mpro.moonDown")],
+      ["mpro.window", w.from !== null ? range(w.from, w.to)
+        : (!w.dark ? null : w.moonBlocks ? LANG.t("mpro.windowMoon") : null)]
     ];
-    return [["stars", "Млечный Путь", rows]];
+    return [["stars", "mpro.mw", rows]];
   }
 
   /* ---------- Настоящая карта: Leaflet + тёмные тайлы ---------- */
@@ -14083,7 +14092,7 @@
     renderMoneyLabels();
     if (!booted) return;
     paintDate();           // дата в шапке живёт отдельно от renderToday
-    renderToday(); renderWeek(); renderDayPanel(); renderSessions(); renderCal();
+    renderToday(); renderMap(); renderWeek(); renderDayPanel(); renderSessions(); renderCal();
     if ($("fWish").children.length) { renderGenres(); renderWishes(); renderPay(); }
   }
 
