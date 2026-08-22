@@ -6523,18 +6523,19 @@
   function deliveryState(s) {
     if (isMeet(s)) return { rank: 0, c: GREY, breath: false, label: "" };
     var now = Date.now(), shot = s.date.getTime(), r;
-    if (s.delivered)   r = { rank: 0, c: GREY, breath: false, label: "материал сдан" };
-    else if (shot > now) r = { rank: 1, c: urgencyCalm(), breath: false, label: "предстоит" };
+    if (s.delivered)   r = { rank: 0, c: GREY, breath: false, label: LANG.t("delv.done") };
+    else if (shot > now) r = { rank: 1, c: urgencyCalm(), breath: false, label: LANG.t("delv.ahead") };
     else {
       var dd = deadlineDate(s);
-      if (!dd) r = { rank: 1, c: GREY, breath: false, label: "без срока" };
+      if (!dd) r = { rank: 1, c: GREY, breath: false, label: LANG.t("delv.noTerm") };
       else {
         var p = (now - shot) / (dd.getTime() - shot);
         var left = Math.ceil((dd.getTime() - now) / 86400000);
         r = p >= 1
           ? { rank: 3, c: theme === "light" ? [138,63,34] : [201,102,61], breath: true,
-              label: "просрочено на " + Math.abs(left) + " дн." }
-          : { rank: 2, c: urgencyRGB(p), breath: false, label: "сдать за " + left + " дн." };
+              label: LANG.t("delv.overdue", { days: LANG.count("unit.dayShort", Math.abs(left)) }) }
+          : { rank: 2, c: urgencyRGB(p), breath: false,
+              label: LANG.t("delv.dueIn", { days: LANG.count("unit.dayShort", left) }) };
       }
     }
     r.color = rgb(r.c);
@@ -8238,14 +8239,14 @@
                а начало разметки и закрывающий тег просто исчезают */
             + '<span class="wk-ic">' + (meet ? IC.svg("guests") : IC.genreSvg(p.s.type)) + "</span>"
             + '<span class="wk-body"><span class="wk-t">'
-            + (meet ? "Встреча · " + esc(shortGenre(p.s.type).toLowerCase())
+            + (meet ? esc(LANG.t("week.meetWith", { genre: shortGenre(p.s.type).toLowerCase() }))
                     : esc(spec.ev || genreName(p.s.type)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
             + "</span>"
             + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
         }).join("");
       } else {
         /* Свободный день так и подписан — той же строкой в том же контейнере */
-        body = '<button type="button" class="wk-free">свободно</button>';
+        body = '<button type="button" class="wk-free">' + esc(LANG.t("week.free")) + "</button>";
       }
       /* Свет — общая для всех дней строка внизу: у занятого дня закат, у
          свободного золотой час. Раньше он был только у свободного, и день со
@@ -8253,14 +8254,15 @@
       if (sky.set !== null || sky.goldB !== null) {
         body += '<div class="wk-sun">'
           + (shoots.length
-            ? IC.svg("sunset") + "закат " + fmt(sky.set)
-            : IC.svg("sun") + "золотой час " + fmt(sky.goldB !== null ? sky.goldB : sky.set))
+            ? IC.svg("sunset") + esc(LANG.t("week.sunsetAt", { t: fmt(sky.set) }))
+            : IC.svg("sun") + esc(LANG.t("week.goldenAt",
+                { t: fmt(sky.goldB !== null ? sky.goldB : sky.set) })))
           + "</div>";
       }
       if (due.length) {
-        body += '<div class="wk-due">' + IC.svg("clock") + "сдать "
-          + due.map(function (x) { return esc(clientName(x) || (genreSpec(x.type).ev || genreName(x.type))); }).join(", ")
-          + "</div>";
+        body += '<div class="wk-due">' + IC.svg("clock") + esc(LANG.t("week.dueList", {
+          list: due.map(function (x) { return clientName(x) || (genreSpec(x.type).ev || genreName(x.type)); }).join(", ")
+        })) + "</div>";
       }
 
       /* Тап по дате разворачивает день здесь же: свет и погода подробностями.
@@ -8270,7 +8272,8 @@
         + '<span>' + IC.svg("sunrise") + fmt(sky.rise) + "</span>"
         + (sky.goldB !== null ? '<span class="gold">' + IC.svg("sun") + range(sky.goldB, sky.blueB) + "</span>" : "")
         + '<span>' + IC.svg("sunset") + fmt(sky.set) + "</span></div>"
-        + '<div class="wk-wxs">' + QUAL[q].cond + " · облачность " + wx.cloud + "% · ветер " + wx.wind + " м/с</div>"
+        + '<div class="wk-wxs">' + esc(LANG.t("week.wx",
+            { cond: QUAL[q].cond, cloud: wx.cloud, wind: wx.wind })) + "</div>"
         + "</div>";
 
       row.innerHTML = head + '<div class="wk-list">' + body + more + "</div>";
@@ -9256,18 +9259,19 @@
           '<div class="s-body"><div class="s-title">' + genreName(s.type) + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
           '<div class="s-sub">' + s.place + (function (w) {
             var list = Array.isArray(w) ? w : (w && w !== "any" ? [w] : []);
-            return list.length ? " · жду: " + list.map(wishName).join(", ").toLowerCase() : "";
+            return list.length
+              ? LANG.t("sess.expect", { list: list.map(wishName).join(", ").toLowerCase() }) : "";
           })(s.wish) + "</div>" +
           (function () {
             var ds = deliveryState(s);
             if (ds.rank >= 2) return '<div class="s-sync" style="color:' + ds.color + '">' + ds.label + "</div>";
-            if (s.delivered) return '<div class="s-sync">материал сдан</div>';
+            if (s.delivered) return '<div class="s-sync">' + esc(LANG.t("delv.done")) + "</div>";
             if (s.warn) return '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>";
             return s.synced ? '<div class="s-sync">'
         + esc(LANG.t("plan.inCalendar", { service: s.synced === "google" ? "Google" : "Apple" })) + "</div>" : "";
           })() +
-          '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">до ' +
-          fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + "</span></div>";
+          '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">' +
+          esc(LANG.t("sess.till", { t: fmt(s.end != null ? s.end : s.min + (s.dur || 90)) })) + "</span></div>";
         c.addEventListener("click", function () { openCard(p.i); });
         list.appendChild(c);
       });

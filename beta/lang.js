@@ -531,6 +531,26 @@
     "year.delivery":   "Сроки сдачи",
     "year.back":       "Год",
 
+    /* Сдача материала: состояние съёмки в списке и в карточке */
+    "delv.done":     "материал сдан",
+    "delv.ahead":    "предстоит",
+    "delv.noTerm":   "без срока",
+    "delv.overdue":  "просрочено на {days}",
+    "delv.dueIn":    "сдать за {days}",
+    "unit.dayShort": ["дн.", "дн.", "дн."],
+
+    /* Строка съёмки в списке */
+    "sess.expect":   " · жду: {list}",
+    "sess.till":     "до {t}",
+
+    /* Неделя: строка дня */
+    "week.meetWith":  "Встреча · {genre}",
+    "week.free":      "свободно",
+    "week.sunsetAt":  "закат {t}",
+    "week.goldenAt":  "золотой час {t}",
+    "week.dueList":   "сдать {list}",
+    "week.wx":        "{cond} · облачность {cloud}% · ветер {wind} м/с",
+
     /* ---- Экран «Съёмки» ----
        Перегрузка: сколько просрочено и сколько ещё впереди. Оба числа
        приходят готовыми — вместе с тегом и согласованным словом */
@@ -999,6 +1019,23 @@
     "year.lateBy":    "{days} late on average",
     "plan.empty":     "Nothing yet. Pick a day with good light.",
     "plan.inCalendar": "→ in {service} calendar",
+
+    "delv.done":     "delivered",
+    "delv.ahead":    "ahead",
+    "delv.noTerm":   "no deadline",
+    "delv.overdue":  "{days} overdue",
+    "delv.dueIn":    "{days} to deliver",
+    "unit.dayShort": ["d", "d"],
+
+    "sess.expect":   " · want: {list}",
+    "sess.till":     "till {t}",
+
+    "week.meetWith":  "Meeting · {genre}",
+    "week.free":      "free",
+    "week.sunsetAt":  "sunset {t}",
+    "week.goldenAt":  "golden hour {t}",
+    "week.dueList":   "deliver {list}",
+    "week.wx":        "{cond} · cloud {cloud}% · wind {wind} m/s",
 
     "year.months":     "Load by month",
     "year.monthsNote": "The number is shoots that month",
