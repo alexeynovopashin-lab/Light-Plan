@@ -3353,7 +3353,7 @@
       <button class="loc" id="todayLoc" aria-label="Сменить место" data-i18n-aria="today.changePlace">
         <div class="name"><span id="hLocName">—</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
         <div class="head-sub" id="hLocSub">—</div>
-        <div class="date" id="hDate">ЧТ · 16 июля</div>
+        <div class="date" id="hDate">—</div>
         <div class="head-note" id="hNote">сегодня</div>
       </button>
       <div class="head-wx">
@@ -3471,7 +3471,7 @@
       <button class="loc" id="mapLoc" aria-label="Сменить место" data-i18n-aria="today.changePlace">
         <div class="name"><span id="mLocName">—</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
         <div class="head-sub" id="mLocSub">—</div>
-        <div class="date" id="mDate">ЧТ · 16 июля</div>
+        <div class="date" id="mDate">—</div>
       </button>
       <!-- Освободившийся угол берёт сохранение точки: стоишь на месте — оставь
            его себе. Список — общий с «Моими точками съёмки» в настройках -->
@@ -3597,7 +3597,7 @@
       <!-- Год из заголовка убран: он и так выбирается на экране года,
            а месяцу нужна ширина, чтобы не обрываться многоточием -->
       <button class="plan-title" id="planTitle">
-        <span id="calMonth">Август</span>
+        <span id="calMonth">—</span>
         <span class="pt-chev" data-ic="chevron"></span>
       </button>
       <div class="plan-acts">
@@ -3624,7 +3624,7 @@
       <button data-scope="week"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_week"></span><span data-i18n="plan.viewWeek">Неделя</span></button>
       <button data-scope="day"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_day"></span><span data-i18n="plan.viewDay">Один день</span></button>
     </div>
-    <button class="now-back" id="calNow">↺ сегодня</button>
+    <button class="now-back" id="calNow"><span data-i18n="today.backToday">↺ сегодня</span></button>
 
     <div class="cal-head" id="calHead"></div>
     <div class="cal" id="cal"></div>
@@ -3698,105 +3698,105 @@
   <!-- ============ НАСТРОЙКИ ============ -->
   <section class="screen" id="s-set">
     <div class="header">
-      <div class="loc"><div class="name">Light Plan</div><div class="date">v3 · прототип</div></div>
+      <div class="loc"><div class="name">Light Plan</div><div class="date" data-i18n="set.proto">v3 · прототип</div></div>
     </div>
 
-    <div class="sec-label">Режим</div>
+    <div class="sec-label" data-i18n="set.mode">Режим</div>
     <div class="seg" id="modeSeg">
-      <button class="active" data-mode="simple">Просто</button>
-      <button data-mode="pro">Астро</button>
+      <button class="active" data-mode="simple" data-i18n="set.modeSimple">Просто</button>
+      <button data-mode="pro" data-i18n="set.modePro">Астро</button>
     </div>
-    <p class="seg-note">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
+    <p class="seg-note" data-i18n="set.modeNote">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
 
     <!-- Лента под слайдером — только в астро, поэтому и настройка живёт
          сразу под переключателем режима, а не отдельным разделом внизу
          списка (docs: DECISIONS, «Барабан вместо ленты — и лента рядом») -->
-    <div class="sec-label">Лента суток</div>
+    <div class="sec-label" data-i18n="set.ribbon">Лента суток</div>
     <div class="seg" id="ribbonSeg">
-      <button data-ribbon="drum">Барабан</button>
-      <button data-ribbon="lane">Лента</button>
+      <button data-ribbon="drum" data-i18n="set.ribbonDrum">Барабан</button>
+      <button data-ribbon="lane" data-i18n="set.ribbonLane">Лента</button>
     </div>
     <p class="seg-note" id="ribbonNote"></p>
 
-    <div class="sec-label">Тема</div>
+    <div class="sec-label" data-i18n="set.theme">Тема</div>
     <!-- Третий вариант — не «ещё одна тема», а отказ выбирать: телефон уже
          знает, вечер сейчас или день, и переспрашивать об этом незачем -->
     <div class="seg" id="themeSeg">
-      <button class="active" data-theme="dark">Тёмная</button>
-      <button data-theme="light">Светлая</button>
+      <button class="active" data-theme="dark" data-i18n="set.themeDark">Тёмная</button>
+      <button data-theme="light" data-i18n="set.themeLight">Светлая</button>
       <!-- Одно слово: «как в системе» переносилось на две строки и ломало ряд -->
-      <button data-theme="auto">Система</button>
+      <button data-theme="auto" data-i18n="set.themeAuto">Система</button>
     </div>
-    <p class="seg-note">Меняется интерфейс. Небо, свет и карта остаются прежними: закат не зависит от темы.</p>
+    <p class="seg-note" data-i18n="set.themeNote">Меняется интерфейс. Небо, свет и карта остаются прежними: закат не зависит от темы.</p>
 
-    <div class="sec-label">Календарь</div>
+    <div class="sec-label" data-i18n="set.calendar">Календарь</div>
     <div class="seg" id="calSync">
-      <button class="active" data-sync="off">Выкл</button>
+      <button class="active" data-sync="off" data-i18n="set.off">Выкл</button>
       <button data-sync="apple">Apple</button>
       <button data-sync="google">Google</button>
     </div>
     <p class="seg-note" id="syncNote">Съёмки хранятся только в Light Plan.</p>
 
-    <div class="sec-label">Сдача материала</div>
+    <div class="sec-label" data-i18n="card.delivery">Сдача материала</div>
     <div class="seg" id="delvSeg">
-      <button class="active" data-mode="genre">По жанру</button>
-      <button data-mode="single">Единый</button>
-      <button data-mode="none">Без срока</button>
+      <button class="active" data-mode="genre" data-i18n="set.delvGenre">По жанру</button>
+      <button data-mode="single" data-i18n="set.delvSingle">Единый</button>
+      <button data-mode="none" data-i18n="set.delvNone">Без срока</button>
     </div>
     <div class="chips" id="delvDays" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="delvNote">Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней.</p>
 
     <!-- Умолчание — мелкий шаг: свобода, которую при желании урезают сами.
          Крупный шаг удобнее, но это удобство, выбранное за фотографа -->
-    <div class="sec-label">Шаг времени</div>
+    <div class="sec-label" data-i18n="set.step">Шаг времени</div>
     <div class="seg" id="stepSeg">
-      <button class="active" data-step="5">5 минут</button>
-      <button data-step="10">10 минут</button>
-      <button data-step="30">Полчаса</button>
+      <button class="active" data-step="5" data-i18n="set.step5">5 минут</button>
+      <button data-step="10" data-i18n="set.step10">10 минут</button>
+      <button data-step="30" data-i18n="set.step30">Полчаса</button>
     </div>
     <p class="seg-note" id="stepNote">Шаг барабана в форме. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется.</p>
 
-    <div class="sec-label">Отклик</div>
-    <div class="item"><span class="k">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
+    <div class="sec-label" data-i18n="set.feedback">Отклик</div>
+    <div class="item"><span class="k" data-i18n="set.clicks">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
 
-    <div class="sec-label">Уведомления</div>
-    <div class="item"><span class="k">Вечерний брифинг</span><span class="toggle on" data-toggle></span></div>
-    <div class="item"><span class="k">Утреннее уточнение</span><span class="toggle on" data-toggle></span></div>
-    <div class="item"><span class="k">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
+    <div class="sec-label" data-i18n="set.notify">Уведомления</div>
+    <div class="item"><span class="k" data-i18n="set.notifyEve">Вечерний брифинг</span><span class="toggle on" data-toggle></span></div>
+    <div class="item"><span class="k" data-i18n="set.notifyMorn">Утреннее уточнение</span><span class="toggle on" data-toggle></span></div>
+    <div class="item"><span class="k" data-i18n="set.notifyLeave">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
 
-    <div class="sec-label">Карта</div>
+    <div class="sec-label" data-i18n="nav.map">Карта</div>
     <!-- Холст по умолчанию без подписей: имена улиц спорят с нашей разметкой —
          часами дуги, временами восхода и заката, буквами сторон света.
          Но улица бывает нужна, чтобы понять, куда идти, поэтому подписи не
          запрещены, а выключены: функция обязана уметь исчезнуть -->
-    <div class="item"><span class="k">Названия улиц и мест</span><span class="toggle" id="labelsToggle"></span></div>
-    <p class="seg-note">Отдельный слой поверх карты. Выключен — на карте только свет и город.</p>
+    <div class="item"><span class="k" data-i18n="set.streetNames">Названия улиц и мест</span><span class="toggle" id="labelsToggle"></span></div>
+    <p class="seg-note" data-i18n="set.streetNote">Отдельный слой поверх карты. Выключен — на карте только свет и город.</p>
 
-    <div class="sec-label">Места</div>
+    <div class="sec-label" data-i18n="set.places">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
-    <div class="item" id="spotsRow"><span class="k">Мои места</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <div class="item" id="spotsRow"><span class="k" data-i18n="loc.myPlaces">Мои места</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
     <!-- Хранилище — вход в мудборды: у съёмки и у жанра уже был свой набор
          референсов, но раскладывать кадры по разделам и переносить между
          съёмкой и жанровой подборкой было либо неоткуда, либо неудобно —
          через настройку карточки (Алексей: «тут это делать удобнее»).
          Раздел не заводит новых данных, только даёт разложить по полочкам
          то, что уже лежит в `s.refs` и `genreRefs` (docs: DECISIONS). -->
-    <div class="sec-label">Хранилище</div>
-    <div class="item" id="mbRow"><span class="k">Мудборды</span><span class="v" id="mbRowN">— <span class="go-chev">›</span></span></div>
+    <div class="sec-label" data-i18n="set.storage">Хранилище</div>
+    <div class="item" id="mbRow"><span class="k" data-i18n="set.moodboards">Мудборды</span><span class="v" id="mbRowN">— <span class="go-chev">›</span></span></div>
     <!-- Экран организаций живёт и здесь: раньше единственный путь был кнопкой
          в шапке «Съёмок», её место занял вход в статистику. Строка в форме
          съёмки («Заказчик») по-прежнему открывает тот же список для выбора,
          а этот пункт — для того, чтобы просто посмотреть архив без съёмки под рукой -->
-    <div class="item" id="orgsSetRow"><span class="k">Организации и документы</span><span class="go-chev">›</span></div>
+    <div class="item" id="orgsSetRow"><span class="k" data-i18n="set.orgsDocs">Организации и документы</span><span class="go-chev">›</span></div>
     <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
          открывать нечего. Строки нет, пока корзина пуста -->
-    <div class="item" id="binSetRow" hidden><span class="k">Корзина</span><span class="v" id="binSetN">0</span></div>
+    <div class="item" id="binSetRow" hidden><span class="k" data-i18n="card.bin">Корзина</span><span class="v" id="binSetN">0</span></div>
     <!-- Порог дороги между площадками. Значение зашитой константой было
          честным для города и враньём для пригорода: сорок минут между
          разными местами — это про соседние районы, а не про соседний город -->
-    <div class="sec-label">Дорога между площадками</div>
+    <div class="sec-label" data-i18n="set.travel">Дорога между площадками</div>
     <div class="seg" id="travelSeg">
       <button data-travel="20">20</button>
       <button class="active" data-travel="40">40</button>
@@ -3806,40 +3806,40 @@
     <p class="seg-note" id="travelNote">Если между съёмками в разных местах остаётся меньше 40 минут, приложение предупредит. Запрета нет: решает фотограф.</p>
 
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
-    <div class="sec-label">Данные</div>
-    <div class="item"><span class="k">Постоянность</span><span class="v" id="storeState">—</span></div>
-    <div class="item"><span class="k">Записей</span><span class="v" id="storeCount">—</span></div>
-    <div class="item"><span class="k">Последняя копия</span><span class="v" id="backupWhen">не делали</span></div>
+    <div class="sec-label" data-i18n="set.data">Данные</div>
+    <div class="item"><span class="k" data-i18n="set.persistence">Постоянность</span><span class="v" id="storeState">—</span></div>
+    <div class="item"><span class="k" data-i18n="set.records">Записей</span><span class="v" id="storeCount">—</span></div>
+    <div class="item"><span class="k" data-i18n="set.lastBackup">Последняя копия</span><span class="v" id="backupWhen">не делали</span></div>
     <button class="data-btn" id="backupSave">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 11l4 4 4-4M4.5 19.5h15"/></svg>
-      <span>Сохранить копию</span>
+      <span data-i18n="set.backupSave">Сохранить копию</span>
     </button>
     <button class="data-btn ghost-btn" id="backupLoad">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5v-11M8 13l4-4 4 4M4.5 4.5h15"/></svg>
-      <span>Восстановить из копии</span>
+      <span data-i18n="set.backupLoad">Восстановить из копии</span>
     </button>
     <input type="file" id="backupFile" accept="application/json,.json" hidden>
-    <p class="seg-note" id="backupNote">Копия — обычный файл. Положите его в Яндекс.Диск, iCloud или отправьте себе — из него всё восстановится.</p>
+    <p class="seg-note" id="backupNote" data-i18n="set.backupNote">Копия — обычный файл. Положите его в Яндекс.Диск, iCloud или отправьте себе — из него всё восстановится.</p>
 
     <!-- Автокопия в облако фотографа. Права — только на папку приложения -->
-    <div class="sec-label">Яндекс.Диск</div>
-    <div class="item"><span class="k">Подключение</span><span class="v" id="yaState">не подключён</span></div>
-    <div class="item" id="yaSyncRow" hidden><span class="k">Последняя выгрузка</span><span class="v" id="yaWhen">—</span></div>
+    <div class="sec-label" data-i18n="ya.title">Яндекс.Диск</div>
+    <div class="item"><span class="k" data-i18n="ya.connection">Подключение</span><span class="v" id="yaState">не подключён</span></div>
+    <div class="item" id="yaSyncRow" hidden><span class="k" data-i18n="ya.lastUpload">Последняя выгрузка</span><span class="v" id="yaWhen">—</span></div>
     <button class="data-btn" id="yaConnect">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 19.5h11a4 4 0 0 0 .5-8 6 6 0 0 0-11.6-1.6A4.2 4.2 0 0 0 6.5 19.5z"/></svg>
       <span id="yaConnectLbl">Подключить Яндекс.Диск</span>
     </button>
     <button class="data-btn ghost-btn" id="yaPull" hidden>
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5v-11M8 13l4-4 4 4M4.5 4.5h15"/></svg>
-      <span>Восстановить с Диска</span>
+      <span data-i18n="ya.pull">Восстановить с Диска</span>
     </button>
-    <p class="seg-note" id="yaNote">Копия будет уходить в папку «Приложения · Light Plan». Остальной Диск приложению не виден.</p>
+    <p class="seg-note" id="yaNote" data-i18n="ya.note">Копия будет уходить в папку «Приложения · Light Plan». Остальной Диск приложению не виден.</p>
 
     <!-- Язык, единицы и валюта — три отдельные настройки, а не одна.
          Язык меняет слова и разделители числа; градусы и деньги фотограф
          выбирает сам: с английским интерфейсом он всё равно может
          зарабатывать в рублях (DECISIONS.md, «Языки») -->
-    <div class="sec-label">Язык</div>
+    <div class="sec-label" data-i18n="set.language">Язык</div>
     <div class="chips" id="langChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="langNote"></p>
 
@@ -3851,14 +3851,14 @@
     </div>
     <p class="seg-note" id="clockNote"></p>
 
-    <div class="sec-label">Единицы</div>
+    <div class="sec-label" data-i18n="set.units">Единицы</div>
     <div class="seg" id="unitSeg" style="margin-top:4px;">
       <button class="active" data-unit="c">°C</button>
       <button data-unit="f">°F</button>
     </div>
     <p class="seg-note" id="unitNote">Температура показывается в градусах Цельсия.</p>
 
-    <div class="sec-label">Валюта</div>
+    <div class="sec-label" data-i18n="set.currency">Валюта</div>
     <div class="chips" id="curChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="curNote"></p>
 
@@ -3866,27 +3866,26 @@
          лицензии занимала правую половину нижнего края и резала компас.
          Лицензии OSM и CARTO это допускают — требование в доступности
          указания, а не в том, чтобы оно лежало поверх карты. -->
-    <div class="sec-label">Правовая информация</div>
+    <div class="sec-label" data-i18n="set.legal">Правовая информация</div>
     <div class="legal">
-      <div class="lg-row"><span class="lg-k">Карта</span>
-        <span class="lg-v">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>,
-          участники · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></span></div>
-      <div class="lg-row"><span class="lg-k">Карты и слои</span>
+      <div class="lg-row"><span class="lg-k" data-i18n="nav.map">Карта</span>
+        <span class="lg-v">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a><span data-i18n="lg.osmTail">, участники</span> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></span></div>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.tiles">Карты и слои</span>
         <span class="lg-v"><a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> 1.9.4 · BSD-2-Clause</span></div>
-      <div class="lg-row"><span class="lg-k">Погода</span>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.weather">Погода</span>
         <span class="lg-v"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0</span></div>
-      <div class="lg-row"><span class="lg-k">Поиск места</span>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.geocode">Поиск места</span>
         <span class="lg-v"><a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a> · OpenStreetMap</span></div>
-      <div class="lg-row"><span class="lg-k">Имя места</span>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.placeName">Имя места</span>
         <span class="lg-v"><a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a></span></div>
-      <div class="lg-row"><span class="lg-k">Копия данных</span>
-        <span class="lg-v">Яндекс.Диск · только папка приложения</span></div>
-      <div class="lg-row"><span class="lg-k">Солнце и луна</span>
-        <span class="lg-v">своя модель по алгоритмам NOAA</span></div>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.backup">Копия данных</span>
+        <span class="lg-v" data-i18n="lg.backupV">Яндекс.Диск · только папка приложения</span></div>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.sunMoon">Солнце и луна</span>
+        <span class="lg-v" data-i18n="lg.sunMoonV">своя модель по алгоритмам NOAA</span></div>
     </div>
-    <p class="seg-note">Съёмки, места и настройки хранятся на устройстве. На наш сервер не уходит ничего — его нет.</p>
+    <p class="seg-note" data-i18n="set.privacy">Съёмки, места и настройки хранятся на устройстве. На наш сервер не уходит ничего — его нет.</p>
 
-    <div class="foot">Light Plan · прибор для света<br><span id="buildInfo">сборка —</span></div>
+    <div class="foot"><span data-i18n="set.tagline">Light Plan · прибор для света</span><br><span id="buildInfo">сборка —</span></div>
   </section>
 
   <!-- ============ ТАБ-БАР ============ -->
@@ -3911,7 +3910,7 @@
          «кладу палец на ползунок, а под пальцем оказывается вся полезная
          информация»). Выше слайдера то же самое касание его не закрывает. -->
     <div class="ribbon-wrap">
-      <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки"><div class="ribbon-track" id="ribbonTrack"></div></div>
+      <div class="ribbon-scroll" id="ribbonScroll" tabindex="0" aria-label="Соседние сутки" data-i18n-aria="today.nearDays"><div class="ribbon-track" id="ribbonTrack"></div></div>
       <div class="ribbon-marker" aria-hidden="true"></div>
       <div class="drum-frame" id="ribbonFrame" aria-hidden="true"></div>
     </div>
@@ -3924,7 +3923,7 @@
         <svg class="ruler" id="ruler" viewBox="0 0 342 10" preserveAspectRatio="none" aria-hidden="true"></svg>
         <i class="rail-heat l" id="heatL" aria-hidden="true"></i>
         <i class="rail-heat r" id="heatR" aria-hidden="true"></i>
-        <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток"/>
+        <input type="range" class="scrub" id="scrub" min="0" max="1440" step="1" value="700" aria-label="Время суток" data-i18n-aria="today.timeOfDay"/>
       </div>
     </div>
   </div>
@@ -3932,19 +3931,19 @@
   <nav class="tabbar">
     <button class="tab active" data-go="s-today">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
-      Свет
+      <span data-i18n="nav.light">Свет</span>
     </button>
     <button class="tab" data-go="s-map">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      Карта
+      <span data-i18n="nav.map">Карта</span>
     </button>
     <button class="tab" data-go="s-plan">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M8 14h3M8 17.5h6"/></svg>
-      Съёмки
+      <span data-i18n="nav.shoots">Съёмки</span>
     </button>
     <button class="tab" data-go="s-set">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
-      Настройки
+      <span data-i18n="nav.settings">Настройки</span>
     </button>
   </nav>
 
@@ -3952,8 +3951,8 @@
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet">
     <div class="grip"></div>
-    <div class="sheet-title" id="sheetTitle">Когда смотрим</div>
-    <div class="sheet-sub" id="sheetSub">Свет пересчитается на выбранный день</div>
+    <div class="sheet-title" id="sheetTitle" data-i18n="pick.title">Когда смотрим</div>
+    <div class="sheet-sub" id="sheetSub" data-i18n="pick.sub">Свет пересчитается на выбранный день</div>
     <div class="picker">
       <div class="pick-band"></div>
       <div class="wheel" id="wDate" data-w="date"></div>
@@ -3982,7 +3981,7 @@
         <button class="round" id="cardOrder" aria-label="Настроить карточку" data-i18n-aria="card.tune" hidden data-ic="sliders"></button>
       </div>
     </div>
-    <h2 class="form-title" id="cardTitle">Съёмка</h2>
+    <h2 class="form-title" id="cardTitle" data-i18n="card.shootPoint">Съёмка</h2>
     <p class="form-sub" id="cardSub">—</p>
 
     <!-- ===== Карточка события: docs/11_EVENT_CARD.md =====
@@ -4018,8 +4017,8 @@
     <div class="day-tile" id="cdDay" hidden>
       <div class="dt-date">
         <div class="dt-d" id="cdDayD">30</div>
-        <div class="dt-m" id="cdDayM">июля</div>
-        <div class="dt-w" id="cdDayW">четверг</div>
+        <div class="dt-m" id="cdDayM">—</div>
+        <div class="dt-w" id="cdDayW">—</div>
       </div>
       <div class="dt-main">
         <div class="dt-top">
@@ -4050,7 +4049,7 @@
     <div class="fold" id="cdRouteFold" hidden>
       <button type="button" class="fold-head" id="cdRouteHead">
         <span class="badge" data-ic="route"></span>
-        <span class="pn-body"><span class="pn-t" id="cdRouteT">Маршрут дня</span><span class="pn-s" id="cdRouteS">—</span></span>
+        <span class="pn-body"><span class="pn-t" id="cdRouteT" data-i18n="card.route">Маршрут дня</span><span class="pn-s" id="cdRouteS">—</span></span>
         <span class="chev" data-ic="chevron"></span>
       </button>
       <div class="fold-body" id="cdRouteBody"></div>
@@ -4060,7 +4059,7 @@
     <div class="fold" id="cdRefFold" hidden>
       <button type="button" class="fold-head" id="cdRefHead">
         <span class="badge" data-ic="camera"></span>
-        <span class="pn-body"><span class="pn-t" id="cdRefT">Референсы</span><span class="pn-s" id="cdRefS">—</span></span>
+        <span class="pn-body"><span class="pn-t" id="cdRefT" data-i18n="card.refs">Референсы</span><span class="pn-s" id="cdRefS">—</span></span>
         <span class="chev" data-ic="chevron"></span>
       </button>
       <div class="fold-body"><div class="strip" id="cdRefStrip"></div></div>
@@ -4156,21 +4155,21 @@
       <button class="card-bin" id="cdBin" hidden aria-label="Корзина" data-i18n-aria="card.bin">
         <span class="ic" data-ic="trash"></span><span class="n" id="cdBinN">0</span>
       </button>
-      <button class="card-del" id="cdDelete">Удалить съёмку</button>
+      <button class="card-del" id="cdDelete" data-i18n="card.delShoot">Удалить съёмку</button>
     </div>
   </div>
 
   <!-- ============ ФОРМА СЪЁМКИ ============ -->
   <div class="overlay" id="formOverlay">
     <div class="form-bar">
-      <button class="round" id="formBack" aria-label="Отменить">
+      <button class="round" id="formBack" aria-label="Отменить" data-i18n-aria="form.cancel">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <button class="round ok" id="fSave" aria-label="Сохранить">
+      <button class="round ok" id="fSave" aria-label="Сохранить" data-i18n-aria="form.save">
         <svg viewBox="0 0 24 24"><polyline points="5 12.5 10 17.5 19 6.5"/></svg>
       </button>
     </div>
-    <h2 class="form-title" id="formTitle">Новая съёмка</h2>
+    <h2 class="form-title" id="formTitle" data-i18n="plan.newShoot">Новая съёмка</h2>
     <p class="form-sub" id="formSub">—</p>
     <div class="saved-note" id="savedNote"></div>
 
@@ -4182,8 +4181,8 @@
 
     <!-- Съёмка: что и когда. Барабаны раскрываются под своей строкой,
          так форма остаётся на виду и не теряется контекст. -->
-    <div class="g-label">Съёмка
-      <button class="gear" id="fGear" aria-label="Мои жанры">
+    <div class="g-label"><span data-i18n="form.shoot">Съёмка</span>
+      <button class="gear" id="fGear" aria-label="Мои жанры" data-i18n-aria="form.myGenres">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3.2"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -4197,7 +4196,7 @@
            заканчивается 9-го. Отдельной строки «Дата» больше нет — она означала
            бы, что съёмка живёт внутри одних суток, а банкет её переживает.
            Строки перестали быть кнопками: внутри теперь по две своих кнопки -->
-      <div class="row sep" id="fStart"><span class="rl">Начало</span>
+      <div class="row sep" id="fStart"><span class="rl" data-i18n="form.start">Начало</span>
         <span class="rv">
           <span class="caps">
             <button type="button" class="rv-v" id="fStartDate">—</button>
@@ -4216,7 +4215,7 @@
         </div>
       </div>
 
-      <div class="row sep" id="fEnd"><span class="rl">Конец</span>
+      <div class="row sep" id="fEnd"><span class="rl" data-i18n="form.end">Конец</span>
         <span class="rv">
           <span class="caps">
             <button type="button" class="rv-v" id="fEndDate">—</button>
@@ -4237,17 +4236,17 @@
     </div>
 
     <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
-    <div class="g-label" id="fWhoLabel">Место и клиент</div>
+    <div class="g-label" id="fWhoLabel" data-i18n="form.placeClient">Место и клиент</div>
     <div class="group">
       <button class="row" id="fPlace">
-        <span><span id="fPlaceName">Северный объезд</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
-        <span class="rv act">Изменить</span>
+        <span><span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
+        <span class="rv act" data-i18n="form.change">Изменить</span>
       </button>
       <!-- Имя и телефон разведены: одно поле заставляло выбирать, что важнее,
            а нужны оба — по имени узнают карточку, по телефону звонят.
            Телефон причёсывается на лету, как у остальных номеров -->
-      <input class="sep" type="text" id="fContact" placeholder="Имя клиента"/>
-      <input class="sep" type="tel" id="fClientTel" placeholder="Телефон"/>
+      <input class="sep" type="text" id="fContact" placeholder="Имя клиента" data-i18n-ph="form.clientName"/>
+      <input class="sep" type="tel" id="fClientTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
       <!-- У события снимают двоих, и у каждого своё имя и свой телефон:
            звонить приходится то невесте, то жениху. Подписи ставит жанр -->
       <input class="sep" type="text" id="fP1Name" placeholder="Имя невесты" hidden/>
@@ -4256,31 +4255,31 @@
       <input class="sep pair-end" type="tel"  id="fP2Tel"  placeholder="Телефон" hidden/>
       <!-- У заказа платит юрлицо, у события есть организатор: выбираем из
            общего списка. Разбор строки «Ромашка · Пётр» был временным -->
-      <button class="row sep" id="fOrgRow" hidden><span id="fOrgLabel">Заказчик</span>
-        <span class="rv"><span id="fOrgName">выбрать</span></span>
+      <button class="row sep" id="fOrgRow" hidden><span id="fOrgLabel" data-i18n="orgRole.client">Заказчик</span>
+        <span class="rv"><span id="fOrgName" data-i18n="form.pick">выбрать</span></span>
       </button>
-      <input class="sep" type="text" id="fPerson" placeholder="Контактное лицо" hidden/>
-      <input class="sep" type="tel" id="fPhone" placeholder="Телефон" hidden/>
+      <input class="sep" type="text" id="fPerson" placeholder="Контактное лицо" data-i18n-ph="form.person" hidden/>
+      <input class="sep" type="tel" id="fPhone" placeholder="Телефон" data-i18n-ph="form.phone" hidden/>
       <!-- Гости — мерка людей, а не порядок точек дня: из таймлайна строка переехала
            сюда, к паре и организатору. По умолчанию ноль: свадьбы бывают без гостей -->
       <div class="pay-row" id="fGuestsRow" hidden>
-        <span class="k">Гостей</span>
+        <span class="k" data-i18n="pane.guests">Гостей</span>
         <span class="stepper">
-          <button type="button" id="fGuestsMinus" aria-label="Меньше">−</button>
+          <button type="button" id="fGuestsMinus" aria-label="Меньше" data-i18n-aria="form.less">−</button>
           <input class="step-in" type="text" inputmode="numeric" id="fGuestsVal"
-                 aria-label="Сколько гостей" placeholder="—"/>
-          <button type="button" id="fGuestsPlus" aria-label="Больше">+</button>
+                 aria-label="Сколько гостей" data-i18n-aria="form.guestsAria" placeholder="—"/>
+          <button type="button" id="fGuestsPlus" aria-label="Больше" data-i18n-aria="form.more">+</button>
         </span>
       </div>
-      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки"></textarea>
+      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки" data-i18n-ph="form.notesPh"></textarea>
     </div>
 
     <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
     <!-- Шестерёнка повторяет ту, что у «Съёмки»: коллега, впервые увидевшая
          приложение, не догадалась, что цену и пакеты настраивают через «＋ свой».
          Знак настроек про это говорит сам, а чипс — нет -->
-    <div class="g-label" id="fPayLabel">Оплата
-      <button class="gear" id="fPayGear" aria-label="Ставка и пакеты">
+    <div class="g-label" id="fPayLabel"><span data-i18n="form.pay">Оплата</span>
+      <button class="gear" id="fPayGear" aria-label="Ставка и пакеты" data-i18n-aria="form.ratePacks">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3.2"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -4299,16 +4298,16 @@
           <div class="chips" id="fPackChips" hidden style="margin-top:8px;"></div>
         </div>
         <div class="pay-row sep">
-          <span class="k" id="fRateLabel">Ставка, ₽/час</span>
+          <span class="k" id="fRateLabel">—</span>
           <input class="pay-in" type="text" inputmode="numeric" id="fRate" placeholder="0"/>
         </div>
         <div class="pay-row sep" id="fUnitsRow" hidden>
-          <span class="k" id="fUnitsLabel">Объектов</span>
+          <span class="k" id="fUnitsLabel">—</span>
           <span class="stepper">
-            <button type="button" id="fUnitsMinus" aria-label="Меньше">−</button>
+            <button type="button" id="fUnitsMinus" aria-label="Меньше" data-i18n-aria="form.less">−</button>
             <input class="step-in" type="text" inputmode="numeric" id="fUnitsVal"
-                   aria-label="Количество" value="1"/>
-            <button type="button" id="fUnitsPlus" aria-label="Больше">+</button>
+                   aria-label="Количество" data-i18n-aria="form.qtyAria" value="1"/>
+            <button type="button" id="fUnitsPlus" aria-label="Больше" data-i18n-aria="form.more">+</button>
           </span>
         </div>
         <!-- Предоплата: не доход и не расход, а то, что уже получено.
@@ -4325,72 +4324,72 @@
       </div>
     </div>
 
-    <div class="g-label" id="fDelvLabel">Сдать материал</div>
+    <div class="g-label" id="fDelvLabel" data-i18n="form.deliver">Сдать материал</div>
     <div class="group" id="fDelvGroup">
       <div class="g-chips">
         <div class="dial-wrap">
-          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи"/>
+          <input type="range" class="dial" id="fDelvDial" min="0" max="6" step="1" value="0" aria-label="Срок сдачи" data-i18n-aria="form.delvTerm"/>
           <div class="dial-ticks" id="fDelvTicks"></div>
           <div class="dial-labels" id="fDelvLabels"></div>
         </div>
         <div class="f-hint" id="fDelvHint">—</div>
       </div>
-      <div class="row sep" id="fDoneRow">Материал сдан<span class="toggle" id="fDone"></span></div>
+      <div class="row sep" id="fDoneRow"><span class="rl" data-i18n="form.delivered">Материал сдан</span><span class="toggle" id="fDone"></span></div>
     </div>
 
     <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
          ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
-    <div class="g-label" id="fRouteLabel" hidden>Таймлайн дня</div>
+    <div class="g-label" id="fRouteLabel" data-i18n="form.timeline" hidden>Таймлайн дня</div>
     <div class="group" id="fRouteGroup" hidden>
       <div id="fRouteList"></div>
-      <button type="button" class="rt-add" id="fRouteAdd">+ Сцена</button>
+      <button type="button" class="rt-add" id="fRouteAdd" data-i18n="form.addScene">+ Сцена</button>
     </div>
 
     <!-- Заказ: то, чего нет в частной съёмке. Появляется у группы заказчика,
          модели — поправкой жанра (docs/12_CARD_ARCHITECTURE.md) -->
-    <div class="g-label" id="fOrderLabel" hidden>Заказ</div>
+    <div class="g-label" id="fOrderLabel" data-i18n="form.order" hidden>Заказ</div>
     <div class="group" id="fOrderGroup" hidden>
-      <textarea id="fBrief" placeholder="Техническое задание: что снять, в каком виде сдать"></textarea>
-      <textarea class="sep" id="fModels" placeholder="Модели: имя и телефон, по одной в строке" hidden></textarea>
+      <textarea id="fBrief" placeholder="Техническое задание: что снять, в каком виде сдать" data-i18n-ph="form.briefPh"></textarea>
+      <textarea class="sep" id="fModels" placeholder="Модели: имя и телефон, по одной в строке" data-i18n-ph="form.modelsPh" hidden></textarea>
       <!-- Вид документа выбирается до добавления, как папка у референсов:
            он же фильтр списка, он же метка для новых файлов -->
       <div class="rf-tags wrap sep" id="docKinds"></div>
       <div class="ref-grid" id="docGrid"></div>
       <div class="ref-add sep">
-        <button type="button" class="ref-btn" id="docFileBtn"><span data-ic="doc"></span>Файл</button>
+        <button type="button" class="ref-btn" id="docFileBtn"><span data-ic="doc"></span><span data-i18n="doc.fileBtn">Файл</span></button>
         <button type="button" class="ref-btn" id="docLink">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
-          Ссылка
+          <span data-i18n="ref.link">Ссылка</span>
         </button>
       </div>
       <input type="file" id="docFile" multiple hidden>
       <div class="ref-note" id="docNote" hidden></div>
     </div>
 
-    <div class="g-label" id="fWishLabel">Нужна погода</div>
+    <div class="g-label" id="fWishLabel" data-i18n="form.wish">Нужна погода</div>
     <div class="group" id="fWishGroup">
       <div class="g-chips"><div class="chips" id="fWish"></div></div>
     </div>
 
     <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
-    <div class="g-label" id="fRefsLabel">Референсы</div>
+    <div class="g-label" id="fRefsLabel" data-i18n="card.refs">Референсы</div>
     <div class="group" id="fRefsGroup">
       <div class="ref-grid" id="refGrid"></div>
       <div class="ref-add sep">
         <button type="button" class="ref-btn" id="refPhoto">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
-          Фото
+          <span data-i18n="ref.photo">Фото</span>
         </button>
         <button type="button" class="ref-btn" id="refLink">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
-          Ссылка
+          <span data-i18n="ref.link">Ссылка</span>
         </button>
       </div>
       <input type="file" id="refFile" accept="image/*" multiple hidden>
       <div class="ref-note" id="refNote" hidden></div>
     </div>
 
-    <button class="danger" id="fDelete" hidden>Удалить съёмку</button>
+    <button class="danger" id="fDelete" data-i18n="card.delShoot" hidden>Удалить съёмку</button>
   </div>
 
   <!-- ============ ГОД ============ -->
@@ -4406,7 +4405,7 @@
     <div class="year-sticky-head">
       <div class="form-top">
         <button class="back" id="yearClose">
-          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span id="yearCloseLbl">Июль</span>
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span id="yearCloseLbl">—</span>
         </button>
         <!-- Справа от «‹ Август» пустовало место на всю высоту шапки — крутить
              весь год до кнопки внизу списка ради статистики было бы глупо
@@ -4415,13 +4414,13 @@
              поиск, что в месяце, неделе и дне, а год выпадал (Алексей: «нет
              кнопки для создания съёмки»). -->
         <div class="year-head-acts">
-          <button class="icon-btn" id="yearAdd" aria-label="Новая съёмка">
+          <button class="icon-btn" id="yearAdd" aria-label="Новая съёмка" data-i18n-aria="plan.newShoot">
             <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
           </button>
-          <button class="icon-btn" id="statsBtn" aria-label="Статистика" hidden>
+          <button class="icon-btn" id="statsBtn" aria-label="Статистика" data-i18n-aria="plan.stats" hidden>
             <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V13M12 20V8M18 20V4"/></svg>
           </button>
-          <button class="icon-btn" id="yearSearchBtn" aria-label="Поиск">
+          <button class="icon-btn" id="yearSearchBtn" aria-label="Поиск" data-i18n-aria="plan.search">
             <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
           </button>
         </div>
@@ -4452,7 +4451,7 @@
          приложении означает позицию на шкале времени (Алексей: «сейчас» и
          «сегодня» — разный смысл, кнопка возврата к дате должна звучать как
          дата). -->
-    <button class="now-back day-float" id="yearNow">↺ сегодня</button>
+    <button class="now-back day-float" id="yearNow"><span data-i18n="today.backToday">↺ сегодня</span></button>
   </div>
 
   <!-- ============ ГОД ЦЕЛИКОМ ============
@@ -4463,21 +4462,21 @@
        предполагает (docs: DECISIONS). -->
   <div class="overlay pad" id="year12Overlay">
     <button class="back" id="year12Back">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Год
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="year.one">Год</span>
     </button>
     <!-- Та же пара стрелок и тот же приём, что в ленте месяцев (.year-nav)
          этажом выше: год целиком тоже листается, а не только открывается
          заново с другим числом (Алексей: «года должны листаться так же») -->
     <div class="year-nav" style="margin-top:14px;">
-      <button id="year12Prev" aria-label="Прошлый год">‹</button>
+      <button id="year12Prev" aria-label="Прошлый год" data-i18n-aria="year.prev">‹</button>
       <span class="y" id="year12Title">2026</span>
-      <button id="year12Next" aria-label="Следующий год">›</button>
+      <button id="year12Next" aria-label="Следующий год" data-i18n-aria="year.next">›</button>
     </div>
     <div class="year12-grid" id="year12Grid"></div>
     <!-- Раз экран научился уходить с текущего года, ему нужен и путь
          обратно — тот же приём, что у «сейчас» в ленте месяцев и у
          «сегодня» в дне -->
-    <button class="now-back day-float" id="year12Now">↺ сегодня</button>
+    <button class="now-back day-float" id="year12Now"><span data-i18n="today.backToday">↺ сегодня</span></button>
   </div>
 
   <!-- Инфографика — деньги и сроки сдачи, отдельным экраном поверх года.
@@ -4487,7 +4486,7 @@
   <div class="overlay-right pad" id="statsOverlay">
     <div class="form-top">
       <button class="back" id="statsClose">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Год
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="year.one">Год</span>
       </button>
     </div>
     <!-- Пустой год не должен встречать тишиной: экран открывается и по кнопке
@@ -4496,7 +4495,7 @@
          съёмки. Без этой строки все блоки ниже гасятся один за другим и
          остаётся голая шапка «Год» (Алексей: «экран статистики не должен
          молчать»). -->
-    <p class="plan-empty" id="statsEmpty" hidden style="padding:20px 0;">Пока не о чем рассказать — здесь появится занятость по месяцам, жанры и прибыль, как только в году будут съёмки.</p>
+    <p class="plan-empty" id="statsEmpty" hidden style="padding:20px 0;" data-i18n="stats.empty">Пока не о чем рассказать — здесь появится занятость по месяцам, жанры и прибыль, как только в году будут съёмки.</p>
     <!-- Перегруз — не прячем: это не то, что ищут из любопытства, а то, чего
          не видно самому изнутри (04_ANTI_GOALS). Молчит, пока условие не
          выполнено, и гаснет само — без кнопки «скрыть». -->
@@ -4525,10 +4524,10 @@
   <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
   <div class="overlay pad" id="searchOverlay">
     <button class="back" id="searchBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Назад
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.back">Назад</span>
     </button>
     <div class="field" style="margin-top:14px;">
-      <input type="text" id="searchInput" placeholder="Клиент, тип съёмки или место"/>
+      <input type="text" id="searchInput" placeholder="Клиент, тип съёмки или место" data-i18n-ph="search.ph"/>
     </div>
     <div id="searchResults"></div>
   </div>
@@ -4539,16 +4538,16 @@
        (docs/12_CARD_ARCHITECTURE.md, «Организация как сущность») -->
   <div class="overlay pad" id="orgOverlay">
     <button class="back" id="orgBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Назад
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.back">Назад</span>
     </button>
     <div class="org-seg" id="orgSeg">
-      <button class="active" data-v="orgs">Организации</button>
-      <button data-v="docs">Документы</button>
+      <button class="active" data-v="orgs" data-i18n="org.tabOrgs">Организации</button>
+      <button data-v="docs" data-i18n="card.docs">Документы</button>
     </div>
 
     <div id="orgListView">
       <div id="orgList"></div>
-      <button class="rt-add" id="orgAdd" style="margin:12px 0 0">+ Организация</button>
+      <button class="rt-add" id="orgAdd" style="margin:12px 0 0" data-i18n="org.add">+ Организация</button>
     </div>
 
     <div id="orgDocsView" hidden>
@@ -4560,24 +4559,24 @@
   <!-- Карточка организации: реквизиты, документы, архив съёмок -->
   <div class="overlay pad" id="orgCard">
     <button class="back" id="orgCardBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Организации
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="org.tabOrgs">Организации</span>
     </button>
 
-    <div class="g-label">Организация</div>
+    <div class="g-label" data-i18n="org.one">Организация</div>
     <div class="group">
-      <input type="text" id="oName" placeholder="ООО «Ромашка»"/>
-      <input class="sep" type="text" id="oPerson" placeholder="Контактное лицо"/>
-      <input class="sep" type="tel" id="oPhone" placeholder="Телефон"/>
+      <input type="text" id="oName" placeholder="ООО «Ромашка»" data-i18n-ph="org.namePh"/>
+      <input class="sep" type="text" id="oPerson" placeholder="Контактное лицо" data-i18n-ph="form.person"/>
+      <input class="sep" type="tel" id="oPhone" placeholder="Телефон" data-i18n-ph="form.phone"/>
     </div>
 
     <!-- Реквизиты приходят как попало: текстом, файлом, снимком экрана.
          Поле принимает всё три вида и ничего не спрашивает сверх этого -->
-    <div class="g-label">Реквизиты</div>
+    <div class="g-label" data-i18n="doc.req">Реквизиты</div>
     <div class="group">
-      <textarea id="oReq" placeholder="ИНН, ОГРН, расчётный счёт, банк, адрес — вставьте текстом или приложите файл"></textarea>
+      <textarea id="oReq" placeholder="ИНН, ОГРН, расчётный счёт, банк, адрес — вставьте текстом или приложите файл" data-i18n-ph="org.reqPh"></textarea>
       <div class="ref-grid sep" id="oReqGrid"></div>
       <div class="ref-add sep">
-        <button type="button" class="ref-btn" id="oReqFileBtn"><span data-ic="doc"></span>Файл</button>
+        <button type="button" class="ref-btn" id="oReqFileBtn"><span data-ic="doc"></span><span data-i18n="doc.fileBtn">Файл</span></button>
         <button type="button" class="ref-btn" id="oReqShotBtn">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
           Снимок
@@ -4587,14 +4586,14 @@
       <div class="ref-note" id="oReqNote" hidden></div>
     </div>
 
-    <div class="g-label" id="oDocsLabel">Документы организации</div>
+    <div class="g-label" id="oDocsLabel" data-i18n="org.docs">Документы организации</div>
     <div class="group">
       <div class="rf-tags wrap" id="oDocKinds"></div>
       <div class="ref-add sep">
-        <button type="button" class="ref-btn" id="oDocFileBtn"><span data-ic="doc"></span>Файл</button>
+        <button type="button" class="ref-btn" id="oDocFileBtn"><span data-ic="doc"></span><span data-i18n="doc.fileBtn">Файл</span></button>
         <button type="button" class="ref-btn" id="oDocLinkBtn">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
-          Ссылка
+          <span data-i18n="ref.link">Ссылка</span>
         </button>
       </div>
       <input type="file" id="oDocFile" multiple hidden>
@@ -4602,10 +4601,10 @@
     </div>
     <div id="oDocs"></div>
 
-    <div class="g-label" id="oShootsLabel">Съёмки</div>
+    <div class="g-label" id="oShootsLabel" data-i18n="nav.shoots">Съёмки</div>
     <div id="oShoots"></div>
 
-    <button class="danger" id="oDelete">Удалить организацию</button>
+    <button class="danger" id="oDelete" data-i18n="org.del">Удалить организацию</button>
   </div>
 
   <!-- ============ МУДБОРДЫ ============
@@ -4615,7 +4614,7 @@
        (s.refs, genreRefs) — это редактор над ними, не новый склад. -->
   <div class="overlay pad" id="mbOverlay">
     <button class="back" id="mbBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Настройки
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div id="mbGallery"></div>
   </div>
@@ -4625,7 +4624,7 @@
        оно просто не имело интерфейса, а не отсутствовало как возможность. -->
   <div class="overlay pad" id="mbFolderOverlay">
     <button class="back" id="mbFolderBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Мудборды
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="set.moodboards">Мудборды</span>
     </button>
     <h2 class="form-title" id="mbFolderTitle" style="font-size:22px;">—</h2>
     <p class="form-sub" id="mbFolderSub">—</p>
@@ -4634,11 +4633,11 @@
     <div class="ref-add sep">
       <button type="button" class="ref-btn" id="mbAddPhoto">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
-        Фото
+        <span data-i18n="ref.photo">Фото</span>
       </button>
       <button type="button" class="ref-btn" id="mbAddLink">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
-        Ссылка
+        <span data-i18n="ref.link">Ссылка</span>
       </button>
     </div>
     <div class="ref-note" id="mbNote" hidden></div>
@@ -4651,14 +4650,14 @@
   <div class="scrim" id="mbItemScrim"></div>
   <div class="sheet" id="mbItemSheet">
     <div class="grip"></div>
-    <div class="sheet-title">Материал</div>
-    <div class="g-label" style="margin:18px 4px 9px;">Раздел</div>
+    <div class="sheet-title" data-i18n="mb.item">Материал</div>
+    <div class="g-label" style="margin:18px 4px 9px;" data-i18n="mb.section">Раздел</div>
     <div class="rf-tags wrap" id="mbItemTags" style="padding:0 13px;"></div>
     <div class="group" style="margin-top:16px;">
-      <button type="button" class="row" id="mbItemOpen">Открыть</button>
+      <button type="button" class="row" id="mbItemOpen" data-i18n="mb.open">Открыть</button>
       <button type="button" class="row sep" id="mbItemMove" hidden>—</button>
     </div>
-    <button class="danger" id="mbItemRemove" style="margin-top:14px;">Убрать из мудборда</button>
+    <button class="danger" id="mbItemRemove" style="margin-top:14px;" data-i18n="mb.remove">Убрать из мудборда</button>
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
@@ -4668,17 +4667,17 @@
   <div class="scrim" id="blkScrim"></div>
   <div class="sheet" id="blkSheet">
     <div class="grip"></div>
-    <div class="sheet-title" id="blkTitle">Занять время</div>
-    <div class="sheet-sub">День не для съёмки — но день занятый: календарь должен об этом знать</div>
+    <div class="sheet-title" id="blkTitle" data-i18n="blk.title">Занять время</div>
+    <div class="sheet-sub" data-i18n="blk.sub">День не для съёмки — но день занятый: календарь должен об этом знать</div>
 
     <div class="g-chips" style="padding:0;"><div class="chips" id="blkKind"></div></div>
 
     <div class="group" style="margin-top:14px;">
-      <div class="row sep"><span class="rl">Весь день</span>
+      <div class="row sep"><span class="rl" data-i18n="blk.allDay">Весь день</span>
         <span class="rv"><span class="toggle on" id="blkAllDay"></span></span>
       </div>
 
-      <div class="row sep" id="blkFromRow"><span class="rl">С</span>
+      <div class="row sep" id="blkFromRow"><span class="rl" data-i18n="blk.from">С</span>
         <span class="rv">
           <span class="caps">
             <button type="button" class="rv-v" id="blkFromDate">—</button>
@@ -4696,7 +4695,7 @@
         </div>
       </div>
 
-      <div class="row sep" id="blkToRow"><span class="rl">По</span>
+      <div class="row sep" id="blkToRow"><span class="rl" data-i18n="blk.to">По</span>
         <span class="rv">
           <span class="caps">
             <button type="button" class="rv-v" id="blkToDate">—</button>
@@ -4715,13 +4714,13 @@
         </div>
       </div>
 
-      <input class="sep" type="text" id="blkNote" placeholder="Заметка — необязательно"/>
+      <input class="sep" type="text" id="blkNote" placeholder="Заметка — необязательно" data-i18n-ph="blk.notePh"/>
     </div>
 
-    <button class="sheet-done" id="blkDone">Готово</button>
+    <button class="sheet-done" id="blkDone" data-i18n="pick.done">Готово</button>
     <button class="data-btn ghost-btn" id="blkDel" hidden style="margin-top:8px;">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      <span>Убрать из календаря</span>
+      <span data-i18n="blk.remove">Убрать из календаря</span>
     </button>
   </div>
 
@@ -4736,11 +4735,11 @@
   <div class="scrim" id="binScrim"></div>
   <div class="sheet" id="binSheet">
     <div class="grip"></div>
-    <div class="sheet-title">Корзина</div>
+    <div class="sheet-title" data-i18n="card.bin">Корзина</div>
     <!-- Пустой экран называет предмет, а потом пользу (правило записано) -->
-    <div class="sheet-sub">Удалённые съёмки лежат здесь, пока их не вернут или не сотрут насовсем. Клиент возвращается чаще, чем кажется.</div>
+    <div class="sheet-sub" data-i18n="bin.sub">Удалённые съёмки лежат здесь, пока их не вернут или не сотрут насовсем. Клиент возвращается чаще, чем кажется.</div>
     <div id="binList"></div>
-    <button type="button" class="ghost" id="binClear" hidden style="margin-top:14px;">Очистить корзину</button>
+    <button type="button" class="ghost" id="binClear" hidden style="margin-top:14px;" data-i18n="bin.clear">Очистить корзину</button>
   </div>
   <div class="spot-fan" id="spotFan" hidden></div>
   <!-- Веер действий над записью. Язык взят у веера точек, а не придуман
@@ -4750,20 +4749,20 @@
   <div class="scrim" id="locScrim"></div>
   <div class="sheet" id="locSheet">
     <div class="grip"></div>
-    <div class="sheet-title" id="locTitle">Где снимаем</div>
-    <div class="sheet-sub">Найти по названию, определить по геолокации или ввести координаты</div>
+    <div class="sheet-title" id="locTitle" data-i18n="loc.title">Где снимаем</div>
+    <div class="sheet-sub" data-i18n="loc.sub">Найти по названию, определить по геолокации или ввести координаты</div>
     <button class="loc-detect" id="locDetect">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-      <span id="locDetectLbl">Определить моё место</span>
+      <span id="locDetectLbl" data-i18n="loc.detect">Определить моё место</span>
     </button>
     <!-- Сохранённые точки идут выше поиска: вернуться на своё место нужно
          часто, а искать новое — редко -->
-    <div class="sec-label" id="spotLabel" style="padding-left:0;">Мои места</div>
+    <div class="sec-label" id="spotLabel" style="padding-left:0;" data-i18n="loc.myPlaces">Мои места</div>
     <div class="spot-list" id="spotList"></div>
     <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
     <div class="loc-search">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-      <input id="locQuery" type="text" placeholder="Лагерный сад, Томск" autocomplete="off"/>
+      <input id="locQuery" type="text" placeholder="Лагерный сад, Томск" data-i18n-ph="loc.queryPh" autocomplete="off"/>
     </div>
     <div class="loc-results" id="locResults"></div>
     <!-- Название спрашиваем прямым текстом, не населённым пунктом: геокодер
@@ -4772,55 +4771,55 @@
          сохранённых мест (docs: DECISIONS, «места как сущность») — иначе одно
          и то же слово называлось бы по-разному в двух формах приложения. -->
     <div class="group" id="locPlaceGroup" hidden style="margin-top:12px;">
-      <input class="sep" type="text" id="locName" placeholder="Имя места"/>
-      <input class="sep" type="text" id="locAddress" placeholder="Адрес — улица, дом"/>
-      <div class="row sep"><span class="rl">Выезд в другой город</span>
+      <input class="sep" type="text" id="locName" placeholder="Имя места" data-i18n-ph="loc.namePh"/>
+      <input class="sep" type="text" id="locAddress" placeholder="Адрес — улица, дом" data-i18n-ph="loc.addrPh"/>
+      <div class="row sep"><span class="rl" data-i18n="loc.trip">Выезд в другой город</span>
         <span class="rv"><span class="toggle" id="locTrip"></span></span>
       </div>
       <!-- Раньше сохранить место можно было только закладкой на карте, а имя
            и адрес — вторым заходом в настройках. Теперь то же самое одним
            шагом: не отдельная сущность, а свойство этой самой точки. -->
-      <div class="row sep"><span class="rl">Сохранить в моих местах</span>
+      <div class="row sep"><span class="rl" data-i18n="loc.saveSpot">Сохранить в моих местах</span>
         <span class="rv"><span class="toggle" id="locSaveSpot"></span></span>
       </div>
     </div>
     <!-- Координаты — запасной путь, поэтому парой, а не в разные концы строки -->
     <div class="loc-fields">
-      <label>Широта<input id="locLat" type="text" inputmode="decimal" placeholder="56.021"/></label>
-      <label>Долгота<input id="locLon" type="text" inputmode="decimal" placeholder="37.482"/></label>
+      <label><span data-i18n="loc.lat">Широта</span><input id="locLat" type="text" inputmode="decimal" placeholder="56.021"/></label>
+      <label><span data-i18n="loc.lon">Долгота</span><input id="locLon" type="text" inputmode="decimal" placeholder="37.482"/></label>
     </div>
     <div class="loc-err" id="locErr"></div>
-    <button class="sheet-done" id="locDone">Готово</button>
+    <button class="sheet-done" id="locDone" data-i18n="pick.done">Готово</button>
   </div>
 
   <!-- ============ МОИ ЖАНРЫ ============ -->
   <div class="scrim" id="gScrim"></div>
   <div class="sheet" id="gSheet">
     <div class="grip"></div>
-    <div class="sheet-title">Мои жанры</div>
-    <div class="sheet-sub">Оставьте только то, что снимаете — остальное уйдёт из формы</div>
+    <div class="sheet-title" data-i18n="form.myGenres">Мои жанры</div>
+    <div class="sheet-sub" data-i18n="gen.sub">Оставьте только то, что снимаете — остальное уйдёт из формы</div>
     <div class="chips" id="gList" style="margin-top:18px;"></div>
 
     <!-- Набор референсов жанра: сценарий съёмки. На площадке подсказывает,
          что ещё снять, когда мысль встала (NEEDS: «затуп без сценария») -->
-    <div class="g-label" style="margin: 22px 4px 9px;">Набор референсов <span id="gRefGenre" style="text-transform:none;letter-spacing:0;color:#8A8478;"></span></div>
+    <div class="g-label" style="margin: 22px 4px 9px;"><span data-i18n="gen.refSet">Набор референсов</span> <span id="gRefGenre" style="text-transform:none;letter-spacing:0;color:#8A8478;"></span></div>
     <div class="group">
       <div class="rf-tags wrap" id="gRefTags"></div>
       <div class="ref-grid" id="gRefGrid" style="padding:0 13px 4px;"></div>
       <div class="ref-add sep">
         <button type="button" class="ref-btn" id="gRefPhoto">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
-          Фото
+          <span data-i18n="ref.photo">Фото</span>
         </button>
         <button type="button" class="ref-btn" id="gRefLink">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
-          Ссылка
+          <span data-i18n="ref.link">Ссылка</span>
         </button>
       </div>
       <div class="ref-note" id="gRefNote" hidden></div>
     </div>
 
-    <div class="g-label" style="margin: 22px 4px 9px;">Гонорар</div>
+    <div class="g-label" style="margin: 22px 4px 9px;" data-i18n="pane.fee">Гонорар</div>
     <div class="group">
       <div class="pay-row">
         <span class="k" id="gRateLabel">Стоимость часа по умолчанию, ₽</span>
@@ -4828,13 +4827,13 @@
       </div>
       <!-- Пакеты: именованные продукты свадебщика. Название · часы · цена -->
       <div class="pack-head sep">
-        <span class="k">Пакеты</span>
-        <button type="button" class="pack-add" id="packAdd">＋ пакет</button>
+        <span class="k" data-i18n="gen.packs">Пакеты</span>
+        <button type="button" class="pack-add" id="packAdd" data-i18n="gen.packAdd">＋ пакет</button>
       </div>
       <div id="packList"></div>
     </div>
 
-    <button class="sheet-done" id="gDone">Готово</button>
+    <button class="sheet-done" id="gDone" data-i18n="pick.done">Готово</button>
   </div>
 
   <!-- ============ РЕФЕРЕНСЫ ВО ВЕСЬ ЭКРАН ============
@@ -4842,8 +4841,8 @@
        съёмки лежат вместе, фильтр по папкам. -->
   <div class="refs-full" id="refsFull">
     <div class="rf-bar">
-      <div class="rf-title">Референсы<span id="rfSub">—</span></div>
-      <button class="round" id="rfClose" aria-label="Закрыть">
+      <div class="rf-title"><span data-i18n="card.refs">Референсы</span><span id="rfSub">—</span></div>
+      <button class="round" id="rfClose" aria-label="Закрыть" data-i18n-aria="card.close">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
@@ -4862,7 +4861,7 @@
       </svg>
     </div>
     <div class="n-body">
-      <div class="n-head"><span class="n-app">Light Plan</span><span class="n-time">сейчас</span></div>
+      <div class="n-head"><span class="n-app">Light Plan</span><span class="n-time" data-i18n="notif.now">сейчас</span></div>
       <div class="n-title" id="notifTitle">—</div>
       <div class="n-text" id="notifText">—</div>
     </div>
@@ -5983,7 +5982,7 @@
   function yaHeaders() { return { Authorization: "OAuth " + yaToken }; }
   /* Токен протух или отозван — молча забываем, чтобы не долбить сервис */
   function yaCheck(r) {
-    if (r.status === 401 || r.status === 403) { yaForget(); throw new Error("нет доступа"); }
+    if (r.status === 401 || r.status === 403) { yaForget(); throw new Error(LANG.t("ya.errNoAccess")); }
     return r;
   }
   function yaPush() {
@@ -5994,26 +5993,26 @@
         + encodeURIComponent(YA_PATH), { headers: yaHeaders() })
       .then(yaCheck).then(function (r) { return r.json(); })
       .then(function (j) {
-        if (!j.href) throw new Error("нет ссылки на загрузку");
+        if (!j.href) throw new Error(LANG.t("ya.errNoHref"));
         return fetch(j.href, { method: "PUT", body: new Blob([body], { type: "application/json" }) });
       })
       .then(function (r) {
-        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error("загрузка не прошла");
+        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error(LANG.t("ya.errUpload"));
         try { localStorage.setItem(YA_SYNC_KEY, new Date().toISOString()); } catch (e) {}
         renderYaInfo();
       })
       .catch(function (e) {
-        $("yaNote").textContent = "Не удалось выгрузить: " + e.message + ". Копия файлом по-прежнему работает.";
+        $("yaNote").textContent = LANG.t("ya.pushFail", { err: e.message });
       })
       .then(function () { yaBusy = false; });
   }
   function yaPull() {
     if (!yaToken) return;
-    $("yaNote").textContent = "Читаю копию с Диска…";
+    $("yaNote").textContent = LANG.t("ya.reading");
     fetch("https://cloud-api.yandex.net/v1/disk/resources/download?path=" + encodeURIComponent(YA_PATH),
         { headers: yaHeaders() })
       .then(yaCheck).then(function (r) {
-        if (r.status === 404) throw new Error("на Диске ещё нет копии");
+        if (r.status === 404) throw new Error(LANG.t("ya.errNoCopy"));
         return r.json();
       })
       .then(function (j) { return fetch(j.href); })
@@ -6021,10 +6020,10 @@
       .then(function (text) {
         var err = restoreBackup(text);
         if (err) throw new Error(err);
-        $("yaNote").textContent = "Восстановлено с Диска. Перезапускаю…";
+        $("yaNote").textContent = LANG.t("ya.restored");
         setTimeout(function () { location.reload(); }, 700);
       })
-      .catch(function (e) { $("yaNote").textContent = "Не вышло: " + e.message; });
+      .catch(function (e) { $("yaNote").textContent = LANG.t("ya.failed", { err: e.message }); });
   }
   /* Запись изменилась — выгружаем, но не на каждое нажатие */
   /* Загрузка произвольного файла в папку приложения на Диске */
@@ -6036,27 +6035,27 @@
       { method: "PUT", headers: yaHeaders() }).catch(function () {});
   }
   function yaUpload(path, blob) {
-    if (!yaToken) return Promise.reject(new Error("Диск не подключён"));
+    if (!yaToken) return Promise.reject(new Error(LANG.t("ya.errNotLinked")));
     return fetch("https://cloud-api.yandex.net/v1/disk/resources/upload?overwrite=true&path="
         + encodeURIComponent(path), { headers: yaHeaders() })
       .then(yaCheck).then(function (r) { return r.json(); })
       .then(function (j) {
         // Яндекс объясняет причину сам — показываем её, а не общую фразу
-        if (!j.href) throw new Error(j.message || j.description || "Диск не дал ссылку");
+        if (!j.href) throw new Error(j.message || j.description || LANG.t("ya.errNoHref"));
         return fetch(j.href, { method: "PUT", body: blob });
       })
       .then(function (r) {
-        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error("не загрузилось (" + r.status + ")");
+        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error(LANG.t("ya.errUploadCode", { code: r.status }));
         return path;
       });
   }
   /* Ссылка на скачивание живёт недолго — берём её в момент показа */
   function yaDownloadUrl(path) {
-    if (!yaToken) return Promise.reject(new Error("Диск не подключён"));
+    if (!yaToken) return Promise.reject(new Error(LANG.t("ya.errNotLinked")));
     return fetch("https://cloud-api.yandex.net/v1/disk/resources/download?path=" + encodeURIComponent(path),
         { headers: yaHeaders() })
       .then(yaCheck).then(function (r) { return r.json(); })
-      .then(function (j) { if (!j.href) throw new Error("файла нет"); return j.href; });
+      .then(function (j) { if (!j.href) throw new Error(LANG.t("ya.errNoFile")); return j.href; });
   }
   function yaDelete(path) {
     if (!yaToken) return Promise.resolve();
@@ -6071,19 +6070,21 @@
   }
   function yaWhenText() {
     var iso = localStorage.getItem(YA_SYNC_KEY);
-    if (!iso) return "ещё не выгружали";
+    if (!iso) return LANG.t("ya.never");
     var d = new Date(iso), mins = Math.round((Date.now() - d) / 60000);
-    if (mins < 1) return "только что";
-    if (mins < 60) return mins + " мин назад";
+    if (mins < 1) return LANG.t("ago.justNow");
+    if (mins < 60) return LANG.t("ago.min", { n: LANG.count("unit.minute", mins) });
     var days = Math.floor(mins / 1440);
-    return days < 1 ? Math.floor(mins / 60) + " ч назад" : days === 1 ? "вчера" : days + " дн. назад";
+    return days < 1 ? LANG.t("ago.hour", { n: LANG.count("unit.hour", Math.floor(mins / 60)) })
+      : days === 1 ? LANG.t("when.yesterday")
+      : LANG.t("ago.day", { n: LANG.count("unit.dayShort", days) });
   }
   function renderYaInfo() {
     if (!$("yaState")) return;
     var on = !!yaToken;
-    $("yaState").textContent = on ? "подключён" : "не подключён";
+    $("yaState").textContent = LANG.t(on ? "ya.on" : "ya.off");
     $("yaState").className = "v " + (on ? "safe" : "");
-    $("yaConnectLbl").textContent = on ? "Отключить Яндекс.Диск" : "Подключить Яндекс.Диск";
+    $("yaConnectLbl").textContent = LANG.t(on ? "ya.disconnect" : "ya.connect");
     $("yaConnect").classList.toggle("ghost-btn", on);
     $("yaPull").hidden = !on;
     $("yaSyncRow").hidden = !on;
@@ -6106,7 +6107,7 @@
     var name = backupName();
     // На iPhone «Поделиться» кладёт файл в Файлы, Яндекс.Диск или почту — куда удобнее
     if (navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type: "application/json" })] })) {
-      navigator.share({ files: [new File([blob], name, { type: "application/json" })], title: "Light Plan · копия" })
+      navigator.share({ files: [new File([blob], name, { type: "application/json" })], title: LANG.t("set.backupTitle") })
         .then(markBackup).catch(function () {});
       return;
     }
@@ -6123,33 +6124,36 @@
   /* Восстановление: содержимое файла заменяет базу целиком */
   function restoreBackup(text) {
     var o;
-    try { o = JSON.parse(text); } catch (e) { return "Файл не читается"; }
+    try { o = JSON.parse(text); } catch (e) { return LANG.t("set.errUnreadable"); }
     var data = (o && o.data) ? o.data : o;                       // терпим и «голый» дамп
-    if (!data || typeof data !== "object" || !("sessions" in data)) return "Это не копия Light Plan";
-    try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) { return "Не удалось записать"; }
+    if (!data || typeof data !== "object" || !("sessions" in data)) return LANG.t("set.errNotBackup");
+    try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) { return LANG.t("set.errWrite"); }
     return null;
   }
   function renderStorageInfo() {
     var raw = localStorage.getItem(STORE) || "";
     var n = 0;
     try { n = (JSON.parse(raw || "{}").sessions || []).length; } catch (e) {}
-    if ($("storeCount")) $("storeCount").textContent = n + " · " + Math.max(1, Math.round(raw.length / 1024)) + " КБ";
+    if ($("storeCount")) $("storeCount").textContent = n + " · "
+      + LANG.t("doc.kb", { n: num(Math.max(1, Math.round(raw.length / 1024))) });
     var when = localStorage.getItem(BACKUP_KEY);
     if ($("backupWhen")) {
-      if (!when) $("backupWhen").textContent = "не делали";
+      if (!when) $("backupWhen").textContent = LANG.t("set.backupNever");
       else {
         var d = new Date(when), days = Math.floor((Date.now() - d) / 86400000);
-        $("backupWhen").textContent = days === 0 ? "сегодня" : days === 1 ? "вчера" : days + " дн. назад";
+        $("backupWhen").textContent = days === 0 ? LANG.t("today.day")
+          : days === 1 ? LANG.t("when.yesterday")
+          : LANG.t("ago.day", { n: LANG.count("unit.dayShort", days) });
       }
     }
     if (!$("storeState")) return;
     if (navigator.storage && navigator.storage.persisted) {
       navigator.storage.persisted().then(function (ok) {
-        $("storeState").textContent = ok ? "постоянное" : "может быть очищено";
+        $("storeState").textContent = LANG.t(ok ? "set.storePersistent" : "set.storeClearable");
         $("storeState").className = "v " + (ok ? "safe" : "risk");
       }).catch(function () {});
     } else {
-      $("storeState").textContent = "обычное";
+      $("storeState").textContent = LANG.t("set.storePlain");
       $("storeState").className = "v risk";
     }
   }
@@ -6261,6 +6265,34 @@
     return d;
   }
   saved = migrateDocKinds(saved);
+  /* Папка референсов — седьмая по счёту. Фотограф раскладывает кадры по
+     папкам («Сборы», «Детали»), имя папки лежит в самом кадре (`tag`) и по
+     нему же идёт фильтр в четырёх списках. Свои папки, набранные руками,
+     остаются строками: их никто не переводит, и они проходят насквозь. */
+  var TAG_CODE = {
+    "Сборы": "gathering", "Пара": "couple", "Невеста": "bride", "Жених": "groom",
+    "Прогулка": "walk", "Вечер": "evening", "Детали": "details",
+    "Виновник": "celebrant", "Гости": "guests", "Стол": "table", "Танцы": "dancing",
+    "Все вместе": "allTogether", "Дети": "kids", "Родители": "parents", "Игра": "play",
+    "Лицо": "face", "В рост": "fullLength", "Руки": "hands", "Свет": "light",
+    "Предмет": "object", "Ракурсы": "angles", "Фактура": "texture", "Композиция": "composition",
+    "Кампания": "campaign", "Модель": "model", "Продукт": "product", "Сцена": "scene",
+    "Фасад": "facade", "Интерьер": "interior", "Деталь": "detail", "Общий план": "wideShot",
+    "Герой": "hero", "Общий": "wide", "Крупный": "closeUp", "Момент": "moment",
+    "Передний план": "foreground", "Небо": "sky", "Кадр": "frame", "Геометрия": "geometry"
+  };
+  function migrateRefTags(d) {
+    if (!d) return d;
+    var fix = function (list) {
+      (Array.isArray(list) ? list : []).forEach(function (r) {
+        if (r && r.tag && TAG_CODE[r.tag]) r.tag = TAG_CODE[r.tag];
+      });
+    };
+    (Array.isArray(d.sessions) ? d.sessions : []).forEach(function (x) { if (x) fix(x.refs); });
+    if (d.genreRefs) for (var g in d.genreRefs) fix(d.genreRefs[g]);
+    return d;
+  }
+  saved = migrateRefTags(saved);
   // Восстанавливаем место до первого расчёта света
   if (saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon)) {
     LAT = saved.loc.lat; LON = saved.loc.lon;
@@ -6334,10 +6366,10 @@
   var blocks = (saved && saved.blocks) || [];
   blocks.forEach(function (b) { b.from = new Date(b.from); });
   var BLOCK_KINDS = [
-    { k: "off",    n: "Выходной", ic: "home" },
-    { k: "road",   n: "Дорога",   ic: "car" },
-    { k: "flight", n: "Перелёт",  ic: "plane" },
-    { k: "busy",   n: "Занято",   ic: "clock" }
+    { k: "off",    ic: "home" },
+    { k: "road",   ic: "car" },
+    { k: "flight", ic: "plane" },
+    { k: "busy",   ic: "clock" }
   ];
   function blockKind(k) {
     for (var i = 0; i < BLOCK_KINDS.length; i++) if (BLOCK_KINDS[i].k === k) return BLOCK_KINDS[i];
@@ -6394,8 +6426,8 @@
   function renderSpotMark() {
     var on = spotHere() >= 0;
     $("mapSave").classList.toggle("on", on);
-    $("mapSave").setAttribute("aria-label", on ? "Убрать точку" : "Сохранить точку");
-    if ($("spotCount")) $("spotCount").innerHTML = (spots.length || "нет") + ' <span class="go-chev">\u203a</span>';
+    $("mapSave").setAttribute("aria-label", LANG.t(on ? "map.dropPoint" : "map.savePoint"));
+    if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' <span class="go-chev">\u203a</span>';
   }
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
@@ -6426,7 +6458,7 @@
      и собирался (docs/12_CARD_ARCHITECTURE.md). */
   function normPacks(list) {
     return (list || []).map(function (p, i) {
-      return (typeof p === "number") ? { n: "Пакет " + (i + 1), p: p, h: null } : p;
+      return (typeof p === "number") ? { n: LANG.t("gen.packN", { n: i + 1 }), p: p, h: null } : p;
     }).filter(function (p) { return p && p.p > 0; }).slice(0, 6);
   }
   var genrePacks = {};
@@ -6637,19 +6669,19 @@
     $("drPhase").style.color = theme === "light" ? "var(--ink-3)" : "#A8BDD8";
     var pct = Math.round(ph.fraction * 100) + "%";
     $("drSense").textContent = m.alt > 0
-      ? "освещена на " + pct + " · высота " + m.alt.toFixed(0) + "°"
-      : arc.none ? "сегодня не восходит · " + pct
-      : "под горизонтом · взойдёт в " + fmt(arc.rise) + " · " + pct;
+      ? LANG.t("moon.lit", { pct: pct, alt: m.alt.toFixed(0) })
+      : arc.none ? LANG.t("moon.noRise", { pct: pct })
+      : LANG.t("moon.below", { t: fmt(arc.rise), pct: pct });
 
     // Отсчёт: сколько луне осталось над горизонтом или сколько ждать восхода
     if (arc.none) {
-      $("nlLabel").textContent = "Луна";
+      $("nlLabel").textContent = LANG.t("layer.moon");
       $("nlValue").textContent = LANG.t("sun.noRise");
     } else if (m.alt > 0) {
-      $("nlLabel").textContent = "Луна зайдёт через";
+      $("nlLabel").textContent = LANG.t("moon.setsIn");
       $("nlValue").textContent = durShort(arc.set - t);
     } else {
-      $("nlLabel").textContent = "До восхода луны";
+      $("nlLabel").textContent = LANG.t("moon.untilRise");
       $("nlValue").textContent = durShort(((arc.rise - t) % 1440 + 1440) % 1440);
     }
     $("nlValue").style.color = "#A8BDD8";
@@ -6743,7 +6775,7 @@
       $("tSunset").style.color = sc >= 75 ? "var(--brass)" : sc >= 50 ? "var(--green)"
         : sc >= 28 ? "var(--ink)" : "var(--blue)";
     } else {
-      $("tSunset").textContent = wxLive ? "нет данных на этот день" : "прогноз имитируется";
+      $("tSunset").textContent = LANG.t(wxLive ? "card.noDataDay" : "card.forecastFake");
       $("tSunset").style.color = "var(--ink-4)";
     }
     // Золотой час — окно, не момент: чтобы не спутать его с закатом
@@ -6754,7 +6786,7 @@
 
     var wx = curWeather;
     $("tSky").innerHTML = skyIcon(q) + '<span>' + QUAL[q].sky + " · " + wx.cloud + "%</span>";
-    $("tWind").textContent = wx.wind + " м/с · " + windWord(wx.wind);
+    $("tWind").textContent = LANG.t("tele.windVal", { n: wx.wind }) + " · " + windWord(wx.wind);
 
     // Шапка: как виджет Apple — иконка, температура, состояние, мин/макс за день
     $("hwIcon").innerHTML = skyIcon(q);
@@ -6778,7 +6810,7 @@
     $("nlSpark").innerHTML = sparkline(wx.trend);
 
     $("actionSub").textContent = st.tone === "stars"
-      ? (SUN.astB !== null ? range(SUN.astB, SUN.astA + 1440) : "белая ночь")
+      ? (SUN.astB !== null ? range(SUN.astB, SUN.astA + 1440) : LANG.t("sun.whiteNight"))
       : range(SUN.goldB, SUN.blueB);
 
     var mo = null;
@@ -8154,7 +8186,7 @@
          бывает золотого часа, и красить его качеством неба было бы враньём */
       var items = shoots.map(function (x) {
         return isMeet(x)
-          ? { t: "Встреча", c: null }
+          ? { t: LANG.t("plan.meet"), c: null }
           : { t: shortGenre(x.type), c: QUAL[qualityOf(x.date)].dot || "#A8B49B" };
       }).concat((inMonth ? blocksOn(d) : []).map(function (b) {
         return { t: blockLabel(b), c: null };
@@ -8754,19 +8786,11 @@
   }
   /* «5 свадеб · 8 портретов» — формы жанров живут в словаре (`genreN.*`),
      как и все слова, согласуемые с числом */
-  /* Правило множественного числа переехало в язык (`lang.js`): у русского три
-     формы, у английского две, и это свойство языка, а не наших строк.
-     Здесь остался мост для мест, где формы приходят массивом на месте.
-
-     Согласуем русским правилом, а не правилом языка экрана: слова в этих
-     массивах пока русские, и на английском экране английское правило
-     поставило бы их в чужую форму — «5 съёмки» вместо «5 съёмок».
-     Мост тает волнами: каждая строка, уехавшая в словарь, уносит с собой
-     один вызов, а с последним уйдёт и сама функция. */
-  function plural(n, forms) {
-    var i = LANG.indexIn("ru", n);
-    return forms[i] != null ? forms[i] : forms[forms.length - 1];
-  }
+  /* Здесь стоял мост `plural`: формы числа набирались массивом прямо на месте,
+     и согласовывать их приходилось русским правилом, каким бы ни был язык
+     экрана. Мост таял волнами — каждая строка, уехавшая в словарь, уносила
+     один вызов. С последней волной ушла и сама функция: формы числа теперь
+     живут только в словаре, а правило — только в языке. */
   function genreLine(list) {
     var byType = {};
     list.forEach(function (s) { byType[s.type] = (byType[s.type] || 0) + 1; });
@@ -8930,7 +8954,7 @@
         return '<button type="button" class="plan-row" data-i="' + it.i + '">'
           + '<span class="pr-time">' + fmt(it.a) + " – " + fmt(it.b) + "</span>"
           + '<span class="pr-who">' + esc(nm) + "</span>"
-          + (meet3 ? '<span class="pr-due">встреча</span>'
+          + (meet3 ? '<span class="pr-due">' + esc(LANG.t("plan.meet").toLowerCase()) + "</span>"
              : ds3.rank >= 2 ? '<span class="pr-due" style="color:' + ds3.color + '">' + ds3.label + "</span>" : "")
           + "</button>";
       }).join("");
@@ -9252,7 +9276,7 @@
     var host = $("binList");
     if (!host) return;
     if (!trashed.length) {
-      host.innerHTML = '<div class="bin-empty">Пока пусто.</div>';
+      host.innerHTML = '<div class="bin-empty">' + esc(LANG.t("bin.empty")) + "</div>";
       $("binClear").hidden = true;
       return;
     }
@@ -9264,7 +9288,7 @@
         + '<span class="tx"><span class="t1">' + esc(clientName(s2) || genreName(s2.type)) + "</span>"
         + '<span class="t2">' + dMonShort(d) + " · "
         + fmt(s2.min) + " – " + fmt(end) + "</span></span>"
-        + '<button type="button" class="back" data-k="' + k + '">Вернуть</button></div>';
+        + '<button type="button" class="back" data-k="' + k + '">' + esc(LANG.t("plan.undo")) + "</button></div>";
     }).join("");
     host.querySelectorAll(".back").forEach(function (b) {
       b.addEventListener("click", function () { restoreTrashed(+b.dataset.k); });
@@ -9513,18 +9537,23 @@
      что в день сдачи, что через месяц (docs: статистика сроков сдачи). */
   var fDeliveredAt = null;
   /* Крайние деления шкалы — состояния, середина — ручной срок */
-  var DELV_OPTS = [["auto", "жанр"], [3, "3 дн"], [7, "нед"], [14, "2 нед"],
-                   [30, "мес"], [90, "3 мес"], [null, "∞"]];
-  (function buildDelvDial() {
+  /* Подписи чипсов срока — короткие, из словаря: «нед» и «wk» набираются
+     по-разному, и обрезать длинное слово нельзя — оно рассыплется */
+  var DELV_OPTS = [["auto", "delv.byGenre"], [3, "delv.d3"], [7, "delv.w1"], [14, "delv.w2"],
+                   [30, "delv.m1"], [90, "delv.m3"], [null, "delv.never"]];
+  /* Шкала строилась один раз при загрузке — со сменой языка подписи на ней
+     оставались прежними. Теперь это функция, и её зовёт `relangUI` */
+  function buildDelvDial() {
     var ticks = "", labels = "";
     for (var i = 0; i < DELV_OPTS.length; i++) {
       var x = (i / (DELV_OPTS.length - 1) * 100).toFixed(2) + "%";
       ticks += '<i style="left:' + x + '"></i>';
-      labels += '<span style="left:' + x + '">' + DELV_OPTS[i][1] + "</span>";
+      labels += '<span style="left:' + x + '">' + esc(LANG.t(DELV_OPTS[i][1])) + "</span>";
     }
     $("fDelvTicks").innerHTML = ticks;
     $("fDelvLabels").innerHTML = labels;
-  })();
+  }
+  buildDelvDial();
   function renderDelv() {
     var idx = 0;
     DELV_OPTS.forEach(function (o, i) { if (o[0] === fDelvChoice) idx = i; });
@@ -9536,8 +9565,8 @@
     var dd = deadlineDate(probe);
     // Первое деление — автомат: подсказка объясняет, что жанр решил сам
     $("fDelvHint").textContent = dd
-      ? (fDelvChoice === "auto" ? "по жанру · " : "") + "сдать до " + dMon(dd)
-      : "срок не отслеживается";
+      ? (fDelvChoice === "auto" ? LANG.t("delv.byGenre") + " · " : "") + LANG.t("delv.until", { d: dMon(dd) })
+      : LANG.t("delv.untracked");
   }
   $("fDelvDial").addEventListener("input", function () {
     var v = +this.value;
@@ -9564,12 +9593,12 @@
         URL.revokeObjectURL(url);
         res(c.toDataURL("image/jpeg", 0.72));
       };
-      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error("не картинка")); };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error(LANG.t("ref.errNotImage"))); };
       img.src = url;
     });
   }
   function refHost(url) {
-    try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return "ссылка"; }
+    try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return LANG.t("ref.link"); }
   }
   function refTail(url) {
     try {
@@ -9652,8 +9681,7 @@
     if (!yaToken) {
       $(note).hidden = false;
       $(note).textContent = o.noDiskText
-        || (o.imagesOnly ? "Чтобы хранить фото" : "Чтобы хранить документы")
-          + ", подключите Яндекс.Диск в настройках. Ссылки работают и без него.";
+        || LANG.t(o.imagesOnly ? "ref.noDiskPhoto" : "ref.noDiskDoc");
       return;
     }
     var dir = "app:/" + o.dir;
@@ -9685,7 +9713,7 @@
         .catch(function (e) {
           list.splice(list.indexOf(rec), 1); render();
           $(note).hidden = false;
-          $(note).textContent = (o.imagesOnly ? "Фото" : "Документ") + " не загрузился: " + e.message;
+          $(note).textContent = LANG.t(o.imagesOnly ? "ref.upFailPhoto" : "ref.upFailDoc", { err: e.message });
         });
     });
   }
@@ -9778,7 +9806,7 @@
     box.innerHTML = shown.map(function (p) {
       var r = p.r, i = p.i;
       var top = docKindName(r.kind) || (r.k === "link" ? refHost(r.url) : docExt(r.name));
-      var sub = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || "документ");
+      var sub = r.k === "link" ? refTail(r.url).split("/").pop() : (r.name || LANG.t("doc.any"));
       return '<button type="button" class="ref-card link" data-i="' + i + '">'
         + '<span class="host">' + esc(top) + "</span>"
         + '<span class="path">' + esc(sub) + "</span>"
@@ -9821,7 +9849,7 @@
   $("docFileBtn").addEventListener("click", function () { $("docFile").click(); });
   $("docFile").addEventListener("change", function () { addDocFiles(this.files || []); this.value = ""; });
   $("docLink").addEventListener("click", function () {
-    var url = prompt("Ссылка на документ: договор, счёт, ТЗ в облаке");
+    var url = prompt(LANG.t("doc.linkAsk"));
     if (!url) return;
     url = url.trim();
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
@@ -9907,8 +9935,8 @@
       return docRow(d, i)
         + '<div class="org-empty" style="padding:2px 14px 0">' + esc(d.who)
         + (d.when ? " · " + dMon(d.when) : "") + "</div>";
-    }).join("") || '<div class="org-empty">Документов пока нет. Они появляются здесь сами: '
-      + "договор из съёмки, чек, акт, реквизиты организации.</div>";
+    }).join("") || '<div class="org-empty">' + esc(LANG.t("doc.allEmptyHead"))
+      + " " + esc(LANG.t("doc.allEmpty")) + "</div>";
     $("allDocs").querySelectorAll(".doc-row").forEach(function (b) {
       b.addEventListener("click", function () { openDoc(allDocList[+b.dataset.i].r); });
     });
@@ -9957,7 +9985,7 @@
       return genreName(s.type) + " · " + dMon(s.date) + " " + s.date.getFullYear()
         + (s.place ? " · " + shortPlace(s.place) : "");
     }
-    return "Жанровая подборка";
+    return LANG.t("mb.genreSet");
   }
   /* Папка съёмки грузит файлы в ту же «app:/refs», что и форма съёмки,
      жанровая — в «app:/genre-refs», как «Мои жанры»: своих папок на Диске
@@ -9974,17 +10002,17 @@
       return '<button type="button" class="org-item" data-list="' + listId + '" data-i="' + i + '">'
         + '<span class="badge">' + IC.genreSvg(mbGenre(f)) + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(mbTitle(f)) + "</span>"
-        + '<span class="org-s">' + esc(mbSub(f)) + " · " + n + " " + plural(n, ["материал", "материала", "материалов"]) + "</span></span>"
+        + '<span class="org-s">' + esc(mbSub(f)) + " · " + esc(LANG.count("unit.item", n)) + "</span></span>"
         + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
     }
-    var html = '<div class="sec-label" style="padding-left:0;">Съёмки</div>';
+    var html = '<div class="sec-label" style="padding-left:0;">' + esc(LANG.t("nav.shoots")) + "</div>";
     html += sessionsF.length
       ? sessionsF.map(function (f, i) { return row(f, i, "s"); }).join("")
-      : '<div class="org-empty">Съёмок с материалами пока нет — добавьте фото или ссылку прямо в форме съёмки, папка появится сама.</div>';
-    html += '<div class="sec-label" style="padding-left:0;margin-top:18px;">Подборки</div>';
+      : '<div class="org-empty">' + esc(LANG.t("mb.noShootFolders")) + "</div>";
+    html += '<div class="sec-label" style="padding-left:0;margin-top:18px;">' + esc(LANG.t("mb.sets")) + "</div>";
     html += genresF.length
       ? genresF.map(function (f, i) { return row(f, i, "g"); }).join("")
-      : '<div class="org-empty">Жанровые подборки пока пусты — заведите первый референс в «Моих жанрах».</div>';
+      : '<div class="org-empty">' + esc(LANG.t("mb.noGenreSets")) + "</div>";
     $("mbGallery").innerHTML = html;
     $("mbGallery").querySelectorAll(".org-item").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -9994,7 +10022,7 @@
     });
   }
   function renderMbCount() {
-    if ($("mbRowN")) $("mbRowN").innerHTML = (mbFolders().length || "нет") + ' <span class="go-chev">›</span>';
+    if ($("mbRowN")) $("mbRowN").innerHTML = esc(String(mbFolders().length || LANG.t("card.none"))) + ' <span class="go-chev">›</span>';
   }
 
   var mbOpen = null;    // открытая папка: {kind, si|g}
@@ -10014,8 +10042,8 @@
     if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
     $("mbTags").innerHTML = tags.map(function (t) {
       var n = list.filter(function (r) { return r.tag === t; }).length;
-      return '<button type="button" class="rf-tag' + (mbTag === t ? " on" : "") + '" data-t="' + t + '">'
-        + t + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
+      return '<button type="button" class="rf-tag' + (mbTag === t ? " on" : "") + '" data-t="' + esc(t) + '">'
+        + esc(tagName(t)) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
     }).join("");
     $("mbTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -10036,7 +10064,7 @@
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + "</button>";
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
-      + (mbTag ? "В разделе «" + mbTag + "» пока пусто" : "Пока пусто — добавьте фото или ссылку") + "</div>";
+      + esc(mbTag ? LANG.t("mb.sectionEmpty", { section: tagName(mbTag) }) : LANG.t("mb.empty")) + "</div>";
     $("mbGrid").querySelectorAll(".ref-card").forEach(function (b) {
       b.addEventListener("click", function () { openMbItem(+b.dataset.i); });
     });
@@ -10084,7 +10112,7 @@
     if (!r) { closeMbItem(); return; }
     var tags = refTagsOf(mbGenre(f), list);
     $("mbItemTags").innerHTML = tags.map(function (t) {
-      return '<button type="button" class="rf-tag' + (r.tag === t ? " on" : "") + '" data-t="' + t + '">' + t + "</button>";
+      return '<button type="button" class="rf-tag' + (r.tag === t ? " on" : "") + '" data-t="' + esc(t) + '">' + esc(tagName(t)) + "</button>";
     }).join("");
     $("mbItemTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -10092,11 +10120,11 @@
         saveAll(); renderMbFolder(); closeMbItem();
       });
     });
-    $("mbItemOpen").textContent = r.k === "link" ? "Открыть ссылку" : "Смотреть фото";
+    $("mbItemOpen").textContent = LANG.t(r.k === "link" ? "mb.openLink" : "mb.viewPhoto");
     var mv = $("mbItemMove");
     if (f.kind === "session") {
       mv.hidden = false;
-      mv.textContent = "Переложить в подборку «" + genreName(mbGenre(f)).toLowerCase() + "»";
+      mv.textContent = LANG.t("mb.moveTo", { genre: genreName(mbGenre(f)).toLowerCase() });
     } else {
       mv.hidden = true;
     }
@@ -10142,19 +10170,18 @@
       var sum = sh.reduce(function (a, p) { return a + sessionIncome(p.s); }, 0);
       var bits = [];
       if (o.person) bits.push(o.person);
-      if (sh.length) bits.push(sh.length + " " + plural(sh.length, ["съёмка", "съёмки", "съёмок"]));
+      if (sh.length) bits.push(LANG.count("unit.shoot", sh.length));
       if (sum) bits.push(money(sum));
       return '<button type="button" class="org-item" data-i="' + i + '">'
         + '<span class="badge">' + IC.svg("city") + "</span>"
-        + '<span class="org-b"><span class="org-n">' + esc(o.name || "Без названия") + "</span>"
-        + '<span class="org-s">' + esc(bits.join(" · ") || "реквизиты не заполнены") + "</span></span>"
+        + '<span class="org-b"><span class="org-n">' + esc(o.name || LANG.t("org.noName")) + "</span>"
+        + '<span class="org-s">' + esc(bits.join(" · ") || LANG.t("org.noReq")) + "</span></span>"
         + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
     /* Пустой экран объясняет, что за сущность и зачем она, а не командует.
        «Заведите ту, что платит» читалось указанием и требовало догадаться,
        что имеется в виду юрлицо. Сначала называем предмет, потом пользу. */
-    }).join("") || '<div class="org-empty">Организация — тот, кто платит: '
-      + "компания, агентство, площадка. Реквизиты и бумаги хранятся у неё, "
-      + "а не переписываются в каждую съёмку.</div>";
+    }).join("") || '<div class="org-empty">' + esc(LANG.t("org.emptyHead"))
+      + " " + esc(LANG.t("org.empty")) + "</div>";
     $("orgList").querySelectorAll(".org-item").forEach(function (b) {
       b.addEventListener("click", function () {
         var i = +b.dataset.i;
@@ -10239,8 +10266,7 @@
     /* Организацию, за которой числятся съёмки, не удаляем молча: ссылка
        в записи осталась бы висеть в пустоту */
     var sh = orgShoots(o.id);
-    if (sh.length && !confirm("За организацией числится " + sh.length + " "
-      + plural(sh.length, ["съёмка", "съёмки", "съёмок"]) + ". Удалить всё равно? Съёмки останутся, но потеряют заказчика.")) return;
+    if (sh.length && !confirm(LANG.t("org.delAsk", { n: LANG.count("unit.shoot", sh.length) }))) return;
     sessions.forEach(function (s) { if (s.orgId === o.id) s.orgId = null; });
     orgs.splice(orgIdx, 1);
     saveAll(); closeOrgCard();
@@ -10262,7 +10288,7 @@
       }
       return '<button type="button" class="ref-card link" data-i="' + i + '">'
         + '<span class="host">' + esc(docExt(r.name)) + "</span>"
-        + '<span class="path">' + esc(r.name || "файл") + "</span>"
+        + '<span class="path">' + esc(r.name || LANG.t("doc.file")) + "</span>"
         + (r.pending ? '<span class="wait">…</span>' : "")
         + '<span class="kill" data-kill="' + i + '">✕</span></button>';
     }).join("");
@@ -10296,7 +10322,7 @@
       list: o.reqFiles || (o.reqFiles = []),
       render: renderReqFiles,
       note: "oReqNote", dir: "orgs",
-      noDiskText: "Чтобы хранить файлы, подключите Яндекс.Диск в настройках. Текст реквизитов работает и без него.",
+      noDiskText: LANG.t("org.noDiskReq"),
       /* Снимок экрана — картинка и показывается миниатюрой, договор в PDF —
          именем. Поэтому берём всё подряд, но миниатюру снимаем где можем */
       thumbs: true
@@ -10330,7 +10356,7 @@
   }
   $("oDocLinkBtn").addEventListener("click", function () {
     if (orgIdx === null) return;
-    var url = prompt("Ссылка на документ организации");
+    var url = prompt(LANG.t("org.docLinkAsk"));
     if (!url) return;
     url = url.trim();
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
@@ -10360,10 +10386,10 @@
     orgDocs = orgDocList(o);
     $("oDocs").innerHTML = orgDocs.map(function (d, i) {
       return docRow(d, i, !d.when)
-        + (d.when ? '<div class="org-empty" style="padding:2px 14px 0">съёмка '
+        + (d.when ? '<div class="org-empty" style="padding:2px 14px 0">' + esc(LANG.t("org.fromShoot")) + " "
             + dMon(d.when) + "</div>" : "");
-    }).join("") || '<div class="org-empty">Бумаг пока нет. Они приложатся из съёмок '
-      + "или прямо сюда — договор действует дольше одной съёмки.</div>";
+    }).join("") || '<div class="org-empty">' + esc(LANG.t("org.docsEmptyHead"))
+      + " " + esc(LANG.t("org.docsEmptyTail")) + "</div>";
     $("oDocs").querySelectorAll(".doc-row").forEach(function (b) {
       b.addEventListener("click", function (e) {
         var kill = e.target.closest("[data-kill]");
@@ -10388,14 +10414,14 @@
     var list = orgShoots(o.id);
     $("oShoots").innerHTML = list.map(function (p) {
       var inc = sessionIncome(p.s), pre = +p.s.prepay || 0;
-      var tail = inc ? money(inc) + (pre && pre < inc ? " · внесено " + money(pre) : "") : "";
+      var tail = inc ? money(inc) + (pre && pre < inc ? " · " + LANG.t("org.paidIn", { sum: money(pre) }) : "") : "";
       return '<button type="button" class="org-item" data-i="' + p.i + '">'
         + '<span class="badge">' + IC.genreSvg(p.s.type) + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(genreName(p.s.type)) + " · "
         + dMon(p.s.date) + " " + p.s.date.getFullYear() + "</span>"
-        + '<span class="org-s">' + esc(tail || "сумма не задана") + "</span></span>"
+        + '<span class="org-s">' + esc(tail || LANG.t("org.noSum")) + "</span></span>"
         + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
-    }).join("") || '<div class="org-empty">Съёмок для этой организации пока не было.</div>';
+    }).join("") || '<div class="org-empty">' + esc(LANG.t("org.noShoots")) + "</div>";
     $("oShoots").querySelectorAll(".org-item").forEach(function (b) {
       b.addEventListener("click", function () {
         closeOrgCard();
@@ -10406,7 +10432,7 @@
   }
 
   function askLink() {
-    var url = prompt("Ссылка на референс (Pinterest, Instagram, что угодно)");
+    var url = prompt(LANG.t("ref.linkAsk"));
     if (!url) return null;
     url = url.trim();
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
@@ -10422,7 +10448,7 @@
     if (keys.indexOf(fPay) === -1) fPay = keys[0];   // способ не из этого жанра — берём первый
     var mech = PAY[fPay].m;
     $("fPayType").innerHTML = keys.map(function (k) {
-      return '<button class="chip' + (k === fPay ? " active" : "") + '" data-k="' + k + '">' + PAY[k].label + "</button>";
+      return '<button class="chip' + (k === fPay ? " active" : "") + '" data-k="' + k + '">' + esc(LANG.t("pay." + k)) + "</button>";
     }).join("");
     $("fPayType").querySelectorAll(".chip").forEach(function (ch) {
       ch.addEventListener("click", function () {
@@ -10445,11 +10471,11 @@
     });
     // Подпись поля ставки под механику
     var cs = currencySign();
-    $("fRateLabel").textContent = mech === "hourly" ? "Ставка, " + cs + "/час"
-      : mech === "unit" ? "Цена, " + cs : "Сумма, " + cs;
+    $("fRateLabel").textContent = mech === "hourly" ? LANG.t("form.rateHour", { sign: cs })
+      : LANG.t(mech === "unit" ? "form.priceEach" : "form.sumFlat", { sign: cs });
     // Количество — только для «за единицу»
     $("fUnitsRow").hidden = mech !== "unit";
-    $("fUnitsLabel").textContent = PAY[fPay].unit ? (PAY[fPay].unit[0].toUpperCase() + PAY[fPay].unit.slice(1)) : "Количество";
+    $("fUnitsLabel").textContent = LANG.t(PAY[fPay].unit ? "payUnit." + fPay : "form.qty");
     /* Пока в поле печатают, значение туда не возвращаем: иначе каретка
        прыгает в конец и «50» набрать невозможно */
     if (document.activeElement !== $("fUnitsVal")) $("fUnitsVal").value = fUnits;
@@ -10480,11 +10506,12 @@
        ещё принесут в день съёмки. Поэтому идёт отдельной строкой остатка */
     var rest = Math.max(0, inc - fPrepay);
     $("fPayTotal").innerHTML =
-      '<span class="lbl">Доход ' + money(inc) + hrs + (fExpense ? " − расход " + money(fExpense) : "")
-      + (fPrepay ? "<br>Предоплата " + money(fPrepay) + " · остаток " + money(rest) : "") + "</span>"
+      '<span class="lbl">' + esc(LANG.t("form.incomeIs", { sum: money(inc) })) + hrs
+      + (fExpense ? " " + esc(LANG.t("form.minusExp", { sum: money(fExpense) })) : "")
+      + (fPrepay ? "<br>" + esc(LANG.t("pane.prepayRest", { prepay: money(fPrepay), rest: money(rest) })) : "") + "</span>"
       + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net) + "</span>";
     // Сводка спойлера: способ и итог одной строкой
-    $("fPaySumm").innerHTML = PAY[fPay].label + " · <b>" + money(net) + "</b>";
+    $("fPaySumm").innerHTML = esc(LANG.t("pay." + fPay)) + " · <b>" + money(net) + "</b>";
     slideFold($("fPayBody"), !payFolded);
     $("fPayFold").classList.toggle("open", !payFolded);
   }
@@ -10592,7 +10619,7 @@
   var dpMode = {};       // host.id -> "days" | "months"
   function dpArrow(dir) {
     return '<button type="button" class="dp-arrow" data-go="' + dir + '" aria-label="'
-      + (dir < 0 ? "Назад" : "Вперёд") + '"><svg viewBox="0 0 24 24"><polyline points="'
+      + esc(LANG.t(dir < 0 ? "nav.back" : "nav.fwd")) + '"><svg viewBox="0 0 24 24"><polyline points="'
       + (dir < 0 ? "15 4 8 12 15 20" : "9 4 16 12 9 20") + '"/></svg></button>';
   }
   /* Границы: конец не бывает раньше начала и не уезжает на полгода — таких
@@ -10795,7 +10822,7 @@
      что честно отвечает «где это». */
   function renderSessionPlace() {
     $("fPlaceName").textContent = sessionPlace.name || coordText(sessionPlace.lat, sessionPlace.lon);
-    $("fPlaceCoords").textContent = sessionPlace.city ? "в городе" : "за городом";
+    $("fPlaceCoords").textContent = LANG.t(sessionPlace.city ? "loc.inCity" : "loc.outCity");
   }
 
   /* Жанры: пользователь оставляет только свои */
@@ -10819,11 +10846,11 @@
      Три механики под названиями жанра: hourly (ставка×часы), flat (плоская сумма:
      сдельно/пакет), unit (цена×количество: за объект/за предмет). */
   var PAY = {
-    hourly: { m: "hourly", label: "Почасово" },
-    flat:   { m: "flat",   label: "Сдельно" },
-    pack:   { m: "flat",   label: "Пакет" },
-    object: { m: "unit",   label: "За объект", unit: "объектов" },
-    item:   { m: "unit",   label: "За предмет", unit: "предметов" }
+    hourly: { m: "hourly" },
+    flat:   { m: "flat" },
+    pack:   { m: "flat" },
+    object: { m: "unit",   unit: true },
+    item:   { m: "unit",   unit: true }
   };
   var GENRE = {
     /* Пакет есть у всех, кто работает с людьми: у портретного фотографа это
@@ -10861,14 +10888,14 @@
     /* У события есть организатор: свадебный агент, площадка, отдел культуры
        города. Он не платит вместо пары, но именно через него съёмка попадает
        в общий план дня — это и точка стыковки с Event OS */
-    event:  { who: "Пара",         whoHint: "Имена и телефон",              route: "always", pack: true, guests: true, prepay: true, org: "Организатор" },
+    event:  { route: "always", pack: true, guests: true, prepay: true, org: true },
     /* Таймлайн у «Людей» доступен и молчит: лавстори на три часа идёт парком,
        кафе и городом — это тоже день из точек, только короткий */
-    people: { who: "Клиент",       whoHint: "Имя клиента",                  route: "opt", pack: true, prepay: true },
-    client: { who: "Заказчик",     whoHint: "Организация и контактное лицо", route: "opt", org: "Заказчик", prepay: true, order: true },
+    people: { route: "opt", pack: true, prepay: true },
+    client: { route: "opt", org: true, prepay: true, order: true },
     /* Своя съёмка бывает и оплаченной: коммерческий стрит, продажа пейзажа.
        Клиента нет, но предоплату проставить можно */
-    own:    { who: null,           whoHint: "",                              route: "off", prepay: true }
+    own:    { route: "off", prepay: true }
   };
   /* ---------- Кого снимаем ----------
      У свадьбы двое, и у каждого своё имя и свой телефон: звонить приходится
@@ -10876,8 +10903,8 @@
      где её нет. У праздника герой один. У остальных жанров пары нет вовсе,
      и поле остаётся прежней строкой. */
   var GENRE_PERSONS = {
-    "wedding":  ["Невеста", "Жених"],
-    "party": ["Виновник торжества"]
+    "wedding": ["person.bride", "person.groom"],
+    "party":   ["person.celebrant"]
   };
   function personsOf(g) { return GENRE_PERSONS[g] || []; }
 
@@ -10937,19 +10964,26 @@
      от группы: «Невеста» в предметке и «Фактура» на свадьбе одинаково нелепы.
      Свадебный набор протекал во все жанры — это и чинится. */
   var GENRE_TAGS = {
-    "wedding":     ["Сборы", "Пара", "Невеста", "Жених", "Прогулка", "Вечер", "Детали"],
-    "party":    ["Виновник", "Гости", "Стол", "Танцы", "Детали"],
-    "lovestory":    ["Пара", "Прогулка", "Вечер", "Детали"],
-    "family":       ["Все вместе", "Дети", "Родители", "Игра", "Детали"],
-    "portrait":     ["Лицо", "В рост", "Руки", "Свет", "Детали"],
-    "product":   ["Предмет", "Ракурсы", "Фактура", "Композиция"],
-    "ad":     ["Кампания", "Модель", "Продукт", "Сцена"],
-    "architecture": ["Фасад", "Интерьер", "Деталь", "Общий план"],
-    "report":    ["Герой", "Общий", "Крупный", "Момент"],
-    "landscape":      ["Общий", "Передний план", "Небо", "Свет"],
-    "street":       ["Кадр", "Герой", "Свет", "Геометрия"]
+    "wedding":      ["gathering", "couple", "bride", "groom", "walk", "evening", "details"],
+    "party":        ["celebrant", "guests", "table", "dancing", "details"],
+    "lovestory":    ["couple", "walk", "evening", "details"],
+    "family":       ["allTogether", "kids", "parents", "play", "details"],
+    "portrait":     ["face", "fullLength", "hands", "light", "details"],
+    "product":      ["object", "angles", "texture", "composition"],
+    "ad":           ["campaign", "model", "product", "scene"],
+    "architecture": ["facade", "interior", "detail", "wideShot"],
+    "report":       ["hero", "wide", "closeUp", "moment"],
+    "landscape":    ["wide", "foreground", "sky", "light"],
+    "street":       ["frame", "hero", "light", "geometry"]
   };
-  var REF_TAGS_DEFAULT = ["Общий", "Крупный", "Свет", "Детали"];
+  var REF_TAGS_DEFAULT = ["wide", "closeUp", "light", "details"];
+  /* Имя папки для экрана. Свои папки фотограф заводит строкой — она приходит
+     сюда как есть и остаётся собой: чужое слово честнее пустоты */
+  function tagName(t) {
+    if (!t) return "";
+    var code = TAG_CODE[t] || t, v = LANG.t("tag." + code);
+    return v === "tag." + code ? t : v;
+  }
   function refTagsFor(g) { return GENRE_TAGS[g] || REF_TAGS_DEFAULT; }
   /* Папки жанра плюс те, что уже стоят на снимках: набор мог быть собран
      до этой правки, и прятать чужую папку значило бы прятать сами кадры */
@@ -11018,16 +11052,18 @@
 
     /* Дальше — то, что описанием не выражается: подписи, сброс значений и
        перерисовки. Их немного, и каждая объяснена */
-    $("fContact").placeholder = gr.whoHint || "Имя или телефон клиента";
+    $("fContact").placeholder = LANG.t("whoHint." + groupOf(shootType));
     /* Подписи людей и организатора ставит жанр: у свадьбы невеста с женихом,
        у праздника виновник торжества, у заказа контактное лицо */
     var pp = personsOf(shootType);
     /* «Телефон · невеста» под строкой «Невеста» повторял слово впустую:
        поле стоит следом, и чей это телефон, видно без подписи */
-    if (pp[0]) { $("fP1Name").placeholder = "Имя · " + pp[0].toLowerCase(); $("fP1Tel").placeholder = "Телефон"; }
-    if (pp[1]) { $("fP2Name").placeholder = "Имя · " + pp[1].toLowerCase(); $("fP2Tel").placeholder = "Телефон"; }
-    $("fOrgLabel").textContent = gr.org || "Заказчик";
-    $("fWhoLabel").textContent = sp.client ? ("Место и " + (gr.who || "клиент").toLowerCase()) : "Место";
+    if (pp[0]) { $("fP1Name").placeholder = LANG.t("form.namePh", { role: LANG.t(pp[0]).toLowerCase() }); $("fP1Tel").placeholder = LANG.t("form.phone"); }
+    if (pp[1]) { $("fP2Name").placeholder = LANG.t("form.namePh", { role: LANG.t(pp[1]).toLowerCase() }); $("fP2Tel").placeholder = LANG.t("form.phone"); }
+    $("fOrgLabel").textContent = LANG.t("orgRole." + groupOf(shootType));
+    $("fWhoLabel").textContent = sp.client
+      ? LANG.t("form.placeAnd", { who: LANG.t("who." + groupOf(shootType)).toLowerCase() })
+      : LANG.t("card.place");
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
     if (!shown.fPrepayRow) { fPrepay = 0; $("fPrepay").value = ""; }
 
@@ -11067,7 +11103,7 @@
   var fOrgId = null;
   function renderFormOrg() {
     var o = orgById(fOrgId);
-    $("fOrgName").textContent = o ? (o.name || "без названия") : "выбрать";
+    $("fOrgName").textContent = o ? (o.name || LANG.t("org.noName").toLowerCase()) : LANG.t("form.pick");
     $("fOrgName").style.color = o ? "#EFEAE0" : "#8A8478";
   }
   var orgPick = null;                  // функция, которой отдаём выбранную организацию
@@ -11091,7 +11127,7 @@
   var GUESTS_MAX = 2000;
   /* Ноль в поле — это не ответ, а пустая клетка. «Нет» отвечает: гостей не
      будет. Пока в поле не пишут руками, показываем слово */
-  function guestsText(n) { return n > 0 ? String(n) : "нет"; }
+  function guestsText(n) { return n > 0 ? String(n) : LANG.t("card.none"); }
   function renderGuests() {
     if (document.activeElement !== $("fGuestsVal")) $("fGuestsVal").value = guestsText(fGuests);
   }
@@ -11123,13 +11159,13 @@
       return '<div class="rt-row" data-i="' + i + '">'
         + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
         + '<input class="rt-in-n" type="text" placeholder="' + esc(hints[i % hints.length]) + '" value="' + esc(r.n || "") + '"/>'
-        + '<button type="button" class="rt-x" aria-label="Убрать">✕</button>'
+        + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
         + '<div class="rt-place">'
-        + '<input class="rt-in-p" type="text" placeholder="Место — необязательно" value="' + esc(r.p || "") + '"/>'
-        + '<button type="button" class="rt-pick" aria-label="Выбрать из моих точек" data-ic="pin"></button>'
+        + '<input class="rt-in-p" type="text" placeholder="' + esc(LANG.t("form.scenePlacePh")) + '" value="' + esc(r.p || "") + '"/>'
+        + '<button type="button" class="rt-pick" aria-label="' + esc(LANG.t("form.pickSpotAria")) + '" data-ic="pin"></button>'
         + '</div></div>';
-    }).join("") || '<div class="rt-empty">Точки дня: '
-      + hints.slice(0, 4).join(", ").toLowerCase() + "</div>";
+    }).join("") || '<div class="rt-empty">'
+      + esc(LANG.t("form.scenesHint", { list: hints.slice(0, 4).join(", ").toLowerCase() })) + "</div>";
     paintIcons(host);
     host.querySelectorAll(".rt-row").forEach(function (row) {
       var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
@@ -11184,20 +11220,23 @@
      И идут от жанра: «ЗАГС» в съёмке фасадов — такой же мусор, как папка
      «Невеста» в предметке (docs/12_CARD_ARCHITECTURE.md) */
   var GENRE_SCENES = {
-    "wedding":     ["Сборы", "ЗАГС", "Прогулка", "Банкет", "Танец", "Салют"],
-    "party":    ["Сбор гостей", "Поздравления", "Стол", "Торт", "Танцы"],
-    "lovestory":    ["Встреча", "Прогулка", "Кафе", "Закат"],
-    "family":       ["Сборы", "Прогулка", "Игра", "Общий кадр"],
-    "portrait":     ["Начало", "Смена образа", "Улица", "Финал"],
-    "report":    ["Сбор гостей", "Открытие", "Основная часть", "Финал"],
-    "product":   ["Распаковка", "Съёмка", "Смена фона", "Детали"],
-    "ad":     ["Подготовка", "Основной кадр", "Смена сцены", "Дубли"],
-    "architecture": ["Общий план", "Фасад", "Интерьер", "Вечерний свет"],
-    "landscape":      ["Выезд", "Точка съёмки", "Золотой час", "Синий час"],
-    "street":       ["Маршрут", "Точка", "Свет", "Финал"]
+    "wedding":      ["gathering", "registry", "walk", "banquet", "dance", "fireworks"],
+    "party":        ["guestsArrive", "toasts", "table", "cake", "dancing"],
+    "lovestory":    ["meeting", "walk", "cafe", "sunset"],
+    "family":       ["gathering", "walk", "play", "groupShot"],
+    "portrait":     ["start", "changeLook", "street", "finale"],
+    "report":       ["guestsArrive", "opening", "mainPart", "finale"],
+    "product":      ["unboxing", "shooting", "changeBg", "details"],
+    "ad":           ["prep", "heroShot", "changeScene", "takes"],
+    "architecture": ["wideShot", "facade", "interior", "eveningLight"],
+    "landscape":    ["departure", "viewpoint", "goldenHour", "blueHour"],
+    "street":       ["route", "point", "light", "finale"]
   };
-  var SCENES_DEFAULT = ["Начало", "Основная часть", "Смена точки", "Финал"];
-  function sceneHints(g) { return GENRE_SCENES[g] || SCENES_DEFAULT; }
+  var SCENES_DEFAULT = ["start", "mainPart", "changePoint", "finale"];
+  /* Имя сцены для подсказки и для засева таймлайна. Дальше это уже текст,
+     который правит фотограф: сохранённая сцена остаётся такой, как набрана */
+  function sceneName(k) { var v = LANG.t("scene." + k); return v === "scene." + k ? k : v; }
+  function sceneHints(g) { return (GENRE_SCENES[g] || SCENES_DEFAULT).map(sceneName); }
 
   /* Свадьба почти всегда начинается с росписи и прогулки — предлагаем их сразу.
      Шаг зависит от начала: утренняя съёмка разворачивается на весь день,
@@ -11207,8 +11246,8 @@
     var a = snapMin(startMin + (wide ? 120 : 30));
     var b = snapMin(startMin + (wide ? 240 : 90));
     return [
-      { t: fmt(Math.min(a, 1410)), n: "ЗАГС", p: "" },
-      { t: fmt(Math.min(b, 1410)), n: "Прогулка", p: "" }
+      { t: fmt(Math.min(a, 1410)), n: sceneName("registry"), p: "" },
+      { t: fmt(Math.min(b, 1410)), n: sceneName("walk"), p: "" }
     ];
   }
   $("fRouteAdd").addEventListener("click", function () {
@@ -11346,49 +11385,42 @@
       computeSun(d);
       var noNight = SUN.astB === null;
       computeSun(keep);
-      if (noNight) return { t: "Белая ночь · звёзд не будет",
-        m: "Небо здесь не темнеет до конца августа. Оставайтесь дома — подскажу первую тёмную ночь." };
-      if (q !== "excellent") return { t: "Звёзд не будет",
-        m: "Прогноз: " + QUAL[q].sky.toLowerCase() + ". Оставайтесь дома — предложу ближайшую ясную ночь." };
-      if (sessionPlace.city) return { t: "Засветка города",
-        m: "Точка в черте города — Млечный Путь не проявится. Выберите место за городом." };
+      if (noNight) return { t: LANG.t("wc.whiteNightT"), m: LANG.t("wc.whiteNightM") };
+      if (q !== "excellent") return { t: LANG.t("wc.noStarsT"),
+        m: LANG.t("wc.noStarsM", { sky: QUAL[q].sky.toLowerCase() }) };
+      if (sessionPlace.city) return { t: LANG.t("wc.cityGlowT"), m: LANG.t("wc.cityGlowM") };
       /* Луна проверяется последней из трёх помех, но она же и самая частая:
          ночь бывает ясной, место — тёмным, а Пути всё равно нет. Считается
          по тёмному времени этой ночи, а не по фазе в полночь: луна, севшая
          до темноты, не мешает ничем, как бы полна ни была. */
       var mg = moonVsStars(d);
-      if (mg.level === 2) return { t: "Луна засветит Млечный Путь",
-        m: "Диск освещён на " + mg.pct + "% и стоит над горизонтом почти всю тёмную часть ночи. "
-          + "Путь не проявится — ищите ночь ближе к новолунию." };
-      if (mg.level === 1) return { t: "Луна помешает звёздам",
-        m: "Диск освещён на " + mg.pct + "%. Слабые детали Пути смоет; снимать можно, "
-          + "но лучше дождаться, когда луна сядет или пойдёт на убыль." };
+      if (mg.level === 2) return { t: LANG.t("wc.moonWashT"), m: LANG.t("wc.moonWashM", { pct: mg.pct }) };
+      if (mg.level === 1) return { t: LANG.t("wc.moonDimT"), m: LANG.t("wc.moonDimM", { pct: mg.pct }) };
       return null;
     }
     if (w === "sunset") {
       var wx = dayWeather(d);
       if (wx.sunset != null) {
-        if (wx.sunset < 50) return { t: "Закат не обещает цвета",
-          m: "Балл заката " + wx.sunset + " из 100. Ярусы облаков против — попробуйте соседний день." };
-      } else if (q === "poor") return { t: "Заката не будет",
-        m: "Прогноз: " + QUAL[q].sky.toLowerCase() + " — горизонт будет закрыт." };
+        if (wx.sunset < 50) return { t: LANG.t("wc.dullSunsetT"), m: LANG.t("wc.dullSunsetM", { score: wx.sunset }) };
+      } else if (q === "poor") return { t: LANG.t("wc.noSunsetT"),
+        m: LANG.t("wc.noSunsetM", { sky: QUAL[q].sky.toLowerCase() }) };
       return null;
     }
     if (w === "rain") {
-      if (q !== "poor") return { t: "Осадков не обещают",
-        m: "Прогноз на этот день: " + QUAL[q].sky.toLowerCase() + ". Дождевых кадров не выйдет." };
+      if (q !== "poor") return { t: LANG.t("wc.noRainT"),
+        m: LANG.t("wc.noRainM", { sky: QUAL[q].sky.toLowerCase() }) };
       return null;
     }
     if (w === "moon") {
       var ph = moonPhase(d, 1320);
-      if (ph.fraction < 0.25) return { t: "Луна почти новая",
-        m: "Освещена на " + Math.round(ph.fraction * 100) + "% — света не даст. Полнолуние ищите в астро-деталях." };
-      if (q === "poor") return { t: "Луну закроют облака",
-        m: "Прогноз: " + QUAL[q].sky.toLowerCase() + "." };
+      if (ph.fraction < 0.25) return { t: LANG.t("wc.newMoonT"),
+        m: LANG.t("wc.newMoonM", { pct: Math.round(ph.fraction * 100) }) };
+      if (q === "poor") return { t: LANG.t("wc.moonCloudT"),
+        m: LANG.t("wc.moonCloudM", { sky: QUAL[q].sky.toLowerCase() }) };
       return null;
     }
-    if (q !== WANT[w]) return { t: "Погода не та",
-      m: "Вы ждёте: " + wishName(w).toLowerCase() + ". Прогноз на этот день: " + QUAL[q].sky.toLowerCase() + "." };
+    if (q !== WANT[w]) return { t: LANG.t("wc.wrongWxT"),
+      m: LANG.t("wc.wrongWxM", { wish: wishName(w).toLowerCase(), sky: QUAL[q].sky.toLowerCase() }) };
     return null;
   }
   /* Пожеланий может быть несколько — первое несбывшееся и показываем */
@@ -11457,23 +11489,23 @@
     blocksOn(day).forEach(function (b) {
       var name = blockLabel(b);
       if (b.allDay) {
-        out.push({ w: 3, t: "День занят", m: "На этот день стоит «" + name + "»." });
+        out.push({ w: 3, t: LANG.t("clash.dayBusyT"), m: LANG.t("clash.dayBusyM", { name: name }) });
         return;
       }
       var bEnd = b.min + b.dur;
       if (min < bEnd && b.min < end) {
-        out.push({ w: 3, t: "Время занято",
-          m: "«" + name + "» — " + fmt(b.min) + " — " + fmt(bEnd) + "." });
+        out.push({ w: 3, t: LANG.t("clash.timeBusyT"),
+          m: LANG.t("clash.timeBusyM", { name: name, when: range(b.min, bEnd) }) });
       }
     });
     sessions.forEach(function (s, i) {
       if (i === skipIdx || !sameDay(s.date, day)) return;
       var sEnd = shootEnd(s), name = clientName(s) || genreName(s.type);
-      var when = fmt(s.min) + " — " + fmt(sEnd);
+      var when = range(s.min, sEnd);
       /* Пересечение времени — тяжелее всего: быть в двух местах разом нельзя */
       if (min < sEnd && s.min < end) {
-        out.push({ w: 3, t: "Время пересекается",
-          m: "В этот день уже есть «" + name + "», " + when + "." });
+        out.push({ w: 3, t: LANG.t("clash.overlapT"),
+          m: LANG.t("clash.overlapM", { name: name, when: when }) });
         return;
       }
       /* Дорога: съёмки не пересекаются, но времени между ними меньше порога,
@@ -11487,15 +11519,15 @@
         var haveCoords = fromLat != null && fromLon != null && s.placeLat != null && s.placeLon != null;
         var mins = haveCoords ? travelMinutes(fromLat, fromLon, s.placeLat, s.placeLon, clashesRefresh) : undefined;
         if (mins != null && gap < mins) {
-          out.push({ w: 2, t: "Дороги не хватит",
-            m: "От «" + name + "» (" + when + ") ехать примерно " + mins
-              + " мин, а в запасе " + gap + "." });
+          out.push({ w: 2, t: LANG.t("clash.tripShortT"),
+            m: LANG.t("clash.tripShortM", { name: name, when: when,
+              need: LANG.count("unit.min", mins), have: LANG.count("unit.min", gap) }) });
           return;
         }
         if (mins == null && gap < travelMin) {
-          out.push({ w: 2, t: "Мало времени на дорогу",
-            m: "Между «" + name + "» (" + when + ") и этой съёмкой " + gap
-              + " мин, а места разные." });
+          out.push({ w: 2, t: LANG.t("clash.tripTightT"),
+            m: LANG.t("clash.tripTightM", { name: name, when: when,
+              gap: LANG.count("unit.min", gap) }) });
           return;
         }
       }
@@ -11503,8 +11535,8 @@
          Единственное предупреждение, которое рождается из световой модели */
       var otherWants = Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []);
       if (wants.indexOf("sunset") >= 0 && otherWants.indexOf("sunset") >= 0) {
-        out.push({ w: 1, t: "Обе съёмки просят закат",
-          m: "«" + name + "» (" + when + ") тоже ждёт закат, а золотой час один." });
+        out.push({ w: 1, t: LANG.t("clash.bothSunsetT"),
+          m: LANG.t("clash.bothSunsetM", { name: name, when: when }) });
       }
     });
     return out.sort(function (a, b) { return b.w - a.w; });
@@ -11536,27 +11568,27 @@
     }
     $("fStartDate").textContent = capDate(fDate);
     $("fEndDate").textContent = capDate(endDate());
-    $("fWhenHint").textContent = w.q === "poor" ? "окна света нет"
+    $("fWhenHint").textContent = w.q === "poor" ? LANG.t("day.noWindow")
       : w.label + " " + range(w.a, w.b);
     $("fStartVal").textContent = fmt(fMin);
     $("fEndVal").textContent = fmt(fMin + fDur);
     /* Пересекли полночь — говорим об этом словом, а не только датой:
        «13 ч» само по себе не объясняет, почему конец числом меньше начала */
     $("fDurVal").textContent = durLabel(fDur)
-      + (endDayOff() > 0 ? " · " + (endDayOff() === 1 ? "следующий день"
-          : "через " + endDayOff() + " " + plural(endDayOff(), ["день", "дня", "дней"])) : "");
+      + (endDayOff() > 0 ? " · " + (endDayOff() === 1 ? LANG.t("blk.nextDay")
+          : LANG.t("when.inDays", { n: LANG.count("unit.day", endDayOff()) })) : "");
     /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку.
        Встрече он не нужен вовсе: она не про золотой час, а про разговор */
-    if (meetMode()) $("formSub").textContent = "Когда и где встречаемся — свет тут ни при чём";
+    if (meetMode()) $("formSub").textContent = LANG.t("form.subMeet");
     else $("formSub").innerHTML = w.q === "poor"
-      ? "В этот день окна света нет — время на ваше усмотрение"
+      ? esc(LANG.t("form.subNoWindow"))
       /* Светозависимое время больше не округляется, поэтому сравниваем и с
          точной минутой окна, и с округлённой — иначе подпись врёт */
       : (fLight || fMin === snapMin(w.a) || fMin === Math.round(w.a))
-        ? 'Свет подсказал время — <span class="t">начало ' + fmt(fMin) + "</span>"
+        ? LANG.t("form.subFromLight", { t: '<span class="t">' + esc(fmt(fMin)) + "</span>" })
         : fMin + fDur === snapMin(w.b) || fMin + fDur === Math.round(w.b)
-          ? 'Съёмка длиннее света — <span class="t">золотой час в конце</span>'
-          : 'Окно света — <span class="t">' + range(w.a, w.b) + "</span>";
+          ? LANG.t("form.subLongerThanLight", { tail: '<span class="t">' + esc(LANG.t("form.goldenAtEnd")) + "</span>" })
+          : LANG.t("form.subWindow", { range: '<span class="t">' + esc(range(w.a, w.b)) + "</span>" });
     computeSun(keep);
 
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
@@ -12700,7 +12732,7 @@
     });
     $("rfTags").innerHTML = (tags.length ? [""].concat(tags) : []).map(function (t) {
       return '<button type="button" class="rf-tag' + ((rfTag === (t || null)) ? " on" : "") + '" data-t="' + t + '">'
-        + esc(t || LANG.t("refs.all")) + "</button>";
+        + esc(t ? tagName(t) : LANG.t("refs.all")) + "</button>";
     }).join("");
     $("rfTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () { rfTag = b.dataset.t || null; renderRefsFull(); });
@@ -13086,8 +13118,8 @@
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
     $("formTitle").textContent = meetMode()
-      ? (editIdx !== null ? "Встреча" : "Новая встреча")
-      : (editIdx !== null ? "Съёмка" : "Новая съёмка");
+      ? LANG.t(editIdx !== null ? "plan.meet" : "form.newMeet")
+      : LANG.t(editIdx !== null ? "card.shootPoint" : "plan.newShoot");
     $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
     closeRows();
@@ -13150,8 +13182,8 @@
     if (gRefTag && tags.indexOf(gRefTag) < 0) gRefTag = null;
     $("gRefTags").innerHTML = tags.map(function (t) {
       var n = list.filter(function (r) { return r.tag === t; }).length;
-      return '<button type="button" class="rf-tag' + (gRefTag === t ? " on" : "") + '" data-t="' + t + '">'
-        + t + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
+      return '<button type="button" class="rf-tag' + (gRefTag === t ? " on" : "") + '" data-t="' + esc(t) + '">'
+        + esc(tagName(t)) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
     }).join("");
     $("gRefTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -13174,8 +13206,8 @@
         + '<span class="kill" data-kill="' + p.i + '">✕</span></button>';
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
       /* Подсказка называет папки этого жанра, а не свадебные сборы и прогулку */
-      + (gRefTag ? "В папке «" + gRefTag + "» пока пусто"
-        : "Соберите сценарий: " + refTagsFor(g).slice(0, 3).join(", ").toLowerCase() + " и что ещё снять")
+      + esc(gRefTag ? LANG.t("gen.folderEmpty", { folder: tagName(gRefTag) })
+        : LANG.t("gen.buildSet", { tags: refTagsFor(g).slice(0, 3).map(tagName).join(", ").toLowerCase() }))
       + "</div>";
     $("gRefGrid").querySelectorAll(".ref-card").forEach(function (b) {
       b.addEventListener("click", function (e) {
@@ -13206,24 +13238,27 @@
   /* Пример пакета берётся у открытого жанра: «Загс и прогулка» уместны на
      свадьбе и нелепы в предметке */
   var PACK_HINT = {
-    "wedding": "Загс и прогулка", "party": "Три часа с гостями",
-    "lovestory": "Прогулка на закате",
-    "family": "Час в студии", "portrait": "Час и десять кадров",
-    "product": "Партия из десяти", "ad": "Съёмочный день",
-    "architecture": "Объект под ключ", "report": "Полдня на площадке",
-    "landscape": "Выезд на точку", "street": "Прогулка по городу"
+    "wedding": 1, "party": 1, "lovestory": 1, "family": 1, "portrait": 1,
+    "product": 1, "ad": 1, "architecture": 1, "report": 1,
+    "landscape": 1, "street": 1
   };
-  function packHint() { return PACK_HINT[shootType] || "Съёмка на час"; }
+  /* Пример имени пакета для пустого поля: «Загс и прогулка» у свадьбы.
+     Таблица осталась списком жанров, у которых пример есть, а сам пример
+     уехал в словарь: подсказка — это текст на экране, а не свойство жанра */
+  function packHint() {
+    return LANG.t(PACK_HINT[shootType] ? "packHint." + shootType : "packHint.any");
+  }
   function renderPackEditor() {
     var host = $("packList"), hint = packHint(), packs = packsOf(shootType);
     var cs = currencySign();
     host.innerHTML = packs.map(function (p, i) {
       return '<div class="pack-item" data-i="' + i + '">'
         + '<input class="pk-n" type="text" placeholder="' + esc(hint) + '" value="' + (p.n || "").replace(/"/g, "&quot;") + '"/>'
-        + '<input class="pk-h" type="text" inputmode="numeric" placeholder="ч" value="' + (p.h || "") + '"/>'
+        + '<input class="pk-h" type="text" inputmode="numeric" placeholder="' + esc(LANG.t("gen.hoursShort")) + '" value="' + (p.h || "") + '"/>'
         + '<input class="pk-p" type="text" inputmode="numeric" placeholder="' + esc(cs) + '" value="' + (p.p || "") + '"/>'
-        + '<button type="button" class="pk-x" aria-label="Убрать">✕</button></div>';
-    }).join("") || '<div class="pack-empty">Например: «' + esc(hint) + '» · 3 ч · ' + esc(money(14000)) + '</div>';
+        + '<button type="button" class="pk-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button></div>';
+    }).join("") || '<div class="pack-empty">'
+      + esc(LANG.t("gen.packExample", { name: hint, sum: money(14000) })) + "</div>";
     host.querySelectorAll(".pack-item").forEach(function (row) {
       var i = +row.dataset.i, p = packs[i];
       row.querySelector(".pk-n").addEventListener("input", function () { p.n = this.value; saveAll(); });
@@ -13294,7 +13329,7 @@
     if (pp.length) {
       /* «Алексей и Елена» — имена без фамилий: в шапке нужны люди, а не паспорт */
       return pp.map(function (p) { return firstName(p.n) || p.tel; })
-        .filter(function (x) { return x; }).join(" и ");
+        .filter(function (x) { return x; }).join(LANG.t("card.and"));
     }
     if (!groupSpec(shootType).order) return $("fContact").value.trim();
     var o = orgById(fOrgId);
@@ -13333,9 +13368,9 @@
     var wasEdit = editIdx !== null, savedIdx = editIdx;
     editIdx = null;
     renderSessions(); renderCal(); renderDayPanel();
-    $("savedNote").textContent = wasEdit ? "Изменения сохранены"
-      : syncTarget === "off" ? "Сохранено"
-      : "Сохранено · добавлено в " + (syncTarget === "google" ? "Google Календарь" : "Календарь Apple");
+    $("savedNote").textContent = wasEdit ? LANG.t("form.savedEdit")
+      : syncTarget === "off" ? LANG.t("form.saved")
+      : LANG.t("form.savedSync", { cal: LANG.t(syncTarget === "google" ? "cal.google" : "cal.apple") });
     setTimeout(function () {
       closeRows();
       $("formOverlay").classList.remove("open");
@@ -13431,7 +13466,7 @@
      тоже (docs: DECISIONS, «сейчас»/«сегодня» — разный смысл) */
   function updateNowTick() {
     var tick = $("nowTick");
-    tick.textContent = sameDay(selDate, new Date()) ? "↺ сейчас" : "↺ сегодня";
+    tick.textContent = "↺ " + LANG.t(sameDay(selDate, new Date()) ? "today.now2" : "today.day");
     tick.classList.toggle("show", Math.abs(viewMin - nowRel(selDate)) > 2);
   }
 
@@ -14164,7 +14199,7 @@
   /* Копия данных: сохранить и восстановить */
   $("backupSave").addEventListener("click", function () {
     doBackup();
-    $("backupNote").textContent = "Копия готова. Сохраните её в Яндекс.Диск, iCloud или отправьте себе — из неё всё восстановится.";
+    $("backupNote").textContent = LANG.t("set.backupReady");
   });
   $("backupLoad").addEventListener("click", function () { $("backupFile").click(); });
 
@@ -14172,7 +14207,7 @@
   $("yaConnect").addEventListener("click", function () {
     if (yaToken) {
       yaForget();
-      $("yaNote").textContent = "Отключено. Данные на устройстве и копия на Диске остались нетронутыми.";
+      $("yaNote").textContent = LANG.t("ya.disconnected");
     } else {
       yaConnect();
     }
@@ -14184,8 +14219,8 @@
     var rd = new FileReader();
     rd.onload = function () {
       var err = restoreBackup(String(rd.result));
-      if (err) { $("backupNote").textContent = err + ". Данные не тронуты."; return; }
-      $("backupNote").textContent = "Восстановлено. Перезапускаю…";
+      if (err) { $("backupNote").textContent = LANG.t("set.restoreFail", { err: err }); return; }
+      $("backupNote").textContent = LANG.t("set.restored");
       setTimeout(function () { location.reload(); }, 700);
     };
     rd.readAsText(f);
@@ -14198,8 +14233,7 @@
     document.querySelectorAll("#travelSeg button").forEach(function (b) {
       b.classList.toggle("active", +b.dataset.travel === travelMin);
     });
-    $("travelNote").textContent = "Если между съёмками в разных местах остаётся меньше "
-      + travelMin + " минут, приложение предупредит. Запрета нет: решает фотограф.";
+    $("travelNote").textContent = LANG.t("set.travelNote", { n: LANG.count("unit.min", travelMin) });
   }
   document.querySelectorAll("#travelSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -14215,8 +14249,8 @@
       b.classList.toggle("active", b.dataset.unit === tempUnit);
     });
     $("unitNote").textContent = tempUnit === "f"
-      ? "Температура показывается в градусах Фаренгейта."
-      : "Температура показывается в градусах Цельсия.";
+      ? LANG.t("set.unitNoteF")
+      : LANG.t("set.unitNoteC");
   }
   document.querySelectorAll("#unitSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -14274,8 +14308,8 @@
     });
     var stub = !LANG.has(LANG.code);
     $("langNote").textContent = stub
-      ? "Словарь этого языка ещё не заполнен — надписи из словаря показываются по-английски. Перевод идёт волнами, экран за экраном."
-      : "Перевод интерфейса идёт волнами: часть надписей пока остаётся на русском независимо от выбора.";
+      ? LANG.t("set.langStub")
+      : LANG.t("set.langNote");
   }
 
   /* Валюта живёт отдельно от языка. Знак берётся у `Intl`, а не из таблицы:
@@ -14290,8 +14324,7 @@
         currency = b.dataset.cur; renderCurChips(); relangUI(); saveAll();
       });
     });
-    $("curNote").textContent = "Знак денег в ставках, пакетах и итогах: " + money(14000)
-      + ". От языка не зависит — со сменой языка валюта остаётся прежней.";
+    $("curNote").textContent = LANG.t("set.curNote", { sample: money(14000) });
   }
 
   /* Перерисовать то, где уже нарисованы слова словаря и деньги. Полной
@@ -14307,6 +14340,11 @@
     });
     (root || document).querySelectorAll("[data-i18n-aria]").forEach(function (el) {
       el.setAttribute("aria-label", LANG.t(el.getAttribute("data-i18n-aria")));
+    });
+    /* Подсказка в пустом поле — такой же текст на экране, как и подпись.
+       Отдельным атрибутом, потому что живёт не в содержимом узла */
+    (root || document).querySelectorAll("[data-i18n-ph]").forEach(function (el) {
+      el.placeholder = LANG.t(el.getAttribute("data-i18n-ph"));
     });
   }
 
@@ -14324,6 +14362,20 @@
       }
     }
     renderMoneyLabels();
+    /* Настройки — тот самый экран, с которого меняют язык: его строки видно
+       первыми, и половина из них собирается в коде, а не лежит в разметке */
+    if ($("fDelvLabels")) buildDelvDial();
+    if (typeof updateNowTick === "function" && $("nowTick")) updateNowTick();
+    if ($("travelNote")) renderTravelSeg();
+    if ($("unitNote")) renderUnitSeg();
+    if ($("delvNote")) renderDelvSettings();
+    if ($("stepNote")) renderStepSeg();
+    if ($("ribbonNote")) renderRibbonSeg();
+    if ($("syncNote")) renderSyncNote();
+    if ($("storeCount")) renderStorageInfo();
+    if ($("yaState")) renderYaInfo();
+    if ($("spotCount")) renderSpotMark();
+    if (typeof renderBinBtn === "function") renderBinBtn();
     if (!booted) return;
     paintDate();           // дата в шапке живёт отдельно от renderToday
     renderToday(); renderMap(); renderWeek(); renderDayPanel(); renderSessions(); renderCal();
@@ -14339,9 +14391,9 @@
   function renderMoneyLabels() {
     var sign = currencySign();
     var pre = $("fPrepayLabel"), exp = $("fExpenseLabel"), grate = $("gRateLabel");
-    if (pre) pre.textContent = "Предоплата, " + sign;
-    if (exp) exp.textContent = "Расходы, " + sign;
-    if (grate) grate.textContent = "Стоимость часа по умолчанию, " + sign;
+    if (pre) pre.textContent = LANG.t("form.prepayLbl", { sign: sign });
+    if (exp) exp.textContent = LANG.t("form.expenseLbl", { sign: sign });
+    if (grate) grate.textContent = LANG.t("gen.rateLbl", { sign: sign });
   }
 
   renderLangChips();
@@ -14901,13 +14953,13 @@
   function renderSearch() {
     var qs = $("searchInput").value.trim().toLowerCase();
     var box = $("searchResults");
-    if (!qs) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">Начните вводить имя клиента.</div>'; return; }
+    if (!qs) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">' + esc(LANG.t("search.startTyping")) + "</div>"; return; }
     var hits = sessions.map(function (s, i) { return { s: s, i: i }; }).filter(function (p) {
       /* Ищут словом, а не кодом: «свадьба» должна находить съёмку, у которой
          внутри лежит `wedding` */
       return ((p.s.contact || "") + " " + genreName(p.s.type) + " " + p.s.place).toLowerCase().indexOf(qs) > -1;
     }).sort(function (a, b) { return b.s.date - a.s.date; });
-    if (!hits.length) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">Ничего не найдено.</div>'; return; }
+    if (!hits.length) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">' + esc(LANG.t("search.nothing")) + "</div>"; return; }
     box.innerHTML = hits.map(function (p) {
       var s = p.s, end = s.end != null ? s.end : s.min + (s.dur || 90);
       return '<button class="plan-row" data-i="' + p.i + '" style="border-bottom:1px solid rgba(255,255,255,0.04)">' +
@@ -14954,7 +15006,7 @@
     $(p[0]).addEventListener("click", function () {
       this.classList.toggle("open");
       $(p[1]).classList.toggle("open");
-      this.querySelector(".lbl").textContent = $(p[1]).classList.contains("open") ? "Свернуть" : "Подробно";
+      this.querySelector(".lbl").textContent = LANG.t($(p[1]).classList.contains("open") ? "today.hide" : "today.details");
       /* Раскрытие идёт анимацией max-height, и высота слоя прокрутки меняется
          не в момент клика, а через полсекунды. Дочитываем её после конца
          перехода: чтение scrollHeight заставляет пересчитать раскладку, и
@@ -15006,7 +15058,7 @@
       // .tool — те же пиктограммы, что у жанров и погоды. Свой класс я завёл
       // по ошибке, стилей у него не было, и кнопки падали в браузерное умолчание
       return '<button type="button" class="tool' + (blk.k === x.k ? " active" : "") + '" data-k="' + x.k + '">'
-        + IC.svg(x.ic) + "<span>" + x.n + "</span></button>";
+        + IC.svg(x.ic) + "<span>" + esc(LANG.t("blkKind." + x.k)) + "</span></button>";
     }).join("");
     $("blkKind").querySelectorAll("[data-k]").forEach(function (b) {
       b.addEventListener("click", function () { blk.k = b.dataset.k; renderBlk(); });
@@ -15025,13 +15077,11 @@
       $("blkToTime").textContent = fmt(blkEnd());
     }
     $("blkSpan").textContent = blk.allDay
-      ? (blockDays(blk) > 1
-          ? blockDays(blk) + " " + plural(blockDays(blk), ["день", "дня", "дней"])
-          : "один день")
-      : durLabel(blk.dur) + (Math.floor(blkEnd() / 1440) > 0 ? " · следующий день" : "");
+      ? (blockDays(blk) > 1 ? LANG.count("unit.day", blockDays(blk)) : LANG.t("blk.oneDay"))
+      : durLabel(blk.dur) + (Math.floor(blkEnd() / 1440) > 0 ? " · " + LANG.t("blk.nextDay") : "");
     $("blkNote").value = blk.note || "";
     $("blkDel").hidden = !blkEditId;
-    $("blkTitle").textContent = blkEditId ? "Занятое время" : "Занять время";
+    $("blkTitle").textContent = LANG.t(blkEditId ? "blk.titleEdit" : "blk.title");
   }
 
   /* Барабаны листа: те же четыре роли, что у съёмки, но своя пара дат */
@@ -15146,7 +15196,8 @@
     $("delvDays").style.display = delivery.mode === "single" ? "flex" : "none";
     $("delvDays").innerHTML = DELV_DAYS.map(function (d) {
       return '<button class="chip' + (d === delivery.days ? " active" : "") + '" data-d="' + d + '">' +
-        (d < 30 ? d + " дн." : d === 30 ? "Месяц" : "3 месяца") + "</button>";
+        esc(d < 30 ? LANG.count("unit.dayShort", d)
+          : d === 30 ? LANG.t("set.delvMonth") : LANG.t("set.delv3Months")) + "</button>";
     }).join("");
     $("delvDays").querySelectorAll(".chip").forEach(function (ch) {
       ch.addEventListener("click", function () {
@@ -15154,9 +15205,9 @@
       });
     });
     $("delvNote").textContent = delivery.mode === "genre"
-      ? "Срок зависит от жанра: свадьба 3 месяца, репортаж 3 дня, архитектура 5 дней."
-      : delivery.mode === "single" ? "Один срок для всех съёмок. У каждой можно переопределить."
-      : "Сроки сдачи не отслеживаются.";
+      ? LANG.t("set.delvNoteGenre")
+      : delivery.mode === "single" ? LANG.t("set.delvNoteSingle")
+      : LANG.t("set.delvNoteNone");
   }
   document.querySelectorAll("#delvSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -15172,8 +15223,8 @@
       b.classList.toggle("active", +b.dataset.step === timeStep);
     });
     $("stepNote").textContent = timeStep === 30
-      ? "Время ставится получасами. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется."
-      : "Шаг " + timeStep + " минут. Крупнее — быстрее крутить барабан, но в точное время не встать.";
+      ? LANG.t("set.stepNote30")
+      : LANG.t("set.stepNoteN", { n: LANG.count("unit.min", timeStep) });
   }
   document.querySelectorAll("#stepSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -15191,8 +15242,8 @@
       b.classList.toggle("active", b.dataset.ribbon === ribbonMode);
     });
     $("ribbonNote").textContent = ribbonMode === "drum"
-      ? "Сутки отдельными ячейками — знак вместо шкалы: фаза луны или облачность на несколько дней вперёд."
-      : "Одна лента с непрерывной дорожкой света — вчера/сегодня/завтра.";
+      ? LANG.t("set.ribbonNoteDrum")
+      : LANG.t("set.ribbonNoteLane");
   }
   document.querySelectorAll("#ribbonSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -15204,14 +15255,20 @@
   });
   renderRibbonSeg();
 
+  /* Примечание ставилось только по нажатию, поэтому при старте и при смене
+     языка оставалось тем, что записано в разметке. Отдельная функция — чтобы
+     у строки был один источник, а не два */
+  function renderSyncNote() {
+    $("syncNote").textContent = syncTarget === "off" ? LANG.t("set.syncOff")
+      : LANG.t("set.syncOn", { cal: LANG.t(syncTarget === "apple" ? "cal.apple" : "cal.google") });
+  }
+  renderSyncNote();
   document.querySelectorAll("#calSync button").forEach(function (b) {
     b.addEventListener("click", function () {
       document.querySelectorAll("#calSync button").forEach(function (x) { x.classList.remove("active"); });
       b.classList.add("active");
       syncTarget = b.dataset.sync;
-      $("syncNote").textContent = syncTarget === "off" ? "Съёмки хранятся только в Light Plan."
-        : syncTarget === "apple" ? "Новые съёмки будут появляться в Календаре Apple."
-        : "Новые съёмки будут появляться в Google Календаре.";
+      renderSyncNote();
     });
   });
   document.querySelectorAll("[data-toggle]").forEach(function (t) {
@@ -15220,11 +15277,11 @@
 
   /* Геолокация браузера — общий помощник; only по запросу пользователя */
   function detectLocation(onDone, onFail) {
-    if (!navigator.geolocation) { if (onFail) onFail("Геолокация недоступна"); return; }
+    if (!navigator.geolocation) { if (onFail) onFail(LANG.t("loc.errNoGeo")); return; }
     navigator.geolocation.getCurrentPosition(function (p) {
       gotoLocation(p.coords.latitude, p.coords.longitude);
       if (onDone) onDone();
-    }, function () { if (onFail) onFail("Место не определено"); }, { enableHighAccuracy: true, timeout: 8000 });
+    }, function () { if (onFail) onFail(LANG.t("loc.errNotFound")); }, { enableHighAccuracy: true, timeout: 8000 });
   }
   $("mapHere").addEventListener("click", function () {
     detectLocation(null, function (m) { $("mLocName").textContent = m; });
@@ -15236,7 +15293,7 @@
   function openLocSheet(mode) {
     locTarget = mode === "session" ? "session" : "app";
     var isSession = locTarget === "session";
-    $("locTitle").textContent = isSession ? "Место съёмки" : "Где снимаем";
+    $("locTitle").textContent = LANG.t(isSession ? "loc.titleShoot" : "loc.title");
     var base = isSession ? sessionPlace : { lat: LAT, lon: LON, name: "" };
     $("locLat").value = (+base.lat).toFixed(4);
     $("locLon").value = (+base.lon).toFixed(4);
@@ -15251,7 +15308,7 @@
       $("locSaveSpot").classList.remove("on");
       $("locTrip").classList.toggle("on", fTrip);
     }
-    $("locDetectLbl").textContent = "Определить моё место";
+    $("locDetectLbl").textContent = LANG.t("loc.detect");
     renderSpots();
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
     // Первый тап по месту на «Сегодня» — сразу спрашиваем разрешение на геоданные
@@ -15288,12 +15345,12 @@
   }
   $("mapSave").addEventListener("click", function () {
     var i = spotHere();
-    if (i >= 0) { unlinkSpot(spots[i].id); spots.splice(i, 1); saveNote("точка убрана"); }
+    if (i >= 0) { unlinkSpot(spots[i].id); spots.splice(i, 1); saveNote(LANG.t("loc.spotRemoved")); }
     else {
       spots.unshift({ id: newSpotId(), name: geoCity || coordText(LAT, LON), sub: geoSub || "",
                       named: !!geoCity,          // именем служат координаты — дождёмся геокодера
                       lat: +LAT.toFixed(5), lon: +LON.toFixed(5) });
-      saveNote("точка сохранена");
+      saveNote(LANG.t("loc.spotSaved"));
     }
     saveAll(); renderSpotMark(); renderSpots();
   });
@@ -15309,7 +15366,7 @@
     if (!spots.length) {
       var em = document.createElement("div");
       em.className = "fan-empty";
-      em.textContent = "Точек пока нет. Закладка в шапке карты сохраняет место, где стоите.";
+      em.textContent = LANG.t("loc.emptyMap");
       fan.appendChild(em);
     } else {
       spots.forEach(function (sp) {
@@ -15361,13 +15418,13 @@
       b.addEventListener("click", function () { closeEvFan(); fn(); });
       fan.appendChild(b);
     }
-    item("", "note_edit", "Заполнить", clientName(s) || genreName(s.type), function () {
+    item("", "note_edit", LANG.t("card.fill"), clientName(s) || genreName(s.type), function () {
       openForm(null, null, idx);
     });
     /* Подпись говорит, что удаление обратимо: у необратимого на вид действия
        человек ищет подтверждения, а лишний вопрос здесь не нужен — «Вернуть»
        стоит шесть секунд */
-    item("del", "trash", "Удалить", "вернуть можно сразу после", function () {
+    item("del", "trash", LANG.t("swipe.del"), LANG.t("swipe.delSub"), function () {
       closeCard();
       removeSession(idx);
     });
@@ -15439,7 +15496,7 @@
     if (!spots.length) {
       var em = document.createElement("div");
       em.className = "spot-empty";
-      em.textContent = "Пока пусто. Закладка в шапке карты сохраняет место, где стоите.";
+      em.textContent = LANG.t("loc.emptySheet");
       box.appendChild(em);
       return;
     }
@@ -15473,10 +15530,10 @@
          геокодер. Правка тут же, в строке — второго листа под два поля
          заводить незачем (docs: «Места как сущность»). */
       var edit = document.createElement("button"); edit.className = "spot-edit"; edit.type = "button";
-      edit.setAttribute("aria-label", "Изменить место");
+      edit.setAttribute("aria-label", LANG.t("loc.editAria"));
       edit.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/></svg>';
       var del = document.createElement("button"); del.className = "spot-del"; del.type = "button";
-      del.setAttribute("aria-label", "Убрать точку");
+      del.setAttribute("aria-label", LANG.t("loc.delAria"));
       del.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       del.addEventListener("click", function () {
         unlinkSpot(sp.id);
@@ -15487,9 +15544,9 @@
 
       var box2 = document.createElement("div"); box2.className = "spot-editbox"; box2.hidden = true;
       var nameIn = document.createElement("input");
-      nameIn.type = "text"; nameIn.placeholder = "Имя места"; nameIn.value = sp.name || "";
+      nameIn.type = "text"; nameIn.placeholder = LANG.t("loc.namePh"); nameIn.value = sp.name || "";
       var addrIn = document.createElement("input");
-      addrIn.type = "text"; addrIn.placeholder = "Адрес — улица, дом";
+      addrIn.type = "text"; addrIn.placeholder = LANG.t("loc.addrPh");
       addrIn.value = sp.address || "";
       /* Сохраняем по мере набора, а не по отдельной кнопке: два поля,
          отдельное «Готово» им не по чину */
@@ -15507,7 +15564,7 @@
          рабочего часа: студийный обычно 55, но у каждой студии по-своему. */
       var hRow = document.createElement("div"); hRow.className = "spot-hourly";
       var hLbl = document.createElement("span"); hLbl.className = "sh-lbl";
-      hLbl.textContent = "Почасовая аренда";
+      hLbl.textContent = LANG.t("loc.hourly");
       var hToggle = document.createElement("span"); hToggle.className = "toggle";
       hToggle.classList.toggle("on", !!sp.hourly);
       hRow.appendChild(hLbl); hRow.appendChild(hToggle);
@@ -15516,7 +15573,7 @@
       var mRow = document.createElement("div"); mRow.className = "spot-mins";
       mRow.hidden = !sp.hourly;
       var mLbl = document.createElement("span"); mLbl.className = "sm-lbl";
-      mLbl.textContent = "Минут в оплаченном часе — предупредим за 10 и 5 до конца";
+      mLbl.textContent = LANG.t("loc.hourlyMins");
       var mIn = document.createElement("input");
       mIn.type = "number"; mIn.inputMode = "numeric"; mIn.min = "1"; mIn.max = "60";
       mIn.value = sp.studioMinutes || 55;
@@ -15554,23 +15611,23 @@
   $("locName").addEventListener("input", function () { locPickName = this.value.trim(); });
   $("locDetect").addEventListener("click", function () {
     if (locTarget === "session") {          // для съёмки геолокация только заполняет поля
-      if (!navigator.geolocation) { $("locErr").textContent = "Геолокация недоступна"; return; }
-      $("locDetectLbl").textContent = "Определяю…";
+      if (!navigator.geolocation) { $("locErr").textContent = LANG.t("loc.errNoGeo"); return; }
+      $("locDetectLbl").textContent = LANG.t("loc.detecting");
       navigator.geolocation.getCurrentPosition(function (p) {
         $("locLat").value = p.coords.latitude.toFixed(4);
         $("locLon").value = p.coords.longitude.toFixed(4);
-        locPickName = ""; $("locDetectLbl").textContent = "Определить моё место";
+        locPickName = ""; $("locDetectLbl").textContent = LANG.t("loc.detect");
       }, function () {
-        $("locErr").textContent = "Место не определено";
-        $("locDetectLbl").textContent = "Определить моё место";
+        $("locErr").textContent = LANG.t("loc.errNotFound");
+        $("locDetectLbl").textContent = LANG.t("loc.detect");
       }, { enableHighAccuracy: true, timeout: 8000 });
       return;
     }
-    $("locDetectLbl").textContent = "Определяю…";
+    $("locDetectLbl").textContent = LANG.t("loc.detecting");
     detectLocation(function () {
       $("locLat").value = LAT.toFixed(4); $("locLon").value = LON.toFixed(4);
       closeLocSheet();
-    }, function (m) { $("locErr").textContent = m; $("locDetectLbl").textContent = "Определить моё место"; });
+    }, function (m) { $("locErr").textContent = m; $("locDetectLbl").textContent = LANG.t("loc.detect"); });
   });
 
   /* Поиск места по названию: человек думает «Лагерный сад», а не координатами.
@@ -15578,7 +15635,7 @@
   var locSearchTimer = null, locSearchSeq = 0;
   function renderHits(list) {
     var box = $("locResults");
-    if (!list.length) { box.innerHTML = '<div class="loc-note">Ничего не нашлось</div>'; return; }
+    if (!list.length) { box.innerHTML = '<div class="loc-note">' + esc(LANG.t("loc.nothingFound")) + "</div>"; return; }
     box.innerHTML = list.map(function (h, i) {
       return '<button class="loc-hit" data-i="' + i + '"><span class="n">' + h.name
         + '</span><span class="a">' + h.area + "</span></button>";
@@ -15610,14 +15667,14 @@
         renderHits((j || []).map(function (x) {
           var parts = (x.display_name || "").split(",").map(function (s) { return s.trim(); });
           return {
-            name: x.name || parts[0] || "Место",
+            name: x.name || parts[0] || LANG.t("loc.point"),
             area: parts.slice(1, 3).join(", "),
             lat: +x.lat, lon: +x.lon
           };
         }));
       })
       .catch(function () {
-        if (seq === locSearchSeq) $("locResults").innerHTML = '<div class="loc-note">Поиск недоступен без сети</div>';
+        if (seq === locSearchSeq) $("locResults").innerHTML = '<div class="loc-note">' + esc(LANG.t("loc.searchOffline")) + "</div>";
       });
   }
   $("locQuery").addEventListener("input", function () {
@@ -15630,8 +15687,8 @@
   $("locDone").addEventListener("click", function () {
     var la = parseFloat(($("locLat").value || "").replace(",", "."));
     var lo = parseFloat(($("locLon").value || "").replace(",", "."));
-    if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = "Широта — число от −90 до 90"; return; }
-    if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = "Долгота — число от −180 до 180"; return; }
+    if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = LANG.t("loc.errLat"); return; }
+    if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = LANG.t("loc.errLon"); return; }
     if (locTarget === "session") {
       fTrip = $("locTrip").classList.contains("on");
       var placeName = ($("locName").value || "").trim() || locPickName;
@@ -15664,8 +15721,8 @@
     var savedAsSpot = locTarget === "session" && $("locSaveSpot").classList.contains("on");
     var shownName = ($("locName").value || "").trim() || locPickName;
     saveNote(shownName
-      ? "место: " + shownName + (savedAsSpot ? " · в моих местах" : "")
-      : "место сохранено");
+      ? LANG.t("loc.saved", { name: shownName }) + (savedAsSpot ? " · " + LANG.t("loc.inMyPlaces") : "")
+      : LANG.t("loc.savedPlain"));
   });
 
   var tabs = document.querySelectorAll(".tab");
