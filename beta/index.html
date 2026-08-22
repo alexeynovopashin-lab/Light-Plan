@@ -612,8 +612,14 @@
      было ложным (Алексей: «пункты с прочерками не понимаю»). */
   .t-row[hidden] { display: none; }
   .t-label { color: var(--ink-4); flex-shrink: 0; }
-  .t-value { font-weight: 500; letter-spacing: 0.1px; white-space: nowrap; text-align: right;
-    display: inline-flex; align-items: center; }
+  /* Перенос разрешён, но рвётся строка только между фактами: внутри времени
+     пробелы неразрывные (см. fmt/range), поэтому «7:01 – 8:18 PM» не
+     распадается. Без этого в 12-часовом виде подпись слева и значение
+     справа смыкались вплотную — нашлось на английском экране. */
+  .t-value { font-weight: 500; letter-spacing: 0.1px; text-align: right;
+    display: inline-flex; align-items: center; flex-wrap: wrap;
+    justify-content: flex-end; column-gap: 0; }
+  .t-row { gap: 12px; }
   .t-value.rec { color: var(--brass); font-weight: 600; transition: color 0.4s ease; }
   /* Экспонометр качества света — читается быстрее слов */
   .meter { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; margin-right: 9px; }
@@ -3824,6 +3830,14 @@
     <div class="chips" id="langChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="langNote"></p>
 
+    <div class="sec-label" data-i18n="set.clock">Часы</div>
+    <div class="seg" id="clockSeg" style="margin-top:4px;">
+      <button class="active" data-clock="auto" data-i18n="set.clockAuto">Как в языке</button>
+      <button data-clock="24" data-i18n="set.clock24">24 часа</button>
+      <button data-clock="12" data-i18n="set.clock12">12 · AM/PM</button>
+    </div>
+    <p class="seg-note" id="clockNote"></p>
+
     <div class="sec-label">Единицы</div>
     <div class="seg" id="unitSeg" style="margin-top:4px;">
       <button class="active" data-unit="c">°C</button>
@@ -3934,11 +3948,11 @@
       <div class="wheel narrow" id="wMin" data-w="min"></div>
     </div>
     <div class="chips" id="chips">
-      <button class="chip" data-days="0">Сегодня</button>
-      <button class="chip" data-days="7">Через неделю</button>
-      <button class="chip" data-days="30">Через месяц</button>
+      <button class="chip" data-days="0" data-i18n="pick.today">Сегодня</button>
+      <button class="chip" data-days="7" data-i18n="pick.week">Через неделю</button>
+      <button class="chip" data-days="30" data-i18n="pick.month">Через месяц</button>
     </div>
-    <button class="sheet-done" id="pDone">Готово</button>
+    <button class="sheet-done" id="pDone" data-i18n="pick.done">Готово</button>
   </div>
 
   <!-- ============ КАРТОЧКА СЪЁМКИ ============
@@ -4911,8 +4925,12 @@
   var O_DMY_S = { day: "numeric", month: "short", year: "numeric" };
   var O_M = { month: "long" };
   var O_WD_S = { weekday: "short" };
+  var O_NUM = { day: "2-digit", month: "2-digit", year: "numeric" };
   var O_WD_L = { weekday: "long" };
 
+  /* Числом: «22.08.2026» · «08/22/2026» · «2026/08/22». Порядок частей —
+     свойство языка, и американский месяц-впереди получается сам */
+  function dNum(d) { return dtf(O_NUM).format(d); }
   /* «21 августа» · «August 21» · «8月21日» */
   function dMon(d) { return dTidy(dtf(O_DM).format(d)); }
   /* «21 авг» — короткий месяц, для плотных мест: списка съёмок, недели */
@@ -4964,13 +4982,56 @@
     catch (e) { return dMon(a) + " – " + dMon(b); }   // formatRange новее самого Intl
   }
 
+  /* ---------- Часы: 24 или 12 с AM/PM ----------
+     Это привычка, а не язык. В США говорят «7 PM», в России «19:00», а
+     британец пишет по-английски и читает сутки по 24 часам — одно к другому
+     не сводится. Поэтому настройка, как у валюты и градусов. Но умолчание —
+     «как в языке»: `Intl` знает, что en-US ходит по двенадцати, а ru по
+     двадцати четырём, и спрашивать об этом на пустом месте незачем.
+
+     Внутри время всегда минуты от полуночи — вид меняется только здесь.
+
+     Сам выбор читается вместе с остальными настройками, ниже: `saved` тут
+     ещё не прочитан, а `fmt` нужен раньше — до первой отрисовки. */
+  var CLOCKS = ["auto", "24", "12"];
+  var clockPref = "auto";
+  function localeIs12() {
+    try {
+      return new Intl.DateTimeFormat(LANG.code, { hour: "numeric" }).resolvedOptions().hour12 === true;
+    } catch (e) { return false; }
+  }
+  function is12() {
+    return clockPref === "12" ? true : clockPref === "24" ? false : localeIs12();
+  }
+  /* Дата-носитель для `Intl`: сам день неважен, важны часы и минуты */
+  function atMin(m) {
+    m = Math.round(((m % 1440) + 1440) % 1440);
+    return new Date(2001, 0, 1, Math.floor(m / 60), m % 60);
+  }
+  var O_TIME = { hour: "numeric", minute: "2-digit", hour12: true };
   function fmt(m) {
     if (m === null || m === undefined || isNaN(m)) return "—";
     m = Math.round(((m % 1440) + 1440) % 1440);
     var h = Math.floor(m / 60), mm = m % 60;
-    return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm;
+    /* 24 часа набираем сами: `Intl` в этом виде у части языков ставит
+       «24:00» вместо «00:00» и не везде держит ведущий ноль, а он держит
+       колонку — время стоит в столбик по всему приложению */
+    if (!is12()) return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm;
+    /* Пробел перед AM/PM — неразрывный: «7:52 PM» одно слово, и перенос
+       строки не должен оставлять «PM» одиноко на следующей */
+    try { return dtf(O_TIME).format(atMin(m)).replace(/ /g, "\u00A0"); }
+    catch (e) { return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm; }
   }
-  function range(a, b) { return (a === null || b === null) ? "—" : fmt(a) + " – " + fmt(b); }
+  /* Промежуток времени. У 12-часовых часов «AM/PM» не повторяют дважды, если
+     обе границы в одной половине суток: «7:01 – 8:18 PM», а не
+     «7:01 PM – 8:18 PM». Что именно сокращать, знает язык, поэтому промежуток
+     собирает `Intl`, а не мы дефисом. */
+  function range(a, b) {
+    if (a === null || b === null) return "—";
+    if (!is12()) return fmt(a) + "\u00A0–\u00A0" + fmt(b);
+    try { return dtf(O_TIME).formatRange(atMin(a), atMin(b)).replace(/ /g, "\u00A0"); }
+    catch (e) { return fmt(a) + "\u00A0–\u00A0" + fmt(b); }
+  }
   function sameDay(a, b) { return a.toDateString() === b.toDateString(); }
 
   /* ============================================================
@@ -5836,7 +5897,7 @@
           var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
           return { rec: r, at: t.at, del: t.del };
         }),
-        travelMin: travelMin, tempUnit: tempUnit, currency: currency, dayFold: !dayPanelOpen,
+        travelMin: travelMin, tempUnit: tempUnit, currency: currency, clock: clockPref, dayFold: !dayPanelOpen,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
           return o;
@@ -6175,6 +6236,8 @@
   var travelMin = (saved && +saved.travelMin) || 40;
   // Градусы: Цельсий или Фаренгейт. Модель считает в Цельсии всегда
   var tempUnit = (saved && saved.tempUnit === "f") ? "f" : "c";
+  // Часы: сама функция `is12` объявлена выше, у `fmt` — здесь только выбор
+  if (saved && CLOCKS.indexOf(saved.clock) >= 0) clockPref = saved.clock;
 
   /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
      на карте живут своими цветами в этом файле и темой не управляются */
@@ -9181,15 +9244,20 @@
   var pad = function (n) { return (n < 10 ? "0" : "") + n; };
   var pickerDone = null;
 
+  /* Список дней барабана. Пересобирается при смене языка: и «Сегодня», и
+     сама дата в нём — слова, а не числа */
   var dateList = [];
-  (function buildDates() {
+  function buildDates() {
+    dateList.length = 0;
     var base = new Date(); base.setHours(0,0,0,0);
     for (var o = -BACK; o <= AHEAD; o++) {
       var d = new Date(base); d.setDate(d.getDate() + o);
-      dateList.push({ date: d, label: o === 0 ? "Сегодня" : o === 1 ? "Завтра"
+      dateList.push({ date: d, label: o === 0 ? LANG.t("pick.dayToday")
+        : o === 1 ? LANG.t("pick.dayTomorrow")
         : wdShort(d) + " " + dMon(d) });
     }
-  })();
+  }
+  buildDates();
   /* Короткие барабаны закольцованы. При шаге в полчаса у минут всего два
      значения, и барабан упирался в край списка: над «10» пусто, под «30»
      пусто — прибор выглядел сломанным, хотя работал верно. Настоящие колёса
@@ -9224,7 +9292,14 @@
     if (want !== raw) { el2.scrollTop = want * ITEM; styleWheel(el2); }
   }
   fill(wDate, dateList.map(function (x) { return x.label; }));
-  fill(wHour, Array.apply(null, Array(24)).map(function (_, i) { return pad(i); }));
+  /* Час на барабане: значение всегда 0–23, подпись — по выбранным часам.
+     Отдельного столбца AM/PM не заводим: сутки на барабане и так идут
+     подряд, а «12 AM … 11 PM» листается ровно как «00 … 23» */
+  function hourLabel(i) { return is12() ? fmt(i * 60).replace(/^(\d+):00/, "$1") : pad(i); }
+  function fillHourWheel() {
+    fill(wHour, Array.apply(null, Array(24)).map(function (_, i) { return hourLabel(i); }));
+  }
+  fillHourWheel();
   fill(wMin, Array.apply(null, Array(60)).map(function (_, i) { return pad(i); }));
 
   function styleWheel(el2) {
@@ -14029,6 +14104,24 @@
   });
   renderUnitSeg();
 
+  /* Часы. Перерисовать надо всё: время стоит на куполе, в ленте, в своде
+     карты, в списке съёмок и в карточке — то есть почти везде */
+  function renderClockSeg() {
+    document.querySelectorAll("#clockSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.clock === clockPref);
+    });
+    /* Образец показываем настоящий, а не описываем словами: «19:52» против
+       «7:52 PM» понятнее любого объяснения, и сразу видно, что выбрал */
+    var sample = fmt(19 * 60 + 52);
+    $("clockNote").textContent = LANG.t(
+      clockPref === "auto" ? "set.clockNoteAuto" : "set.clockNote", { sample: sample });
+  }
+  document.querySelectorAll("#clockSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      clockPref = b.dataset.clock; renderClockSeg(); relangUI(); saveAll();
+    });
+  });
+
   /* ---------- Язык и валюта ----------
      Языки названы на себе самих: «Русский», «English» — так их узнают, не
      умея читать текущий язык интерфейса. Незаполненный словарь помечен
@@ -14087,8 +14180,17 @@
   }
 
   function relangUI() {
-    dtfReset();            // форматы дат закэшированы по языку — язык сменился
+    dtfReset();            // форматы дат и времени закэшированы по языку
     relangMarkup();
+    if ($("clockSeg")) renderClockSeg();   // «как в языке» зависит от языка
+    if ($("buildInfo")) renderBuildInfo();  // в штампе и слово, и вид даты
+    if (typeof fillHourWheel === "function") fillHourWheel();  // «7 PM» вместо «19»
+    if (typeof buildDates === "function") {                    // «Сегодня» и даты в барабане
+      buildDates();
+      if (typeof fill === "function" && $("wDate")) {
+        fill($("wDate"), dateList.map(function (x) { return x.label; }));
+      }
+    }
     renderMoneyLabels();
     if (!booted) return;
     paintDate();           // дата в шапке живёт отдельно от renderToday
@@ -14108,6 +14210,7 @@
 
   renderLangChips();
   renderCurChips();
+  renderClockSeg();
   relangMarkup();        // разметка знает язык с первой отрисовки
   renderMoneyLabels();   // подписи полей знают валюту с первой отрисовки
 
@@ -14231,7 +14334,7 @@
 
   $("readout").addEventListener("click", function () {
     openPicker({
-      title: "Когда смотрим", sub: "Свет пересчитается на выбранный день",
+      title: LANG.t("pick.title"), sub: LANG.t("pick.sub"),
       date: selDate, min: viewMin,
       onDone: function (d, t) {
         selDate = d; computeSun(selDate);
@@ -15499,11 +15602,12 @@
   if (saved) go("s-plan");
   applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
   // Номер сборки — из даты файла (Last-Modified на Pages), без ручного счётчика
-  (function () {
-    var d = new Date(document.lastModified), p = function (n) { return (n < 10 ? "0" : "") + n; };
-    var s = isNaN(d) ? "—" : p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
-    $("buildInfo").textContent = "сборка " + s;
-  })();
+  function renderBuildInfo() {
+    var d = new Date(document.lastModified);
+    var s = isNaN(d) ? "—" : dNum(d) + " " + fmt(d.getHours() * 60 + d.getMinutes());
+    $("buildInfo").textContent = LANG.t("set.build", { stamp: s });
+  }
+  renderBuildInfo();
   applyTheme(themePref);
   document.querySelectorAll("#themeSeg button").forEach(function (b) {
     b.addEventListener("click", function () { applyTheme(b.dataset.theme); saveAll(); });

@@ -470,6 +470,25 @@
     "card.s": "Ю",
     "card.w": "З",
 
+    /* Настройки: часы и штамп сборки */
+    "set.clock":      "Часы",
+    "set.clockAuto":  "Как в языке",
+    "set.clock24":    "24 часа",
+    "set.clock12":    "12 · AM/PM",
+    "set.clockNote":  "Время показывается как {sample}.",
+    "set.clockNoteAuto": "Время показывается как {sample} — так принято в выбранном языке.",
+    "set.build":      "сборка {stamp}",
+
+    /* Шторка выбора дня и времени */
+    "pick.dayToday":    "Сегодня",
+    "pick.dayTomorrow": "Завтра",
+    "pick.title":  "Когда смотрим",
+    "pick.sub":    "Свет пересчитается на выбранный день",
+    "pick.today":  "Сегодня",
+    "pick.week":   "Через неделю",
+    "pick.month":  "Через месяц",
+    "pick.done":   "Готово",
+
     /* Строки телеметрии — подписи слева */
     "tele.cond":   "Условия",
     "tele.sunset": "Закат",
@@ -730,7 +749,7 @@
     "sun.noRise": "does not rise",
     "sun.noSet":  "does not set",
 
-    "tele.goldenTill": "{range} · until sunset {t}",
+    "tele.goldenTill": "{range} · sunset {t}",
 
     "map.lightFrom":   "Light from",
     "map.sunElev":     "Sun altitude",
@@ -865,6 +884,23 @@
     "card.e": "E",
     "card.s": "S",
     "card.w": "W",
+
+    "set.clock":      "Clock",
+    "set.clockAuto":  "Follow language",
+    "set.clock24":    "24-hour",
+    "set.clock12":    "12 · AM/PM",
+    "set.clockNote":  "Times are shown as {sample}.",
+    "set.clockNoteAuto": "Times are shown as {sample} — the usual form for the chosen language.",
+    "set.build":      "build {stamp}",
+
+    "pick.dayToday":    "Today",
+    "pick.dayTomorrow": "Tomorrow",
+    "pick.title":  "When to look",
+    "pick.sub":    "The light will be recalculated for the chosen day",
+    "pick.today":  "Today",
+    "pick.week":   "In a week",
+    "pick.month":  "In a month",
+    "pick.done":   "Done",
 
     "tele.cond":   "Conditions",
     "tele.sunset": "Sunset",
