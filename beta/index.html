@@ -3607,9 +3607,7 @@
     </div>
     <button class="now-back" id="calNow">↺ сегодня</button>
 
-    <div class="cal-head" id="calHead">
-      <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-    </div>
+    <div class="cal-head" id="calHead"></div>
     <div class="cal" id="cal"></div>
 
     <!-- Неделя как семь световых лент: то, чего не знает календарь телефона -->
@@ -4860,11 +4858,111 @@
   var deg = function (r) { return r * 180 / Math.PI; };
   var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
 
-  var MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-  var MONTHS_N = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-  var MON_S = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
-  var WD = ["ВС","ПН","ВТ","СР","ЧТ","ПТ","СБ"];
-  var WD_FULL = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+  /* ---------- Даты: собирает язык, а не сложение ----------
+     Было пять массивов русских слов и склейка на месте: `d.getDate() + " " +
+     MONTHS[d.getMonth()]`. Сложение навсегда фиксирует русский порядок — а в
+     английском месяц идёт первым («August 21»), в японском дата пишется
+     как «8月21日», в испанском между числом и месяцем стоит предлог
+     («21 de agosto»). Ни один из этих видов из кусков «число» и «месяц» не
+     собирается, поэтому собирает их `Intl`, который знает порядок каждого
+     языка. Массивы слов не нужны вовсе: имена месяцев тоже у него.
+
+     Русский вид сохранён до символа: `Intl` добавляет к короткому месяцу
+     точку («21 авг.») и к году «г.» («2026 г.»), а месяц отдельно даёт со
+     строчной («август»). Три эти мелочи приводятся к прежнему виду —
+     менять русский экран под предлогом перевода мы не подписывались. */
+  var dtfCache = {};
+  function dtf(opts) {
+    var key = LANG.code + "|" + JSON.stringify(opts);
+    if (!dtfCache[key]) dtfCache[key] = new Intl.DateTimeFormat(LANG.code, opts);
+    return dtfCache[key];
+  }
+  /* Словари и форматы кэшированы по языку — при смене языка кэш сбрасывается */
+  function dtfReset() { dtfCache = {}; }
+  /* Русский `Intl` дописывает к году « г.» — у нас его никогда не было.
+     Пробел перед «г» обязателен: без него правило съедало «г» в «авг.»
+     и месяц превращался в «ав». Проверка это и поймала. */
+  function dTidy(s) { return s.replace(/\s+г\.\s*$/, ""); }
+  function dCap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  /* Месяц тремя знаками — не сокращение языка, а наша типографика: короткий
+     месяц стоит в ячейках заданной ширины (плашка съёмки, ячейка барабана,
+     шапка недели), и «сент.» с «нояб.» их распирают. Поэтому у `Intl`
+     берётся слово языка, а длину задаём мы. Для русского это ровно прежний
+     набор: янв фев мар апр мая июн июл авг сен окт ноя дек. */
+  function abbr3(s) { return s.replace(/\.\s*$/, "").slice(0, 3); }
+  /* Часть даты по имени — нужна там, где число и месяц стоят по разным
+     строкам вёрстки и склеить их нельзя даже в одном языке */
+  function dPart(d, opts, type) {
+    var ps = dtf(opts).formatToParts(d);
+    for (var i = 0; i < ps.length; i++) if (ps[i].type === type) return ps[i].value;
+    return "";
+  }
+  /* Собрать дату из частей, поправив одну из них. Порядок частей и знаки
+     между ними остаются языковыми — меняется только само слово месяца */
+  function dFromParts(d, opts, fix) {
+    return dtf(opts).formatToParts(d).map(function (p) {
+      return fix[p.type] ? fix[p.type](p.value) : p.value;
+    }).join("");
+  }
+
+  var O_DM = { day: "numeric", month: "long" };
+  var O_DM_S = { day: "numeric", month: "short" };
+  var O_DMY = { day: "numeric", month: "long", year: "numeric" };
+  var O_DMY_S = { day: "numeric", month: "short", year: "numeric" };
+  var O_M = { month: "long" };
+  var O_WD_S = { weekday: "short" };
+  var O_WD_L = { weekday: "long" };
+
+  /* «21 августа» · «August 21» · «8月21日» */
+  function dMon(d) { return dTidy(dtf(O_DM).format(d)); }
+  /* «21 авг» — короткий месяц, для плотных мест: списка съёмок, недели */
+  function dMonShort(d) { return dTidy(dFromParts(d, O_DM_S, { month: abbr3 })); }
+  /* «21 августа 2026» */
+  function dMonYear(d) { return dTidy(dtf(O_DMY).format(d)); }
+  /* «21 авг 2026» */
+  function dMonShortYear(d) { return dTidy(dFromParts(d, O_DMY_S, { month: abbr3 })); }
+  /* «Август» — имя месяца само по себе, заголовком */
+  function monthTitle(d) { return dCap(dTidy(dtf(O_M).format(d))); }
+  /* «августа» — месяц внутри даты, но набранный отдельной строкой.
+     В японском и китайском месяц — это число, а иероглиф 月 идёт отдельной
+     частью: «8» само по себе месяцем не читается, поэтому там берём месяц
+     целиком, вместе со знаком */
+  function monthOfDate(d) {
+    var v = dPart(d, O_DM, "month");
+    return /^\d+$/.test(v) ? dtf(O_M).format(d) : v;
+  }
+  /* «ВС» — прописными: так стоит в шапке недели и в карточке */
+  function wdShort(d) { return abbr3(dtf(O_WD_S).format(d)).toUpperCase(); }
+  /* «воскресенье» */
+  function wdFull(d) { return dtf(O_WD_L).format(d); }
+  /* «авг» — короткий месяц сам по себе: в списке съёмок число и месяц стоят
+     разными строками плашки, и склеить их нельзя даже по-русски */
+  function monShortOfDate(d) { return abbr3(dPart(d, O_DM_S, "month")); }
+  /* Имя месяца по номеру: в годовой сетке месяц приходит числом, а не датой.
+     Год берём любой невисокосный — имена месяцев от него не зависят */
+  function monthTitleN(m) { return monthTitle(new Date(2001, m, 1)); }
+  /* «МАЙ» для сетки выбора месяца. Именительный, а не родительный: это
+     список названий, а не дата, и «МАЯ» в нём читалось бы как обрывок */
+  function monAbbrUpperN(m) { return abbr3(monthTitleN(m)).toUpperCase(); }
+  function monthTitles() {
+    var out = []; for (var m = 0; m < 12; m++) out.push(monthTitleN(m)); return out;
+  }
+  /* Шапка календаря: семь дней с понедельника. Неделя у нас начинается с
+     понедельника во всех языках — это свойство наших сеток, а не языка,
+     и менять его на воскресенье значило бы перестраивать вёрстку месяца.
+     От языка тут только слова. 2001-01-01 — понедельник. */
+  function wdRowCells() {
+    var out = "";
+    for (var i = 0; i < 7; i++) out += "<span>" + dCap(abbr3(dtf(O_WD_S).format(new Date(2001, 0, 1 + i)))) + "</span>";
+    return out;
+  }
+  /* Промежуток дат одной строкой: «18–24 августа», «August 18 – 24»,
+     «8月18日～24日». Порядок и знак промежутка тоже свойство языка,
+     поэтому склейка через дефис отдаётся `Intl` целиком */
+  function dMonRange(a, b) {
+    try { return dTidy(dtf(O_DM).formatRange(a, b)); }
+    catch (e) { return dMon(a) + " – " + dMon(b); }   // formatRange новее самого Intl
+  }
 
   function fmt(m) {
     if (m === null || m === undefined || isNaN(m)) return "—";
@@ -5186,7 +5284,7 @@
     return { best: best, from: from, to: to, dark: darkAny, moonBlocks: moonBlocks };
   }
   function mwDateShort(d) {
-    return d.getDate() + " " + MON_S[d.getMonth()];
+    return dMonShort(d);
   }
   function milkyWayAt(date, t) {
     return eqToAltAz(MW_CORE.ra, MW_CORE.dec, toDays(instant(date, t)));
@@ -7776,17 +7874,17 @@
     var m = $("calMonth"), nowY = new Date().getFullYear();
     function yr(d) { return d.getFullYear() === nowY ? "" : " " + d.getFullYear(); }
     if (calScope === "day") {
-      m.textContent = calSel.getDate() + " " + MONTHS[calSel.getMonth()] + yr(calSel);
+      m.textContent = dMon(calSel) + yr(calSel);
     } else if (calScope === "week") {
       var a = weekStart(calSel), b = addDays(a, 6);
       /* «3 – 9 августа» вместо «3 августа – 9 августа»: месяц называем один раз,
          иначе заголовок налезает на иконки */
       m.textContent = (a.getMonth() === b.getMonth()
-        ? a.getDate() + " – " + b.getDate() + " " + MONTHS[b.getMonth()]
-        : a.getDate() + " " + MONTHS[a.getMonth()] + " – " + b.getDate() + " " + MONTHS[b.getMonth()])
+        ? a.getDate() + " – " + dMon(b)
+        : dMon(a) + " – " + dMon(b))
         + yr(a);
     } else {
-      m.textContent = MONTHS_N[calMonth.getMonth()] + yr(calMonth);
+      m.textContent = monthTitle(calMonth) + yr(calMonth);
     }
   }
   /* Метка возврата — только когда ушли от сегодняшнего дня */
@@ -7811,6 +7909,7 @@
     if (window.ICONS) setScope(calScope);
 
     var week = calScope === "week", day = calScope === "day";
+    $("calHead").innerHTML = wdRowCells();       // слова недели знает язык
     $("calHead").hidden = week || day;
     $("cal").hidden = week || day;
     $("week").hidden = !week;
@@ -7950,8 +8049,8 @@
   }
   function weekLabel(a, b) {
     return a.getMonth() === b.getMonth()
-      ? a.getDate() + "–" + b.getDate() + " " + MONTHS[a.getMonth()]
-      : a.getDate() + " " + MON_S[a.getMonth()] + " – " + b.getDate() + " " + MON_S[b.getMonth()];
+      ? dMonRange(a, b)
+      : dMonShort(a) + " – " + dMonShort(b);
   }
   function renderWeek() {
     /* Неделю смотрят про занятость, а не про свет: где день занят целиком,
@@ -7989,7 +8088,7 @@
       var q = qualityOf(d), wx = dayWeather(d), sky = daySky(d);
       var head = '<button type="button" class="wk-head">'
         + '<span class="wk-num">' + d.getDate() + "</span>"
-        + '<span class="wk-wd">' + WD[d.getDay()] + "</span>"
+        + '<span class="wk-wd">' + wdShort(d) + "</span>"
         + '<span class="wk-wx">' + wxSign(q) + "<i>" + tempOut(wx.tempBase, 900) + "°</i></span></button>";
 
       var body = "";
@@ -8070,7 +8169,7 @@
 
   /* ---------- Год: тот же календарь в меньшем масштабе ---------- */
   var yearShown = calMonth.getFullYear();
-  var YEAR_WD_ROW = '<span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>';
+  /* Собирается заново при каждой отрисовке: язык мог смениться */
   /* Один месяц мини-календаря — своя функция, а не кусок цикла: список
      теперь строит два года подряд, и без вынесения тело цикла пришлось бы
      повторять дважды или городить вложенный цикл ради одной переменной y */
@@ -8082,8 +8181,8 @@
     var wrap = document.createElement("div"); wrap.className = "year-cal-month";
     var nameBtn = document.createElement("button");
     nameBtn.className = "year-cal-name" + (isNow ? " now" : "");
-    nameBtn.textContent = MONTHS_N[m];
-    var wd = document.createElement("div"); wd.className = "year-cal-wd"; wd.innerHTML = YEAR_WD_ROW;
+    nameBtn.textContent = monthTitleN(m);
+    var wd = document.createElement("div"); wd.className = "year-cal-wd"; wd.innerHTML = wdRowCells();
     var dgrid = document.createElement("div"); dgrid.className = "year-cal-grid";
     for (var k = 0; k < offset; k++) dgrid.appendChild(document.createElement("span"));
     for (var d = 1; d <= daysN; d++) {
@@ -8148,7 +8247,7 @@
     btn.className = "year12-month" + (isNow ? " now" : "");
     var name = document.createElement("div");
     name.className = "year12-name";
-    name.textContent = MONTHS_N[m];
+    name.textContent = monthTitleN(m);
     var grid = document.createElement("div");
     grid.className = "year12-days";
     for (var k = 0; k < offset; k++) grid.appendChild(document.createElement("span"));
@@ -8270,7 +8369,7 @@
     renderOverloadSignal();
     $("yTitle").textContent = yearShown;
     $("yearNow").classList.toggle("show", yearShown !== now.getFullYear());
-    $("yearCloseLbl").textContent = MONTHS_N[calMonth.getMonth()];
+    $("yearCloseLbl").textContent = monthTitle(calMonth);
     /* Мини-календарь на месяц: та же неделя-с-понедельника и то же имя
        месяца, что и в основном виде (docs: DECISIONS). Число — прямой тап
        в день, имя месяца — тап в месяц целиком; ни то, ни другое не несёт
@@ -8299,7 +8398,7 @@
       .sort(function (a, b) { return a.date - b.date; })[0];
     $("yearSum").innerHTML = all.length
       ? "<b>" + all.length + "</b> " + shootWord(all.length)
-        + (ahead ? " · ближайшая <b>" + ahead.date.getDate() + " " + MONTHS[ahead.date.getMonth()] + "</b>" : "")
+        + (ahead ? " · ближайшая <b>" + dMon(ahead.date) + "</b>" : "")
       : "Год пока свободен — время планировать";
     // Год по жанрам: отснятое и предстоящее — двумя строками
     var shot = all.filter(function (s) { return s.date < midnight; });
@@ -8353,7 +8452,7 @@
     if (!has) return;
     $("yearMonthBars").innerHTML = stats.map(function (s, m) {
       var pct = s.n ? Math.max(8, Math.round(s.n / maxN * 100)) : 0;
-      return '<div class="ym-row' + (s.n ? "" : " empty") + '"><span class="ym-n">' + MONTHS_N[m] + '</span>'
+      return '<div class="ym-row' + (s.n ? "" : " empty") + '"><span class="ym-n">' + monthTitleN(m) + '</span>'
         + '<span class="ym-bar">' + (s.n ? '<i style="width:' + pct + '%;background:' + s.color + '"></i>' : "") + '</span>'
         + '<span class="ym-c">' + (s.n || "") + '</span></div>';
     }).join("");
@@ -8557,7 +8656,7 @@
         var b = document.createElement("button");
         b.type = "button";
         b.className = "dd-day" + (sameDay(dd, calSel) ? " sel" : "") + (sameDay(dd, today0) ? " today" : "");
-        b.innerHTML = '<span class="dd-wd">' + WD[dd.getDay()] + "</span>"
+        b.innerHTML = '<span class="dd-wd">' + wdShort(dd) + "</span>"
           + '<span class="dd-num">' + dd.getDate() + "</span>"
           + '<span class="dd-marks">' + mk + "</span>";
         (function (day) {
@@ -8698,7 +8797,7 @@
       var sub = busy ? (b.allDay ? "весь день" : fmt(it.a) + " – " + fmt(it.b))
         : (meet ? "встреча · " + shortGenre(s2.type).toLowerCase()
                 : it.tail
-                  ? "с " + s2.date.getDate() + " " + MON_S[s2.date.getMonth()]
+                  ? "с " + dMonShort(s2.date)
                     + " · до " + fmt(realEnd)
                   : fmt(s2.min) + " – " + fmt(realEnd));
       var ds = busy ? null : deliveryState(s2);
@@ -8978,7 +9077,7 @@
       var end = s2.end != null ? s2.end : s2.min + (s2.dur || 90);
       return '<div class="bin-row"><span class="ic">' + IC.genreSvg(s2.type) + "</span>"
         + '<span class="tx"><span class="t1">' + esc(clientName(s2) || genreName(s2.type)) + "</span>"
-        + '<span class="t2">' + d.getDate() + " " + MON_S[d.getMonth()] + " · "
+        + '<span class="t2">' + dMonShort(d) + " · "
         + fmt(s2.min) + " – " + fmt(end) + "</span></span>"
         + '<button type="button" class="back" data-k="' + k + '">Вернуть</button></div>';
     }).join("");
@@ -9011,7 +9110,7 @@
         var c = document.createElement("div");
         c.className = "session";
         c.innerHTML =
-          '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
+          '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + monShortOfDate(s.date) + "</div></div>" +
           '<div class="s-body"><div class="s-title">' + genreName(s.type) + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
           '<div class="s-sub">' + s.place + (function (w) {
             var list = Array.isArray(w) ? w : (w && w !== "any" ? [w] : []);
@@ -9045,7 +9144,7 @@
     for (var o = -BACK; o <= AHEAD; o++) {
       var d = new Date(base); d.setDate(d.getDate() + o);
       dateList.push({ date: d, label: o === 0 ? "Сегодня" : o === 1 ? "Завтра"
-        : WD[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()] });
+        : wdShort(d) + " " + dMon(d) });
     }
   })();
   /* Короткие барабаны закольцованы. При шаге в полчаса у минут всего два
@@ -9238,7 +9337,7 @@
     var dd = deadlineDate(probe);
     // Первое деление — автомат: подсказка объясняет, что жанр решил сам
     $("fDelvHint").textContent = dd
-      ? (fDelvChoice === "auto" ? "по жанру · " : "") + "сдать до " + dd.getDate() + " " + MONTHS[dd.getMonth()]
+      ? (fDelvChoice === "auto" ? "по жанру · " : "") + "сдать до " + dMon(dd)
       : "срок не отслеживается";
   }
   $("fDelvDial").addEventListener("input", function () {
@@ -9597,7 +9696,7 @@
     $("allDocs").innerHTML = allDocList.map(function (d, i) {
       return docRow(d, i)
         + '<div class="org-empty" style="padding:2px 14px 0">' + esc(d.who)
-        + (d.when ? " · " + d.when.getDate() + " " + MONTHS[d.when.getMonth()] : "") + "</div>";
+        + (d.when ? " · " + dMon(d.when) : "") + "</div>";
     }).join("") || '<div class="org-empty">Документов пока нет. Они появляются здесь сами: '
       + "договор из съёмки, чек, акт, реквизиты организации.</div>";
     $("allDocs").querySelectorAll(".doc-row").forEach(function (b) {
@@ -9645,7 +9744,7 @@
   function mbSub(f) {
     if (f.kind === "session") {
       var s = sessions[f.si];
-      return genreName(s.type) + " · " + s.date.getDate() + " " + MONTHS[s.date.getMonth()] + " " + s.date.getFullYear()
+      return genreName(s.type) + " · " + dMon(s.date) + " " + s.date.getFullYear()
         + (s.place ? " · " + shortPlace(s.place) : "");
     }
     return "Жанровая подборка";
@@ -10052,7 +10151,7 @@
     $("oDocs").innerHTML = orgDocs.map(function (d, i) {
       return docRow(d, i, !d.when)
         + (d.when ? '<div class="org-empty" style="padding:2px 14px 0">съёмка '
-            + d.when.getDate() + " " + MONTHS[d.when.getMonth()] + "</div>" : "");
+            + dMon(d.when) + "</div>" : "");
     }).join("") || '<div class="org-empty">Бумаг пока нет. Они приложатся из съёмок '
       + "или прямо сюда — договор действует дольше одной съёмки.</div>";
     $("oDocs").querySelectorAll(".doc-row").forEach(function (b) {
@@ -10083,7 +10182,7 @@
       return '<button type="button" class="org-item" data-i="' + p.i + '">'
         + '<span class="badge">' + IC.genreSvg(p.s.type) + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(genreName(p.s.type)) + " · "
-        + p.s.date.getDate() + " " + MONTHS[p.s.date.getMonth()] + " " + p.s.date.getFullYear() + "</span>"
+        + dMon(p.s.date) + " " + p.s.date.getFullYear() + "</span>"
         + '<span class="org-s">' + esc(tail || "сумма не задана") + "</span></span>"
         + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
     }).join("") || '<div class="org-empty">Съёмок для этой организации пока не было.</div>';
@@ -10300,15 +10399,16 @@
     var head = '<div class="dp-nav">' + dpArrow(-1)
       + '<button type="button" class="dp-title' + (mode === "months" ? " open" : "") + '">'
       + (mode === "months" ? shown.getFullYear()
-                           : MONTHS_N[shown.getMonth()] + " " + shown.getFullYear())
+                           : monthTitle(shown) + " " + shown.getFullYear())
       + '<span class="pt-chev" data-ic="chevron"></span></button>'
       + dpArrow(1) + "</div>";
 
     var body;
     if (mode === "months") {
-      body = '<div class="dp-months">' + MONTHS_N.map(function (m, i) {
+      body = '<div class="dp-months">' + monthTitles().map(function (m, i) {
         return '<button type="button" data-m="' + i + '"'
-          + (i === shown.getMonth() ? ' class="on"' : "") + ">" + m.slice(0, 3) + "</button>";
+          + (i === shown.getMonth() ? ' class="on"' : "") + ' title="' + esc(m) + '">'
+          + monAbbrUpperN(i) + "</button>";
       }).join("") + "</div>";
     } else {
       var first = new Date(shown.getFullYear(), shown.getMonth(), 1);
@@ -10322,8 +10422,7 @@
       for (var n = 1; n <= days; n++) {
         cells += dpCell(new Date(shown.getFullYear(), shown.getMonth(), n), cur, today, false, lim);
       }
-      body = '<div class="dp-wk"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span>'
-        + '<span>Пт</span><span>Сб</span><span>Вс</span></div>'
+      body = '<div class="dp-wk">' + wdRowCells() + "</div>"
         + '<div class="dp-grid">' + cells + "</div>";
     }
     host.innerHTML = head + body;
@@ -11223,7 +11322,7 @@
     /* Год стоит всегда, а не только у чужого года: договариваются в декабре
        на август, и «10 авг» без года — приглашение перепутать 26-й с 27-м */
     function capDate(d) {
-      return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + " " + d.getFullYear();
+      return dMonShortYear(d);
     }
     $("fStartDate").textContent = capDate(fDate);
     $("fEndDate").textContent = capDate(endDate());
@@ -11865,7 +11964,7 @@
        Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
     if (isMeet(s)) bits.push("Встреча · " + shortGenre(s.type).toLowerCase());
     else if (name) bits.push(spec.ev || genreName(s.type));
-    bits.push(s.date.getDate() + " " + MONTHS[s.date.getMonth()]);
+    bits.push(dMon(s.date));
     bits.push(range(s.min, end));
     $("cdEvWhen").textContent = bits.join(" · ")
       + (phase === "after" ? afterWord(s.date) : (when && when !== "сегодня" ? " · " + when : ""));
@@ -11893,8 +11992,8 @@
   function renderDayTile(s, route, phase, light) {
     $("cdDay").hidden = false;
     $("cdDayD").textContent = s.date.getDate();
-    $("cdDayM").textContent = MONTHS[s.date.getMonth()];
-    $("cdDayW").textContent = WD_FULL[s.date.getDay()];
+    $("cdDayM").textContent = monthOfDate(s.date);
+    $("cdDayW").textContent = wdFull(s.date);
 
     var now = new Date(), today = sameDay(s.date, now);
     var nowMin2 = today ? now.getHours() * 60 + now.getMinutes() : null;
@@ -12107,7 +12206,7 @@
         + '<span class="badge">' + PANE_IC.clock + "</span>"
         + '<span class="pn-body"><span class="pn-k">Сдача</span>'
         + '<span class="pn-t" style="color:' + ds.color + ';margin-top:2px">' + ds.label
-        + (dd && !s.delivered ? ' <span style="color:#635E54;font-size:12.5px">· до ' + dd.getDate() + " " + MONTHS[dd.getMonth()] + "</span>" : "")
+        + (dd && !s.delivered ? ' <span style="color:#635E54;font-size:12.5px">· до ' + dMon(dd) + "</span>" : "")
         + "</span></span></div></div>";
     }
 
@@ -12448,10 +12547,10 @@
     $("cdGrown").hidden = !(meet && s.grewOn);
     if (meet && s.grewOn) {
       var g = new Date(s.grewOn);
-      $("cdGrown").textContent = "Съёмка назначена на " + g.getDate() + " " + MONTHS[g.getMonth()] + ".";
+      $("cdGrown").textContent = "Съёмка назначена на " + dMon(g) + ".";
     }
 
-    $("cdDate").textContent = WD[s.date.getDay()] + " · " + s.date.getDate() + " " + MONTHS[s.date.getMonth()];
+    $("cdDate").textContent = wdShort(s.date) + " · " + dMon(s.date);
     $("cdTime").textContent = range(s.min, end);
     $("cdDur").textContent = durLabel(dur);
     $("cdPlaceLine").hidden = !s.place;
@@ -12492,7 +12591,7 @@
     if (hasDelv) {
       var ds = deliveryState(s), dd = deadlineDate(s);
       $("cdDelv").textContent = ds.label + (dd && !s.delivered
-        ? " · до " + dd.getDate() + " " + MONTHS[dd.getMonth()] : "");
+        ? " · до " + dMon(dd) : "");
       $("cdDelv").style.color = ds.color;
     }
 
@@ -13005,7 +13104,7 @@
       else { closeCard(); go("s-plan"); }
       // Прогноз против замысла — так это придёт пушем накануне
       if (warn) setTimeout(function () {
-        notify(fDate.getDate() + " " + MONTHS[fDate.getMonth()] + " · " + warn.t.toLowerCase(), warn.m);
+        notify(dMon(fDate) + " · " + warn.t.toLowerCase(), warn.m);
       }, 500);
     }, 850);
   });
@@ -13050,7 +13149,7 @@
   }
   function dateLabel(t) {
     var d = viewDate(t);
-    return WD[d.getDay()] + " · " + d.getDate() + " " + MONTHS[d.getMonth()];
+    return wdShort(d) + " · " + dMon(d);
   }
   function paintDate() {
     var d = viewDate(viewMin), n = new Date();
@@ -13200,7 +13299,7 @@
     }
     var seam = document.createElement("i"); seam.className = "rd-seam"; day.appendChild(seam);
     var lbl = document.createElement("span"); lbl.className = "rd-date";
-    lbl.textContent = date.getDate() + " " + MONTHS_N[date.getMonth()].slice(0, 3).toUpperCase();
+    lbl.textContent = dMonShort(date).toUpperCase();
     day.appendChild(lbl);
     return day;
   }
@@ -13223,7 +13322,7 @@
     var num = document.createElement("span"); num.className = "dc-num";
     // Число и месяц, как в прототипе: без месяца переход через первое число
     // читался бы как «31 → 1» без понимания, куда именно уехал
-    num.textContent = date.getDate() + " " + MONTHS_N[date.getMonth()].slice(0, 3).toUpperCase();
+    num.textContent = dMonShort(date).toUpperCase();
     day.appendChild(num);
     var ic = document.createElement("span"); ic.className = "dc-ic";
     if (skyMode === "moon") {
@@ -13931,6 +14030,7 @@
      перезагрузки избегаем нарочно: в форме может лежать незаписанная съёмка,
      и терять её ради смены языка — цена, которой фотограф не просил */
   function relangUI() {
+    dtfReset();            // форматы дат закэшированы по языку — язык сменился
     renderMoneyLabels();
     if (!booted) return;
     renderToday(); renderWeek(); renderDayPanel(); renderSessions(); renderCal();
@@ -14511,7 +14611,7 @@
     box.innerHTML = hits.map(function (p) {
       var s = p.s, end = s.end != null ? s.end : s.min + (s.dur || 90);
       return '<button class="plan-row" data-i="' + p.i + '" style="border-bottom:1px solid rgba(255,255,255,0.04)">' +
-        '<span class="pr-time">' + s.date.getDate() + " " + MON_S[s.date.getMonth()] + "</span>" +
+        '<span class="pr-time">' + dMonShort(s.date) + "</span>" +
         '<span class="pr-who">' + esc(clientName(s) || s.type) + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
     }).join("");
     box.querySelectorAll(".dl-ev").forEach(function (b) {
@@ -14598,7 +14698,7 @@
     return d;
   }
   function shortDate(d) {
-    return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + " " + d.getFullYear();
+    return dMonShortYear(d);
   }
 
   function renderBlk() {
