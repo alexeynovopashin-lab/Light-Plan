@@ -3818,13 +3818,24 @@
     </button>
     <p class="seg-note" id="yaNote">Копия будет уходить в папку «Приложения · Light Plan». Остальной Диск приложению не виден.</p>
 
-    <div class="sec-label">Единицы и язык</div>
+    <!-- Язык, единицы и валюта — три отдельные настройки, а не одна.
+         Язык меняет слова и разделители числа; градусы и деньги фотограф
+         выбирает сам: с английским интерфейсом он всё равно может
+         зарабатывать в рублях (DECISIONS.md, «Языки») -->
+    <div class="sec-label">Язык</div>
+    <div class="chips" id="langChips" style="padding: 12px 24px 0;"></div>
+    <p class="seg-note" id="langNote"></p>
+
+    <div class="sec-label">Единицы</div>
     <div class="seg" id="unitSeg" style="margin-top:4px;">
       <button class="active" data-unit="c">°C</button>
       <button data-unit="f">°F</button>
     </div>
     <p class="seg-note" id="unitNote">Температура показывается в градусах Цельсия.</p>
-    <div class="item"><span class="k">Язык</span><span class="v">Русский <span class="go-chev">›</span></span></div>
+
+    <div class="sec-label">Валюта</div>
+    <div class="chips" id="curChips" style="padding: 12px 24px 0;"></div>
+    <p class="seg-note" id="curNote"></p>
 
     <!-- Копирайт карты переехал сюда с полотна: на экране «Карта» строка
          лицензии занимала правую половину нижнего края и резала компас.
@@ -4278,11 +4289,11 @@
         <!-- Предоплата: не доход и не расход, а то, что уже получено.
              Итог показывает остаток — за ним и лезут в карточку перед съёмкой -->
         <div class="pay-row sep" id="fPrepayRow">
-          <span class="k">Предоплата, ₽</span>
+          <span class="k" id="fPrepayLabel">Предоплата, ₽</span>
           <input class="pay-in" type="text" inputmode="numeric" id="fPrepay" placeholder="0"/>
         </div>
         <div class="pay-row sep">
-          <span class="k">Расходы, ₽</span>
+          <span class="k" id="fExpenseLabel">Расходы, ₽</span>
           <input class="pay-in" type="text" inputmode="numeric" id="fExpense" placeholder="0"/>
         </div>
         <div class="pay-total sep" id="fPayTotal">—</div>
@@ -4787,7 +4798,7 @@
     <div class="g-label" style="margin: 22px 4px 9px;">Гонорар</div>
     <div class="group">
       <div class="pay-row">
-        <span class="k">Стоимость часа по умолчанию, ₽</span>
+        <span class="k" id="gRateLabel">Стоимость часа по умолчанию, ₽</span>
         <input class="pay-in" type="text" inputmode="numeric" id="gRate" placeholder="0"/>
       </div>
       <!-- Пакеты: именованные продукты свадебщика. Название · часы · цена -->
@@ -5706,7 +5717,7 @@
           var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
           return { rec: r, at: t.at, del: t.del };
         }),
-        travelMin: travelMin, tempUnit: tempUnit, dayFold: !dayPanelOpen,
+        travelMin: travelMin, tempUnit: tempUnit, currency: currency, dayFold: !dayPanelOpen,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
           return o;
@@ -6004,6 +6015,22 @@
     return d;
   }
   saved = migrateGenres(saved);
+  /* Пожелание к погоде — тот же приём: код внутри, имя на экране. Хранится
+     только в съёмке (`wish`), поэтому миграция короче жанровой. */
+  var WISH_CODE = {
+    "Неважно": "any", "Ясно": "clear", "Закат": "sunset", "Облачно": "cloudy",
+    "Туман": "fog", "Осадки": "rain", "Луна": "moon", "Звёзды": "stars"
+  };
+  function migrateWishes(d) {
+    if (!d || !Array.isArray(d.sessions)) return d;
+    d.sessions.forEach(function (s) {
+      if (!s) return;
+      if (Array.isArray(s.wish)) s.wish = s.wish.map(function (w) { return WISH_CODE[w] || w; });
+      else if (s.wish) s.wish = WISH_CODE[s.wish] || s.wish;
+    });
+    return d;
+  }
+  saved = migrateWishes(saved);
   // Восстанавливаем место до первого расчёта света
   if (saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon)) {
     LAT = saved.loc.lat; LON = saved.loc.lon;
@@ -6183,10 +6210,46 @@
     return genrePacks[g];
   }
 
-  /* ---------- Деньги: доход, расходы, прибыль ---------- */
+  /* ---------- Деньги: доход, расходы, прибыль ----------
+     Валюта — своя настройка, а не следствие языка. Русский фотограф с
+     английским интерфейсом всё равно зарабатывает в рублях, а японец в
+     Москве считает километры: язык меняет слова и разделители числа,
+     знак денег фотограф выбирает сам (DECISIONS.md, «Языки»).
+     Отсюда и раздельные источники в `Intl`: локаль берётся у языка,
+     currency — у настройки. */
+  var CURRENCIES = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"];
+  var currency = (saved && CURRENCIES.indexOf(saved.currency) >= 0) ? saved.currency : "RUB";
+  /* `narrowSymbol` даёт «₽» вместо «RUB» там, где локаль языка сама бы
+     написала код валюты. Старые движки его не знают — отсюда откат */
+  function moneyFmt(cur, display) {
+    return new Intl.NumberFormat(LANG.code, {
+      style: "currency", currency: cur || currency, currencyDisplay: display || "narrowSymbol",
+      minimumFractionDigits: 0, maximumFractionDigits: 0
+    });
+  }
+  /* Знак валюты отдельно от суммы: им подписаны поля формы («Ставка, ₽/час»),
+     где число вводит фотограф, а знак только называет единицу.
+     Код валюты аргументом — чтобы список в настройках показал каждый знак,
+     не подменяя текущую настройку на время отрисовки */
+  function currencySign(cur) {
+    var pick = function (f) {
+      return f.formatToParts(0)
+        .filter(function (p) { return p.type === "currency"; })
+        .map(function (p) { return p.value; }).join("");
+    };
+    try { return pick(moneyFmt(cur)); }
+    catch (e) {
+      try { return pick(moneyFmt(cur, "symbol")); }
+      catch (e2) { return "₽"; }
+    }
+  }
   function money(n) {
     n = Math.round(n || 0);
-    return n.toLocaleString("ru-RU") + " ₽";
+    try { return moneyFmt().format(n); }
+    catch (e) {
+      try { return moneyFmt(null, "symbol").format(n); }
+      catch (e2) { return n.toLocaleString() + " " + currencySign(); }
+    }
   }
   function sessionIncome(s) {
     if (isMeet(s)) return 0;      // встреча — разговор, а не работа
@@ -8413,9 +8476,15 @@
      как и все слова, согласуемые с числом */
   /* Правило множественного числа переехало в язык (`lang.js`): у русского три
      формы, у английского две, и это свойство языка, а не наших строк.
-     Здесь остался мост для мест, где формы приходят массивом на месте. */
+     Здесь остался мост для мест, где формы приходят массивом на месте.
+
+     Согласуем русским правилом, а не правилом языка экрана: слова в этих
+     массивах пока русские, и на английском экране английское правило
+     поставило бы их в чужую форму — «5 съёмки» вместо «5 съёмок».
+     Мост тает волнами: каждая строка, уехавшая в словарь, уносит с собой
+     один вызов, а с последним уйдёт и сама функция. */
   function plural(n, forms) {
-    var i = LANG.index(n);
+    var i = LANG.indexIn("ru", n);
     return forms[i] != null ? forms[i] : forms[forms.length - 1];
   }
   function genreLine(list) {
@@ -8945,8 +9014,8 @@
           '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + MON_S[s.date.getMonth()] + "</div></div>" +
           '<div class="s-body"><div class="s-title">' + genreName(s.type) + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
           '<div class="s-sub">' + s.place + (function (w) {
-            var list = Array.isArray(w) ? w : (w && w !== "Неважно" ? [w] : []);
-            return list.length ? " · жду: " + list.join(", ").toLowerCase() : "";
+            var list = Array.isArray(w) ? w : (w && w !== "any" ? [w] : []);
+            return list.length ? " · жду: " + list.map(wishName).join(", ").toLowerCase() : "";
           })(s.wish) + "</div>" +
           (function () {
             var ds = deliveryState(s);
@@ -10066,8 +10135,9 @@
       });
     });
     // Подпись поля ставки под механику
-    $("fRateLabel").textContent = mech === "hourly" ? "Ставка, ₽/час"
-      : mech === "unit" ? "Цена, ₽" : "Сумма, ₽";
+    var cs = currencySign();
+    $("fRateLabel").textContent = mech === "hourly" ? "Ставка, " + cs + "/час"
+      : mech === "unit" ? "Цена, " + cs : "Сумма, " + cs;
     // Количество — только для «за единицу»
     $("fUnitsRow").hidden = mech !== "unit";
     $("fUnitsLabel").textContent = PAY[fPay].unit ? (PAY[fPay].unit[0].toUpperCase() + PAY[fPay].unit.slice(1)) : "Количество";
@@ -10906,8 +10976,14 @@
     applyGenreShape();
   }
   var genresOn = (saved && saved.genres) || { "portrait": 1, "wedding": 1, "lovestory": 1, "landscape": 1, "architecture": 1, "street": 1 };
-  var WISHES = ["Неважно", "Ясно", "Закат", "Облачно", "Туман", "Осадки", "Луна", "Звёзды"];
-  var WANT = { "Ясно": "excellent", "Облачно": "good", "Туман": "fog" };
+  /* Имя пожелания для экрана. `WISH_CODE` заведён у migrateWishes. */
+  function wishName(w) {
+    var code = WISH_CODE[w] || w;
+    var s = LANG.t("wish." + code);
+    return s === "wish." + code ? w : s;
+  }
+  var WISHES = ["any", "clear", "sunset", "cloudy", "fog", "rain", "moon", "stars"];
+  var WANT = { "clear": "excellent", "cloudy": "good", "fog": "fog" };
 
   function renderGenres() {
     var list = ALL_GENRES.filter(function (g) { return genresOn[g]; });
@@ -10936,13 +11012,13 @@
   function renderWishes() {
     $("fWish").className = "tool-grid";
     $("fWish").innerHTML = WISHES.map(function (w) {
-      var on = w === "Неважно" ? wishes.length === 0 : wishes.indexOf(w) >= 0;
-      return toolBtn(w, WISH_IC[w], on ? "active" : "");
+      var on = w === "any" ? wishes.length === 0 : wishes.indexOf(w) >= 0;
+      return toolBtn(wishName(w), WISH_IC[w], on ? "active" : "", w);
     }).join("");
     $("fWish").querySelectorAll(".tool").forEach(function (ch) {
       ch.addEventListener("click", function () {
         var w = ch.dataset.v;
-        if (w === "Неважно") wishes = [];               // сбрасывает все пожелания
+        if (w === "any") wishes = [];               // сбрасывает все пожелания
         else {
           var i = wishes.indexOf(w);
           if (i >= 0) wishes.splice(i, 1); else wishes.push(w);
@@ -10952,11 +11028,11 @@
     });
   }
 
-  /* Сходится ли замысел с прогнозом */
+  /* Сходится ли замысел с прогнозом. `w` — код пожелания (см. WISH_CODE) */
   function wishCheck(w, d) {
-    if (w === "Неважно") return null;
+    if (w === "any") return null;
     var q = qualityOf(d);
-    if (w === "Звёзды") {
+    if (w === "stars") {
       var keep = new Date(selDate);
       computeSun(d);
       var noNight = SUN.astB === null;
@@ -10980,7 +11056,7 @@
           + "но лучше дождаться, когда луна сядет или пойдёт на убыль." };
       return null;
     }
-    if (w === "Закат") {
+    if (w === "sunset") {
       var wx = dayWeather(d);
       if (wx.sunset != null) {
         if (wx.sunset < 50) return { t: "Закат не обещает цвета",
@@ -10989,12 +11065,12 @@
         m: "Прогноз: " + QUAL[q].sky.toLowerCase() + " — горизонт будет закрыт." };
       return null;
     }
-    if (w === "Осадки") {
+    if (w === "rain") {
       if (q !== "poor") return { t: "Осадков не обещают",
         m: "Прогноз на этот день: " + QUAL[q].sky.toLowerCase() + ". Дождевых кадров не выйдет." };
       return null;
     }
-    if (w === "Луна") {
+    if (w === "moon") {
       var ph = moonPhase(d, 1320);
       if (ph.fraction < 0.25) return { t: "Луна почти новая",
         m: "Освещена на " + Math.round(ph.fraction * 100) + "% — света не даст. Полнолуние ищите в астро-деталях." };
@@ -11003,7 +11079,7 @@
       return null;
     }
     if (q !== WANT[w]) return { t: "Погода не та",
-      m: "Вы ждёте: " + w.toLowerCase() + ". Прогноз на этот день: " + QUAL[q].sky.toLowerCase() + "." };
+      m: "Вы ждёте: " + wishName(w).toLowerCase() + ". Прогноз на этот день: " + QUAL[q].sky.toLowerCase() + "." };
     return null;
   }
   /* Пожеланий может быть несколько — первое несбывшееся и показываем */
@@ -11117,7 +11193,7 @@
       /* Спор за свет: две съёмки одного дня заказали закат, а золотой час один.
          Единственное предупреждение, которое рождается из световой модели */
       var otherWants = Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []);
-      if (wants.indexOf("Закат") >= 0 && otherWants.indexOf("Закат") >= 0) {
+      if (wants.indexOf("sunset") >= 0 && otherWants.indexOf("sunset") >= 0) {
         out.push({ w: 1, t: "Обе съёмки просят закат",
           m: "«" + name + "» (" + when + ") тоже ждёт закат, а золотой час один." });
       }
@@ -11300,10 +11376,10 @@
 
   /* Свет — условие, а не раздел. Три требования сразу:
      пресет его требует, точка дня попадает в окно, и есть что сказать. */
-  var LIGHT_WISH = /закат|золот|рассвет|звёзд|звезд|луна/i;
+  var LIGHT_WISH = { sunset: 1, stars: 1, moon: 1 };
   function lightCase(s, route, sun) {
-    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
-    var asks = want.some(function (w) { return LIGHT_WISH.test(w); });
+    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "any" ? [s.wish] : []);
+    var asks = want.some(function (w) { return LIGHT_WISH[w]; });
     if (!asks || sun.goldB === null || sun.blueB === null) return null;
 
     // Ближайшая к золотому окну точка дня: попадает ли, и насколько мимо.
@@ -12403,7 +12479,7 @@
 
     // Съёмка ждала свет, а прогноз обещает другое — сказать заранее, не постфактум
     // (имя не wishes: так называется рабочий набор формы, затирать его нельзя)
-    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
+    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "any" ? [s.wish] : []);
     var bad = want.length && (q === "poor" || q === "fog");
     $("cdWarn").hidden = !bad;
     if (bad) $("cdWarn").textContent = "Съёмка ждала: " + want.join(", ").toLowerCase()
@@ -12595,7 +12671,7 @@
       fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
       shootType = s.type;
       // старые записи хранили строку — поднимаем в массив
-      wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "Неважно" ? [s.wish] : []);
+      wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "any" ? [s.wish] : []);
       fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
       $("fDone").classList.toggle("on", !!s.delivered);
       fDeliveredAt = s.deliveredAt || null;
@@ -12800,13 +12876,14 @@
   function packHint() { return PACK_HINT[shootType] || "Съёмка на час"; }
   function renderPackEditor() {
     var host = $("packList"), hint = packHint(), packs = packsOf(shootType);
+    var cs = currencySign();
     host.innerHTML = packs.map(function (p, i) {
       return '<div class="pack-item" data-i="' + i + '">'
         + '<input class="pk-n" type="text" placeholder="' + esc(hint) + '" value="' + (p.n || "").replace(/"/g, "&quot;") + '"/>'
         + '<input class="pk-h" type="text" inputmode="numeric" placeholder="ч" value="' + (p.h || "") + '"/>'
-        + '<input class="pk-p" type="text" inputmode="numeric" placeholder="₽" value="' + (p.p || "") + '"/>'
+        + '<input class="pk-p" type="text" inputmode="numeric" placeholder="' + esc(cs) + '" value="' + (p.p || "") + '"/>'
         + '<button type="button" class="pk-x" aria-label="Убрать">✕</button></div>';
-    }).join("") || '<div class="pack-empty">Например: «' + esc(hint) + '» · 3 ч · 14 000 ₽</div>';
+    }).join("") || '<div class="pack-empty">Например: «' + esc(hint) + '» · 3 ч · ' + esc(money(14000)) + '</div>';
     host.querySelectorAll(".pack-item").forEach(function (row) {
       var i = +row.dataset.i, p = packs[i];
       row.querySelector(".pk-n").addEventListener("input", function () { p.n = this.value; saveAll(); });
@@ -13808,6 +13885,71 @@
     });
   });
   renderUnitSeg();
+
+  /* ---------- Язык и валюта ----------
+     Языки названы на себе самих: «Русский», «English» — так их узнают, не
+     умея читать текущий язык интерфейса. Незаполненный словарь помечен
+     честно: экран уедет в английский, и об этом лучше сказать заранее,
+     чем дать фотографу открыть его и удивиться. */
+  var LANG_NAMES = { ru: "Русский", en: "English", es: "Español", ja: "日本語", zh: "中文" };
+  var LANG_ORDER = ["ru", "en", "es", "ja", "zh"];
+
+  function renderLangChips() {
+    $("langChips").innerHTML = LANG_ORDER.map(function (c) {
+      return '<button class="chip' + (LANG.code === c ? " active" : "") + '" data-lang="' + c + '">'
+        + esc(LANG_NAMES[c]) + "</button>";
+    }).join("");
+    $("langChips").querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (!LANG.set(b.dataset.lang)) return;   // язык без правила числа не берём
+        renderLangChips(); renderCurChips(); relangUI(); saveAll();
+      });
+    });
+    var stub = !LANG.has(LANG.code);
+    $("langNote").textContent = stub
+      ? "Словарь этого языка ещё не заполнен — надписи из словаря показываются по-английски. Перевод идёт волнами, экран за экраном."
+      : "Перевод интерфейса идёт волнами: часть надписей пока остаётся на русском независимо от выбора.";
+  }
+
+  /* Валюта живёт отдельно от языка. Знак берётся у `Intl`, а не из таблицы:
+     он же зависит от локали — для рубля англичанин видит «₽», японец «RUB» */
+  function renderCurChips() {
+    $("curChips").innerHTML = CURRENCIES.map(function (c) {
+      return '<button class="chip' + (currency === c ? " active" : "") + '" data-cur="' + c + '">'
+        + esc(currencySign(c) + " " + c) + "</button>";
+    }).join("");
+    $("curChips").querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        currency = b.dataset.cur; renderCurChips(); relangUI(); saveAll();
+      });
+    });
+    $("curNote").textContent = "Знак денег в ставках, пакетах и итогах: " + money(14000)
+      + ". От языка не зависит — со сменой языка валюта остаётся прежней.";
+  }
+
+  /* Перерисовать то, где уже нарисованы слова словаря и деньги. Полной
+     перезагрузки избегаем нарочно: в форме может лежать незаписанная съёмка,
+     и терять её ради смены языка — цена, которой фотограф не просил */
+  function relangUI() {
+    renderMoneyLabels();
+    if (!booted) return;
+    renderToday(); renderWeek(); renderDayPanel(); renderSessions(); renderCal();
+    if ($("fWish").children.length) { renderGenres(); renderWishes(); renderPay(); }
+  }
+
+  /* Подписи денежных полей. Они стоят в разметке, а знак валюты меняется —
+     значит подпись собирается, а не лежит готовой строкой */
+  function renderMoneyLabels() {
+    var sign = currencySign();
+    var pre = $("fPrepayLabel"), exp = $("fExpenseLabel"), grate = $("gRateLabel");
+    if (pre) pre.textContent = "Предоплата, " + sign;
+    if (exp) exp.textContent = "Расходы, " + sign;
+    if (grate) grate.textContent = "Стоимость часа по умолчанию, " + sign;
+  }
+
+  renderLangChips();
+  renderCurChips();
+  renderMoneyLabels();   // подписи полей знают валюту с первой отрисовки
 
   /* Сохранённый астро-режим — и на теле, и в самом переключателе: иначе
      сегмент показывал бы «Просто» там, где на экранах стоят азимуты */
