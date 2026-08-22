@@ -312,6 +312,8 @@
     "sunsetS.none":      "серый",
 
     /* Солнце за полярным кругом: не всходит или не садится вовсе */
+    "sun.noRiseFull": "солнце не восходит",
+    "sun.noSetFull":  "солнце не заходит",
     "sun.noRise": "не восходит",
     "sun.noSet":  "не заходит",
 
@@ -746,6 +748,8 @@
     "sunsetS.calm":      "calm",
     "sunsetS.none":      "grey",
 
+    "sun.noRiseFull": "the sun does not rise",
+    "sun.noSetFull":  "the sun does not set",
     "sun.noRise": "does not rise",
     "sun.noSet":  "does not set",
 

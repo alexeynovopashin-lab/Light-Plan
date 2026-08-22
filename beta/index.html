@@ -314,6 +314,15 @@
     font-variant-numeric: tabular-nums; line-height: 1; color: var(--ink);
   }
   .dr-time .caret { font-size: 18px; font-weight: 300; color: var(--ink-6); margin-left: 8px; vertical-align: 7px; }
+  /* AM/PM мельче цифр. Кегль долей, а не пунктами: одна запись держит и
+     купол (46 px), и свод карты (34 px). Начертание чуть плотнее самих
+     цифр — тонкий шрифт на малом кегле теряется. Отступ не задаём: пробел
+     перед обозначением приходит от `Intl` вместе с языком, а в японском
+     его нет вовсе (см. fmtHTML). */
+  .mer {
+    font-size: 0.4em; font-weight: 500; font-style: normal;
+    letter-spacing: 0.5px; color: var(--ink-4);
+  }
   .dr-phase {
     font-size: 11px; color: var(--brass-soft); text-transform: uppercase;
     letter-spacing: 1.4px; font-weight: 600; margin-top: 7px; transition: color 0.4s ease;
@@ -5022,6 +5031,22 @@
     try { return dtf(O_TIME).format(atMin(m)).replace(/ /g, "\u00A0"); }
     catch (e) { return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm; }
   }
+  /* Время для крупных мест — купола и свода карты. «AM/PM» набирается мельче
+     цифр: в часовой типографике обозначение половины суток никогда не
+     равняется кеглю самого времени, и при 46 пунктах разница бросается в
+     глаза. Возвращает разметку, поэтому ставится через `innerHTML`.
+     Порядок частей берём у `Intl`: в японском «午前» стоит перед временем,
+     а не после, и пробелы между частями тоже его — свои не добавляем. */
+  function fmtHTML(m) {
+    if (m === null || m === undefined || isNaN(m)) return "—";
+    if (!is12()) return esc(fmt(m));
+    try {
+      return dtf(O_TIME).formatToParts(atMin(m)).map(function (p) {
+        if (p.type === "dayPeriod") return '<i class="mer">' + esc(p.value) + "</i>";
+        return esc(p.value).replace(/ /g, "\u00A0");
+      }).join("");
+    } catch (e) { return esc(fmt(m)); }
+  }
   /* Промежуток времени. У 12-часовых часов «AM/PM» не повторяют дважды, если
      обе границы в одной половине суток: «7:01 – 8:18 PM», а не
      «7:01 PM – 8:18 PM». Что именно сокращать, знает язык, поэтому промежуток
@@ -6671,7 +6696,7 @@
     $("stars").setAttribute("opacity", clamp((-e - 8) / 8, 0, 1).toFixed(3));
     $("stars").setAttribute("transform", "rotate(" + ((t - MINT) * 0.25).toFixed(2) + " " + cx + " " + cy + ")");
 
-    $("drTime").textContent = fmt(t);
+    $("drTime").innerHTML = fmtHTML(t);
     if (!moon) {
       $("drPhase").textContent = st.label;
       $("drPhase").style.color = labelColor(st.c);
@@ -7541,7 +7566,7 @@
        Это ответ на исходную беду: солнце ехало, градусы менялись, а в котором
        часу это будет, экран не говорил нигде. */
     var mst = stateAt(t);
-    $("mrTime").textContent = fmt(t);
+    $("mrTime").innerHTML = fmtHTML(t);
     if (skyMode === "moon") {
       $("mrPhase").textContent = phaseName(moonPhase(selDate, t).phase);
       $("mrPhase").style.color = theme === "light" ? "var(--ink-3)" : "#A8BDD8";
@@ -14185,6 +14210,7 @@
     if ($("clockSeg")) renderClockSeg();   // «как в языке» зависит от языка
     if ($("buildInfo")) renderBuildInfo();  // в штампе и слово, и вид даты
     if (typeof fillHourWheel === "function") fillHourWheel();  // «7 PM» вместо «19»
+    if (typeof updateEdges === "function") updateEdges();       // края слайдера — тоже время
     if (typeof buildDates === "function") {                    // «Сегодня» и даты в барабане
       buildDates();
       if (typeof fill === "function" && $("wDate")) {
@@ -14313,7 +14339,8 @@
       }
     } else if (SUN.polar !== 0) {
       // Полярный день/ночь: восхода и заката нет — честная подпись вместо «—»
-      $("edgeRise").innerHTML = '<span>' + (SUN.polar === 1 ? "солнце не заходит" : "солнце не восходит") + "</span>";
+      $("edgeRise").innerHTML = '<span>' + esc(SUN.polar === 1
+        ? LANG.t("sun.noSetFull") : LANG.t("sun.noRiseFull")) + "</span>";
       $("edgeSet").innerHTML = "";
     } else {
       $("edgeRise").innerHTML = edgeHTML("up", SUN.rise);
