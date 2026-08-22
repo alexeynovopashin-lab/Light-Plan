@@ -100,6 +100,242 @@
     "wish.moon":   "Луна",
     "wish.stars":  "Звёзды",
 
+    /* ---- Экран «Сегодня» ----
+       Состояния света. Ключ — код состояния, а не слово: состояние выбирает
+       высота солнца, и от языка она не зависит. У каждого четыре подписи:
+       `label` — имя на куполе, `sense` — что со светом происходит,
+       `light` — каков свет в строке телеметрии, `rec` — оценка одним словом */
+    "sun.noon.label":  "Полдень",
+    "sun.noon.sense":  "солнце в зените — свет жёсткий",
+    "sun.noon.light":  "Жёсткий и яркий",
+    "sun.noon.rec":    "Жёсткий свет",
+
+    "sun.morning.label":  "Утро",
+    "sun.morning.sense":  "свет прохладный, контраст растёт",
+    "sun.morning.light":  "Прохладный, довольно жёсткий",
+    "sun.morning.rec":    "Ровный свет",
+
+    "sun.day.label":  "День",
+    "sun.day.sense":  "свет ещё жёсткий",
+    "sun.day.light":  "Довольно жёсткий",
+    "sun.day.rec":    "Ровный свет",
+
+    "sun.morningWarm.label":  "Утро",
+    "sun.morningWarm.sense":  "свет теплеет, тени растут",
+    "sun.morningWarm.light":  "Тёплый, мягчает",
+    "sun.morningWarm.rec":    "Мягкий свет",
+
+    "sun.evening.label":  "Вечереет",
+    "sun.evening.sense":  "свет теплеет, тени растут",
+    "sun.evening.light":  "Тёплый, мягчает",
+    "sun.evening.rec":    "Мягкий свет",
+
+    "sun.golden.label":  "Золотой час",
+    "sun.golden.sense":  "тёплый мягкий свет, длинные тени",
+    "sun.golden.light":  "Тёплый и мягкий",
+    "sun.golden.rec":    "Отличный свет",
+
+    "sun.dawn.label":  "Рассвет",
+    "sun.dawn.sense":  "небо алеет у горизонта",
+    "sun.dawn.light":  "Алый, уходит быстро",
+    "sun.dawn.rec":    "Отличный свет",
+
+    "sun.sunset.label":  "Закат",
+    "sun.sunset.sense":  "небо алеет у горизонта",
+    "sun.sunset.light":  "Алый, уходит быстро",
+    "sun.sunset.rec":    "Отличный свет",
+
+    "sun.dawning.label":  "Светает",
+    "sun.dawning.sense":  "небо теплеет розовым",
+    "sun.dawning.light":  "Мягкий, розовый",
+    "sun.dawning.rec":    "Мягкий свет",
+
+    "sun.dusk.label":  "Сумерки",
+    "sun.dusk.sense":  "закат догорает розовым",
+    "sun.dusk.light":  "Мягкий, розовый",
+    "sun.dusk.rec":    "Мягкий свет",
+
+    "sun.blue.label":  "Синий час",
+    "sun.blue.sense":  "глубокое синее небо",
+    "sun.blue.light":  "Синий и ровный",
+    "sun.blue.rec":    "Отличный свет",
+
+    "sun.deepDusk.label":  "Глубокие сумерки",
+    "sun.deepDusk.sense":  "света мало, небо ещё светлое",
+    "sun.deepDusk.light":  "Очень слабый",
+    "sun.deepDusk.rec":    "Слабый свет",
+
+    "sun.astroDawn.label":  "Астрономические сумерки",
+    "sun.astroDawn.sense":  "звёзды гаснут, скоро рассвет",
+    "sun.astroDawn.light":  "Темно, видны яркие звёзды",
+    "sun.astroDawn.rec":    "Звёздное небо",
+
+    "sun.astroDusk.label":  "Астрономические сумерки",
+    "sun.astroDusk.sense":  "проступают яркие звёзды",
+    "sun.astroDusk.light":  "Темно, видны яркие звёзды",
+    "sun.astroDusk.rec":    "Звёздное небо",
+
+    "sun.astroNight.label":  "Астрономическая ночь",
+    "sun.astroNight.sense":  "небо полностью тёмное",
+    "sun.astroNight.light":  "Темно, звёздное небо",
+    "sun.astroNight.rec":    "Звёздная ночь",
+
+    /* Небо закрыто — погода перебивает свет, и оценка падает в самый низ */
+    "sun.overcast.rec": "Небо закрыто",
+
+    /* Тени: длина по высоте солнца */
+    "shadow.none":      "Теней нет",
+    "shadow.veryShort": "Очень короткие",
+    "shadow.short":     "Короткие",
+    "shadow.long":      "Длинные",
+    "shadow.veryLong":  "Очень длинные",
+
+    /* Ближайшее световое событие — подпись над обратным отсчётом */
+    "next.polarDay":   "Полярный день",
+    "next.polarNight": "Полярная ночь",
+    "next.toDawn":     "До рассвета",
+    "next.goldenLeft": "Золотой час, ещё",
+    "next.toGolden":   "До золотого часа",
+    "next.toSunset":   "До заката",
+    "next.blueLeft":   "Синий час, ещё",
+
+    /* Погода дня. Ключ — код качества, слова к нему: вердикт, причина,
+       небо в телеметрии и короткое имя условий в шапке */
+    "qual.excellent": "Отличный день",
+    "qual.fog":       "Туманный рассвет",
+    "qual.good":      "Хороший день",
+    "qual.plain":     "Обычный день",
+    "qual.poor":      "Пасмурно",
+
+    "qualWhy.excellent": "Чистое небо, золотой закат",
+    "qualWhy.fog":       "Туман на рассвете",
+    "qualWhy.good":      "Переменная облачность",
+    "qualWhy.plain":     "Ничего примечательного",
+    "qualWhy.poor":      "Плотная облачность, дождь",
+
+    "qualSky.excellent": "Ясно",
+    "qualSky.fog":       "Туман утром",
+    "qualSky.good":      "Облачно с прояснениями",
+    "qualSky.plain":     "Переменно",
+    "qualSky.poor":      "Дождь",
+
+    "qualCond.excellent": "Ясно",
+    "qualCond.fog":       "Туман",
+    "qualCond.good":      "Облачно",
+    "qualCond.plain":     "Переменно",
+    "qualCond.poor":      "Дождь",
+
+    /* Насколько прогнозу верить — зависит от того, как далеко день */
+    "trust.past":   "прошедший день · архив",
+    "trust.sure":   "прогноз уверенный",
+    "trust.week":   "уверенность 70% · уточнится ближе к дате",
+    "trust.far":    "уверенность низкая · пока ориентир",
+
+
+    /* Астро-панель «Подробно». Заголовки групп и подписи строк */
+    "pro.moonNow":   "Луна в этот момент",
+    "pro.sunNow":    "Солнце в этот момент",
+    "pro.dayCourse": "Ход дня",
+    "pro.goldenBlue": "Золотой и синий час",
+    "pro.twilight":  "Сумерки",
+    "pro.weather":   "Погода",
+    "pro.sunsetForecast": "Прогноз заката",
+
+    "pro.phase":     "Фаза",
+    "pro.azimuth":   "Азимут",
+    "pro.altitude":  "Высота",
+    "pro.rise":      "Восход",
+    "pro.set":       "Заход",
+    "pro.distance":  "Расстояние",
+    "pro.shadowLen": "Длина тени",
+    "pro.solarNoon": "Солнечный полдень",
+    "pro.sunset":    "Закат",
+    "pro.dayLen":    "Длина дня",
+    "pro.goldenAM":  "Золотой час утром",
+    "pro.goldenPM":  "Золотой час вечером",
+    "pro.blueAM":    "Синий час утром",
+    "pro.bluePM":    "Синий час вечером",
+    "pro.civil":     "Гражданские",
+    "pro.nautical":  "Навигационные",
+    "pro.astro":     "Астрономические",
+    "pro.astroNight": "Астрономическая ночь",
+    "pro.whiteNight": "не наступает · белая ночь",
+    "pro.sky":       "Небо",
+    "pro.cloud":     "Облачность",
+    "pro.temp":      "Температура",
+    "pro.wind":      "Ветер",
+    "pro.source":    "Источник",
+    "pro.srcLive":   "Open-Meteo · прогноз",
+    "pro.srcMock":   "прогноз имитируется",
+    "pro.score":     "Оценка",
+    "pro.layerLow":  "Нижний ярус",
+    "pro.layerMid":  "Средний ярус",
+    "pro.layerHigh": "Верхний ярус",
+    "pro.humidity":  "Влажность",
+    "pro.layerLowNote":  "экран горизонта",
+    "pro.layerMidNote":  "текстура",
+    "pro.layerHighNote": "догорание зари",
+
+    /* Склейки: величина и её единица. Порядок и пробел — тоже язык */
+    "pro.shadowOf":  "×{n} роста",
+    "pro.dayLenFmt": "{h} ч {m} м",
+    "pro.windAt":    "{n} м/с · {word}",
+    "pro.distKm":    "{n} км",
+    "pro.scoreOf":   "{n} / 100 · {word}",
+    "pro.pctNote":   "{n}% · {note}",
+
+    /* Каким обещает быть закат — словами, а не баллом */
+    "sunsetW.beautiful": "закат обещает быть красивым",
+    "sunsetW.color":     "закат с цветом",
+    "sunsetW.calm":      "спокойный закат",
+    "sunsetW.none":      "цвета почти не будет",
+
+    /* Румбы компаса, по кругу от севера через восток. Одной строкой:
+       порядок задан кругом, и разорвать его на 16 ключей значит потерять
+       связь между ними — переводчику нужен весь круг разом */
+    "dirs": "С,ССВ,СВ,ВСВ,В,ВЮВ,ЮВ,ЮЮВ,Ю,ЮЮЗ,ЮЗ,ЗЮЗ,З,ЗСЗ,СЗ,ССЗ",
+
+    /* Обратный отсчёт в шапке «Свет идёт»: коротко, без слова «минут» */
+    "durS.minutes":   "{m} мин",
+    "durS.hours":     "{h} ч",
+    "durS.hoursMins": "{h} ч {m} м",
+
+    /* Куда идёт облачность к окну съёмки */
+    "trend.clearing": "проясняется",
+    "trend.closing":  "затягивает",
+    "trend.same":     "без изменений",
+
+    /* Закат одним словом — в строке телеметрии рядом с баллом */
+    "sunsetS.beautiful": "красивый",
+    "sunsetS.color":     "с цветом",
+    "sunsetS.calm":      "спокойный",
+    "sunsetS.none":      "серый",
+
+    /* Солнце за полярным кругом: не всходит или не садится вовсе */
+    "sun.noRise": "не восходит",
+    "sun.noSet":  "не заходит",
+
+    /* Золотой час вечером и до какого времени ещё светло */
+    "tele.goldenTill": "{range} · до заката {t}",
+
+    /* Строки телеметрии — подписи слева */
+    "tele.cond":   "Условия",
+    "tele.sunset": "Закат",
+    "tele.golden": "Золотой час",
+    "tele.light":  "Свет",
+    "tele.shadow": "Тени",
+    "tele.sky":    "Небо",
+    "tele.wind":   "Ветер",
+
+    /* Кнопки и подписи экрана */
+    "today.details":  "Подробно",
+    "today.planShoot": "Запланировать съёмку",
+    "today.changePlace": "Сменить место",
+    "today.sunOrMoon": "Солнце или луна",
+    "today.now": "сегодня",
+    "today.ahead": "прогноз",
+    "today.past": "архив",
+
     /* Жанр со счётом — «5 свадеб · 8 портретов» в итогах года */
     "genreN.portrait":     ["портрет", "портрета", "портретов"],
     "genreN.wedding":      ["свадьба", "свадьбы", "свадеб"],
@@ -147,6 +383,218 @@
     "wish.rain":   "Rain",
     "wish.moon":   "Moon",
     "wish.stars":  "Stars",
+
+    "sun.noon.label":  "Noon",
+    "sun.noon.sense":  "sun overhead — the light is harsh",
+    "sun.noon.light":  "Harsh and bright",
+    "sun.noon.rec":    "Harsh light",
+
+    "sun.morning.label":  "Morning",
+    "sun.morning.sense":  "cool light, contrast building",
+    "sun.morning.light":  "Cool, fairly harsh",
+    "sun.morning.rec":    "Even light",
+
+    "sun.day.label":  "Day",
+    "sun.day.sense":  "light still harsh",
+    "sun.day.light":  "Fairly harsh",
+    "sun.day.rec":    "Even light",
+
+    "sun.morningWarm.label":  "Morning",
+    "sun.morningWarm.sense":  "light warming, shadows lengthening",
+    "sun.morningWarm.light":  "Warm, softening",
+    "sun.morningWarm.rec":    "Soft light",
+
+    "sun.evening.label":  "Evening",
+    "sun.evening.sense":  "light warming, shadows lengthening",
+    "sun.evening.light":  "Warm, softening",
+    "sun.evening.rec":    "Soft light",
+
+    "sun.golden.label":  "Golden hour",
+    "sun.golden.sense":  "warm soft light, long shadows",
+    "sun.golden.light":  "Warm and soft",
+    "sun.golden.rec":    "Excellent light",
+
+    "sun.dawn.label":  "Sunrise",
+    "sun.dawn.sense":  "sky glowing red at the horizon",
+    "sun.dawn.light":  "Scarlet, fading fast",
+    "sun.dawn.rec":    "Excellent light",
+
+    "sun.sunset.label":  "Sunset",
+    "sun.sunset.sense":  "sky glowing red at the horizon",
+    "sun.sunset.light":  "Scarlet, fading fast",
+    "sun.sunset.rec":    "Excellent light",
+
+    "sun.dawning.label":  "First light",
+    "sun.dawning.sense":  "sky warming to pink",
+    "sun.dawning.light":  "Soft, pink",
+    "sun.dawning.rec":    "Soft light",
+
+    "sun.dusk.label":  "Dusk",
+    "sun.dusk.sense":  "sunset burning down to pink",
+    "sun.dusk.light":  "Soft, pink",
+    "sun.dusk.rec":    "Soft light",
+
+    "sun.blue.label":  "Blue hour",
+    "sun.blue.sense":  "deep blue sky",
+    "sun.blue.light":  "Blue and even",
+    "sun.blue.rec":    "Excellent light",
+
+    "sun.deepDusk.label":  "Deep dusk",
+    "sun.deepDusk.sense":  "little light left, sky still pale",
+    "sun.deepDusk.light":  "Very weak",
+    "sun.deepDusk.rec":    "Weak light",
+
+    "sun.astroDawn.label":  "Astronomical twilight",
+    "sun.astroDawn.sense":  "stars fading, dawn is close",
+    "sun.astroDawn.light":  "Dark, bright stars visible",
+    "sun.astroDawn.rec":    "Starry sky",
+
+    "sun.astroDusk.label":  "Astronomical twilight",
+    "sun.astroDusk.sense":  "bright stars coming out",
+    "sun.astroDusk.light":  "Dark, bright stars visible",
+    "sun.astroDusk.rec":    "Starry sky",
+
+    "sun.astroNight.label":  "Astronomical night",
+    "sun.astroNight.sense":  "sky fully dark",
+    "sun.astroNight.light":  "Dark, starry sky",
+    "sun.astroNight.rec":    "Starry night",
+
+    "sun.overcast.rec": "Sky closed in",
+
+    "shadow.none":      "No shadows",
+    "shadow.veryShort": "Very short",
+    "shadow.short":     "Short",
+    "shadow.long":      "Long",
+    "shadow.veryLong":  "Very long",
+
+    "next.polarDay":   "Polar day",
+    "next.polarNight": "Polar night",
+    "next.toDawn":     "Until sunrise",
+    "next.goldenLeft": "Golden hour, left",
+    "next.toGolden":   "Until golden hour",
+    "next.toSunset":   "Until sunset",
+    "next.blueLeft":   "Blue hour, left",
+
+    "qual.excellent": "Excellent day",
+    "qual.fog":       "Foggy sunrise",
+    "qual.good":      "Good day",
+    "qual.plain":     "Ordinary day",
+    "qual.poor":      "Overcast",
+
+    "qualWhy.excellent": "Clear sky, golden sunset",
+    "qualWhy.fog":       "Fog at sunrise",
+    "qualWhy.good":      "Broken cloud",
+    "qualWhy.plain":     "Nothing remarkable",
+    "qualWhy.poor":      "Heavy cloud, rain",
+
+    "qualSky.excellent": "Clear",
+    "qualSky.fog":       "Fog in the morning",
+    "qualSky.good":      "Cloudy with clear spells",
+    "qualSky.plain":     "Changeable",
+    "qualSky.poor":      "Rain",
+
+    "qualCond.excellent": "Clear",
+    "qualCond.fog":       "Fog",
+    "qualCond.good":      "Cloudy",
+    "qualCond.plain":     "Changeable",
+    "qualCond.poor":      "Rain",
+
+    "trust.past":   "past day · archive",
+    "trust.sure":   "forecast is firm",
+    "trust.week":   "70% confidence · will sharpen nearer the date",
+    "trust.far":    "low confidence · a rough guide for now",
+
+
+    "pro.moonNow":   "Moon right now",
+    "pro.sunNow":    "Sun right now",
+    "pro.dayCourse": "Course of the day",
+    "pro.goldenBlue": "Golden and blue hour",
+    "pro.twilight":  "Twilight",
+    "pro.weather":   "Weather",
+    "pro.sunsetForecast": "Sunset forecast",
+
+    "pro.phase":     "Phase",
+    "pro.azimuth":   "Azimuth",
+    "pro.altitude":  "Altitude",
+    "pro.rise":      "Rise",
+    "pro.set":       "Set",
+    "pro.distance":  "Distance",
+    "pro.shadowLen": "Shadow length",
+    "pro.solarNoon": "Solar noon",
+    "pro.sunset":    "Sunset",
+    "pro.dayLen":    "Day length",
+    "pro.goldenAM":  "Golden hour, morning",
+    "pro.goldenPM":  "Golden hour, evening",
+    "pro.blueAM":    "Blue hour, morning",
+    "pro.bluePM":    "Blue hour, evening",
+    "pro.civil":     "Civil",
+    "pro.nautical":  "Nautical",
+    "pro.astro":     "Astronomical",
+    "pro.astroNight": "Astronomical night",
+    "pro.whiteNight": "does not fall · white night",
+    "pro.sky":       "Sky",
+    "pro.cloud":     "Cloud cover",
+    "pro.temp":      "Temperature",
+    "pro.wind":      "Wind",
+    "pro.source":    "Source",
+    "pro.srcLive":   "Open-Meteo · forecast",
+    "pro.srcMock":   "forecast is simulated",
+    "pro.score":     "Score",
+    "pro.layerLow":  "Low layer",
+    "pro.layerMid":  "Mid layer",
+    "pro.layerHigh": "High layer",
+    "pro.humidity":  "Humidity",
+    "pro.layerLowNote":  "screens the horizon",
+    "pro.layerMidNote":  "texture",
+    "pro.layerHighNote": "afterglow",
+
+    "pro.shadowOf":  "×{n} of height",
+    "pro.dayLenFmt": "{h}h {m}m",
+    "pro.windAt":    "{n} m/s · {word}",
+    "pro.distKm":    "{n} km",
+    "pro.scoreOf":   "{n} / 100 · {word}",
+    "pro.pctNote":   "{n}% · {note}",
+
+    "sunsetW.beautiful": "the sunset promises to be beautiful",
+    "sunsetW.color":     "sunset with colour",
+    "sunsetW.calm":      "a calm sunset",
+    "sunsetW.none":      "almost no colour",
+
+    "dirs": "N,NNE,NE,ENE,E,ESE,SE,SSE,S,SSW,SW,WSW,W,WNW,NW,NNW",
+
+    "durS.minutes":   "{m} min",
+    "durS.hours":     "{h}h",
+    "durS.hoursMins": "{h}h {m}m",
+
+    "trend.clearing": "clearing",
+    "trend.closing":  "closing in",
+    "trend.same":     "no change",
+
+    "sunsetS.beautiful": "beautiful",
+    "sunsetS.color":     "with colour",
+    "sunsetS.calm":      "calm",
+    "sunsetS.none":      "grey",
+
+    "sun.noRise": "does not rise",
+    "sun.noSet":  "does not set",
+
+    "tele.goldenTill": "{range} · until sunset {t}",
+
+    "tele.cond":   "Conditions",
+    "tele.sunset": "Sunset",
+    "tele.golden": "Golden hour",
+    "tele.light":  "Light",
+    "tele.shadow": "Shadows",
+    "tele.sky":    "Sky",
+    "tele.wind":   "Wind",
+
+    "today.details":  "Details",
+    "today.planShoot": "Plan a shoot",
+    "today.changePlace": "Change location",
+    "today.sunOrMoon": "Sun or moon",
+    "today.now": "today",
+    "today.ahead": "forecast",
+    "today.past": "archive",
 
     "genreN.portrait":     ["portrait", "portraits"],
     "genreN.wedding":      ["wedding", "weddings"],

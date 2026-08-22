@@ -3331,7 +3331,7 @@
   <!-- ============ СЕГОДНЯ ============ -->
   <section class="screen active" id="s-today">
     <div class="header">
-      <button class="loc" id="todayLoc" aria-label="Сменить место">
+      <button class="loc" id="todayLoc" aria-label="Сменить место" data-i18n-aria="today.changePlace">
         <div class="name"><span id="hLocName">—</span><svg class="loc-pin" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
         <div class="head-sub" id="hLocSub">—</div>
         <div class="date" id="hDate">ЧТ · 16 июля</div>
@@ -3396,7 +3396,7 @@
         <circle id="nowRing" r="11" fill="none" stroke-width="1.2"/>
       </svg>
       <!-- Один тумблер ИЛИ/ИЛИ: солнце, косая черта, луна. Горит выбранное -->
-      <button class="sky-swap" id="skySwap" aria-label="Солнце или луна">
+      <button class="sky-swap" id="skySwap" aria-label="Солнце или луна" data-i18n-aria="today.sunOrMoon">
         <svg viewBox="0 0 52 26" stroke-linecap="round" stroke-linejoin="round">
           <g class="sg on" id="swSun">
             <circle cx="11.5" cy="11" r="3.9"/>
@@ -3422,23 +3422,23 @@
     </div>
 
     <div class="telemetry">
-      <div class="t-row"><span class="t-label">Условия</span><span class="t-value rec" id="tRec">—</span></div>
-      <div class="t-row"><span class="t-label">Закат</span><span class="t-value" id="tSunset">—</span></div>
-      <div class="t-row"><span class="t-label">Золотой час</span><span class="t-value" id="tGolden">—</span></div>
-      <div class="t-row"><span class="t-label">Свет</span><span class="t-value" id="tLight">—</span></div>
-      <div class="t-row"><span class="t-label">Тени</span><span class="t-value" id="tShadow">—</span></div>
-      <div class="t-row"><span class="t-label">Небо</span><span class="t-value" id="tSky">—</span></div>
-      <div class="t-row"><span class="t-label">Ветер</span><span class="t-value" id="tWind">—</span></div>
+      <div class="t-row"><span class="t-label" data-i18n="tele.cond">Условия</span><span class="t-value rec" id="tRec">—</span></div>
+      <div class="t-row"><span class="t-label" data-i18n="tele.sunset">Закат</span><span class="t-value" id="tSunset">—</span></div>
+      <div class="t-row"><span class="t-label" data-i18n="tele.golden">Золотой час</span><span class="t-value" id="tGolden">—</span></div>
+      <div class="t-row"><span class="t-label" data-i18n="tele.light">Свет</span><span class="t-value" id="tLight">—</span></div>
+      <div class="t-row"><span class="t-label" data-i18n="tele.shadow">Тени</span><span class="t-value" id="tShadow">—</span></div>
+      <div class="t-row"><span class="t-label" data-i18n="tele.sky">Небо</span><span class="t-value" id="tSky">—</span></div>
+      <div class="t-row"><span class="t-label" data-i18n="tele.wind">Ветер</span><span class="t-value" id="tWind">—</span></div>
     </div>
 
     <div class="pro">
-      <button class="spoiler" id="spoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl">Подробно</span><span class="chev">▾</span></button>
+      <button class="spoiler" id="spoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl" data-i18n="today.details">Подробно</span><span class="chev">▾</span></button>
       <div class="pro-body" id="proBody"></div>
     </div>
 
     <button class="action screen-action" id="planToday">
       <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
-      <span class="lbl">Запланировать съёмку</span>
+      <span class="lbl" data-i18n="today.planShoot">Запланировать съёмку</span>
       <span class="sub" id="actionSub">—</span>
     </button>
   </section>
@@ -5034,8 +5034,12 @@
     var s = 1 / Math.tan(rad(e));
     return s > 40 ? null : s;
   }
-  var DIRS = ["С","ССВ","СВ","ВСВ","В","ВЮВ","ЮВ","ЮЮВ","Ю","ЮЮЗ","ЮЗ","ЗЮЗ","З","ЗСЗ","СЗ","ССЗ"];
-  var dirOf = function (az) { return DIRS[Math.round(az / 22.5) % 16]; };
+  /* Румбы приходят из словаря одной строкой и режутся здесь: порядок задан
+     кругом от севера через восток, и он одинаков во всех языках — меняются
+     только буквы (С→N, ЮВ→SE) */
+  var dirOf = function (az) {
+    return LANG.t("dirs").split(",")[Math.round(az / 22.5) % 16];
+  };
 
   /* ============================================================
      ЛУННАЯ МОДЕЛЬ
@@ -5413,14 +5417,25 @@
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
-  var QUAL = {
-    /* dot: null — обычный день, точку не рисуем. В легенде всего три варианта */
-    excellent: { dot: "#E2A44C", verdict: "Отличный день", vcol: "#E2A44C", why: "Чистое небо, золотой закат", sky: "Ясно", cond: "Ясно", cloud: 12 },
-    fog:       { dot: "#E2A44C", verdict: "Туманный рассвет", vcol: "#E2A44C", why: "Туман на рассвете",       sky: "Туман утром", cond: "Туман", cloud: 30 },
-    good:      { dot: "#A8B49B", verdict: "Хороший день",  vcol: "#A8B49B", why: "Переменная облачность",      sky: "Облачно с прояснениями", cond: "Облачно", cloud: 45 },
-    plain:     { dot: null,      verdict: "Обычный день",  vcol: "#8A8478", why: "Ничего примечательного",     sky: "Переменно", cond: "Переменно", cloud: 60 },
-    poor:      { dot: "#7C9CC4", verdict: "Пасмурно",      vcol: "#8A8478", why: "Плотная облачность, дождь",  sky: "Дождь", cond: "Дождь", cloud: 92 }
+  /* Погода дня: цвета и облачность здесь, слова — в словаре. Ключ у обоих
+     один, код качества; свойства `verdict`, `why`, `sky`, `cond` считаются
+     на месте, чтобы смена языка не требовала пересобирать таблицу.
+     dot: null — обычный день, точку не рисуем. В легенде всего три варианта */
+  var QUAL_C = {
+    excellent: { dot: "#E2A44C", vcol: "#E2A44C", cloud: 12 },
+    fog:       { dot: "#E2A44C", vcol: "#E2A44C", cloud: 30 },
+    good:      { dot: "#A8B49B", vcol: "#A8B49B", cloud: 45 },
+    plain:     { dot: null,      vcol: "#8A8478", cloud: 60 },
+    poor:      { dot: "#7C9CC4", vcol: "#8A8478", cloud: 92 }
   };
+  var QUAL = {};
+  Object.keys(QUAL_C).forEach(function (q) {
+    QUAL[q] = { dot: QUAL_C[q].dot, vcol: QUAL_C[q].vcol, cloud: QUAL_C[q].cloud,
+      get verdict() { return LANG.t("qual." + q); },
+      get why()     { return LANG.t("qualWhy." + q); },
+      get sky()     { return LANG.t("qualSky." + q); },
+      get cond()    { return LANG.t("qualCond." + q); } };
+  });
   /* Реальная погода Open-Meteo перекрывает мок; ключ как у мока: Y-M(0..11)-D */
   var wxReal = {};
   function dkey(d) { return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
@@ -5436,10 +5451,10 @@
   }
   function trustOf(d) {
     var days = Math.round((d - new Date().setHours(0,0,0,0)) / 86400000);
-    if (days < 0) return "прошедший день · архив";
-    if (days <= 2) return "прогноз уверенный";
-    if (days <= 6) return "уверенность 70% · уточнится ближе к дате";
-    return "уверенность низкая · пока ориентир";
+    if (days < 0) return LANG.t("trust.past");
+    if (days <= 2) return LANG.t("trust.sure");
+    if (days <= 6) return LANG.t("trust.week");
+    return LANG.t("trust.far");
   }
 
   /* Детали погоды дня: температура, ветер, тренд облачности к окну съёмки */
@@ -5572,9 +5587,9 @@
   function windWord(w) { return w <= 1 ? "штиль" : w <= 3 ? "слабый" : w <= 6 ? "умеренный" : "сильный"; }
   function durShort(m) {
     m = Math.max(0, Math.round(m));
-    if (m < 60) return m + " мин";
+    if (m < 60) return LANG.t("durS.minutes", { m: m });
     var h = Math.floor(m / 60), mm = m % 60;
-    return h + " ч" + (mm ? " " + mm + " м" : "");
+    return mm ? LANG.t("durS.hoursMins", { h: h, m: mm }) : LANG.t("durS.hours", { h: h });
   }
   function sparkline(vals) {
     var n = vals.length, W = 42, H = 14;
@@ -5637,61 +5652,62 @@
     return o + '<path d="M7.5 14.5h8.5a3.6 3.6 0 0 0 .4-7.2 5 5 0 0 0-9.6-1.3A3.7 3.7 0 0 0 7.5 14.5z"/><path d="M9 18l-1 2.2M13 18l-1 2.2M17 18l-1 2.2"/>' + e;
   }
 
+  /* Состояние света: код плюс числа. Слова к коду приходят из словаря —
+     состояние выбирает высота солнца, а она от языка не зависит. Тот же
+     приём, что у жанра и пожелания: код внутри, имя на экране.
+     `k` остаётся в объекте: по нему состояние узнают, не сравнивая подписи. */
+  function sunState(k, extra) {
+    var o = { k: k,
+      label: LANG.t("sun." + k + ".label"),
+      sense: LANG.t("sun." + k + ".sense"),
+      light: LANG.t("sun." + k + ".light"),
+      rec:   LANG.t("sun." + k + ".rec") };
+    for (var p in extra) o[p] = extra[p];
+    return o;
+  }
   function stateAt(t) {
     var e = elevAt(t), morning = t < solarNoon;
     if (e >= -0.833) {
-      if (e > 40) return { c: SILVER, glow: 0.05, label: "Полдень", sense: "солнце в зените — свет жёсткий",
-        light: "Жёсткий и яркий", rec: "Жёсткий свет", level: 2, tone: "neutral" };
-      if (e > 20) return { c: lerp(AMBER, SILVER, 0.6), glow: 0.08, label: morning ? "Утро" : "День",
-        sense: morning ? "свет прохладный, контраст растёт" : "свет ещё жёсткий",
-        light: morning ? "Прохладный, довольно жёсткий" : "Довольно жёсткий",
-        rec: "Ровный свет", level: 3, tone: "good" };
+      if (e > 40) return sunState("noon", { c: SILVER, glow: 0.05, level: 2, tone: "neutral" });
+      if (e > 20) return sunState(morning ? "morning" : "day",
+        { c: lerp(AMBER, SILVER, 0.6), glow: 0.08, level: 3, tone: "good" });
       // Допуск: граница золотого часа считается по +6°, и на самом стыке
       // погрешность float иначе показывает «Вечереет» вместо золотого часа
-      if (e > 6.05) return { c: AMBER, glow: 0.16, label: morning ? "Утро" : "Вечереет",
-        sense: "свет теплеет, тени растут", light: "Тёплый, мягчает",
-        rec: "Мягкий свет", level: 4, tone: "good" };
-      return { c: GOLD, glow: 0.34, label: "Золотой час", sense: "тёплый мягкий свет, длинные тени",
-        light: "Тёплый и мягкий", rec: "Отличный свет", level: 5, tone: "excellent" };
+      if (e > 6.05) return sunState(morning ? "morningWarm" : "evening",
+        { c: AMBER, glow: 0.16, level: 4, tone: "good" });
+      return sunState("golden", { c: GOLD, glow: 0.34, level: 5, tone: "excellent" });
     }
     var d = -e;
-    if (d < 1.8) return { c: lerp(GOLD, SCARLET, d/1.8), glow: 0.34, label: morning ? "Рассвет" : "Закат",
-      sense: "небо алеет у горизонта", light: "Алый, уходит быстро",
-      rec: "Отличный свет", level: 5, tone: "excellent" };
-    if (d < 4) return { c: lerp(SCARLET, PINK, (d-1.8)/2.2), glow: 0.28, label: morning ? "Светает" : "Сумерки",
-      sense: morning ? "небо теплеет розовым" : "закат догорает розовым",
-      light: "Мягкий, розовый", rec: "Мягкий свет", level: 4, tone: "excellent" };
-    if (d < 6) return { c: lerp(PINK, BLUE, (d-4)/2), glow: 0.24, label: "Синий час",
-      sense: "глубокое синее небо", light: "Синий и ровный",
-      rec: "Отличный свет", level: 5, tone: "excellent" };
-    if (d < 12) return { c: lerp(BLUE, DEEP, (d-6)/6), glow: 0.13, label: "Глубокие сумерки",
-      sense: "света мало, небо ещё светлое", light: "Очень слабый",
-      rec: "Слабый свет", level: 1, tone: "neutral" };
-    if (d < 18) return { c: lerp(DEEP, NIGHT, (d-12)/6), glow: 0.06, label: "Астрономические сумерки",
-      sense: morning ? "звёзды гаснут, скоро рассвет" : "проступают яркие звёзды",
-      light: "Темно, видны яркие звёзды",
-      rec: "Звёздное небо", stars: true, tone: "stars" };
-    return { c: NIGHT, glow: 0.04, label: "Астрономическая ночь", sense: "небо полностью тёмное",
-      light: "Темно, звёздное небо", rec: "Звёздная ночь", stars: true, tone: "stars" };
+    if (d < 1.8) return sunState(morning ? "dawn" : "sunset",
+      { c: lerp(GOLD, SCARLET, d/1.8), glow: 0.34, level: 5, tone: "excellent" });
+    if (d < 4) return sunState(morning ? "dawning" : "dusk",
+      { c: lerp(SCARLET, PINK, (d-1.8)/2.2), glow: 0.28, level: 4, tone: "excellent" });
+    if (d < 6) return sunState("blue",
+      { c: lerp(PINK, BLUE, (d-4)/2), glow: 0.24, level: 5, tone: "excellent" });
+    if (d < 12) return sunState("deepDusk",
+      { c: lerp(BLUE, DEEP, (d-6)/6), glow: 0.13, level: 1, tone: "neutral" });
+    if (d < 18) return sunState(morning ? "astroDawn" : "astroDusk",
+      { c: lerp(DEEP, NIGHT, (d-12)/6), glow: 0.06, stars: true, tone: "stars" });
+    return sunState("astroNight", { c: NIGHT, glow: 0.04, stars: true, tone: "stars" });
   }
   function shadowWord(t) {
     var e = elevAt(t);
-    if (e < 0) return "Теней нет";
-    if (e > 45) return "Очень короткие";
-    if (e > 25) return "Короткие";
-    if (e > 10) return "Длинные";
-    return "Очень длинные";
+    if (e < 0) return LANG.t("shadow.none");
+    if (e > 45) return LANG.t("shadow.veryShort");
+    if (e > 25) return LANG.t("shadow.short");
+    if (e > 10) return LANG.t("shadow.long");
+    return LANG.t("shadow.veryLong");
   }
   /* Ближайшее «хорошее» световое событие относительно показанного времени */
   function nextLight(t) {
-    if (SUN.polar === 1)  return { l: "Полярный день",  m: null };   // солнце не заходит
-    if (SUN.polar === -1) return { l: "Полярная ночь",  m: null };   // солнце не восходит
-    if (t < SUN.rise)  return { l: "До рассвета",      m: SUN.rise - t };
-    if (t < SUN.goldA) return { l: "Золотой час, ещё", m: SUN.goldA - t };
-    if (t < SUN.goldB) return { l: "До золотого часа", m: SUN.goldB - t };
-    if (t < SUN.set)   return { l: "До заката",        m: SUN.set - t };
-    if (t < SUN.civB)  return { l: "Синий час, ещё",   m: SUN.civB - t };
-    return { l: "До рассвета", m: SUN.rise + 1440 - t };
+    if (SUN.polar === 1)  return { l: LANG.t("next.polarDay"),   m: null };   // солнце не заходит
+    if (SUN.polar === -1) return { l: LANG.t("next.polarNight"), m: null };   // солнце не восходит
+    if (t < SUN.rise)  return { l: LANG.t("next.toDawn"),     m: SUN.rise - t };
+    if (t < SUN.goldA) return { l: LANG.t("next.goldenLeft"), m: SUN.goldA - t };
+    if (t < SUN.goldB) return { l: LANG.t("next.toGolden"),   m: SUN.goldB - t };
+    if (t < SUN.set)   return { l: LANG.t("next.toSunset"),   m: SUN.set - t };
+    if (t < SUN.civB)  return { l: LANG.t("next.blueLeft"),   m: SUN.civB - t };
+    return { l: LANG.t("next.toDawn"), m: SUN.rise + 1440 - t };
   }
 
   /* ============================================================
@@ -6315,6 +6331,12 @@
      знак денег фотограф выбирает сам (DECISIONS.md, «Языки»).
      Отсюда и раздельные источники в `Intl`: локаль берётся у языка,
      currency — у настройки. */
+  /* Число с разделителями разрядов. Разделитель — свойство языка: русский
+     ставит пробел, английский запятую. Раньше здесь стояло жёсткое "ru-RU" */
+  function num(n) {
+    try { return new Intl.NumberFormat(LANG.code).format(n); }
+    catch (e) { return String(n); }
+  }
   var CURRENCIES = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"];
   var currency = (saved && CURRENCIES.indexOf(saved.currency) >= 0) ? saved.currency : "RUB";
   /* `narrowSymbol` даёт «₽» вместо «RUB» там, где локаль языка сама бы
@@ -6501,7 +6523,7 @@
     // Отсчёт: сколько луне осталось над горизонтом или сколько ждать восхода
     if (arc.none) {
       $("nlLabel").textContent = "Луна";
-      $("nlValue").textContent = "не восходит";
+      $("nlValue").textContent = LANG.t("sun.noRise");
     } else if (m.alt > 0) {
       $("nlLabel").textContent = "Луна зайдёт через";
       $("nlValue").textContent = durShort(arc.set - t);
@@ -6530,8 +6552,8 @@
 
     // Плохая погода перебивает свет: небо закрыто — экспонометр падает в самый низ
     if (q === "poor") {
-      st = { c: st.c, glow: st.glow, label: st.label, sense: st.sense, light: st.light,
-             rec: "Небо закрыто", level: 1, tone: "neutral" };
+      st = { k: st.k, c: st.c, glow: st.glow, label: st.label, sense: st.sense, light: st.light,
+             rec: LANG.t("sun.overcast.rec"), level: 1, tone: "neutral" };
     }
     var col = rgb(st.c);
 
@@ -6605,7 +6627,7 @@
     }
     // Золотой час — окно, не момент: чтобы не спутать его с закатом
     $("tGolden").textContent = (SUN.goldB === null || SUN.set === null)
-      ? "—" : range(SUN.goldB, SUN.blueB) + " · до заката " + fmt(SUN.set);
+      ? "—" : LANG.t("tele.goldenTill", { range: range(SUN.goldB, SUN.blueB), t: fmt(SUN.set) });
     $("tLight").textContent = st.light;
     $("tShadow").textContent = shadowWord(t);
 
@@ -6625,11 +6647,13 @@
       var nl = nextLight(t);
       $("nlLabel").textContent = nl.l;
       // В полярном дне/ночи обратного отсчёта нет — вместо числа честная подпись
-      $("nlValue").textContent = nl.m === null ? (SUN.polar === 1 ? "не заходит" : "не восходит") : durShort(nl.m);
+      $("nlValue").textContent = nl.m === null
+        ? (SUN.polar === 1 ? LANG.t("sun.noSet") : LANG.t("sun.noRise")) : durShort(nl.m);
       $("nlValue").style.color = qcol;
     }
     var c0 = wx.trend[0], c1 = wx.trend[wx.trend.length - 1];
-    $("nlWord").textContent = c1 < c0 - 12 ? "проясняется" : c1 > c0 + 12 ? "затягивает" : "без изменений";
+    $("nlWord").textContent = c1 < c0 - 12 ? LANG.t("trend.clearing")
+      : c1 > c0 + 12 ? LANG.t("trend.closing") : LANG.t("trend.same");
     $("nlSpark").innerHTML = sparkline(wx.trend);
 
     $("actionSub").textContent = st.tone === "stars"
@@ -6668,15 +6692,20 @@
     return '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + (m[k] || "") + "</svg>";
   }
 
+  /* Заголовки групп и подписи строк приходят ключами словаря, а не словами.
+     Раньше строка «Астрономическая ночь» служила ещё и признаком: по ней
+     узнавали ряд, которому вместо прочерка положено «белая ночь». Перевод
+     сломал бы это молча — сравнение осталось бы верным только по-русски.
+     Теперь сравнивается ключ. */
   function proHTML(groups) {
     var html = "";
     groups.forEach(function (grp) {
-      html += '<div class="pro-group">' + groupIcon(grp[0]) + "<span>" + grp[1] + "</span></div>";
+      html += '<div class="pro-group">' + groupIcon(grp[0]) + "<span>" + LANG.t(grp[1]) + "</span></div>";
       grp[2].forEach(function (row) {
         var v = row[1], none = (v === null || v === "—");
-        html += '<div class="p-row"><span class="k">' + row[0] + '</span><span class="v' +
+        html += '<div class="p-row"><span class="k">' + LANG.t(row[0]) + '</span><span class="v' +
                 (none ? " none" : "") + '">' +
-                (none ? (row[0] === "Астрономическая ночь" ? "не наступает · белая ночь" : "—") : v) +
+                (none ? (row[0] === "pro.astroNight" ? LANG.t("pro.whiteNight") : "—") : v) +
                 "</span></div>";
       });
     });
@@ -6686,60 +6715,62 @@
   function renderPro(t, q, mo) {
     var e = elevAt(t), az = azAt(t), sh = shadowAt(t);
     // В лунном режиме первой идёт луна: спойлер отвечает тому же вопросу, что купол
-    var moonGroup = mo ? [["moon", "Луна в этот момент", [
-      ["Фаза", phaseName(mo.ph.phase) + " · " + Math.round(mo.ph.fraction * 100) + "%"],
-      ["Азимут", mo.m.az.toFixed(1) + "° · " + dirOf(mo.m.az)],
-      ["Высота", (mo.m.alt >= 0 ? "+" : "−") + Math.abs(mo.m.alt).toFixed(1) + "°"],
-      ["Восход", fmt(mo.arc.rise) + " · " + moonAt(selDate, mo.arc.rise).az.toFixed(0) + "°"],
-      ["Заход", fmt(mo.arc.set) + " · " + moonAt(selDate, mo.arc.set).az.toFixed(0) + "°"],
-      ["Расстояние", Math.round(mo.m.dist).toLocaleString("ru-RU") + " км"]
+    var moonGroup = mo ? [["moon", "pro.moonNow", [
+      ["pro.phase", phaseName(mo.ph.phase) + " · " + Math.round(mo.ph.fraction * 100) + "%"],
+      ["pro.azimuth", mo.m.az.toFixed(1) + "° · " + dirOf(mo.m.az)],
+      ["pro.altitude", (mo.m.alt >= 0 ? "+" : "−") + Math.abs(mo.m.alt).toFixed(1) + "°"],
+      ["pro.rise", fmt(mo.arc.rise) + " · " + moonAt(selDate, mo.arc.rise).az.toFixed(0) + "°"],
+      ["pro.set", fmt(mo.arc.set) + " · " + moonAt(selDate, mo.arc.set).az.toFixed(0) + "°"],
+      ["pro.distance", LANG.t("pro.distKm", { n: num(Math.round(mo.m.dist)) })]
     ]]] : [];
+    var dayLen = fmt(SUN.set - SUN.rise).split(":");
     $("proBody").innerHTML = proHTML(moonGroup.concat([
-      ["sun", "Солнце в этот момент", [
-        ["Азимут", az.toFixed(1) + "° · " + dirOf(az)],
-        ["Высота", (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°"],
-        ["Длина тени", sh ? "×" + (sh < 10 ? sh.toFixed(2) : sh.toFixed(1)) + " роста" : "—"]
+      ["sun", "pro.sunNow", [
+        ["pro.azimuth", az.toFixed(1) + "° · " + dirOf(az)],
+        ["pro.altitude", (e >= 0 ? "+" : "−") + Math.abs(e).toFixed(1) + "°"],
+        ["pro.shadowLen", sh ? LANG.t("pro.shadowOf", { n: sh < 10 ? sh.toFixed(2) : sh.toFixed(1) }) : "—"]
       ]],
-      ["clock", "Ход дня", [
-        ["Восход", fmt(SUN.rise) + " · " + azAt(SUN.rise).toFixed(0) + "°"],
-        ["Солнечный полдень", fmt(solarNoon) + " · " + SUN.maxElev.toFixed(1) + "°"],
-        ["Закат", fmt(SUN.set) + " · " + azAt(SUN.set).toFixed(0) + "°"],
-        ["Длина дня", fmt(SUN.set - SUN.rise).replace(":", " ч ") + " м"]
+      ["clock", "pro.dayCourse", [
+        ["pro.rise", fmt(SUN.rise) + " · " + azAt(SUN.rise).toFixed(0) + "°"],
+        ["pro.solarNoon", fmt(solarNoon) + " · " + SUN.maxElev.toFixed(1) + "°"],
+        ["pro.sunset", fmt(SUN.set) + " · " + azAt(SUN.set).toFixed(0) + "°"],
+        ["pro.dayLen", LANG.t("pro.dayLenFmt", { h: dayLen[0], m: dayLen[1] })]
       ]],
-      ["sunset", "Золотой и синий час", [
-        ["Золотой час утром", range(SUN.blueA, SUN.goldA)],
-        ["Золотой час вечером", range(SUN.goldB, SUN.blueB)],
-        ["Синий час утром", range(SUN.civA, SUN.blueA)],
-        ["Синий час вечером", range(SUN.blueB, SUN.civB)]
+      ["sunset", "pro.goldenBlue", [
+        ["pro.goldenAM", range(SUN.blueA, SUN.goldA)],
+        ["pro.goldenPM", range(SUN.goldB, SUN.blueB)],
+        ["pro.blueAM", range(SUN.civA, SUN.blueA)],
+        ["pro.bluePM", range(SUN.blueB, SUN.civB)]
       ]],
-      ["moon", "Сумерки", [
-        ["Гражданские", range(SUN.set, SUN.civB)],
-        ["Навигационные", range(SUN.civB, SUN.nauB)],
-        ["Астрономические", SUN.astB !== null ? range(SUN.nauB, SUN.astB) : range(SUN.nauB, SUN.nauA + 1440)],
-        ["Астрономическая ночь", SUN.astB !== null ? range(SUN.astB, SUN.astA + 1440) : null]
+      ["moon", "pro.twilight", [
+        ["pro.civil", range(SUN.set, SUN.civB)],
+        ["pro.nautical", range(SUN.civB, SUN.nauB)],
+        ["pro.astro", SUN.astB !== null ? range(SUN.nauB, SUN.astB) : range(SUN.nauB, SUN.nauA + 1440)],
+        ["pro.astroNight", SUN.astB !== null ? range(SUN.astB, SUN.astA + 1440) : null]
       ]],
-      ["cloud", "Погода", [
-        ["Небо", QUAL[q].sky],
-        ["Облачность", (curWeather ? curWeather.cloud : QUAL[q].cloud) + "%"],
-        ["Температура", tempOut((curWeather || { tempBase: 19 }).tempBase, t) + " " + unitLabel()],
-        ["Ветер", (curWeather ? curWeather.wind : 3) + " м/с · " + windWord(curWeather ? curWeather.wind : 3)],
-        ["Источник", wxLive ? "Open-Meteo · прогноз" : "прогноз имитируется"]
+      ["cloud", "pro.weather", [
+        ["pro.sky", QUAL[q].sky],
+        ["pro.cloud", (curWeather ? curWeather.cloud : QUAL[q].cloud) + "%"],
+        ["pro.temp", tempOut((curWeather || { tempBase: 19 }).tempBase, t) + " " + unitLabel()],
+        ["pro.wind", LANG.t("pro.windAt", { n: (curWeather ? curWeather.wind : 3),
+                                            word: windWord(curWeather ? curWeather.wind : 3) })],
+        ["pro.source", wxLive ? LANG.t("pro.srcLive") : LANG.t("pro.srcMock")]
       ]]
     ])) + (
       // Прогноз заката по ярусам — только когда есть настоящие данные
       (curWeather && isFinite(curWeather.sunset) && curWeather.sunset !== null && curWeather.layers) ? skySwatch(curWeather) + proHTML([
-        ["sunset", "Прогноз заката", [
-          ["Оценка", curWeather.sunset + " / 100 · " + sunsetWord(curWeather.sunset)],
-          ["Нижний ярус", Math.round(curWeather.layers.low) + "% · экран горизонта"],
-          ["Средний ярус", Math.round(curWeather.layers.mid) + "% · текстура"],
-          ["Верхний ярус", Math.round(curWeather.layers.high) + "% · догорание зари"],
-          ["Влажность", Math.round(curWeather.layers.hum) + "%"]
+        ["sunset", "pro.sunsetForecast", [
+          ["pro.score", LANG.t("pro.scoreOf", { n: curWeather.sunset, word: sunsetWord(curWeather.sunset) })],
+          ["pro.layerLow", LANG.t("pro.pctNote", { n: Math.round(curWeather.layers.low), note: LANG.t("pro.layerLowNote") })],
+          ["pro.layerMid", LANG.t("pro.pctNote", { n: Math.round(curWeather.layers.mid), note: LANG.t("pro.layerMidNote") })],
+          ["pro.layerHigh", LANG.t("pro.pctNote", { n: Math.round(curWeather.layers.high), note: LANG.t("pro.layerHighNote") })],
+          ["pro.humidity", Math.round(curWeather.layers.hum) + "%"]
         ]]
       ]) : "");
   }
   function sunsetWord(s) {
-    return s >= 75 ? "закат обещает быть красивым" : s >= 50 ? "закат с цветом"
-      : s >= 28 ? "спокойный закат" : "цвета почти не будет";
+    return s >= 75 ? LANG.t("sunsetW.beautiful") : s >= 50 ? LANG.t("sunsetW.color")
+      : s >= 28 ? LANG.t("sunsetW.calm") : LANG.t("sunsetW.none");
   }
 
   /* ---------- Палитра предсказанного неба ----------
@@ -6781,7 +6812,10 @@
       + p.zenith + ' 0%,' + p.high + ' 38%,' + p.mid + ' 72%,' + p.horizon + ' 100%)">'
       + '<span>' + sunsetWord(w.sunset) + "</span></div>";
   }
-  function sunsetShort(s) { return s >= 75 ? "красивый" : s >= 50 ? "с цветом" : s >= 28 ? "спокойный" : "серый"; }
+  function sunsetShort(s) {
+    return s >= 75 ? LANG.t("sunsetS.beautiful") : s >= 50 ? LANG.t("sunsetS.color")
+      : s >= 28 ? LANG.t("sunsetS.calm") : LANG.t("sunsetS.none");
+  }
 
   /* ============================================================
      ЭКРАН «КАРТА»
@@ -13158,7 +13192,8 @@
     /* «Сегодня» тоже относится к тому дню, который на экране: перевалив за
        полночь, смотрят уже завтрашний день, и называть его сегодняшним нельзя */
     if ($("hNote")) {
-      $("hNote").textContent = sameDay(d, n) ? "сегодня" : (d > n ? "прогноз" : "архив");
+      $("hNote").textContent = sameDay(d, n) ? LANG.t("today.now")
+        : (d > n ? LANG.t("today.ahead") : LANG.t("today.past"));
     }
   }
   /* Общая точка входа для купола (`domeDrag`) и слайдера (`#scrub`) — оба
@@ -14029,10 +14064,25 @@
   /* Перерисовать то, где уже нарисованы слова словаря и деньги. Полной
      перезагрузки избегаем нарочно: в форме может лежать незаписанная съёмка,
      и терять её ради смены языка — цена, которой фотограф не просил */
+  /* Надписи, стоящие прямо в разметке. Помечены ключом словаря: `data-i18n`
+     для видимого текста, `data-i18n-aria` для подписи чтеца — она такой же
+     текст и переводится наравне. Имя атрибута нарочно не `data-t`: тот уже
+     занят тегами референсов, и общий запрос по нему собрал бы чужие кнопки. */
+  function relangMarkup(root) {
+    (root || document).querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = LANG.t(el.getAttribute("data-i18n"));
+    });
+    (root || document).querySelectorAll("[data-i18n-aria]").forEach(function (el) {
+      el.setAttribute("aria-label", LANG.t(el.getAttribute("data-i18n-aria")));
+    });
+  }
+
   function relangUI() {
     dtfReset();            // форматы дат закэшированы по языку — язык сменился
+    relangMarkup();
     renderMoneyLabels();
     if (!booted) return;
+    paintDate();           // дата в шапке живёт отдельно от renderToday
     renderToday(); renderWeek(); renderDayPanel(); renderSessions(); renderCal();
     if ($("fWish").children.length) { renderGenres(); renderWishes(); renderPay(); }
   }
@@ -14049,6 +14099,7 @@
 
   renderLangChips();
   renderCurChips();
+  relangMarkup();        // разметка знает язык с первой отрисовки
   renderMoneyLabels();   // подписи полей знают валюту с первой отрисовки
 
   /* Сохранённый астро-режим — и на теле, и в самом переключателе: иначе
