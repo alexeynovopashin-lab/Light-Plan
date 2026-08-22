@@ -3588,7 +3588,7 @@
            с текущим видом, остальные раскрываются веером -->
       <!-- Обёртка нужна для симметрии: она равна по ширине группе действий
            справа, и заголовок между ними встаёт ровно по центру экрана -->
-      <div class="plan-lead"><button class="scope-btn" id="scopeBtn" aria-label="Вид календаря" data-ic="view_month"></button></div>
+      <div class="plan-lead"><button class="scope-btn" id="scopeBtn" aria-label="Вид календаря" data-i18n-aria="plan.viewPick" data-ic="view_month"></button></div>
       <!-- Год из заголовка убран: он и так выбирается на экране года,
            а месяцу нужна ширина, чтобы не обрываться многоточием -->
       <button class="plan-title" id="planTitle">
@@ -3596,17 +3596,17 @@
         <span class="pt-chev" data-ic="chevron"></span>
       </button>
       <div class="plan-acts">
-        <button class="icon-btn" id="planAdd" aria-label="Новая съёмка">
+        <button class="icon-btn" id="planAdd" aria-label="Новая съёмка" data-i18n-aria="plan.newShoot">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
         </button>
         <!-- Организации переехали в настройки: кнопка тут почти никогда не
              нажималась и не вспоминалась (Алексей), а статистике — раз добавить,
              раз посмотреть срок — самое место рядом с добавлением и поиском,
              одна и та же тройка во всех трёх видах календаря. -->
-        <button class="icon-btn" id="planStats" aria-label="Статистика">
+        <button class="icon-btn" id="planStats" aria-label="Статистика" data-i18n-aria="plan.stats">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V13M12 20V8M18 20V4"/></svg>
         </button>
-        <button class="icon-btn" id="planSearch" aria-label="Поиск">
+        <button class="icon-btn" id="planSearch" aria-label="Поиск" data-i18n-aria="plan.search">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
         </button>
       </div>
@@ -3615,9 +3615,9 @@
          иначе кнопка перестаёт отвечать на вопрос «где я» -->
     <div class="scope-scrim" id="scopeScrim" hidden></div>
     <div class="scope-menu" id="scopeMenu" hidden>
-      <button data-scope="month"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_month"></span>Один месяц</button>
-      <button data-scope="week"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_week"></span>Неделя</button>
-      <button data-scope="day"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_day"></span>Один день</button>
+      <button data-scope="month"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_month"></span><span data-i18n="plan.viewMonth">Один месяц</span></button>
+      <button data-scope="week"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_week"></span><span data-i18n="plan.viewWeek">Неделя</span></button>
+      <button data-scope="day"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_day"></span><span data-i18n="plan.viewDay">Один день</span></button>
     </div>
     <button class="now-back" id="calNow">↺ сегодня</button>
 
@@ -3628,9 +3628,9 @@
     <div class="week" id="week" hidden></div>
 
     <div class="legend">
-      <span><i style="background:#E2A44C"></i>Отличный свет</span>
-      <span><i style="background:#A8B49B"></i>Хороший</span>
-      <span><i style="background:#7C9CC4"></i>Плохая погода</span>
+      <span><i style="background:#E2A44C"></i><span data-i18n="plan.legendGood">Отличный свет</span></span>
+      <span><i style="background:#A8B49B"></i><span data-i18n="plan.legendOk">Хороший</span></span>
+      <span><i style="background:#7C9CC4"></i><span data-i18n="plan.legendBad">Плохая погода</span></span>
     </div>
 
     <!-- Сводка дня спрятана под спойлер: планировщик ведёт съёмками, а не погодой -->
@@ -3663,17 +3663,17 @@
           <div class="hw-hilo"><span id="dpLo">↓ —</span><span id="dpHi">↑ —</span></div>
         </div>
       </div>
-      <button class="dp-link" id="seeLight">Свет этого дня →</button>
+      <button class="dp-link" id="seeLight" data-i18n="plan.seeLight">Свет этого дня →</button>
      </div>
     </div>
 
-    <div class="sec-label" id="plannedLabel">Запланировано</div>
+    <div class="sec-label" id="plannedLabel" data-i18n="plan.planned">Запланировано</div>
     </div>
     <div class="day-line" id="dpSessions"></div>
-    <div class="undo" id="undoBar"><span id="undoText">Съёмка удалена</span><button id="undoBtn">Вернуть</button></div>
+    <div class="undo" id="undoBar"><span id="undoText" data-i18n="plan.shootDeleted">Съёмка удалена</span><button id="undoBtn" data-i18n="plan.undo">Вернуть</button></div>
     <button class="action" id="planDay" style="margin: 4px 24px 0;">
       <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
-      <span class="lbl">Запланировать съёмку</span>
+      <span class="lbl" data-i18n="plan.planShoot">Запланировать съёмку</span>
       <span class="sub" id="planDayHint">—</span>
     </button>
     <!-- Встреча — второе действие дня. Подсказки от света у неё нет и быть не
@@ -3681,12 +3681,12 @@
          значило бы врать. Поэтому она тише съёмки, но остаётся кнопкой -->
     <button class="action" id="planMeet" style="margin: 10px 24px 0;">
       <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v2M3.5 13.5a8.5 8.5 0 0 1 17 0z" style="display:none"/><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="10.5" r="2.4"/><path d="M15 19.5c0-2.2 1.4-3.8 3.4-3.8 1.1 0 2.1.5 2.6 1.3"/></svg>
-      <span class="lbl">Встреча</span>
-      <span class="sub">обсудить съёмку</span>
+      <span class="lbl" data-i18n="plan.meet">Встреча</span>
+      <span class="sub" data-i18n="plan.meetSub">обсудить съёмку</span>
     </button>
     <!-- Занять время — действие тише съёмки: планировщик про съёмки,
          а выходной ставят реже -->
-    <button class="ghost" id="planBlock" style="margin: 10px 24px 0;">Занять время — выходной, дорога, перелёт</button>
+    <button class="ghost" id="planBlock" style="margin: 10px 24px 0;" data-i18n="plan.block">Занять время — выходной, дорога, перелёт</button>
     <div id="sessionList" hidden></div>
   </section>
 
@@ -4499,21 +4499,21 @@
     <!-- Занятость по месяцам — вернулась из первой версии, но сюда, не на
          навигационный экран: там ей было не место (два тона сразу — свет и
          срочность сдачи), здесь — весь экран об этом (docs: DECISIONS). -->
-    <div class="sec-label" id="monthsLabel" hidden style="padding-left:0;">Занятость по месяцам</div>
+    <div class="sec-label" id="monthsLabel" hidden style="padding-left:0;" data-i18n="year.months">Занятость по месяцам</div>
     <!-- Число само по себе не говорит, что оно считает — рядом с полосой
          оно читалось то ли как часы, то ли как дни (Алексей). Подпись под
          заголовком снимает вопрос одной строкой на весь список, а не
          повторяет слово в каждой из двенадцати. -->
-    <p class="seg-note" id="monthsNote" hidden style="margin:-4px 0 10px;">Число — съёмок в месяце</p>
+    <p class="seg-note" id="monthsNote" hidden style="margin:-4px 0 10px;" data-i18n="year.monthsNote">Число — съёмок в месяце</p>
     <div class="year-months" id="yearMonthBars" hidden></div>
     <!-- Жанры переехали сюда из стандартного экрана: это тоже статистика
          года, не навигация — там ей было не место (docs: DECISIONS) -->
     <div class="year-stat" id="yearStat" style="margin-top:18px;"></div>
-    <div class="sec-label" id="profitLabel" hidden style="padding-left:0;margin-top:22px;">Прибыль</div>
+    <div class="sec-label" id="profitLabel" hidden style="padding-left:0;margin-top:22px;" data-i18n="year.profit">Прибыль</div>
     <div class="year-profit-val" id="yearProfitVal" hidden></div>
     <!-- Сроки сдачи — за всё время, не за этот год: жанру нужна выборка,
          а не календарная граница (docs: DECISIONS) -->
-    <div class="sec-label" id="delvLabel" hidden style="padding-left:0;margin-top:22px;">Сроки сдачи</div>
+    <div class="sec-label" id="delvLabel" hidden style="padding-left:0;margin-top:22px;" data-i18n="year.delivery">Сроки сдачи</div>
     <div class="year-delv-list" id="yearDelvVal" hidden></div>
   </div>
 
@@ -7992,10 +7992,12 @@
     computeSun(d);
     var q = qualityOf(d);
     var win = q === "fog"
-      ? { a: SUN.blueA, b: SUN.goldA, label: "рассвет" }
-      : { a: SUN.goldB, b: SUN.blueB, label: "закат" };
+      ? { a: SUN.blueA, b: SUN.goldA, k: "dawn" }
+      : { a: SUN.goldB, b: SUN.blueB, k: "sunset" };
     computeSun(keep);
-    return { q: q, a: win.a, b: win.b, label: win.label };
+    /* `k` — код окна, `label` — его имя. По коду выбирается знак, по имени
+       читают: раньше знак выбирался сравнением с русским словом */
+    return { q: q, a: win.a, b: win.b, k: win.k, label: LANG.t("win." + win.k) };
   }
 
   /* Заголовок сам говорит, что открыто: месяц, неделя или день.
@@ -8526,16 +8528,20 @@
     var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     var ahead = all.filter(function (s) { return s.date >= midnight; })   // сегодняшняя — ещё впереди
       .sort(function (a, b) { return a.date - b.date; })[0];
+    /* Число набрано жирным отдельно от слова, поэтому склеиваем сами —
+       но пробел между ними берём у языка, а не ставим свой (LANG.sep) */
+    var yearCount = "<b>" + all.length + "</b>" + LANG.sep("unit.shoot") + esc(shootWord(all.length));
     $("yearSum").innerHTML = all.length
-      ? "<b>" + all.length + "</b> " + shootWord(all.length)
-        + (ahead ? " · ближайшая <b>" + dMon(ahead.date) + "</b>" : "")
-      : "Год пока свободен — время планировать";
+      ? yearCount + (ahead
+          ? LANG.t("year.next", { date: "<b>" + esc(dMon(ahead.date)) + "</b>" })
+          : "")
+      : esc(LANG.t("year.free"));
     // Год по жанрам: отснятое и предстоящее — двумя строками
     var shot = all.filter(function (s) { return s.date < midnight; });
     var todo = all.filter(function (s) { return s.date >= midnight; });
     $("yearStat").innerHTML =
-      (shot.length ? '<div><span class="ys-k">Отснято</span>' + genreLine(shot) + "</div>" : "")
-      + (todo.length ? '<div><span class="ys-k">Предстоит</span>' + genreLine(todo) + "</div>" : "");
+      (shot.length ? '<div><span class="ys-k">' + esc(LANG.t("year.shot")) + "</span>" + genreLine(shot) + "</div>" : "")
+      + (todo.length ? '<div><span class="ys-k">' + esc(LANG.t("year.todo")) + "</span>" + genreLine(todo) + "</div>" : "");
     // Статистика — за отдельным экраном; кнопка входа видна, только если год не пуст
     $("statsBtn").hidden = !all.length;
     yearProfitAmt = all.reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
@@ -8654,8 +8660,8 @@
       var color = rgb(urgencyRGB(frac));
       return '<div class="delv-row">' + halfGaugeSVG(frac, color)
         + '<div><div class="delv-name">«' + esc(genreName(r.g)) + '»</div>'
-        + '<div class="delv-sub">в среднем на ' + r.n + ' ' + plural(r.n, ["день", "дня", "дней"])
-        + ' позже срока</div></div></div>';
+        + '<div class="delv-sub">' + esc(LANG.t("year.lateBy", { days: LANG.count("unit.day", r.n) }))
+        + "</div></div></div>";
     }).join("");
   }
   /* Полукруглый манометр: дуга-трасса плюс закрашенная часть до точки-
@@ -8698,8 +8704,10 @@
     /* Факты рядом, без совета — как реплика о свете в карточке: «банкет
        попадает в золотой час», а не «поезжайте туда-то». Вывод — дело
        фотографа, не приложения (04_ANTI_GOALS). */
-    $("yearOverloadT").innerHTML = "Просрочено сдачей: <b>" + overdue + "</b>. Впереди ещё <b>"
-      + upcoming + "</b> " + plural(upcoming, ["съёмка", "съёмки", "съёмок"]) + " за ближайший месяц.";
+    $("yearOverloadT").innerHTML = LANG.t("year.overload", {
+      overdue: "<b>" + overdue + "</b>",
+      upcoming: "<b>" + upcoming + "</b>" + LANG.sep("unit.shoot") + shootWord(upcoming)
+    });
   }
   /* «5 свадеб · 8 портретов» — формы жанров живут в словаре (`genreN.*`),
      как и все слова, согласуемые с числом */
@@ -8722,7 +8730,10 @@
     return Object.keys(byType)
       .sort(function (a, b) { return byType[b] - byType[a]; })
       .map(function (t) {
-        return "<b>" + byType[t] + "</b> " + LANG.word("genreN." + t, byType[t]);
+        /* Пробел между числом и словом даёт язык: у японского счётное слово
+           прилипает к числу, у русского нет (см. LANG.sep) */
+        return "<b>" + byType[t] + "</b>" + LANG.sep("genreN." + t)
+          + LANG.word("genreN." + t, byType[t]);
       }).join(" · ");
   }
   // Слова и правило — в языке; здесь остаётся только вопрос «какое число»
@@ -8815,7 +8826,8 @@
     // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
     // обещание кнопки должно совпадать с тем, что откроется в форме
     /* Подсказка называет то время, которое и подставится: свет не округляем */
-    $("planDayHint").textContent = q === "poor" ? "окна света нет" : "начало " + fmt(Math.round(w.a));
+    $("planDayHint").textContent = q === "poor" ? LANG.t("day.noWindow")
+      : LANG.t("day.startsAt", { t: fmt(Math.round(w.a)) });
 
     // Погода дня — в сводке, как на главном экране
     var wx = dayWeather(calSel);
@@ -8864,14 +8876,14 @@
       html = items.map(function (it) {
         if (it.kind === "busy") {
           var b = it.blk;
-          var when = b.allDay ? "весь день" : fmt(b.min) + " – " + fmt(b.min + b.dur);
+          var when = b.allDay ? LANG.t("day.allDay") : range(b.min, b.min + b.dur);
           return '<button type="button" class="plan-row busy" data-b="' + b.id + '">'
             + '<span class="pr-ic">' + IC.svg(blockKind(b.k).ic) + "</span>"
             + '<span class="pr-time">' + esc(when) + "</span>"
             + '<span class="pr-who">' + esc(blockLabel(b)) + "</span></button>";
         }
         var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet";
-        var nm = clientName(s3) || (meet3 ? "Встреча" : genreName(s3.type));
+        var nm = clientName(s3) || (meet3 ? LANG.t("day.meet") : genreName(s3.type));
         return '<button type="button" class="plan-row" data-i="' + it.i + '">'
           + '<span class="pr-time">' + fmt(it.a) + " – " + fmt(it.b) + "</span>"
           + '<span class="pr-who">' + esc(nm) + "</span>"
@@ -8917,18 +8929,18 @@
       var meet = it.kind === "meet", busy = it.kind === "busy";
       var s2 = it.s, b = it.blk;
       var name = busy ? blockLabel(b)
-        : (clientName(s2) || (meet ? "Встреча" : genreName(s2.type)));
+        : (clientName(s2) || (meet ? LANG.t("day.meet") : genreName(s2.type)));
       /* Подпись говорит про съёмку, а не про кусок, попавший в эти сутки.
          Хвост ночной съёмки в своих сутках начинается в полночь — писать
          «00:00 – 03:10» значило бы сказать, что съёмка началась в полночь.
          Поэтому у продолжения названы день начала и время конца, а у съёмки,
          уходящей за полночь, время конца остаётся настоящим. */
       var realEnd = s2 && (s2.end != null ? s2.end : s2.min + (s2.dur || 90));
-      var sub = busy ? (b.allDay ? "весь день" : fmt(it.a) + " – " + fmt(it.b))
-        : (meet ? "встреча · " + shortGenre(s2.type).toLowerCase()
+      var sub = busy ? (b.allDay ? LANG.t("day.allDay") : range(it.a, it.b))
+        : (meet ? LANG.t("day.meetLower", { genre: shortGenre(s2.type).toLowerCase() })
                 : it.tail
-                  ? "с " + dMonShort(s2.date)
-                    + " · до " + fmt(realEnd)
+                  ? LANG.t("day.fromDate", { date: dMonShort(s2.date) })
+                    + LANG.t("day.tillTime", { t: fmt(realEnd) })
                   : fmt(s2.min) + " – " + fmt(realEnd));
       var ds = busy ? null : deliveryState(s2);
       var room = hgt >= 2 * HOUR_H;        // хватает ли места на третью строку
@@ -8955,7 +8967,7 @@
     if (q !== "poor") {
       var lm = Math.round(w.a);
       layer += '<div class="dl-mark light" style="top:' + topOf(lm).toFixed(1) + 'px">'
-        + '<span class="dl-mark-t">' + IC.svg(w.label === "закат" ? "sunset" : "sun") + w.label + "</span></div>";
+        + '<span class="dl-mark-t">' + IC.svg(w.k === "sunset" ? "sunset" : "sun") + esc(w.label) + "</span></div>";
     }
     if (isToday) {
       layer += '<div class="dl-mark now" style="top:' + topOf(nowMin).toFixed(1) + 'px">'
@@ -9019,9 +9031,9 @@
         var m = document.createElement("div");
         m.className = "slot-menu";
         m.innerHTML = '<span class="sm-at">' + fmt(at) + "</span>"
-          + '<button type="button" data-a="shoot">' + IC.svg("camera") + "<span>съёмка</span></button>"
-          + '<button type="button" data-a="meet">' + IC.svg("guests") + "<span>встреча</span></button>"
-          + '<button type="button" data-a="busy">' + IC.svg("lock") + "<span>занять</span></button>";
+          + '<button type="button" data-a="shoot">' + IC.svg("camera") + "<span>" + esc(LANG.t("day.actShoot")) + "</span></button>"
+          + '<button type="button" data-a="meet">' + IC.svg("guests") + "<span>" + esc(LANG.t("day.actMeet")) + "</span></button>"
+          + '<button type="button" data-a="busy">' + IC.svg("lock") + "<span>" + esc(LANG.t("day.actBusy")) + "</span></button>";
         b.parentNode.insertBefore(m, b.nextSibling);
         m.querySelectorAll("button").forEach(function (x) {
           x.addEventListener("click", function (ev) {
@@ -9076,8 +9088,8 @@
     });
     var blocked = items.filter(function (x) { return x.kind === "busy"; }).length;
     var load;
-    if (allDay) load = "день занят";
-    else if (!items.length) load = "день свободен";
+    if (allDay) load = LANG.t("day.busyDay");
+    else if (!items.length) load = LANG.t("day.freeDay");
     else {
       var meets = items.filter(function (x) { return x.kind === "meet"; }).length;
       var shoots = shootCount - meets;
@@ -9085,9 +9097,9 @@
       if (shoots) parts.push(LANG.count("unit.shoot", shoots));
       /* Встреча названа отдельно: она занимает время, но это не съёмка —
          сложить их значило бы соврать о загрузке дня */
-      if (meets) parts.push(meets + " " + plural(meets, ["встреча", "встречи", "встреч"]));
-      if (blocked) parts.push("занятое время");
-      if (busyMin) parts.push("занято " + durLabel(busyMin));
+      if (meets) parts.push(LANG.count("unit.meet", meets));
+      if (blocked) parts.push(LANG.t("day.blockedTime"));
+      if (busyMin) parts.push(LANG.t("day.busyFor", { dur: durLabel(busyMin) }));
       load = parts.join(" · ");
     }
     $("dpLoad").textContent = load;
@@ -9098,8 +9110,8 @@
     ["planDay", "planMeet", "planBlock"].forEach(function (id) {
       if ($(id)) $(id).hidden = onLine;
     });
-    $("plannedLabel").textContent = items.length ? "Запланировано" : "Свободный день";
-    $("planDay").querySelector(".lbl").textContent = shootCount ? "Добавить съёмку" : "Запланировать съёмку";
+    $("plannedLabel").textContent = items.length ? LANG.t("plan.planned") : LANG.t("day.freeLabel");
+    $("planDay").querySelector(".lbl").textContent = shootCount ? LANG.t("day.addMore") : LANG.t("plan.planShoot");
   }
 
   /* ---------- Свайп влево по строке съёмки ---------- */
@@ -9159,7 +9171,7 @@
     undoAt = 0;
     saveAll();
     renderSessions(); renderCal(); renderDayPanel(); renderBinBtn();
-    $("undoText").textContent = (rec.contact || genreName(rec.type)) + " · в корзине";
+    $("undoText").textContent = LANG.t("day.inBin", { name: rec.contact || genreName(rec.type) });
     $("undoBar").classList.add("show");
     clearTimeout(trashTimer);
     trashTimer = setTimeout(hideUndo, 6000);
@@ -9229,7 +9241,7 @@
     if (!sessions.length) {
       var e = document.createElement("div");
       e.className = "empty";
-      e.textContent = "Пока пусто. Выберите день с хорошим светом.";
+      e.textContent = LANG.t("plan.empty");
       list.appendChild(e); return;
     }
     // сортируем, но помним исходный индекс — по нему открываем запись на правку
@@ -9251,7 +9263,8 @@
             if (ds.rank >= 2) return '<div class="s-sync" style="color:' + ds.color + '">' + ds.label + "</div>";
             if (s.delivered) return '<div class="s-sync">материал сдан</div>';
             if (s.warn) return '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>";
-            return s.synced ? '<div class="s-sync">→ в календаре ' + (s.synced === "google" ? "Google" : "Apple") + "</div>" : "";
+            return s.synced ? '<div class="s-sync">'
+        + esc(LANG.t("plan.inCalendar", { service: s.synced === "google" ? "Google" : "Apple" })) + "</div>" : "";
           })() +
           '</div><div class="s-time"><span class="st">' + fmt(s.min) + '</span><span class="en">до ' +
           fmt(s.end != null ? s.end : s.min + (s.dur || 90)) + "</span></div>";
@@ -14151,8 +14164,16 @@
      умея читать текущий язык интерфейса. Незаполненный словарь помечен
      честно: экран уедет в английский, и об этом лучше сказать заранее,
      чем дать фотографу открыть его и удивиться. */
-  var LANG_NAMES = { ru: "Русский", en: "English", es: "Español", ja: "日本語", zh: "中文" };
-  var LANG_ORDER = ["ru", "en", "es", "ja", "zh"];
+  /* Языки названы на себе самих. Английский разведён на два говора: они
+     расходятся не только словами (Reportage против Photojournalism), но и
+     всем, что даёт `Intl` — американец пишет 08/22/2026 и читает часы по 12,
+     британец пишет 22/08/2026 и по 24. Один «English» не мог бы дать ни то,
+     ни другое, и половина фотографов получала бы чужой формат. */
+  var LANG_NAMES = {
+    ru: "Русский", "en-GB": "English (UK)", "en-US": "English (US)",
+    es: "Español", ja: "日本語", zh: "中文"
+  };
+  var LANG_ORDER = ["ru", "en-GB", "en-US", "es", "ja", "zh"];
 
   function renderLangChips() {
     $("langChips").innerHTML = LANG_ORDER.map(function (c) {

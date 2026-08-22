@@ -1,9 +1,15 @@
-/* Сверка словарей lang.js: у какого языка каких ключей не хватает против
-   английского (запасного) и русского (боевого). Гонять перед каждым пушем
-   бета-словаря — иначе пропажа ключа всплывает не тут, а на экране.
+/* Сверка словарей lang.js.
 
-   Пустые словари (es/ja/zh, см. lang.js) — не ошибка, а заявленный этап:
-   отчёт покажет их как "0 из N", это ожидаемо до перевода.
+   Три разные проверки, потому что три разных рода словарей:
+
+   1. Основы (ru, en) должны совпадать ключ в ключ. Разошлись — это ошибка,
+      и скрипт падает с ненулевым кодом.
+   2. Заготовки (es, ja, zh) заполняются переводчиком и пока пусты. Отчёт
+      показывает «0 из N» — это ожидаемо, не ошибка.
+   3. Наложения говоров (en-US, en-GB) хранят только отличия от основы.
+      Полнота от них не требуется вовсе. Но каждый их ключ обязан быть в
+      основе: ключ, которого в основе нет, — это опечатка, и он молча
+      никогда не сработает. Такое роняет скрипт.
 
    Пример:
      node tools/langcheck.js
@@ -23,29 +29,47 @@ const fakeGlobal = {
   document: { documentElement: {} },
   localStorage: { getItem: () => null, setItem: () => {} }
 };
-const src = fs.readFileSync(target, 'utf8');
-new Function(src).call(fakeGlobal);
+new Function(fs.readFileSync(target, 'utf8')).call(fakeGlobal);
 const LANG = fakeGlobal.LANG;
 const dict = LANG.dict;
 
 const base = new Set([...Object.keys(dict.ru), ...Object.keys(dict.en)]);
-const langs = Object.keys(dict).filter((l) => l !== 'ru' && l !== 'en');
+const codes = Object.keys(dict);
+const regional = codes.filter((c) => c.indexOf('-') >= 0);
+const plain = codes.filter((c) => c.indexOf('-') < 0 && c !== 'ru' && c !== 'en');
 
-console.log(`Ключей в русском: ${Object.keys(dict.ru).length}, в английском: ${Object.keys(dict.en).length}`);
+let bad = false;
+
+console.log(`Основы: русский ${Object.keys(dict.ru).length}, английский ${Object.keys(dict.en).length}`);
 const ruMissing = [...base].filter((k) => dict.ru[k] == null);
 const enMissing = [...base].filter((k) => dict.en[k] == null);
-if (ruMissing.length) console.log(`РУССКИЙ не хватает ${ruMissing.length}: ${ruMissing.join(', ')}`);
-if (enMissing.length) console.log(`АНГЛИЙСКИЙ не хватает ${enMissing.length}: ${enMissing.join(', ')}`);
+if (ruMissing.length) { bad = true; console.log(`РУССКИЙ не хватает ${ruMissing.length}: ${ruMissing.join(', ')}`); }
+if (enMissing.length) { bad = true; console.log(`АНГЛИЙСКИЙ не хватает ${enMissing.length}: ${enMissing.join(', ')}`); }
 if (!ruMissing.length && !enMissing.length) console.log('ru/en разошлись на 0 ключей — сверены полностью.');
 
-langs.forEach((l) => {
-  const have = Object.keys(dict[l]).length;
-  const missing = [...base].filter((k) => dict[l][k] == null);
-  const stub = LANG.stub && LANG.stub.indexOf(l) >= 0;
-  console.log(`\n${l}${stub ? ' (заготовка)' : ''}: ${have} из ${base.size}`);
-  if (missing.length && missing.length <= 20) console.log('  не хватает: ' + missing.join(', '));
-  else if (missing.length) console.log(`  не хватает ${missing.length} ключей`);
-});
+if (regional.length) {
+  console.log('\nГоворы — только отличия от основы, полнота не требуется:');
+  regional.forEach((c) => {
+    const own = Object.keys(dict[c]);
+    /* Ключ говора, которого нет в его основе, не сработает никогда:
+       поиск идёт от говора к основе, и лишний ключ просто повисает. */
+    const baseCode = LANG.base(c);
+    const parent = dict[baseCode] || {};
+    const orphans = own.filter((k) => parent[k] == null);
+    console.log(`  ${c}: ${own.length} отличий от ${baseCode}`);
+    if (orphans.length) {
+      bad = true;
+      console.log(`    ОШИБКА — этих ключей нет в основе: ${orphans.join(', ')}`);
+    }
+  });
+}
 
-const badExit = ruMissing.length > 0 || enMissing.length > 0;
-process.exit(badExit ? 1 : 0);
+if (plain.length) {
+  console.log('\nЗаготовки — ждут переводчика:');
+  plain.forEach((c) => {
+    const have = Object.keys(dict[c]).length;
+    console.log(`  ${c}: ${have} из ${base.size}`);
+  });
+}
+
+process.exit(bad ? 1 : 0);

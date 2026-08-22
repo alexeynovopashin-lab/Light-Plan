@@ -491,6 +491,70 @@
     "pick.month":  "Через месяц",
     "pick.done":   "Готово",
 
+    /* Окно света дня: рассвет или закат. Ключ — код, по нему же выбирается
+       знак, а не по русскому слову */
+    "win.dawn":   "рассвет",
+    "win.sunset": "закат",
+
+    /* Панель дня */
+    "day.noWindow":   "окна света нет",
+    "day.startsAt":   "начало {t}",
+    "day.allDay":     "весь день",
+    "day.meet":       "Встреча",
+    "day.meetLower":  "встреча · {genre}",
+    "day.fromDate":   "с {date}",
+    "day.tillTime":   " · до {t}",
+    "day.busyDay":    "день занят",
+    "day.freeDay":    "день свободен",
+    "day.blockedTime": "занятое время",
+    "day.busyFor":    "занято {dur}",
+    "day.freeLabel":  "Свободный день",
+    "day.addMore":    "Добавить съёмку",
+    "day.inBin":      "{name} · в корзине",
+    "day.actShoot":   "съёмка",
+    "day.actMeet":    "встреча",
+    "day.actBusy":    "занять",
+    "unit.meet":      ["встреча", "встречи", "встреч"],
+
+    /* Итоги года */
+    "year.next":      " · ближайшая {date}",
+    "year.free":      "Год пока свободен — время планировать",
+    "year.shot":      "Отснято",
+    "year.todo":      "Предстоит",
+    "year.lateBy":    "в среднем на {days} позже срока",
+    "plan.empty":     "Пока пусто. Выберите день с хорошим светом.",
+    "plan.inCalendar": "→ в календаре {service}",
+
+    "year.months":     "Занятость по месяцам",
+    "year.monthsNote": "Число — съёмок в месяце",
+    "year.profit":     "Прибыль",
+    "year.delivery":   "Сроки сдачи",
+    "year.back":       "Год",
+
+    /* ---- Экран «Съёмки» ----
+       Перегрузка: сколько просрочено и сколько ещё впереди. Оба числа
+       приходят готовыми — вместе с тегом и согласованным словом */
+    "year.overload": "Просрочено сдачей: {overdue}. Впереди ещё {upcoming} за ближайший месяц.",
+
+    "plan.viewMonth":  "Один месяц",
+    "plan.viewWeek":   "Неделя",
+    "plan.viewDay":    "Один день",
+    "plan.viewPick":   "Вид календаря",
+    "plan.newShoot":   "Новая съёмка",
+    "plan.stats":      "Статистика",
+    "plan.search":     "Поиск",
+    "plan.legendGood": "Отличный свет",
+    "plan.legendOk":   "Хороший",
+    "plan.legendBad":  "Плохая погода",
+    "plan.seeLight":   "Свет этого дня →",
+    "plan.planned":    "Запланировано",
+    "plan.shootDeleted": "Съёмка удалена",
+    "plan.undo":       "Вернуть",
+    "plan.planShoot":  "Запланировать съёмку",
+    "plan.meet":       "Встреча",
+    "plan.meetSub":    "обсудить съёмку",
+    "plan.block":      "Занять время — выходной, дорога, перелёт",
+
     /* Строки телеметрии — подписи слева */
     "tele.cond":   "Условия",
     "tele.sunset": "Закат",
@@ -538,8 +602,8 @@
 
     "genre.portrait":     "Portrait",
     "genre.wedding":      "Weddings",
-    "genre.party":        "Party",
-    "genre.lovestory":    "Love story",
+    "genre.party":        "Celebration",
+    "genre.lovestory":    "Couples",
     "genre.family":       "Family",
     "genre.landscape":    "Landscape",
     "genre.architecture": "Architecture",
@@ -906,6 +970,62 @@
     "pick.month":  "In a month",
     "pick.done":   "Done",
 
+    "win.dawn":   "sunrise",
+    "win.sunset": "sunset",
+
+    "day.noWindow":   "no light window",
+    "day.startsAt":   "starts {t}",
+    "day.allDay":     "all day",
+    "day.meet":       "Meeting",
+    "day.meetLower":  "meeting · {genre}",
+    "day.fromDate":   "from {date}",
+    "day.tillTime":   " · until {t}",
+    "day.busyDay":    "day is full",
+    "day.freeDay":    "day is free",
+    "day.blockedTime": "blocked time",
+    "day.busyFor":    "{dur} booked",
+    "day.freeLabel":  "Free day",
+    "day.addMore":    "Add a shoot",
+    "day.inBin":      "{name} · in the bin",
+    "day.actShoot":   "shoot",
+    "day.actMeet":    "meeting",
+    "day.actBusy":    "block",
+    "unit.meet":      ["meeting", "meetings"],
+
+    "year.next":      " · next {date}",
+    "year.free":      "The year is still free — time to plan",
+    "year.shot":      "Shot",
+    "year.todo":      "Ahead",
+    "year.lateBy":    "{days} late on average",
+    "plan.empty":     "Nothing yet. Pick a day with good light.",
+    "plan.inCalendar": "→ in {service} calendar",
+
+    "year.months":     "Load by month",
+    "year.monthsNote": "The number is shoots that month",
+    "year.profit":     "Profit",
+    "year.delivery":   "Delivery times",
+    "year.back":       "Year",
+
+    "year.overload": "Overdue for delivery: {overdue}. Another {upcoming} in the month ahead.",
+    "plan.viewMonth":  "One month",
+    "plan.viewWeek":   "Week",
+    "plan.viewDay":    "One day",
+    "plan.viewPick":   "Calendar view",
+    "plan.newShoot":   "New shoot",
+    "plan.stats":      "Statistics",
+    "plan.search":     "Search",
+    "plan.legendGood": "Excellent light",
+    "plan.legendOk":   "Good",
+    "plan.legendBad":  "Bad weather",
+    "plan.seeLight":   "Light for this day →",
+    "plan.planned":    "Planned",
+    "plan.shootDeleted": "Shoot deleted",
+    "plan.undo":       "Undo",
+    "plan.planShoot":  "Plan a shoot",
+    "plan.meet":       "Meeting",
+    "plan.meetSub":    "to discuss a shoot",
+    "plan.block":      "Block out time — day off, travel, flight",
+
     "tele.cond":   "Conditions",
     "tele.sunset": "Sunset",
     "tele.golden": "Golden hour",
@@ -924,16 +1044,42 @@
 
     "genreN.portrait":     ["portrait", "portraits"],
     "genreN.wedding":      ["wedding", "weddings"],
-    "genreN.party":        ["party", "parties"],
-    "genreN.lovestory":    ["love story", "love stories"],
+    "genreN.party":        ["celebration", "celebrations"],
+    "genreN.lovestory":    ["couple shoot", "couple shoots"],
     "genreN.family":       ["family", "families"],
     "genreN.landscape":    ["landscape", "landscapes"],
     "genreN.architecture": ["architecture shoot", "architecture shoots"],
     "genreN.street":       ["street shoot", "street shoots"],
     "genreN.report":       ["reportage", "reportages"],
     "genreN.product":      ["product shoot", "product shoots"],
-    "genreN.ad":           ["ad shoot", "ad shoots"]
+    "genreN.ad":           ["advertising shoot", "advertising shoots"]
   };
+
+
+  /* ---- Американский английский ------------------------------------------
+     Только отличия от `DICT.en`; всё прочее приходит из основы по цепочке
+     (см. `chainOf`). Держать здесь копию словаря нельзя: две копии одного
+     разъезжаются при первой же правке, и найти это потом нечем.
+
+     Термины даны фотографом, а не переводом со словарём:
+     — «Лавстори» за океаном не говорят вовсе, это калька из СНГ. Общее слово
+       для съёмки пары — Couples: оно накрывает и engagement, и годовщину,
+       поэтому стоит в основе, а не в наложении.
+     — «Репортаж» в Европе держит французский корень (Reportage), в Штатах
+       говорят разговорнее — Photojournalism.
+     — Рекламная съёмка: в Британии Advertising, в Штатах Commercial. */
+  DICT["en-US"] = {
+    "genre.report": "Photojournalism",
+    "genre.ad":     "Commercial",
+
+    "genreN.report": ["photojournalism shoot", "photojournalism shoots"],
+    "genreN.ad":     ["commercial shoot", "commercial shoots"]
+  };
+
+  /* Британский — это и есть основа: своих отличий у него нет. Словарь заведён
+     пустым нарочно, а не пропущен: по нему видно, что говор существует и
+     обслуживается, а не забыт. */
+  DICT["en-GB"] = {};
 
   /* ---- Испанский, японский, китайский -------------------------------------
      Пустые: правило числа и разделитель счёта уже верны для языка, слов нет.
@@ -954,6 +1100,10 @@
   function detectLang() {
     try {
       var saved = localStorage.getItem(STORE_KEY);
+      /* «en» без говора остался у тех, кто выбирал язык до разделения на
+         британский и американский. Держим его британским: основа словаря
+         британская, и переучивать сохранённый выбор молча нечестно. */
+      if (saved === "en") return "en-GB";
       if (saved && DICT[saved]) return saved;
     } catch (e) {}
     return "ru";
@@ -970,9 +1120,26 @@
   }
   applyDocLang();
 
-  /* Формы ключа с запасным языком: текущий язык → английский → ничего.
-     Пустой словарь (es/ja/zh до перевода) не должен показывать список
-     ключей на экране — честнее показать английский, чем мусор.
+  /* Цепочка словарей, в которой ищется ключ: сам говор, его основа и
+     английский последним рубежом. У «en-US» это ["en-US", "en"], у «es» —
+     ["es", "en"], у «ru» — ["ru", "en"].
+
+     Отсюда главное свойство говора: **он хранит только отличия**. Британский
+     и американский расходятся на два десятка слов из четырёхсот, и держать
+     две полные копии значило бы обречь их разъезжаться при каждой правке.
+     Наложение поверх основы этого не допускает: где не переопределено — там
+     ровно то же слово, и всегда. Тем же способом потом заведутся es-MX,
+     pt-BR и zh-TW: основа общая, поверх — местные слова. */
+  function chainOf(code) {
+    var out = [code], base = baseOf(code);
+    if (base !== code) out.push(base);
+    if (base !== "en") out.push("en");
+    return out;
+  }
+  function baseOf(code) { return String(code).split("-")[0]; }
+
+  /* Формы ключа по цепочке. Пустой словарь (es/ja/zh до перевода) не должен
+     показывать список ключей на экране — честнее показать английский.
 
      Возвращает и язык, который слово дал. Это не мелочь: правило числа и
      пробел перед словом принадлежат языку слова, а не языку экрана. Иначе
@@ -980,9 +1147,11 @@
      превращается в «3shoot» — форма единственного числа, слипшаяся с
      числом. Первый же второй язык это и вскрыл. */
   function sourceOf(key) {
-    var d = DICT[lang];
-    if (d && d[key] != null) return { v: d[key], lang: lang };
-    if (DICT.en[key] != null) return { v: DICT.en[key], lang: "en" };
+    var ch = chainOf(lang);
+    for (var i = 0; i < ch.length; i++) {
+      var d = DICT[ch[i]];
+      if (d && d[key] != null) return { v: d[key], lang: ch[i] };
+    }
     return { v: null, lang: lang };
   }
   function forms(key) { return sourceOf(key).v; }
@@ -1008,7 +1177,7 @@
   function word(key, n) {
     var src = sourceOf(key);
     if (!Array.isArray(src.v)) return t(key);
-    var rule = RULES[src.lang] || RULES.en;
+    var rule = ruleFor(src.lang);
     var f = src.v;
     return f[rule(n)] != null ? f[rule(n)] : f[f.length - 1];
   }
@@ -1019,13 +1188,30 @@
      английским даже на японском экране */
   function count(key, n) {
     var src = sourceOf(key);
-    var from = src.v != null ? src.lang : lang;
-    var sep = COUNT_SEP[from] != null ? COUNT_SEP[from] : " ";
-    return n + sep + word(key, n);
+    return n + sepFor(src.v != null ? src.lang : lang) + word(key, n);
+  }
+
+  /* Разделитель между числом и словом для этого ключа. Нужен там, где число
+     набрано отдельно — другим начертанием или в своём теге, — и `count`
+     собрать строку не может: «<b>5</b> свадеб». Язык берётся у слова, как
+     и в `count`, поэтому запасное английское слово получит пробел даже на
+     японском экране, а японское счётное слово прилипнет к числу. */
+  function sep(key) {
+    var src = sourceOf(key);
+    return sepFor(src.v != null ? src.lang : lang);
+  }
+
+  /* Правило числа и разделитель принадлежат основе, а не говору: у
+     британского и американского английского они одни и те же, и заводить их
+     дважды значило бы завести две правды об одном. */
+  function ruleFor(code) { return RULES[code] || RULES[baseOf(code)] || RULES.en; }
+  function sepFor(code) {
+    var v = COUNT_SEP[code] != null ? COUNT_SEP[code] : COUNT_SEP[baseOf(code)];
+    return v != null ? v : " ";
   }
 
   /* Номер формы для числа по правилу языка экрана. */
-  function index(n) { return (RULES[lang] || RULES.en)(n); }
+  function index(n) { return ruleFor(lang)(n); }
 
   /* То же, но по правилу названного языка. Нужен мосту `plural` в index.html:
      там формы ещё набраны русскими словами прямо на месте, и согласовывать
@@ -1033,7 +1219,7 @@
      английском экране русское слово встаёт в форму по английскому правилу
      («5 съёмки» вместо «5 съёмок»). Мост тает волнами, по мере переезда
      строк в словарь; вместе с последней строкой уйдёт и он. */
-  function indexIn(code, n) { return (RULES[code] || RULES.en)(n); }
+  function indexIn(code, n) { return ruleFor(code)(n); }
 
   global.LANG = {
     t: t,
@@ -1041,12 +1227,13 @@
     count: count,
     index: index,
     indexIn: indexIn,
+    sep: sep,
     get code() { return lang; },
     /* Смена языка возвращает false, если правил нет вовсе: молча остаться на
        прежнем честнее, чем сломать согласование числа. Пустой словарь (es/
        ja/zh) переключить можно — экран уедет в английский по ключам. */
     set: function (code) {
-      if (!RULES[code]) return false;
+      if (!RULES[code] && !RULES[baseOf(code)]) return false;
       lang = code;
       try { localStorage.setItem(STORE_KEY, code); } catch (e) {}
       applyDocLang();
@@ -1055,10 +1242,20 @@
     /* Есть ли у языка заполненный словарь (а не только правило числа) —
        для экрана настроек: язык без перевода честнее не предлагать совсем,
        либо показывать пометкой "скоро". */
-    has: function (code) { return !!(DICT[code] && Object.keys(DICT[code]).length); },
+    /* Есть ли у языка слова — считая по всей цепочке: у говора свой словарь
+       может быть крошечным (одни отличия), но экран у него полный */
+    has: function (code) {
+      var ch = chainOf(code);
+      for (var i = 0; i < ch.length; i++) {
+        if (ch[i] !== "en" && DICT[ch[i]] && Object.keys(DICT[ch[i]]).length) return true;
+      }
+      return code === "en" || baseOf(code) === "en";
+    },
     /* Доступен ли язык вообще — правило числа заведено, словарь может быть
        пуст и упадёт в английский */
-    known: function (code) { return !!RULES[code]; },
+    known: function (code) { return !!(RULES[code] || RULES[baseOf(code)]); },
+    base: baseOf,
+    chain: chainOf,
     stub: STUB_LANGS,
     /* Словарь наружу — для проверок и будущего экрана языка */
     dict: DICT
