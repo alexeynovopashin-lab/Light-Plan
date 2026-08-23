@@ -13882,7 +13882,9 @@
      встречи в съёмку (`cdGrow`) везёт с собой имена, телефоны, место и
      заметки. Что попало в заметки — доедет до съёмки; что осталось бы в
      скрытом поле встречи — потерялось бы на этом переходе. */
-  var QUEST_KEYS = ["b", "bt", "g", "gt", "d", "z", "q", "n", "w"];
+  var QUEST_KEYS = ["b", "bt", "bs", "bm", "g", "gt", "d", "z", "vy", "q", "n",
+                    "pr", "sv", "vd", "au", "ko", "pl", "mu", "fi", "zh",
+                    "re", "ms", "w", "pin"];
   function questDecode(code) {
     var b = code.replace(/-/g, "+").replace(/_/g, "/");
     while (b.length % 4) b += "=";
@@ -13923,20 +13925,56 @@
       if (a.gt) $("fP2Tel").value = formatTel(a.gt, true);
     }
 
+    /* Короткие ответы идут строками — их два десятка, и сплошной фразой
+       через запятую в них ничего было бы не найти глазом перед съёмкой.
+       Длинные (обряды, места, пожелания) — своими абзацами: это уже речь
+       клиента, и разбирать её на графы значило бы её испортить */
     var lines = [];
-    function line(label, v) { if (v) lines.push(label + ": " + v); }
+    /* Двоеточие, а не тире, и регистр не трогаем: значения приходят с
+       заглавной, какой их набрал клиент, а среди подписей есть имя
+       собственное («Pinterest»), которое опускать в строчные нельзя */
+    function line(key, v) { if (v) lines.push(LANG.t(key) + ": " + v); }
     if (!pair) {
-      line(LANG.t("person.bride"), a.b);
-      line(LANG.t("person.bride") + " · " + LANG.t("form.phone").toLowerCase(), a.bt);
-      line(LANG.t("person.groom"), a.g);
-      line(LANG.t("person.groom") + " · " + LANG.t("form.phone").toLowerCase(), a.gt);
+      line("person.bride", a.b);
+      line("form.phone", a.bt);
+      line("person.groom", a.g);
+      line("form.phone", a.gt);
     }
-    line(LANG.t("quest.date"), a.d ? questDate(a.d) : "");
-    line(LANG.t("quest.reg"), a.z);
-    line(LANG.t("quest.party"), a.q);
-    line(LANG.t("pane.guests"), a.n);
-    line(LANG.t("quest.wishes"), a.w);
-    if (lines.length) $("fNotes").value = LANG.t("quest.head") + "\n" + lines.join("\n");
+    line("quest.social", a.bs);
+    line("quest.msgr", a.bm);
+    line("quest.date", a.d ? questDate(a.d) : "");
+    line("quest.reg", a.z);
+    line("quest.offsite", a.vy);
+    line("quest.party", a.q);
+    line("pane.guests", a.n);
+    line("quest.parents", a.pr);
+    line("quest.witnesses", a.sv);
+    line("quest.host", a.vd);
+    line("quest.car", a.au);
+    line("quest.suit", a.ko);
+    line("quest.dress", a.pl);
+    line("quest.music", a.mu);
+    line("quest.finale", a.fi);
+    line("quest.pets", a.zh);
+    line("quest.pin", a.pin);
+
+    var parts = [];
+    if (lines.length) parts.push(LANG.t("quest.head") + "\n" + lines.join("\n"));
+    [["quest.rites", a.re], ["quest.places", a.ms], ["quest.wishes", a.w]]
+      .forEach(function (p) {
+        if (p[1]) parts.push(LANG.t(p[0]) + ": " + p[1]);
+      });
+    /* Свой текст фотографа не двигаем: ответы клиента дописываются под ним
+       через пустую строку, и он остаётся сверху таким, каким был.
+
+       Сегодня эта ветка ещё не срабатывает: ответы всегда открывают новую
+       встречу, а `openForm` для новой записи заметку очищает — брать сверху
+       нечего. Ветка написана заранее и оживёт, когда ответы начнут попадать
+       в уже существующую карточку (кнопка «Опросник» в самой карточке). */
+    if (parts.length) {
+      var was = $("fNotes").value.trim();
+      $("fNotes").value = (was ? was + "\n\n" : "") + parts.join("\n\n");
+    }
     $("savedNote").textContent = LANG.t("quest.filled");
   }
   /* Ответы читаем один раз и сразу чистим адрес: код с телефонами клиента не
