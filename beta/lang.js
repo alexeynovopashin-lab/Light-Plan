@@ -872,6 +872,23 @@
     "kit.empty":        "Пока пусто",
     "kit.count":        "{n} из {m}",
 
+    /* ---- Опросник для клиента: ссылка туда и ответы обратно ----
+       Сама страница опросника живёт отдельным файлом (`quest/wedding.html`)
+       и пока только по-русски: она статична и словаря не читает. Здесь —
+       слова нашей стороны: кнопка отправки и разбор ответов. */
+    "quest.send":        "Опросник клиенту — ссылка, которую он заполнит",
+    "quest.msg":         "Заполните, пожалуйста, короткий опросник к съёмке: {url}",
+    "quest.copiedTitle": "Ссылка на опросник",
+    "quest.copiedText":  "Скопирована — вставьте её в переписку с клиентом.",
+    "quest.head":        "Опросник клиента",
+    "quest.date":        "Дата свадьбы",
+    "quest.reg":         "Роспись",
+    "quest.party":       "Банкет",
+    "quest.wishes":      "Пожелания",
+    "quest.filled":      "Заполнено по ответам клиента — проверьте и сохраните",
+    "quest.badTitle":    "Опросник не прочитан",
+    "quest.badText":     "Ссылка пришла испорченной. Попросите клиента отправить её заново.",
+
     /* ---- Кто платит и как называется: свойство группы жанров ---- */
     "who.event":  "Пара",
     "who.people": "Клиент",
@@ -2060,6 +2077,19 @@
     "kit.removeAria":   "Remove",
     "kit.empty":        "Nothing yet",
     "kit.count":        "{n} of {m}",
+
+    "quest.send":        "Client questionnaire — a link for them to fill in",
+    "quest.msg":         "Please fill in this short questionnaire about the shoot: {url}",
+    "quest.copiedTitle": "Questionnaire link",
+    "quest.copiedText":  "Copied — paste it into your chat with the client.",
+    "quest.head":        "Client questionnaire",
+    "quest.date":        "Wedding date",
+    "quest.reg":         "Ceremony",
+    "quest.party":       "Reception",
+    "quest.wishes":      "Wishes",
+    "quest.filled":      "Filled in from the client's answers — check and save",
+    "quest.badTitle":    "Questionnaire not read",
+    "quest.badText":     "The link arrived damaged. Ask the client to send it again.",
 
     "who.event":  "Couple",
     "who.people": "Client",

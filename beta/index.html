@@ -3692,6 +3692,9 @@
       <span class="lbl" data-i18n="plan.meet">Встреча</span>
       <span class="sub" data-i18n="plan.meetSub">обсудить съёмку</span>
     </button>
+    <!-- Опросник — не запись в календаре, а письмо клиенту, поэтому тише
+         встречи и без своей карточки. Ответы вернутся сюда же встречей -->
+    <button class="ghost" id="planQuest" style="margin: 10px 24px 0;" data-i18n="quest.send">Опросник клиенту — ссылка, которую он заполнит</button>
     <!-- Занять время — действие тише съёмки: планировщик про съёмки,
          а выходной ставят реже -->
     <button class="ghost" id="planBlock" style="margin: 10px 24px 0;" data-i18n="plan.block">Занять время — выходной, дорога, перелёт</button>
@@ -13867,6 +13870,111 @@
   });
   $("kDone").addEventListener("click", closeKit);
   $("kScrim").addEventListener("click", closeKit);
+
+  /* ---------- Опросник для клиента ----------
+     Клиент заполняет статичную страницу `quest/wedding.html`, она собирает
+     ответы в адрес обратно сюда, и он приезжает обычным сообщением в
+     мессенджере. Сервера на этой дороге нет ни одного: между отправкой и
+     получением ответы нигде не лежат (DECISIONS.md, «Механическая ссылка»).
+
+     Имена и телефоны ложатся в свои поля, остальное — в заметки. Так вышло
+     не от лени: у встречи нет ни числа гостей, ни даты свадьбы, а перенос
+     встречи в съёмку (`cdGrow`) везёт с собой имена, телефоны, место и
+     заметки. Что попало в заметки — доедет до съёмки; что осталось бы в
+     скрытом поле встречи — потерялось бы на этом переходе. */
+  var QUEST_KEYS = ["b", "bt", "g", "gt", "d", "z", "q", "n", "w"];
+  function questDecode(code) {
+    var b = code.replace(/-/g, "+").replace(/_/g, "/");
+    while (b.length % 4) b += "=";
+    var bin = atob(b), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    var o = JSON.parse(new TextDecoder().decode(bytes));
+    if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("shape");
+    /* Берём только знакомые ключи и только строками: в адресе может приехать
+       что угодно, и раскладывать это по полям на веру незачем */
+    var out = {};
+    QUEST_KEYS.forEach(function (k) {
+      if (typeof o[k] === "string" && o[k].trim()) out[k] = o[k].trim().slice(0, 600);
+    });
+    return out;
+  }
+  /* Дата приходит машинной («2027-06-15») — читаем её словами своего языка,
+     а не теми, что были у клиента: он мог заполнять опросник в другом */
+  function questDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!m) return iso;
+    var d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return isNaN(d.getTime()) ? iso : dMonYear(d);
+  }
+  function questApply(a) {
+    /* Свадьба может быть выключена в «Моих жанрах». Включать её за фотографа
+       мы не вправе — приложение не меняет его настройки само. Тогда пара
+       уезжает в заметки вместе с остальным: ничего не пропадает, просто
+       ложится текстом, а не полями */
+    var pair = !!genresOn["wedding"];
+    if (pair) shootType = "wedding";
+    openForm(calSel, snapMin(14 * 60), null, false, "meet");
+
+    if (pair) {
+      if (a.b) $("fP1Name").value = a.b;
+      if (a.g) $("fP2Name").value = a.g;
+      /* `pasted` — номер приехал целиком, а не набирается по цифре */
+      if (a.bt) $("fP1Tel").value = formatTel(a.bt, true);
+      if (a.gt) $("fP2Tel").value = formatTel(a.gt, true);
+    }
+
+    var lines = [];
+    function line(label, v) { if (v) lines.push(label + ": " + v); }
+    if (!pair) {
+      line(LANG.t("person.bride"), a.b);
+      line(LANG.t("person.bride") + " · " + LANG.t("form.phone").toLowerCase(), a.bt);
+      line(LANG.t("person.groom"), a.g);
+      line(LANG.t("person.groom") + " · " + LANG.t("form.phone").toLowerCase(), a.gt);
+    }
+    line(LANG.t("quest.date"), a.d ? questDate(a.d) : "");
+    line(LANG.t("quest.reg"), a.z);
+    line(LANG.t("quest.party"), a.q);
+    line(LANG.t("pane.guests"), a.n);
+    line(LANG.t("quest.wishes"), a.w);
+    if (lines.length) $("fNotes").value = LANG.t("quest.head") + "\n" + lines.join("\n");
+    $("savedNote").textContent = LANG.t("quest.filled");
+  }
+  /* Ответы читаем один раз и сразу чистим адрес: код с телефонами клиента не
+     должен оставаться в истории браузера и в заголовке вкладки */
+  function questCatch() {
+    var code = new URLSearchParams(location.search).get("ans");
+    if (!code) return;
+    history.replaceState(null, "", location.pathname);
+    var a = null;
+    try { a = questDecode(code); } catch (e) { a = null; }
+    if (!a || !Object.keys(a).length) {
+      notify(LANG.t("quest.badTitle"), LANG.t("quest.badText"));
+      return;
+    }
+    questApply(a);
+  }
+  /* Ссылка на опросник строится от своего же расположения: канал (бета или
+     корень) страница получает параметром, чтобы ответы вернулись именно в то
+     приложение, из которого ссылку отправили, а не в соседнее */
+  function questLink() {
+    var p = location.pathname.replace(/index\.html$/, "").replace(/beta\/$/, "");
+    if (p.slice(-1) !== "/") p += "/";
+    return location.origin + p + "quest/wedding.html?c=" + CHANNEL;
+  }
+  $("planQuest").addEventListener("click", function () {
+    var url = questLink();
+    if (navigator.share) {
+      navigator.share({ text: LANG.t("quest.msg", { url: url }) }).catch(function () {});
+      return;
+    }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function () {
+        notify(LANG.t("quest.copiedTitle"), LANG.t("quest.copiedText"));
+      }).catch(function () { notify(LANG.t("quest.copiedTitle"), url); });
+      return;
+    }
+    notify(LANG.t("quest.copiedTitle"), url);
+  });
   // Ставка по умолчанию: применяется к новым почасовым съёмкам
   $("gRate").addEventListener("input", function () {
     defaultRate = parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
@@ -16490,6 +16598,10 @@
      ему (см. `cloudMigrateYa`), и только потом ловим возврат от сервиса —
      иначе перенос затёр бы токен, только что пойманный в адресе */
   cloudLoad(); cloudMigrateYa(); cloudCatch(); renderCloudInfo();
+  /* Опросник ловим последним: `cloudCatch` тоже правит адресную строку, и
+     разбирать её вдвоём одновременно незачем. Форма к этому мгновению
+     собрана целиком — ответам есть куда лечь */
+  questCatch();
 })();
 </script>
 
