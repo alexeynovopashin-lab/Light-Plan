@@ -63,6 +63,13 @@
   }
   .group input + input, .group textarea { border-top: 1px solid var(--hair); }
   .group input::placeholder, .group textarea::placeholder { color: var(--ink-8); }
+  /* Своя рамка вместо снятой системной. Полей два десятка, и без неё идущий
+     табом не видит, где находится, — это не украшение, а единственный ответ
+     на вопрос «куда я сейчас пишу». Внутрь, а не наружу: карточка обрезает
+     содержимое по скруглению, и внешнюю рамку срезало бы по краям */
+  .group input:focus-visible, .group textarea:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: -2px;
+  }
   .group textarea { min-height: 96px; resize: vertical; line-height: 1.45; }
   /* Строка с переключателем — единственное здесь, что отвечает «да», а не
      текстом. Знак взят из самого приложения, чтобы жест был знакомым */
@@ -106,17 +113,94 @@
     border: none; color: var(--ink-4); font-family: inherit; font-size: 15px; cursor: pointer;
   }
 </style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+  /* Декор. Отдельным блоком поверх основных правил: механика анкеты выше
+     не тронута, здесь только оформление — бумага, засечки в заголовках,
+     нумерация разделов и ромбы-разделители.
+
+     Логика та же, что у основного блока: подложка темнее карточек, чтобы на
+     солнце было видно, где кончается поле. Цвет только теплее — бумага
+     приглашения, а не серый прибор. Ни латуни, ни розового по-прежнему нет. */
+  :root {
+    --bg: #EFEBE3; --sheet: #FFFDF9; --field: #E4E0D8;
+    --hair: rgba(35,32,28,0.07);
+    --ink: #23201C; --ink-2: #3D3B37; --ink-4: #5F5B55; --ink-6: #6E6961; --ink-8: #8A857C;
+    --accent: #2A2723; --on-accent: #FFFDF9;
+    --numeral: #A09A8F;
+  }
+  /* Свет сверху: бумага у верхнего края чуть светлее. Радиус большой и
+     мягкий — на глаз это не пятно, а то, что лист лежит под лампой */
+  body {
+    background-image: radial-gradient(120% 60% at 50% 0%, rgba(255,253,249,0.75) 0%, rgba(255,253,249,0) 62%);
+    background-repeat: no-repeat;
+  }
+  header { text-align: center; padding-top: calc(40px + env(safe-area-inset-top)); }
+  /* Засечки только в заголовках и на кнопке. В полях остаётся системный
+     шрифт: их читают быстро и мелко, засечки там мешают */
+  h1 {
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-size: 42px; font-weight: 400; line-height: 1.08; letter-spacing: 0.005em;
+    margin: 0 0 14px;
+  }
+  .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.26em; text-transform: uppercase;
+    color: var(--ink-8); margin: 0 0 12px;
+  }
+  header .lead { margin: 0 auto; max-width: 38ch; }
+
+  /* Ромб — единственный знак, который здесь есть. Он ничего не означает и
+     не притворяется цветком: это типографская вставка, разделяющая куски */
+  .orn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .orn .r { width: 44px; height: 1px; background: rgba(35,32,28,0.14); }
+  .orn .d { width: 5px; height: 5px; background: rgba(35,32,28,0.34); transform: rotate(45deg); }
+  .orn .d.f { background: rgba(35,32,28,0.2); }
+  .orn.top { margin: 0 0 18px; }
+  .orn.mid { margin: 22px 0 0; }
+  .orn.foot { margin: 26px 0 0; }
+
+  /* Подпись раздела: номер, название, волосяная линия до правого края.
+     Номера нужны не для красоты — по ним фотограф и невеста называют место
+     в анкете вслух, когда обсуждают её по телефону */
+  .lbl { display: flex; align-items: baseline; gap: 11px; margin: 30px 4px 10px; }
+  .lbl .num {
+    font-family: "Cormorant Garamond", Georgia, serif; font-size: 17px; font-style: italic;
+    color: var(--numeral); min-width: 1.4em; text-transform: none; letter-spacing: 0;
+  }
+  .lbl .t { font-size: 11.5px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-6); }
+  .lbl .r { flex: 1 1 auto; height: 1px; background: rgba(35,32,28,0.12); }
+
+  /* Карточка на тёплой подложке нуждается в контуре: одной разницы яркости
+     мало, когда обе поверхности почти белые */
+  .group, .sum {
+    border: 1px solid rgba(35,32,28,0.07);
+    box-shadow: 0 1px 2px rgba(35,32,28,0.03);
+  }
+  .send {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 19px; font-weight: 500; letter-spacing: 0.06em; padding: 17px;
+  }
+  .note { text-align: center; }
+</style>
 </head>
 <body>
 
 <div class="form" id="form">
   <header>
-    <h1>Расскажите о свадьбе</h1>
+    <div class="orn top">
+      <span class="r"></span><span class="d"></span><span class="d f"></span><span class="d"></span><span class="r"></span>
+    </div>
+    <p class="eyebrow">Опросник к съёмке</p>
+    <h1>Расскажите<br/>о свадьбе</h1>
     <p class="lead">Это поможет фотографу подготовиться к встрече. Заполните то,
       что уже известно — остальное обсудите на встрече.</p>
+    <div class="orn mid"><span class="r"></span><span class="d"></span><span class="r"></span></div>
   </header>
 
-  <span class="lbl">Невеста</span>
+  <div class="lbl"><span class="num">I</span><span class="t">Невеста</span><span class="r"></span></div>
   <div class="group">
     <input type="text" id="b" placeholder="Имя" autocomplete="off"/>
     <input type="tel" id="bt" placeholder="Телефон"/>
@@ -124,7 +208,7 @@
     <input type="text" id="bm" placeholder="Удобный мессенджер" autocomplete="off"/>
   </div>
 
-  <span class="lbl">Жених</span>
+  <div class="lbl"><span class="num">II</span><span class="t">Жених</span><span class="r"></span></div>
   <div class="group">
     <input type="text" id="g" placeholder="Имя" autocomplete="off"/>
     <input type="tel" id="gt" placeholder="Телефон"/>
@@ -133,7 +217,7 @@
   <!-- Загс, венчание, выездная и банкет — четыре разных события, и на одной
        свадьбе бывают все четыре. Каждому своя строка: одной на всех невеста
        гадала бы, куда писать, а фотографу это четыре разных места и времени -->
-  <span class="lbl">Когда и где</span>
+  <div class="lbl"><span class="num">III</span><span class="t">Когда и где</span><span class="r"></span></div>
   <div class="group">
     <input type="date" id="d" aria-label="Дата свадьбы"/>
     <input type="text" id="z" placeholder="Роспись в загсе — место" autocomplete="off"/>
@@ -151,14 +235,14 @@
 
   <!-- «Шафер» знают не везде: в России того же человека называют свидетелем
        или дружкой. Спрашиваем теми словами, которыми отвечают -->
-  <span class="lbl">Кто рядом</span>
+  <div class="lbl"><span class="num">IV</span><span class="t">Кто рядом</span><span class="r"></span></div>
   <div class="group">
     <textarea id="pr" placeholder="Имена родителей — с обеих сторон"></textarea>
     <textarea id="sv" placeholder="Свидетель, свидетельница, дружки и подружки — имена"></textarea>
     <input type="text" id="vd" placeholder="Имя ведущего" autocomplete="off"/>
   </div>
 
-  <span class="lbl">Как всё будет</span>
+  <div class="lbl"><span class="num">V</span><span class="t">Как всё будет</span><span class="r"></span></div>
   <div class="group">
     <input type="text" id="au" placeholder="На каком автомобиле перемещаетесь" autocomplete="off"/>
     <input type="text" id="ko" placeholder="Цвет костюма жениха" autocomplete="off"/>
@@ -171,30 +255,32 @@
     <textarea id="re" placeholder="Обычаи и ограничения — что можно и чего нельзя снимать"></textarea>
   </div>
 
-  <span class="lbl">Куда хочется</span>
+  <div class="lbl"><span class="num">VI</span><span class="t">Куда хочется</span><span class="r"></span></div>
   <div class="group">
     <textarea id="ms" placeholder="Места, которые хотелось бы посетить"></textarea>
   </div>
 
-  <span class="lbl">Пожелания</span>
+  <div class="lbl"><span class="num">VII</span><span class="t">Пожелания</span><span class="r"></span></div>
   <div class="group">
     <textarea id="w" placeholder="Что важно снять, чего хочется избежать, кого не забыть"></textarea>
   </div>
 
   <!-- Референсы отдельной строкой, а не в общей куче: в карточке фотографа у
        них своё место, и доска настроения — не то же самое, что пожелание -->
-  <span class="lbl">Референсы</span>
+  <div class="lbl"><span class="num">VIII</span><span class="t">Референсы</span><span class="r"></span></div>
   <div class="group">
     <input type="text" id="pin" placeholder="Ссылка на доску Pinterest — если есть" autocomplete="off" inputmode="url"/>
   </div>
 
   <button class="send" id="send">Отправить фотографу</button>
   <p class="note">Ответы никуда не сохраняются — они уедут одной ссылкой прямо фотографу.</p>
+  <div class="orn foot"><span class="r"></span><span class="d"></span><span class="r"></span></div>
 </div>
 
 <div class="done" id="done">
   <header>
-    <h1>Проверьте и отправьте</h1>
+    <div class="orn top"><span class="r"></span><span class="d"></span><span class="r"></span></div>
+    <h1>Проверьте<br/>и отправьте</h1>
     <p class="lead">Ответы собраны в ссылку. Отправьте её фотографу тем же
       способом, каким получили эту, — приложение разберёт её само.</p>
   </header>
