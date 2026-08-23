@@ -114,9 +114,6 @@
   }
 </style>
 
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
 <style>
   /* Декор. Отдельным блоком поверх основных правил: механика анкеты выше
      не тронута, здесь только оформление — бумага, засечки в заголовках,
@@ -140,9 +137,17 @@
   }
   header { text-align: center; padding-top: calc(40px + env(safe-area-inset-top)); }
   /* Засечки только в заголовках и на кнопке. В полях остаётся системный
-     шрифт: их читают быстро и мелко, засечки там мешают */
+     шрифт: их читают быстро и мелко, засечки там мешают.
+
+     Шрифт берём тот, что уже стоит на устройстве, и ниоткуда не тянем.
+     Выписанный со стороны означал бы, что браузер невесты идёт к чужому
+     узлу — тот узнаёт её адрес и то, что она открыла свадебный опросник.
+     Для страницы, весь смысл которой «ответы нигде не лежат», это лишнее;
+     плюс юрисдикция EU у нас в продукте есть, а встраивание чужих шрифтов
+     там к суду уже приводило. Ровно та же причина, по которой у нас свой
+     кодировщик QR, а не библиотека с чужого узла. */
   h1 {
-    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-family: Georgia, "Times New Roman", "Iowan Old Style", serif;
     font-size: 42px; font-weight: 400; line-height: 1.08; letter-spacing: 0.005em;
     margin: 0 0 14px;
   }
@@ -167,7 +172,7 @@
      в анкете вслух, когда обсуждают её по телефону */
   .lbl { display: flex; align-items: baseline; gap: 11px; margin: 30px 4px 10px; }
   .lbl .num {
-    font-family: "Cormorant Garamond", Georgia, serif; font-size: 17px; font-style: italic;
+    font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-style: italic;
     color: var(--numeral); min-width: 1.4em; text-transform: none; letter-spacing: 0;
   }
   .lbl .t { font-size: 11.5px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-6); }
@@ -180,7 +185,7 @@
     box-shadow: 0 1px 2px rgba(35,32,28,0.03);
   }
   .send {
-    font-family: "Cormorant Garamond", Georgia, serif;
+    font-family: Georgia, "Times New Roman", serif;
     font-size: 19px; font-weight: 500; letter-spacing: 0.06em; padding: 17px;
   }
   .note { text-align: center; }
