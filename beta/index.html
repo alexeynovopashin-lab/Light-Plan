@@ -2039,7 +2039,8 @@
   .data-btn.ghost-btn { background: var(--sheet); color: var(--ink-3); }
   #storeState.risk { color: var(--brass-deep); }
   #storeState.safe { color: var(--green); }
-  #yaState.safe { color: var(--green); }
+  #cloudState.safe { color: var(--green); }
+  .seg button.dim { opacity: 0.4; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .data-btn[hidden], .item[hidden] { display: none; }
   .item {
@@ -3822,18 +3823,27 @@
     <p class="seg-note" id="backupNote" data-i18n="set.backupNote">Копия — обычный файл. Положите его в Яндекс.Диск, iCloud или отправьте себе — из него всё восстановится.</p>
 
     <!-- Автокопия в облако фотографа. Права — только на папку приложения -->
-    <div class="sec-label" data-i18n="ya.title">Яндекс.Диск</div>
-    <div class="item"><span class="k" data-i18n="ya.connection">Подключение</span><span class="v" id="yaState">не подключён</span></div>
-    <div class="item" id="yaSyncRow" hidden><span class="k" data-i18n="ya.lastUpload">Последняя выгрузка</span><span class="v" id="yaWhen">—</span></div>
-    <button class="data-btn" id="yaConnect">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 19.5h11a4 4 0 0 0 .5-8 6 6 0 0 0-11.6-1.6A4.2 4.2 0 0 0 6.5 19.5z"/></svg>
-      <span id="yaConnectLbl">Подключить Яндекс.Диск</span>
-    </button>
-    <button class="data-btn ghost-btn" id="yaPull" hidden>
+    <!-- Облако одно, поставщиков три. Копия и файлы съёмок живут вместе:
+         разводить «облако для копии» и «облако для документов» значило бы
+         спрашивать дважды об одном (DECISIONS, «Облако фотографа») -->
+    <div class="sec-label" data-i18n="cloud.title">Облако</div>
+    <div class="seg" id="cloudSeg">
+      <button class="active" data-cloud="off" data-i18n="set.off">Выкл</button>
+      <button data-cloud="yandex" data-i18n="cloud.name.yandex">Яндекс</button>
+      <button data-cloud="google" data-i18n="cloud.name.google">Google</button>
+      <button data-cloud="dropbox" data-i18n="cloud.name.dropbox">Dropbox</button>
+    </div>
+    <div class="item"><span class="k" data-i18n="cloud.connection">Подключение</span><span class="v" id="cloudState">не подключён</span></div>
+    <div class="item" id="cloudSyncRow" hidden><span class="k" data-i18n="cloud.lastUpload">Последняя выгрузка</span><span class="v" id="cloudWhen">—</span></div>
+    <button class="data-btn ghost-btn" id="cloudPull" hidden>
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5v-11M8 13l4-4 4 4M4.5 4.5h15"/></svg>
-      <span data-i18n="ya.pull">Восстановить с Диска</span>
+      <span data-i18n="cloud.pull">Восстановить из облака</span>
     </button>
-    <p class="seg-note" id="yaNote" data-i18n="ya.note">Копия будет уходить в папку «Приложения · Light Plan». Остальной Диск приложению не виден.</p>
+    <button class="data-btn ghost-btn" id="cloudForget" hidden>
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <span data-i18n="cloud.forget">Отключить облако</span>
+    </button>
+    <p class="seg-note" id="cloudNote"></p>
 
     <!-- Язык, единицы и валюта — три отдельные настройки, а не одна.
          Язык меняет слова и разделители числа; градусы и деньги фотограф
@@ -5960,7 +5970,7 @@
         })
       }));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
-      if (typeof yaSchedule === "function") yaSchedule();   // копия уедет на Диск через пару секунд
+      if (typeof cloudSchedule === "function") cloudSchedule();   // копия уедет на Диск через пару секунд
     } catch (e) {}
   }
   /* ---------- Копия данных ----------
@@ -5973,132 +5983,466 @@
      Диск приложению не виден. Токен живёт на устройстве и хранится отдельно от
      данных, чтобы восстановление из копии не выбрасывало подключение.
      Секрет приложения не используется вовсе: implicit flow его не требует. */
-  var YA_ID = "ed341287e18d46aeb66b9af257355725";
-  /* Токен Диска общий: подключаться дважды с одного телефона незачем.
-     Отметка о выгрузке — своя у каждого канала */
-  var YA_TOKEN_KEY = "lightplan.ya.token";
-  var YA_SYNC_KEY = CHANNEL === "beta" ? "lightplan.beta.ya.synced" : "lightplan.ya.synced";
-  /* Копия на Диске тоже своя: иначе бета перезаписала бы резервный файл
-     стабильной версии, и восстановление вернуло бы тестовые данные */
-  var YA_PATH = CHANNEL === "beta" ? "app:/light-plan-beta.json" : "app:/light-plan.json";
-  var yaToken = null, yaTimer = null, yaBusy = false;
+  /* ============================================================
+     ОБЛАКО ФОТОГРАФА — три поставщика под одним интерфейсом
 
-  function yaLoadToken() {
-    try { yaToken = localStorage.getItem(YA_TOKEN_KEY) || null; } catch (e) { yaToken = null; }
+     Облако здесь не только про резервную копию: в нём же лежат документы
+     съёмок и референсы. Поэтому у поставщика девять обязанностей, а не две:
+     подключиться, отдать и забрать копию, завести папку, загрузить файл,
+     дать ссылку на просмотр, удалить, забыться.
+
+     Пути внутри приложения относительные («refs/2026-08-22.jpg»), а как их
+     разложить у себя — дело поставщика: у Яндекса это `app:/…`, у Dropbox
+     `/…` в папке приложения, у Google — плоское имя в `appDataFolder`.
+     Иначе путь стал бы ещё одной строкой, знающей про чужое устройство.
+
+     Ключи приложений здесь пустые: их заводит владелец приложения в консоли
+     каждого сервиса, и подставить их за него нельзя. Поставщик без ключа
+     показывается в настройках отключённым, а не исчезает: пустота на месте
+     обещанного хуже, чем честное «не настроено».
+     ============================================================ */
+  var CLOUD_IDS = {
+    yandex:  "ed341287e18d46aeb66b9af257355725",
+    /* Google Cloud Console → OAuth 2.0 Client ID, тип «Web application».
+       Разрешённый источник JavaScript — адрес приложения. */
+    google:  "",
+    /* Dropbox App Console → App key. Доступ «App folder», в Redirect URIs —
+       адрес приложения. Секрет не нужен: обмен идёт по PKCE. */
+    dropbox: ""
+  };
+  var CLOUD_NAMES = ["yandex", "google", "dropbox"];
+  var CLOUD_TOKEN_KEY = "lightplan.cloud.token";     // {kind, access, refresh, exp}
+  var CLOUD_KIND_KEY  = "lightplan.cloud.kind";
+  var CLOUD_PKCE_KEY  = "lightplan.cloud.pkce";
+  var CLOUD_SYNC_KEY  = CHANNEL === "beta" ? "lightplan.beta.cloud.synced" : "lightplan.cloud.synced";
+  var BACKUP_FILE = CHANNEL === "beta" ? "light-plan-beta.json" : "light-plan.json";
+
+  var cloudKind = null, cloudTok = null, cloudTimer = null, cloudBusy = false;
+  var CLOUD_YANDEX, CLOUD_DROPBOX, CLOUD_GOOGLE, CLOUD = {};
+
+  function cloudLoad() {
+    try {
+      cloudKind = localStorage.getItem(CLOUD_KIND_KEY) || null;
+      var raw = localStorage.getItem(CLOUD_TOKEN_KEY);
+      cloudTok = raw ? JSON.parse(raw) : null;
+    } catch (e) { cloudKind = null; cloudTok = null; }
+    if (cloudTok && cloudTok.kind !== cloudKind) cloudTok = null;
   }
-  /* Токен приходит в hash после возврата от Яндекса — забираем и чистим адрес */
-  function yaCatchToken() {
-    if (!location.hash || location.hash.indexOf("access_token=") < 0) return;
-    var p = new URLSearchParams(location.hash.slice(1));
-    var t = p.get("access_token");
-    if (t) {
-      try { localStorage.setItem(YA_TOKEN_KEY, t); } catch (e) {}
-      yaToken = t;
-    }
-    history.replaceState(null, "", location.pathname + location.search);
+  function cloudSaveTok(t) {
+    cloudTok = t;
+    try { localStorage.setItem(CLOUD_TOKEN_KEY, JSON.stringify(t)); } catch (e) {}
   }
-  function yaConnect() {
-    var back = location.origin + location.pathname;
-    location.href = "https://oauth.yandex.ru/authorize?response_type=token"
-      + "&client_id=" + YA_ID + "&redirect_uri=" + encodeURIComponent(back)
-      + "&force_confirm=yes";
+  function cloudOn() { return !!(cloudKind && cloudTok && cloudTok.access); }
+  function cloudReady(kind) { return !!CLOUD_IDS[kind]; }
+  function cloudForget() {
+    try {
+      localStorage.removeItem(CLOUD_TOKEN_KEY);
+      localStorage.removeItem(CLOUD_KIND_KEY);
+      localStorage.removeItem(CLOUD_SYNC_KEY);
+    } catch (e) {}
+    cloudKind = null; cloudTok = null;
+    renderCloudInfo();
   }
-  function yaForget() {
-    try { localStorage.removeItem(YA_TOKEN_KEY); localStorage.removeItem(YA_SYNC_KEY); } catch (e) {}
-    yaToken = null; renderYaInfo();
-  }
-  function yaHeaders() { return { Authorization: "OAuth " + yaToken }; }
+  function cloudDrv() { return CLOUD[cloudKind] || null; }
+  function cloudAuth() { return { Authorization: "Bearer " + cloudTok.access }; }
   /* Токен протух или отозван — молча забываем, чтобы не долбить сервис */
-  function yaCheck(r) {
-    if (r.status === 401 || r.status === 403) { yaForget(); throw new Error(LANG.t("ya.errNoAccess")); }
+  function cloudCheck(r) {
+    if (r.status === 401 || r.status === 403) { cloudForget(); throw new Error(LANG.t("cloud.errNoAccess")); }
     return r;
   }
-  function yaPush() {
-    if (!yaToken || yaBusy) return Promise.resolve();
-    yaBusy = true;
-    var body = backupPayload();
-    return fetch("https://cloud-api.yandex.net/v1/disk/resources/upload?overwrite=true&path="
-        + encodeURIComponent(YA_PATH), { headers: yaHeaders() })
-      .then(yaCheck).then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (!j.href) throw new Error(LANG.t("ya.errNoHref"));
-        return fetch(j.href, { method: "PUT", body: new Blob([body], { type: "application/json" }) });
-      })
-      .then(function (r) {
-        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error(LANG.t("ya.errUpload"));
-        try { localStorage.setItem(YA_SYNC_KEY, new Date().toISOString()); } catch (e) {}
-        renderYaInfo();
+
+  /* ---------- PKCE: обмен кода на токен без секрета ----------
+     Секрет приложения в браузере хранить негде — он был бы виден всякому.
+     PKCE решает это одноразовой парой: проверочная строка остаётся у нас,
+     наружу уходит только её отпечаток. Так делают Dropbox и все, кто
+     разрешает приложениям без сервера. */
+  function b64url(buf) {
+    var s = btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+    return s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function pkcePair() {
+    var a = new Uint8Array(64);
+    crypto.getRandomValues(a);
+    var verifier = b64url(a.buffer);
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))
+      .then(function (d) { return { verifier: verifier, challenge: b64url(d) }; });
+  }
+  function cloudRedirect() { return location.origin + location.pathname; }
+
+  /* ---------- Яндекс.Диск ----------
+     Токен приходит прямо в hash: у Яндекса это разрешено приложениям без
+     сервера, и обмен кода не нужен. */
+  var YA_API = "https://cloud-api.yandex.net/v1/disk";
+  function yaPath(rel) { return "app:/" + rel; }
+  CLOUD_YANDEX = {
+    connect: function () {
+      location.href = "https://oauth.yandex.ru/authorize?response_type=token"
+        + "&client_id=" + CLOUD_IDS.yandex
+        + "&redirect_uri=" + encodeURIComponent(cloudRedirect())
+        + "&force_confirm=yes";
+    },
+    /* Заголовок у Яндекса свой: OAuth вместо Bearer */
+    head: function () { return { Authorization: "OAuth " + cloudTok.access }; },
+    ensureDir: function (rel) {
+      return fetch(YA_API + "/resources?path=" + encodeURIComponent(yaPath(rel)),
+        { method: "PUT", headers: this.head() }).catch(function () {});
+    },
+    upload: function (rel, blob) {
+      var h = this.head();
+      return fetch(YA_API + "/resources/upload?overwrite=true&path=" + encodeURIComponent(yaPath(rel)),
+          { headers: h })
+        .then(cloudCheck).then(function (r) { return r.json(); })
+        .then(function (j) {
+          // Яндекс объясняет причину сам — показываем её, а не общую фразу
+          if (!j.href) throw new Error(j.message || j.description || LANG.t("cloud.errNoHref"));
+          return fetch(j.href, { method: "PUT", body: blob });
+        })
+        .then(function (r) {
+          if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error(LANG.t("cloud.errUploadCode", { code: r.status }));
+          return rel;
+        });
+    },
+    /* Ссылка на скачивание живёт недолго — берём её в момент показа */
+    downloadUrl: function (rel) {
+      return fetch(YA_API + "/resources/download?path=" + encodeURIComponent(yaPath(rel)),
+          { headers: this.head() })
+        .then(cloudCheck).then(function (r) { return r.json(); })
+        .then(function (j) { if (!j.href) throw new Error(LANG.t("cloud.errNoFile")); return j.href; });
+    },
+    remove: function (rel) {
+      return fetch(YA_API + "/resources?permanently=true&path=" + encodeURIComponent(yaPath(rel)),
+        { method: "DELETE", headers: this.head() }).catch(function () {});
+    },
+    text: function (rel) {
+      var self = this;
+      return fetch(YA_API + "/resources/download?path=" + encodeURIComponent(yaPath(rel)),
+          { headers: self.head() })
+        .then(cloudCheck).then(function (r) {
+          if (r.status === 404) throw new Error(LANG.t("cloud.errNoCopy"));
+          return r.json();
+        })
+        .then(function (j) { return fetch(j.href); })
+        .then(function (r) { return r.text(); });
+    }
+  };
+
+  /* ---------- Dropbox ----------
+     PKCE с обновляемым токеном: без `offline` Dropbox выдаёт четырёхчасовой,
+     и копия переставала уходить к вечеру того же дня. */
+  var DB_API = "https://api.dropboxapi.com/2", DB_CONTENT = "https://content.dropboxapi.com/2";
+  function dbPath(rel) { return "/" + rel; }
+  function dbArg(o) { return { "Dropbox-API-Arg": JSON.stringify(o) }; }
+  CLOUD_DROPBOX = {
+    connect: function () {
+      pkcePair().then(function (p) {
+        try { localStorage.setItem(CLOUD_PKCE_KEY, JSON.stringify({ kind: "dropbox", v: p.verifier })); } catch (e) {}
+        location.href = "https://www.dropbox.com/oauth2/authorize?response_type=code"
+          + "&client_id=" + CLOUD_IDS.dropbox
+          + "&redirect_uri=" + encodeURIComponent(cloudRedirect())
+          + "&token_access_type=offline&code_challenge_method=S256"
+          + "&code_challenge=" + p.challenge;
+      });
+    },
+    exchange: function (code, verifier) {
+      var body = new URLSearchParams({
+        code: code, grant_type: "authorization_code",
+        client_id: CLOUD_IDS.dropbox, code_verifier: verifier,
+        redirect_uri: cloudRedirect()
+      });
+      return fetch("https://api.dropboxapi.com/oauth2/token", { method: "POST", body: body })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.access_token) throw new Error(j.error_description || LANG.t("cloud.errNoAccess"));
+          return { kind: "dropbox", access: j.access_token, refresh: j.refresh_token || null,
+                   exp: Date.now() + (j.expires_in || 14000) * 1000 };
+        });
+    },
+    /* Обновление втихую: пока есть refresh, человека ни о чём не спрашиваем */
+    refresh: function () {
+      if (!cloudTok || !cloudTok.refresh) return Promise.reject(new Error(LANG.t("cloud.errNoAccess")));
+      var body = new URLSearchParams({
+        grant_type: "refresh_token", refresh_token: cloudTok.refresh, client_id: CLOUD_IDS.dropbox
+      });
+      return fetch("https://api.dropboxapi.com/oauth2/token", { method: "POST", body: body })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.access_token) throw new Error(LANG.t("cloud.errNoAccess"));
+          cloudSaveTok({ kind: "dropbox", access: j.access_token, refresh: cloudTok.refresh,
+                         exp: Date.now() + (j.expires_in || 14000) * 1000 });
+        });
+    },
+    ensureDir: function () { return Promise.resolve(); },   // Dropbox заводит папки сам
+    upload: function (rel, blob) {
+      return fetch(DB_CONTENT + "/files/upload", {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/octet-stream" }, cloudAuth(),
+          dbArg({ path: dbPath(rel), mode: "overwrite", mute: true })),
+        body: blob
+      }).then(cloudCheck).then(function (r) {
+        if (!r.ok) throw new Error(LANG.t("cloud.errUploadCode", { code: r.status }));
+        return rel;
+      });
+    },
+    downloadUrl: function (rel) {
+      return fetch(DB_API + "/files/get_temporary_link", {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" }, cloudAuth()),
+        body: JSON.stringify({ path: dbPath(rel) })
+      }).then(cloudCheck).then(function (r) { return r.json(); })
+        .then(function (j) { if (!j.link) throw new Error(LANG.t("cloud.errNoFile")); return j.link; });
+    },
+    remove: function (rel) {
+      return fetch(DB_API + "/files/delete_v2", {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" }, cloudAuth()),
+        body: JSON.stringify({ path: dbPath(rel) })
+      }).catch(function () {});
+    },
+    text: function (rel) {
+      return fetch(DB_CONTENT + "/files/download", {
+        method: "POST",
+        headers: Object.assign({}, cloudAuth(), dbArg({ path: dbPath(rel) }))
+      }).then(cloudCheck).then(function (r) {
+        if (r.status === 409) throw new Error(LANG.t("cloud.errNoCopy"));
+        if (!r.ok) throw new Error(LANG.t("cloud.errNoCopy"));
+        return r.text();
+      });
+    }
+  };
+
+  /* ---------- Google Диск ----------
+     Файлы живут в `appDataFolder` — скрытой папке приложения: она не мусорит
+     в чужом Диске и не требует прав на всё остальное. Адресуются они не
+     путём, а идентификатором, поэтому путь превращается в плоское имя и
+     каждый раз ищется. Ссылки на скачивание у Google нет: содержимое
+     отдаётся только с заголовком, поэтому отдаём объектную ссылку на blob.
+
+     Токен живёт час и обновляется молча, пока человек не вышел из своей
+     учётной записи Google. Это цена работы без сервера — сервер выдал бы
+     обновляемый токен, но сервера у приложения нет и не будет. */
+  var GD_API = "https://www.googleapis.com/drive/v3", GD_UP = "https://www.googleapis.com/upload/drive/v3";
+  var gdClient = null;
+  function gdName(rel) { return rel.replace(/\//g, "__"); }
+  function gdScript() {
+    if (window.google && window.google.accounts) return Promise.resolve();
+    return new Promise(function (res, rej) {
+      var el = document.createElement("script");
+      el.src = "https://accounts.google.com/gsi/client";
+      el.onload = res; el.onerror = function () { rej(new Error(LANG.t("cloud.errScript"))); };
+      document.head.appendChild(el);
+    });
+  }
+  CLOUD_GOOGLE = {
+    connect: function () {
+      gdScript().then(function () {
+        gdClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLOUD_IDS.google,
+          scope: "https://www.googleapis.com/auth/drive.appdata",
+          callback: function (t) {
+            if (!t || !t.access_token) return;
+            try { localStorage.setItem(CLOUD_KIND_KEY, "google"); } catch (e) {}
+            cloudKind = "google";
+            cloudSaveTok({ kind: "google", access: t.access_token, refresh: null,
+                           exp: Date.now() + (t.expires_in || 3000) * 1000 });
+            renderCloudInfo();
+            cloudPush();
+          }
+        });
+        gdClient.requestAccessToken({ prompt: "consent" });
+      }).catch(function (e) { $("cloudNote").textContent = e.message; });
+    },
+    /* Молчаливое продление: тот же запрос без экрана согласия */
+    refresh: function () {
+      return gdScript().then(function () {
+        return new Promise(function (res, rej) {
+          var c = google.accounts.oauth2.initTokenClient({
+            client_id: CLOUD_IDS.google,
+            scope: "https://www.googleapis.com/auth/drive.appdata",
+            callback: function (t) {
+              if (!t || !t.access_token) return rej(new Error(LANG.t("cloud.errNoAccess")));
+              cloudSaveTok({ kind: "google", access: t.access_token, refresh: null,
+                             exp: Date.now() + (t.expires_in || 3000) * 1000 });
+              res();
+            },
+            error_callback: function () { rej(new Error(LANG.t("cloud.errNoAccess"))); }
+          });
+          c.requestAccessToken({ prompt: "" });
+        });
+      });
+    },
+    find: function (rel) {
+      var q = "name='" + gdName(rel).replace(/'/g, "\\'") + "' and trashed=false";
+      return fetch(GD_API + "/files?spaces=appDataFolder&fields=files(id,name)&q=" + encodeURIComponent(q),
+          { headers: cloudAuth() })
+        .then(cloudCheck).then(function (r) { return r.json(); })
+        .then(function (j) { return (j.files && j.files[0]) ? j.files[0].id : null; });
+    },
+    ensureDir: function () { return Promise.resolve(); },   // плоское имя — папок нет
+    upload: function (rel, blob) {
+      return this.find(rel).then(function (id) {
+        var meta = id ? null : { name: gdName(rel), parents: ["appDataFolder"] };
+        var url = GD_UP + "/files" + (id ? "/" + id : "") + "?uploadType=multipart&fields=id";
+        var form = new FormData();
+        if (meta) form.append("metadata", new Blob([JSON.stringify(meta)], { type: "application/json" }));
+        else form.append("metadata", new Blob(["{}"], { type: "application/json" }));
+        form.append("file", blob);
+        return fetch(url, { method: id ? "PATCH" : "POST", headers: cloudAuth(), body: form })
+          .then(cloudCheck).then(function (r) {
+            if (!r.ok) throw new Error(LANG.t("cloud.errUploadCode", { code: r.status }));
+            return rel;
+          });
+      });
+    },
+    downloadUrl: function (rel) {
+      return this.find(rel).then(function (id) {
+        if (!id) throw new Error(LANG.t("cloud.errNoFile"));
+        return fetch(GD_API + "/files/" + id + "?alt=media", { headers: cloudAuth() })
+          .then(cloudCheck).then(function (r) { return r.blob(); })
+          .then(function (b) { return URL.createObjectURL(b); });
+      });
+    },
+    remove: function (rel) {
+      return this.find(rel).then(function (id) {
+        if (!id) return;
+        return fetch(GD_API + "/files/" + id, { method: "DELETE", headers: cloudAuth() });
+      }).catch(function () {});
+    },
+    text: function (rel) {
+      return this.find(rel).then(function (id) {
+        if (!id) throw new Error(LANG.t("cloud.errNoCopy"));
+        return fetch(GD_API + "/files/" + id + "?alt=media", { headers: cloudAuth() })
+          .then(cloudCheck).then(function (r) { return r.text(); });
+      });
+    }
+  };
+
+  CLOUD.yandex = CLOUD_YANDEX;
+  CLOUD.google = CLOUD_GOOGLE;
+  CLOUD.dropbox = CLOUD_DROPBOX;
+
+  /* Токен просрочен — продлеваем перед делом, а не после отказа: отказ у
+     Google выглядит как 401 и стоил бы лишнего круга и мигания настроек */
+  function cloudFresh() {
+    if (!cloudOn()) return Promise.reject(new Error(LANG.t("cloud.errNotLinked")));
+    var d = cloudDrv();
+    if (!d || !d.refresh) return Promise.resolve();
+    if (cloudTok.exp && cloudTok.exp - Date.now() > 60000) return Promise.resolve();
+    return d.refresh();
+  }
+  function cloudCall(fn) {
+    return cloudFresh().then(function () { return fn(cloudDrv()); });
+  }
+
+  /* Пути, записанные до появления выбора, начинались с «app:/»: это был
+     адрес Яндекса, попавший в наши данные. Срезаем его на входе — старые
+     записи открываются как были, а миграции для этого не нужно. */
+  function relPath(p) { return String(p || "").replace(/^app:\/+/, ""); }
+  function cloudEnsureDir(rel) {
+    rel = relPath(rel);
+    if (!cloudOn()) return Promise.resolve();
+    return cloudCall(function (d) { return d.ensureDir(rel); }).catch(function () {});
+  }
+  function cloudUpload(rel, blob) {
+    rel = relPath(rel);
+    if (!cloudOn()) return Promise.reject(new Error(LANG.t("cloud.errNotLinked")));
+    return cloudCall(function (d) { return d.upload(rel, blob); });
+  }
+  function cloudDownloadUrl(rel) {
+    rel = relPath(rel);
+    if (!cloudOn()) return Promise.reject(new Error(LANG.t("cloud.errNotLinked")));
+    return cloudCall(function (d) { return d.downloadUrl(rel); });
+  }
+  function cloudDelete(rel) {
+    rel = relPath(rel);
+    if (!cloudOn()) return Promise.resolve();
+    return cloudCall(function (d) { return d.remove(rel); }).catch(function () {});
+  }
+  function cloudPush() {
+    if (!cloudOn() || cloudBusy) return Promise.resolve();
+    cloudBusy = true;
+    var body = new Blob([backupPayload()], { type: "application/json" });
+    return cloudCall(function (d) { return d.upload(BACKUP_FILE, body); })
+      .then(function () {
+        try { localStorage.setItem(CLOUD_SYNC_KEY, new Date().toISOString()); } catch (e) {}
+        renderCloudInfo();
       })
       .catch(function (e) {
-        $("yaNote").textContent = LANG.t("ya.pushFail", { err: e.message });
+        if ($("cloudNote")) $("cloudNote").textContent = LANG.t("cloud.pushFail", { err: e.message });
       })
-      .then(function () { yaBusy = false; });
+      .then(function () { cloudBusy = false; });
   }
-  function yaPull() {
-    if (!yaToken) return;
-    $("yaNote").textContent = LANG.t("ya.reading");
-    fetch("https://cloud-api.yandex.net/v1/disk/resources/download?path=" + encodeURIComponent(YA_PATH),
-        { headers: yaHeaders() })
-      .then(yaCheck).then(function (r) {
-        if (r.status === 404) throw new Error(LANG.t("ya.errNoCopy"));
-        return r.json();
-      })
-      .then(function (j) { return fetch(j.href); })
-      .then(function (r) { return r.text(); })
+  function cloudPull() {
+    if (!cloudOn()) return;
+    $("cloudNote").textContent = LANG.t("cloud.reading");
+    cloudCall(function (d) { return d.text(BACKUP_FILE); })
       .then(function (text) {
         var err = restoreBackup(text);
         if (err) throw new Error(err);
-        $("yaNote").textContent = LANG.t("ya.restored");
+        $("cloudNote").textContent = LANG.t("cloud.restored");
         setTimeout(function () { location.reload(); }, 700);
       })
-      .catch(function (e) { $("yaNote").textContent = LANG.t("ya.failed", { err: e.message }); });
+      .catch(function (e) { $("cloudNote").textContent = LANG.t("cloud.failed", { err: e.message }); });
   }
   /* Запись изменилась — выгружаем, но не на каждое нажатие */
-  /* Загрузка произвольного файла в папку приложения на Диске */
-  /* Вложенные папки Яндекс сам не создаёт: без этого загрузка в app:/refs/…
-     возвращает ошибку вместо ссылки. 409 значит «уже есть» — это не беда. */
-  function yaEnsureDir(path) {
-    if (!yaToken) return Promise.resolve();
-    return fetch("https://cloud-api.yandex.net/v1/disk/resources?path=" + encodeURIComponent(path),
-      { method: "PUT", headers: yaHeaders() }).catch(function () {});
-  }
-  function yaUpload(path, blob) {
-    if (!yaToken) return Promise.reject(new Error(LANG.t("ya.errNotLinked")));
-    return fetch("https://cloud-api.yandex.net/v1/disk/resources/upload?overwrite=true&path="
-        + encodeURIComponent(path), { headers: yaHeaders() })
-      .then(yaCheck).then(function (r) { return r.json(); })
-      .then(function (j) {
-        // Яндекс объясняет причину сам — показываем её, а не общую фразу
-        if (!j.href) throw new Error(j.message || j.description || LANG.t("ya.errNoHref"));
-        return fetch(j.href, { method: "PUT", body: blob });
-      })
-      .then(function (r) {
-        if (!r.ok && r.status !== 201 && r.status !== 202) throw new Error(LANG.t("ya.errUploadCode", { code: r.status }));
-        return path;
-      });
-  }
-  /* Ссылка на скачивание живёт недолго — берём её в момент показа */
-  function yaDownloadUrl(path) {
-    if (!yaToken) return Promise.reject(new Error(LANG.t("ya.errNotLinked")));
-    return fetch("https://cloud-api.yandex.net/v1/disk/resources/download?path=" + encodeURIComponent(path),
-        { headers: yaHeaders() })
-      .then(yaCheck).then(function (r) { return r.json(); })
-      .then(function (j) { if (!j.href) throw new Error(LANG.t("ya.errNoFile")); return j.href; });
-  }
-  function yaDelete(path) {
-    if (!yaToken) return Promise.resolve();
-    return fetch("https://cloud-api.yandex.net/v1/disk/resources?permanently=true&path=" + encodeURIComponent(path),
-      { method: "DELETE", headers: yaHeaders() }).catch(function () {});
+  function cloudSchedule() {
+    if (!cloudOn()) return;
+    clearTimeout(cloudTimer);
+    cloudTimer = setTimeout(cloudPush, 4000);
   }
 
-  function yaSchedule() {
-    if (!yaToken) return;
-    clearTimeout(yaTimer);
-    yaTimer = setTimeout(yaPush, 4000);
+  /* Возврат от сервиса: у Яндекса токен в hash, у Dropbox код в query.
+     Адрес чистим в обоих случаях — токен в строке адреса живёт в истории. */
+  function cloudCatch() {
+    if (location.hash && location.hash.indexOf("access_token=") >= 0) {
+      var p = new URLSearchParams(location.hash.slice(1));
+      var t = p.get("access_token");
+      if (t) {
+        try { localStorage.setItem(CLOUD_KIND_KEY, "yandex"); } catch (e) {}
+        cloudKind = "yandex";
+        cloudSaveTok({ kind: "yandex", access: t, refresh: null, exp: 0 });
+      }
+      history.replaceState(null, "", location.pathname + location.search);
+      return;
+    }
+    var q = new URLSearchParams(location.search);
+    var code = q.get("code");
+    if (!code) return;
+    var pk = null;
+    try { pk = JSON.parse(localStorage.getItem(CLOUD_PKCE_KEY) || "null"); } catch (e) {}
+    history.replaceState(null, "", location.pathname);
+    if (!pk || pk.kind !== "dropbox") return;
+    try { localStorage.removeItem(CLOUD_PKCE_KEY); } catch (e) {}
+    CLOUD_DROPBOX.exchange(code, pk.v).then(function (t) {
+      try { localStorage.setItem(CLOUD_KIND_KEY, "dropbox"); } catch (e) {}
+      cloudKind = "dropbox";
+      cloudSaveTok(t);
+      renderCloudInfo();
+      cloudPush();
+    }).catch(function (e) {
+      if ($("cloudNote")) $("cloudNote").textContent = LANG.t("cloud.failed", { err: e.message });
+    });
   }
-  function yaWhenText() {
-    var iso = localStorage.getItem(YA_SYNC_KEY);
-    if (!iso) return LANG.t("ya.never");
+
+  /* ---------- Старый ключ Яндекса ----------
+     До появления выбора токен лежал отдельно и без имени сервиса. Переносим
+     один раз: переподключаться из-за нашей перестройки человек не должен. */
+  function cloudMigrateYa() {
+    var old = null;
+    try { old = localStorage.getItem("lightplan.ya.token"); } catch (e) {}
+    if (!old || cloudTok) return;
+    cloudKind = "yandex";
+    try {
+      localStorage.setItem(CLOUD_KIND_KEY, "yandex");
+      var when = localStorage.getItem(CHANNEL === "beta" ? "lightplan.beta.ya.synced" : "lightplan.ya.synced");
+      if (when) localStorage.setItem(CLOUD_SYNC_KEY, when);
+      localStorage.removeItem("lightplan.ya.token");
+    } catch (e) {}
+    cloudSaveTok({ kind: "yandex", access: old, refresh: null, exp: 0 });
+  }
+
+  function cloudWhenText() {
+    var iso = localStorage.getItem(CLOUD_SYNC_KEY);
+    if (!iso) return LANG.t("cloud.never");
     var d = new Date(iso), mins = Math.round((Date.now() - d) / 60000);
     if (mins < 1) return LANG.t("ago.justNow");
     if (mins < 60) return LANG.t("ago.min", { n: LANG.count("unit.minute", mins) });
@@ -6107,16 +6451,24 @@
       : days === 1 ? LANG.t("when.yesterday")
       : LANG.t("ago.day", { n: LANG.count("unit.dayShort", days) });
   }
-  function renderYaInfo() {
-    if (!$("yaState")) return;
-    var on = !!yaToken;
-    $("yaState").textContent = LANG.t(on ? "ya.on" : "ya.off");
-    $("yaState").className = "v " + (on ? "safe" : "");
-    $("yaConnectLbl").textContent = LANG.t(on ? "ya.disconnect" : "ya.connect");
-    $("yaConnect").classList.toggle("ghost-btn", on);
-    $("yaPull").hidden = !on;
-    $("yaSyncRow").hidden = !on;
-    if (on) $("yaWhen").textContent = yaWhenText();
+  function renderCloudInfo() {
+    if (!$("cloudSeg")) return;
+    var on = cloudOn();
+    $("cloudSeg").querySelectorAll("button").forEach(function (b) {
+      var k = b.dataset.cloud;
+      b.classList.toggle("active", on ? cloudKind === k : k === "off");
+      /* Поставщик без ключа приложения нажать нельзя, но видно, что он есть */
+      var dead = k !== "off" && !cloudReady(k);
+      b.disabled = dead;
+      b.classList.toggle("dim", dead);
+    });
+    $("cloudState").textContent = on ? LANG.t("cloud.name." + cloudKind) : LANG.t("cloud.off");
+    $("cloudState").className = "v " + (on ? "safe" : "");
+    $("cloudSyncRow").hidden = !on;
+    $("cloudPull").hidden = !on;
+    $("cloudForget").hidden = !on;
+    if (on) $("cloudWhen").textContent = cloudWhenText();
+    $("cloudNote").textContent = on ? LANG.t("cloud.note." + cloudKind) : LANG.t("cloud.noteOff");
   }
   function backupPayload() {
     var raw = localStorage.getItem(STORE);
@@ -9719,7 +10071,7 @@
   function removeRef(i) {
     var r = fRefs[i];
     if (!r) return;
-    if (r.k === "img" && r.path) yaDelete(r.path);   // с Диска тоже убираем
+    if (r.k === "img" && r.path) cloudDelete(r.path);   // с Диска тоже убираем
     fRefs.splice(i, 1);
     renderRefs();
   }
@@ -9732,7 +10084,7 @@
     var img = $("refViewImg"), mine = ++refViewSeq;
     img.src = r.thumb || "";
     $("refView").classList.add("open");
-    yaDownloadUrl(r.path).then(function (href) {
+    cloudDownloadUrl(r.path).then(function (href) {
       /* Ссылка с Диска живёт недолго и иногда не открывается вовсе. Раньше мы
          подставляли её сразу — миниатюра стиралась, оригинал не приходил, и
          картинка пропадала через секунду. Меняем только на загруженный кадр,
@@ -9766,14 +10118,14 @@
      o.noDiskText — свои слова, когда Диск не подключён */
   function uploadToDisk(files, o) {
     var list = o.list, render = o.render || function () {}, note = o.note;
-    if (!yaToken) {
+    if (!cloudOn()) {
       $(note).hidden = false;
       $(note).textContent = o.noDiskText
         || LANG.t(o.imagesOnly ? "ref.noDiskPhoto" : "ref.noDiskDoc");
       return;
     }
-    var dir = "app:/" + o.dir;
-    var dirReady = yaEnsureDir(dir);          // папку создаём один раз перед загрузкой
+    var dir = o.dir;
+    var dirReady = cloudEnsureDir(dir);          // папку создаём один раз перед загрузкой
     Array.prototype.slice.call(files).forEach(function (file) {
       var isImg = /^image\//.test(file.type);
       if (o.imagesOnly && !isImg) return;
@@ -9790,9 +10142,9 @@
       ready
         .then(function (thumb) {
           if (thumb) { rec.thumb = thumb; render(); }
-          return dirReady.then(function () { return yaUpload(dir + "/" + stamp + ext, file); })
+          return dirReady.then(function () { return cloudUpload(dir + "/" + stamp + ext, file); })
             // Подпапка не далась — кладём рядом с копией, лишь бы файл не потерялся
-            .catch(function () { return yaUpload("app:/" + o.dir + "-" + stamp + ext, file); });
+            .catch(function () { return cloudUpload(o.dir + "-" + stamp + ext, file); });
         })
         .then(function (path) {
           rec.path = path; rec.pending = false; render();
@@ -9915,7 +10267,7 @@
         var kill = e.target.closest("[data-kill]");
         if (kill) {
           var i = +kill.dataset.kill, r = fDocs[i];
-          if (r && r.k === "doc" && r.path) yaDelete(r.path);
+          if (r && r.k === "doc" && r.path) cloudDelete(r.path);
           fDocs.splice(i, 1); renderDocs(); renderDocKinds(); return;
         }
         openDoc(fDocs[+b.dataset.i]);
@@ -9926,7 +10278,7 @@
     if (!r) return;
     if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
     if (!r.path) return;
-    yaDownloadUrl(r.path).then(function (href) {
+    cloudDownloadUrl(r.path).then(function (href) {
       window.open(href, "_blank", "noopener");
     }).catch(function () {
       $("docNote").hidden = false;
@@ -10254,7 +10606,7 @@
     if (!mbOpen) return;
     var list = mbList(mbOpen), r = list[mbItem];
     if (!r) return;
-    if (r.k === "img" && r.path) yaDelete(r.path);
+    if (r.k === "img" && r.path) cloudDelete(r.path);
     list.splice(mbItem, 1);
     saveAll();
     closeMbItem();
@@ -10394,7 +10746,7 @@
         var kill = e.target.closest("[data-kill]");
         if (kill) {
           var i = +kill.dataset.kill, r = list[i];
-          if (r && r.path) yaDelete(r.path);
+          if (r && r.path) cloudDelete(r.path);
           list.splice(i, 1); saveAll(); renderReqFiles(); return;
         }
         var r2 = list[+b.dataset.i];
@@ -10495,7 +10847,7 @@
           var own = orgs[orgIdx].docs || [];
           var at = own.indexOf(d.r);
           if (at >= 0) {
-            if (d.r.k === "doc" && d.r.path) yaDelete(d.r.path);
+            if (d.r.k === "doc" && d.r.path) cloudDelete(d.r.path);
             own.splice(at, 1); saveAll(); renderOrgDocs();
           }
           return;
@@ -13329,7 +13681,7 @@
         var kill = e.target.closest("[data-kill]");
         if (kill) {
           var i = +kill.dataset.kill, r = list[i];
-          if (r && r.k === "img" && r.path) yaDelete(r.path);
+          if (r && r.k === "img" && r.path) cloudDelete(r.path);
           list.splice(i, 1); saveAll(); renderGenreRefs(); return;
         }
         openRef(list[+b.dataset.i]);
@@ -14319,15 +14671,28 @@
   $("backupLoad").addEventListener("click", function () { $("backupFile").click(); });
 
   /* Яндекс.Диск: подключение, отключение, восстановление */
-  $("yaConnect").addEventListener("click", function () {
-    if (yaToken) {
-      yaForget();
-      $("yaNote").textContent = LANG.t("ya.disconnected");
-    } else {
-      yaConnect();
-    }
+  /* Выбор поставщика и есть подключение: нажатие сразу ведёт на согласие,
+     а не откладывает его до второй кнопки. Отключение — отдельной кнопкой,
+     потому что это не выбор из ряда, а отказ от всего ряда. */
+  $("cloudSeg").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.dataset.cloud;
+      if (k === "off") {
+        cloudForget();
+        $("cloudNote").textContent = LANG.t("cloud.disconnected");
+        return;
+      }
+      if (!cloudReady(k)) return;
+      if (cloudKind === k && cloudOn()) return;
+      var d = CLOUD[k];
+      if (d) d.connect();
+    });
   });
-  $("yaPull").addEventListener("click", yaPull);
+  $("cloudForget").addEventListener("click", function () {
+    cloudForget();
+    $("cloudNote").textContent = LANG.t("cloud.disconnected");
+  });
+  $("cloudPull").addEventListener("click", cloudPull);
   $("backupFile").addEventListener("change", function () {
     var f = this.files && this.files[0];
     if (!f) return;
@@ -14490,7 +14855,7 @@
     if ($("ribbonNote")) renderRibbonSeg();
     if ($("syncNote")) renderSyncNote();
     if ($("storeCount")) renderStorageInfo();
-    if ($("yaState")) renderYaInfo();
+    if ($("cloudSeg")) renderCloudInfo();
     if ($("spotCount")) renderSpotMark();
     if (typeof renderBinBtn === "function") renderBinBtn();
     if (!booted) return;
@@ -16011,7 +16376,10 @@
   }
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
   askPersistence(); renderStorageInfo();   // просим у браузера не стирать наши записи
-  yaCatchToken(); yaLoadToken(); renderYaInfo();   // вернулись от Яндекса — забираем токен
+  /* Порядок важен: сперва читаем свой ключ, перенос старого молча уступает
+     ему (см. `cloudMigrateYa`), и только потом ловим возврат от сервиса —
+     иначе перенос затёр бы токен, только что пойманный в адресе */
+  cloudLoad(); cloudMigrateYa(); cloudCatch(); renderCloudInfo();
 })();
 </script>
 
