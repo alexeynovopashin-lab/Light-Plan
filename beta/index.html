@@ -2120,8 +2120,8 @@
   .sheet::-webkit-scrollbar { display: none; }
   .sheet.open { transform: none; }
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
-  #gScrim, #locScrim { z-index: 84; }
-  #gSheet, #locSheet { z-index: 86; }
+  #gScrim, #locScrim, #kScrim { z-index: 84; }
+  #gSheet, #locSheet, #kSheet { z-index: 86; }
   /* Лист занятости открывается с экрана «Съёмки», а не из формы — ему хватает
      своего уровня, но выше нижних листов настроек он быть обязан */
   #blkSheet { z-index: 86; }
@@ -3116,6 +3116,8 @@
   }
   .pack-item .pk-x:active { color: var(--terra); }
   .pack-empty { padding: 0 15px 12px; font-size: 12px; color: var(--ink-6); }
+  .kit-name { flex: 1 1 auto; font-size: 14px; color: var(--ink); }
+  .kit-empty { padding: 0 15px 10px; font-size: 12px; color: var(--ink-6); }
 
   .back {
     background: none; border: none; color: var(--ink-4); cursor: pointer;
@@ -4290,6 +4292,13 @@
         </span>
       </div>
       <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки" data-i18n-ph="form.notesPh"></textarea>
+      <!-- Список техники ведёт сам фотограф — каталога не навязываем. Один
+           общий список хранится в настройках, а что взято на эту съёмку —
+           в записи (docs: ROADMAP, «Список оборудования») -->
+      <button type="button" class="row sep" id="fKitRow" aria-label="Оборудование" data-i18n-aria="form.kitAria">
+        <span data-i18n="form.kit">Оборудование</span>
+        <span class="rv"><span id="fKitSummary">—</span></span>
+      </button>
     </div>
 
     <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
@@ -4869,6 +4878,26 @@
     </div>
 
     <button class="sheet-done" id="gDone" data-i18n="pick.done">Готово</button>
+  </div>
+
+  <!-- ============ ОБОРУДОВАНИЕ ============
+       Список свой, без готового каталога (ROADMAP, «Список оборудования»):
+       фотограф сам заводит позиции, здесь же отмечает, что берёт на эту
+       съёмку. Позиции живут в одном общем списке (kitAdd), отметки — в
+       записи съёмки. -->
+  <div class="scrim" id="kScrim"></div>
+  <div class="sheet" id="kSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="form.kit">Оборудование</div>
+    <div class="sheet-sub" data-i18n="kit.sub">Список свой — без готового каталога. Отметьте, что берёте на эту съёмку</div>
+    <div class="group" style="margin-top:18px;">
+      <div id="kitList"></div>
+      <div class="pack-item sep">
+        <input type="text" id="kitNew" placeholder="Новая позиция" data-i18n-ph="kit.newPh"/>
+        <button type="button" class="pack-add" id="kitAdd" data-i18n="kit.add">＋</button>
+      </div>
+    </div>
+    <button class="sheet-done" id="kDone" data-i18n="pick.done">Готово</button>
   </div>
 
   <!-- ============ РЕФЕРЕНСЫ ВО ВЕСЬ ЭКРАН ============
@@ -5952,7 +5981,7 @@
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
-        defaultRate: defaultRate, packs: genrePacks, loc: { lat: LAT, lon: LON },
+        defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
         pro: proMode,
@@ -6913,6 +6942,13 @@
     if (!genrePacks[g]) genrePacks[g] = [];
     return genrePacks[g];
   }
+
+  /* Оборудование — список ведёт сам фотограф, каталога не навязываем
+     (ROADMAP, «Список оборудования»). Один общий список на всё приложение;
+     что взято на конкретную съёмку — отметки в самой записи (fGear). */
+  var equipment = (saved && Array.isArray(saved.equipment))
+    ? saved.equipment.filter(function (n) { return typeof n === "string" && n.trim(); })
+    : [];
 
   /* ---------- Деньги: доход, расходы, прибыль ----------
      Валюта — своя настройка, а не следствие языка. Русский фотограф с
@@ -9971,6 +10007,9 @@
   /* Документы заказа: {k:"doc", path, name, size} на Диске фотографа либо
      {k:"link", url}. Миниатюр у них не бывает — показываем именем */
   var fDocs = [];
+  /* Что из общего списка оборудования (equipment) берём на эту съёмку —
+     имена, не индексы: список могут поправить, пока запись лежит нетронутой */
+  var fGear = [];
   var fDelvChoice = "auto";     // "auto" | число дней | null
   /* Момент, когда отметили «сдано» — не сам факт, а когда он случился. Без
      метки времени статистика опозданий взять неоткуда: галочка одна и та же
@@ -12838,7 +12877,8 @@
      сдача, заметки. Каждая со знаком: глаз цепляется за пиктограмму */
   var PANE_IC = {
     pin: IC.svg("pin"), note: IC.svg("note"), purse: IC.svg("purse"), clock: IC.svg("clock"),
-    guests: IC.svg("guests"), car: IC.svg("car"), brief: IC.svg("note_edit"), doc: IC.svg("doc")
+    guests: IC.svg("guests"), car: IC.svg("car"), brief: IC.svg("note_edit"), doc: IC.svg("doc"),
+    kit: IC.svg("camera")
   };
   function renderPanes(s, route, phase, sun) {
     var top = [], bottom = [], spec = genreSpec(s.type);
@@ -12884,6 +12924,14 @@
         + '<span class="badge">' + PANE_IC.car + "</span>"
         + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.trip")) + "</span>"
         + '<span class="pn-t" style="margin-top:2px">' + esc(s.tripPlace || LANG.t("pane.tripAny")) + "</span></span></div></div>");
+    }
+    /* Оборудование — плитка со счётом, как гости: список ведётся отдельно
+       (fKitRow), карточка только показывает, сколько отмечено на эту съёмку */
+    if (Array.isArray(s.gear) && s.gear.length) {
+      top.push('<div class="pane"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.kit + "</span>"
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("form.kit")) + "</span>"
+        + '<span class="pn-v">' + s.gear.length + "</span></span></div></div>");
     }
 
     var inc = sessionIncome(s), exp = +s.expense || 0, pre = +s.prepay || 0;
@@ -13546,6 +13594,7 @@
               kind: r.kind || guessDocKind(r.name || r.url) };
           })
         : [];
+      fGear = Array.isArray(s.gear) ? s.gear.filter(function (n) { return typeof n === "string"; }) : [];
       fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
       fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
       payFolded = true;
@@ -13568,7 +13617,7 @@
       fOrgId = null; $("fPerson").value = ""; $("fPhone").value = "";
       $("fP1Name").value = ""; $("fP1Tel").value = "";
       $("fP2Name").value = ""; $("fP2Tel").value = "";
-      fPrepay = 0; fGuests = 0; fDocs = [];
+      fPrepay = 0; fGuests = 0; fDocs = []; fGear = [];
       $("fPrepay").value = "";
       fTrip = false;
       $("fBrief").value = ""; $("fModels").value = "";
@@ -13582,6 +13631,7 @@
     renderRouteEditor();
     fDocKind = null;
     renderDocKinds(); renderDocs();
+    renderKitSummary();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
     $("formTitle").textContent = meetMode()
@@ -13758,6 +13808,65 @@
   }
   $("gDone").addEventListener("click", closeGenres);
   $("gScrim").addEventListener("click", closeGenres);
+
+  /* ---------- Оборудование: свой список + отметки по этой съёмке ----------
+     Список общий на приложение (equipment), отметки — в записи (fGear),
+     по имени, а не по индексу: правка списка не должна портить старые
+     съёмки (ROADMAP, «Список оборудования») */
+  function kitCheckedCount() {
+    return fGear.filter(function (n) { return equipment.indexOf(n) >= 0; }).length;
+  }
+  function renderKitSummary() {
+    $("fKitSummary").textContent = equipment.length
+      ? LANG.t("kit.count", { n: kitCheckedCount(), m: equipment.length })
+      : LANG.t("kit.empty");
+  }
+  function renderKitList() {
+    var host = $("kitList");
+    host.innerHTML = equipment.length ? equipment.map(function (name, i) {
+      var on = fGear.indexOf(name) >= 0;
+      return '<div class="pack-item" data-i="' + i + '">'
+        + '<span class="kit-name">' + esc(name) + "</span>"
+        + '<span class="toggle' + (on ? " on" : "") + '" data-kit-t></span>'
+        + '<button type="button" class="pk-x" data-kit-x aria-label="' + esc(LANG.t("kit.removeAria")) + '">✕</button>'
+        + "</div>";
+    }).join("") : '<div class="kit-empty">' + esc(LANG.t("kit.empty")) + "</div>";
+    host.querySelectorAll(".pack-item").forEach(function (row) {
+      var i = +row.dataset.i, name = equipment[i];
+      row.querySelector("[data-kit-t]").addEventListener("click", function () {
+        var at = fGear.indexOf(name);
+        if (at >= 0) fGear.splice(at, 1); else fGear.push(name);
+        this.classList.toggle("on");
+      });
+      row.querySelector("[data-kit-x]").addEventListener("click", function () {
+        equipment.splice(i, 1);
+        var at = fGear.indexOf(name);
+        if (at >= 0) fGear.splice(at, 1);
+        saveAll(); renderKitList();
+      });
+    });
+  }
+  $("kitAdd").addEventListener("click", function () {
+    var v = $("kitNew").value.trim();
+    if (!v) return;
+    if (equipment.indexOf(v) < 0) equipment.push(v);
+    if (fGear.indexOf(v) < 0) fGear.push(v);
+    saveAll(); renderKitList();
+    $("kitNew").value = ""; $("kitNew").focus();
+  });
+  $("kitNew").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); $("kitAdd").click(); }
+  });
+  function closeKit() {
+    $("kSheet").classList.remove("open"); $("kScrim").classList.remove("open");
+    renderKitSummary();
+  }
+  $("fKitRow").addEventListener("click", function () {
+    renderKitList();
+    $("kSheet").classList.add("open"); $("kScrim").classList.add("open");
+  });
+  $("kDone").addEventListener("click", closeKit);
+  $("kScrim").addEventListener("click", closeKit);
   // Ставка по умолчанию: применяется к новым почасовым съёмкам
   $("gRate").addEventListener("input", function () {
     defaultRate = parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
@@ -13827,6 +13936,7 @@
           return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url, kind: r.kind || null };
         }),
       refs: fRefs.filter(function (r) { return r.k === "link" || r.path; }),
+      gear: fGear.slice(),
       route: hasRoute(shootType) ? routeFromEditor() : [],
       synced: syncTarget === "off" ? null : syncTarget
     };

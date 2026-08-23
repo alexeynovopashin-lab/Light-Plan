@@ -862,6 +862,16 @@
     "form.goldenAtEnd":   "золотой час в конце",
     "form.subWindow":     "Окно света — {range}",
 
+    /* ---- Оборудование: список фотографа + отметки по съёмке ---- */
+    "form.kit":         "Оборудование",
+    "form.kitAria":     "Оборудование",
+    "kit.sub":          "Список свой — без готового каталога. Отметьте, что берёте на эту съёмку",
+    "kit.newPh":        "Новая позиция",
+    "kit.add":          "＋",
+    "kit.removeAria":   "Удалить",
+    "kit.empty":        "Пока пусто",
+    "kit.count":        "{n} из {m}",
+
     /* ---- Кто платит и как называется: свойство группы жанров ---- */
     "who.event":  "Пара",
     "who.people": "Клиент",
@@ -2041,6 +2051,15 @@
     "form.subLongerThanLight": "The shoot outlasts the light — {tail}",
     "form.goldenAtEnd":   "golden hour at the end",
     "form.subWindow":     "Light window — {range}",
+
+    "form.kit":         "Gear",
+    "form.kitAria":     "Gear",
+    "kit.sub":          "Your own list — no built-in catalog. Check what you're bringing to this shoot",
+    "kit.newPh":        "New item",
+    "kit.add":          "＋",
+    "kit.removeAria":   "Remove",
+    "kit.empty":        "Nothing yet",
+    "kit.count":        "{n} of {m}",
 
     "who.event":  "Couple",
     "who.people": "Client",
