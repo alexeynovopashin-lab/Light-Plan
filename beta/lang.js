@@ -1176,6 +1176,7 @@
     "loc.delAria":     "Убрать точку",
     "loc.hourly":      "Почасовая аренда",
     "loc.hourlyMins":  "Минут в оплаченном часе — предупредим за 10 и 5 до конца",
+    "loc.noPlace":     "Место не выбрано",
     "loc.inCity":      "в городе",
     "loc.outCity":     "за городом",
 
@@ -2388,6 +2389,7 @@
     "loc.delAria":     "Remove this spot",
     "loc.hourly":      "Hourly rental",
     "loc.hourlyMins":  "Minutes in a paid hour — we warn you 10 and 5 before the end",
+    "loc.noPlace":     "No place chosen",
     "loc.inCity":      "in town",
     "loc.outCity":     "out of town",
 
