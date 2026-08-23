@@ -1,8 +1,8 @@
 {
   "name": "Light Plan β",
   "short_name": "Plan β",
-  "description": "Бета: карточка события, таймлайн дня, наборы референсов по жанрам",
-  "lang": "ru",
+  "description": "Beta: the event card, the day timeline, reference sets by genre",
+  "lang": "en",
   "id": "/Light-Plan/beta/",
   "start_url": "./",
   "scope": "./",

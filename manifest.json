@@ -1,8 +1,8 @@
 {
   "name": "Light Plan",
   "short_name": "Light Plan",
-  "description": "Прибор для света: планер съёмок, который подсказывает световые окна и погоду",
-  "lang": "ru",
+  "description": "A light instrument: a shoot planner that finds light windows and weather",
+  "lang": "en",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
