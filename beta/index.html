@@ -23,6 +23,7 @@
      двигаешь метку, иначе на устройстве правки не будет. -->
 <script src="icons.js?v=2"></script>
 <script src="lang.js?v=2"></script>
+<script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
      ЦВЕТА ОДНИМ СПИСКОМ
@@ -2122,6 +2123,10 @@
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
   #gScrim, #locScrim, #kScrim { z-index: 84; }
   #gSheet, #locSheet, #kSheet { z-index: 86; }
+  /* Опросник вызывается с экрана «Съёмки», но и из карточки тоже должен
+     ложиться поверх — держим его на том же уровне, что листы формы */
+  #qScrim { z-index: 84; }
+  #qSheet { z-index: 86; }
   /* Лист занятости открывается с экрана «Съёмки», а не из формы — ему хватает
      своего уровня, но выше нижних листов настроек он быть обязан */
   #blkSheet { z-index: 86; }
@@ -3118,6 +3123,12 @@
   .pack-empty { padding: 0 15px 12px; font-size: 12px; color: var(--ink-6); }
   .kit-name { flex: 1 1 auto; font-size: 14px; color: var(--ink); }
   .kit-empty { padding: 0 15px 10px; font-size: 12px; color: var(--ink-6); }
+  /* Знак всегда на белом, в любой теме: читалка ищет чёрное на белом */
+  .qr-card {
+    background: #FFFFFF; border-radius: 16px; corner-shape: squircle;
+    padding: 14px; margin: 20px auto 4px; width: max-content; line-height: 0;
+  }
+  .qr-card svg { display: block; width: 232px; height: 232px; }
 
   .back {
     background: none; border: none; color: var(--ink-4); cursor: pointer;
@@ -3694,7 +3705,7 @@
     </button>
     <!-- Опросник — не запись в календаре, а письмо клиенту, поэтому тише
          встречи и без своей карточки. Ответы вернутся сюда же встречей -->
-    <button class="ghost" id="planQuest" style="margin: 10px 24px 0;" data-i18n="quest.send">Опросник клиенту — ссылка, которую он заполнит</button>
+    <button class="ghost" id="planQuest" style="margin: 10px 24px 0;" data-i18n="quest.send">Опросник клиенту — ссылка или знак для камеры</button>
     <!-- Занять время — действие тише съёмки: планировщик про съёмки,
          а выходной ставят реже -->
     <button class="ghost" id="planBlock" style="margin: 10px 24px 0;" data-i18n="plan.block">Занять время — выходной, дорога, перелёт</button>
@@ -4901,6 +4912,22 @@
       </div>
     </div>
     <button class="sheet-done" id="kDone" data-i18n="pick.done">Готово</button>
+  </div>
+
+  <!-- ============ ОПРОСНИК КЛИЕНТУ ============
+       Два пути к одному: показать знак прямо на встрече (клиент наводит
+       камеру и заполняет у себя) или отправить ссылку, если встречи нет.
+       Знак рисуется на месте, своим кодировщиком (qr.js) — без сети. -->
+  <div class="scrim" id="qScrim"></div>
+  <div class="sheet" id="qSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="quest.title">Опросник клиенту</div>
+    <div class="sheet-sub" data-i18n="quest.sub">Покажите знак — клиент наведёт камеру. Или отправьте ссылку.</div>
+    <!-- Белое поле под знаком обязательно и в тёмной теме: читалка ищет
+         чёрное на белом, и поле вокруг знака входит в стандарт -->
+    <div class="qr-card" id="qrBox"></div>
+    <button class="sheet-done" id="qSend" data-i18n="quest.sendLink">Отправить ссылку</button>
+    <button class="ghost" id="qDone" style="margin-top:10px;" data-i18n="pick.done">Готово</button>
   </div>
 
   <!-- ============ РЕФЕРЕНСЫ ВО ВЕСЬ ЭКРАН ============
@@ -13882,7 +13909,7 @@
      встречи в съёмку (`cdGrow`) везёт с собой имена, телефоны, место и
      заметки. Что попало в заметки — доедет до съёмки; что осталось бы в
      скрытом поле встречи — потерялось бы на этом переходе. */
-  var QUEST_KEYS = ["b", "bt", "bs", "bm", "g", "gt", "d", "z", "vy", "q", "n",
+  var QUEST_KEYS = ["b", "bt", "bs", "bm", "g", "gt", "d", "z", "vn", "vy", "q", "n",
                     "pr", "sv", "vd", "au", "ko", "pl", "mu", "fi", "zh",
                     "re", "ms", "w", "pin"];
   function questDecode(code) {
@@ -13943,7 +13970,10 @@
     line("quest.social", a.bs);
     line("quest.msgr", a.bm);
     line("quest.date", a.d ? questDate(a.d) : "");
+    /* Четыре события подряд — загс, венчание, выездная, банкет: на одной
+       свадьбе бывают все четыре, и каждое это своё место и своё время */
     line("quest.reg", a.z);
+    line("quest.church", a.vn);
     line("quest.offsite", a.vy);
     line("quest.party", a.q);
     line("pane.guests", a.n);
@@ -13956,11 +13986,15 @@
     line("quest.music", a.mu);
     line("quest.finale", a.fi);
     line("quest.pets", a.zh);
-    line("quest.pin", a.pin);
 
     var parts = [];
     if (lines.length) parts.push(LANG.t("quest.head") + "\n" + lines.join("\n"));
-    [["quest.rites", a.re], ["quest.places", a.ms], ["quest.wishes", a.w]]
+    /* Доска настроения стоит своим абзацем, а не строкой в общем списке: в
+       карточке у референсов своё место, и ссылке на них место тоже своё.
+       Когда ответы начнут приходить в карточку съёмки, отсюда она переедет
+       в сами референсы — там ей и дом */
+    [["quest.rites", a.re], ["quest.places", a.ms], ["quest.wishes", a.w],
+     ["quest.pin", a.pin]]
       .forEach(function (p) {
         if (p[1]) parts.push(LANG.t(p[0]) + ": " + p[1]);
       });
@@ -13999,7 +14033,23 @@
     if (p.slice(-1) !== "/") p += "/";
     return location.origin + p + "quest/wedding.html?c=" + CHANNEL;
   }
-  $("planQuest").addEventListener("click", function () {
+  /* Знак и ссылка — два пути к одному опроснику. На встрече быстрее знак:
+     клиент наводит камеру и заполняет у себя, не дожидаясь, пока дойдёт
+     сообщение. Без встречи остаётся ссылка. Рисуем сами (`qr.js`): готовый
+     генератор либо просит сервер, либо тянется из сети, а приложение обязано
+     работать и там, где сети нет */
+  function openQuest() {
+    var url = questLink();
+    var box = $("qrBox");
+    var svg = (typeof QR !== "undefined") ? QR.svg(url, 232) : "";
+    if (svg) { box.innerHTML = svg; box.hidden = false; }
+    else { box.innerHTML = ""; box.hidden = true; }   // не нарисовался — ссылка остаётся
+    $("qSheet").classList.add("open"); $("qScrim").classList.add("open");
+  }
+  function closeQuest() {
+    $("qSheet").classList.remove("open"); $("qScrim").classList.remove("open");
+  }
+  function sendQuestLink() {
     var url = questLink();
     if (navigator.share) {
       navigator.share({ text: LANG.t("quest.msg", { url: url }) }).catch(function () {});
@@ -14012,7 +14062,11 @@
       return;
     }
     notify(LANG.t("quest.copiedTitle"), url);
-  });
+  }
+  $("planQuest").addEventListener("click", openQuest);
+  $("qSend").addEventListener("click", sendQuestLink);
+  $("qDone").addEventListener("click", closeQuest);
+  $("qScrim").addEventListener("click", closeQuest);
   // Ставка по умолчанию: применяется к новым почасовым съёмкам
   $("gRate").addEventListener("input", function () {
     defaultRate = parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;

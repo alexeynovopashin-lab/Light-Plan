@@ -19,12 +19,19 @@
   чужой адрес в ссылку подставить нельзя.
 -->
 <style>
+  /* Светлое и серое намеренно, вопреки тёмной шкуре самого приложения.
+     Приложение — прибор фотографа, а эта страница открывается у невесты, и
+     цвет она прочтёт как высказывание. Поэтому здесь нет ни латуни, ни
+     розового, ни синего — только оттенки серого с едва тёплой ноткой, чтобы
+     белое не отдавало больницей. Тему телефона намеренно не слушаем
+     (`color-scheme: light`): анкету заполняют глазами, а не в темноте. */
   :root {
-    --bg: #070606; --sheet: #17150F; --field: #1C1A16; --hair: rgba(255,255,255,0.07);
-    --ink: #EFEAE0; --ink-2: #C9C2B6; --ink-4: #8A8478; --ink-6: #635E54; --ink-8: #4A453E;
-    --brass: #E2A44C; --on-brass: #16120C;
+    --bg: #FBFAF9; --sheet: #FFFFFF; --field: #EFEDEA; --hair: rgba(0,0,0,0.07);
+    --ink: #1B1A18; --ink-2: #3D3B37; --ink-4: #6E6A64; --ink-6: #8A8681; --ink-8: #A8A49E;
+    --accent: #2E2C29; --on-accent: #FFFFFF;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { color-scheme: light; }
   html, body { margin: 0; padding: 0; background: var(--bg); }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
@@ -58,19 +65,19 @@
     width: 44px; height: 26px; border-radius: 13px; background: var(--field);
     position: relative; flex: 0 0 auto; cursor: pointer; transition: background 0.2s;
   }
-  .toggle.on { background: var(--brass); }
+  .toggle.on { background: var(--accent); }
   .toggle::after {
     content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
-    border-radius: 50%; background: var(--ink); transition: transform 0.2s;
+    border-radius: 50%; background: #FFFFFF; transition: transform 0.2s;
   }
   .toggle.on::after { transform: translateX(18px); }
-  .toggle:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
-  /* Тёмная тема нативным полям даты и числа: без этого iOS рисует их светлыми */
-  input[type="date"], input[type="number"] { color-scheme: dark; }
+  .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  /* Нативные поля даты и числа держим в светлой теме заодно со страницей */
+  input[type="date"], input[type="number"] { color-scheme: light; }
 
   .send {
     display: block; width: 100%; margin: 32px 0 0; padding: 16px;
-    background: var(--brass); color: var(--on-brass); border: none; border-radius: 14px;
+    background: var(--accent); color: var(--on-accent); border: none; border-radius: 14px;
     font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
   }
   .send:disabled { background: var(--field); color: var(--ink-8); cursor: default; }
@@ -114,12 +121,14 @@
     <input type="tel" id="gt" placeholder="Телефон"/>
   </div>
 
-  <!-- Роспись и выездная — разные события, и у многих пар бывает и то, и
-       другое. Одной строкой на двоих невеста гадала бы, куда писать -->
+  <!-- Загс, венчание, выездная и банкет — четыре разных события, и на одной
+       свадьбе бывают все четыре. Каждому своя строка: одной на всех невеста
+       гадала бы, куда писать, а фотографу это четыре разных места и времени -->
   <span class="lbl">Когда и где</span>
   <div class="group">
     <input type="date" id="d" aria-label="Дата свадьбы"/>
     <input type="text" id="z" placeholder="Роспись в загсе — место" autocomplete="off"/>
+    <input type="text" id="vn" placeholder="Венчание — место, если будет" autocomplete="off"/>
     <!-- Переключатель здесь, а не пустое поле: «выездная будет, где — ещё не
          решили» — тоже ответ, и его надо было чем-то сказать -->
     <div class="row" id="vyRow">
@@ -131,10 +140,12 @@
     <input type="number" id="n" placeholder="Сколько гостей" inputmode="numeric" min="0" max="2000"/>
   </div>
 
+  <!-- «Шафер» знают не везде: в России того же человека называют свидетелем
+       или дружкой. Спрашиваем теми словами, которыми отвечают -->
   <span class="lbl">Кто рядом</span>
   <div class="group">
     <textarea id="pr" placeholder="Имена родителей — с обеих сторон"></textarea>
-    <textarea id="sv" placeholder="Имена свидетелей — шафер, дружки жениха, подружки невесты"></textarea>
+    <textarea id="sv" placeholder="Свидетель, свидетельница, дружки и подружки — имена"></textarea>
     <input type="text" id="vd" placeholder="Имя ведущего" autocomplete="off"/>
   </div>
 
@@ -146,7 +157,9 @@
     <input type="text" id="mu" placeholder="Музыканты на банкете — живая музыка, диджей, кавер-группа" autocomplete="off"/>
     <input type="text" id="fi" placeholder="Финал вечера — фейерверк, номер артистов, фаершоу" autocomplete="off"/>
     <input type="text" id="zh" placeholder="Домашние животные — если будут с вами" autocomplete="off"/>
-    <textarea id="re" placeholder="Религиозные обряды и пожелания — венчание, никах, если есть"></textarea>
+    <!-- Само венчание спрашиваем выше, местом. Здесь — обычаи и ограничения:
+         где нельзя со вспышкой, куда не заходить, что нельзя снимать -->
+    <textarea id="re" placeholder="Обычаи и ограничения — что можно и чего нельзя снимать"></textarea>
   </div>
 
   <span class="lbl">Куда хочется</span>
@@ -157,6 +170,12 @@
   <span class="lbl">Пожелания</span>
   <div class="group">
     <textarea id="w" placeholder="Что важно снять, чего хочется избежать, кого не забыть"></textarea>
+  </div>
+
+  <!-- Референсы отдельной строкой, а не в общей куче: в карточке фотографа у
+       них своё место, и доска настроения — не то же самое, что пожелание -->
+  <span class="lbl">Референсы</span>
+  <div class="group">
     <input type="text" id="pin" placeholder="Ссылка на доску Pinterest — если есть" autocomplete="off" inputmode="url"/>
   </div>
 
@@ -192,6 +211,7 @@
     { k: "gt",  t: "Телефон жениха" },
     { k: "d",   t: "Дата свадьбы" },
     { k: "z",   t: "Роспись в загсе" },
+    { k: "vn",  t: "Венчание" },
     { k: "vy",  t: "Выездная регистрация" },
     { k: "q",   t: "Место банкета" },
     { k: "n",   t: "Гостей" },
@@ -204,7 +224,7 @@
     { k: "mu",  t: "Музыканты" },
     { k: "fi",  t: "Финал вечера" },
     { k: "zh",  t: "Животные" },
-    { k: "re",  t: "Обряды" },
+    { k: "re",  t: "Обычаи и ограничения" },
     { k: "ms",  t: "Места" },
     { k: "w",   t: "Пожелания" },
     { k: "pin", t: "Pinterest" }
