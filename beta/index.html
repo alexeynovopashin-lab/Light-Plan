@@ -2777,6 +2777,18 @@
   .card-grown { margin-top: 12px; padding: 12px 15px; border-radius: 14px; corner-shape: squircle;
     background: var(--sheet-3); font-size: 14px; color: var(--ink-3); }
   .card-grown[hidden] { display: none; }
+  /* Строка опросника. Пока не отправлен — говорит латунью, как всякое
+     предложение действия; после отправки гаснет до обычной строки сведений,
+     но остаётся кнопкой: отправить заново иногда нужно */
+  .quest-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    width: 100%; margin: 0 0 12px; padding: 13px 15px; background: var(--sheet-3);
+    border: none; border-radius: 14px; corner-shape: squircle; cursor: pointer;
+    font-family: inherit; text-align: left; }
+  .quest-row[hidden] { display: none; }
+  .quest-row .qr-t { font-size: 15px; font-weight: 600; color: var(--brass); }
+  .quest-row .qr-s { font-size: 12px; color: var(--ink-4); }
+  .quest-row.sent .qr-t { font-weight: 500; color: var(--ink-3); }
+  .quest-row:active { background: var(--press-warm); }
   /* В карточке референсы только смотрят: удаление живёт в форме */
   #cdRefs .kill { display: none; }
 
@@ -3703,9 +3715,6 @@
       <span class="lbl" data-i18n="plan.meet">Встреча</span>
       <span class="sub" data-i18n="plan.meetSub">обсудить съёмку</span>
     </button>
-    <!-- Опросник — не запись в календаре, а письмо клиенту, поэтому тише
-         встречи и без своей карточки. Ответы вернутся сюда же встречей -->
-    <button class="ghost" id="planQuest" style="margin: 10px 24px 0;" data-i18n="quest.send">Опросник клиенту — ссылка или знак для камеры</button>
     <!-- Занять время — действие тише съёмки: планировщик про съёмки,
          а выходной ставят реже -->
     <button class="ghost" id="planBlock" style="margin: 10px 24px 0;" data-i18n="plan.block">Занять время — выходной, дорога, перелёт</button>
@@ -4041,6 +4050,17 @@
          краями, как окна в многозадачности. Тап по краю поднимает соседа -->
 
     <!-- Перестановка: блоки сворачиваются в заголовки и таскаются пальцем -->
+
+    <!-- Опросник наверху карточки и вне переставляемых блоков: это действие,
+         а не сведения, и переставлять его вместе с ними нечего. Появляется
+         сам, ничего не предлагая заранее: встреча-знакомство опросника не
+         просит, а встреча по деталям просит — решает фотограф, не мы.
+         После отправки строка не исчезает, а стихает: окно отправки можно
+         закрыть, не отправив, да и ссылку у клиента иногда теряют. -->
+    <button class="quest-row" id="cdQuest" hidden>
+      <span class="qr-t" id="cdQuestT">Опросник</span>
+      <span class="qr-s" id="cdQuestS">—</span>
+    </button>
 
     <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
     <div id="cdEventBlocks">
@@ -6799,6 +6819,39 @@
   }
 
   var sessions = saved && saved.sessions ? saved.sessions : [];
+  /* ---------- Опознавательный знак записи ----------
+     Записи опознавались номером в списке, и до сих пор этого хватало: номер
+     нужен был только пока карточка открыта. Опроснику не хватает — его ссылка
+     уходит клиенту и возвращается через день-другой, а к тому времени номер
+     уже чужой: удаление двигает соседей, корзина возвращает запись на прежнее
+     место и двигает их обратно.
+
+     Знак случайный и ничего не значит снаружи: он про эту установку
+     приложения и только. Секретом не является — угадавшему его нечего с ним
+     делать, сервера, куда пойти, не существует. */
+  function newId() {
+    var s = "", i, n = 10;
+    if (window.crypto && crypto.getRandomValues) {
+      var a = new Uint8Array(n); crypto.getRandomValues(a);
+      for (i = 0; i < n; i++) s += (a[i] % 36).toString(36);
+    } else {
+      for (i = 0; i < n; i++) s += Math.floor(Math.random() * 36).toString(36);
+    }
+    return s;
+  }
+  /* Записям, заведённым до этой правки, знак раздаём разом при первом запуске
+     и тут же сохраняем: иначе он менялся бы при каждой загрузке, и ссылка,
+     отправленная вчера, назавтра не нашла бы свою запись */
+  (function () {
+    var added = 0;
+    sessions.forEach(function (s) { if (!s.id) { s.id = newId(); added++; } });
+    if (added) setTimeout(function () { saveAll(); }, 0);
+  })();
+  function byId(id) {
+    if (!id) return -1;
+    for (var i = 0; i < sessions.length; i++) if (sessions[i].id === id) return i;
+    return -1;
+  }
   var syncTarget = saved && saved.sync ? saved.sync : "off";
   // Сводка карты свёрнута или нет: кто её свернул, тот не хочет видеть её и завтра
   var mapFoldShut = !!(saved && saved.mapFold);
@@ -13358,6 +13411,22 @@
                    : LANG.t("card.meetTopic", { genre: shortGenre(s.type).toLowerCase() }))
       : (s.contact || LANG.t("card.noClient"));
 
+    /* Опросник. У встречи — всегда, пока она не отработана: её и заводят,
+       чтобы обо всём расспросить. У съёмки — только до неё: после съёмки
+       спрашивать нечего, а во время неё карточка занята другим.
+       У выросшей встречи строки нет — опросник переехал в съёмку. */
+    var qPhase = eventPhase(s, routeOf(s));
+    var qShow = meet ? !s.grewOn : (qPhase === "before");
+    $("cdQuest").hidden = !qShow;
+    if (qShow) {
+      var sent = s.questSent ? new Date(s.questSent) : null;
+      $("cdQuest").classList.toggle("sent", !!sent);
+      $("cdQuestT").textContent = sent
+        ? LANG.t("quest.sentOn", { d: dMon(sent) })
+        : LANG.t("quest.title");
+      $("cdQuestS").textContent = sent ? LANG.t("quest.againSub") : LANG.t("quest.rowSub");
+    }
+
     /* Эволюция: кнопка есть, пока съёмка из встречи не назначена */
     $("cdGrow").hidden = !meet || !!s.grewOn;
     $("cdGrown").hidden = !(meet && s.grewOn);
@@ -13552,16 +13621,22 @@
     when.setDate(when.getDate() + 30);            // разговор сегодня, съёмка позже
     var w = dayWindow(when);
     var rec = {
-      kind: "shoot", date: when,
+      kind: "shoot", date: when, id: newId(),
       min: Math.round(w.a), dur: genreSpec(m.type).dur || 90,
       type: m.type, contact: m.contact || "", notes: m.notes || "",
       persons: (m.persons || []).slice(),
       person: m.person || "", phone: m.phone || "", orgId: m.orgId || null,
       place: m.place || "", placeLat: m.placeLat, placeLon: m.placeLon, placeCity: m.placeCity,
-      wish: [], fromMeetOn: m.date.toISOString()
+      /* Отправленный опросник переезжает вместе с остальным: иначе на карточке
+         съёмки кнопка появилась бы снова и клиенту ушёл бы второй */
+      questSent: m.questSent || null,
+      wish: [], fromMeetOn: m.date.toISOString(), fromMeetId: m.id || null
     };
     rec.end = rec.min + rec.dur;
     m.grewOn = when.toISOString();                // встреча помнит, чем кончилась
+    /* Знаком, а не строкой даты: дату встречи можно поправить, и связь по ней
+       рвётся молча. Строку оставляем для записей, заведённых до знаков */
+    m.grewToId = rec.id;
     sessions.push(rec);
     saveAll();
     closeCard();
@@ -13935,21 +14010,61 @@
     var d = new Date(+m[1], +m[2] - 1, +m[3]);
     return isNaN(d.getTime()) ? iso : dMonYear(d);
   }
-  function questApply(a) {
-    /* Свадьба может быть выключена в «Моих жанрах». Включать её за фотографа
-       мы не вправе — приложение не меняет его настройки само. Тогда пара
-       уезжает в заметки вместе с остальным: ничего не пропадает, просто
-       ложится текстом, а не полями */
-    var pair = !!genresOn["wedding"];
-    if (pair) shootType = "wedding";
-    openForm(calSel, snapMin(14 * 60), null, false, "meet");
+  /* ---------- Сверка того, что уже записано, с тем, что ответил клиент ----
+     Телефон нельзя сравнивать строкой: «89234123333» и «+7 923 412-33-33» —
+     один и тот же номер, и посимвольная сверка кричала бы почти на каждом.
+     Сверяем по цифрам, а у длинных номеров — по последним десяти: так «8» и
+     «+7» перестают быть разницей, ею и не будучи.
 
+     С именами так не выйдет — «Лена» и «Елена» разойдутся, хотя человек один.
+     Тут остаётся лёгкий шум, и он терпим: имя всё равно стоит проверить
+     глазом, а вот телефон, набранный заново из-за ложной тревоги, — это
+     звонок не туда. */
+  function telKey(s) {
+    var d = String(s || "").replace(/\D/g, "");
+    return d.length > 10 ? d.slice(-10) : d;
+  }
+  function nameKey(s) {
+    return String(s || "").trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
+  }
+
+  function questApply(a, idx) {
+    /* Ответы вернулись в свою запись — открываем её; не нашли, откуда пришли —
+       заводим встречу, как раньше */
+    var toExisting = (idx != null && idx >= 0);
+    if (toExisting) {
+      openForm(null, null, idx);
+    } else {
+      /* Свадьба может быть выключена в «Моих жанрах». Включать её за фотографа
+         мы не вправе — приложение не меняет его настройки само. Тогда пара
+         уедет в заметки вместе с остальным: ничего не пропадает, просто
+         ложится текстом, а не полями */
+      if (genresOn["wedding"]) shootType = "wedding";
+      openForm(calSel, snapMin(14 * 60), null, false, "meet");
+    }
+    /* Пара есть не у всякого жанра: у существующей записи её задаёт жанр
+       записи, а не наше пожелание */
+    var pair = personsOf(shootType).length > 1;
+
+    /* Пустое поле заполняем молча, занятое — не трогаем, а расхождение
+       выписываем: переписать набранное фотографом значило бы стереть его
+       работу, а промолчать — оставить его с двумя разными телефонами и
+       без единого намёка на это */
+    var clash = [];
+    function put(el, val, key, same) {
+      if (!val) return;
+      var cur = $(el).value.trim();
+      if (!cur) { $(el).value = val; return; }
+      if (!same(cur, val)) clash.push(LANG.t(key) + ": " + cur + " / " + val);
+    }
     if (pair) {
-      if (a.b) $("fP1Name").value = a.b;
-      if (a.g) $("fP2Name").value = a.g;
+      put("fP1Name", a.b, "person.bride", function (x, y) { return nameKey(x) === nameKey(y); });
+      put("fP2Name", a.g, "person.groom", function (x, y) { return nameKey(x) === nameKey(y); });
       /* `pasted` — номер приехал целиком, а не набирается по цифре */
-      if (a.bt) $("fP1Tel").value = formatTel(a.bt, true);
-      if (a.gt) $("fP2Tel").value = formatTel(a.gt, true);
+      put("fP1Tel", a.bt && formatTel(a.bt, true), "person.bride",
+          function (x, y) { return telKey(x) === telKey(y); });
+      put("fP2Tel", a.gt && formatTel(a.gt, true), "person.groom",
+          function (x, y) { return telKey(x) === telKey(y); });
     }
 
     /* Короткие ответы идут строками — их два десятка, и сплошной фразой
@@ -13998,24 +14113,27 @@
       .forEach(function (p) {
         if (p[1]) parts.push(LANG.t(p[0]) + ": " + p[1]);
       });
-    /* Свой текст фотографа не двигаем: ответы клиента дописываются под ним
-       через пустую строку, и он остаётся сверху таким, каким был.
+    /* Расхождения — последним абзацем и словами, а не подсветкой поля: их
+       читают не в момент прихода ответов, а перед встречей, когда форма давно
+       закрыта. В заметке они доживут до этого часа, в подсветке — нет */
+    if (clash.length) parts.push(LANG.t("quest.clash") + "\n" + clash.join("\n"));
 
-       Сегодня эта ветка ещё не срабатывает: ответы всегда открывают новую
-       встречу, а `openForm` для новой записи заметку очищает — брать сверху
-       нечего. Ветка написана заранее и оживёт, когда ответы начнут попадать
-       в уже существующую карточку (кнопка «Опросник» в самой карточке). */
+    /* Свой текст фотографа не двигаем: ответы клиента дописываются под ним
+       через пустую строку, и он остаётся сверху таким, каким был */
     if (parts.length) {
       var was = $("fNotes").value.trim();
       $("fNotes").value = (was ? was + "\n\n" : "") + parts.join("\n\n");
     }
-    $("savedNote").textContent = LANG.t("quest.filled");
+    $("savedNote").textContent = clash.length
+      ? LANG.t("quest.filledClash", { list: LANG.count("unit.clash", clash.length) })
+      : LANG.t("quest.filled");
   }
   /* Ответы читаем один раз и сразу чистим адрес: код с телефонами клиента не
      должен оставаться в истории браузера и в заголовке вкладки */
   function questCatch() {
-    var code = new URLSearchParams(location.search).get("ans");
+    var q = new URLSearchParams(location.search), code = q.get("ans");
     if (!code) return;
+    var rid = q.get("r");
     history.replaceState(null, "", location.pathname);
     var a = null;
     try { a = questDecode(code); } catch (e) { a = null; }
@@ -14023,23 +14141,46 @@
       notify(LANG.t("quest.badTitle"), LANG.t("quest.badText"));
       return;
     }
-    questApply(a);
+    var idx = byId(rid);
+    /* Опросник отдали на встрече, встреча за это время выросла в съёмку, и
+       ответы пришли уже после — так будет чаще всего. Класть их во встречу,
+       которая отработана, незачем: они нужны там, куда фотограф собирается,
+       а не там, где он был. Идём по знаку; у записей, заведённых до знаков,
+       остаётся связь по строке даты */
+    if (idx >= 0 && sessions[idx].grewOn) {
+      var m = sessions[idx];
+      var next = byId(m.grewToId);
+      if (next < 0) {
+        for (var i = 0; i < sessions.length; i++) {
+          if (!isMeet(sessions[i]) && sessions[i].fromMeetOn === m.date.toISOString()) { next = i; break; }
+        }
+      }
+      if (next >= 0) idx = next;
+    }
+    questApply(a, idx >= 0 ? idx : null);
   }
   /* Ссылка на опросник строится от своего же расположения: канал (бета или
      корень) страница получает параметром, чтобы ответы вернулись именно в то
      приложение, из которого ссылку отправили, а не в соседнее */
-  function questLink() {
+  function questLink(rec) {
     var p = location.pathname.replace(/index\.html$/, "").replace(/beta\/$/, "");
     if (p.slice(-1) !== "/") p += "/";
-    return location.origin + p + "quest/wedding.html?c=" + CHANNEL;
+    var u = location.origin + p + "quest/wedding.html?c=" + CHANNEL;
+    /* Знак записи едет с ссылкой и возвращается с ответами — иначе они не
+       найдут дорогу домой и заведут вторую встречу с теми же людьми */
+    if (rec && rec.id) u += "&r=" + rec.id;
+    return u;
   }
   /* Знак и ссылка — два пути к одному опроснику. На встрече быстрее знак:
      клиент наводит камеру и заполняет у себя, не дожидаясь, пока дойдёт
      сообщение. Без встречи остаётся ссылка. Рисуем сами (`qr.js`): готовый
      генератор либо просит сервер, либо тянется из сети, а приложение обязано
      работать и там, где сети нет */
+  /* Чья это ссылка. Опросник теперь всегда рождается у записи — иначе ответы
+     не нашли бы дорогу назад и завели бы вторую встречу с теми же людьми */
+  var questRec = null;
   function openQuest() {
-    var url = questLink();
+    var url = questLink(questRec);
     var box = $("qrBox");
     var svg = (typeof QR !== "undefined") ? QR.svg(url, 232) : "";
     if (svg) { box.innerHTML = svg; box.hidden = false; }
@@ -14049,8 +14190,19 @@
   function closeQuest() {
     $("qSheet").classList.remove("open"); $("qScrim").classList.remove("open");
   }
+  /* Отправка ссылки и есть «опросник у клиента». Дошёл ли он до анкеты и
+     начал ли заполнять — нам не узнать без сервера, да и незачем: решение
+     принято на нашей стороне, его и помним. Отмечаем и на показ знака —
+     камеру наводят при нас, это та же отправка, только из рук в руки */
+  function markQuestSent() {
+    if (!questRec || questRec.questSent) return;
+    questRec.questSent = new Date().toISOString();
+    saveAll();
+    if (cardIdx !== null && sessions[cardIdx] === questRec) openCard(cardIdx, true);
+  }
   function sendQuestLink() {
-    var url = questLink();
+    var url = questLink(questRec);
+    markQuestSent();
     if (navigator.share) {
       navigator.share({ text: LANG.t("quest.msg", { url: url }) }).catch(function () {});
       return;
@@ -14063,7 +14215,12 @@
     }
     notify(LANG.t("quest.copiedTitle"), url);
   }
-  $("planQuest").addEventListener("click", openQuest);
+  $("cdQuest").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    questRec = sessions[cardIdx];
+    openQuest();
+    markQuestSent();          // знак показан — считаем отданным
+  });
   $("qSend").addEventListener("click", sendQuestLink);
   $("qDone").addEventListener("click", closeQuest);
   $("qScrim").addEventListener("click", closeQuest);
@@ -14116,6 +14273,9 @@
     var warn = wishesCheck(fDate);
     var rec = {
       kind: formKind,
+      /* Знак у правки сохраняется прежний: запись та же, и ссылка опросника,
+         ушедшая клиенту, должна и дальше её находить */
+      id: (editIdx !== null && sessions[editIdx] && sessions[editIdx].id) || newId(),
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
       contact: contactLine(), clientTel: $("fClientTel").value.trim(),
       notes: $("fNotes").value.trim(),
@@ -14137,6 +14297,17 @@
         }),
       refs: fRefs.filter(function (r) { return r.k === "link" || r.path; }),
       gear: fGear.slice(),
+      /* Когда опросник отправлен. Правка карточки этого не отменяет —
+         отправленного не вернуть */
+      questSent: (editIdx !== null && sessions[editIdx] && sessions[editIdx].questSent) || null,
+      /* Откуда съёмка выросла. Форма собирает запись заново из своих полей, и
+         всё, чего в этом списке нет, тихо пропадает при первом сохранении —
+         связь со встречей пропадала так с самого её появления. Она не в полях
+         формы и не может из них взяться: переносим руками */
+      fromMeetOn: (editIdx !== null && sessions[editIdx] && sessions[editIdx].fromMeetOn) || undefined,
+      fromMeetId: (editIdx !== null && sessions[editIdx] && sessions[editIdx].fromMeetId) || undefined,
+      grewOn: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewOn) || undefined,
+      grewToId: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewToId) || undefined,
       route: hasRoute(shootType) ? routeFromEditor() : [],
       synced: syncTarget === "off" ? null : syncTarget
     };

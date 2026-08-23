@@ -876,8 +876,13 @@
        Сама страница опросника живёт отдельным файлом (`quest/wedding.html`)
        и пока только по-русски: она статична и словаря не читает. Здесь —
        слова нашей стороны: кнопка отправки и разбор ответов. */
-    "quest.send":        "Опросник клиенту — ссылка или знак для камеры",
     "quest.title":       "Опросник клиенту",
+    "quest.rowSub":      "ссылка или знак для камеры",
+    "quest.sentOn":      "Опросник отправлен · {d}",
+    "quest.againSub":    "показать ещё раз или отправить заново",
+    "quest.clash":       "Не сходится с опросом:",
+    "quest.filledClash": "Заполнено по ответам клиента · {list} — проверьте",
+    "unit.clash":        ["расхождение", "расхождения", "расхождений"],
     "quest.sub":         "Покажите знак — клиент наведёт камеру. Или отправьте ссылку.",
     "quest.sendLink":    "Отправить ссылку",
     "quest.msg":         "Заполните, пожалуйста, короткий опросник к съёмке: {url}",
@@ -2099,8 +2104,13 @@
     "kit.empty":        "Nothing yet",
     "kit.count":        "{n} of {m}",
 
-    "quest.send":        "Client questionnaire — a link or a code to scan",
     "quest.title":       "Client questionnaire",
+    "quest.rowSub":      "a link, or a code to scan",
+    "quest.sentOn":      "Questionnaire sent · {d}",
+    "quest.againSub":    "show it again or send it anew",
+    "quest.clash":       "Does not match the questionnaire:",
+    "quest.filledClash": "Filled in from the client's answers · {list} — please check",
+    "unit.clash":        ["mismatch", "mismatches"],
     "quest.sub":         "Show the code for them to scan. Or send a link.",
     "quest.sendLink":    "Send the link",
     "quest.msg":         "Please fill in this short questionnaire about the shoot: {url}",

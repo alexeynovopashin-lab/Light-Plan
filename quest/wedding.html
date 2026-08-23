@@ -277,10 +277,16 @@
      берём только канал, и то сверяясь со списком. Подставить в ссылку чужой
      адрес через параметр нельзя — приложение всегда своё */
   function appUrl(code) {
-    var c = new URLSearchParams(location.search).get("c");
-    var chan = (c === "main") ? "" : "beta/";
+    var q = new URLSearchParams(location.search);
+    var chan = (q.get("c") === "main") ? "" : "beta/";
     var base = location.pathname.replace(/quest\/[^/]*$/, "");
-    return location.origin + base + chan + "?ans=" + code;
+    var u = location.origin + base + chan + "?ans=" + code;
+    /* Знак записи возвращаем как получили, ничего с ним не делая: он ничего
+       не значит для этой страницы, он значит для приложения фотографа.
+       Пропускаем только знакомый вид, чтобы в адрес не уехало постороннее */
+    var r = q.get("r");
+    if (r && /^[a-z0-9]{1,32}$/.test(r)) u += "&r=" + r;
+    return u;
   }
 
   /* Дата приходит из поля как 2027-06-15 — читаем её по-человечески, но
