@@ -2122,7 +2122,7 @@
   .day-toggle[hidden] { display: none; }
   .day-toggle {
     display: flex; align-items: center; justify-content: center;
-    width: 100%; margin-top: 18px; padding: 11px 0;
+    width: 100%; margin-top: 6px; padding: 7px 0;
     background: none; border: none; border-top: 1px solid rgba(226,164,76,0.35);
     color: var(--ink-3); cursor: pointer; font-family: inherit;
   }
@@ -2144,12 +2144,20 @@
   /* Сводка дня — два равных виджета, свет и погода. Раньше это была одна
      карточка с рамкой: одно окно света слева, погода справа. Разделены,
      потому что весят одинаково — оба говорят о дне, а не друг о друге */
-  .dp-widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 24px; }
+  /* Поле 4px, а не 24: обёртка `.day-panel` уже отступает на 20px от края, и
+     свои 24 складывались с ними в 44 — ряд виджетов вставал на 40px уже
+     карточки действий под ним, отчего виджет света душил строку золотого часа
+     переносом. Складывать поля вложенных блоков — грабля, а не настройка */
+  /* Колонки не поровну: слева три строки текста, справа три коротких. При
+     ровном делении худшей строке («золотой час · 1 ч 47 м», а он бывает длиннее
+     часа весной и в высоких широтах) не хватало 0.2px, и она срывалась на
+     второй ряд. Перевес отдан тому, кому есть что сказать */
+  .dp-widgets { display: grid; grid-template-columns: 1.15fr 1fr; gap: 10px; margin: 0 4px; }
   .dp-w {
     border: none; background: none; font-family: inherit; text-align: left;
     border-radius: 16px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
-    padding: 12px 14px; display: flex; flex-direction: column;
+    padding: 10px 12px; display: flex; flex-direction: column;
   }
   .dp-w-light { gap: 9px; cursor: pointer; }
   .dp-w-light:active { background: var(--press); }
@@ -2171,18 +2179,18 @@
   /* Строка «день свободен» вынута из виджетов: она про день, а не про свет
      и не про погоду. Раньше этот же факт говорился ещё раз секцией
      «Запланировано» на 40px ниже — дубль снят */
-  .dp-free { margin: 10px 24px 0; font-size: 13px; color: var(--ink-4); text-align: center; }
+  .dp-free { margin: 6px 4px 0; font-size: 13px; color: var(--ink-4); text-align: center; }
 
   /* Три состояния дня одной карточкой: съёмка, встреча, занятость —
      видно, что это три исхода одного выбора, а не три случайных кнопки */
   .day-states {
     flex: 0 0 auto;                 /* иначе карточку сжимает флекс-колонка и режет третью строку */
-    margin: 12px 24px 0;
+    margin: 8px 24px 0;
     border-radius: 16px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
     overflow: hidden;
   }
-  .day-states .st { display: flex; align-items: center; gap: 13px; padding: 10px 16px; width: 100%;
+  .day-states .st { display: flex; align-items: center; gap: 13px; padding: 8px 16px; width: 100%;
     border: none; background: none; font-family: inherit; cursor: pointer; }
   .day-states .st + .st { border-top: 1px solid var(--hairline); }
   .day-states .st.on { background: var(--sheet-4); }
@@ -2270,12 +2278,18 @@
   /* Шапка закреплена и непрозрачна: при прокрутке числа календаря уходили
      под вырез iPhone и читались наполовину. Отступ сверху берёт safe-area,
      а не фиксированное число — вырез у разных корпусов разной высоты */
+  /* Сетка, а не флекс: боковые колонки обязаны быть равны, иначе заголовок
+     между ними стоит не по центру экрана. Флексом они равными не выходили —
+     `flex: 1 1 0` уступает содержимому, и группа из трёх значков справа (118px)
+     оказывалась шире обёртки кнопки вида слева (115.6px), уводя «Август»
+     влево. `minmax(0, 1fr)` снимает этот пол и делает колонки ровными */
   .plan-top {
-    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+    align-items: center; gap: 6px; flex-shrink: 0;
     padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 6px;
     position: sticky; top: 0; z-index: 8; background: var(--surface);
   }
-  .plan-lead { flex: 1 1 0; display: flex; justify-content: flex-start; }
+  .plan-lead { display: flex; justify-content: flex-start; }
   /* Кнопка вида: 44 pt — размер, в который попадают пальцем не глядя */
   .scope-btn {
     width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
@@ -2328,12 +2342,15 @@
      Он висит справа от слова и тянет центр на себя, поэтому слева
      оставлено ровно столько же места: по центру должно стоять слово,
      а не «слово со стрелкой» */
-  .plan-title { padding-left: 16px; }
+  /* 20, а не ширина шеврона: между словом и шевроном стоит ещё и пробел из
+     разметки, и компенсировать надо всю группу справа от слова — иначе по
+     центру экрана встаёт «слово со стрелкой», а не само слово */
+  .plan-title { padding-left: 20px; }
   .pt-chev { display: inline-flex; vertical-align: middle; margin-left: 5px; }
   .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
     stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); }
   /* Действия разрежены: три знака подряд без просвета читались одной кнопкой */
-  .plan-acts { flex: 1 1 0; display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+  .plan-acts { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
   .icon-btn {
     background: none; border: none; padding: 6px; cursor: pointer; color: var(--brass);
     display: flex; align-items: center; justify-content: center;
@@ -2344,7 +2361,7 @@
     display: block; margin: 0 auto 4px; background: none; border: none;
     font-family: inherit; font-size: 12.5px; color: var(--brass); cursor: pointer;
   }
-  .cal-head { display: grid; grid-template-columns: repeat(7,1fr); padding: 14px 20px 0; }
+  .cal-head { display: grid; grid-template-columns: repeat(7,1fr); padding: 10px 20px 0; }
   .cal-head span {
     text-align: center; font-size: 11px; color: var(--ink-7);
     letter-spacing: 0.6px; text-transform: uppercase; padding-bottom: 8px; font-weight: 600;
@@ -2356,7 +2373,10 @@
   /* display в CSS перебивает атрибут hidden — прячем масштабы явно */
   .cal[hidden], .cal-head[hidden], .week[hidden] { display: none; }
   .cal .d {
-    min-height: 55px; border: none; background: none; cursor: pointer;
+    /* 48, а не 55: подложка числа теперь 40×40 и высоту клетки задаёт она, а
+       не запас под подпись. День с подписью растит свою строку сам — так же,
+       как растил её и раньше при двух подписях */
+    min-height: 48px; border: none; background: none; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     padding: 3px 1px 0;
     font-family: inherit; font-size: 15px; color: var(--ink);
@@ -2503,6 +2523,9 @@
      состояниях виджета, а заметно это в свёрнутом — там до верха ленты
      доезжают. */
   .day-line { padding: 8px 24px 20px; flex-shrink: 0; }
+  /* Пустая лента держала 28px паддинга ни за чем — в свободном дне это
+     четверть того запаса, которого не хватало трём кнопкам под ней */
+  .day-line:empty { padding: 0; }
   /* Лента въезжает с той стороны, откуда пришёл день: листнули вперёд —
      приезжает справа. Смещение маленькое (18 px): это переход, а не карусель */
   .day-line.slide-l { animation: dl-slide-l 0.22s cubic-bezier(0.25,1,0.4,1); }
@@ -2812,7 +2835,7 @@
   .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
 
 
-  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 16px; padding: 16px 20px 0; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 16px; padding: 12px 20px 0; }
   .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-4); }
   .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
   .legend .ring { background: var(--ink-a24); border: none; }
