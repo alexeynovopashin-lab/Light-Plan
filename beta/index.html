@@ -3189,6 +3189,16 @@
   .field textarea { resize: none; min-height: 84px; line-height: 1.5; }
   .f-hint { font-size: 12px; color: var(--ink-6); margin-top: 8px; }
   .saved-note { font-size: 13px; color: var(--ink-4); margin-top: 8px; min-height: 0; }
+  .draft-note {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 10px; padding: 10px 14px; background: var(--sheet-3);
+    border-radius: 12px; corner-shape: squircle; font-size: 13px; color: var(--ink-3);
+  }
+  .draft-note[hidden] { display: none; }
+  .draft-note button {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 600; color: var(--brass); padding: 2px 0; flex: 0 0 auto;
+  }
   .danger {
     display: block; width: 100%; margin-top: 26px; padding: 15px;
     background: none; border: none; color: var(--terra-2);
@@ -4242,6 +4252,16 @@
     <h2 class="form-title" id="formTitle" data-i18n="plan.newShoot">Новая съёмка</h2>
     <p class="form-sub" id="formSub">—</p>
     <div class="saved-note" id="savedNote"></div>
+    <!-- Черновик новой съёмки. Форма ничего не пишет в список, пока не нажали
+         «Сохранить» — случайный тап по крестику стирал набранное подчистую
+         (Алексей, 24 августа 2026: «девушка заполняла на 70%, что-то не то
+         нажала, карточка сбросилась»). Полоса видна, только когда открытая
+         форма поднята из черновика, а не начата с нуля — и даёт явный путь
+         начать заново, а не только молчаливое «подставили и ладно». -->
+    <div class="draft-note" id="draftNote" hidden>
+      <span data-i18n="form.draftRestored">Черновик восстановлен</span>
+      <button type="button" id="fDraftReset" data-i18n="form.draftReset">Начать заново</button>
+    </div>
 
     <!-- Наложение стоит вверху формы, а не в подвале. Это ответ на вопрос
          «а можно ли вообще?», и узнавать о нём, докрутив до референсов,
@@ -11982,6 +12002,7 @@
         if (fRouteSeeded && !hasRoute(shootType)) { fRoute = []; renderRouteEditor(); }
         applyGenrePreset();          // жанр перестраивает форму под себя
         renderGenres(); refreshForm();
+        scheduleDraftSave();         // жанр — клик, не «input»: сам за собой не пишется
       });
     });
     // подмена на лету касается только новой съёмки: сохранённой время не переписываем
@@ -12002,6 +12023,7 @@
           if (i >= 0) wishes.splice(i, 1); else wishes.push(w);
         }
         renderWishes(); refreshForm();
+        scheduleDraftSave();
       });
     });
   }
@@ -13712,59 +13734,142 @@
     this.classList.toggle("open", open);
   });
 
+  /* ---------- Черновик новой записи ----------
+     Форма ничего не пишет в список съёмок, пока не нажали «Сохранить» —
+     случайный тап по крестику стирал набранное подчистую. Правим это не
+     авто-сохранением в сам список (черновик — не съёмка, показывать его в
+     календаре нечего), а отдельной черновой копией в своём ключе: пишется на
+     лету, поднимается, когда открывают новую форму, стирается по «Сохранить»
+     или явным «Начать заново».
+
+     Только для новых записей: у правки существующей и так есть на что
+     вернуться — сама запись, — а вот у новой до «Сохранить» нет ничего. */
+  var DRAFT_KEY = CHANNEL === "beta" ? "lightplan.beta.draft" : "lightplan.draft";
+  var draftTimer = null;
+  /* Тот же набор полей, что кладёт в запись «Сохранить» — минус то, что
+     заполняется только при настоящем сохранении и в черновике не нужно
+     (знак записи, статус опросника, связь со встречей). Держать это одним
+     списком с fSave стоило бы меньше кода, но и больше риска: одна правка
+     там, забытая здесь, — и черновик начнёт врать молча. */
+  function draftBuild() {
+    return {
+      kind: formKind, date: fDate.toISOString(), min: fMin, dur: fDur, type: shootType,
+      contact: $("fContact").value.trim(), clientTel: $("fClientTel").value.trim(),
+      notes: $("fNotes").value.trim(),
+      orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
+      persons: formPersons(),
+      place: sessionPlace.name, placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
+      wish: wishes.slice(),
+      deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"), deliveredAt: fDeliveredAt,
+      pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
+      guests: fGuests || 0, trip: fTrip, tripPlace: fTrip ? sessionPlace.name : "",
+      brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
+      docs: fDocs.slice(), gear: fGear.slice(), refs: fRefs.slice(),
+      route: hasRoute(shootType) ? routeFromEditor() : []
+    };
+  }
+  /* «Хотя бы одно поле заполнено» (Алексей, 24 августа 2026) — форма,
+     открытая и тут же закрытая пустой, черновика не оставляет: у неё и
+     маршрут может быть не пуст (жанр сам сеет точки), и это не в счёт —
+     не набранное руками, а подставленное умолчанием. */
+  function draftHasContent(o) {
+    if (!o) return false;
+    /* Место сюда нарочно не входит — оно подставляется само, городом по
+       геопозиции, и в пустой форме заполнено всегда. Так же, как маршрут
+       (жанр сеет точки сам): подставленное не считается набранным руками.
+       Без этой оговорки любая тут же закрытая пустая форма считалась бы
+       черновиком — ровно тот случай, который проверка обязана отсеивать. */
+    var strs = [o.contact, o.clientTel, o.notes, o.person, o.phone, o.brief, o.models];
+    if (strs.some(function (v) { return (v || "").trim(); })) return true;
+    if (Array.isArray(o.persons) && o.persons.some(function (p) { return (p.n || "").trim() || (p.tel || "").trim(); })) return true;
+    if (+o.guests > 0 || +o.prepay > 0 || +o.rate > 0) return true;
+    if ((o.docs || []).length || (o.refs || []).length || (o.gear || []).length) return true;
+    if (o.trip || (o.wish || []).length) return true;
+    return false;
+  }
+  function draftLoad() {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { return null; }
+  }
+  function draftClear() {
+    clearTimeout(draftTimer);
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+  }
+  /* Пишем сразу, без ожидания дебаунса: черновик обязан пережить закрытие
+     формы, а закрыть её можно и раньше, чем истекут отложенные 600 мс */
+  function draftSaveNow() {
+    if (editIdx !== null || !$("formOverlay").classList.contains("open")) return;
+    var snap = draftBuild();
+    if (draftHasContent(snap)) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(snap)); } catch (e) {} }
+    else draftClear();
+  }
+  function scheduleDraftSave() {
+    if (editIdx !== null) return;             // черновик только для новых записей
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(draftSaveNow, 600);
+  }
+
   /* idx !== null — правим существующую запись клиента */
   var editIdx = null;
+  /* Общее для правки и для подъёма черновика: раскладывает запись (настоящую
+     или черновую — форма их не различает, обеим не хватает одних и тех же
+     полей) по полям формы. Раньше это жило прямо в openForm() одним куском —
+     вынесено, чтобы черновик не переписывал ту же логику вторым текстом,
+     который разойдётся с первым на первой же правке. */
+  function fillFormFrom(s) {
+    fLight = s.min % timeStep !== 0;   // некруглая минута — значит её назвал свет
+    fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
+    shootType = s.type;
+    // старые записи хранили строку — поднимаем в массив
+    wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "any" ? [s.wish] : []);
+    fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
+    $("fDone").classList.toggle("on", !!s.delivered);
+    fDeliveredAt = s.deliveredAt || null;
+    sessionPlace = (s.placeLat != null)
+      ? { name: s.place || "", lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
+      : { name: s.place || "", lat: LAT, lon: LON, city: true };   // старые записи знали только имя
+    $("fContact").value = s.contact || "";
+    $("fClientTel").value = s.clientTel || "";
+    $("fNotes").value = s.notes || "";
+    fOrgId = s.orgId || null;
+    $("fPerson").value = s.person || "";
+    $("fPhone").value = s.phone || "";
+    /* Пара: у записи до этой правки её нет — поля остаются пустыми */
+    var ps = Array.isArray(s.persons) ? s.persons : [];
+    $("fP1Name").value = (ps[0] && ps[0].n) || "";
+    $("fP1Tel").value = (ps[0] && ps[0].tel) || "";
+    $("fP2Name").value = (ps[1] && ps[1].n) || "";
+    $("fP2Tel").value = (ps[1] && ps[1].tel) || "";
+    // Оплата сохранённой съёмки — свёрнута: данные уже введены
+    fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
+    fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
+    /* Новых полей у старой записи нет вовсе — это пустое поле, а не поломка
+       (docs/12_CARD_ARCHITECTURE.md, «Совместимость») */
+    fPrepay = +s.prepay || 0; fGuests = +s.guests || 0;
+    $("fPrepay").value = fPrepay || "";
+    fTrip = !!s.trip;
+    $("fBrief").value = s.brief || "";
+    $("fModels").value = s.models || "";
+    fDocs = Array.isArray(s.docs)
+      ? s.docs.map(function (r) {
+          return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
+            /* Записи первой беты вида не знали — угадываем по имени */
+            kind: r.kind || guessDocKind(r.name || r.url) };
+        })
+      : [];
+    fGear = Array.isArray(s.gear) ? s.gear.filter(function (n) { return typeof n === "string"; }) : [];
+    fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
+    fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
+    payFolded = true;
+  }
   function openForm(d, startMin, idx, fromLight, kind) {
     editIdx = (idx === undefined || idx === null) ? null : idx;
     formKind = kind || "shoot";
+    var draftRestored = false;
     if (editIdx !== null) {
       var s = sessions[editIdx];
       formKind = isMeet(s) ? "meet" : "shoot";   // род берётся у записи, а не у кнопки
       fAuto = false;                     // время сохранённой съёмки принадлежит фотографу
-      fLight = s.min % timeStep !== 0;   // некруглая минута — значит её назвал свет
-      fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
-      shootType = s.type;
-      // старые записи хранили строку — поднимаем в массив
-      wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "any" ? [s.wish] : []);
-      fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
-      $("fDone").classList.toggle("on", !!s.delivered);
-      fDeliveredAt = s.deliveredAt || null;
-      sessionPlace = (s.placeLat != null)
-        ? { name: s.place || "", lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
-        : { name: s.place || "", lat: LAT, lon: LON, city: true };   // старые записи знали только имя
-      $("fContact").value = s.contact || "";
-      $("fClientTel").value = s.clientTel || "";
-      $("fNotes").value = s.notes || "";
-      fOrgId = s.orgId || null;
-      $("fPerson").value = s.person || "";
-      $("fPhone").value = s.phone || "";
-      /* Пара: у записи до этой правки её нет — поля остаются пустыми */
-      var ps = Array.isArray(s.persons) ? s.persons : [];
-      $("fP1Name").value = (ps[0] && ps[0].n) || "";
-      $("fP1Tel").value = (ps[0] && ps[0].tel) || "";
-      $("fP2Name").value = (ps[1] && ps[1].n) || "";
-      $("fP2Tel").value = (ps[1] && ps[1].tel) || "";
-      // Оплата сохранённой съёмки — свёрнута: данные уже введены
-      fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
-      fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
-      /* Новых полей у старой записи нет вовсе — это пустое поле, а не поломка
-         (docs/12_CARD_ARCHITECTURE.md, «Совместимость») */
-      fPrepay = +s.prepay || 0; fGuests = +s.guests || 0;
-      $("fPrepay").value = fPrepay || "";
-      fTrip = !!s.trip;
-      $("fBrief").value = s.brief || "";
-      $("fModels").value = s.models || "";
-      fDocs = Array.isArray(s.docs)
-        ? s.docs.map(function (r) {
-            return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
-              /* Записи первой беты вида не знали — угадываем по имени */
-              kind: r.kind || guessDocKind(r.name || r.url) };
-          })
-        : [];
-      fGear = Array.isArray(s.gear) ? s.gear.filter(function (n) { return typeof n === "string"; }) : [];
-      fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
-      fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
-      payFolded = true;
+      fillFormFrom(s);
     } else {
       /* Подстраивать начало под свет можно только тогда, когда его и предложил
          свет. Время, названное человеком — тап по свободному окну в ленте
@@ -13794,6 +13899,19 @@
       sessionPlace = { name: geoCity || "", lat: LAT, lon: LON, city: true };
       fRefs = [];
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
+
+      /* Черновик поднимаем поверх только что собранной пустой формы — если
+         он есть и в нём хоть что-то набрано руками. Дата в нём своя, из
+         прошлого раза; молча меняем её на черновую, не спрашивая: человек
+         открыл форму заново, и продолжить — самое вероятное намерение
+         (Алексей, 24 августа 2026, про подтверждение — «не надо, раз хоть
+         одно поле заполнено, значит черновик оставляем»). */
+      var draft = draftLoad();
+      if (draft && draftHasContent(draft)) {
+        formKind = draft.kind === "meet" ? "meet" : "shoot";
+        fillFormFrom(draft);
+        draftRestored = true;
+      }
     }
     renderRouteEditor();
     fDocKind = null;
@@ -13806,9 +13924,14 @@
       : LANG.t(editIdx !== null ? "card.shootPoint" : "plan.newShoot");
     $("fDelete").hidden = editIdx === null;
     $("savedNote").textContent = "";
+    $("draftNote").hidden = !draftRestored;
     closeRows();
     renderGenres();                              // жанр может смениться: список настраивается
-    if (editIdx !== null) applyGenreShape();     // у записи свои значения, трогаем только состав блоков
+    /* Восстановленный черновик несёт свои значения оплаты и длительности —
+       трогаем только состав блоков, как у правки существующей записи. Иначе
+       следом идущий applyGenrePreset() тут же переписал бы их жанровыми
+       умолчаниями, и черновик вернулся бы с чужими цифрами. */
+    if (editIdx !== null || draftRestored) applyGenreShape();
     else applyGenrePreset();                     // новая съёмка начинается с обычной для жанра
     renderWishes(); renderDelv(); refreshForm();
     $("formOverlay").scrollTop = 0;
@@ -14331,7 +14454,24 @@
   }
   $("notif").addEventListener("click", function () { this.classList.remove("show"); });
   $("formBack").addEventListener("click", function () {
+    /* Пишем черновик синхронно, не дожидаясь дебаунса: закрыть форму можно
+       быстрее чем за 600 мс после последней буквы, и тогда набранное
+       осталось бы только в памяти, которую сейчас же выгрузит закрытие */
+    draftSaveNow();
     closeRows(); $("formOverlay").classList.remove("open");
+  });
+  /* Любая правка новой (не редактируемой) формы откладывает черновик —
+     дебаунсом, чтобы не писать в localStorage на каждую букву. Текстовые
+     поля и переключатели ловятся `input`/`change`; то, что заведено
+     собственным `click` (жанр, точки маршрута, документы), досылает себя
+     явно — см. пометки у соответствующих обработчиков. */
+  $("formOverlay").addEventListener("input", scheduleDraftSave);
+  $("formOverlay").addEventListener("change", scheduleDraftSave);
+  $("fDraftReset").addEventListener("click", function () {
+    draftClear();
+    $("draftNote").hidden = true;
+    openForm(fDate, fAuto ? null : fMin, null, fAuto);   // тот же день, форма с нуля
+    $("savedNote").textContent = LANG.t("form.draftGone");
   });
   $("fPlace").addEventListener("click", function () {
     openLocSheet("session");
@@ -14404,6 +14544,11 @@
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
+    /* Настоящая запись легла в список — черновику, который её и держал,
+       больше нечего хранить. Чистим сразу, а не по дебаунсу: иначе клик,
+       долетевший до общего слушателя формы уже после «Сохранить», успел бы
+       переписать поверх только что стёртого черновика те же самые данные. */
+    if (!wasEdit) draftClear();
     editIdx = null;
     renderSessions(); renderCal(); renderDayPanel();
     $("savedNote").textContent = wasEdit ? LANG.t("form.savedEdit")
