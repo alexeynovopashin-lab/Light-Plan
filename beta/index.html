@@ -410,6 +410,11 @@
     padding: 10px 16px; border: none; border-radius: 999px;
     background: var(--bad-bg); color: var(--bad-ink);
     font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    /* Корзины может не быть вовсе (она прячется, пока пуста) — тогда в строке
+       остаётся один этот элемент, и `justify-content: space-between` без
+       второго не работает: единственный ребёнок прижимается к началу.
+       Свой отступ слева не зависит от того, сколько соседей в строке. */
+    margin-left: auto;
   }
   .card-del:active { opacity: 0.6; }
   .card-del[hidden] { display: none; }
@@ -1325,12 +1330,24 @@
   }
   .swipe.dragging .plan-row { transition: none; }
   .swipe.open .plan-row { transform: translateX(-92px); }
+  /* Плавает поверх текущей вкладки, а не живёт внутри одной из них — удаляют
+     карточку чаще всего не со «Съёмок», и отмена обязана быть видна оттуда
+     же, откуда удаляли. Тот же приём и уровень, что у #notif и #binTarget:
+     прямой потомок .device, положение и `z-index` считаются от рамки телефона,
+     а не от прокручиваемого содержимого какой-то одной вкладки. */
   .undo {
-    display: none; align-items: center; justify-content: space-between;
-    margin: 8px 24px 0; padding: 11px 14px;
-    background: var(--sheet); border-radius: 12px; corner-shape: squircle; font-size: 13px; color: var(--ink-4);
+    position: absolute; left: 14px; right: 14px;
+    bottom: calc(var(--tabh, 74px) + 14px); z-index: 95;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 15px; background: var(--overlay-3);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border-radius: 14px; corner-shape: squircle;
+    box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
+    font-size: 13px; color: var(--ink-4);
+    transform: translateY(140%); opacity: 0; pointer-events: none;
+    transition: transform 0.32s cubic-bezier(0.25,1,0.4,1), opacity 0.32s;
   }
-  .undo.show { display: flex; }
+  .undo.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
   .undo button {
     background: none; border: none; cursor: pointer; font-family: inherit;
     font-size: 13px; font-weight: 600; color: var(--brass); padding: 2px 0;
@@ -3701,7 +3718,6 @@
     <div class="sec-label" id="plannedLabel" data-i18n="plan.planned">Запланировано</div>
     </div>
     <div class="day-line" id="dpSessions"></div>
-    <div class="undo" id="undoBar"><span id="undoText" data-i18n="plan.shootDeleted">Съёмка удалена</span><button id="undoBtn" data-i18n="plan.undo">Вернуть</button></div>
     <button class="action" id="planDay" style="margin: 4px 24px 0;">
       <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
       <span class="lbl" data-i18n="plan.planShoot">Запланировать съёмку</span>
@@ -4784,6 +4800,14 @@
       <span data-i18n="blk.remove">Убрать из календаря</span>
     </button>
   </div>
+
+  <!-- Отмена удаления. Раньше лежала внутри экрана «Съёмки» и появлялась
+       буквально под тем экраном, на котором её показывали — а карточку чаще
+       открывают с «Сегодня»: удаление там показывало плашку на невидимой
+       вкладке, то есть никак. Прямой потомок .device — плавает поверх любой
+       вкладки, а не только той, где живёт список съёмок (Алексей, 24 августа
+       2026: «удалил съёмку и не нашёл содержимое корзины»). -->
+  <div class="undo" id="undoBar"><span id="undoText" data-i18n="plan.shootDeleted">Съёмка удалена</span><button id="undoBtn" data-i18n="plan.undo">Вернуть</button></div>
 
   <!-- Веер сохранённых точек: общий на карту, маршрут карточки и настройки.
        Прямой потомок .device — координаты считаются от рамки телефона -->
