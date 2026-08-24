@@ -4947,6 +4947,18 @@
          чёрное на белом, и поле вокруг знака входит в стандарт -->
     <div class="qr-card" id="qrBox"></div>
     <button class="sheet-done" id="qSend" data-i18n="quest.sendLink">Отправить ссылку</button>
+
+    <!-- Ответ мог прийти не ссылкой, а куском текста — AirDrop, заметка,
+         пересланное сообщение — и тогда открывать в приложении нечего,
+         разбирать надо руками. Поле ищет `ans=` где угодно внутри вставленного
+         текста, а не требует ровно ссылку целиком: человеку так проще —
+         вставил всё сообщение, а не выковыривал из него нужный кусок. -->
+    <div class="g-label" style="margin-top:22px;" data-i18n="quest.pasteTitle">Или вставьте ответ</div>
+    <div class="group">
+      <textarea id="qPaste" placeholder="Вставьте сюда то, что прислал клиент" data-i18n-ph="quest.pastePh" rows="2"></textarea>
+    </div>
+    <button class="sheet-done" id="qPasteBtn" style="margin-top:10px;" data-i18n="quest.pasteBtn">Применить</button>
+
     <button class="ghost" id="qDone" style="margin-top:10px;" data-i18n="pick.done">Готово</button>
   </div>
 
@@ -13434,12 +13446,15 @@
                    : LANG.t("card.meetTopic", { genre: shortGenre(s.type).toLowerCase() }))
       : (s.contact || LANG.t("card.noClient"));
 
-    /* Опросник. У встречи — всегда, пока она не отработана: её и заводят,
+    /* Опросник. Пока он один — свадебный (`quest/wedding.html`), и показывать
+       его на портрете или пейзаже значило бы дать ссылку не на то: жанр
+       записи должен совпадать с жанром опросника, а не «встреча — значит
+       можно». У встречи — всегда, пока она не отработана: её и заводят,
        чтобы обо всём расспросить. У съёмки — только до неё: после съёмки
        спрашивать нечего, а во время неё карточка занята другим.
        У выросшей встречи строки нет — опросник переехал в съёмку. */
     var qPhase = eventPhase(s, routeOf(s));
-    var qShow = meet ? !s.grewOn : (qPhase === "before");
+    var qShow = s.type === "wedding" && (meet ? !s.grewOn : (qPhase === "before"));
     $("cdQuest").hidden = !qShow;
     if (qShow) {
       var sent = s.questSent ? new Date(s.questSent) : null;
@@ -14227,7 +14242,13 @@
     var url = questLink(questRec);
     markQuestSent();
     if (navigator.share) {
-      navigator.share({ text: LANG.t("quest.msg", { url: url }) }).catch(function () {});
+      /* Ссылка едет полем `url`, а не вклеенной в предложение: адрес внутри
+         фразы «Заполните, пожалуйста…» — для системы просто текст, и AirDrop
+         отдаёт его как заметку, а не как страницу, которую можно открыть.
+         В отдельном поле `url` система узнаёт его как страницу и у Safari,
+         и у AirDrop, и в мессенджерах — там, где раньше приходил кусок
+         текста, теперь приходит то, что открывается одним касанием. */
+      navigator.share({ url: url, text: LANG.t("quest.shareCaption") }).catch(function () {});
       return;
     }
     if (navigator.clipboard) {
@@ -14247,6 +14268,28 @@
   $("qSend").addEventListener("click", sendQuestLink);
   $("qDone").addEventListener("click", closeQuest);
   $("qScrim").addEventListener("click", closeQuest);
+
+  /* Ручной ввод — запасной путь, а не второстепенный. Автоматический разбор
+     держится на том, что ссылку кто-то откроет в браузере, а живём мы в
+     мире, где это не всегда так: AirDrop доставляет предложение с адресом
+     внутри как текстовую заметку, а не как страницу, — открывать в ней
+     нечего, только читать и копировать. Поле ищет `ans=` в любом месте
+     вставленного текста, а не требует ровно ссылку: короче объяснять, что
+     вставить «всё сообщение целиком», чем «только вот этот кусок». */
+  $("qPasteBtn").addEventListener("click", function () {
+    var text = $("qPaste").value || "";
+    var m = /[?&]ans=([A-Za-z0-9_-]+)/.exec(text);
+    var a = null;
+    if (m) { try { a = questDecode(m[1]); } catch (e) { a = null; } }
+    if (!a || !Object.keys(a).length) {
+      notify(LANG.t("quest.badTitle"), LANG.t("quest.pasteBad"));
+      return;
+    }
+    $("qPaste").value = "";
+    closeQuest();
+    var idx = questRec ? byId(questRec.id) : -1;
+    questApply(a, idx >= 0 ? idx : null);
+  });
   // Ставка по умолчанию: применяется к новым почасовым съёмкам
   $("gRate").addEventListener("input", function () {
     defaultRate = parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
