@@ -14074,13 +14074,15 @@
     var delvHtml = "";
     if (spec.delivery !== false && !isMeet(s)) {
       var ds = deliveryState(s), dd = deadlineDate(s);
-      delvHtml = '<div class="pane wide"><div class="pane-row">'
+      delvHtml = '<div class="pane wide"><div class="pane-row" data-act="toggleDelv" style="cursor:pointer">'
         + '<span class="badge">' + PANE_IC.clock + "</span>"
         + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.handover")) + "</span>"
         + '<span class="pn-t" style="color:' + ds.color + ';margin-top:2px">' + ds.label
         + (dd && !s.delivered ? ' <span style="color:#635E54;font-size:12.5px">· '
             + esc(LANG.t("card.byDate", { d: dMon(dd) })) + "</span>" : "")
-        + "</span></span></div></div>";
+        + "</span></span>"
+        + '<span class="toggle' + (s.delivered ? " on" : "") + '" aria-label="' + esc(LANG.t("form.delivered")) + '"></span>'
+        + "</div></div>";
     }
 
     var notesHtml = s.notes
@@ -14105,6 +14107,15 @@
     fillBlock("cdNotesBlk", notesHtml);
     fillBlock("cdDelvBlk", delvHtml);
     fillBlock("cdMoneyBlk", moneyHtml);
+
+    var delvBtn = $("cdDelvBlk").querySelector('[data-act="toggleDelv"]');
+    if (delvBtn) delvBtn.addEventListener("click", function () {
+      s.delivered = !s.delivered;
+      s.deliveredAt = s.delivered ? new Date().toISOString() : null;
+      saveAll();
+      openCard(cardIdx, true);
+      renderCal(); renderDayPanel();
+    });
 
     var mapBtn = $("cdPanes").querySelector('[data-act="map"]');
     if (mapBtn) mapBtn.addEventListener("click", function () {
