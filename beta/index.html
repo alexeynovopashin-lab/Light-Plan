@@ -2141,17 +2141,64 @@
   .day-panel { max-height: 0; overflow: hidden; flex-shrink: 0; margin: 0 20px;
     transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
   .day-panel.open { max-height: 420px; }
-  .dp-box {
-    border-radius: 16px; corner-shape: squircle; padding: 14px 16px 12px;
+  /* Сводка дня — два равных виджета, свет и погода. Раньше это была одна
+     карточка с рамкой: одно окно света слева, погода справа. Разделены,
+     потому что весят одинаково — оба говорят о дне, а не друг о друге */
+  .dp-widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 24px; }
+  .dp-w {
+    border: none; background: none; font-family: inherit; text-align: left;
+    border-radius: 16px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
+    padding: 12px 14px; display: flex; flex-direction: column;
   }
-  .dp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-  #plannedLabel { padding-top: 16px; }
+  .dp-w-light { gap: 9px; cursor: pointer; }
+  .dp-w-light:active { background: var(--press); }
+  .dp-w-wx { gap: 2px; }
+  .dp-sun-row { display: flex; justify-content: space-between; align-items: center; }
+  .dp-sun-item { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600;
+    color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .dp-sun-item svg { width: 16px; height: 16px; fill: none; stroke: var(--ink-4); stroke-width: 1.6; }
+  .dp-sun-set { color: var(--brass); }
+  .dp-sun-set svg { stroke: var(--brass); }
+  .dp-golden-row {
+    padding-top: 8px; border-top: 1px solid var(--hairline);
+    font-size: 12.5px; line-height: 1.3; color: var(--ink-4); font-variant-numeric: tabular-nums;
+  }
+  .dp-score-row { display: flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--ink-4); }
+  .dp-score-word { flex: 1; font-weight: 600; }
+  .dp-score-row .dp-chev svg { width: 12px; height: 12px; fill: none; stroke: var(--brass-deep);
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  /* Строка «день свободен» вынута из виджетов: она про день, а не про свет
+     и не про погоду. Раньше этот же факт говорился ещё раз секцией
+     «Запланировано» на 40px ниже — дубль снят */
+  .dp-free { margin: 10px 24px 0; font-size: 13px; color: var(--ink-4); text-align: center; }
+
+  /* Три состояния дня одной карточкой: съёмка, встреча, занятость —
+     видно, что это три исхода одного выбора, а не три случайных кнопки */
+  .day-states {
+    flex: 0 0 auto;                 /* иначе карточку сжимает флекс-колонка и режет третью строку */
+    margin: 12px 24px 0;
+    border-radius: 16px; corner-shape: squircle;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    overflow: hidden;
+  }
+  .day-states .st { display: flex; align-items: center; gap: 13px; padding: 10px 16px; width: 100%;
+    border: none; background: none; font-family: inherit; cursor: pointer; }
+  .day-states .st + .st { border-top: 1px solid var(--hairline); }
+  .day-states .st.on { background: var(--sheet-4); }
+  .day-states .st .ic { width: 20px; height: 20px; fill: none; stroke-width: 1.6; flex-shrink: 0; }
+  .day-states .st .lbl { flex: 1 1 auto; min-width: 0; font-size: 15.5px; font-weight: 500;
+    color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day-states .st.on .lbl { font-weight: 600; color: var(--ink); }
+  .day-states .st .sub { font-size: 12.5px; white-space: nowrap; color: var(--ink-5); flex-shrink: 0; }
+  .day-states .st.dim .lbl { color: var(--ink-4); }
+  .day-states .st.dim .sub { color: var(--ink-7); }
 
   /* Компактный список съёмок дня */
   .plan-list { padding: 0 24px; flex-shrink: 0; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
-  .plan-list[hidden], .sec-label[hidden], .action[hidden], .day-panel[hidden] { display: none; }
+  .plan-list[hidden], .sec-label[hidden], .action[hidden], .day-panel[hidden],
+  .day-states[hidden], .day-states .st[hidden] { display: none; }
   .cal, .cal-head, .legend, .sec-label { flex-shrink: 0; }
   .plan-row {
     display: flex; align-items: baseline; gap: 12px; width: 100%;
@@ -2302,17 +2349,30 @@
     text-align: center; font-size: 11px; color: var(--ink-7);
     letter-spacing: 0.6px; text-transform: uppercase; padding-bottom: 8px; font-weight: 600;
   }
+  /* Суббота и воскресенье светлее: съёмки чаще всего в них, колонку надо
+     находить глазом, а не читать подпись */
+  .cal-head span:nth-child(6), .cal-head span:nth-child(7) { color: var(--ink-4); }
   .cal { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; padding: 0 20px; }
   /* display в CSS перебивает атрибут hidden — прячем масштабы явно */
   .cal[hidden], .cal-head[hidden], .week[hidden] { display: none; }
   .cal .d {
     min-height: 55px; border: none; background: none; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: 1px;
-    padding: 3px 1px 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 3px 1px 0;
     font-family: inherit; font-size: 15px; color: var(--ink);
-    position: relative; border-radius: 11px; corner-shape: squircle; font-variant-numeric: tabular-nums;
+    position: relative; font-variant-numeric: tabular-nums;
+  }
+  /* Подложка выбранного дня раньше красила всю клетку 55px высотой — обещание
+     подписи, которой в большинстве дней нет. Подложка переехала на внутреннюю
+     обёртку: квадрат 40×40 без подписи, растянутая по ширине колонки — с ней */
+  .cal .d .d-plate {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    width: 40px; height: 40px;
+    border-radius: 11px; corner-shape: squircle;
     transition: background 0.25s ease;
   }
+  .cal .d .d-plate.has-lb { width: 100%; height: auto; padding: 4px 1px 5px; }
+  .cal .d.sel .d-plate { background: var(--press); }
   .cal .d.past { color: var(--ink-8); }
   /* Дни соседних месяцев: последние выходные августа часто лежат в сентябре,
      и занятость по ним видна только так. Блёклые — чтобы не спорить со своим месяцем */
@@ -2330,7 +2390,6 @@
      Курсив отличает её от жанра, не добавляя ещё одного цвета */
   .cal-lb.busy { color: var(--ink-5); font-style: italic; }
   .cal .d.today { color: var(--brass); font-weight: 650; }
-  .cal .d.sel { background: var(--press); }
   /* Кольцо вокруг числа = есть съёмка. Цвет кольца = срочность сдачи материала:
      белое (предстоит) → жёлтое → янтарное → терракота (просрочено) */
   .d-n {
@@ -2423,18 +2482,6 @@
   }
   .dd-marks .meet svg { stroke: var(--ink-6); }
   .dd-more { font-size: 9px; color: var(--ink-6); }
-  /* Виджет отдал высоту ленте: дата и вердикт ушли, остались свет, погода и
-     загрузка дня. Три строки вместо пяти */
-  .dp-main { min-width: 0; padding-top: 2px; }
-  .dp-window { font-size: 17px; font-weight: 620; letter-spacing: -0.2px; }
-  .dp-window .dim { color: var(--ink-6); font-weight: 500; }
-  .dp-load { margin-top: 5px; font-size: 13px; color: var(--ink-4); }
-  .dp-window .t { font-variant-numeric: tabular-nums; color: var(--brass); font-weight: 600; }
-  /* Ссылка вместо плашки: это переход на соседний экран, а не действие дня */
-  .dp-link {
-    background: none; border: none; padding: 10px 0 0; margin: 0;
-    font-family: inherit; font-size: 13px; color: var(--brass-deep); cursor: pointer;
-  }
 
   /* ---------- День как лента времени ----------
      Экран отвечает не «что у меня записано», а «как устроен день»: где заняты
@@ -2765,7 +2812,7 @@
   .dp-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
 
 
-  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px 0; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 16px; padding: 16px 20px 0; }
   .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-4); }
   .legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
   .legend .ring { background: var(--ink-a24); border: none; }
@@ -4567,41 +4614,55 @@
 
     <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
     <div class="day-panel" id="dayPanel">
-     <div class="dp-box">
-      <div class="dp-head">
-        <div class="dp-main">
-          <div class="dp-window" id="dpWindow">—</div>
-          <div class="dp-load" id="dpLoad">—</div>
+     <div class="dp-widgets">
+      <!-- Кликабелен целиком: это и есть переход на экран «Свет», подписи
+           «свет» в заголовке нет — содержимое само себя называет -->
+      <button class="dp-w dp-w-light" id="seeLight">
+        <div class="dp-sun-row">
+          <span class="dp-sun-item"><span id="dpRiseIc"></span><span id="dpRise">—</span></span>
+          <span class="dp-sun-item dp-sun-set"><span id="dpSetIc"></span><span id="dpSet">—</span></span>
         </div>
-        <div class="head-wx">
-          <div class="hw-top"><span id="dpIcon"></span><span class="temp" id="dpTemp">—</span></div>
-          <div class="hw-cond" id="dpCond">—</div>
-          <div class="hw-hilo"><span id="dpLo">↓ —</span><span id="dpHi">↑ —</span></div>
+        <div class="dp-golden-row" id="dpGoldenRow">—</div>
+        <div class="dp-score-row" id="dpScoreRow" hidden>
+          <span id="dpScoreLabel">—</span>
+          <span class="dp-score-word" id="dpScoreWord">—</span>
+          <span class="dp-chev" id="dpChev"></span>
         </div>
+      </button>
+      <div class="dp-w dp-w-wx">
+        <div class="hw-top"><span id="dpIcon"></span><span class="temp" id="dpTemp">—</span></div>
+        <div class="hw-cond" id="dpCond">—</div>
+        <div class="hw-hilo"><span id="dpLo">↓ —</span><span id="dpHi">↑ —</span></div>
       </div>
-      <button class="dp-link" id="seeLight" data-i18n="plan.seeLight">Свет этого дня →</button>
      </div>
-    </div>
-
-    <div class="sec-label" id="plannedLabel" data-i18n="plan.planned">Запланировано</div>
+     <div class="dp-free" id="dpLoad">—</div>
     </div>
     <div class="day-line" id="dpSessions"></div>
-    <button class="action" id="planDay" style="margin: 4px 24px 0;">
-      <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
-      <span class="lbl" data-i18n="plan.planShoot">Запланировать съёмку</span>
-      <span class="sub" id="planDayHint">—</span>
-    </button>
-    <!-- Встреча — второе действие дня. Подсказки от света у неё нет и быть не
-         может: обсуждение не привязано к золотому часу, и выдумывать ей повод
-         значило бы врать. Поэтому она тише съёмки, но остаётся кнопкой -->
-    <button class="action" id="planMeet" style="margin: 10px 24px 0;">
-      <svg class="ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v2M3.5 13.5a8.5 8.5 0 0 1 17 0z" style="display:none"/><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="10.5" r="2.4"/><path d="M15 19.5c0-2.2 1.4-3.8 3.4-3.8 1.1 0 2.1.5 2.6 1.3"/></svg>
-      <span class="lbl" data-i18n="plan.meet">Встреча</span>
-      <span class="sub" data-i18n="plan.meetSub">обсудить съёмку</span>
-    </button>
-    <!-- Занять время — действие тише съёмки: планировщик про съёмки,
-         а выходной ставят реже -->
-    <button class="ghost" id="planBlock" style="margin: 10px 24px 0;" data-i18n="plan.block">Занять время — выходной, дорога, перелёт</button>
+    <!-- Три состояния дня — одна карточка, три строки одного выбора: съёмка,
+         встреча, занятость. Латунь достаётся тому, что про съёмку — первая
+         строка подсвечена как главное действие. Время у съёмки уже сказал
+         виджет света сверху, повторять его подсказкой справа не нужно -->
+    <div class="day-states" id="dayStates">
+      <button class="st on" id="planDay">
+        <svg class="ic" viewBox="0 0 24 24" stroke="var(--brass)" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
+        <span class="lbl" data-i18n="plan.planShoot">Запланировать съёмку</span>
+      </button>
+      <!-- Встреча — второе действие дня. Подсказки от света у неё нет и быть
+           не может: обсуждение не привязано к золотому часу, и выдумывать
+           ей повод значило бы врать -->
+      <button class="st" id="planMeet">
+        <svg class="ic" viewBox="0 0 24 24" stroke="var(--brass)" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="10.5" r="2.4"/><path d="M15 19.5c0-2.2 1.4-3.8 3.4-3.8 1.1 0 2.1.5 2.6 1.3"/></svg>
+        <span class="lbl" data-i18n="plan.meet">Встреча</span>
+        <span class="sub" data-i18n="plan.meetSub">обсудить съёмку</span>
+      </button>
+      <!-- Занять время — действие тише съёмки: планировщик про съёмки,
+           а выходной ставят реже -->
+      <button class="st dim" id="planBlock">
+        <svg class="ic" viewBox="0 0 24 24" stroke="var(--ink-5)" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.2"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/></svg>
+        <span class="lbl" data-i18n="plan.blockLbl">Занять время</span>
+        <span class="sub" data-i18n="plan.blockSub">выходной, дорога</span>
+      </button>
+    </div>
     <div id="sessionList" hidden></div>
   </section>
 
@@ -9606,7 +9667,7 @@
        весь экран отвечает на один вопрос — что за день */
     /* В неделе нижний блок не нужен: строки дней уже показывают всё,
        что он повторял бы списком */
-    ["dayToggle", "dayPanel", "dpSessions", "planDay"].forEach(function (id) {
+    ["dayToggle", "dayPanel", "dpSessions", "dayStates"].forEach(function (id) {
       $(id).hidden = week;
     });
     /* Виджет сворачивается во всех видах, включая день: свет и погода нужны
@@ -9614,9 +9675,6 @@
        раскрыт принудительно и шеврон прятался */
     $("dayPanel").classList.toggle("open", dayPanelOpen);
     $("dayToggle").classList.toggle("open", dayPanelOpen);
-    /* Заголовок над лентой в дне не нужен: «свободный день» уже сказан
-       виджетом, а «запланировано» пересказывает саму ленту */
-    $("plannedLabel").hidden = week || day;
     /* Возврат «↺ сегодня» в дне вернулся. Он был убран по доводу «в ленте дат
        видно, где сегодня: число светится латунью, выбранный день залит», и
        довод верен — но отвечает не на тот вопрос. Видно, где сегодня, только
@@ -9662,7 +9720,7 @@
         .sort(function (x, y) { return x.min - y.min; });
       if (shoots.length && inMonth) monthHasShoots = true;
 
-      var html = '<span class="d-n' + (lit && mk.breath ? " breath" : "") + '"'
+      var plate = '<span class="d-n' + (lit && mk.breath ? " breath" : "") + '"'
         + (lit ? ' style="--mark:' + mk.fill + '"' : "") + ">" + d.getDate() + "</span>";
       /* Занятость стоит в клетке наравне со съёмками: день, занятый отпуском,
          должен читаться занятым. Но цвета света у неё нет — у выходного не
@@ -9677,13 +9735,16 @@
       // Две подписи помещаются, третья превращается в счётчик
       var show = items.length > 2 ? items.slice(0, 1) : items.slice(0, 2);
       show.forEach(function (x) {
-        html += x.c
+        plate += x.c
           ? '<span class="cal-lb" style="color:' + x.c + '">' + esc(x.t) + "</span>"
           : '<span class="cal-lb busy">' + esc(x.t) + "</span>";
       });
       if (items.length > show.length) {
-        html += '<span class="cal-lb more">+' + (items.length - show.length) + "</span>";
+        plate += '<span class="cal-lb more">+' + (items.length - show.length) + "</span>";
       }
+      // Подложка выбранного дня квадратная 40×40, пока в клетке нет подписи —
+      // с подписью она растягивается по ширине колонки и обнимает текст
+      var html = '<span class="d-plate' + (items.length ? " has-lb" : "") + '">' + plate + "</span>";
       b.innerHTML = html;
       b.addEventListener("click", function () {
         /* Второй тап по уже выбранному дню — вход в день. Масштаб идёт
@@ -10366,19 +10427,29 @@
       }
     }
 
-    /* Свет — первая строка виджета: ради него и держат это приложение.
-       Качество передаётся цветом времени, а не отдельным словом: словом его
-       уже сказала погода справа */
-    $("dpWindow").innerHTML = q === "poor"
-      ? '<span class="dim">' + esc(LANG.t("day.noWindowCap")) + "</span>"
-      : w.label + ' <span class="t">' + range(w.a, w.b) + "</span>";
-    $("dpWindow").style.color = q === "poor" ? "" : QUAL[q].vcol;
-    // Добавить съёмку можно в любой день: пасмурно — не повод запрещать запись
-    // обещание кнопки должно совпадать с тем, что откроется в форме
-    /* Подсказка называет то время, которое и подставится: свет не округляем */
-    $("planDayHint").textContent = q === "poor" ? LANG.t("day.noWindow")
-      : LANG.t("day.startsAt", { t: fmt(Math.round(w.a)) });
-
+    /* Виджет света: восход и закат в одну строку, длина золотого часа под
+       ней, оценка заката — только когда она настоящая (реальный прогноз),
+       никогда из генератора-заглушки: три звезды на выдумке были бы враньём */
+    $("dpRiseIc").innerHTML = ICONS.svg("sunrise");
+    $("dpSetIc").innerHTML = ICONS.svg("sunset");
+    $("dpRise").textContent = fmt(SUN.rise);
+    $("dpSet").textContent = fmt(SUN.set);
+    var goldenMin = w.k === "sunset" ? (SUN.set - SUN.goldB) : (SUN.rise - SUN.goldA);
+    $("dpGoldenRow").textContent = isFinite(goldenMin) && goldenMin > 0
+      ? LANG.t("plan.goldenLen", { dur: durShort(goldenMin) }) : "—";
+    var dw0 = dayWeather(calSel);
+    var scoreRow = $("dpScoreRow");
+    if (dw0.real && dw0.sunset !== null && dw0.sunset !== undefined) {
+      var sc = dw0.sunset;
+      scoreRow.hidden = false;
+      $("dpScoreLabel").textContent = w.label;
+      $("dpScoreWord").textContent = sunsetShort(sc);
+      $("dpScoreWord").style.color = sc >= 75 ? "var(--brass)" : sc >= 50 ? "var(--green)"
+        : sc >= 28 ? "var(--ink)" : "var(--blue)";
+      $("dpChev").innerHTML = ICONS.svg("chevron");
+    } else {
+      scoreRow.hidden = true;
+    }
     // Погода дня — в сводке, как на главном экране
     var wx = dayWeather(calSel);
     $("dpIcon").innerHTML = skyIcon(q);
@@ -10657,10 +10728,7 @@
        съёмку, встречу и занятость. Кнопки внизу остаются месяцу и неделе,
        где ленты часов нет и ткнуть некуда */
     var onLine = calScope === "day";
-    ["planDay", "planMeet", "planBlock"].forEach(function (id) {
-      if ($(id)) $(id).hidden = onLine;
-    });
-    $("plannedLabel").textContent = items.length ? LANG.t("plan.planned") : LANG.t("day.freeLabel");
+    $("dayStates").hidden = onLine;
     $("planDay").querySelector(".lbl").textContent = shootCount ? LANG.t("day.addMore") : LANG.t("plan.planShoot");
   }
 
