@@ -412,16 +412,19 @@
       + '<path d="M9.6 4.6L12 7l2.4-2.4M9.6 19.4L12 17l2.4 2.4"/>'
       + '<path d="M3.9 10.4l-.4-3.3 3.3-.4M20.1 13.6l.4 3.3-3.3.4"/>'
       + '<path d="M20.1 10.4l.4-3.3-3.3-.4M3.9 13.6l-.4 3.3 3.3.4"/>',
-    /* Закат: солнце уходит за горизонт — стрелка вниз, две линии воды */
-    sunset:'<path d="M12 2.2v4.4M9.8 4.8l2.2 2.2 2.2-2.2"/>'
-      + '<path d="M7.4 16.4a4.6 4.6 0 0 1 9.2 0"/>'
-      + '<path d="M2.5 16.4h19M5.4 19h13.2M8.4 21.4h7.2"/>'
-      + '<path d="M12 9.6v1.4M6.6 11.4l1 1M17.4 11.4l-1 1M4.4 14.4h1.4M18.2 14.4h1.4"/>',
+    /* Закат: горизонт одной чертой, купол солнца, два луча и стрелка вниз над
+       серединой. Прежний знак нёс три линии воды и пять лучей — на 16px они
+       срастались в кашу, и рассвет от заката было не отличить. Форма взята с
+       экрана «Свет», где она проще и читается (замечание с телефона) */
+    sunset:'<path d="M12 2.6v4.6M9.9 5.1L12 7.2l2.1-2.1"/>'
+      + '<path d="M7.5 18a4.5 4.5 0 0 1 9 0"/>'
+      + '<path d="M3 18h18"/>'
+      + '<path d="M5.5 9.4l1.5 1.5M18.5 9.4l-1.5 1.5"/>',
     /* Рассвет: то же, но стрелка вверх */
-    sunrise:'<path d="M12 6.6V2.2M9.8 4l2.2-2.2 2.2 2.2"/>'
-      + '<path d="M7.4 16.4a4.6 4.6 0 0 1 9.2 0"/>'
-      + '<path d="M2.5 16.4h19M5.4 19h13.2M8.4 21.4h7.2"/>'
-      + '<path d="M12 9.6v1.4M6.6 11.4l1 1M17.4 11.4l-1 1M4.4 14.4h1.4M18.2 14.4h1.4"/>'
+    sunrise:'<path d="M12 7.2V2.6M9.9 4.7L12 2.6l2.1 2.1"/>'
+      + '<path d="M7.5 18a4.5 4.5 0 0 1 9 0"/>'
+      + '<path d="M3 18h18"/>'
+      + '<path d="M5.5 9.4l1.5 1.5M18.5 9.4l-1.5 1.5"/>'
   };
 
 
@@ -882,7 +885,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=2"></script>
+<script src="lang.js?v=3"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -2181,26 +2184,27 @@
      «Запланировано» на 40px ниже — дубль снят */
   .dp-free { margin: 6px 4px 0; font-size: 13px; color: var(--ink-4); text-align: center; }
 
-  /* Три состояния дня одной карточкой: съёмка, встреча, занятость —
-     видно, что это три исхода одного выбора, а не три случайных кнопки */
-  .day-states {
-    flex: 0 0 auto;                 /* иначе карточку сжимает флекс-колонка и режет третью строку */
-    margin: 8px 24px 0;
-    border-radius: 16px; corner-shape: squircle;
+  /* Три действия дня — три отдельные кнопки, а не строки одной таблицы.
+     Общая рамка обещала выбор одного состояния из трёх, которого в данных
+     нет: это три разных действия, и каждое заводит свою запись. Подсказки
+     справа сняты — они разгоняли строки по ширине и мешали читать подписи */
+  .day-states { flex: 0 0 auto; margin: 6px 24px 0; display: flex; flex-direction: column; gap: 6px; }
+  .day-states .st {
+    display: flex; align-items: center; gap: 13px; padding: 9px 16px; width: 100%;
+    border: none; background: none; font-family: inherit; cursor: pointer;
+    border-radius: 14px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
-    overflow: hidden;
   }
-  .day-states .st { display: flex; align-items: center; gap: 13px; padding: 8px 16px; width: 100%;
-    border: none; background: none; font-family: inherit; cursor: pointer; }
-  .day-states .st + .st { border-top: 1px solid var(--hairline); }
+  .day-states .st:active { background: var(--press); }
   .day-states .st.on { background: var(--sheet-4); }
   .day-states .st .ic { width: 20px; height: 20px; fill: none; stroke-width: 1.6; flex-shrink: 0; }
+  /* Влево, а не по центру: подсказки справа сняты, и без явного выравнивания
+     подпись уезжала в середину кнопки, оставляя знак сиротой у левого края */
   .day-states .st .lbl { flex: 1 1 auto; min-width: 0; font-size: 15.5px; font-weight: 500;
-    color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    color: var(--ink-2); text-align: left;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .day-states .st.on .lbl { font-weight: 600; color: var(--ink); }
-  .day-states .st .sub { font-size: 12.5px; white-space: nowrap; color: var(--ink-5); flex-shrink: 0; }
   .day-states .st.dim .lbl { color: var(--ink-4); }
-  .day-states .st.dim .sub { color: var(--ink-7); }
 
   /* Компактный список съёмок дня */
   .plan-list { padding: 0 24px; flex-shrink: 0; }
@@ -2208,8 +2212,10 @@
   .plan-list[hidden], .sec-label[hidden], .action[hidden], .day-panel[hidden],
   .day-states[hidden], .day-states .st[hidden] { display: none; }
   .cal, .cal-head, .legend, .sec-label { flex-shrink: 0; }
+  /* По центру, а не по базовой линии: в строке теперь стоит знак жанра, и
+     базовая линия текста ставила бы его выше собственной строки */
   .plan-row {
-    display: flex; align-items: baseline; gap: 12px; width: 100%;
+    display: flex; align-items: center; gap: 10px; width: 100%;
     background: none; border: none; cursor: pointer; font-family: inherit;
     padding: 9px 0; text-align: left; color: var(--ink);
   }
@@ -2363,7 +2369,7 @@
   }
   .cal-head { display: grid; grid-template-columns: repeat(7,1fr); padding: 10px 20px 0; }
   .cal-head span {
-    text-align: center; font-size: 11px; color: var(--ink-7);
+    text-align: center; font-size: 12.5px; color: var(--ink-7);
     letter-spacing: 0.6px; text-transform: uppercase; padding-bottom: 8px; font-weight: 600;
   }
   /* Суббота и воскресенье светлее: съёмки чаще всего в них, колонку надо
@@ -2376,10 +2382,10 @@
     /* 48, а не 55: подложка числа теперь 40×40 и высоту клетки задаёт она, а
        не запас под подпись. День с подписью растит свою строку сам — так же,
        как растил её и раньше при двух подписях */
-    min-height: 48px; border: none; background: none; cursor: pointer;
+    min-height: 47px; border: none; background: none; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     padding: 3px 1px 0;
-    font-family: inherit; font-size: 15px; color: var(--ink);
+    font-family: inherit; font-size: 16.5px; color: var(--ink);
     position: relative; font-variant-numeric: tabular-nums;
   }
   /* Подложка выбранного дня раньше красила всю клетку 55px высотой — обещание
@@ -2393,7 +2399,9 @@
   }
   .cal .d .d-plate.has-lb { width: 100%; height: auto; padding: 4px 1px 5px; }
   .cal .d.sel .d-plate { background: var(--press); }
-  .cal .d.past { color: var(--ink-8); }
+  /* Прошедшие дни своего месяца приглушены, но остаются читаемыми: по ним
+     смотрят, что уже отснято, а --ink-8 уводил их почти в фон */
+  .cal .d.past { color: var(--ink-5); }
   /* Дни соседних месяцев: последние выходные августа часто лежат в сентябре,
      и занятость по ним видна только так. Блёклые — чтобы не спорить со своим месяцем */
   .cal .d.out .d-n { color: var(--ink-10); }
@@ -4661,29 +4669,25 @@
      <div class="dp-free" id="dpLoad">—</div>
     </div>
     <div class="day-line" id="dpSessions"></div>
-    <!-- Три состояния дня — одна карточка, три строки одного выбора: съёмка,
-         встреча, занятость. Латунь достаётся тому, что про съёмку — первая
-         строка подсвечена как главное действие. Время у съёмки уже сказал
-         виджет света сверху, повторять его подсказкой справа не нужно -->
+    <!-- Три действия дня — три отдельные кнопки, а не строки одной таблицы.
+         Таблица обещала выбор одного состояния из трёх, которого в данных
+         нет: это три разных действия, каждое заводит свою запись. Подсказок
+         справа у них тоже нет — они разгоняли строки по ширине и мешали
+         читать сами подписи (замечание с телефона) -->
     <div class="day-states" id="dayStates">
       <button class="st on" id="planDay">
         <svg class="ic" viewBox="0 0 24 24" stroke="var(--brass)" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
         <span class="lbl" data-i18n="plan.planShoot">Запланировать съёмку</span>
       </button>
-      <!-- Встреча — второе действие дня. Подсказки от света у неё нет и быть
-           не может: обсуждение не привязано к золотому часу, и выдумывать
-           ей повод значило бы врать -->
       <button class="st" id="planMeet">
         <svg class="ic" viewBox="0 0 24 24" stroke="var(--brass)" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="10.5" r="2.4"/><path d="M15 19.5c0-2.2 1.4-3.8 3.4-3.8 1.1 0 2.1.5 2.6 1.3"/></svg>
-        <span class="lbl" data-i18n="plan.meet">Встреча</span>
-        <span class="sub" data-i18n="plan.meetSub">обсудить съёмку</span>
+        <span class="lbl" data-i18n="plan.meetClient">Встреча с клиентом</span>
       </button>
       <!-- Занять время — действие тише съёмки: планировщик про съёмки,
            а выходной ставят реже -->
       <button class="st dim" id="planBlock">
         <svg class="ic" viewBox="0 0 24 24" stroke="var(--ink-5)" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.2"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/></svg>
         <span class="lbl" data-i18n="plan.blockLbl">Занять время</span>
-        <span class="sub" data-i18n="plan.blockSub">выходной, дорога</span>
       </button>
     </div>
     <div id="sessionList" hidden></div>
@@ -10528,7 +10532,12 @@
         }
         var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet";
         var nm = clientName(s3) || (meet3 ? LANG.t("day.meet") : genreName(s3.type));
+        /* Знак жанра обязателен: пока имя клиента не вписано, жанр говорит
+           сама подпись строки, но стоит вписать «Марина и Сергей» — и свадьбу
+           от лавстори уже не отличить (замечание с телефона). Знак отвечает
+           на этот вопрос независимо от того, чем названа строка */
         return '<button type="button" class="plan-row" data-i="' + it.i + '">'
+          + '<span class="pr-ic">' + (meet3 ? IC.svg("partner") : IC.genreSvg(s3.type)) + "</span>"
           + '<span class="pr-time">' + fmt(it.a) + " – " + fmt(it.b) + "</span>"
           + '<span class="pr-who">' + esc(nm) + "</span>"
           + (meet3 ? '<span class="pr-due">' + esc(LANG.t("plan.meet").toLowerCase()) + "</span>"

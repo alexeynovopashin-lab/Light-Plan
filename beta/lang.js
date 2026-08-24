@@ -571,9 +571,8 @@
     "plan.undo":       "Вернуть",
     "plan.planShoot":  "Запланировать съёмку",
     "plan.meet":       "Встреча",
-    "plan.meetSub":    "обсудить съёмку",
+    "plan.meetClient": "Встреча с клиентом",
     "plan.blockLbl":   "Занять время",
-    "plan.blockSub":   "выходной, дорога",
     "plan.goldenLen":  "золотой час · {dur}",
 
     /* Строки телеметрии — подписи слева */
@@ -1839,9 +1838,8 @@
     "plan.undo":       "Undo",
     "plan.planShoot":  "Plan a shoot",
     "plan.meet":       "Meeting",
-    "plan.meetSub":    "to discuss a shoot",
+    "plan.meetClient": "Meeting with client",
     "plan.blockLbl":   "Block out time",
-    "plan.blockSub":   "day off, travel",
     "plan.goldenLen":  "golden hour · {dur}",
 
     "tele.cond":   "Conditions",
