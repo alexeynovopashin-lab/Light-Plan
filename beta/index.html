@@ -15374,7 +15374,8 @@
     // а для щелчка в 44 мс небольшое растяжение по времени не слышно
     // отдельно от понижения тона (Алексей: «можешь понизить звук тоново?»)
     src.playbackRate.value = 0.8;
-    var g = audioCtx.createGain(); g.gain.value = 0.04;   // втрое снижение подряд — вполовину от 0.08
+    // Ещё тише вполовину (Алексей, 24 августа 2026) — от 0.04
+    var g = audioCtx.createGain(); g.gain.value = 0.02;
     src.connect(g); g.connect(audioCtx.destination);
     src.start();
   }
@@ -15391,8 +15392,9 @@
     if (!audioCtx || audioCtx.state !== "running" || !shutterBuf) return;
     var src = audioCtx.createBufferSource(); src.buffer = shutterBuf;
     // Громкость -30% по живой проверке (Алексей, после того как звук сел
-    // на анимацию идеально по ощущению — осталась только тонкая правка)
-    var g = audioCtx.createGain(); g.gain.value = 0.385;
+    // на анимацию идеально по ощущению — осталась только тонкая правка).
+    // Ещё −30% поверх той правки (Алексей, 24 августа 2026) — от 0.385
+    var g = audioCtx.createGain(); g.gain.value = 0.2695;
     src.connect(g); g.connect(audioCtx.destination);
     src.start();
   }
@@ -15406,7 +15408,8 @@
     if (navigator.vibrate) { try { navigator.vibrate(18); } catch (e) {} }
     if (!audioCtx || audioCtx.state !== "running" || !trashBuf) return;
     var src = audioCtx.createBufferSource(); src.buffer = trashBuf;
-    var g = audioCtx.createGain(); g.gain.value = 0.55;
+    // Тише на 70% сразу же (Алексей, 24 августа 2026, первая правка на слух) — от 0.55
+    var g = audioCtx.createGain(); g.gain.value = 0.165;
     src.connect(g); g.connect(audioCtx.destination);
     src.start();
   }
