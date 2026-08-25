@@ -2159,8 +2159,20 @@
   .dp-w-light:active { background: var(--press); }
   .dp-w-wx { gap: 2px; }
   .dp-sun-row { display: flex; justify-content: space-between; align-items: center; }
-  .dp-sun-item { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600;
+  /* По базовой линии, а не по центру строки. У рассвета и заката линия
+     горизонта проходит на 16.5 из 24 высоты, то есть под ней 31.25% пустоты.
+     При центровании по строке эта пустота уравнивалась с текстом, и рисунок
+     всплывал над числом (Алексей: «она должна лежать на том же уровне, что и
+     строчка после символа»). Выравниваем по базовой линии — у встроенного SVG
+     она по нижнему краю — и опускаем на те самые 31.25% собственной высоты:
+     тогда на базовой линии оказывается горизонт, как и положено, а купол с
+     лучами встаёт над ней, как буквы. Проценты берутся от высоты самого
+     знака, поэтому одно правило годится и на 14px в неделе, и на 19px здесь.
+     `transform` на разметку не влияет — базовая линия остаётся прежней, и
+     сдвиг не тянет за собой соседей. */
+  .dp-sun-item { display: flex; align-items: baseline; gap: 5px; font-size: 14px; font-weight: 600;
     color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .dp-sun-item svg { transform: translateY(31.25%); }
   /* 19px и толщина 1.6 — те же, что у этой пары над слайдером в таймбаре.
      Мельчить незачем: место в виджете есть, а на 16px рисунок начинал
      рассыпаться в пиксели (замечание с телефона) */
@@ -2303,14 +2315,21 @@
      экрана — сознательная плата (Алексей: «можно было сдвинуть, тут центровка
      не так важна»). Обрезка многоточием остаётся, но уже как страховка на
      невозможный случай, а не как штатный исход. */
-  .plan-top.wide-title { grid-template-columns: auto minmax(0,1fr) auto; }
+  /* Раньше это правило включалось только вне месяца — считалось, что месяцу
+     ровные трети по карману, слово короткое. Замер показал обратное: в трети
+     помещается 74px текста, а «Сентябрь» просит 103 вместе с шевроном, и
+     «Октябрь», «Декабрь» и любой месяц с годом («Февраль 2027» — 145) тоже
+     не помещались. То есть главный экран приложения обрезал и название
+     месяца, и шеврон — молча, все эти месяцы. Ровная центровка на 375px при
+     группе из трёх значков справа (118px) просто недостижима для этого
+     текста, поэтому трети сняты везде, а не только вне месяца. */
+  .plan-top { grid-template-columns: auto minmax(0,1fr) auto; }
   /* `padding-left: 20px` — компенсация шеврона, чтобы по центру экрана стояло
      слово, а не «слово со стрелкой». Когда мы центровку отпустили, эта
      компенсация компенсирует несуществующее, а 20px забирает настоящие.
      Возвращаем их тексту: без них влезает «18 – 24 янв 2027» — неделя чужого
      года, единственный случай, который не помещался даже после сокращения
      месяца (измерено: просил 165px при 145 доступных). */
-  .plan-top.wide-title .plan-title { padding-left: 4px; font-size: 18px; }
   .plan-lead { display: flex; justify-content: flex-start; }
   /* Кнопка вида: 44 pt — размер, в который попадают пальцем не глядя */
   .scope-btn {
@@ -2355,19 +2374,18 @@
   .scope-menu button.on .ic svg { stroke: var(--ink); }
   .plan-title {
     flex: 0 1 auto; min-width: 0; background: none; border: none; padding: 4px;
-    font-family: inherit; font-size: 19px; font-weight: 650; color: var(--ink);
+    /* 18, а не 19: разницы на глаз нет, а последние 5px решали. При 19px не
+       помещались заголовки чужого года — «20 октября 2027» и «Июн – Июл 2027»
+       просили 174 при 169. Один кегль на все три вида, без правил по видам. */
+    font-family: inherit; font-size: 18px; font-weight: 650; color: var(--ink);
     letter-spacing: -0.3px; text-align: center; cursor: pointer; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis;
   }
   .plan-title:active { opacity: 0.6; }
-  /* Шеврон при месяце: подсказка, что заголовок — кнопка к экрану года.
-     Он висит справа от слова и тянет центр на себя, поэтому слева
-     оставлено ровно столько же места: по центру должно стоять слово,
-     а не «слово со стрелкой» */
-  /* 20, а не ширина шеврона: между словом и шевроном стоит ещё и пробел из
-     разметки, и компенсировать надо всю группу справа от слова — иначе по
-     центру экрана встаёт «слово со стрелкой», а не само слово */
-  .plan-title { padding-left: 20px; }
+  /* Компенсации шеврона здесь больше нет. Она стояла ради одного: чтобы по
+     центру экрана стояло слово, а не «слово со стрелкой». Центровки не стало —
+     компенсировать нечего, а 20px она забирала у текста, которого и так не
+     хватало. Шеврон остаётся подсказкой, что заголовок — кнопка к году. */
   .pt-chev { display: inline-flex; vertical-align: middle; margin-left: 5px; }
   .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
     stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); }
@@ -2945,14 +2963,18 @@
   /* Корзина делит строку со светом, а не растит клетку своей — та же
      подсказка на её собственном месте, только слева */
   .wk-sun.has-bin { justify-content: space-between; }
-  .wk-sun-t { display: flex; align-items: center; gap: 6px; }
+  /* Горизонт знака — на базовую линию строки, как в виджете сводки
+     (см. `.dp-sun-item`) */
+  .wk-sun-t { display: flex; align-items: baseline; gap: 6px; }
+  .wk-sun-t svg { transform: translateY(31.25%); }
   /* Сдача материала в этот день — тоже занятость */
   /* Развёрнутый день: свет и погода подробностями, здесь же в неделе */
   .wk-more { display: none; padding: 8px 12px 4px; }
   .wk-day-row.open .wk-more { display: block; }
   .wk-light { display: flex; flex-wrap: wrap; gap: 6px 14px; }
-  .wk-light span { display: flex; align-items: center; gap: 5px;
+  .wk-light span { display: flex; align-items: baseline; gap: 5px;
     font-size: 12px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+  .wk-light svg { transform: translateY(31.25%); }   /* горизонт — на базовую линию */
   .wk-light span.gold { color: var(--brass); }
   .wk-light svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -9688,21 +9710,21 @@
       m.textContent = dMon(calSel) + yr(calSel);
     } else if (calScope === "week") {
       var a = weekStart(calSel), b = addDays(a, 6);
-      /* «3 – 9 августа» вместо «3 августа – 9 августа»: месяц называем один раз,
-         иначе заголовок налезает на иконки.
-         Месяц ещё и сокращаем — «24 – 30 авг»: полного не хватало даже после
-         расширения колонки, а `dMonShort` заведён ровно для этого и в своём
-         комментарии прямо назван «для плотных мест: списка съёмок, недели».
-         Здесь он до сих пор не использовался — недосмотр, а не решение. */
+      /* Только имя месяца. Числа недели заголовку не нужны: они и так стоят
+         столбцом слева, у каждой строки дня, крупнее и с днём недели рядом —
+         «24 – 30» в шапке повторяло то, что видно ниже (Алексей: «зачем нам
+         дубляж информации, если числа и так подписаны»). А месяц как раз
+         больше нигде на экране недели не назван — он и остаётся.
+         Заодно снимается вся возня с шириной: «Август» короче любого варианта
+         с числами, и неделя чужого года через границу месяца, которая раньше
+         не помещалась никак, теперь помещается с запасом. */
       m.textContent = (a.getMonth() === b.getMonth()
-        ? a.getDate() + " – " + dMonShort(b)
-        : dMonShort(a) + " – " + dMonShort(b))
+        ? monthTitle(a)
+        : abbr3(monthTitle(a)) + " – " + abbr3(monthTitle(b)))
         + yr(a);
     } else {
       m.textContent = monthTitle(calMonth) + yr(calMonth);
     }
-    /* Ровные трети — только месяцу: см. `.plan-top.wide-title` в стилях */
-    document.querySelector(".plan-top").classList.toggle("wide-title", calScope !== "month");
   }
   /* Метка возврата — только когда ушли от сегодняшнего дня */
   function markScopeNow() {
