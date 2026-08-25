@@ -578,6 +578,7 @@
 
     /* Строки телеметрии — подписи слева */
     "tele.cond":   "Условия",
+    "tele.sunrise": "Рассвет",
     "tele.sunset": "Закат",
     "tele.golden": "Золотой час",
     "tele.light":  "Свет",
@@ -1846,6 +1847,7 @@
     "plan.goldenLen":  "golden hour · {dur}",
 
     "tele.cond":   "Conditions",
+    "tele.sunrise": "Sunrise",
     "tele.sunset": "Sunset",
     "tele.golden": "Golden hour",
     "tele.light":  "Light",

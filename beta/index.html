@@ -2971,13 +2971,21 @@
   /* Развёрнутый день: свет и погода подробностями, здесь же в неделе */
   .wk-more { display: none; padding: 8px 12px 4px; }
   .wk-day-row.open .wk-more { display: block; }
-  .wk-light { display: flex; flex-wrap: wrap; gap: 6px 14px; }
-  .wk-light span { display: flex; align-items: baseline; gap: 5px;
-    font-size: 12px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
-  .wk-light svg { transform: translateY(31.25%); }   /* горизонт — на базовую линию */
-  .wk-light span.gold { color: var(--brass); }
-  .wk-light svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
-    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  /* Раскрытый день называет золотой час полностью, поэтому строка-сводка над
+     ним убирается: тот же час не должен стоять дважды в одной карточке.
+     Корзина остаётся — она не про свет, поэтому прячется только текст, а
+     когда его в строке и не было, уходит вся строка вместе с её отступами */
+  .wk-day-row.open .wk-sun-t { display: none; }
+  .wk-day-row.open .wk-sun:not(.has-bin) { display: none; }
+  /* Подпись слева, значение справа — тот же строй, что в телеметрии «Света».
+     Подписи держат общую колонку (`min-width`), иначе значения встают
+     лесенкой и снова читаются как случайный набор чисел */
+  .wk-det { display: flex; align-items: baseline; gap: 10px; font-size: 12px; }
+  .wk-det + .wk-det { margin-top: 4px; }
+  .wk-k { flex: 0 0 auto; min-width: 74px; color: var(--ink-7); }
+  .wk-v { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+  /* Золотой час — единственное здесь, ради чего открывают день */
+  .wk-det.gold .wk-v { color: var(--brass); }
   .wk-wxs { font-size: 12px; color: var(--ink-7); margin-top: 6px; }
 
   .wk-due {
@@ -10008,16 +10016,31 @@
 
       /* Тап по дате разворачивает день здесь же: свет и погода подробностями.
          Уводить в другой вид ради этого — лишний шаг (замечание с тестов) */
-      var more = '<div class="wk-more">'
-        + '<div class="wk-light">'
-        + '<span>' + IC.svg("sunrise") + fmt(sky.rise) + "</span>"
-        /* Золотой час — без знака: в семье знаков света есть рассвет и закат,
-           третьего нет, а повторить закат посреди строки «рассвет · золотой ·
-           закат» значило бы поставить один знак дважды. В виджете сводки этот
-           же час набран ровно так — латунью и без знака, — и здесь довольно
-           цвета: строка и так стоит между двумя подписанными временами */
-        + (sky.goldB !== null ? '<span class="gold">' + range(sky.goldB, sky.blueB) + "</span>" : "")
-        + '<span>' + IC.svg("sunset") + fmt(sky.set) + "</span></div>"
+      /* Раньше тут стояли три времени подряд под мелкими знаками: «05:35 ·
+         18:35 – 19:48 · 19:24». Читались они как три равноправных значения, а
+         на деле закат лежит ВНУТРИ второго промежутка — это золотой час с
+         синим, они закат и обнимают. Получалась не сводка, а ребус (Алексей:
+         «что у нас тут за свалка символов… для людей это просто набор цифр»).
+         Экран «Свет» эту же ловушку уже обошёл — там `tele.goldenTill` пишет
+         «{range} · до заката {t}» с комментарием «золотой час — окно, не
+         момент: чтобы не спутать его с закатом». Берём оттуда и формулировку,
+         и подписи: словом слева, значением справа. Знаки убраны: подпись
+         говорит то же самое и понятнее, а знак при подписи — уже украшение. */
+      function detRow(k, v, gold) {
+        return '<div class="wk-det' + (gold ? " gold" : "") + '"><span class="wk-k">'
+          + esc(k) + '</span><span class="wk-v">' + esc(v) + "</span></div>";
+      }
+      /* Три строки по порядку суток: рассвет, начало золотого часа, закат.
+         Закат стоит своей строкой, а не внутри золотого («18:52 – 20:07 · до
+         заката 19:42», как на «Свете»): там эта приписка нужна, потому что
+         строка «Закат» занята оценкой заката, а не временем, и время сказать
+         больше негде. Здесь строка свободна — и целиком не влезало: приписка
+         просит 186px при 160 доступных, то есть переносилась и рвала «до
+         заката / 19:42» пополам. */
+      var det = detRow(LANG.t("tele.sunrise"), fmt(sky.rise));
+      if (sky.goldB !== null) det += detRow(LANG.t("tele.golden"), range(sky.goldB, sky.blueB), true);
+      if (sky.set !== null) det += detRow(LANG.t("tele.sunset"), fmt(sky.set));
+      var more = '<div class="wk-more">' + det
         + '<div class="wk-wxs">' + esc(LANG.t("week.wx",
             { cond: QUAL[q].cond, cloud: wx.cloud, wind: wx.wind })) + "</div>"
         + "</div>";
