@@ -551,7 +551,7 @@
     "week.goldenAt":  "золотой час {t}",
     "week.dueList":   "сдать {list}",
     "week.trashN":    "удалено: {n}",
-    "week.wx":        "{cond} · облачность {cloud}% · ветер {wind} м/с",
+    "week.wx":        "облачность {cloud}% · ветер {wind} м/с",
 
     /* ---- Экран «Съёмки» ----
        Перегрузка: сколько просрочено и сколько ещё впереди. Оба числа
@@ -1819,7 +1819,7 @@
     "week.goldenAt":  "golden hour {t}",
     "week.dueList":   "deliver {list}",
     "week.trashN":    "deleted: {n}",
-    "week.wx":        "{cond} · cloud {cloud}% · wind {wind} m/s",
+    "week.wx":        "cloud {cloud}% · wind {wind} m/s",
 
     "year.months":     "Load by month",
     "year.monthsNote": "The number is shoots that month",

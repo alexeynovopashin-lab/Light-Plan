@@ -2980,10 +2980,26 @@
   /* Подпись слева, значение справа — тот же строй, что в телеметрии «Света».
      Подписи держат общую колонку (`min-width`), иначе значения встают
      лесенкой и снова читаются как случайный набор чисел */
-  .wk-det { display: flex; align-items: baseline; gap: 10px; font-size: 12px; }
+  /* Свет слева строчками, погода справа столбиком — как в паре виджетов
+     сводки дня, только теснее. Левая колонка сжимаема (`min-width: 0`),
+     правая по содержимому: числа погоды переносить нельзя */
+  .wk-more-in { display: flex; align-items: flex-start; gap: 8px; }
+  .wk-det-col { flex: 1 1 auto; min-width: 0; }
+  .wk-wx-w { flex: 0 0 auto; text-align: right; }
+  .wk-wx-w .hw-top { justify-content: flex-end; gap: 5px; }
+  .wk-wx-w .hw-top svg { width: 18px; height: 18px; }
+  .wk-wx-w .hw-top .temp { font-size: 18px; }
+  .wk-wx-w .hw-cond { font-size: 12px; }
+  .wk-wx-w .hw-hilo { justify-content: flex-end; gap: 8px; font-size: 11.5px; }
+  .wk-det { display: flex; align-items: baseline; gap: 8px; font-size: 12px; }
   .wk-det + .wk-det { margin-top: 4px; }
-  .wk-k { flex: 0 0 auto; min-width: 74px; color: var(--ink-7); }
-  .wk-v { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+  .wk-k { flex: 0 0 auto; min-width: 72px; color: var(--ink-7); }
+  /* `nowrap` обязателен: без него значению не хватало 0.3px и «18:49 – 20:04»
+     разваливалось на «18:49 –» и «20:04» — промежуток времени, разорванный
+     пополам, читается как два разных времени. Зазоры срезаны с 10 до 8,
+     подпись с 74 до 72 — этого хватает с запасом, а `nowrap` держит строку
+     целой, даже если запас однажды съест другой язык или шрифт */
+  .wk-v { color: var(--ink-4); font-variant-numeric: tabular-nums; white-space: nowrap; }
   /* Золотой час — единственное здесь, ради чего открывают день */
   .wk-det.gold .wk-v { color: var(--brass); }
   .wk-wxs { font-size: 12px; color: var(--ink-7); margin-top: 6px; }
@@ -10040,9 +10056,26 @@
       var det = detRow(LANG.t("tele.sunrise"), fmt(sky.rise));
       if (sky.goldB !== null) det += detRow(LANG.t("tele.golden"), range(sky.goldB, sky.blueB), true);
       if (sky.set !== null) det += detRow(LANG.t("tele.sunset"), fmt(sky.set));
-      var more = '<div class="wk-more">' + det
+      /* Погода — тот же блок, что в виджете сводки дня: `.hw-top`/`.hw-cond`/
+         `.hw-hilo` и те же значения из `dayWeather`. Своей вёрстки для погоды
+         здесь не заводим — она уже есть и уже выверена (Алексей: «у нас уже
+         есть вот такой вид виджетов, по сути мы повторяем решение»). Место —
+         верхний правый угол раскрытого дня: слева свет строчками, справа
+         погода столбиком, и угол перестаёт пустовать. Размеры уменьшены:
+         в виджете градус набран 24px во всю ширину экрана, здесь на него
+         приходится около 60px в карточке дня. */
+      var wxBlock = '<div class="wk-wx-w">'
+        + '<div class="hw-top">' + skyIcon(q)
+        + '<span class="temp">' + tempOut(wx.tempBase, 900) + "°</span></div>"
+        + '<div class="hw-cond">' + esc(QUAL[q].cond) + "</div>"
+        + '<div class="hw-hilo"><span>↓ ' + tempOut(wx.tempBase, 240) + "°</span>"
+        + "<span>↑ " + tempOut(wx.tempBase, 960) + "°</span></div></div>";
+      /* Облачность и ветер остались строкой внизу: в блоке погоды их нет, а
+         фотографу они говорят про свет и про то, устоит ли стойка */
+      var more = '<div class="wk-more">'
+        + '<div class="wk-more-in"><div class="wk-det-col">' + det + "</div>" + wxBlock + "</div>"
         + '<div class="wk-wxs">' + esc(LANG.t("week.wx",
-            { cond: QUAL[q].cond, cloud: wx.cloud, wind: wx.wind })) + "</div>"
+            { cloud: wx.cloud, wind: wx.wind })) + "</div>"
         + "</div>";
 
       row.innerHTML = head + '<div class="wk-list">' + body + more + "</div>";
