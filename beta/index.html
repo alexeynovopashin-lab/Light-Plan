@@ -3870,6 +3870,52 @@
   /* В карточке референсы только смотрят: удаление живёт в форме */
   #cdRefs .kill { display: none; }
 
+  /* ---------- Знакомство (первый запуск) ----------
+     Не `.overlay`: это не навигационный слой поверх экрана, а разовый
+     полноэкранный приём — без выезда снизу, обычным затуханием. */
+  .onboard {
+    position: fixed; inset: 0; z-index: 200; background: var(--surface);
+    display: flex; flex-direction: column; opacity: 0; visibility: hidden;
+    transition: opacity 0.3s ease;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  }
+  .onboard.open { opacity: 1; visibility: visible; }
+  .ob-skip {
+    position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 18px; z-index: 2;
+    background: none; border: 0; font-family: inherit; font-size: 14px; color: var(--ink-4);
+    padding: 10px; cursor: pointer;
+  }
+  .ob-view { flex: 1; overflow: hidden; position: relative; }
+  /* Восемь карточек (приветствие + семь шагов) в ряд: ширина ленты — 800%
+     от окна, каждая карточка — ровно 1/8 ленты, то есть одно окно шириной */
+  .ob-track { display: flex; width: 800%; height: 100%; transition: transform 0.38s cubic-bezier(0.25,1,0.4,1); }
+  .ob-step {
+    flex: 0 0 12.5%; width: 12.5%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 40px 30px; box-sizing: border-box;
+  }
+  .ob-welcome h1 { font-size: 30px; margin: 0 0 12px; color: var(--ink); }
+  .ob-welcome p { max-width: 300px; margin: 0 0 26px; }
+  .ob-welcome .sheet-done { width: auto; padding: 15px 34px; margin-top: 0; }
+  .ob-later {
+    margin-top: 14px; background: none; border: 0; font-family: inherit;
+    font-size: 14px; color: var(--ink-4); padding: 8px; cursor: pointer;
+  }
+  .ob-ic {
+    width: 74px; height: 74px; border-radius: 20px; corner-shape: squircle;
+    background: var(--field); display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .ob-ic svg { width: 36px; height: 36px; stroke: var(--brass); fill: none; stroke-width: 1.5; flex-shrink: 0; }
+  .ob-ic.pair svg { width: 26px; height: 26px; }
+  .ob-step h2 { font-size: 20px; margin: 22px 0 10px; color: var(--ink); }
+  .ob-step p { font-size: 15px; line-height: 1.5; color: var(--ink-3); max-width: 300px; margin: 0; }
+  .ob-dots { display: flex; justify-content: center; gap: 7px; padding: 6px 0 4px; }
+  .ob-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-9); }
+  .ob-dot.on { background: var(--brass); width: 16px; border-radius: 3px; transition: all 0.25s ease; }
+  .ob-bar { padding: 6px 24px calc(20px + env(safe-area-inset-bottom)); }
+  /* На приветствии свои кнопки в самом слайде — общий низ и точки лишние */
+  .onboard.at-welcome .ob-dots, .onboard.at-welcome .ob-bar { visibility: hidden; }
+
   /* ---------- Форма съёмки ---------- */
   .overlay {
     position: absolute; inset: 0; background: var(--surface); z-index: 80;
@@ -5946,6 +5992,63 @@
     <div class="chips" id="startPractice" style="padding: 14px 0 0;"></div>
     <p class="seg-note" id="startNote" style="padding-left:0;"></p>
     <button class="sheet-done" id="startDone" data-i18n="pick.done">Готово</button>
+  </div>
+
+  <!-- ============ ЗНАКОМСТВО (первый запуск) ============
+       Признак «уже видел» — сам факт сохранённых данных (см. `saved` ниже),
+       отдельного флажка нет: тот же принцип, что у вопроса о практике. -->
+  <div class="onboard" id="onboard" hidden>
+    <button class="ob-skip" id="obSkip" data-i18n="onb.skip">Пропустить</button>
+    <div class="ob-view">
+      <div class="ob-track" id="obTrack">
+        <div class="ob-step ob-welcome">
+          <h1 data-i18n="onb.welcomeTitle">Light Plan</h1>
+          <p data-i18n="onb.welcomeSub">Свет, погода и съёмки — в одном месте. Показать в двух словах, как это работает?</p>
+          <button class="sheet-done" id="obStart" data-i18n="onb.start">Ознакомиться</button>
+          <button class="ob-later" id="obLater" data-i18n="onb.later">Пропустить</button>
+        </div>
+        <div class="ob-step">
+          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+          <h2 data-i18n="onb.geo.t">Место съёмки</h2>
+          <p data-i18n="onb.geo.d">Приложение спросит геопозицию — по ней считаются свет, погода и часовой пояс именно там, где вы снимаете.</p>
+        </div>
+        <div class="ob-step">
+          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 11l4 4 4-4M4.5 19.5h15"/></svg></span>
+          <h2 data-i18n="onb.disk.t">Копия в облаке</h2>
+          <p data-i18n="onb.disk.d">Подключите Яндекс.Диск, Google или Dropbox в настройках — туда уходят копия данных и референсы съёмок.</p>
+        </div>
+        <div class="ob-step">
+          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="4.4" width="17.6" height="15.2" rx="2"/><path d="M3.2 9.2h17.6M9 9.2v10.4M15 9.2v10.4M3.2 14.4h17.6"/></svg></span>
+          <h2 data-i18n="onb.cal.t">Календарь съёмок</h2>
+          <p data-i18n="onb.cal.d">Месяц, неделя или один день — жанр съёмки виден прямо в клетке, а не значком.</p>
+        </div>
+        <div class="ob-step">
+          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17.5 8H20M4 16h3M11.5 16H20"/><circle cx="15.2" cy="8" r="2.3"/><circle cx="9.2" cy="16" r="2.3"/></svg></span>
+          <h2 data-i18n="onb.slider.t">Время в руке</h2>
+          <p data-i18n="onb.slider.d">Один ползунок над таб-баром двигает свет сразу и на «Сегодня», и на карте.</p>
+        </div>
+        <div class="ob-step">
+          <span class="ob-ic pair">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M4.4 12H2M22 12h-2.4M6.3 6.3l1.7 1.7M16 16l1.7 1.7M17.7 6.3L16 8M8 16l-1.7 1.7"/></svg>
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/></svg>
+          </span>
+          <h2 data-i18n="onb.sunmoon.t">Солнце и луна</h2>
+          <p data-i18n="onb.sunmoon.d">Купол переключается между ними: фазы, восходы и заходы — для обоих.</p>
+        </div>
+        <div class="ob-step">
+          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12.6" r="8.4"/><path d="M15.6 9l-2 5.6-5.6 2 2-5.6z"/><circle cx="12" cy="12.6" r="1.2"/><path d="M12 5.6v1.2M12 18.4v1.2M5.2 12.6h1.2M17.6 12.6h1.2M9.6 4.2L12 1.8l2.4 2.4"/></svg></span>
+          <h2 data-i18n="onb.map.t">Точка на карте</h2>
+          <p data-i18n="onb.map.d">Отметьте, откуда снимаете — компас света покажет направление, тени и золотой час на месте.</p>
+        </div>
+        <div class="ob-step">
+          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg></span>
+          <h2 data-i18n="onb.add.t">Первая съёмка</h2>
+          <p data-i18n="onb.add.d">Заведите первую запись — дальше календарь и свет работают вместе.</p>
+        </div>
+      </div>
+    </div>
+    <div class="ob-dots" id="obDots"></div>
+    <div class="ob-bar"><button class="sheet-done" id="obNext" data-i18n="onb.next">Далее</button></div>
   </div>
 
   <div class="spot-fan" id="spotFan" hidden></div>
@@ -16931,6 +17034,42 @@
   $("startDone").addEventListener("click", closeStartSheet);
   $("startScrim").addEventListener("click", closeStartSheet);
 
+  /* ---------- Знакомство: приветствие + семь карточек по шагам ----------
+     Показывается один раз, на самом первом запуске (нет сохранённых
+     данных). Приветствие само предлагает выбор «Ознакомиться / Пропустить»
+     — шаги внутри уже просто листаются вперёд и закрываются в любой момент */
+  var OB_STEPS = 7;   // без учёта приветствия
+  var obIdx = 0;
+  function obGoTo(i) {
+    obIdx = Math.max(0, Math.min(OB_STEPS, i));
+    $("obTrack").style.transform = "translateX(-" + (obIdx * 100 / (OB_STEPS + 1)) + "%)";
+    $("onboard").classList.toggle("at-welcome", obIdx === 0);
+    $("obDots").innerHTML = "";
+    for (var k = 1; k <= OB_STEPS; k++) {
+      $("obDots").insertAdjacentHTML("beforeend",
+        '<span class="ob-dot' + (k === obIdx ? " on" : "") + '"></span>');
+    }
+    $("obNext").textContent = LANG.t(obIdx === OB_STEPS ? "onb.done" : "onb.next");
+  }
+  function openOnboard() {
+    obGoTo(0);
+    $("onboard").hidden = false;
+    requestAnimationFrame(function () { $("onboard").classList.add("open"); });
+  }
+  function closeOnboard(openFirstShoot) {
+    $("onboard").classList.remove("open");
+    setTimeout(function () { $("onboard").hidden = true; }, 320);
+    if (!practiceAsked) setTimeout(openStartSheet, 600);
+    if (openFirstShoot) openForm(new Date(), null);
+  }
+  $("obStart").addEventListener("click", function () { obGoTo(1); });
+  $("obLater").addEventListener("click", function () { closeOnboard(false); });
+  $("obSkip").addEventListener("click", function () { closeOnboard(false); });
+  $("obNext").addEventListener("click", function () {
+    if (obIdx >= OB_STEPS) { closeOnboard(true); return; }
+    obGoTo(obIdx + 1);
+  });
+
   renderPracticeChips();
   renderLangChips();
   renderCurChips();
@@ -18350,6 +18489,7 @@
      под это отдельный флажок незачем. */
   document.body.dataset.tab = "s-today";
   if (saved) go("s-plan");
+  else openOnboard();   // самый первый запуск — приветствие вместо вопроса о практике
   applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
   // Номер сборки — из даты файла (Last-Modified на Pages), без ручного счётчика
   function renderBuildInfo() {
@@ -18390,8 +18530,11 @@
   renderCal(); renderDayPanel(); renderSessions(); renderBinBtn();
   /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
      После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
-     потом спрашивают о правилах. */
-  if (!practiceAsked) setTimeout(openStartSheet, 600);
+     потом спрашивают о правилах. На самом первом запуске экран знакомства
+     идёт первым, а этот вопрос он сам зовёт себе вслед при закрытии —
+     иначе оба листа встанут друг на друга. */
+  if (!saved && !practiceAsked) { /* закроется знакомством, см. closeOnboard */ }
+  else if (!practiceAsked) setTimeout(openStartSheet, 600);
   measureDockSoon();
   window.addEventListener("resize", measureDock);
   window.addEventListener("orientationchange", measureDockSoon);
