@@ -2922,6 +2922,10 @@
   .wk-sun svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .wk-card + .wk-sun { box-shadow: inset 0 1px 0 var(--hairline); }
+  /* Корзина делит строку со светом, а не растит клетку своей — та же
+     подсказка на её собственном месте, только слева */
+  .wk-sun.has-bin { justify-content: space-between; }
+  .wk-sun-t { display: flex; align-items: center; gap: 6px; }
   /* Сдача материала в этот день — тоже занятость */
   /* Развёрнутый день: свет и погода подробностями, здесь же в неделе */
   .wk-more { display: none; padding: 8px 12px 4px; }
@@ -2943,13 +2947,14 @@
     stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
   }
   /* В этот день что-то удалили — не занятость, а история: тише, чем сдача,
-     и отдельной кнопкой в корзину, а не просто пометкой */
+     и кнопкой в корзину, а не просто пометкой. Живёт в той же строке, что
+     свет (см. .wk-sun.has-bin), поэтому в размер строки, а не во всю ширину */
   .wk-bin {
-    display: flex; align-items: center; gap: 7px; padding: 6px 12px;
-    width: 100%; text-align: left; border: none; background: none;
+    display: flex; align-items: center; gap: 6px; padding: 0;
+    border: none; background: none;
     font-family: inherit; font-size: 12px; color: var(--ink-6); cursor: pointer;
   }
-  .wk-bin:active { background: var(--surface); }
+  .wk-bin:active { color: var(--ink-4); }
   .wk-bin svg {
     width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
@@ -5004,7 +5009,15 @@
            ради одной кнопки был лишним шагом (Алексей, 25 августа 2026,
            раскадровка: «над карточками просится кнопка добавления съемки,
            чтобы не выходить назад, когда уже зашел в карточки») -->
-      <button class="round" id="cardAdd" aria-label="Добавить съёмку" data-i18n-aria="card.addShoot" data-ic="plus"></button>
+      <!-- Тот же знак календаря с плюсом, что у planAdd/yearAdd/calAdd — а не
+           голый «+»: в приложении «добавить съёмку» уже имеет свою форму,
+           и заводить вторую для того же действия значило бы говорить об
+           одном и том же по-разному (Алексей, 25 августа 2026: «кнопка
+           добавления события у нас почему отличается от принятой в
+           интерфейсе») -->
+      <button class="round" id="cardAdd" aria-label="Добавить съёмку" data-i18n-aria="card.addShoot">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
+      </button>
       <div class="card-bar-r">
         <button class="card-edit" id="cardEdit" data-i18n="card.fill">Заполнить</button>
         <button class="round" id="cardOrder" aria-label="Настроить карточку" data-i18n-aria="card.tune" hidden data-ic="sliders"></button>
@@ -9908,27 +9921,34 @@
       /* Свет — общая для всех дней строка внизу: у занятого дня закат, у
          свободного золотой час. Раньше он был только у свободного, и день со
          съёмками терял единственное, чем этот календарь отличается от чужого */
+      var sunHtml = "";
       if (sky.set !== null || sky.goldB !== null) {
-        body += '<div class="wk-sun">'
-          + (shoots.length
-            ? IC.svg("sunset") + esc(LANG.t("week.sunsetAt", { t: fmt(sky.set) }))
-            : IC.svg("sun") + esc(LANG.t("week.goldenAt",
-                { t: fmt(sky.goldB !== null ? sky.goldB : sky.set) })))
+        sunHtml = shoots.length
+          ? IC.svg("sunset") + esc(LANG.t("week.sunsetAt", { t: fmt(sky.set) }))
+          : IC.svg("sun") + esc(LANG.t("week.goldenAt",
+              { t: fmt(sky.goldB !== null ? sky.goldB : sky.set) }));
+      }
+      /* Удаление живёт в общей корзине (docs: DECISIONS, «Удаление живёт в
+         карточке»), но день, откуда что-то ушло, снаружи было не отличить
+         от дня, где всегда было пусто. Метка тут не открывает корзину этого
+         дня — такой нет, корзина общая — а просто ведёт в неё же.
+         В строке света, а не своей строкой: своя строка на пустой день
+         (без съёмок, без сдачи) бессмысленно утолщала бы клетку ради одной
+         короткой пометки (Алексей, 25 августа 2026) */
+      var dayTrashed = trashed.filter(function (t) { return sameDay(t.rec.date, d); });
+      var binHtml = dayTrashed.length
+        ? '<button type="button" class="wk-bin">' + IC.svg("trash")
+          + esc(LANG.t("week.trashN", { n: dayTrashed.length })) + "</button>"
+        : "";
+      if (sunHtml || binHtml) {
+        body += '<div class="wk-sun' + (binHtml ? " has-bin" : "") + '">'
+          + binHtml + (sunHtml ? '<span class="wk-sun-t">' + sunHtml + "</span>" : "")
           + "</div>";
       }
       if (due.length) {
         body += '<div class="wk-due">' + IC.svg("clock") + esc(LANG.t("week.dueList", {
           list: due.map(function (x) { return clientName(x) || (genreSpec(x.type).ev || genreName(x.type)); }).join(", ")
         })) + "</div>";
-      }
-      /* Удаление живёт в общей корзине (docs: DECISIONS, «Удаление живёт в
-         карточке»), но день, откуда что-то ушло, снаружи было не отличить
-         от дня, где всегда было пусто. Метка тут не открывает корзину этого
-         дня — такой нет, корзина общая — а просто ведёт в неё же */
-      var dayTrashed = trashed.filter(function (t) { return sameDay(t.rec.date, d); });
-      if (dayTrashed.length) {
-        body += '<button type="button" class="wk-bin">' + IC.svg("trash")
-          + esc(LANG.t("week.trashN", { n: dayTrashed.length })) + "</button>";
       }
 
       /* Тап по дате разворачивает день здесь же: свет и погода подробностями.
