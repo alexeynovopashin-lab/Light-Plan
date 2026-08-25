@@ -547,6 +547,7 @@
     /* Неделя: строка дня */
     "week.meetWith":  "Встреча · {genre}",
     "week.free":      "свободно",
+    "week.freeOpen":  "дата свободна",
     "week.sunsetAt":  "закат {t}",
     "week.goldenAt":  "золотой час {t}",
     "week.dueList":   "сдать {list}",
@@ -1815,6 +1816,7 @@
 
     "week.meetWith":  "Meeting · {genre}",
     "week.free":      "free",
+    "week.freeOpen":  "date is free",
     "week.sunsetAt":  "sunset {t}",
     "week.goldenAt":  "golden hour {t}",
     "week.dueList":   "deliver {list}",

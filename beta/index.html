@@ -2948,6 +2948,18 @@
     font-family: inherit; font-size: 13.5px; color: var(--ink-7); cursor: pointer;
   }
   .wk-free span { margin-left: auto; color: var(--ink-6); font-variant-numeric: tabular-nums; }
+  /* Подписи дня — исключение из правила выше: оно прижимает span вправо, а
+     подпись стоит слева и цвет берёт у кнопки */
+  .wk-free .wf-short, .wk-free .wf-long { margin-left: 0; color: inherit; }
+  .wk-free .wf-long { display: none; }
+  .wk-day-row.open .wk-free .wf-short { display: none; }
+  .wk-day-row.open .wk-free .wf-long { display: inline; }
+  /* Раскрытый день — карточка, и подпись становится её заголовком: капителью
+     и латунью, как `.sec-label` на других экранах (макет Алексея) */
+  .wk-day-row.open .wk-free {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 1.1px;
+    text-transform: uppercase; color: var(--brass); padding-bottom: 2px;
+  }
   .wk-free:active { background: var(--surface); }
   /* Строка света внизу дня: у занятого — закат, у свободного — золотой час.
      Она приклеена к тому же контейнеру, потому что это свойство дня, а не
@@ -2983,9 +2995,17 @@
   /* Свет слева строчками, погода справа столбиком — как в паре виджетов
      сводки дня, только теснее. Левая колонка сжимаема (`min-width: 0`),
      правая по содержимому: числа погоды переносить нельзя */
-  .wk-more-in { display: flex; align-items: flex-start; gap: 8px; }
-  .wk-det-col { flex: 1 1 auto; min-width: 0; }
-  .wk-wx-w { flex: 0 0 auto; text-align: right; }
+  /* Погода обтекается, а не стоит колонкой: так подпись дня и корзина встают
+     слева от неё, а строчки света — под ней во всю ширину. Показывается
+     только у раскрытого дня, поэтому по умолчанию скрыта */
+  .wk-wx-w { display: none; float: right; margin: 0 0 6px 10px; text-align: right; }
+  .wk-day-row.open .wk-wx-w { display: block; }
+  .wk-det-col { clear: right; }
+  /* Свободный день: подпись и корзина слева, погода справа — правый верхний
+     угол у такого дня пуст, и он под неё и просится (макет Алексея) */
+  .wk-top { display: flex; align-items: flex-start; }
+  .wk-top-l { flex: 1 1 auto; min-width: 0; }
+  .wk-top .wk-wx-w { float: none; flex: 0 0 auto; margin: 9px 12px 0 8px; }
   .wk-wx-w .hw-top { justify-content: flex-end; gap: 5px; }
   .wk-wx-w .hw-top svg { width: 18px; height: 18px; }
   .wk-wx-w .hw-top .temp { font-size: 18px; }
@@ -2993,6 +3013,14 @@
   .wk-wx-w .hw-hilo { justify-content: flex-end; gap: 8px; font-size: 11.5px; }
   .wk-det { display: flex; align-items: baseline; gap: 8px; font-size: 12px; }
   .wk-det + .wk-det { margin-top: 4px; }
+  /* Знак при подписи: латунью, потому что все три про свет, а подпись серая —
+     цвет разводит их по ролям. Рассвет и закат садятся горизонтом на базовую
+     линию (те же 31.25%, что в виджете), часы — просто по центру строки */
+  .wk-di { flex: 0 0 auto; display: flex; align-self: center; color: var(--brass-deep); }
+  .wk-di.edge { align-self: baseline; transform: translateY(31.25%); }
+  .wk-di svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .wk-det.gold .wk-di { color: var(--brass); }
   .wk-k { flex: 0 0 auto; min-width: 72px; color: var(--ink-7); }
   /* `nowrap` обязателен: без него значению не хватало 0.3px и «18:49 – 20:04»
      разваливалось на «18:49 –» и «20:04» — промежуток времени, разорванный
@@ -9987,8 +10015,15 @@
             + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
         }).join("");
       } else {
-        /* Свободный день так и подписан — той же строкой в том же контейнере */
-        body = '<button type="button" class="wk-free">' + esc(LANG.t("week.free")) + "</button>";
+        /* Свободный день так и подписан — той же строкой в том же контейнере.
+           Два слова вместо одного: свёрнутым днём список просматривают, и там
+           короткое «свободно» быстрее читается; раскрытый день — уже карточка,
+           и ей нужен заголовок, «дата свободна». Раскрытие не перерисовывает
+           неделю (обработчик только переключает класс), поэтому обе подписи
+           лежат в разметке, а показывает нужную CSS */
+        body = '<button type="button" class="wk-free">'
+          + '<span class="wf-short">' + esc(LANG.t("week.free")) + "</span>"
+          + '<span class="wf-long">' + esc(LANG.t("week.freeOpen")) + "</span></button>";
       }
       /* Свет — общая для всех дней строка внизу: у занятого дня закат, у
          свободного золотой час. Раньше он был только у свободного, и день со
@@ -10042,9 +10077,17 @@
          момент: чтобы не спутать его с закатом». Берём оттуда и формулировку,
          и подписи: словом слева, значением справа. Знаки убраны: подпись
          говорит то же самое и понятнее, а знак при подписи — уже украшение. */
-      function detRow(k, v, gold) {
-        return '<div class="wk-det' + (gold ? " gold" : "") + '"><span class="wk-k">'
-          + esc(k) + '</span><span class="wk-v">' + esc(v) + "</span></div>";
+      /* Знак вернулся, но теперь при подписи, а не вместо неё: подпись говорит,
+         что это, знак даёт за что зацепиться глазу. У золотого часа знак не из
+         семьи света (третьего солнца там нет), а часы — он и правда про
+         промежуток времени, и в словаре уже есть.
+         `edge` — только рассвету и закату: у них линия горизонта, и знак надо
+         сажать на базовую линию (см. `.wk-di.edge`). Часы нарисованы кругом по
+         центру поля, их достаточно выровнять по середине строки. */
+      function detRow(ic, k, v, gold) {
+        return '<div class="wk-det' + (gold ? " gold" : "") + '">'
+          + '<span class="wk-di' + (ic === "clock" ? "" : " edge") + '">' + IC.svg(ic) + "</span>"
+          + '<span class="wk-k">' + esc(k) + '</span><span class="wk-v">' + esc(v) + "</span></div>";
       }
       /* Три строки по порядку суток: рассвет, начало золотого часа, закат.
          Закат стоит своей строкой, а не внутри золотого («18:52 – 20:07 · до
@@ -10053,9 +10096,9 @@
          больше негде. Здесь строка свободна — и целиком не влезало: приписка
          просит 186px при 160 доступных, то есть переносилась и рвала «до
          заката / 19:42» пополам. */
-      var det = detRow(LANG.t("tele.sunrise"), fmt(sky.rise));
-      if (sky.goldB !== null) det += detRow(LANG.t("tele.golden"), range(sky.goldB, sky.blueB), true);
-      if (sky.set !== null) det += detRow(LANG.t("tele.sunset"), fmt(sky.set));
+      var det = detRow("sunrise", LANG.t("tele.sunrise"), fmt(sky.rise));
+      if (sky.goldB !== null) det += detRow("clock", LANG.t("tele.golden"), range(sky.goldB, sky.blueB), true);
+      if (sky.set !== null) det += detRow("sunset", LANG.t("tele.sunset"), fmt(sky.set));
       /* Погода — тот же блок, что в виджете сводки дня: `.hw-top`/`.hw-cond`/
          `.hw-hilo` и те же значения из `dayWeather`. Своей вёрстки для погоды
          здесь не заводим — она уже есть и уже выверена (Алексей: «у нас уже
@@ -10072,8 +10115,23 @@
         + "<span>↑ " + tempOut(wx.tempBase, 960) + "°</span></div></div>";
       /* Облачность и ветер остались строкой внизу: в блоке погоды их нет, а
          фотографу они говорят про свет и про то, устоит ли стойка */
-      var more = '<div class="wk-more">'
-        + '<div class="wk-more-in"><div class="wk-det-col">' + det + "</div>" + wxBlock + "</div>"
+      /* Куда сядет погода, решает сам день. У свободного правый верхний угол
+         пуст — там ей и место, как на макете Алексея: она встаёт над всем
+         содержимым, а подпись и корзина обтекают её слева. У занятого дня в
+         этом углу время съёмки, и погода поверх него была бы поверх нужного,
+         поэтому уезжает вниз, в начало подробностей. Строчки света в обоих
+         случаях идут под погодой во всю ширину (`clear`), иначе им не хватает
+         места на знак, подпись и промежуток разом. */
+      var wxTop = !shoots.length;
+      /* `.wk-list` — флекс-колонка, а на флекс-элементах `float` не работает
+         вовсе. Поэтому у свободного дня погода не «обтекается» сверху, а
+         честно кладётся во вторую колонку: слева подпись, корзина и сдача,
+         справа она. У занятого дня погода остаётся внутри подробностей и там
+         уже обтекается — `.wk-more` обычный блок, и float в нём работает */
+      if (wxTop) body = '<div class="wk-top"><div class="wk-top-l">' + body + "</div>"
+        + wxBlock + "</div>";
+      var more = '<div class="wk-more">' + (wxTop ? "" : wxBlock)
+        + '<div class="wk-det-col">' + det + "</div>"
         + '<div class="wk-wxs">' + esc(LANG.t("week.wx",
             { cloud: wx.cloud, wind: wx.wind })) + "</div>"
         + "</div>";
