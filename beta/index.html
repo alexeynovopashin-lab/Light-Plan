@@ -9951,7 +9951,14 @@
       if (sky.set !== null || sky.goldB !== null) {
         sunHtml = shoots.length
           ? IC.svg("sunset") + esc(LANG.t("week.sunsetAt", { t: fmt(sky.set) }))
-          : IC.svg("sun") + esc(LANG.t("week.goldenAt",
+          /* Знак заката, а не отдельное «солнце»: золотой час тут вечерний
+             (`goldB`), он и кончается закатом — 18:54 при закате 19:45. Тот же
+             знак стоит в соседней строке занятого дня и в виджете сводки, а
+             `sun` нарисован в другой манере — кружок с лучами вместо линии
+             горизонта с дугой, и в столбце недели выбивался (Алексей:
+             «значек отличается от принятого, сделай как в разделе свет и
+             виджете в съемках») */
+          : IC.svg("sunset") + esc(LANG.t("week.goldenAt",
               { t: fmt(sky.goldB !== null ? sky.goldB : sky.set) }));
       }
       /* Удаление живёт в общей корзине (docs: DECISIONS, «Удаление живёт в
@@ -9982,7 +9989,12 @@
       var more = '<div class="wk-more">'
         + '<div class="wk-light">'
         + '<span>' + IC.svg("sunrise") + fmt(sky.rise) + "</span>"
-        + (sky.goldB !== null ? '<span class="gold">' + IC.svg("sun") + range(sky.goldB, sky.blueB) + "</span>" : "")
+        /* Золотой час — без знака: в семье знаков света есть рассвет и закат,
+           третьего нет, а повторить закат посреди строки «рассвет · золотой ·
+           закат» значило бы поставить один знак дважды. В виджете сводки этот
+           же час набран ровно так — латунью и без знака, — и здесь довольно
+           цвета: строка и так стоит между двумя подписанными временами */
+        + (sky.goldB !== null ? '<span class="gold">' + range(sky.goldB, sky.blueB) + "</span>" : "")
         + '<span>' + IC.svg("sunset") + fmt(sky.set) + "</span></div>"
         + '<div class="wk-wxs">' + esc(LANG.t("week.wx",
             { cond: QUAL[q].cond, cloud: wx.cloud, wind: wx.wind })) + "</div>"
