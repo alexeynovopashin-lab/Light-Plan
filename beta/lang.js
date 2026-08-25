@@ -550,6 +550,7 @@
     "week.sunsetAt":  "закат {t}",
     "week.goldenAt":  "золотой час {t}",
     "week.dueList":   "сдать {list}",
+    "week.trashN":    "удалено: {n}",
     "week.wx":        "{cond} · облачность {cloud}% · ветер {wind} м/с",
 
     /* ---- Экран «Съёмки» ----
@@ -609,6 +610,7 @@
     /* ---- Карточка съёмки ----
        Верхний уровень: съёмка для чтения. Разделы, плитки, цепочка сделки. */
     "card.close":       "Закрыть",
+    "card.addShoot":    "Добавить съёмку",
     "card.tune":        "Настроить карточку",
     "card.fill":        "Заполнить",
     "card.bin":         "Корзина",
@@ -1815,6 +1817,7 @@
     "week.sunsetAt":  "sunset {t}",
     "week.goldenAt":  "golden hour {t}",
     "week.dueList":   "deliver {list}",
+    "week.trashN":    "deleted: {n}",
     "week.wx":        "{cond} · cloud {cloud}% · wind {wind} m/s",
 
     "year.months":     "Load by month",
@@ -1872,6 +1875,7 @@
 
     /* ---- Карточка съёмки ---- */
     "card.close":       "Close",
+    "card.addShoot":    "Add shoot",
     "card.tune":        "Arrange card",
     "card.fill":        "Fill in",
     "card.bin":         "Bin",

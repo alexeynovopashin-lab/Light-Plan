@@ -2942,6 +2942,18 @@
     width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
   }
+  /* В этот день что-то удалили — не занятость, а история: тише, чем сдача,
+     и отдельной кнопкой в корзину, а не просто пометкой */
+  .wk-bin {
+    display: flex; align-items: center; gap: 7px; padding: 6px 12px;
+    width: 100%; text-align: left; border: none; background: none;
+    font-family: inherit; font-size: 12px; color: var(--ink-6); cursor: pointer;
+  }
+  .wk-bin:active { background: var(--surface); }
+  .wk-bin svg {
+    width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
+  }
 
 
   /* ---------- Съёмки ---------- */
@@ -4987,6 +4999,12 @@
       <button class="round" id="cardBack" aria-label="Закрыть" data-i18n-aria="card.close">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
+      <!-- Добавить съёмку на тот же день, не выходя из карточки — второй
+           клиент в тот же день был частым случаем на тестах, а возврат назад
+           ради одной кнопки был лишним шагом (Алексей, 25 августа 2026,
+           раскадровка: «над карточками просится кнопка добавления съемки,
+           чтобы не выходить назад, когда уже зашел в карточки») -->
+      <button class="round" id="cardAdd" aria-label="Добавить съёмку" data-i18n-aria="card.addShoot" data-ic="plus"></button>
       <div class="card-bar-r">
         <button class="card-edit" id="cardEdit" data-i18n="card.fill">Заполнить</button>
         <button class="round" id="cardOrder" aria-label="Настроить карточку" data-i18n-aria="card.tune" hidden data-ic="sliders"></button>
@@ -9903,6 +9921,15 @@
           list: due.map(function (x) { return clientName(x) || (genreSpec(x.type).ev || genreName(x.type)); }).join(", ")
         })) + "</div>";
       }
+      /* Удаление живёт в общей корзине (docs: DECISIONS, «Удаление живёт в
+         карточке»), но день, откуда что-то ушло, снаружи было не отличить
+         от дня, где всегда было пусто. Метка тут не открывает корзину этого
+         дня — такой нет, корзина общая — а просто ведёт в неё же */
+      var dayTrashed = trashed.filter(function (t) { return sameDay(t.rec.date, d); });
+      if (dayTrashed.length) {
+        body += '<button type="button" class="wk-bin">' + IC.svg("trash")
+          + esc(LANG.t("week.trashN", { n: dayTrashed.length })) + "</button>";
+      }
 
       /* Тап по дате разворачивает день здесь же: свет и погода подробностями.
          Уводить в другой вид ради этого — лишний шаг (замечание с тестов) */
@@ -9932,6 +9959,8 @@
         });
         var free = rw.querySelector(".wk-free");
         if (free) free.addEventListener("click", function () { openForm(dd, null); });
+        var bin = rw.querySelector(".wk-bin");
+        if (bin) bin.addEventListener("click", function (e) { e.stopPropagation(); openBin(); });
       })(d, row);
       row.querySelectorAll(".wk-card").forEach(function (b) {
         b.addEventListener("click", function () { openCard(+b.dataset.i); });
@@ -14588,6 +14617,12 @@
   $("cardBack").addEventListener("click", closeCard);
   $("cardEdit").addEventListener("click", function () {
     if (cardIdx !== null) openForm(null, null, cardIdx);
+  });
+  $("cardAdd").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    var s = sessions[cardIdx];
+    if (!s) return;
+    openForm(s.date, null);
   });
   /* Удаление из карточки — тем же путём, что из списка: запись держится в
      руке шесть секунд, и «Вернуть» её возвращает. Второго механизма удаления,
