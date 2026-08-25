@@ -1610,9 +1610,22 @@
   }
   .rail-heat.l { left: 0; }
   .rail-heat.r { right: 0; }
+  /* Разогрев остаётся поверх дорожки и ползунка: взвод случается как раз у
+     края, где стоит и сам ползунок, — спрятать признак усилия под ним значит
+     погасить его в единственный момент, когда он нужен. */
+  .rail-heat { z-index: 2; }
   .scrub {
     -webkit-appearance: none; appearance: none; width: 100%; height: 36px;
     background: transparent; outline: none; cursor: pointer; display: block; margin: 0;
+    /* Ползунок поверх гравировки. Ручка 26 px свисает с дорожки вниз до 31 px,
+       а риски начинаются с 24-го — 7 px они делят неизбежно, и вопрос только в
+       том, кто сверху. Сверху ручка: её держат пальцем, а риски — гравировка
+       на корпусе, и корпус не может лежать поверх стрелки прибора.
+       Само по себе это не выходило: `.ruler` и `.rail-heat` спозиционированы,
+       а `.scrub` был обычным блоком, и порядок в разметке тут не помогает —
+       позиционированное рисуется поверх непозиционированного, где бы оно ни
+       стояло. Отсюда `position: relative` — не ради смещения, а ради слоя. */
+    position: relative; z-index: 1;
   }
   /* Свет на дорожке — не украшение, а тот же расчёт, что у пути солнца:
      остановки ставит `drawRail()` из `stopAt()` по высоте светила. */
@@ -3310,6 +3323,11 @@
   .dial {
     -webkit-appearance: none; appearance: none; width: 100%; height: 32px;
     background: transparent; outline: none; cursor: pointer; display: block; margin: 0;
+    /* Тот же слой, что у ползунка времени (`.scrub`), и по той же причине:
+       бегунок 24 px свисает до 28-го, риски идут с 22-го, и без явного
+       порядка гравировка ложится поверх бегунка. Подписи под шкалой
+       (`.dial-labels`, с 33 px) в эту зону не попадают и остаются на месте. */
+    position: relative; z-index: 1;
   }
   .dial::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: var(--rail); }
   .dial::-moz-range-track { height: 3px; border-radius: 2px; background: var(--rail); }
