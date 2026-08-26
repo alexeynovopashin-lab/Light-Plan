@@ -1930,6 +1930,14 @@
   }
   .ribbon-wrap.drum .drum-frame { display: block; }
   .ribbon-wrap.drum .ribbon-marker { display: none; }
+  /* Образец в настройках: та же ячейка, но не едет и не ловит палец —
+     это витрина, а не второй пульт. `body.pro-mode` тут не нужен: строка
+     и так скрыта в «Просто» через `hidden`, а не через display каскада
+     виджета */
+  .drum-preview { margin: 10px 24px 0; pointer-events: none; }
+  .drum-preview .ribbon-wrap { display: block; }
+  .drum-preview .ribbon-scroll { cursor: default; }
+  .drum-preview .ribbon-track { position: static; display: flex; justify-content: center; width: 100%; }
   /* Стрелка ЧАСОВ, а не указатель даты. Исходная жалоба была на чёрную
      риску во всю высоту: «откусывает от дат пиксели, не неся полезной
      нагрузки» (`--knob-edge` в тёмной теме почти чёрный — линия читалась
@@ -3336,6 +3344,11 @@
 
   /* ---------- Настройки ---------- */
   .seg { display: flex; background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 3px; margin: 12px 24px 0; }
+  /* `display: flex` бьёт встроенное `[hidden]{display:none}` браузера:
+     оба правила из авторской таблицы стилей, порядок в файле решает, а
+     этот класс задаёт display сам. Без строки ниже `.hidden = true` в JS
+     снимал подпись ряда, но сам ряд кнопок оставался на экране. */
+  .seg[hidden] { display: none; }
   .seg button {
     flex: 1; background: none; border: none; border-radius: 10px; corner-shape: squircle;
     color: var(--ink-4); font-family: inherit; font-size: 14px; font-weight: 550;
@@ -5222,8 +5235,10 @@
 
     <!-- Лента под слайдером — только в астро, поэтому и настройка живёт
          сразу под переключателем режима, а не отдельным разделом внизу
-         списка (docs: DECISIONS, «Барабан вместо ленты — и лента рядом») -->
-    <div class="sec-label" data-i18n="set.ribbon">Лента суток</div>
+         списка (docs: DECISIONS, «Барабан вместо ленты — и лента рядом»).
+         Строка целиком прячется в «Просто»: самой ленты там нет, и выбор
+         вида был бы настройкой без предмета. -->
+    <div class="sec-label" id="ribbonLabel" data-i18n="set.ribbon">Лента суток</div>
     <div class="seg" id="ribbonSeg">
       <button data-ribbon="drum" data-i18n="set.ribbonDrum">Барабан</button>
       <button data-ribbon="lane" data-i18n="set.ribbonLane">Лента</button>
@@ -5232,8 +5247,10 @@
 
     <!-- Вид прорези — на голосование, а не выбран за всех: трое одинаково
          защитимы, и решает вкус, а не замер (docs: DECISIONS, «Барабан:
-         диск в прорези»). Виден только когда выбран барабан: у ленты
-         прорези нет, и настройка не имела бы предмета. -->
+         диск в прорези»). Виден только когда выбран барабан и включена
+         светлая тема: в тёмной все три вида сходятся в один (см. CSS —
+         переменные цвета там правит только `:root[data-theme="light"]`),
+         и показывать выбор было бы настройкой без разницы. -->
     <div class="sec-label" id="drumSlotLabel" data-i18n="set.drumSlot">Прорезь барабана</div>
     <div class="seg" id="drumSlotSeg">
       <button data-drum="paper" data-i18n="set.drumPaper">Бумага</button>
@@ -5241,6 +5258,16 @@
       <button data-drum="window" data-i18n="set.drumWindow">Окно</button>
     </div>
     <p class="seg-note" id="drumSlotNote"></p>
+    <!-- Живой образец: сама ячейка барабана в выбранном виде, чтобы видеть
+         выбор сразу, не уходя на «Свет». Не второй виджет — те же классы,
+         что у настоящего барабана, поэтому шрифт, блик и тень совпадают
+         буквально, а не «похоже». Нетронутый, без перетаскивания. -->
+    <div class="drum-preview" id="drumPreview" aria-hidden="true">
+      <div class="ribbon-wrap drum">
+        <div class="ribbon-scroll"><div class="ribbon-track" id="drumPreviewTrack"></div></div>
+        <div class="drum-frame"></div>
+      </div>
+    </div>
 
     <div class="sec-label" data-i18n="set.theme">Тема</div>
     <!-- Третий вариант — не «ещё одна тема», а отказ выбирать: телефон уже
@@ -8547,6 +8574,8 @@
     if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
     // Буквы тоже: на светлой карте они тёмные, на тёмной светлые
     if (labelTiles) labelTiles.setUrl(labelURL());
+    // Выбор цвета прорези виден только в светлой теме — сменой темы гасится или зажигается
+    if (typeof renderDrumSlotSeg === "function") renderDrumSlotSeg();
     /* Часть цветов ставится из кода (подписи фаз, метки на карте) — их сменой
        класса не переключить, экраны надо перерисовать */
     /* Съёмки перерисовываются тоже: цвет срочности сдачи считается кодом в
@@ -18468,6 +18497,8 @@
       proMode = b.dataset.mode === "pro";
       document.body.classList.toggle("pro-mode", proMode);
       saveAll();
+      // Вид ленты и прорези — настройки без предмета в «Просто», прячутся вместе с режимом
+      if (typeof renderRibbonSeg === "function") renderRibbonSeg();
       // Деления компаса живут в SVG, а не в CSS: одним классом их не показать
       renderMap();
     });
@@ -18708,6 +18739,11 @@
   /* Смена вида — перестройка сразу, дата и время под пальцем не меняются,
      только то, как их показывают (docs: DECISIONS) */
   function renderRibbonSeg() {
+    // Строка целиком по режиму: в «Просто» самой ленты нет, показывать
+    // выбор вида было бы настройкой без предмета
+    $("ribbonLabel").hidden = !proMode;
+    $("ribbonSeg").hidden = !proMode;
+    $("ribbonNote").hidden = !proMode;
     document.querySelectorAll("#ribbonSeg button").forEach(function (b) {
       b.classList.toggle("active", b.dataset.ribbon === ribbonMode);
     });
@@ -18725,18 +18761,33 @@
     });
   });
 
-  /* Вид прорези. Прячется вместе с барабаном — у ленты прорези нет.
+  /* Вид прорези. Прячется вместе с режимом и барабаном (у ленты прорези
+     нет), а в тёмной теме — ещё и сам по себе: три вида в тёмной теме
+     сходятся в один (CSS красит их только под `[data-theme="light"]`),
+     и показывать выбор без разницы незачем.
      Перерисовки барабана не требует: меняются только переменные темы,
      ячейки и их положение те же (docs: DECISIONS, «Барабан: диск в прорези») */
   function renderDrumSlotSeg() {
-    var on = ribbonMode === "drum";
+    var on = proMode && ribbonMode === "drum" && theme === "light";
     $("drumSlotLabel").hidden = !on;
     $("drumSlotSeg").hidden = !on;
     $("drumSlotNote").hidden = !on;
+    $("drumPreview").hidden = !on;
     document.querySelectorAll("#drumSlotSeg button").forEach(function (b) {
       b.classList.toggle("active", b.dataset.drum === drumSlot);
     });
     $("drumSlotNote").textContent = LANG.t("set.drumNote" + drumSlot[0].toUpperCase() + drumSlot.slice(1));
+    if (on) renderDrumPreview();
+  }
+  /* Живой образец: три ячейки барабана теми же функциями, что строят
+     настоящий (`buildDrumCell`) — значит и знак (луна/погода), и цвет
+     прорези совпадают с тем, что увидишь на «Свете», а не изображают его
+     приблизительно. Без позиционирования: центрирует flex, а не транслейт,
+     ставить курсор смысла нет — образец не перетаскивают. */
+  function renderDrumPreview() {
+    var host = $("drumPreviewTrack"); if (!host) return;
+    host.innerHTML = "";
+    for (var r = -1; r <= 1; r++) host.appendChild(buildDrumCell(addDays(selDate, r), r));
   }
   document.querySelectorAll("#drumSlotSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
