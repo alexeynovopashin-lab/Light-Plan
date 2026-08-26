@@ -5085,6 +5085,29 @@
          лицензии занимала правую половину нижнего края и резала компас.
          Лицензии OSM и CARTO это допускают — требование в доступности
          указания, а не в том, чтобы оно лежало поверх карты. -->
+    <!-- Обратная связь — рядом с языком и практикой, а не в самом низу с
+         лицензиями: это то, что реально нажимают, а не читают один раз.
+         Форма ничего не отправляет сама (принцип «на нашем сервере не
+         хранится ничего» не тронут) — собирает текст и отдаёт его системной
+         отправкой, тем же приёмом, что и ссылка опросника для клиента. -->
+    <div class="sec-label" data-i18n="fb.title">Обратная связь</div>
+    <div class="seg" id="fbSeg">
+      <button class="active" data-fb="idea" data-i18n="fb.idea">Отзыв</button>
+      <button data-fb="bug" data-i18n="fb.bug">Баг</button>
+    </div>
+    <div class="field" style="margin:14px 24px 0;">
+      <textarea id="fbText" data-i18n-ph="fb.textPh" placeholder="—"></textarea>
+    </div>
+    <button class="data-btn" id="fbSend">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 11l4 4 4-4M4.5 19.5h15"/></svg>
+      <span data-i18n="fb.send">Отправить</span>
+    </button>
+    <p class="seg-note" data-i18n="fb.note">Открывает системную отправку — письмо, мессенджер, Telegram. Ничего не уходит без вашего действия.</p>
+    <a class="data-btn ghost-btn" id="fbTelegram" target="_blank" rel="noopener" style="text-decoration:none;">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3L2.5 10.6l6 2.3M22 3l-3.3 17.5L12.5 15M22 3l-9.5 9.5"/></svg>
+      <span data-i18n="fb.telegram">Наш Telegram</span>
+    </a>
+
     <div class="sec-label" data-i18n="set.legal">Правовая информация</div>
     <div class="legal">
       <div class="lg-row"><span class="lg-k" data-i18n="nav.map">Карта</span>
@@ -7394,6 +7417,11 @@
     dropbox: ""
   };
   var CLOUD_NAMES = ["yandex", "google", "dropbox"];
+  /* Канал обратной связи. Аккаунта ещё нет — заглушка (username свободен на
+     момент записи, не проверялся боем). Завести настоящий канал/бота в
+     Telegram и подставить сюда адрес — единственное, что нужно сделать,
+     чтобы кнопка в настройках заработала: код её уже ждёт. */
+  var FEEDBACK_TG = "https://t.me/lightplan_app";
   var CLOUD_TOKEN_KEY = "lightplan.cloud.token";     // {kind, access, refresh, exp}
   var CLOUD_KIND_KEY  = "lightplan.cloud.kind";
   var CLOUD_PKCE_KEY  = "lightplan.cloud.pkce";
@@ -16983,6 +17011,49 @@
     $("cloudNote").textContent = LANG.t("cloud.disconnected");
   });
   $("cloudPull").addEventListener("click", cloudPull);
+
+  /* ---------- Обратная связь ----------
+     Тот же приём, что у ссылки опросника: форма не отправляет ничего сама
+     (сервера нет), она собирает текст и отдаёт его системной отправкой —
+     человек сам решает, куда: в Telegram, почтой, как угодно. Диагностика
+     в хвосте текста — то, что иначе пришлось бы выспрашивать в переписке:
+     версия сборки, канал, язык, практика. Съёмок и клиентских данных в
+     тексте нет ни байта. */
+  var fbType = "idea";
+  $("fbSeg").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      fbType = b.dataset.fb;
+      $("fbSeg").querySelectorAll("button").forEach(function (x) { x.classList.toggle("active", x === b); });
+    });
+  });
+  function feedbackDiag() {
+    var d = new Date(document.lastModified);
+    var stamp = isNaN(d) ? "—" : dNum(d) + " " + fmt(d.getHours() * 60 + d.getMinutes());
+    return [CHANNEL, stamp, LANG.code, practice].join(" · ");
+  }
+  $("fbTelegram").href = FEEDBACK_TG;
+  $("fbSend").addEventListener("click", function () {
+    var text = $("fbText").value.trim();
+    if (!text) return;
+    var title = LANG.t(fbType === "bug" ? "fb.bugTitle" : "fb.ideaTitle");
+    var body = title + "\n" + text + "\n—\n" + feedbackDiag();
+    var done = function () {
+      $("fbText").value = "";
+      notify(LANG.t("fb.sentTitle"), LANG.t("fb.sentText"));
+    };
+    if (navigator.share) {
+      navigator.share({ text: body }).then(done).catch(function () {});
+      return;
+    }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(body).then(function () {
+        notify(LANG.t("fb.copiedTitle"), LANG.t("fb.copiedText"));
+        $("fbText").value = "";
+      }).catch(function () { notify(LANG.t("fb.copiedTitle"), body); });
+      return;
+    }
+    notify(LANG.t("fb.copiedTitle"), body);
+  });
   $("backupFile").addEventListener("change", function () {
     var f = this.files && this.files[0];
     if (!f) return;
