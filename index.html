@@ -914,6 +914,17 @@
     --overlay-3: rgba(44,41,36,0.86); --hair: rgba(255,255,255,0.05);
     --hair-2: rgba(255,255,255,0.04); --hair-3: rgba(255,255,255,0.03);
     --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
+    /* Стекло поверх текста. Размытия нет намеренно: панель ложится прямо на
+       цифры, и blur съел бы то единственное, ради чего она заведена.
+       Оптика тут работает слабо, и это замерено: под панелью почти чёрная
+       планка `rgb(15,14,12)`, при `brightness(1.16)` она даёт `rgb(17,16,14)` —
+       меньше процента, глазу не видно. Насыщенность оставлена ради знака
+       погоды: он единственное цветное пятно под стеклом.
+       Видимой панель делают заливка, светлая фаска изнутри и тень. */
+    --glass-optic: saturate(1.5) brightness(1.06);
+    --glass-fill: rgba(255,255,255,0.07);
+    --glass-shine: rgba(255,255,255,0.30);
+    --glass-cast: rgba(0,0,0,0.45);
     --ink-a22: rgba(239,234,224,0.22); --ink-a20: rgba(239,234,224,0.2);
     --ink-a24: rgba(239,234,224,0.24); --ink-a40: rgba(239,234,224,0.4);
     --ink-a12: rgba(239,234,224,0.12); --ink-a10: rgba(239,234,224,0.10);
@@ -967,6 +978,13 @@
     --overlay-3: rgba(214,208,195,0.9); --hair: rgba(0,0,0,0.07);
     --hair-2: rgba(0,0,0,0.06); --hair-3: rgba(0,0,0,0.05);
     --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
+    /* На светлом заливка не осветляет, а притеняет: планка и так почти белая,
+       поднимать некуда. Тот же приём, что записан про купол — светлое от
+       светлого отделяет глубина, а не цвет. */
+    --glass-optic: saturate(1.4) brightness(0.98);
+    --glass-fill: rgba(23,21,15,0.045);
+    --glass-shine: rgba(255,255,255,0.95);
+    --glass-cast: rgba(23,21,15,0.16);
     --ink-a22: rgba(23,21,15,0.22); --ink-a20: rgba(23,21,15,0.2);
     --ink-a24: rgba(23,21,15,0.24); --ink-a40: rgba(23,21,15,0.4);
     --ink-a12: rgba(23,21,15,0.12); --ink-a10: rgba(23,21,15,0.10);
@@ -1735,6 +1753,19 @@
     position: absolute; left: 50%; top: 50%; width: 50px; height: 27px;
     transform: translate(-50%, -50%); border: 1px solid var(--terra);
     border-radius: 7px; opacity: 0.9; pointer-events: none; z-index: 3; display: none;
+    /* Стекло окна прибора: панель стоит на месте, даты проезжают под ней.
+       Размытия нет — окно лежит прямо на выбранной дате (9.5 px), blur стёр
+       бы её (см. `--glass-optic`).
+       Фаска отбита ВНУТРЬ на 1.5 px, а не на 1: внутренняя тень рисуется по
+       padding-box, то есть уже под рамкой, и при 1 px она пряталась ровно
+       под кантом. Полтора пикселя выводят светлую линию из-под него — это и
+       читается как толщина стекла.
+       Тень своя (`--glass-cast`), а не `--ink-a*`: те в тёмной теме светлые
+       и дают нимб вместо тени. */
+    background: var(--glass-fill);
+    backdrop-filter: var(--glass-optic);
+    -webkit-backdrop-filter: var(--glass-optic);
+    box-shadow: inset 0 1.5px 0 var(--glass-shine), 0 3px 10px var(--glass-cast);
   }
   .ribbon-wrap.drum .drum-frame { display: block; }
   .ribbon-wrap.drum .ribbon-marker { display: none; }
@@ -2109,6 +2140,11 @@
     font-variant-numeric: tabular-nums; margin-top: 6px; }
   .year-profit-num.neg { color: var(--terra); }
   .year-profit-spark { display: block; margin-top: 14px; width: 100%; height: 42px; }
+  /* Валюты, не попавшие в график: столбиком, мельче и тише — тот же вес,
+     что у сноски, а не второе крупное число рядом с первым */
+  .year-profit-other { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+  .year-profit-other span { font-size: 14px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .year-profit-other span.neg { color: var(--terra); }
   .year-delv-list { margin-top: 12px; }
   .delv-row { display: flex; align-items: center; gap: 14px; padding: 10px 2px; }
   .delv-row + .delv-row { border-top: 1px solid var(--hair); }
@@ -4578,10 +4614,18 @@
         <line class="horizon-line" x1="18" y1="196" x2="372" y2="196" stroke-width="1" stroke-dasharray="4 5"/>
         <path id="arcPath" d="M 32 196 A 163 148 0 0 1 358 196" fill="none" stroke="url(#dayLight)" stroke-width="3" stroke-linecap="round"/>
         <line id="drop" stroke-width="1" stroke-dasharray="2 4"/>
-        <!-- Тень идёт под светилом и чуть ниже его: свет на куполе всегда
-             сверху, поэтому и тень ложится вниз -->
+        <!-- Тень концентрична светилу. Прежде она была смещена вниз на 3 —
+             «свет на куполе сверху, значит тень ложится вниз», — но светило
+             само и есть источник света, и отброшенная им тень читалась как
+             ошибка. Без смещения то же пятно работает глубиной, а не
+             причинностью, и диссонанса нет. -->
         <circle id="sunShade" class="lit-shade" r="14.5" fill="url(#sunShadeGrad)" opacity="0"/>
-        <circle id="sunGlow" r="16" fill="rgba(217,172,107,0.18)"/>
+        <!-- Диск светила плоский, с обозначенной кромкой: это деталь прибора,
+             аппликация на циферблате. Растушёванный ореол пробовали и
+             отвергли — он говорит на языке иллюстрации света, а купол говорит
+             на языке механизма. Заливка держит массу, кромка её очерчивает;
+             обе ставятся из кода по состоянию света. -->
+        <circle id="sunGlow" r="16" stroke-width="1"/>
         <circle id="sunCore" r="6.5" fill="#D9AC6B" stroke="var(--surface)" stroke-width="2.5"/>
         <!-- Диск луны: тёмная сторона всегда на месте, освещённая прирастает по фазе -->
         <g id="moonDisc" style="display:none">
@@ -5072,6 +5116,29 @@
          лицензии занимала правую половину нижнего края и резала компас.
          Лицензии OSM и CARTO это допускают — требование в доступности
          указания, а не в том, чтобы оно лежало поверх карты. -->
+    <!-- Обратная связь — рядом с языком и практикой, а не в самом низу с
+         лицензиями: это то, что реально нажимают, а не читают один раз.
+         Форма ничего не отправляет сама (принцип «на нашем сервере не
+         хранится ничего» не тронут) — собирает текст и отдаёт его системной
+         отправкой, тем же приёмом, что и ссылка опросника для клиента. -->
+    <div class="sec-label" data-i18n="fb.title">Обратная связь</div>
+    <div class="seg" id="fbSeg">
+      <button class="active" data-fb="idea" data-i18n="fb.idea">Отзыв</button>
+      <button data-fb="bug" data-i18n="fb.bug">Баг</button>
+    </div>
+    <div class="field" style="margin:14px 24px 0;">
+      <textarea id="fbText" data-i18n-ph="fb.textPh" placeholder="—"></textarea>
+    </div>
+    <button class="data-btn" id="fbSend">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 11l4 4 4-4M4.5 19.5h15"/></svg>
+      <span data-i18n="fb.send">Отправить</span>
+    </button>
+    <p class="seg-note" data-i18n="fb.note">Открывает системную отправку — письмо, мессенджер, Telegram. Ничего не уходит без вашего действия.</p>
+    <a class="data-btn ghost-btn" id="fbTelegram" target="_blank" rel="noopener" style="text-decoration:none;">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3L2.5 10.6l6 2.3M22 3l-3.3 17.5L12.5 15M22 3l-9.5 9.5"/></svg>
+      <span data-i18n="fb.telegram">Наш Telegram</span>
+    </a>
+
     <div class="sec-label" data-i18n="set.legal">Правовая информация</div>
     <div class="legal">
       <div class="lg-row"><span class="lg-k" data-i18n="nav.map">Карта</span>
@@ -5544,6 +5611,10 @@
         <div class="g-chips sep">
           <div class="chips" id="fPayType"></div>
           <div class="chips" id="fPackChips" hidden style="margin-top:8px;"></div>
+          <!-- Валюта — свойство сделки, не языка: живёт рядом со способом
+               оплаты, а не в настройках. Меняется редко, поэтому не тянет
+               отдельный g-label — тот же visual weight, что у пакетов -->
+          <div class="chips" id="fCurChips" style="margin-top:8px;"></div>
         </div>
         <div class="pay-row sep">
           <span class="k" id="fRateLabel">—</span>
@@ -7101,6 +7172,29 @@
      отделяет светлое от светлого. Значит зажимать больше нечего. */
   var skyInk = function (c) { return rgb(c); };
 
+  /* Светлота по WCAG. Нужна ровно в одном месте: решить, насколько светило
+     сливается со светлой поверхностью и сколько под него класть тени. */
+  function relLum(c) {
+    var f = function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  }
+  var L_LIT_SURFACE = relLum([250, 248, 243]);   // --surface светлой темы, #FAF8F3
+  /* Тень отделяет светлое от светлого — значит нужна ровно настолько,
+     насколько светило сливается с фоном, и не больше. В полдень диск белый на
+     белом (разрыв по светлоте 0.11) и тень идёт на полную; в золотой час он
+     держит свой цвет (0.51) и отделяется сам, тень уходит в ноль. Прежде она
+     стояла постоянной весь день, и тёмное пятно под золотым солнцем читалось
+     как ошибка: источник света не отбрасывает тень.
+     Тема в расчёт не входит. Сколько тени — считает код по цвету светила,
+     есть ли она вообще — по-прежнему решает класс `.lit-shade`: правда о теме
+     остаётся одна. */
+  function shadeNeed(c) {
+    return clamp((0.42 - (L_LIT_SURFACE - relLum(c))) / 0.30, 0, 1);
+  }
+
   /* Пиктограммы: экспонометр света, звёзды и погода */
   function meterHTML(level, color) {
     var b = "";
@@ -7354,6 +7448,11 @@
     dropbox: ""
   };
   var CLOUD_NAMES = ["yandex", "google", "dropbox"];
+  /* Канал обратной связи. Аккаунта ещё нет — заглушка (username свободен на
+     момент записи, не проверялся боем). Завести настоящий канал/бота в
+     Telegram и подставить сюда адрес — единственное, что нужно сделать,
+     чтобы кнопка в настройках заработала: код её уже ждёт. */
+  var FEEDBACK_TG = "https://t.me/lightplan_app";
   var CLOUD_TOKEN_KEY = "lightplan.cloud.token";     // {kind, access, refresh, exp}
   var CLOUD_KIND_KEY  = "lightplan.cloud.kind";
   var CLOUD_PKCE_KEY  = "lightplan.cloud.pkce";
@@ -7987,6 +8086,21 @@
     (Array.isArray(d.orgs) ? d.orgs : []).forEach(function (o) { if (o) fix(o.docs); });
     return d;
   }
+  var CURRENCIES = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"];
+  var currency = (saved && CURRENCIES.indexOf(saved.currency) >= 0) ? saved.currency : "RUB";
+  /* Валюта съёмки — тот же приём, что и практика ведения дел: до этой правки
+     число в записи означало сумму в единственной, глобальной валюте, и это
+     было верно ровно на момент ввода. Дальше запись хранит валюту явно, а
+     задним числом переобозначать её нечестно — фотограф не выбирал евро,
+     он выбирал рубли, просто выбор жил в одной настройке на всех. Старым
+     записям присваивается валюта из настройки как она стоит сейчас,
+     навсегда — дальше её меняет только сама запись. */
+  function migrateCurrency(d) {
+    if (!d || !Array.isArray(d.sessions)) return d;
+    d.sessions.forEach(function (s) { if (s && !s.currency) s.currency = currency; });
+    return d;
+  }
+  saved = migrateCurrency(saved);
   saved = migrateDocKinds(saved);
   /* Папка референсов — седьмая по счёту. Фотограф раскладывает кадры по
      папкам («Сборы», «Детали»), имя папки лежит в самом кадре (`tag`) и по
@@ -8312,8 +8426,6 @@
         : { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
     } catch (e) { return String(n); }
   }
-  var CURRENCIES = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"];
-  var currency = (saved && CURRENCIES.indexOf(saved.currency) >= 0) ? saved.currency : "RUB";
   /* `narrowSymbol` даёт «₽» вместо «RUB» там, где локаль языка сама бы
      написала код валюты. Старые движки его не знают — отсюда откат */
   function moneyFmt(cur, display) {
@@ -8338,13 +8450,41 @@
       catch (e2) { return "₽"; }
     }
   }
-  function money(n) {
+  function money(n, cur) {
     n = Math.round(n || 0);
-    try { return moneyFmt().format(n); }
+    try { return moneyFmt(cur).format(n); }
     catch (e) {
-      try { return moneyFmt(null, "symbol").format(n); }
-      catch (e2) { return n.toLocaleString() + " " + currencySign(); }
+      try { return moneyFmt(cur, "symbol").format(n); }
+      catch (e2) { return n.toLocaleString() + " " + currencySign(cur); }
     }
+  }
+  /* Валюта съёмки, а не приложения. Американец в Будапеште получает евро за
+     эту свадьбу и доллары за все остальные — общий знак денег в настройках
+     был бы враньём про конкретную сделку. Настройка остаётся умолчанием для
+     новой съёмки, а не единственным источником: та же ось, что у практики
+     ведения дел (DECISIONS, «Практика ведения дел — третья ось»), только
+     здесь переопределение живёт не в настройках, а в самой записи. */
+  function sessionCurrency(s) {
+    return (s && s.currency && CURRENCIES.indexOf(s.currency) >= 0) ? s.currency : currency;
+  }
+  /* Сумма по нескольким съёмкам, честно — без пересчёта курса. Складывать
+     рубли с долларами в одно число значило бы соврать; вместо одной суммы
+     отдаём список: домашняя валюта первая (её обычно и ждут увидеть), дальше
+     остальные по убыванию. Единственная валюта — обычный случай — не
+     отличается от того, что было: один элемент, одна строка. */
+  function sumByCurrency(list, amountFn) {
+    var by = {};
+    list.forEach(function (s) {
+      var cc = sessionCurrency(s), v = amountFn(s);
+      by[cc] = (by[cc] || 0) + v;
+    });
+    var codes = Object.keys(by).filter(function (c) { return by[c]; });
+    codes.sort(function (a, b) {
+      if (a === currency) return -1;
+      if (b === currency) return 1;
+      return by[b] - by[a];
+    });
+    return codes.map(function (c) { return { code: c, sum: by[c] }; });
   }
   function sessionIncome(s) {
     if (isMeet(s)) return 0;      // встреча — разговор, а не работа
@@ -8546,11 +8686,16 @@
     /* Тень нужна только там, где светлое лежит на светлом. Показывает её
        класс, а не код: тема живёт в атрибуте документа, и завязка на
        переменную означала бы вторую правду о теме — при смене без перерисовки
-       купола тень оставалась включённой */
+       купола тень оставалась включённой.
+       Сколько тени — считает `shadeNeed` по цвету светила: постоянная тень
+       под золотым диском читалась как ошибка (см. там же) */
     $("sunShade").setAttribute("cx", p[0].toFixed(1));
-    $("sunShade").setAttribute("cy", (p[1] + 3).toFixed(1));
-    $("sunShade").setAttribute("opacity", vis.toFixed(2));   // гаснет вместе со светилом
-    $("sunGlow").setAttribute("fill", rgba(st.c, 0.18 * vis));
+    $("sunShade").setAttribute("cy", p[1].toFixed(1));
+    $("sunShade").setAttribute("opacity", (vis * shadeNeed(st.c)).toFixed(2));
+    // Диск: заливка держит массу, кромка её очерчивает. Обе гаснут со светилом
+    $("sunGlow").setAttribute("fill", rgba(st.c, (0.18 * vis).toFixed(3)));
+    $("sunGlow").setAttribute("stroke", rgb(st.c));
+    $("sunGlow").setAttribute("stroke-opacity", (0.34 * vis).toFixed(3));
 
     var drop = $("drop");
     if (e > 0.5 && !moon) {
@@ -10596,13 +10741,20 @@
       + (todo.length ? '<div><span class="ys-k">' + esc(LANG.t("year.todo")) + "</span>" + genreLine(todo) + "</div>" : "");
     // Статистика — за отдельным экраном; кнопка входа видна, только если год не пуст
     $("statsBtn").hidden = !all.length;
-    yearProfitAmt = all.reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
+    /* Крупное число и график считают только домашнюю валюту: смешать рубли
+       с долларами в одну сумму значило бы соврать, а курса для честного
+       пересчёта у нас нет и не будет (см. DECISIONS, «Валюта на съёмку»).
+       Съёмки в других валютах не пропадают — их сумма идёт отдельными
+       строками под графиком, каждая в своей валюте. */
+    var homeAll = all.filter(function (s) { return sessionCurrency(s) === currency; });
+    yearProfitAmt = homeAll.reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
+    yearProfitOther = sumByCurrency(all, sessionNet).filter(function (x) { return x.code !== currency; });
     /* Кумулятивно по месяцам — спарклайн заканчивается ровно в том числе,
        что стоит над ним крупно: одна и та же прибыль, два взгляда на неё */
     var run = 0;
     yearProfitCum = [];
     for (var pm = 0; pm < 12; pm++) {
-      run += all.filter(function (s) { return s.date.getMonth() === pm; })
+      run += homeAll.filter(function (s) { return s.date.getMonth() === pm; })
         .reduce(function (sum, s) { return sum + sessionNet(s); }, 0);
       yearProfitCum.push(run);
     }
@@ -10657,15 +10809,25 @@
     var pts = sparkPoints(yearProfitCum, 320, 42, 4);
     var last = pts[pts.length - 1].split(",");
     var lineColor = neg ? "var(--terra)" : "var(--green)", dotColor = lineColor;
+    /* Остальные валюты — тихим списком под графиком, тем же приёмом, что и
+       разделитель денег в организациях: без пересчёта, каждая своим числом.
+       Обычный случай — одна валюта на год — списка не видит вовсе. */
+    var otherHtml = yearProfitOther.length
+      ? '<div class="year-profit-other">' + yearProfitOther.map(function (x) {
+          return '<span' + (x.sum < 0 ? ' class="neg"' : "") + '>' + esc(money(x.sum, x.code)) + "</span>";
+        }).join("") + "</div>"
+      : "";
     v.innerHTML = '<div class="year-profit-lbl">' + yearShown + '</div>'
       + '<div class="year-profit-num' + (neg ? " neg" : "") + '">' + money(yearProfitAmt) + '</div>'
       + '<svg class="year-profit-spark" viewBox="0 0 320 42" preserveAspectRatio="none">'
       + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + lineColor
       + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-      + '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3.2" fill="' + dotColor + '"/></svg>';
+      + '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3.2" fill="' + dotColor + '"/></svg>'
+      + otherHtml;
   }
   var yearProfitAmt = 0;
   var yearProfitCum = [];
+  var yearProfitOther = [];   // прибыль в чужих валютах — списком, без пересчёта
   /* ---------- Статистика сроков сдачи ----------
      За всё время, не за просматриваемый год: жанру нужна выборка, а не
      календарная граница — свадьба, снятая в декабре прошлого года, о своих
@@ -11509,6 +11671,10 @@
   /* Оплата в форме: ключ способа (hourly/flat/pack/object/item), ставка/сумма/цена,
      количество единиц, расходы */
   var fPay = "hourly", fRate = 0, fUnits = 1, fExpense = 0;
+  /* Валюта формы: умолчание для новой съёмки — из настройки, а у правки —
+     та, что стоит в записи (`fillFormFrom`). Переопределение живёт здесь же,
+     рядом с суммами, а не в настройках: это свойство сделки, а не языка. */
+  var fCurrency = currency;
   /* Предоплата: часть гонорара, полученная заранее. В доход не добавляется —
      она из него вычитается остатком (docs/12_CARD_ARCHITECTURE.md) */
   var fPrepay = 0;
@@ -12168,11 +12334,11 @@
   function renderOrgList() {
     $("orgList").innerHTML = orgs.map(function (o, i) {
       var sh = orgShoots(o.id);
-      var sum = sh.reduce(function (a, p) { return a + sessionIncome(p.s); }, 0);
+      var byCur = sumByCurrency(sh.map(function (p) { return p.s; }), sessionIncome);
       var bits = [];
       if (o.person) bits.push(o.person);
       if (sh.length) bits.push(LANG.count("unit.shoot", sh.length));
-      if (sum) bits.push(money(sum));
+      if (byCur.length) bits.push(byCur.map(function (x) { return money(x.sum, x.code); }).join(" · "));
       return '<button type="button" class="org-item" data-i="' + i + '">'
         + '<span class="badge">' + IC.svg("city") + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(o.name || LANG.t("org.noName")) + "</span>"
@@ -12414,8 +12580,8 @@
     if (!o) return;
     var list = orgShoots(o.id);
     $("oShoots").innerHTML = list.map(function (p) {
-      var inc = sessionIncome(p.s), pre = +p.s.prepay || 0;
-      var tail = inc ? money(inc) + (pre && pre < inc ? " · " + LANG.t("org.paidIn", { sum: money(pre) }) : "") : "";
+      var inc = sessionIncome(p.s), pre = +p.s.prepay || 0, cc = sessionCurrency(p.s);
+      var tail = inc ? money(inc, cc) + (pre && pre < inc ? " · " + LANG.t("org.paidIn", { sum: money(pre, cc) }) : "") : "";
       return '<button type="button" class="org-item" data-i="' + p.i + '">'
         + '<span class="badge">' + IC.genreSvg(p.s.type) + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(genreName(p.s.type)) + " · "
@@ -12470,8 +12636,20 @@
         renderPay();
       });
     });
+    // Валюта сделки — чипсами, рядом со способом оплаты
+    $("fCurChips").innerHTML = CURRENCIES.map(function (c) {
+      return '<button class="chip' + (fCurrency === c ? " active" : "") + '" data-cur="' + c + '">'
+        + esc(currencySign(c) + " " + c) + "</button>";
+    }).join("");
+    $("fCurChips").querySelectorAll(".chip").forEach(function (ch) {
+      ch.addEventListener("click", function () {
+        if (ch.dataset.cur === fCurrency) return;
+        fCurrency = ch.dataset.cur;
+        renderPay();
+      });
+    });
     // Подпись поля ставки под механику
-    var cs = currencySign();
+    var cs = currencySign(fCurrency);
     $("fRateLabel").textContent = mech === "hourly" ? LANG.t("form.rateHour", { sign: cs })
       : LANG.t(mech === "unit" ? "form.priceEach" : "form.sumFlat", { sign: cs });
     // Количество — только для «за единицу»
@@ -12488,7 +12666,7 @@
       // На чипсе только имя пакета — сумма и так стоит в строке дохода
       $("fPackChips").innerHTML = live.map(function (p, i) {
         return '<button class="chip' + (p.p === fRate ? " active" : "") + '" data-p="' + i + '">'
-          + (p.n || money(p.p)) + "</button>";
+          + (p.n || money(p.p, fCurrency)) + "</button>";
       }).join("");
       $("fPackChips").querySelectorAll(".chip").forEach(function (ch) {
         ch.addEventListener("click", function () {
@@ -12507,12 +12685,12 @@
        ещё принесут в день съёмки. Поэтому идёт отдельной строкой остатка */
     var rest = Math.max(0, inc - fPrepay);
     $("fPayTotal").innerHTML =
-      '<span class="lbl">' + esc(LANG.t("form.incomeIs", { sum: money(inc) })) + hrs
-      + (fExpense ? " " + esc(LANG.t("form.minusExp", { sum: money(fExpense) })) : "")
-      + (fPrepay ? "<br>" + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(fPrepay), rest: money(rest) })) : "") + "</span>"
-      + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net) + "</span>";
+      '<span class="lbl">' + esc(LANG.t("form.incomeIs", { sum: money(inc, fCurrency) })) + hrs
+      + (fExpense ? " " + esc(LANG.t("form.minusExp", { sum: money(fExpense, fCurrency) })) : "")
+      + (fPrepay ? "<br>" + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(fPrepay, fCurrency), rest: money(rest, fCurrency) })) : "") + "</span>"
+      + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net, fCurrency) + "</span>";
     // Сводка спойлера: способ и итог одной строкой
-    $("fPaySumm").innerHTML = esc(LANG.t("pay." + fPay)) + " · <b>" + money(net) + "</b>";
+    $("fPaySumm").innerHTML = esc(LANG.t("pay." + fPay)) + " · <b>" + money(net, fCurrency) + "</b>";
     slideFold($("fPayBody"), !payFolded);
     $("fPayFold").classList.toggle("open", !payFolded);
   }
@@ -14470,15 +14648,15 @@
       ? '<div class="pane wide"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.purse + "</span>"
         + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.fee")) + "</span>"
-        + '<span class="pn-v' + (exp ? " fee" : "") + '">' + money(inc)
+        + '<span class="pn-v' + (exp ? " fee" : "") + '">' + money(inc, sessionCurrency(s))
         + (exp ? ' <span style="font-size:12px;color:#635E54">'
-            + esc(LANG.t("pane.minusExp", { sum: money(exp) })) + "</span>" : "") + "</span>"
+            + esc(LANG.t("pane.minusExp", { sum: money(exp, sessionCurrency(s)) })) + "</span>" : "") + "</span>"
         /* Строка длинная, а обрезать в ней нечего: остаток — ровно то число,
            ради которого сюда смотрят. Поэтому перенос, а не многоточие */
         + (pre ? '<span class="pn-s" style="margin-top:3px;white-space:normal">'
-          + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(pre), rest: money(rest) })) + "</span>" : "")
+          + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(pre, sessionCurrency(s)), rest: money(rest, sessionCurrency(s)) })) + "</span>" : "")
         + "</span>"
-        + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp) + "</span></div></div>"
+        + '<span class="pn-v gold" style="margin-top:0">' + money(inc - exp, sessionCurrency(s)) + "</span></div></div>"
       : "";
 
     var delvHtml = "";
@@ -14674,7 +14852,7 @@
        отчёт, «ждём акт» — работа */
     var half = chain.filter(function (l) { return l.half; })[0];
     var tail = left.length === 0 ? LANG.t("deal.allDone")
-      : half ? LANG.t("deal.prepaid", { word: prepayWord() })
+      : half ? LANG.t("dealPrepaid." + practice)
       : left.length === 1 ? LANG.t("deal.waitOne", { step: dealName(left[0].k, true) })
       : LANG.t("deal.left", { n: LANG.count("deal.step", left.length) });
 
@@ -14969,10 +15147,11 @@
     $("cdMoneyGroup").hidden = true;
     $("cdMoneyBtn").classList.remove("open");
     if (hasMoney) {
-      $("cdMoneySum").textContent = money(inc - exp);
-      $("cdIncome").textContent = money(inc);
-      $("cdExpense").textContent = exp ? money(exp) : LANG.t("card.none");
-      $("cdProfit").textContent = money(inc - exp);
+      var cc = sessionCurrency(s);
+      $("cdMoneySum").textContent = money(inc - exp, cc);
+      $("cdIncome").textContent = money(inc, cc);
+      $("cdExpense").textContent = exp ? money(exp, cc) : LANG.t("card.none");
+      $("cdProfit").textContent = money(inc - exp, cc);
     }
 
     // Событийная карточка перекрывает решения обычной: считается последней
@@ -15143,6 +15322,7 @@
       wish: wishes.slice(),
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"), deliveredAt: fDeliveredAt,
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
+      currency: fCurrency,
       guests: fGuests || 0, trip: fTrip, tripPlace: fTrip ? sessionPlace.name : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
       docs: fDocs.slice(), gear: fGear.slice(), refs: fRefs.slice(),
@@ -15223,6 +15403,7 @@
     // Оплата сохранённой съёмки — свёрнута: данные уже введены
     fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
     fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
+    fCurrency = sessionCurrency(s);
     /* Новых полей у старой записи нет вовсе — это пустое поле, а не поломка
        (docs/12_CARD_ARCHITECTURE.md, «Совместимость») */
     fPrepay = +s.prepay || 0; fGuests = +s.guests || 0;
@@ -15271,6 +15452,7 @@
       $("fP1Name").value = ""; $("fP1Tel").value = "";
       $("fP2Name").value = ""; $("fP2Tel").value = "";
       fPrepay = 0; fGuests = 0; fDocs = []; fGear = [];
+      fCurrency = currency;
       $("fPrepay").value = "";
       fTrip = false;
       $("fBrief").value = ""; $("fModels").value = "";
@@ -15897,6 +16079,7 @@
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       deliveredAt: $("fDone").classList.contains("on") ? fDeliveredAt : null,
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
+      currency: fCurrency,
       /* Пустое поле не пишется значением: гости нулём и выезд ложью — те же
          пустые поля, и в карточке их быть не должно */
       guests: fGuests || 0,
@@ -16859,6 +17042,49 @@
     $("cloudNote").textContent = LANG.t("cloud.disconnected");
   });
   $("cloudPull").addEventListener("click", cloudPull);
+
+  /* ---------- Обратная связь ----------
+     Тот же приём, что у ссылки опросника: форма не отправляет ничего сама
+     (сервера нет), она собирает текст и отдаёт его системной отправкой —
+     человек сам решает, куда: в Telegram, почтой, как угодно. Диагностика
+     в хвосте текста — то, что иначе пришлось бы выспрашивать в переписке:
+     версия сборки, канал, язык, практика. Съёмок и клиентских данных в
+     тексте нет ни байта. */
+  var fbType = "idea";
+  $("fbSeg").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      fbType = b.dataset.fb;
+      $("fbSeg").querySelectorAll("button").forEach(function (x) { x.classList.toggle("active", x === b); });
+    });
+  });
+  function feedbackDiag() {
+    var d = new Date(document.lastModified);
+    var stamp = isNaN(d) ? "—" : dNum(d) + " " + fmt(d.getHours() * 60 + d.getMinutes());
+    return [CHANNEL, stamp, LANG.code, practice].join(" · ");
+  }
+  $("fbTelegram").href = FEEDBACK_TG;
+  $("fbSend").addEventListener("click", function () {
+    var text = $("fbText").value.trim();
+    if (!text) return;
+    var title = LANG.t(fbType === "bug" ? "fb.bugTitle" : "fb.ideaTitle");
+    var body = title + "\n" + text + "\n—\n" + feedbackDiag();
+    var done = function () {
+      $("fbText").value = "";
+      notify(LANG.t("fb.sentTitle"), LANG.t("fb.sentText"));
+    };
+    if (navigator.share) {
+      navigator.share({ text: body }).then(done).catch(function () {});
+      return;
+    }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(body).then(function () {
+        notify(LANG.t("fb.copiedTitle"), LANG.t("fb.copiedText"));
+        $("fbText").value = "";
+      }).catch(function () { notify(LANG.t("fb.copiedTitle"), body); });
+      return;
+    }
+    notify(LANG.t("fb.copiedTitle"), body);
+  });
   $("backupFile").addEventListener("change", function () {
     var f = this.files && this.files[0];
     if (!f) return;
@@ -17041,11 +17267,12 @@
      свойство места, а не слова, поэтому ставится на месте. */
   function capFirst(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
   function renderMoneyLabels() {
-    var sign = currencySign();
+    // Поля формы — валюта съёмки; поле жанровой ставки по умолчанию — валюта приложения
+    var formSign = currencySign(fCurrency), homeSign = currencySign();
     var pre = $("fPrepayLabel"), exp = $("fExpenseLabel"), grate = $("gRateLabel");
-    if (pre) pre.textContent = capFirst(LANG.t("form.prepayLbl", { word: prepayWord(), sign: sign }));
-    if (exp) exp.textContent = LANG.t("form.expenseLbl", { sign: sign });
-    if (grate) grate.textContent = LANG.t("gen.rateLbl", { sign: sign });
+    if (pre) pre.textContent = capFirst(LANG.t("form.prepayLbl", { word: prepayWord(), sign: formSign }));
+    if (exp) exp.textContent = LANG.t("form.expenseLbl", { sign: formSign });
+    if (grate) grate.textContent = LANG.t("gen.rateLbl", { sign: homeSign });
   }
 
   /* ---------- Практика: чипсы в настройках и вопрос при первом запуске ----------
