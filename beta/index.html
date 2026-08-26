@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=3"></script>
+<script src="lang.js?v=4"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -1792,8 +1792,39 @@
        перекрывается светлой линией, потому что нижняя губа освещена. */
     box-shadow:
       inset 0 0 0 1px rgba(var(--drum-ink), calc(var(--drum-deep) * 0.55)),
-      inset 0 -1px 0 var(--glass-shine),
+      inset 0 -1px 0 var(--drum-shine, var(--glass-shine)),
       inset 0 4px 6px -2px rgba(var(--drum-ink), calc(var(--drum-deep) * 0.6));
+  }
+  /* Три вида прорези — на голосование (Алексей: «добавь в настройки все три,
+     хочу потестить на телефоне, показать людям, решим голосованием»).
+     Меняется ТОЛЬКО светлая тема: в тёмной прорезь и так тёмная, и все три
+     вида сходятся в один — потому переключатель ниже и помечен как таковой.
+
+     Причина спора замерена: затемняя светлую ленту к краям, всегда получаешь
+     серое, а серое на полосе читается металлом. Отсутствие света в светлой
+     теме изобразить нечем — кроме как сделать полость по-настоящему тёмной,
+     как на фотографии шкалы расстояний объектива.
+
+     Чернила внутри прорези при этом светлеют, и это не спор с правилом
+     «светлая тема — не инверсия», а тот же закон: инвертируются ЧЕРНИЛА,
+     а не свет. Грунт внутри тёмный — значит и чернила на нём светлые. Блик
+     остаётся белым, тень тёмной во всех трёх видах.
+     Блик разведён на два: `--glass-shine` светит по губе СНАРУЖИ, на бумаге,
+     а `--drum-shine` — внутри прорези. Разные грунты, разные значения. */
+  :root[data-theme="light"] body[data-drum="graphite"] .ribbon-wrap.drum,
+  :root[data-theme="light"] body[data-drum="window"] .ribbon-wrap.drum {
+    --drum-ink: 0,0,0; --ink: #F0EBE1;
+    --glass-fill: rgba(255,255,255,0.07);
+  }
+  :root[data-theme="light"] body[data-drum="graphite"] .ribbon-wrap.drum {
+    --drum-face: rgba(35,31,24,0.72); --drum-deep: 0.74;
+    --drum-shine: rgba(255,255,255,0.34);
+    --ink-5: #C4BCAC; --terra: #D0704A;
+  }
+  :root[data-theme="light"] body[data-drum="window"] .ribbon-wrap.drum {
+    --drum-face: rgba(23,21,15,0.88); --drum-deep: 0.86;
+    --drum-shine: rgba(255,255,255,0.28);
+    --ink-5: #9A9384; --terra: #C9663D;
   }
   /* Контейнер клипует (inset:0, статичен), а едет только дорожка внутри
      него — раньше `transform` стоял прямо на клип-контейнере и уводил всё
@@ -1864,7 +1895,7 @@
     background: var(--glass-fill);
     backdrop-filter: var(--glass-optic);
     -webkit-backdrop-filter: var(--glass-optic);
-    box-shadow: inset 0 1.5px 0 var(--glass-shine), 0 3px 10px var(--glass-cast);
+    box-shadow: inset 0 1.5px 0 var(--drum-shine, var(--glass-shine)), 0 3px 10px var(--glass-cast);
   }
   .ribbon-wrap.drum .drum-frame { display: block; }
   .ribbon-wrap.drum .ribbon-marker { display: none; }
@@ -5102,6 +5133,18 @@
     </div>
     <p class="seg-note" id="ribbonNote"></p>
 
+    <!-- Вид прорези — на голосование, а не выбран за всех: трое одинаково
+         защитимы, и решает вкус, а не замер (docs: DECISIONS, «Барабан:
+         диск в прорези»). Виден только когда выбран барабан: у ленты
+         прорези нет, и настройка не имела бы предмета. -->
+    <div class="sec-label" id="drumSlotLabel" data-i18n="set.drumSlot">Прорезь барабана</div>
+    <div class="seg" id="drumSlotSeg">
+      <button data-drum="paper" data-i18n="set.drumPaper">Бумага</button>
+      <button data-drum="graphite" data-i18n="set.drumGraphite">Графит</button>
+      <button data-drum="window" data-i18n="set.drumWindow">Окно</button>
+    </div>
+    <p class="seg-note" id="drumSlotNote"></p>
+
     <div class="sec-label" data-i18n="set.theme">Тема</div>
     <!-- Третий вариант — не «ещё одна тема», а отказ выбирать: телефон уже
          знает, вечер сейчас или день, и переспрашивать об этом незачем -->
@@ -7540,6 +7583,7 @@
         }),
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
+        drumSlot: drumSlot,
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
@@ -11819,6 +11863,12 @@
      дорожкой света остаётся вариантом (docs: ROADMAP, «Барабан вместо
      ленты — и лента рядом»). */
   var ribbonMode = (saved && saved.ribbonMode === "lane") ? "lane" : "drum";
+  /* Вид прорези барабана. Умолчание — «бумага»: это то, что уже стоит, и
+     менять его до голосования значило бы решить за голосующих. */
+  var DRUM_SLOTS = ["paper", "graphite", "window"];
+  var drumSlot = (saved && DRUM_SLOTS.indexOf(saved.drumSlot) > -1) ? saved.drumSlot : "paper";
+  function applyDrumSlot() { document.body.dataset.drum = drumSlot; }
+  applyDrumSlot();
   function snapMin(m) { return Math.round(m / timeStep) * timeStep; }
   /* Значения барабана минут: шаг плюс текущая минута, если она не по шагу —
      иначе барабан не сможет показать 19:38, пришедшие от заката */
@@ -18369,6 +18419,7 @@
     $("ribbonNote").textContent = ribbonMode === "drum"
       ? LANG.t("set.ribbonNoteDrum")
       : LANG.t("set.ribbonNoteLane");
+    renderDrumSlotSeg();
   }
   document.querySelectorAll("#ribbonSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -18376,6 +18427,27 @@
       ribbonMode = b.dataset.ribbon;
       saveAll(); renderRibbonSeg();
       if (typeof renderRibbon === "function") renderRibbon();
+    });
+  });
+
+  /* Вид прорези. Прячется вместе с барабаном — у ленты прорези нет.
+     Перерисовки барабана не требует: меняются только переменные темы,
+     ячейки и их положение те же (docs: DECISIONS, «Барабан: диск в прорези») */
+  function renderDrumSlotSeg() {
+    var on = ribbonMode === "drum";
+    $("drumSlotLabel").hidden = !on;
+    $("drumSlotSeg").hidden = !on;
+    $("drumSlotNote").hidden = !on;
+    document.querySelectorAll("#drumSlotSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.drum === drumSlot);
+    });
+    $("drumSlotNote").textContent = LANG.t("set.drumNote" + drumSlot[0].toUpperCase() + drumSlot.slice(1));
+  }
+  document.querySelectorAll("#drumSlotSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.drum === drumSlot) return;
+      drumSlot = b.dataset.drum;
+      applyDrumSlot(); saveAll(); renderDrumSlotSeg();
     });
   });
   renderRibbonSeg();
