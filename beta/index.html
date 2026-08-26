@@ -16735,7 +16735,7 @@
   function renderRibbon() {
     measureRibbon();
     var drum = ribbonMode === "drum";
-    document.querySelector(".ribbon-wrap").classList.toggle("drum", drum);
+    document.querySelector("#timebar .ribbon-wrap").classList.toggle("drum", drum);
     $("ribbonScroll").classList.toggle("drum", drum);
     var dir = ribbonSpringDir; ribbonSpringDir = 0;
     drumStopSettle(); drumPos = 0;
