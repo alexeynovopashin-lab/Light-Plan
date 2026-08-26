@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=5"></script>
+<script src="lang.js?v=6"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -3324,6 +3324,16 @@
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
     color: var(--ink-7); font-weight: 600; padding: 30px 24px 8px;
   }
+  /* Заголовок группы настроек — крупнее и не капсом, чтобы не путался с
+     подписью раздела под ним, и с большим отступом сверху: длинный список
+     из ~22 разделов должен читаться главами, а не одним полотном.
+     Подпись раздела сразу под ним теряет свой отступ — расстояние держит
+     заголовок группы, а не оба сразу (docs: DECISIONS, «Уборка настроек»). */
+  .grp-label {
+    font-size: 15px; letter-spacing: -0.2px; color: var(--ink);
+    font-weight: 700; padding: 44px 24px 0;
+  }
+  .grp-label + .sec-label { padding-top: 6px; }
   .session {
     display: flex; align-items: center; gap: 16px;
     background: var(--sheet); border-radius: 16px; corner-shape: squircle;
@@ -5226,6 +5236,7 @@
       <div class="loc"><div class="name">Light Plan</div><div class="date" data-i18n="set.proto">v3 · прототип</div></div>
     </div>
 
+    <div class="grp-label" style="padding-top:20px" data-i18n="set.grpView">Вид</div>
     <div class="sec-label" data-i18n="set.mode">Режим</div>
     <div class="seg" id="modeSeg">
       <button class="active" data-mode="simple" data-i18n="set.modeSimple">Просто</button>
@@ -5280,6 +5291,7 @@
     </div>
     <p class="seg-note" data-i18n="set.themeNote">Меняется интерфейс. Небо, свет и карта остаются прежними: закат не зависит от темы.</p>
 
+    <div class="grp-label" data-i18n="set.grpShoots">Съёмки</div>
     <div class="sec-label" data-i18n="set.calendar">Календарь</div>
     <div class="seg" id="calSync">
       <button class="active" data-sync="off" data-i18n="set.off">Выкл</button>
@@ -5307,6 +5319,7 @@
     </div>
     <p class="seg-note" id="stepNote">Шаг барабана в форме. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется.</p>
 
+    <div class="grp-label" data-i18n="set.grpAlerts">Оповещения</div>
     <div class="sec-label" data-i18n="set.feedback">Отклик</div>
     <div class="item"><span class="k" data-i18n="set.clicks">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
 
@@ -5315,6 +5328,7 @@
     <div class="item"><span class="k" data-i18n="set.notifyMorn">Утреннее уточнение</span><span class="toggle on" data-toggle></span></div>
     <div class="item"><span class="k" data-i18n="set.notifyLeave">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
 
+    <div class="grp-label" data-i18n="set.grpPlaces">Карта и места</div>
     <div class="sec-label" data-i18n="nav.map">Карта</div>
     <!-- Холст по умолчанию без подписей: имена улиц спорят с нашей разметкой —
          часами дуги, временами восхода и заката, буквами сторон света.
@@ -5361,6 +5375,7 @@
     <p class="seg-note" id="travelNote">Если между съёмками в разных местах остаётся меньше 40 минут, приложение предупредит. Запрета нет: решает фотограф.</p>
 
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
+    <div class="grp-label" data-i18n="set.grpData">Данные и облако</div>
     <div class="sec-label" data-i18n="set.data">Данные</div>
     <div class="item"><span class="k" data-i18n="set.persistence">Постоянность</span><span class="v" id="storeState">—</span></div>
     <div class="item"><span class="k" data-i18n="set.records">Записей</span><span class="v" id="storeCount">—</span></div>
@@ -5403,6 +5418,7 @@
          Язык меняет слова и разделители числа; градусы и деньги фотограф
          выбирает сам: с английским интерфейсом он всё равно может
          зарабатывать в рублях (DECISIONS.md, «Языки») -->
+    <div class="grp-label" data-i18n="set.grpLocale">Язык и регион</div>
     <div class="sec-label" data-i18n="set.language">Язык</div>
     <div class="chips" id="langChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="langNote"></p>
@@ -5443,6 +5459,7 @@
          Форма ничего не отправляет сама (принцип «на нашем сервере не
          хранится ничего» не тронут) — собирает текст и отдаёт его системной
          отправкой, тем же приёмом, что и ссылка опросника для клиента. -->
+    <div class="grp-label" data-i18n="set.grpAbout">О приложении</div>
     <div class="sec-label" data-i18n="fb.title">Обратная связь</div>
     <div class="seg" id="fbSeg">
       <button class="active" data-fb="idea" data-i18n="fb.idea">Отзыв</button>
