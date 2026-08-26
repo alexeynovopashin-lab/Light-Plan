@@ -908,10 +908,15 @@
     --knob: #EFEAE0;          --knob-edge: #0F0E0C;    --meter-off: #3A352E;
     /* полупрозрачные: панели, разделители и текст с альфой. Скрипт по хексам
        их не видел — а таб-бар и все линии держатся именно на них */
-    --bar: rgba(15,14,12,0.9); --bar-2: rgba(23,21,15,0.86);
+    /* Подложки, сквозь которые видно. Держались на 0.86–0.92, и написанный
+       рядом `backdrop-filter` работал на остатке: сквозь таб-бар доходило
+       10% размытого, сквозь кружки карты и всплывающие плашки — 14%.
+       Стекло было установлено и выключено непрозрачностью. */
+    --bar: rgba(15,14,12,0.72); --bar-2: rgba(23,21,15,0.55);
     --fill-a: rgba(15,14,12,0.75); --fill-b: rgba(15,14,12,0.6);
     --overlay: rgba(18,16,14,0.82); --overlay-2: rgba(8,7,6,0.94);
-    --overlay-3: rgba(44,41,36,0.86); --hair: rgba(255,255,255,0.05);
+    --overlay-3: rgba(44,41,36,0.68); --hair: rgba(255,255,255,0.05);
+    --sheet-glass: rgba(23,21,15,0.74); --knob-glass: rgba(239,234,224,0.26);
     --hair-2: rgba(255,255,255,0.04); --hair-3: rgba(255,255,255,0.03);
     --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
     /* Стекло поверх текста. Размытия нет намеренно: панель ложится прямо на
@@ -972,10 +977,14 @@
     --knob: #FFFFFF; --knob-edge: #C3BBAA; --meter-off: #D2CBBC;
     /* Подложки внутри карточки разведены сильнее: на светлом лист и плитки
        различались на два пункта и сливались в одно пятно */
-    --bar: rgba(250,248,243,0.92); --bar-2: rgba(255,255,255,0.9);
+    /* На светлой держим плотнее тёмной: там сквозь стекло идёт тёмное на
+       светлом, здесь светлое на светлом, и подложке нужно больше веса,
+       чтобы подписи не спорили с содержимым под ними. */
+    --bar: rgba(250,248,243,0.78); --bar-2: rgba(255,255,255,0.62);
     --fill-a: rgba(250,248,243,0.8); --fill-b: rgba(237,233,225,0.72);
     --overlay: rgba(250,248,243,0.86); --overlay-2: rgba(250,248,243,0.96);
-    --overlay-3: rgba(214,208,195,0.9); --hair: rgba(0,0,0,0.07);
+    --overlay-3: rgba(214,208,195,0.74); --hair: rgba(0,0,0,0.07);
+    --sheet-glass: rgba(255,255,255,0.78); --knob-glass: rgba(255,255,255,0.40);
     --hair-2: rgba(0,0,0,0.06); --hair-3: rgba(0,0,0,0.05);
     --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
     /* На светлом заливка не осветляет, а притеняет: планка и так почти белая,
@@ -1304,7 +1313,11 @@
     transform: translate(-50%, 120px); z-index: 96;
     width: 56px; height: 56px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: var(--overlay-2); box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
+    /* Мишень висит над списком, который из-под неё и утаскивают: глухая
+       подложка вырезала в нём дыру ровно там, куда смотрит палец */
+    background: var(--overlay-3);
+    backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    box-shadow: 0 10px 30px var(--glass-cast), inset 0 1px 0 var(--glass-shine), inset 0 0 0 1px var(--hairline);
     transition: transform 0.34s cubic-bezier(0.25,1,0.4,1);
   }
   .bin-target[hidden] { display: none; }
@@ -1660,11 +1673,21 @@
   /* Размер ползунка — переменными: на взводе он сплющивается по горизонтали
      и растёт по вертикали, как резина под нагрузкой. `margin-top` считается
      из высоты, иначе при сплющивании ползунок сползал бы с дорожки. */
+  /* Ручка стеклянная. Под ней не только гравировка часов, но и дорожка
+     света — та самая, что красит сутки от синего к янтарю. Глухой белый
+     кружок её закрывал; сквозь стекло ручка берёт цвет момента, на котором
+     стоит, и перестаёт быть посторонним предметом на шкале.
+     Кант оставлен глухим: он держит край ручки, и без него стеклянный
+     кружок на светлом участке дорожки терял границу.
+     Риски под ручкой снова видны — но не как разрез (на это и была жалоба,
+     из-за неё гравировку увели под ползунок), а как глубина под стеклом. */
   .scrub::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: var(--thumb-w, 26px); height: var(--thumb-h, 26px); border-radius: 50%;
-    background: var(--knob); border: 3px solid var(--knob-edge);
-    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55);
+    background: var(--knob-glass); border: 3px solid var(--knob-edge);
+    backdrop-filter: blur(3px) saturate(1.8) brightness(1.08);
+    -webkit-backdrop-filter: blur(3px) saturate(1.8) brightness(1.08);
+    box-shadow: 0 0 0 1px var(--ink-a22), inset 0 1px 0 var(--glass-shine), 0 4px 12px rgba(0,0,0,0.55);
     margin-top: calc((4px - var(--thumb-h, 26px)) / 2);
   }
   .scrub::-moz-range-thumb {
@@ -1893,7 +1916,11 @@
   .map-here {
     position: absolute; right: 12px; bottom: 12px; z-index: 470;
     width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
-    background: var(--bar-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    /* Под кружками карты — тайлы, самая богатая картинка в приложении,
+       и подложка здесь самая лёгкая из всех */
+    background: var(--bar-2);
+    backdrop-filter: blur(12px) saturate(1.6); -webkit-backdrop-filter: blur(12px) saturate(1.6);
+    box-shadow: inset 0 1px 0 var(--glass-shine), 0 2px 8px var(--glass-cast);
     display: flex; align-items: center; justify-content: center; color: var(--ink-3);
   }
   .map-here svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
@@ -2316,7 +2343,7 @@
     bottom: calc(var(--tabh, 74px) + 14px); z-index: 95;
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 15px; background: var(--overlay-3);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
     border-radius: 14px; corner-shape: squircle;
     box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
     font-size: 13px; color: var(--ink-4);
@@ -2350,7 +2377,11 @@
     display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
     align-items: center; gap: 6px; flex-shrink: 0;
     padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 6px;
-    position: sticky; top: 0; z-index: 8; background: var(--surface);
+    /* Липкая шапка — стекло, а не глухая заливка. Сетка месяца уезжает под
+       неё и раньше обрывалась ножом, будто кончилась. Размытие тут ничего не
+       съедает: подписи шапки лежат сверху, а под ней только цифры сетки. */
+    position: sticky; top: 0; z-index: 8; background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
   }
   /* Ровные трети держат «Август» ровно по центру экрана — но стоят они дорого:
      слева живёт одна кнопка 44px, а треть под неё резервирует 110px. Месяцу
@@ -2401,8 +2432,11 @@
      расчёт от кнопки, тот же приём, что у веера точек. */
   .scope-menu {
     position: fixed; z-index: 41; min-width: 208px;
-    background: var(--sheet); border-radius: 16px; corner-shape: squircle; padding: 6px;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+    /* Меню всплывает над содержимым — над тайлами карты или над сеткой
+       месяца, а не над пустой страницей: стеклу есть что показывать */
+    background: var(--sheet-glass); border-radius: 16px; corner-shape: squircle; padding: 6px;
+    backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55), inset 0 1px 0 var(--glass-shine);
     transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
   }
   .scope-menu[hidden] { display: none; }
@@ -2559,8 +2593,9 @@
     position: fixed; left: 50%; transform: translateX(-50%);
     bottom: calc(var(--tabh, 74px) + 12px); z-index: 12;
     display: inline-flex; margin: 0; padding: 9px 16px;
-    background: var(--overlay-2); border-radius: 999px;
-    box-shadow: 0 6px 20px var(--ink-a20), inset 0 0 0 1px var(--hairline);
+    background: var(--overlay-3); border-radius: 999px;
+    backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    box-shadow: 0 6px 20px var(--glass-cast), inset 0 1px 0 var(--glass-shine), inset 0 0 0 1px var(--hairline);
     font-size: 12.5px; color: var(--brass-deep);
   }
   /* Верхний блок дня закреплён целиком: даты, шеврон и сводка. Липнет под
@@ -2570,7 +2605,8 @@
      прилипающая сводка мешала бы ей */
   .day-sticky.on {
     position: sticky; top: calc(env(safe-area-inset-top, 0px) + 62px);
-    z-index: 6; background: var(--surface);
+    z-index: 6; background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
   }
   .day-dates[hidden] { display: none; }
   .dd-day {
@@ -3215,7 +3251,9 @@
   .tabbar {
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 30;
     background: var(--bar);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    /* Насыщенность рядом с размытием обязательна: один blur усредняет цвет
+       и даёт серую муть вместо стекла — цвет уходит вместе с деталью */
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
     border-top: 1px solid var(--hair);
     display: flex; padding: 9px 6px 24px;
   }
@@ -4011,17 +4049,23 @@
   /* Шапка формы: отменить и подтвердить. Кружки не кричат цветом,
      подтверждение отличается светлой заливкой — размером и положением, не CTA */
   .form-bar {
-    position: sticky; top: 0; z-index: 3; background: var(--surface);
+    position: sticky; top: 0; z-index: 3; background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
     display: flex; justify-content: space-between; align-items: center;
     padding: 46px 0 8px;
   }
   /* Крестик и галочка — 40, а не 32: это две главные кнопки формы, и в них
      целятся не глядя. Подложка стала полупрозрачной — под шапкой формы едет
      содержимое, и глухой кружок вырезал в нём дыру; полупрозрачный держит
-     край кнопки и не спорит с тем, что под ним. */
+     край кнопки и не спорит с тем, что под ним.
+     Полупрозрачность была половиной ответа: содержимое сквозь неё видно, но
+     читается как вторая надпись поверх первой. Стекло доводит приём до конца —
+     под кнопкой видно, что там что-то есть, но читать это не тянет. */
   .round {
     width: 40px; height: 40px; border-radius: 50%; border: none; padding: 0;
     background: var(--overlay-3); color: var(--ink-3); cursor: pointer;
+    backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    box-shadow: inset 0 1px 0 var(--glass-shine);
     display: flex; align-items: center; justify-content: center;
   }
   .round svg {
@@ -4410,7 +4454,7 @@
   .notif {
     position: absolute; top: 12px; left: 10px; right: 10px; z-index: 95;
     background: var(--overlay-3);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
     border-radius: 18px; corner-shape: squircle; padding: 13px 15px; display: flex; gap: 11px;
     transform: translateY(-140%); opacity: 0;
     transition: transform 0.5s cubic-bezier(0.25,1,0.4,1), opacity 0.4s ease;
