@@ -1719,6 +1719,24 @@
     content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
     background: linear-gradient(90deg, transparent, var(--hair) 34%, var(--hair) 66%, transparent);
   }
+  /* Объём барабана держался на одной горизонтали: маска уводила ячейки вбок,
+     подложка светлела к центру. Этого хватало, чтобы понять прорезь, и не
+     хватало, чтобы её почувствовать — не было ни блика, ни тени.
+     Тени и блик собраны внутренними box-shadow, а не заливкой: у box-shadow
+     размытие живёт у самой кромки и не доходит до середины окна, где стоят
+     даты. Заливка градиентом дала бы то же самое, но пеленой поверх текста —
+     на светлой теме белый блик в 55% съедал контраст цифры с 17.7 : 1 до 4 : 1.
+     Порядок слоёв физический: колесо (ячейки) → тень от верхней кромки
+     корпуса на колесо → блик на стекле. Снаружи под прорезью светлая
+     губа — она и делает вырез вырезом, а не нарисованной рамкой. */
+  .ribbon-wrap.drum { border-radius: 8px; box-shadow: 0 1px 0 var(--glass-shine); }
+  .ribbon-wrap.drum::after {
+    content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
+    box-shadow:
+      inset 0 3px 5px -3px var(--glass-cast),
+      inset 0 1px 0 var(--glass-shine),
+      inset 0 -4px 6px -4px var(--glass-cast);
+  }
   /* Контейнер клипует (inset:0, статичен), а едет только дорожка внутри
      него — раньше `transform` стоял прямо на клип-контейнере и уводил всё
      окно просмотра за экран вместе с содержимым (docs: DECISIONS). */
