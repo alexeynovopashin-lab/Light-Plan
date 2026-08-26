@@ -917,6 +917,7 @@
     --overlay: rgba(18,16,14,0.82); --overlay-2: rgba(8,7,6,0.94);
     --overlay-3: rgba(44,41,36,0.68); --hair: rgba(255,255,255,0.05);
     --sheet-glass: rgba(23,21,15,0.74); --knob-glass: rgba(239,234,224,0.26);
+    --drum-edge: rgba(0,0,0,0.5); --drum-face: rgba(255,255,255,0.05);
     --hair-2: rgba(255,255,255,0.04); --hair-3: rgba(255,255,255,0.03);
     --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
     /* Стекло поверх текста. Размытия нет намеренно: панель ложится прямо на
@@ -985,6 +986,7 @@
     --overlay: rgba(250,248,243,0.86); --overlay-2: rgba(250,248,243,0.96);
     --overlay-3: rgba(214,208,195,0.74); --hair: rgba(0,0,0,0.07);
     --sheet-glass: rgba(255,255,255,0.78); --knob-glass: rgba(255,255,255,0.40);
+    --drum-edge: rgba(23,21,15,0.15); --drum-face: rgba(255,255,255,0.5);
     --hair-2: rgba(0,0,0,0.06); --hair-3: rgba(0,0,0,0.05);
     --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
     /* На светлом заливка не осветляет, а притеняет: планка и так почти белая,
@@ -1714,10 +1716,13 @@
             mask-image: linear-gradient(90deg, transparent, #000 17%, #000 83%, transparent);
   }
   /* Подложка окна — светлее к центру (в прототипе `laneShade`): даёт понять,
-     что смотришь в прорезь прибора, а не на плоский список */
+     что смотришь в прорезь прибора, а не на плоский список.
+     Красится своим `--drum-face`, а не `--hair`: тот переворачивается по теме
+     (светлый на тёмной, тёмный на светлой) и в светлой теме темнил центр
+     вместо краёв — ровно наоборот физике барабана. */
   .ribbon-wrap.drum::before {
     content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
-    background: linear-gradient(90deg, transparent, var(--hair) 34%, var(--hair) 66%, transparent);
+    background: linear-gradient(90deg, transparent, var(--drum-face) 34%, var(--drum-face) 66%, transparent);
   }
   /* Объём барабана держался на одной горизонтали: маска уводила ячейки вбок,
      подложка светлела к центру. Этого хватало, чтобы понять прорезь, и не
@@ -1732,6 +1737,12 @@
   .ribbon-wrap.drum { border-radius: 8px; box-shadow: 0 1px 0 var(--glass-shine); }
   .ribbon-wrap.drum::after {
     content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
+    /* Бока цилиндра уходят в тень — и уходят ПОВЕРХ колеса, а не под ним.
+       Маска гасит сами ячейки, открывая планку: на тёмной теме планка тёмная,
+       и край честно темнел; на светлой планка светлая, и край высветлялся —
+       барабан выворачивался наизнанку. Затемнение сверху лечит обе темы
+       одним правилом, потому что тень на боку цилиндра от темы не зависит. */
+    background: linear-gradient(90deg, var(--drum-edge), transparent 26%, transparent 74%, var(--drum-edge));
     box-shadow:
       inset 0 3px 5px -3px var(--glass-cast),
       inset 0 1px 0 var(--glass-shine),
@@ -4669,6 +4680,16 @@
             <stop offset="42%" stop-color="rgba(23,21,15,0.42)"/>
             <stop offset="100%" stop-color="rgba(23,21,15,0)"/>
           </radialGradient>
+          <!-- Свет ушедшего светила: мягкое пятно без кромки. Диск — стрелка
+               прибора и потому плоский, с обозначенным краем; здесь стрелки
+               уже нет, осталcя только свет сквозь землю, и у него края быть
+               не может. Это не отмена решения про плоский диск, это другой
+               предмет с другой работой. -->
+          <radialGradient id="sunDeepGrad" cx="50%" cy="50%" r="50%">
+            <stop id="sdIn" offset="0" stop-opacity="0.34"/>
+            <stop id="sdMid" offset="0.42" stop-opacity="0.13"/>
+            <stop id="sdOut" offset="1" stop-opacity="0"/>
+          </radialGradient>
           <clipPath id="aboveHorizon"><rect x="0" y="0" width="390" height="196"/></clipPath>
         </defs>
         <g clip-path="url(#aboveHorizon)"><g id="stars" opacity="0"></g><g id="meteors"></g></g>
@@ -4681,6 +4702,12 @@
              само и есть источник света, и отброшенная им тень читалась как
              ошибка. Без смещения то же пятно работает глубиной, а не
              причинностью, и диссонанса нет. -->
+        <!-- Светило под горизонтом. Дугу вниз не продолжаем — пробовали, и
+             Алексей: «я нарисовал дугу в фотошопе, мне не понравилось, а вот
+             солнце без дуги по траектории дуги смотрится хорошо». Путь всё
+             равно читается: пятно идёт ровно по эллипсу, `posOn` продолжает
+             его за закат сам, без единой правки. -->
+        <circle id="sunDeep" r="34" fill="url(#sunDeepGrad)" opacity="0"/>
         <circle id="sunShade" class="lit-shade" r="14.5" fill="url(#sunShadeGrad)" opacity="0"/>
         <!-- Диск светила плоский, с обозначенной кромкой: это деталь прибора,
              аппликация на циферблате. Растушёванный ореол пробовали и
@@ -8736,7 +8763,7 @@
     var col = rgb(st.c);
 
     var moon = skyMode === "moon";
-    ["sunCore", "sunGlow", "sunShade"].forEach(function (id) { $(id).style.display = moon ? "none" : ""; });
+    ["sunCore", "sunGlow", "sunShade", "sunDeep"].forEach(function (id) { $(id).style.display = moon ? "none" : ""; });
     $("moonDisc").style.display = moon ? "" : "none";
     $("arcPath").setAttribute("stroke", moon ? "url(#moonLight)" : "url(#dayLight)");
 
@@ -8758,6 +8785,21 @@
     $("sunGlow").setAttribute("fill", rgba(st.c, (0.18 * vis).toFixed(3)));
     $("sunGlow").setAttribute("stroke", rgb(st.c));
     $("sunGlow").setAttribute("stroke-opacity", (0.34 * vis).toFixed(3));
+
+    /* Светило не исчезает на горизонте, а ныряет под него и идёт дальше по
+       той же дуге — видимое насквозь. Раньше `vis` уводил его в ноль на −3°,
+       и весь сумеречный ход прибор просто терял.
+       `vis` не тронут: диск гаснет как гас, стрелке под землёй делать нечего.
+       Пятно поднимается ровно тем же ходом (0 → −3°), то есть передача из рук
+       в руки, а не два предмета разом. Дальше оно тает к −12°: там кончаются
+       навигационные сумерки, и говорить, что внизу ещё есть свет, было бы
+       враньём. Цвет — тот же цвет состояния, что у диска: алый на закате,
+       розовый в сумерках, синий в синий час. */
+    var deep = clamp(-e / 3, 0, 1) * clamp((12 + e) / 9, 0, 1);
+    $("sunDeep").setAttribute("cx", p[0].toFixed(1));
+    $("sunDeep").setAttribute("cy", p[1].toFixed(1));
+    $("sunDeep").setAttribute("opacity", deep.toFixed(3));
+    ["sdIn", "sdMid", "sdOut"].forEach(function (id) { $(id).setAttribute("stop-color", col); });
 
     var drop = $("drop");
     if (e > 0.5 && !moon) {
