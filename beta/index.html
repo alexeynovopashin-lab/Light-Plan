@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=4"></script>
+<script src="lang.js?v=5"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -4094,51 +4094,117 @@
   /* В карточке референсы только смотрят: удаление живёт в форме */
   #cdRefs .kill { display: none; }
 
-  /* ---------- Знакомство (первый запуск) ----------
-     Не `.overlay`: это не навигационный слой поверх экрана, а разовый
-     полноэкранный приём — без выезда снизу, обычным затуханием. */
-  .onboard {
-    position: fixed; inset: 0; z-index: 200; background: var(--surface);
-    display: flex; flex-direction: column; opacity: 0; visibility: hidden;
-    transition: opacity 0.3s ease;
-    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  /* ---------- Знакомство: плашки поверх живого интерфейса ----------
+     Не отдельный экран с картинками, а слой над самим приложением: рамка
+     адресуется живому элементу, и приложение в это время само показывает,
+     о чём речь — ползунок едет, вкладки переключаются, режим включается.
+     Поэтому здесь нет ни одной иллюстрации: только затемнение, рамка,
+     палец и плашка.
+     Прямой потомок .device, как веер точек и полоса отмены: координаты
+     считаются от рамки телефона, а разлёт затемнения обрезается ею же. */
+  .tour {
+    position: absolute; inset: 0; z-index: 210; --tour-dim: 0.58;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
   }
-  .onboard.open { opacity: 1; visibility: visible; }
-  .ob-skip {
-    position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 18px; z-index: 2;
-    background: none; border: 0; font-family: inherit; font-size: 14px; color: var(--ink-4);
-    padding: 10px; cursor: pointer;
+  .tour.open { opacity: 1; visibility: visible; }
+  .tour[hidden] { display: none; }
+  /* Окно подсветки — тень с огромным разлётом от самой рамки: одно окно
+     вместо четырёх прямоугольников по краям и без масок */
+  .tour-hole, .tour-ring {
+    position: absolute; border-radius: 16px; corner-shape: squircle; pointer-events: none;
+    transition: left 0.42s cubic-bezier(0.25,1,0.4,1), top 0.42s cubic-bezier(0.25,1,0.4,1),
+      width 0.42s cubic-bezier(0.25,1,0.4,1), height 0.42s cubic-bezier(0.25,1,0.4,1),
+      border-radius 0.3s ease, opacity 0.3s ease;
   }
-  .ob-view { flex: 1; overflow: hidden; position: relative; }
-  /* Восемь карточек (приветствие + семь шагов) в ряд: ширина ленты — 800%
-     от окна, каждая карточка — ровно 1/8 ленты, то есть одно окно шириной */
-  .ob-track { display: flex; width: 800%; height: 100%; transition: transform 0.38s cubic-bezier(0.25,1,0.4,1); }
-  .ob-step {
-    flex: 0 0 12.5%; width: 12.5%; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center;
-    padding: 40px 30px; box-sizing: border-box;
+  .tour-hole { box-shadow: 0 0 0 9999px rgba(7,6,6,var(--tour-dim)); }
+  :root[data-theme="light"] .tour-hole { box-shadow: 0 0 0 9999px rgba(23,21,15,0.44); }
+  .tour-ring { border: 1.5px solid var(--brass); animation: tourPulse 2.4s ease-out infinite; }
+  .tour-ring.blind { opacity: 0; }
+  @keyframes tourPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(226,164,76,0.30); }
+    70%  { box-shadow: 0 0 0 10px rgba(226,164,76,0); }
+    100% { box-shadow: 0 0 0 0 rgba(226,164,76,0); }
   }
-  .ob-welcome h1 { font-size: 30px; margin: 0 0 12px; color: var(--ink); }
-  .ob-welcome p { max-width: 300px; margin: 0 0 26px; }
-  .ob-welcome .sheet-done { width: auto; padding: 15px 34px; margin-top: 0; }
-  .ob-later {
-    margin-top: 14px; background: none; border: 0; font-family: inherit;
-    font-size: 14px; color: var(--ink-4); padding: 8px; cursor: pointer;
+  /* Палец: жест, которого иначе не видно — ведение ползунка, тап по тумблеру.
+     Не курсор и не стрелка: показываем то самое движение, что делает рука */
+  .tour-tap {
+    position: absolute; width: 38px; height: 38px; margin: -19px 0 0 -19px;
+    border-radius: 50%; background: var(--ink-a12, rgba(239,234,224,0.12));
+    box-shadow: inset 0 0 0 1px var(--ink-a22, rgba(239,234,224,0.22));
+    opacity: 0; pointer-events: none;
+    transition: left 0.3s cubic-bezier(0.25,1,0.4,1), top 0.3s cubic-bezier(0.25,1,0.4,1),
+      opacity 0.2s ease, transform 0.16s ease;
   }
-  .ob-ic {
-    width: 74px; height: 74px; border-radius: 20px; corner-shape: squircle;
-    background: var(--field); display: flex; align-items: center; justify-content: center; gap: 6px;
+  .tour-tap.on { opacity: 1; }
+  .tour-tap.press { transform: scale(0.82); }
+  .tour-tap::after {
+    content: ""; position: absolute; inset: -1px; border-radius: 50%;
+    border: 1.5px solid rgba(226,164,76,0.7); opacity: 0;
   }
-  .ob-ic svg { width: 36px; height: 36px; stroke: var(--brass); fill: none; stroke-width: 1.5; flex-shrink: 0; }
-  .ob-ic.pair svg { width: 26px; height: 26px; }
-  .ob-step h2 { font-size: 20px; margin: 22px 0 10px; color: var(--ink); }
-  .ob-step p { font-size: 15px; line-height: 1.5; color: var(--ink-3); max-width: 300px; margin: 0; }
-  .ob-dots { display: flex; justify-content: center; gap: 7px; padding: 6px 0 4px; }
-  .ob-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-9); }
-  .ob-dot.on { background: var(--brass); width: 16px; border-radius: 3px; transition: all 0.25s ease; }
-  .ob-bar { padding: 6px 24px calc(20px + env(safe-area-inset-bottom)); }
-  /* На приветствии свои кнопки в самом слайде — общий низ и точки лишние */
-  .onboard.at-welcome .ob-dots, .onboard.at-welcome .ob-bar { visibility: hidden; }
+  .tour-tap.press::after { animation: tourRipple 0.75s ease-out infinite; }
+  @keyframes tourRipple {
+    0%   { transform: scale(1); opacity: 0.55; }
+    100% { transform: scale(1.9); opacity: 0; }
+  }
+  /* Плашка описания. Клюв показывает, о чём речь; сторону и место считает
+     JS — над элементом или под ним, смотря где на экране есть место */
+  .tour-card {
+    position: absolute; width: 320px; max-width: calc(100% - 28px);
+    background: var(--sheet); border-radius: 18px; corner-shape: squircle;
+    box-shadow: 0 0 0 1px var(--hairline), 0 22px 48px rgba(0,0,0,0.5);
+    padding: 14px 16px 12px;
+    transition: left 0.42s cubic-bezier(0.25,1,0.4,1), top 0.42s cubic-bezier(0.25,1,0.4,1),
+      opacity 0.22s ease, transform 0.22s cubic-bezier(0.25,1,0.4,1);
+  }
+  .tour-card.enter { opacity: 0; transform: translateY(9px); }
+  .tour-prog {
+    position: absolute; top: 0; left: 0; width: 0; height: 2px;
+    background: var(--brass); border-radius: 18px 2px 2px 0; transition: width 0.12s linear;
+  }
+  .tour-card .beak {
+    position: absolute; width: 13px; height: 13px; background: var(--sheet);
+    border-left: 1px solid var(--hairline); border-top: 1px solid var(--hairline);
+    transform: rotate(45deg);
+  }
+  .tour-card .beak.up { top: -7px; }
+  .tour-card .beak.down {
+    top: auto; bottom: -7px; border: none;
+    border-right: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  }
+  .tour-card .beak.off { display: none; }
+  .tc-head { display: flex; align-items: baseline; gap: 8px; }
+  .tc-no {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+    color: var(--brass-deep); font-variant-numeric: tabular-nums;
+  }
+  .tc-t { flex: 1; font-size: 16.5px; font-weight: 650; letter-spacing: -0.2px; color: var(--ink); }
+  /* Крестик есть на каждой плашке: выйти можно на любом шаге, и это не
+     должно требовать поиска кнопки (правило записано в NEEDS) */
+  .tc-x {
+    flex: none; align-self: flex-start; margin: -6px -6px -4px 0; width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; border-radius: 10px; corner-shape: squircle; cursor: pointer;
+  }
+  .tc-x svg { width: 13px; height: 13px; fill: none; stroke: var(--ink-4); stroke-width: 2; stroke-linecap: round; }
+  .tc-x:active { background: var(--press); }
+  .tc-d { margin: 6px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-3); text-wrap: pretty; }
+  .tc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .tc-dots { display: flex; align-items: center; gap: 4px; }
+  .tc-dots i { width: 5px; height: 5px; border-radius: 3px; background: var(--ink-10); transition: all 0.25s ease; }
+  .tc-dots i.done { background: var(--ink-7); }
+  .tc-dots i.on { width: 14px; background: var(--brass); }
+  .tc-acts { display: flex; align-items: center; gap: 4px; flex: none; }
+  .tc-ghost {
+    background: none; border: none; padding: 7px 8px; cursor: pointer;
+    font-family: inherit; font-size: 13px; color: var(--ink-4);
+  }
+  .tc-ghost[hidden] { display: none; }
+  .tc-next {
+    background: var(--brass); color: var(--on-brass); border: none;
+    border-radius: 11px; corner-shape: squircle; padding: 9px 16px; cursor: pointer;
+    font-family: inherit; font-size: 13.5px; font-weight: 650;
+  }
+  .tc-next:active { background: var(--brass-deep); }
 
   /* ---------- Форма съёмки ---------- */
   .overlay {
@@ -5228,8 +5294,12 @@
     <div class="item" id="orgsSetRow"><span class="k" data-i18n="set.orgsDocs">Организации и документы</span><span class="go-chev">›</span></div>
     <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
-         открывать нечего. Строки нет, пока корзина пуста -->
-    <div class="item" id="binSetRow" hidden><span class="k" data-i18n="card.bin">Корзина</span><span class="v" id="binSetN">0</span></div>
+         открывать нечего. Строка стоит и при пустой корзине: место, где
+         лежит удалённое, должно быть известно заранее -->
+    <div class="item" id="binSetRow"><span class="k" data-i18n="card.bin">Корзина</span><span class="v" id="binSetN">пусто</span></div>
+    <!-- Знакомство повторяется отсюда: тур перестал быть одноразовым экраном
+         первого запуска, а вспоминают о нём обычно позже, чем показывают -->
+    <div class="item" id="tourSetRow"><span class="k" data-i18n="tour.row">Знакомство</span><span class="v" data-i18n="tour.rowV">Показать</span><span class="go-chev">›</span></div>
     <!-- Порог дороги между площадками. Значение зашитой константой было
          честным для города и враньём для пригорода: сорок минут между
          разными местами — это про соседние районы, а не про соседний город -->
@@ -6289,61 +6359,35 @@
     <button class="sheet-done" id="startDone" data-i18n="pick.done">Готово</button>
   </div>
 
-  <!-- ============ ЗНАКОМСТВО (первый запуск) ============
-       Признак «уже видел» — сам факт сохранённых данных (см. `saved` ниже),
-       отдельного флажка нет: тот же принцип, что у вопроса о практике. -->
-  <div class="onboard" id="onboard" hidden>
-    <button class="ob-skip" id="obSkip" data-i18n="onb.skip">Пропустить</button>
-    <div class="ob-view">
-      <div class="ob-track" id="obTrack">
-        <div class="ob-step ob-welcome">
-          <h1 data-i18n="onb.welcomeTitle">Light Plan</h1>
-          <p data-i18n="onb.welcomeSub">Свет, погода и съёмки — в одном месте. Показать в двух словах, как это работает?</p>
-          <button class="sheet-done" id="obStart" data-i18n="onb.start">Ознакомиться</button>
-          <button class="ob-later" id="obLater" data-i18n="onb.later">Пропустить</button>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
-          <h2 data-i18n="onb.geo.t">Место съёмки</h2>
-          <p data-i18n="onb.geo.d">Приложение спросит геопозицию — по ней считаются свет, погода и часовой пояс именно там, где вы снимаете.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 11l4 4 4-4M4.5 19.5h15"/></svg></span>
-          <h2 data-i18n="onb.disk.t">Копия в облаке</h2>
-          <p data-i18n="onb.disk.d">Подключите Яндекс.Диск, Google или Dropbox в настройках — туда уходят копия данных и референсы съёмок.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="4.4" width="17.6" height="15.2" rx="2"/><path d="M3.2 9.2h17.6M9 9.2v10.4M15 9.2v10.4M3.2 14.4h17.6"/></svg></span>
-          <h2 data-i18n="onb.cal.t">Календарь съёмок</h2>
-          <p data-i18n="onb.cal.d">Месяц, неделя или один день — жанр съёмки виден прямо в клетке, а не значком.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17.5 8H20M4 16h3M11.5 16H20"/><circle cx="15.2" cy="8" r="2.3"/><circle cx="9.2" cy="16" r="2.3"/></svg></span>
-          <h2 data-i18n="onb.slider.t">Время в руке</h2>
-          <p data-i18n="onb.slider.d">Один ползунок над таб-баром двигает свет сразу и на «Сегодня», и на карте.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic pair">
-            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M4.4 12H2M22 12h-2.4M6.3 6.3l1.7 1.7M16 16l1.7 1.7M17.7 6.3L16 8M8 16l-1.7 1.7"/></svg>
-            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/></svg>
-          </span>
-          <h2 data-i18n="onb.sunmoon.t">Солнце и луна</h2>
-          <p data-i18n="onb.sunmoon.d">Купол переключается между ними: фазы, восходы и заходы — для обоих.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12.6" r="8.4"/><path d="M15.6 9l-2 5.6-5.6 2 2-5.6z"/><circle cx="12" cy="12.6" r="1.2"/><path d="M12 5.6v1.2M12 18.4v1.2M5.2 12.6h1.2M17.6 12.6h1.2M9.6 4.2L12 1.8l2.4 2.4"/></svg></span>
-          <h2 data-i18n="onb.map.t">Точка на карте</h2>
-          <p data-i18n="onb.map.d">Отметьте, откуда снимаете — компас света покажет направление, тени и золотой час на месте.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg></span>
-          <h2 data-i18n="onb.add.t">Первая съёмка</h2>
-          <p data-i18n="onb.add.d">Заведите первую запись — дальше календарь и свет работают вместе.</p>
-        </div>
+  <!-- ============ ЗНАКОМСТВО ============
+       Плашки поверх живого интерфейса: рамка адресуется настоящему элементу,
+       а приложение само показывает, о чём речь. Идёт на первом запуске (нет
+       сохранённых данных) и повторяется строкой «Знакомство» в настройках —
+       одноразовым экраном оно быть перестало. -->
+  <div class="tour" id="tour" hidden>
+    <i class="tour-hole" id="tourHole"></i>
+    <i class="tour-ring" id="tourRing"></i>
+    <i class="tour-tap" id="tourTap"></i>
+    <div class="tour-card" id="tourCard">
+      <i class="tour-prog" id="tourProg"></i>
+      <i class="beak up" id="tourBeak"></i>
+      <div class="tc-head">
+        <span class="tc-no" id="tourNo">1 / 14</span>
+        <span class="tc-t" id="tourTitle">Light Plan</span>
+        <button class="tc-x" id="tourX" aria-label="Пропустить знакомство" data-i18n-aria="tour.skipAria">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <p class="tc-d" id="tourText">—</p>
+      <div class="tc-foot">
+        <span class="tc-dots" id="tourDots"></span>
+        <span class="tc-acts">
+          <button class="tc-ghost" id="tourSkip" data-i18n="tour.skip">Пропустить</button>
+          <button class="tc-ghost" id="tourBack" data-i18n="tour.back" hidden>Назад</button>
+          <button class="tc-next" id="tourNext" data-i18n="tour.next">Далее</button>
+        </span>
       </div>
     </div>
-    <div class="ob-dots" id="obDots"></div>
-    <div class="ob-bar"><button class="sheet-done" id="obNext" data-i18n="onb.next">Далее</button></div>
   </div>
 
   <div class="spot-fan" id="spotFan" hidden></div>
@@ -11639,8 +11683,12 @@
     if (!b.hidden) paintIcons(b);
     var row = $("binSetRow");
     if (row) {
-      row.hidden = !trashed.length;
-      $("binSetN").innerHTML = trashed.length + ' <span class="go-chev">\u203a</span>';
+      /* \u0421\u0442\u0440\u043e\u043a\u0430 \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043d\u0430 \u043c\u0435\u0441\u0442\u0435 \u0438 \u0441 \u043f\u0443\u0441\u0442\u043e\u0439 \u043a\u043e\u0440\u0437\u0438\u043d\u043e\u0439: \u00ab\u043f\u0443\u0441\u0442\u043e\u00bb \u2014 \u0442\u0430\u043a\u043e\u0439 \u0436\u0435
+         \u043e\u0442\u0432\u0435\u0442, \u043a\u0430\u043a \u0447\u0438\u0441\u043b\u043e, \u0430 \u043f\u0440\u043e\u043f\u0430\u0434\u0430\u044e\u0449\u0430\u044f \u0441\u0442\u0440\u043e\u043a\u0430 \u0443\u0447\u0438\u0442, \u0447\u0442\u043e \u043a\u043e\u0440\u0437\u0438\u043d\u044b \u043d\u0435\u0442.
+         \u0417\u043d\u0430\u043a\u043e\u043c\u0441\u0442\u0432\u043e \u043d\u0430 \u043f\u0435\u0440\u0432\u043e\u043c \u0437\u0430\u043f\u0443\u0441\u043a\u0435 \u0443\u043f\u0438\u0440\u0430\u0435\u0442\u0441\u044f \u0432 \u044d\u0442\u043e \u043f\u0435\u0440\u0432\u044b\u043c (DECISIONS). */
+      row.hidden = false;
+      $("binSetN").innerHTML = (trashed.length
+        ? trashed.length : LANG.t("bin.emptyShort")) + ' <span class="go-chev">\u203a</span>';
     }
   }
   function renderBin() {
@@ -17544,41 +17592,257 @@
   $("startDone").addEventListener("click", closeStartSheet);
   $("startScrim").addEventListener("click", closeStartSheet);
 
-  /* ---------- Знакомство: приветствие + семь карточек по шагам ----------
-     Показывается один раз, на самом первом запуске (нет сохранённых
-     данных). Приветствие само предлагает выбор «Ознакомиться / Пропустить»
-     — шаги внутри уже просто листаются вперёд и закрываются в любой момент */
-  var OB_STEPS = 7;   // без учёта приветствия
-  var obIdx = 0;
-  function obGoTo(i) {
-    obIdx = Math.max(0, Math.min(OB_STEPS, i));
-    $("obTrack").style.transform = "translateX(-" + (obIdx * 100 / (OB_STEPS + 1)) + "%)";
-    $("onboard").classList.toggle("at-welcome", obIdx === 0);
-    $("obDots").innerHTML = "";
-    for (var k = 1; k <= OB_STEPS; k++) {
-      $("obDots").insertAdjacentHTML("beforeend",
-        '<span class="ob-dot' + (k === obIdx ? " on" : "") + '"></span>');
+  /* ---------- Знакомство: плашки поверх живого интерфейса ----------
+     Тур не пересказывает интерфейс картинками — он водит по нему самому:
+     переключает вкладки, ведёт ползунок времени, включает астро-режим и
+     возвращает его обратно. Плашка стоит у того элемента, о котором
+     говорит; уходит по «Далее», свайпу, тапу по подсвеченному месту или по
+     крестику — выйти можно на любом шаге, это правило, а не удобство.
+     Шаг описывает: `sel` — кандидаты в адресаты (берётся первый видимый,
+     остальные запасные: строки корзины может не быть вовсе), `tab` — экран,
+     `pin` — элемент, под которым встать плашке, если сам адресат мелкий,
+     `run` — что показать; `run` возвращает уборку за собой. */
+  var TOUR = [
+    { k: "hi",    ms: 5200, tab: "s-today" },
+    { k: "dome",  ms: 7000, tab: "s-today", sel: [".dome"] },
+    { k: "time",  ms: 8400, tab: "s-today", sel: ["#timebar"], run: tourScrub },
+    { k: "sky",   ms: 6600, tab: "s-today", sel: ["#skySwap"], pin: ".dome", run: tourSky },
+    { k: "tele",  ms: 6800, tab: "s-today", sel: ["#s-today .telemetry"] },
+    { k: "place", ms: 6600, tab: "s-today", sel: ["#todayLoc"] },
+    { k: "map",   ms: 7200, tab: "s-map",   sel: [".map-frame"] },
+    { k: "cal",   ms: 7200, tab: "s-plan",  sel: ["#cal", "#calHead"] },
+    { k: "stats", ms: 7800, tab: "s-plan",  sel: ["#planStats", "#statsBtn"] },
+    { k: "add",   ms: 6800, tab: "s-plan",  sel: ["#planAdd"] },
+    { k: "bin",   ms: 7400, tab: "s-set",   sel: ["#binSetRow"] },
+    { k: "mode",  ms: 8400, tab: "s-set",   sel: ["#modeSeg"], run: tourMode },
+    { k: "cloud", ms: 7200, tab: "s-set",   sel: ["#cloudSeg"] },
+    { k: "end",   ms: 0,    tab: "s-set",   sel: ["#tourSetRow"] }
+  ];
+  var tourIdx = -1, tourT0 = 0, tourTimer = null, tourUndo = null, tourSwipeX = null, tourScrollAt = 0, tourScrollTimer = 0;
+
+  function tourDev() { return document.querySelector(".device").getBoundingClientRect(); }
+  /* Адресат берётся видимый: скрытую строку обводить нечем, а тур из-за
+     этого останавливаться не должен */
+  /* Экран настроек длиннее рамки: элемент шага может лежать ниже видимого.
+     Подкручиваем сам экран, а не рамку — рамка догонит на следующем тике,
+     она пересчитывается постоянно. scrollIntoView не годится: он дёргает и
+     внешнюю страницу, а нам нужен только внутренний экран телефона. */
+  function tourScroll(el, now) {
+    if (!el) return;
+    var box = el.closest(".screen"); if (!box) return;
+    if (box.scrollHeight - box.clientHeight < 8) return;
+    var er = el.getBoundingClientRect(), br = box.getBoundingClientRect();
+    if (!br.height) return;                       // экран ещё не стал активным
+    var top = er.top - br.top, bot = top + er.height;
+    if (top >= 24 && bot <= br.height - 24) return;   // уже на виду
+    var y = box.scrollTop + top - box.clientHeight * 0.3;
+    y = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, y));
+    if (Math.abs(y - box.scrollTop) < 6) return;
+    if (now) { if (tourScrollTimer) { clearInterval(tourScrollTimer); tourScrollTimer = 0; } box.scrollTop = y; return; }
+    /* Едем сами, а не behavior:"smooth": плавную прокрутку браузера здесь
+       глушит живущее на экране, и адресат так и не доезжал до видимой части.
+       Дуга считается по таймеру, как и весь тур, — так она не зависит от
+       того, отдаёт ли окно кадры анимации. */
+    if (tourScrollTimer) clearInterval(tourScrollTimer);
+    var from = box.scrollTop, t0 = Date.now();
+    tourScrollTimer = setInterval(function () {
+      var p = Math.min(1, (Date.now() - t0) / 340);
+      box.scrollTop = from + (y - from) * (1 - Math.pow(1 - p, 3));
+      if (p >= 1) { clearInterval(tourScrollTimer); tourScrollTimer = 0; }
+    }, 16);
+  }
+  function tourEl(step) {
+    var list = (step && step.sel) || [];
+    for (var i = 0; i < list.length; i++) {
+      var el = document.querySelector(list[i]);
+      if (el && !el.hidden && el.offsetParent !== null) return el;
     }
-    $("obNext").textContent = LANG.t(obIdx === OB_STEPS ? "onb.done" : "onb.next");
+    return null;
   }
-  function openOnboard() {
-    obGoTo(0);
-    $("onboard").hidden = false;
-    requestAnimationFrame(function () { $("onboard").classList.add("open"); });
+  function tourBox(el) {
+    var dr = tourDev(), r = el.getBoundingClientRect();
+    return { x: r.left - dr.left, y: r.top - dr.top, w: r.width, h: r.height };
   }
-  function closeOnboard(openFirstShoot) {
-    $("onboard").classList.remove("open");
-    setTimeout(function () { $("onboard").hidden = true; }, 320);
+  /* Пересчитывается на каждом тике, а не один раз на шаг: подсвеченное
+     умеет ехать само — ползунок, купол, выезжающий лист */
+  function tourPlace() {
+    var step = TOUR[tourIdx]; if (!step) return;
+    var dr = tourDev(), el = tourEl(step), b = el ? tourBox(el) : null;
+    var hole = $("tourHole"), ring = $("tourRing"), card = $("tourCard"), beak = $("tourBeak");
+    var pad = 7;
+    if (b) {
+      var hx = b.x - pad, hy = b.y - pad, hw = b.w + pad * 2, hh = b.h + pad * 2;
+      var rad = Math.min(26, Math.max(12, b.h / 2 + 4));
+      [hole, ring].forEach(function (n) {
+        n.style.left = Math.round(hx) + "px"; n.style.top = Math.round(hy) + "px";
+        n.style.width = Math.round(hw) + "px"; n.style.height = Math.round(hh) + "px";
+        n.style.borderRadius = rad + "px";
+      });
+      ring.classList.remove("blind");
+    } else {
+      /* Плашка без адреса: у понятия бывает не быть места на экране —
+         тогда затемняется всё, и плашка встаёт по центру */
+      [hole, ring].forEach(function (n) {
+        n.style.left = Math.round(dr.width / 2) + "px"; n.style.top = Math.round(dr.height / 2) + "px";
+        n.style.width = "2px"; n.style.height = "2px"; n.style.borderRadius = "2px";
+      });
+      ring.classList.add("blind");
+    }
+    var pinEl = step.pin ? document.querySelector(step.pin) : null;
+    var pb = pinEl && pinEl.offsetParent !== null ? tourBox(pinEl) : b;
+    var cw = card.offsetWidth, ch = card.offsetHeight;
+    var below = pb ? (pb.y + pb.h / 2) < dr.height * 0.46 : true;
+    var cx = b ? b.x + b.w / 2 : dr.width / 2;
+    var left = b ? Math.max(14, Math.min(dr.width - cw - 14, cx - cw / 2)) : (dr.width - cw) / 2;
+    var top = pb ? (below ? pb.y + pb.h + 15 : pb.y - 15 - ch) : (dr.height - ch) / 2;
+    top = Math.max(14, Math.min(dr.height - ch - 14, top));
+    card.style.left = Math.round(left) + "px";
+    card.style.top = Math.round(top) + "px";
+    if (!b) { beak.className = "beak off"; return; }
+    beak.className = "beak " + (below ? "up" : "down");
+    beak.style.left = Math.round(Math.max(18, Math.min(cw - 32, cx - left - 6.5))) + "px";
+  }
+  function tourDots() {
+    var s = "";
+    for (var i = 0; i < TOUR.length; i++) {
+      s += '<i class="' + (i === tourIdx ? "on" : (i < tourIdx ? "done" : "")) + '"></i>';
+    }
+    $("tourDots").innerHTML = s;
+  }
+  function tourGo(i) {
+    if (tourUndo) { try { tourUndo(); } catch (e) {} tourUndo = null; }
+    $("tourTap").className = "tour-tap";
+    tourIdx = Math.max(0, Math.min(TOUR.length - 1, i));
+    var step = TOUR[tourIdx], last = tourIdx === TOUR.length - 1;
+    if (step.tab && document.body.dataset.tab !== step.tab) go(step.tab);
+    $("tourNo").textContent = (tourIdx + 1) + " / " + TOUR.length;
+    $("tourTitle").textContent = LANG.t("tour." + step.k + ".t");
+    $("tourText").textContent = LANG.t("tour." + step.k + ".d");
+    $("tourBack").hidden = tourIdx === 0;
+    $("tourSkip").hidden = tourIdx !== 0;
+    $("tourNext").textContent = LANG.t(last ? "tour.done" : "tour.next");
+    $("tourProg").style.width = "0";
+    tourDots();
+    var card = $("tourCard");
+    card.classList.add("enter");
+    tourPlace();
+    setTimeout(function () { tourPlace(); card.classList.remove("enter"); }, 20);
+    /* Разом, без дуги: шаг начинается с адресата на виду, а плавно доедет
+       уже тик, если экран только что переключился и позиции успели сбиться */
+    setTimeout(function () { if (TOUR[tourIdx] === step) tourScroll(tourEl(step), true); }, 40);
+    tourT0 = Date.now();
+    if (typeof step.run === "function") tourUndo = step.run() || null;
+  }
+  function tourTick() {
+    if (tourIdx < 0) return;
+    tourPlace();
+    /* Прокрутка живёт в тике, а не в переходе на шаг: переключение вкладки
+       само ставит экран в начало, и любая единственная попытка попадала под
+       этот сброс — шаг про корзину так и оставался ниже видимого края.
+       Здесь же она просто повторяется, пока адресат не окажется на виду. */
+    if (Date.now() - tourScrollAt > 340) { tourScrollAt = Date.now(); tourScroll(tourEl(TOUR[tourIdx])); }
+    var ms = TOUR[tourIdx].ms || 0;
+    if (!ms) return;                      // последний шаг ждёт человека, а не таймер
+    var p = (Date.now() - tourT0) / ms;
+    $("tourProg").style.width = Math.min(100, p * 100).toFixed(1) + "%";
+    if (p >= 1 && tourIdx < TOUR.length - 1) tourGo(tourIdx + 1);
+  }
+  function openTour() {
+    $("tour").hidden = false;
+    setTimeout(function () { $("tour").classList.add("open"); }, 20);
+    tourGo(0);
+    clearInterval(tourTimer); tourTimer = setInterval(tourTick, 60);
+  }
+  function closeTour() {
+    clearInterval(tourTimer); tourTimer = null;
+    if (tourUndo) { try { tourUndo(); } catch (e) {} tourUndo = null; }
+    tourIdx = -1;
+    $("tour").classList.remove("open");
+    $("tourTap").className = "tour-tap";
+    setTimeout(function () { $("tour").hidden = true; }, 320);
+    /* Возвращаем туда, откуда начинали: тур уводил по вкладкам, и бросать
+       человека в настройках после знакомства со светом незачем */
+    if (document.body.dataset.tab !== "s-today") go("s-today");
     if (!practiceAsked) setTimeout(openStartSheet, 600);
-    if (openFirstShoot) openForm(new Date(), null);
   }
-  $("obStart").addEventListener("click", function () { obGoTo(1); });
-  $("obLater").addEventListener("click", function () { closeOnboard(false); });
-  $("obSkip").addEventListener("click", function () { closeOnboard(false); });
-  $("obNext").addEventListener("click", function () {
-    if (obIdx >= OB_STEPS) { closeOnboard(true); return; }
-    obGoTo(obIdx + 1);
+
+  /* Ползунок ведёт сам тур: иначе не показать, что от времени меняется всё
+     сразу — купол, телеметрия, погода. Значение возвращается при уходе со
+     шага: тур ничего за собой не оставляет */
+  function tourScrub() {
+    var sc = $("scrub"); if (!sc) return null;
+    var tap = $("tourTap"), was = +sc.value;
+    var from = was, to = Math.min(1435, was + 170), t0 = Date.now();
+    var t = setInterval(function () {
+      var p = Math.min(1, (Date.now() - t0) / 4400);
+      var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      var v = Math.round(from + (to - from) * e);
+      if (+sc.value !== v) { sc.value = v; sc.dispatchEvent(new Event("input", { bubbles: true })); }
+      var r = sc.getBoundingClientRect(), dr = tourDev();
+      tap.style.left = Math.round(r.left - dr.left + 13 + (r.width - 26) * (v / 1440)) + "px";
+      tap.style.top = Math.round(r.top - dr.top + r.height / 2) + "px";
+      tap.classList.add("on"); tap.classList.toggle("press", p < 1);
+      if (p >= 1) clearInterval(t);
+    }, 40);
+    return function () {
+      clearInterval(t); tap.className = "tour-tap";
+      sc.value = was; sc.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+  }
+  /* Тумблер светила нажимается по-настоящему: разница между солнцем и луной
+     видна только на самом куполе. По уходу нажимается обратно */
+  function tourSky() {
+    var b = $("skySwap"); if (!b) return null;
+    var tap = $("tourTap"), dr = tourDev(), r = b.getBoundingClientRect(), flipped = false;
+    tap.style.left = Math.round(r.left - dr.left + r.width / 2) + "px";
+    tap.style.top = Math.round(r.top - dr.top + r.height / 2) + "px";
+    tap.classList.add("on");
+    var t1 = setTimeout(function () { tap.classList.add("press"); }, 700);
+    var t2 = setTimeout(function () { b.click(); flipped = true; tap.classList.remove("press"); }, 1150);
+    return function () {
+      clearTimeout(t1); clearTimeout(t2); tap.className = "tour-tap";
+      if (flipped) b.click();
+    };
+  }
+  /* «Астро» включается на самом шаге — переключатель виден, и видно, что он
+     делает. Настройку тур не меняет: прежний режим возвращается при уходе */
+  function tourMode() {
+    var seg = $("modeSeg"); if (!seg) return null;
+    var was = seg.querySelector("button.active"), pro = seg.querySelector('[data-mode="pro"]');
+    if (!was || !pro) return null;
+    var t = setTimeout(function () { if (was !== pro) pro.click(); }, 1500);
+    return function () {
+      clearTimeout(t);
+      if (was && !was.classList.contains("active")) was.click();
+    };
+  }
+
+  $("tourX").addEventListener("click", closeTour);
+  $("tourSkip").addEventListener("click", closeTour);
+  $("tourBack").addEventListener("click", function () { tourGo(tourIdx - 1); });
+  $("tourNext").addEventListener("click", function () {
+    if (tourIdx >= TOUR.length - 1) { closeTour(); return; }
+    tourGo(tourIdx + 1);
   });
+  /* Тап по обведённому месту — то же «дальше»: человек тянется к тому, что
+     подсвечено, и это не должно быть промахом */
+  $("tour").addEventListener("click", function (e) {
+    if (e.target.closest(".tour-card")) return;
+    var el = tourEl(TOUR[tourIdx]); if (!el) return;
+    var r = el.getBoundingClientRect();
+    if (e.clientX >= r.left - 8 && e.clientX <= r.right + 8 &&
+        e.clientY >= r.top - 8 && e.clientY <= r.bottom + 8) {
+      if (tourIdx >= TOUR.length - 1) closeTour(); else tourGo(tourIdx + 1);
+    }
+  });
+  $("tour").addEventListener("pointerdown", function (e) { tourSwipeX = e.clientX; });
+  $("tour").addEventListener("pointerup", function (e) {
+    if (tourSwipeX == null) return;
+    var dx = e.clientX - tourSwipeX; tourSwipeX = null;
+    if (dx < -45 && tourIdx < TOUR.length - 1) tourGo(tourIdx + 1);
+    else if (dx > 45 && tourIdx > 0) tourGo(tourIdx - 1);
+  });
+  $("tourSetRow").addEventListener("click", openTour);
 
   renderPracticeChips();
   renderLangChips();
@@ -19021,7 +19285,7 @@
      под это отдельный флажок незачем. */
   document.body.dataset.tab = "s-today";
   if (saved) go("s-plan");
-  else openOnboard();   // самый первый запуск — приветствие вместо вопроса о практике
+  else openTour();      // самый первый запуск — знакомство вместо вопроса о практике
   applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
   // Номер сборки — из даты файла (Last-Modified на Pages), без ручного счётчика
   function renderBuildInfo() {
@@ -19065,7 +19329,7 @@
      потом спрашивают о правилах. На самом первом запуске экран знакомства
      идёт первым, а этот вопрос он сам зовёт себе вслед при закрытии —
      иначе оба листа встанут друг на друга. */
-  if (!saved && !practiceAsked) { /* закроется знакомством, см. closeOnboard */ }
+  if (!saved && !practiceAsked) { /* закроется знакомством, см. closeTour */ }
   else if (!practiceAsked) setTimeout(openStartSheet, 600);
   measureDockSoon();
   window.addEventListener("resize", measureDock);
