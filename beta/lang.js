@@ -722,7 +722,15 @@
        языка, и русское «ТЗ» от него превращалось в «тз» */
     "deal.title":    "Сделка",
     "deal.allDone":  "всё закрыто",
-    "deal.prepaid":  "внесён {word} · ждём остаток",
+    /* «Внесён {word}» ломался согласованием: предоплата — женский род,
+       «внесена», а ретейнер и депозит — мужской, «внесён». Один шаблон с
+       подстановкой слова этого не заметил бы никогда — согласование сюда
+       не передать переменной, только всей фразой. Поэтому фраза целиком
+       живёт в практике, а не собирается из слова */
+    "dealPrepaid.ru": "внесена предоплата · ждём остаток",
+    "dealPrepaid.us": "внесён ретейнер · ждём остаток",
+    "dealPrepaid.uk": "внесён депозит · ждём остаток",
+    "dealPrepaid.eu": "внесён депозит · ждём остаток",
     "deal.waitOne":  "ждём: {step}",
     "deal.left":     "осталось {n}",
     "deal.step":     ["шаг", "шага", "шагов"],
@@ -1363,7 +1371,7 @@
     "onb.add.t":        "Первая съёмка",
     "onb.add.d":        "Заведите первую запись — дальше календарь и свет работают вместе.",
 
-    "set.curNote":      "Знак денег в ставках, пакетах и итогах: {sample}. От языка не зависит — со сменой языка валюта остаётся прежней.",
+    "set.curNote":      "Валюта по умолчанию для новой съёмки: {sample}. У каждой съёмки её можно поменять — в блоке «Оплата» формы. От языка не зависит: со сменой языка валюта остаётся прежней.",
     "set.legal":        "Правовая информация",
     "set.privacy":      "Съёмки, места и настройки хранятся на устройстве. На наш сервер не уходит ничего — его нет.",
     "set.tagline":      "Light Plan · прибор для света",
@@ -1999,7 +2007,10 @@
        то есть «sign-off». Термин помечен к проверке носителем. */
     "deal.title":    "Deal",
     "deal.allDone":  "all closed",
-    "deal.prepaid":  "{word} paid · balance outstanding",
+    "dealPrepaid.ru": "prepayment paid · balance outstanding",
+    "dealPrepaid.us": "retainer paid · balance outstanding",
+    "dealPrepaid.uk": "deposit paid · balance outstanding",
+    "dealPrepaid.eu": "deposit paid · balance outstanding",
     "deal.waitOne":  "waiting on {step}",
     "deal.left":     "{n} to go",
     "deal.step":     ["step", "steps"],
@@ -2598,7 +2609,7 @@
     "onb.add.t":        "Your first shoot",
     "onb.add.d":        "Add the first record — from here the calendar and the light work together.",
 
-    "set.curNote":      "The money sign in rates, packages and totals: {sample}. It does not follow the language — changing the language keeps the currency.",
+    "set.curNote":      "Default currency for a new shoot: {sample}. Each shoot can override it — in the form’s “Payment” block. It does not follow the language: changing the language keeps the currency.",
     "set.legal":        "Legal",
     "set.privacy":      "Shoots, spots and settings are kept on your device. Nothing goes to our server — there is none.",
     "set.tagline":      "Light Plan · an instrument for light",
