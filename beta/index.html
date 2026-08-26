@@ -918,6 +918,8 @@
     --overlay-3: rgba(44,41,36,0.68); --hair: rgba(255,255,255,0.05);
     --sheet-glass: rgba(23,21,15,0.74); --knob-glass: rgba(239,234,224,0.26);
     --drum-edge: rgba(0,0,0,0.5); --drum-face: rgba(255,255,255,0.05);
+    --map-glass: rgba(23,21,15,0.30);
+    --map-glass-optic: blur(5px) saturate(2.2) brightness(0.72);
     --hair-2: rgba(255,255,255,0.04); --hair-3: rgba(255,255,255,0.03);
     --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
     /* Стекло поверх текста. Размытия нет намеренно: панель ложится прямо на
@@ -987,6 +989,12 @@
     --overlay-3: rgba(214,208,195,0.74); --hair: rgba(0,0,0,0.07);
     --sheet-glass: rgba(255,255,255,0.78); --knob-glass: rgba(255,255,255,0.40);
     --drum-edge: rgba(23,21,15,0.15); --drum-face: rgba(255,255,255,0.5);
+    /* На светлых тайлах прозрачность сама по себе не открывает ничего: они
+       почти того же тона, что и панель. Карту вытаскивает не она, а
+       насыщенность — парки, дороги и вода цветные, и цвет проходит там,
+       где светлота бессильна. */
+    --map-glass: rgba(255,255,255,0.26);
+    --map-glass-optic: blur(5px) saturate(2.6) brightness(0.92);
     --hair-2: rgba(0,0,0,0.06); --hair-3: rgba(0,0,0,0.05);
     --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
     /* На светлом заливка не осветляет, а притеняет: планка и так почти белая,
@@ -2374,7 +2382,11 @@
     padding: 12px 15px; background: var(--overlay-3);
     backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
     border-radius: 14px; corner-shape: squircle;
-    box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
+    /* Тень тёмная в обеих темах. Стояла на `--ink-a24`, а он переворачивается —
+       в тёмной теме это `rgba(239,234,224,.24)`, и под плашкой светился нимб
+       вместо тени. Кант рядом остаётся на `--hairline`: он чернила, ему
+       переворачиваться положено. */
+    box-shadow: 0 10px 30px var(--glass-cast), inset 0 0 0 1px var(--hairline);
     font-size: 13px; color: var(--ink-4);
     transform: translateY(140%); opacity: 0; pointer-events: none;
     transition: transform 0.32s cubic-bezier(0.25,1,0.4,1), opacity 0.32s;
@@ -2467,6 +2479,17 @@
     backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
     box-shadow: 0 18px 40px rgba(0,0,0,0.55), inset 0 1px 0 var(--glass-shine);
     transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
+  }
+  /* Меню слоёв стоит на карте, а карта — единственная настоящая картинка в
+     приложении. Стекло здесь пропускает заметно больше, чем у веера видов
+     календаря: там под панелью разрежённая сетка чисел, и показывать нечего.
+     Сколько пропускать — решает не форма панели, а то, что под ней лежит.
+     Размытие маленькое нарочно: на 24 px крупные формы карты усредняются в
+     ровное пятно, и «различима» превращается в «оттенок». */
+  .map-layers-menu {
+    background: var(--map-glass);
+    backdrop-filter: var(--map-glass-optic);
+    -webkit-backdrop-filter: var(--map-glass-optic);
   }
   .scope-menu[hidden] { display: none; }
   @keyframes scopeIn { from { opacity: 0; transform: scale(0.94) translateY(-6px); } }
