@@ -8093,6 +8093,22 @@
       return fetch(YA_API + "/resources?permanently=true&path=" + encodeURIComponent(yaPath(rel)),
         { method: "DELETE", headers: this.head() }).catch(function () {});
     },
+    /* Перечисление — для обмена между устройствами: каждое пишет свой файл,
+       и узнать, какие есть, можно только спросив (docs/13_MULTI_DEVICE.md).
+       Ошибку глушим в пустой список: папки может не быть вовсе, и это не
+       беда, а «соседей пока нет». Падать тут нечему. */
+    list: function (prefix) {
+      return fetch(YA_API + "/resources?limit=500&fields=" + encodeURIComponent("_embedded.items.name")
+          + "&path=" + encodeURIComponent(yaPath("")),
+          { headers: this.head() })
+        .then(cloudCheck).then(function (r) { return r.json(); })
+        .then(function (j) {
+          var items = (j._embedded && j._embedded.items) || [];
+          return items.map(function (x) { return x.name; })
+            .filter(function (n) { return n && n.indexOf(prefix) === 0; });
+        })
+        .catch(function () { return []; });
+    },
     text: function (rel) {
       var self = this;
       return fetch(YA_API + "/resources/download?path=" + encodeURIComponent(yaPath(rel)),
@@ -8177,6 +8193,18 @@
         headers: Object.assign({ "Content-Type": "application/json" }, cloudAuth()),
         body: JSON.stringify({ path: dbPath(rel) })
       }).catch(function () {});
+    },
+    list: function (prefix) {
+      return fetch(DB_API + "/files/list_folder", {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" }, cloudAuth()),
+        body: JSON.stringify({ path: "", limit: 500 })
+      }).then(cloudCheck).then(function (r) { return r.json(); })
+        .then(function (j) {
+          return (j.entries || []).map(function (x) { return x.name; })
+            .filter(function (n) { return n && n.indexOf(prefix) === 0; });
+        })
+        .catch(function () { return []; });
     },
     text: function (rel) {
       return fetch(DB_CONTENT + "/files/download", {
@@ -8286,6 +8314,21 @@
         if (!id) return;
         return fetch(GD_API + "/files/" + id, { method: "DELETE", headers: cloudAuth() });
       }).catch(function () {});
+    },
+    /* У Google имя плоское: `gdName` заменяет косые черты, и приставку надо
+       искать в том же виде, в каком имя записано */
+    list: function (prefix) {
+      var pre = gdName(prefix);
+      return fetch(GD_API + "/files?spaces=appDataFolder&pageSize=500&fields="
+          + encodeURIComponent("files(id,name)") + "&q=" + encodeURIComponent("trashed=false"),
+          { headers: cloudAuth() })
+        .then(cloudCheck).then(function (r) { return r.json(); })
+        .then(function (j) {
+          return (j.files || []).map(function (x) { return x.name; })
+            .filter(function (n) { return n && n.indexOf(pre) === 0; })
+            .map(function (n) { return n.replace(/__/g, "/"); });
+        })
+        .catch(function () { return []; });
     },
     text: function (rel) {
       return this.find(rel).then(function (id) {
@@ -8507,6 +8550,139 @@
     ].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
     location.reload();
   }
+
+  /* ============================================================
+     СЛИЯНИЕ ДВУХ СНИМКОВ
+     ============================================================
+     Сердце обмена между устройствами (docs/13_MULTI_DEVICE.md). Написано
+     чистой функцией нарочно: два объекта на входе, один на выходе, ни
+     обращений к хранилищу, ни к сети, ни к часам. Такое проверяется парами
+     придуманных снимков, и проверять его надо, потому что ошибка здесь
+     стоит книги съёмок.
+
+     Слияние многих устройств — это то же слияние, применённое подряд.
+     Порядок применения на ответ не влияет: выбор всегда «позднейшее из
+     двух», а это максимум по одному и тому же порядку. */
+  var MERGE_LISTS = ["sessions", "orgs", "spots", "blocks"];
+
+  /* Запись без отметки читается как самая старая: когда её правили, никто не
+     знает, и любая известная правка новее незнаемой. Равенство отметок
+     разрешаем меткой устройства — не потому, что одно устройство важнее, а
+     потому, что решать надо **одинаково на обеих сторонах**: иначе два
+     устройства выберут разные версии и разойдутся навсегда. */
+  function mtOf(r) { return (r && r.mt) || 0; }
+  function mergePick(a, devA, b, devB) {
+    var ta = mtOf(a), tb = mtOf(b);
+    if (ta !== tb) return ta > tb ? { r: a, dev: devA } : { r: b, dev: devB };
+    return String(devA) >= String(devB) ? { r: a, dev: devA } : { r: b, dev: devB };
+  }
+
+  function mergeStores(a, b) {
+    a = a || {}; b = b || {};
+    var devA = a.dev || "", devB = b.dev || "";
+    var out = {};
+
+    /* Тени. По ключу — позднейшее время: одну и ту же запись могли
+       похоронить на обоих устройствах, и это одно событие, а не два */
+    var grave = {};
+    [a.graves, b.graves].forEach(function (list) {
+      (list || []).forEach(function (g) {
+        if (!g || !g.id) return;
+        var t = g.del || 0;
+        if (!(g.id in grave) || t > grave[g.id]) grave[g.id] = t;
+      });
+    });
+
+    /* Корзина. Тоже по ключу записи: удалили на телефоне, вернули на
+       ноутбуке — спорят два события об одной записи, а не два списка */
+    var trash = {};
+    [[a.trashed, devA], [b.trashed, devB]].forEach(function (p) {
+      (p[0] || []).forEach(function (t) {
+        var id = t && t.rec && t.rec.id;
+        if (!id) return;
+        var d = t.del || 0;
+        if (!trash[id] || d > trash[id].del) trash[id] = { t: t, del: d, dev: p[1] };
+      });
+    });
+
+    /* Живые записи — по ключу, позднейшая правка */
+    var live = {}, order = {};
+    MERGE_LISTS.forEach(function (key) {
+      live[key] = {}; order[key] = [];
+      [[a[key], devA], [b[key], devB]].forEach(function (p) {
+        (p[0] || []).forEach(function (r) {
+          if (!r || !r.id) return;
+          if (!(r.id in live[key])) { live[key][r.id] = { r: r, dev: p[1] }; order[key].push(r.id); return; }
+          var cur = live[key][r.id];
+          live[key][r.id] = mergePick(cur.r, cur.dev, r, p[1]);
+        });
+      });
+    });
+
+    /* Три состояния одной записи — жива, в корзине, похоронена — и у
+       каждого своё время. Побеждает позднейшее, и только оно решает, где
+       запись окажется. Отдельного «удаление сильнее правки» не нужно:
+       сильнее то, что случилось позже, а это и есть смысл слов «я удалил
+       её после того, как правил».
+
+       Отсюда же следует, зачем возврат из корзины проставляет отметку
+       заново: без неё правка осталась бы старше удаления, и запись при
+       первом же слиянии уехала бы обратно в корзину. */
+    function whereIs(id) {
+      var g = (id in grave) ? grave[id] : -1;
+      var t = trash[id] ? trash[id].del : -1;
+      var m = -1;
+      MERGE_LISTS.forEach(function (key) { if (live[key][id]) m = Math.max(m, mtOf(live[key][id].r)); });
+      if (g >= 0 && g >= t && g >= m) return "grave";
+      if (t >= 0 && t > m) return "trash";
+      return "live";
+    }
+
+    MERGE_LISTS.forEach(function (key) {
+      out[key] = order[key]
+        .filter(function (id) { return whereIs(id) === "live"; })
+        .map(function (id) { return live[key][id].r; });
+    });
+    out.trashed = Object.keys(trash)
+      .filter(function (id) { return whereIs(id) === "trash"; })
+      .map(function (id) { return trash[id].t; })
+      .sort(function (x, y) { return (y.del || 0) - (x.del || 0); });
+    out.graves = Object.keys(grave).map(function (id) { return { id: id, del: grave[id] }; });
+
+    /* Настройки — по ключу, каждая со своей отметкой. Ключ, о котором ни
+       один снимок отметки не имеет, берём у того, где он вообще есть:
+       новую настройку добавили в одной версии, а не переспорили в двух */
+    var mtA = a.setMt || {}, mtB = b.setMt || {};
+    var keys = {}, setMtOut = {};
+    [a, b].forEach(function (src) { for (var k in src) if (!SET_SKIP[k]) keys[k] = 1; });
+    Object.keys(keys).forEach(function (k) {
+      var ta = mtA[k] || 0, tb = mtB[k] || 0;
+      var fromA = ta !== tb ? ta > tb : String(devA) >= String(devB);
+      if (fromA && !(k in a)) fromA = false;
+      if (!fromA && !(k in b)) fromA = true;
+      out[k] = fromA ? a[k] : b[k];
+      setMtOut[k] = Math.max(ta, tb);
+    });
+    out.setMt = setMtOut;
+
+    /* Цепочка прежних ID объединяется, а не заменяется. Потерять прежний ID
+       значит порвать то, по чему человека находят снаружи; лишний в цепочке
+       не мешает никому (DECISIONS, «Смена номера у владельца») */
+    var ids = {}, chain = [];
+    [(a.me || {}).ids, (b.me || {}).ids].forEach(function (list) {
+      (list || []).forEach(function (r) {
+        if (!r || !r.was || ids[r.was]) return;
+        ids[r.was] = 1; chain.push(r);
+      });
+    });
+    if (chain.length) {
+      out.me = out.me || {};
+      out.me = JSON.parse(JSON.stringify(out.me));
+      out.me.ids = chain.sort(function (x, y) { return String(x.at).localeCompare(String(y.at)); });
+    }
+    return out;
+  }
+
   function markBackup() {
     try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch (e) {}
     renderStorageInfo();
@@ -12158,6 +12334,12 @@
     if (!t) return;
     trashed.splice(k, 1);
     sessions.splice(Math.min(t.at, sessions.length), 0, t.rec);
+    /* Возврат — событие, и у него своё время. Без отметки правка записи
+       осталась бы старше её удаления, и первое же слияние с соседним
+       устройством увезло бы запись обратно в корзину: там удаление новее.
+       Само тело записи при возврате не меняется, поэтому сравнение снимков
+       отметку не поставит — ставим руками (docs/13_MULTI_DEVICE.md) */
+    if (t.rec) t.rec.mt = Date.now();
     /* Запись снова жива — тень, если она откуда-то осталась, лжёт. Своей
        корзиной такого не бывает, но после слияния бывает: там тень могла
        приехать с другого устройства */
