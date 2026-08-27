@@ -2444,6 +2444,7 @@
   }
   .mb-tile:active .mb-cover { background: var(--press); }
   .mb-cover {
+    position: relative;
     aspect-ratio: 1/1; border-radius: 12px; corner-shape: squircle; overflow: hidden;
     /* Небо под мозаикой светится сквозь просветы; поверх него лежат кадры */
     background-color: var(--sheet); background-size: cover; background-position: center;
@@ -2457,6 +2458,14 @@
   /* Пустая ячейка — просвет в небо, залитое на самой обложке, а не свой
      серый квадрат: четыре отдельных заливки рябили бы */
   .mb-cover .ph { background: none; }
+  /* «на устройстве» / «12 из 40» / «в облаке» — строкой по низу обложки,
+     поверх картинок (15_MOODBOARD, «Подборка говорит своё состояние
+     вслух»). Полоса тёмная в обеих темах: обложка бывает и светлой */
+  .mb-cover .off {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+    padding: 3px 7px; font-size: 9.5px; letter-spacing: 0.2px;
+    background: rgba(0,0,0,0.5); color: #fff; text-align: center;
+  }
   .mb-tile .n {
     display: block; margin-top: 7px; font-size: 12.5px; font-weight: 600; color: var(--ink-2);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -4720,6 +4729,9 @@
   .gear:active { color: var(--ink); }
   .form-title { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; margin-top: 10px; }
   .form-sub { color: var(--ink-4); font-size: 14px; margin-top: 6px; }
+  .mb-off-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .mb-off-row .mb-off-text { font-size: 12.5px; color: var(--ink-4); }
+  .mb-off-row #mbFolderTake { margin-left: auto; }
   .form-sub .t { color: var(--brass); font-variant-numeric: tabular-nums; }
   .field { margin-top: 22px; }
   .f-label {
@@ -6505,6 +6517,13 @@
     </button>
     <h2 class="form-title" id="mbFolderTitle" style="font-size:22px;">—</h2>
     <p class="form-sub" id="mbFolderSub">—</p>
+    <!-- «на устройстве» / «12 из 40» / «в облаке» + пометка «взять с собой»,
+         которая продлевает автозакачку дальше «ближайших дней»
+         (15_MOODBOARD, «Офлайн»). -->
+    <div class="mb-off-row" id="mbFolderOffRow">
+      <span class="mb-off-text" id="mbFolderOffText"></span>
+      <button type="button" class="rf-tag" id="mbFolderTake" data-i18n="mb.takeWithMe">Взять с собой</button>
+    </div>
     <div class="rf-tags wrap" id="mbTags" style="padding-left:0;padding-right:0;"></div>
     <div class="ref-grid" id="mbGrid" style="margin-top:4px;"></div>
     <div class="ref-add sep">
@@ -9027,14 +9046,31 @@
      работают на площадке. Оригинал остаётся в облаке (15_MOODBOARD, «Три
      размера») */
   var BLOB_T = 200, BLOB_S = 1600;
-  function blobPut(id, kind, blob) { return blobTx("readwrite", function (st) { return st.put(blob, blobKey(id, kind)); }); }
+  function blobPut(id, kind, blob) {
+    return blobTx("readwrite", function (st) { return st.put(blob, blobKey(id, kind)); })
+      .then(function (r) { if (blobHave) blobHave.add(blobKey(id, kind)); return r; });
+  }
   function blobGet(id, kind) { return blobTx("readonly", function (st) { return st.get(blobKey(id, kind)); }); }
   function blobDrop(id) {
     blobUrlDrop(id);
+    if (blobHave) { blobHave.delete(blobKey(id, "t")); blobHave.delete(blobKey(id, "s")); }
     return blobTx("readwrite", function (st) { st.delete(blobKey(id, "t")); return st.delete(blobKey(id, "s")); })
       .catch(function () {});
   }
   function blobId() { return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7); }
+  /* Какие блобы уже лежат на устройстве — известно только списком ключей из
+     базы, а спрашивать её на каждую плитку было бы асинхронно и медленно.
+     Снимаем список один раз при загрузке и дальше держим в памяти: то же
+     решение, что и у `shotIx` для фонда кадров. Нужен для «Подборка говорит
+     своё состояние вслух» (15_MOODBOARD, «Офлайн») — состояние должно
+     читаться сразу при отрисовке плитки, без ожидания. */
+  var blobHave = null;
+  function blobHaveReady() {
+    return blobTx("readonly", function (st) { return st.getAllKeys(); })
+      .then(function (keys) { blobHave = new Set(keys); })
+      .catch(function () { blobHave = new Set(); });
+  }
+  function blobHas(id, kind) { return !!(blobHave && id && blobHave.has(blobKey(id, kind))); }
 
   /* Ссылки на блобы держим в памяти: пересоздавать их на каждый рендер сетки
      значило бы течь памятью и мигать картинками. */
@@ -13766,6 +13802,72 @@
     return "linear-gradient(145deg," + rgba(p[0], 0.85) + "," + rgba(p[1], 0.85) + ")";
   }
   /* Обложка — мозаика 2×2 из первых кадров, либо назначенный кадр целиком */
+  /* ---------- Подборка говорит своё состояние вслух ----------
+     «на устройстве» / «12 из 40» / «в облаке» — 15_MOODBOARD, «Офлайн».
+     Ссылки в счёт не идут: качать у них нечего, своя картинка появится
+     только с чтением og:image (это отдельный, ещё не сделанный пункт). */
+  function boardOfflineState(b) {
+    var pics = boardShots(b).filter(function (r) { return r.k !== "link" && r.im; });
+    if (!pics.length) return null;
+    var have = pics.filter(function (r) { return blobHas(r.im, "s"); }).length;
+    return { have: have, n: pics.length };
+  }
+  function boardOfflineLabel(b) {
+    var st = boardOfflineState(b);
+    if (!st) return "";
+    if (st.have === 0) return LANG.t("mb.offCloud");
+    if (st.have === st.n) return LANG.t("mb.offHere");
+    return LANG.t("mb.offPart", { have: st.have, n: st.n });
+  }
+  /* ---------- Правило закачки ----------
+     Экранные копии качаются сами для подборок съёмок ближайших дней, и
+     вручную — по пометке «взять с собой» на любой подборке (решено 27
+     августа 2026, 15_MOODBOARD «Правило закачки»). «По Wi-Fi» в вебе не
+     проверить — Network Information API в Safari нет, поэтому качаем при
+     открытии приложения, когда съёмка близко, без различения сети. */
+  var MB_OFFLINE_DAYS = 3;
+  function mbOfflineDue() {
+    if (!cloudOn()) return [];
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var until = new Date(today); until.setDate(until.getDate() + MB_OFFLINE_DAYS);
+    var due = [];
+    sessions.forEach(function (s) {
+      var b = boardOfSession(s, false);
+      if (b && (b.take || (s.date >= today && s.date <= until))) due.push(b);
+    });
+    boards.forEach(function (b) { if (b.kind === "tpl" && b.take) due.push(b); });
+    return due;
+  }
+  /* Один кадр за раз: параллельная закачка полусотни картинок в мобильной
+     сети — то, из-за чего человек поставит приложение в авиарежим. Молча
+     пропускаем всё, что не вышло: нет сети, нет доступа, сторонний хост не
+     отдаёт байты без CORS — тот же принцип, что у остальной работы с
+     облаком в этом файле («без сети остаётся миниатюра»). */
+  function mbOfflineFetch(r) {
+    if (!r.im || !r.path || blobHas(r.im, "s")) return Promise.resolve();
+    return cloudDownloadUrl(r.path)
+      .then(function (href) { return fetch(href).then(function (resp) { return resp.blob(); }); })
+      .then(function (blob) { return blobPut(r.im, "s", blob); })
+      .catch(function () {});
+  }
+  var mbOfflineBusy = false;
+  function mbOfflineRun() {
+    if (mbOfflineBusy) return;
+    var queue = [], seen = {};
+    mbOfflineDue().forEach(function (b) {
+      boardShots(b).forEach(function (r) {
+        if (r.k !== "link" && r.im && !seen[r.im]) { seen[r.im] = 1; queue.push(r); }
+      });
+    });
+    if (!queue.length) return;
+    mbOfflineBusy = true;
+    function next() {
+      var r = queue.shift();
+      if (!r) { mbOfflineBusy = false; renderMbStrip(); return; }
+      mbOfflineFetch(r).then(next);
+    }
+    next();
+  }
   function mbCover(f) {
     var b = mbBoard(f), list = boardShots(b);
     var sky = ' style="background-image:' + mbSky(b && b.id) + '"';
@@ -13774,17 +13876,19 @@
        (она придёт с чтением `og:image`), и в сетке он — пустая ячейка.
        Поэтому картинки идут вперёд, а ссылки добором. */
     var pics = set || list.filter(function (r) { return r.im; });
+    var offLabel = boardOfflineLabel(b);
+    var off = offLabel ? '<span class="off">' + esc(offLabel) + "</span>" : "";
     /* Одна картинка — не мозаика, а картинка: резать её нечем и незачем.
        Пустая обложка — тоже одна ячейка, а не сетка из четырёх дырок. */
     if (pics.length < 2) {
       return '<span class="mb-cover one"' + sky + ">"
-        + (pics.length ? refImg(pics[0]) : "") + "</span>";
+        + (pics.length ? refImg(pics[0]) : "") + off + "</span>";
     }
     var cells = pics.slice(0, 4).map(function (r) { return refImg(r); });
     /* Мозаика всегда о четырёх ячейках: три кадра и просвет честнее, чем
        растянутый третий на пол-обложки */
     while (cells.length < 4) cells.push('<i class="ph"></i>');
-    return '<span class="mb-cover"' + sky + ">" + cells.join("") + "</span>";
+    return '<span class="mb-cover"' + sky + ">" + cells.join("") + off + "</span>";
   }
   function renderMbStrip() {
     if (!$("mbStrip")) return;
@@ -13847,6 +13951,9 @@
     var list = mbList(f), g = mbGenre(f);
     $("mbFolderTitle").textContent = mbTitle(f);
     $("mbFolderSub").textContent = mbSub(f);
+    var board = mbBoard(f);
+    $("mbFolderOffText").textContent = boardOfflineLabel(board);
+    $("mbFolderTake").classList.toggle("on", !!board.take);
     var tags = refTagsOf(g, list);
     if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
     $("mbTags").innerHTML = tags.map(function (t) {
@@ -13910,6 +14017,13 @@
     if (!url) return;
     boardPut(mbBoard(mbOpen), shotAdd({ k: "link", url: url, tag: mbTag }));
     saveAll(); renderMbFolder();
+  });
+  $("mbFolderTake").addEventListener("click", function () {
+    if (!mbOpen) return;
+    var b = mbBoard(mbOpen);
+    b.take = !b.take;
+    saveAll(); renderMbFolder();
+    if (b.take) mbOfflineRun();   // пометили — закачка начинается сразу, не завтра
   });
 
   var mbItem = null;   // индекс материала в открытом листе действия
@@ -17282,8 +17396,14 @@
     var stage = currentStage(s, route);
     $("cdRefT").textContent = stage
       ? LANG.t("card.refsAt", { stage: stage }) : LANG.t("card.refs");
+    /* Смотрят вечером накануне, а мудборд в этот момент не открывают:
+       досада «не скачал заранее» лечится тем, что видно накануне
+       (15_MOODBOARD, «Подборка говорит своё состояние вслух»). Состояние —
+       только по своей подборке съёмки: набор жанра сюда подмешан для
+       просмотра на площадке, а качается он отдельно, по своей пометке. */
+    var offLabel = boardOfflineLabel(boardOfSession(s, false));
     $("cdRefS").textContent = LANG.count("unit.frame", all.length)
-      + " · " + LANG.t("card.refsFrom");
+      + " · " + LANG.t("card.refsFrom") + (offLabel ? " · " + offLabel : "");
     $("cdRefStrip").innerHTML = all.slice(0, 7).map(function (r) {
       return r.im || r.thumb ? refImg(r) : '<span class="ph"></span>';
     }).join("");
@@ -21781,6 +21901,10 @@
   renderDelvSettings();
   renderProfile();
   renderCal(); renderDayPanel(); renderSessions(); renderBinBtn(); renderMbStrip();
+  /* Список того, что уже лежит на устройстве, готов не сразу — до этого
+     момента обложки молча считают всё «в облаке». Как только список готов,
+     перерисовываем и запускаем правило закачки (15_MOODBOARD, «Офлайн»). */
+  blobHaveReady().then(function () { renderMbStrip(); mbOfflineRun(); });
   /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
      После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
      потом спрашивают о правилах. На самом первом запуске экран знакомства
