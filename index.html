@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=3"></script>
+<script src="lang.js?v=11"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -908,10 +908,26 @@
     --knob: #EFEAE0;          --knob-edge: #0F0E0C;    --meter-off: #3A352E;
     /* полупрозрачные: панели, разделители и текст с альфой. Скрипт по хексам
        их не видел — а таб-бар и все линии держатся именно на них */
-    --bar: rgba(15,14,12,0.9); --bar-2: rgba(23,21,15,0.86);
+    /* Подложки, сквозь которые видно. Держались на 0.86–0.92, и написанный
+       рядом `backdrop-filter` работал на остатке: сквозь таб-бар доходило
+       10% размытого, сквозь кружки карты и всплывающие плашки — 14%.
+       Стекло было установлено и выключено непрозрачностью. */
+    --bar: rgba(15,14,12,0.72); --bar-2: rgba(23,21,15,0.55);
     --fill-a: rgba(15,14,12,0.75); --fill-b: rgba(15,14,12,0.6);
     --overlay: rgba(18,16,14,0.82); --overlay-2: rgba(8,7,6,0.94);
-    --overlay-3: rgba(44,41,36,0.86); --hair: rgba(255,255,255,0.05);
+    --overlay-3: rgba(44,41,36,0.68); --hair: rgba(255,255,255,0.05);
+    --sheet-glass: rgba(23,21,15,0.74); --knob-glass: rgba(239,234,224,0.26);
+    /* Барабан. `--drum-ink` + `--drum-deep` разведены, потому что форма спада
+       у краёв одна на обе темы, а глубина разная: на чёрном корпусе кромке
+       нужно уйти в ноль, на белом — только в серое.
+       `--drum-face` — не «подсветка центра», а СОБСТВЕННЫЙ ТОН диска. Диск
+       серый, корпус разный: на тёмной теме серое светлее корпуса, на светлой
+       темнее. Знак переменной меняется не по теме, а потому что меняется то,
+       что вокруг ([[light-plan-light-theme-not-inversion]] — материал имеет
+       один цвет, темы отличаются окружением). */
+    --drum-ink: 0,0,0; --drum-deep: 0.78; --drum-face: rgba(255,255,255,0.05);
+    --map-glass: rgba(23,21,15,0.30);
+    --map-glass-optic: blur(5px) saturate(2.2) brightness(0.72);
     --hair-2: rgba(255,255,255,0.04); --hair-3: rgba(255,255,255,0.03);
     --hair-4: rgba(255,255,255,0.07); --hair-5: rgba(255,255,255,0.18);
     /* Стекло поверх текста. Размытия нет намеренно: панель ложится прямо на
@@ -925,6 +941,13 @@
     --glass-fill: rgba(255,255,255,0.07);
     --glass-shine: rgba(255,255,255,0.30);
     --glass-cast: rgba(0,0,0,0.45);
+    /* Две кромки прорези барабана. `--drum-lip` — губа СНАРУЖИ, под вырезом:
+       на тёмном грунте общий блик в 0.30 читался толстой белой полосой, и
+       весь низ окна перевешивал верх. `--drum-glass` — отражение неба в
+       самом стекле по верхней кромке: слабее губы, потому что губа
+       освещена, а стекло только отражает. В светлой теме своя пара ниже. */
+    --drum-lip: rgba(255,255,255,0.18);
+    --drum-glass: rgba(255,255,255,0.13);
     --ink-a22: rgba(239,234,224,0.22); --ink-a20: rgba(239,234,224,0.2);
     --ink-a24: rgba(239,234,224,0.24); --ink-a40: rgba(239,234,224,0.4);
     --ink-a12: rgba(239,234,224,0.12); --ink-a10: rgba(239,234,224,0.10);
@@ -972,10 +995,21 @@
     --knob: #FFFFFF; --knob-edge: #C3BBAA; --meter-off: #D2CBBC;
     /* Подложки внутри карточки разведены сильнее: на светлом лист и плитки
        различались на два пункта и сливались в одно пятно */
-    --bar: rgba(250,248,243,0.92); --bar-2: rgba(255,255,255,0.9);
+    /* На светлой держим плотнее тёмной: там сквозь стекло идёт тёмное на
+       светлом, здесь светлое на светлом, и подложке нужно больше веса,
+       чтобы подписи не спорили с содержимым под ними. */
+    --bar: rgba(250,248,243,0.78); --bar-2: rgba(255,255,255,0.62);
     --fill-a: rgba(250,248,243,0.8); --fill-b: rgba(237,233,225,0.72);
     --overlay: rgba(250,248,243,0.86); --overlay-2: rgba(250,248,243,0.96);
-    --overlay-3: rgba(214,208,195,0.9); --hair: rgba(0,0,0,0.07);
+    --overlay-3: rgba(214,208,195,0.74); --hair: rgba(0,0,0,0.07);
+    --sheet-glass: rgba(255,255,255,0.78); --knob-glass: rgba(255,255,255,0.40);
+    --drum-ink: 23,21,15; --drum-deep: 0.55; --drum-face: rgba(23,21,15,0.05);
+    /* На светлых тайлах прозрачность сама по себе не открывает ничего: они
+       почти того же тона, что и панель. Карту вытаскивает не она, а
+       насыщенность — парки, дороги и вода цветные, и цвет проходит там,
+       где светлота бессильна. */
+    --map-glass: rgba(255,255,255,0.26);
+    --map-glass-optic: blur(5px) saturate(2.6) brightness(0.92);
     --hair-2: rgba(0,0,0,0.06); --hair-3: rgba(0,0,0,0.05);
     --hair-4: rgba(0,0,0,0.09); --hair-5: rgba(0,0,0,0.20);
     /* На светлом заливка не осветляет, а притеняет: планка и так почти белая,
@@ -985,6 +1019,10 @@
     --glass-fill: rgba(23,21,15,0.045);
     --glass-shine: rgba(255,255,255,0.95);
     --glass-cast: rgba(23,21,15,0.16);
+    /* Губа снаружи остаётся почти белой: на бумаге ей не с чем спорить.
+       Стекло по верхней кромке — тише, но заметно: над ним тень от губы. */
+    --drum-lip: rgba(255,255,255,0.95);
+    --drum-glass: rgba(255,255,255,0.45);
     --ink-a22: rgba(23,21,15,0.22); --ink-a20: rgba(23,21,15,0.2);
     --ink-a24: rgba(23,21,15,0.24); --ink-a40: rgba(23,21,15,0.4);
     --ink-a12: rgba(23,21,15,0.12); --ink-a10: rgba(23,21,15,0.10);
@@ -1304,7 +1342,11 @@
     transform: translate(-50%, 120px); z-index: 96;
     width: 56px; height: 56px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: var(--overlay-2); box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
+    /* Мишень висит над списком, который из-под неё и утаскивают: глухая
+       подложка вырезала в нём дыру ровно там, куда смотрит палец */
+    background: var(--overlay-3);
+    backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    box-shadow: 0 10px 30px var(--glass-cast), inset 0 1px 0 var(--glass-shine), inset 0 0 0 1px var(--hairline);
     transition: transform 0.34s cubic-bezier(0.25,1,0.4,1);
   }
   .bin-target[hidden] { display: none; }
@@ -1660,11 +1702,21 @@
   /* Размер ползунка — переменными: на взводе он сплющивается по горизонтали
      и растёт по вертикали, как резина под нагрузкой. `margin-top` считается
      из высоты, иначе при сплющивании ползунок сползал бы с дорожки. */
+  /* Ручка стеклянная. Под ней не только гравировка часов, но и дорожка
+     света — та самая, что красит сутки от синего к янтарю. Глухой белый
+     кружок её закрывал; сквозь стекло ручка берёт цвет момента, на котором
+     стоит, и перестаёт быть посторонним предметом на шкале.
+     Кант оставлен глухим: он держит край ручки, и без него стеклянный
+     кружок на светлом участке дорожки терял границу.
+     Риски под ручкой снова видны — но не как разрез (на это и была жалоба,
+     из-за неё гравировку увели под ползунок), а как глубина под стеклом. */
   .scrub::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: var(--thumb-w, 26px); height: var(--thumb-h, 26px); border-radius: 50%;
-    background: var(--knob); border: 3px solid var(--knob-edge);
-    box-shadow: 0 0 0 1px var(--ink-a22), 0 4px 12px rgba(0,0,0,0.55);
+    background: var(--knob-glass); border: 3px solid var(--knob-edge);
+    backdrop-filter: blur(3px) saturate(1.8) brightness(1.08);
+    -webkit-backdrop-filter: blur(3px) saturate(1.8) brightness(1.08);
+    box-shadow: 0 0 0 1px var(--ink-a22), inset 0 1px 0 var(--glass-shine), 0 4px 12px rgba(0,0,0,0.55);
     margin-top: calc((4px - var(--thumb-h, 26px)) / 2);
   }
   .scrub::-moz-range-thumb {
@@ -1683,18 +1735,127 @@
     touch-action: none; cursor: grab; border-radius: 8px;
   }
   .ribbon-scroll.grabbing { cursor: grabbing; }
-  /* Окно прибора: ячейки барабана уходят вбок и гаснут, а не обрезаются
-     ножом по краю (в прототипе — `drumMask`). У ленты маски нет: её
-     дорожка света непрерывна, гасить её у края значило бы врать про свет. */
-  .ribbon-scroll.drum {
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 17%, #000 83%, transparent);
-            mask-image: linear-gradient(90deg, transparent, #000 17%, #000 83%, transparent);
-  }
-  /* Подложка окна — светлее к центру (в прототипе `laneShade`): даёт понять,
-     что смотришь в прорезь прибора, а не на плоский список */
+  /* Маски у барабана нет намеренно. Она гасила ячейки в прозрачность, а
+     печатный знак, уходя в тень, ТЕМНЕЕТ, а не выцветает: на светлой теме
+     «выцветание» означало посветление — ровно против того, что происходит
+     за горизонтом. Даты обрезает сама прорезь (`overflow:hidden` +
+     скругление), как рамка окна обрезает шкалу расстояний на объективе.
+     У ленты маски тоже нет: её дорожка света непрерывна. */
+  /* Собственный тон диска. Была подсветка центра градиентом — она и делала
+     из барабана алюминиевую линейку: широкий симметричный колокол по всей
+     ширине это и есть шлифованный металл. В реальном окне видна дуга
+     барабана градусов в тридцать, косинус на её краю ещё 0.95 — лента
+     освещена РОВНО, а темнеет коротко и резко у самой губы. Темнит рамка,
+     а не кривизна. Поэтому здесь ровная заливка, а весь спад — ниже. */
   .ribbon-wrap.drum::before {
     content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
-    background: linear-gradient(90deg, transparent, var(--hair) 34%, var(--hair) 66%, transparent);
+    background: var(--drum-face);
+  }
+  /* Прорезь со стеклом. Снаружи под вырезом светлая губа — она и делает
+     вырез вырезом, а не нарисованной рамкой. */
+  .ribbon-wrap.drum { border-radius: 8px; box-shadow: 0 1px 0 var(--drum-lip, var(--glass-shine)); }
+  .ribbon-wrap.drum::after {
+    content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
+    /* Слои сверху вниз: блик на кромке стекла → вертикальный горизонт.
+       Отражение стоит ПОВЕРХ тени — так оно и бывает: стекло отражает свет
+       независимо от того, что за ним темно.
+       Полоска блика 3 px, а не 1.5: скругление в 8 px съедает у самой кромки
+       почти всю высоту — при x = 0 внутрь фигуры попадает только прямой
+       участок, 14 px из 30. На полутора пикселях от блика оставался след,
+       который глаз не находил.
+       Спад ВОГНУТЫЙ и КОРОТКИЙ: середина держится ровно, а у губы валится
+       обрывом (0.18 / 0.42 / 0.70 / 0.92 на 10 / 7.5 / 4.5 / 2 %), весь он
+       укладывается в 13 % — 44 px из 342, меньше ячейки.
+       Длину подбирали замером на стенде. Раньше спад шёл линейно от 26 %;
+       промежуточная попытка растянула его до 22 % — и стало ХУЖЕ: тёмный
+       край, плавно переходящий в светлую середину на четверти ширины, это
+       ровно тот перепад, которым красят шлифованный металл. Разница между
+       металлом и прорезью не в градиенте, а в ступеньке: у металла свет
+       течёт по всей поверхности, у прорези поверхность плоская, а по кромке
+       идёт разрыв. Горизонт — линия, а не четверть поля. */
+    background:
+      linear-gradient(90deg,  var(--drum-shine, var(--glass-shine)), transparent 3px),
+      linear-gradient(270deg, var(--drum-shine, var(--glass-shine)), transparent 3px),
+      linear-gradient(90deg,
+        rgba(var(--drum-ink), var(--drum-deep)) 0,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.92)) 2%,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.70)) 4.5%,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.42)) 7.5%,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.18)) 10%,
+        rgba(var(--drum-ink), 0) 13%,
+        rgba(var(--drum-ink), 0) 87%,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.18)) 90%,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.42)) 92.5%,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.70)) 95.5%,
+        rgba(var(--drum-ink), calc(var(--drum-deep) * 0.92)) 98%,
+        rgba(var(--drum-ink), var(--drum-deep)) 100%);
+    /* Свет падает сверху, значит внутренняя стенка ВЕРХНЕЙ губы отвёрнута от
+       него и темна, а нижней — подставлена ему и светла. Блик стоял сверху:
+       красиво, но тогда губа светится там же, откуда бросает тень.
+       Тень взята без отрицательного разлёта (было `-3px`, то есть ниточка):
+       ей нужно дойти до ленты, иначе никакой глубины она не показывает. И
+       красится не `--glass-cast` (0.16 на светлой — почти ничто), а той же
+       глубиной, что и горизонт: тень от губы и тень у горизонта отбрасывает
+       одна и та же прорезь, значит и плотность у них общая.
+       Она задевает верх цифры — замерено, это стоит 6 % контраста
+       (3.79 → 3.55 : 1): тёмная пелена сдвигает знак и фон в одну сторону,
+       в отличие от белой, которая на светлой теме роняла 17.7 → 4 : 1.
+       Верх тяжелее низа — этим прорезь и отличается от планки: у полосы
+       металла такой вертикальной несимметрии нет.
+       Кант обведён по ВСЕЙ прорези (`0 0 0 1px`, а не `0 1px 0`): край
+       выреза — это разрыв поверхности, и он идёт кругом. Снизу он тут же
+       перекрывается светлой линией, потому что нижняя губа освещена.
+
+       Блик по ВЕРХНЕЙ кромке (`--drum-glass`) стоит первым в списке — в
+       box-shadow первая тень рисуется поверх, и иначе кант её закрывает.
+       Он не спорит с тем, что верхняя губа темна: светится не губа, а
+       стекло, и светится оно отражением, а не собственным светом. Это
+       разные предметы на разной глубине — потому блик тонкий и тихий, а
+       тень от губы под ним осталась во всю прежнюю силу. Без него верх
+       окна не читался вовсе: сверху тень, снизу губа, и прорезь висела
+       на одной кромке (жалоба Алексея на тёмную тему). */
+    box-shadow:
+      inset 0 1px 0 var(--drum-glass, transparent),
+      inset 0 0 0 1px rgba(var(--drum-ink), calc(var(--drum-deep) * 0.55)),
+      inset 0 -1px 0 var(--drum-shine, var(--glass-shine)),
+      inset 0 4px 6px -2px rgba(var(--drum-ink), calc(var(--drum-deep) * 0.6));
+  }
+  /* Три вида прорези — на голосование (Алексей: «добавь в настройки все три,
+     хочу потестить на телефоне, показать людям, решим голосованием»).
+     Меняется ТОЛЬКО светлая тема: в тёмной прорезь и так тёмная, и все три
+     вида сходятся в один — потому переключатель ниже и помечен как таковой.
+
+     Причина спора замерена: затемняя светлую ленту к краям, всегда получаешь
+     серое, а серое на полосе читается металлом. Отсутствие света в светлой
+     теме изобразить нечем — кроме как сделать полость по-настоящему тёмной,
+     как на фотографии шкалы расстояний объектива.
+
+     Чернила внутри прорези при этом светлеют, и это не спор с правилом
+     «светлая тема — не инверсия», а тот же закон: инвертируются ЧЕРНИЛА,
+     а не свет. Грунт внутри тёмный — значит и чернила на нём светлые. Блик
+     остаётся белым, тень тёмной во всех трёх видах.
+     Блик разведён на два: `--glass-shine` светит по губе СНАРУЖИ, на бумаге,
+     а `--drum-shine` — внутри прорези. Разные грунты, но НЕ разная яркость:
+     первая попытка увела `--drum-shine` в 0.28–0.34 по доводу «грунт тёмный,
+     значит и блик тише». Алексей: «на тёмных барабанах не хватает белых
+     бликов на краях окна» — и он прав. Блик это отражение источника, а не
+     свойство того, что за стеклом; на тёмной подложке он даже заметнее,
+     потому что ему нечему конкурировать. Довод был той самой инверсией, от
+     которой мы уходим. Оба вида держат почти белый. */
+  :root[data-theme="light"] body[data-drum="graphite"] .ribbon-wrap.drum,
+  :root[data-theme="light"] body[data-drum="window"] .ribbon-wrap.drum {
+    --drum-ink: 0,0,0; --ink: #F0EBE1;
+    --glass-fill: rgba(255,255,255,0.07);
+  }
+  :root[data-theme="light"] body[data-drum="graphite"] .ribbon-wrap.drum {
+    --drum-face: rgba(35,31,24,0.72); --drum-deep: 0.74;
+    --drum-shine: rgba(255,255,255,0.90);
+    --ink-5: #C4BCAC; --terra: #D0704A;
+  }
+  :root[data-theme="light"] body[data-drum="window"] .ribbon-wrap.drum {
+    --drum-face: rgba(23,21,15,0.88); --drum-deep: 0.86;
+    --drum-shine: rgba(255,255,255,0.90);
+    --ink-5: #9A9384; --terra: #C9663D;
   }
   /* Контейнер клипует (inset:0, статичен), а едет только дорожка внутри
      него — раньше `transform` стоял прямо на клип-контейнере и уводил всё
@@ -1765,10 +1926,18 @@
     background: var(--glass-fill);
     backdrop-filter: var(--glass-optic);
     -webkit-backdrop-filter: var(--glass-optic);
-    box-shadow: inset 0 1.5px 0 var(--glass-shine), 0 3px 10px var(--glass-cast);
+    box-shadow: inset 0 1.5px 0 var(--drum-shine, var(--glass-shine)), 0 3px 10px var(--glass-cast);
   }
   .ribbon-wrap.drum .drum-frame { display: block; }
   .ribbon-wrap.drum .ribbon-marker { display: none; }
+  /* Образец в настройках: та же ячейка, но не едет и не ловит палец —
+     это витрина, а не второй пульт. `body.pro-mode` тут не нужен: строка
+     и так скрыта в «Просто» через `hidden`, а не через display каскада
+     виджета */
+  .drum-preview { margin: 10px 24px 0; pointer-events: none; }
+  .drum-preview .ribbon-wrap { display: block; }
+  .drum-preview .ribbon-scroll { cursor: default; }
+  .drum-preview .ribbon-track { position: static; display: flex; justify-content: center; width: 100%; }
   /* Стрелка ЧАСОВ, а не указатель даты. Исходная жалоба была на чёрную
      риску во всю высоту: «откусывает от дат пиксели, не неся полезной
      нагрузки» (`--knob-edge` в тёмной теме почти чёрный — линия читалась
@@ -1893,7 +2062,11 @@
   .map-here {
     position: absolute; right: 12px; bottom: 12px; z-index: 470;
     width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
-    background: var(--bar-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    /* Под кружками карты — тайлы, самая богатая картинка в приложении,
+       и подложка здесь самая лёгкая из всех */
+    background: var(--bar-2);
+    backdrop-filter: blur(12px) saturate(1.6); -webkit-backdrop-filter: blur(12px) saturate(1.6);
+    box-shadow: inset 0 1px 0 var(--glass-shine), 0 2px 8px var(--glass-cast);
     display: flex; align-items: center; justify-content: center; color: var(--ink-3);
   }
   .map-here svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
@@ -2316,9 +2489,13 @@
     bottom: calc(var(--tabh, 74px) + 14px); z-index: 95;
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 15px; background: var(--overlay-3);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
     border-radius: 14px; corner-shape: squircle;
-    box-shadow: 0 10px 30px var(--ink-a24), inset 0 0 0 1px var(--hairline);
+    /* Тень тёмная в обеих темах. Стояла на `--ink-a24`, а он переворачивается —
+       в тёмной теме это `rgba(239,234,224,.24)`, и под плашкой светился нимб
+       вместо тени. Кант рядом остаётся на `--hairline`: он чернила, ему
+       переворачиваться положено. */
+    box-shadow: 0 10px 30px var(--glass-cast), inset 0 0 0 1px var(--hairline);
     font-size: 13px; color: var(--ink-4);
     transform: translateY(140%); opacity: 0; pointer-events: none;
     transition: transform 0.32s cubic-bezier(0.25,1,0.4,1), opacity 0.32s;
@@ -2350,7 +2527,11 @@
     display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
     align-items: center; gap: 6px; flex-shrink: 0;
     padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 6px;
-    position: sticky; top: 0; z-index: 8; background: var(--surface);
+    /* Липкая шапка — стекло, а не глухая заливка. Сетка месяца уезжает под
+       неё и раньше обрывалась ножом, будто кончилась. Размытие тут ничего не
+       съедает: подписи шапки лежат сверху, а под ней только цифры сетки. */
+    position: sticky; top: 0; z-index: 8; background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
   }
   /* Ровные трети держат «Август» ровно по центру экрана — но стоят они дорого:
      слева живёт одна кнопка 44px, а треть под неё резервирует 110px. Месяцу
@@ -2401,9 +2582,23 @@
      расчёт от кнопки, тот же приём, что у веера точек. */
   .scope-menu {
     position: fixed; z-index: 41; min-width: 208px;
-    background: var(--sheet); border-radius: 16px; corner-shape: squircle; padding: 6px;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+    /* Меню всплывает над содержимым — над тайлами карты или над сеткой
+       месяца, а не над пустой страницей: стеклу есть что показывать */
+    background: var(--sheet-glass); border-radius: 16px; corner-shape: squircle; padding: 6px;
+    backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55), inset 0 1px 0 var(--glass-shine);
     transform-origin: 20px -10px; animation: scopeIn 0.16s ease-out;
+  }
+  /* Меню слоёв стоит на карте, а карта — единственная настоящая картинка в
+     приложении. Стекло здесь пропускает заметно больше, чем у веера видов
+     календаря: там под панелью разрежённая сетка чисел, и показывать нечего.
+     Сколько пропускать — решает не форма панели, а то, что под ней лежит.
+     Размытие маленькое нарочно: на 24 px крупные формы карты усредняются в
+     ровное пятно, и «различима» превращается в «оттенок». */
+  .map-layers-menu {
+    background: var(--map-glass);
+    backdrop-filter: var(--map-glass-optic);
+    -webkit-backdrop-filter: var(--map-glass-optic);
   }
   .scope-menu[hidden] { display: none; }
   @keyframes scopeIn { from { opacity: 0; transform: scale(0.94) translateY(-6px); } }
@@ -2559,8 +2754,9 @@
     position: fixed; left: 50%; transform: translateX(-50%);
     bottom: calc(var(--tabh, 74px) + 12px); z-index: 12;
     display: inline-flex; margin: 0; padding: 9px 16px;
-    background: var(--overlay-2); border-radius: 999px;
-    box-shadow: 0 6px 20px var(--ink-a20), inset 0 0 0 1px var(--hairline);
+    background: var(--overlay-3); border-radius: 999px;
+    backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    box-shadow: 0 6px 20px var(--glass-cast), inset 0 1px 0 var(--glass-shine), inset 0 0 0 1px var(--hairline);
     font-size: 12.5px; color: var(--brass-deep);
   }
   /* Верхний блок дня закреплён целиком: даты, шеврон и сводка. Липнет под
@@ -2570,7 +2766,8 @@
      прилипающая сводка мешала бы ей */
   .day-sticky.on {
     position: sticky; top: calc(env(safe-area-inset-top, 0px) + 62px);
-    z-index: 6; background: var(--surface);
+    z-index: 6; background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
   }
   .day-dates[hidden] { display: none; }
   .dd-day {
@@ -3127,6 +3324,16 @@
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
     color: var(--ink-7); font-weight: 600; padding: 30px 24px 8px;
   }
+  /* Заголовок группы настроек — крупнее и не капсом, чтобы не путался с
+     подписью раздела под ним, и с большим отступом сверху: длинный список
+     из ~22 разделов должен читаться главами, а не одним полотном.
+     Подпись раздела сразу под ним теряет свой отступ — расстояние держит
+     заголовок группы, а не оба сразу (docs: DECISIONS, «Уборка настроек»). */
+  .grp-label {
+    font-size: 15px; letter-spacing: -0.2px; color: var(--ink);
+    font-weight: 700; padding: 44px 24px 0;
+  }
+  .grp-label + .sec-label { padding-top: 6px; }
   .session {
     display: flex; align-items: center; gap: 16px;
     background: var(--sheet); border-radius: 16px; corner-shape: squircle;
@@ -3146,7 +3353,34 @@
   .empty { color: var(--ink-7); font-size: 14px; padding: 4px 24px 0; }
 
   /* ---------- Настройки ---------- */
+  /* Единственное поле ввода в настройках — свой номер. Отступы и подложка
+     взяты у ряда кнопок под ним: настройки читаются одной колонкой, и поле,
+     выпадающее из неё шириной, читалось бы вставкой из другого экрана.
+     Автозаполнение гасим той же тенью, что и в формах, — причина там. */
+  .set-in {
+    display: block; width: calc(100% - 48px); margin: 12px 24px 0;
+    background: var(--sheet); border: none; border-radius: 12px; corner-shape: squircle;
+    padding: 14px 15px; font-family: inherit; font-size: 16px; color: var(--ink);
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .set-in::placeholder { color: var(--ink-8); }
+  .set-in:-webkit-autofill, .set-in:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--sheet) inset;
+    -webkit-text-fill-color: var(--ink); caret-color: var(--ink);
+    transition: background-color 9999s ease-out 0s;
+  }
+  /* ID показываем моноширинными цифрами и целиком: это строка, которую
+     диктуют и сверяют по цифре, переносить или обрезать её нельзя */
+  #appIdV.set { color: var(--ink); }
+  /* Прежний ID стоит в колонке подписи, но читается как значение: это
+     строка, которую сверяют по знаку, а не название строки */
+  .item .k.id-was { color: var(--ink-5); font-variant-numeric: tabular-nums; }
   .seg { display: flex; background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 3px; margin: 12px 24px 0; }
+  /* `display: flex` бьёт встроенное `[hidden]{display:none}` браузера:
+     оба правила из авторской таблицы стилей, порядок в файле решает, а
+     этот класс задаёт display сам. Без строки ниже `.hidden = true` в JS
+     снимал подпись ряда, но сам ряд кнопок оставался на экране. */
+  .seg[hidden] { display: none; }
   .seg button {
     flex: 1; background: none; border: none; border-radius: 10px; corner-shape: squircle;
     color: var(--ink-4); font-family: inherit; font-size: 14px; font-weight: 550;
@@ -3215,7 +3449,9 @@
   .tabbar {
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 30;
     background: var(--bar);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    /* Насыщенность рядом с размытием обязательна: один blur усредняет цвет
+       и даёт серую муть вместо стекла — цвет уходит вместе с деталью */
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
     border-top: 1px solid var(--hair);
     display: flex; padding: 9px 6px 24px;
   }
@@ -3924,51 +4160,117 @@
   /* В карточке референсы только смотрят: удаление живёт в форме */
   #cdRefs .kill { display: none; }
 
-  /* ---------- Знакомство (первый запуск) ----------
-     Не `.overlay`: это не навигационный слой поверх экрана, а разовый
-     полноэкранный приём — без выезда снизу, обычным затуханием. */
-  .onboard {
-    position: fixed; inset: 0; z-index: 200; background: var(--surface);
-    display: flex; flex-direction: column; opacity: 0; visibility: hidden;
-    transition: opacity 0.3s ease;
-    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  /* ---------- Знакомство: плашки поверх живого интерфейса ----------
+     Не отдельный экран с картинками, а слой над самим приложением: рамка
+     адресуется живому элементу, и приложение в это время само показывает,
+     о чём речь — ползунок едет, вкладки переключаются, режим включается.
+     Поэтому здесь нет ни одной иллюстрации: только затемнение, рамка,
+     палец и плашка.
+     Прямой потомок .device, как веер точек и полоса отмены: координаты
+     считаются от рамки телефона, а разлёт затемнения обрезается ею же. */
+  .tour {
+    position: absolute; inset: 0; z-index: 210; --tour-dim: 0.58;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
   }
-  .onboard.open { opacity: 1; visibility: visible; }
-  .ob-skip {
-    position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 18px; z-index: 2;
-    background: none; border: 0; font-family: inherit; font-size: 14px; color: var(--ink-4);
-    padding: 10px; cursor: pointer;
+  .tour.open { opacity: 1; visibility: visible; }
+  .tour[hidden] { display: none; }
+  /* Окно подсветки — тень с огромным разлётом от самой рамки: одно окно
+     вместо четырёх прямоугольников по краям и без масок */
+  .tour-hole, .tour-ring {
+    position: absolute; border-radius: 16px; corner-shape: squircle; pointer-events: none;
+    transition: left 0.42s cubic-bezier(0.25,1,0.4,1), top 0.42s cubic-bezier(0.25,1,0.4,1),
+      width 0.42s cubic-bezier(0.25,1,0.4,1), height 0.42s cubic-bezier(0.25,1,0.4,1),
+      border-radius 0.3s ease, opacity 0.3s ease;
   }
-  .ob-view { flex: 1; overflow: hidden; position: relative; }
-  /* Восемь карточек (приветствие + семь шагов) в ряд: ширина ленты — 800%
-     от окна, каждая карточка — ровно 1/8 ленты, то есть одно окно шириной */
-  .ob-track { display: flex; width: 800%; height: 100%; transition: transform 0.38s cubic-bezier(0.25,1,0.4,1); }
-  .ob-step {
-    flex: 0 0 12.5%; width: 12.5%; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center;
-    padding: 40px 30px; box-sizing: border-box;
+  .tour-hole { box-shadow: 0 0 0 9999px rgba(7,6,6,var(--tour-dim)); }
+  :root[data-theme="light"] .tour-hole { box-shadow: 0 0 0 9999px rgba(23,21,15,0.44); }
+  .tour-ring { border: 1.5px solid var(--brass); animation: tourPulse 2.4s ease-out infinite; }
+  .tour-ring.blind { opacity: 0; }
+  @keyframes tourPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(226,164,76,0.30); }
+    70%  { box-shadow: 0 0 0 10px rgba(226,164,76,0); }
+    100% { box-shadow: 0 0 0 0 rgba(226,164,76,0); }
   }
-  .ob-welcome h1 { font-size: 30px; margin: 0 0 12px; color: var(--ink); }
-  .ob-welcome p { max-width: 300px; margin: 0 0 26px; }
-  .ob-welcome .sheet-done { width: auto; padding: 15px 34px; margin-top: 0; }
-  .ob-later {
-    margin-top: 14px; background: none; border: 0; font-family: inherit;
-    font-size: 14px; color: var(--ink-4); padding: 8px; cursor: pointer;
+  /* Палец: жест, которого иначе не видно — ведение ползунка, тап по тумблеру.
+     Не курсор и не стрелка: показываем то самое движение, что делает рука */
+  .tour-tap {
+    position: absolute; width: 38px; height: 38px; margin: -19px 0 0 -19px;
+    border-radius: 50%; background: var(--ink-a12, rgba(239,234,224,0.12));
+    box-shadow: inset 0 0 0 1px var(--ink-a22, rgba(239,234,224,0.22));
+    opacity: 0; pointer-events: none;
+    transition: left 0.3s cubic-bezier(0.25,1,0.4,1), top 0.3s cubic-bezier(0.25,1,0.4,1),
+      opacity 0.2s ease, transform 0.16s ease;
   }
-  .ob-ic {
-    width: 74px; height: 74px; border-radius: 20px; corner-shape: squircle;
-    background: var(--field); display: flex; align-items: center; justify-content: center; gap: 6px;
+  .tour-tap.on { opacity: 1; }
+  .tour-tap.press { transform: scale(0.82); }
+  .tour-tap::after {
+    content: ""; position: absolute; inset: -1px; border-radius: 50%;
+    border: 1.5px solid rgba(226,164,76,0.7); opacity: 0;
   }
-  .ob-ic svg { width: 36px; height: 36px; stroke: var(--brass); fill: none; stroke-width: 1.5; flex-shrink: 0; }
-  .ob-ic.pair svg { width: 26px; height: 26px; }
-  .ob-step h2 { font-size: 20px; margin: 22px 0 10px; color: var(--ink); }
-  .ob-step p { font-size: 15px; line-height: 1.5; color: var(--ink-3); max-width: 300px; margin: 0; }
-  .ob-dots { display: flex; justify-content: center; gap: 7px; padding: 6px 0 4px; }
-  .ob-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-9); }
-  .ob-dot.on { background: var(--brass); width: 16px; border-radius: 3px; transition: all 0.25s ease; }
-  .ob-bar { padding: 6px 24px calc(20px + env(safe-area-inset-bottom)); }
-  /* На приветствии свои кнопки в самом слайде — общий низ и точки лишние */
-  .onboard.at-welcome .ob-dots, .onboard.at-welcome .ob-bar { visibility: hidden; }
+  .tour-tap.press::after { animation: tourRipple 0.75s ease-out infinite; }
+  @keyframes tourRipple {
+    0%   { transform: scale(1); opacity: 0.55; }
+    100% { transform: scale(1.9); opacity: 0; }
+  }
+  /* Плашка описания. Клюв показывает, о чём речь; сторону и место считает
+     JS — над элементом или под ним, смотря где на экране есть место */
+  .tour-card {
+    position: absolute; width: 320px; max-width: calc(100% - 28px);
+    background: var(--sheet); border-radius: 18px; corner-shape: squircle;
+    box-shadow: 0 0 0 1px var(--hairline), 0 22px 48px rgba(0,0,0,0.5);
+    padding: 14px 16px 12px;
+    transition: left 0.42s cubic-bezier(0.25,1,0.4,1), top 0.42s cubic-bezier(0.25,1,0.4,1),
+      opacity 0.22s ease, transform 0.22s cubic-bezier(0.25,1,0.4,1);
+  }
+  .tour-card.enter { opacity: 0; transform: translateY(9px); }
+  .tour-prog {
+    position: absolute; top: 0; left: 0; width: 0; height: 2px;
+    background: var(--brass); border-radius: 18px 2px 2px 0; transition: width 0.12s linear;
+  }
+  .tour-card .beak {
+    position: absolute; width: 13px; height: 13px; background: var(--sheet);
+    border-left: 1px solid var(--hairline); border-top: 1px solid var(--hairline);
+    transform: rotate(45deg);
+  }
+  .tour-card .beak.up { top: -7px; }
+  .tour-card .beak.down {
+    top: auto; bottom: -7px; border: none;
+    border-right: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  }
+  .tour-card .beak.off { display: none; }
+  .tc-head { display: flex; align-items: baseline; gap: 8px; }
+  .tc-no {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+    color: var(--brass-deep); font-variant-numeric: tabular-nums;
+  }
+  .tc-t { flex: 1; font-size: 16.5px; font-weight: 650; letter-spacing: -0.2px; color: var(--ink); }
+  /* Крестик есть на каждой плашке: выйти можно на любом шаге, и это не
+     должно требовать поиска кнопки (правило записано в NEEDS) */
+  .tc-x {
+    flex: none; align-self: flex-start; margin: -6px -6px -4px 0; width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; border-radius: 10px; corner-shape: squircle; cursor: pointer;
+  }
+  .tc-x svg { width: 13px; height: 13px; fill: none; stroke: var(--ink-4); stroke-width: 2; stroke-linecap: round; }
+  .tc-x:active { background: var(--press); }
+  .tc-d { margin: 6px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-3); text-wrap: pretty; }
+  .tc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .tc-dots { display: flex; align-items: center; gap: 4px; }
+  .tc-dots i { width: 5px; height: 5px; border-radius: 3px; background: var(--ink-10); transition: all 0.25s ease; }
+  .tc-dots i.done { background: var(--ink-7); }
+  .tc-dots i.on { width: 14px; background: var(--brass); }
+  .tc-acts { display: flex; align-items: center; gap: 4px; flex: none; }
+  .tc-ghost {
+    background: none; border: none; padding: 7px 8px; cursor: pointer;
+    font-family: inherit; font-size: 13px; color: var(--ink-4);
+  }
+  .tc-ghost[hidden] { display: none; }
+  .tc-next {
+    background: var(--brass); color: var(--on-brass); border: none;
+    border-radius: 11px; corner-shape: squircle; padding: 9px 16px; cursor: pointer;
+    font-family: inherit; font-size: 13.5px; font-weight: 650;
+  }
+  .tc-next:active { background: var(--brass-deep); }
 
   /* ---------- Форма съёмки ---------- */
   .overlay {
@@ -4011,17 +4313,23 @@
   /* Шапка формы: отменить и подтвердить. Кружки не кричат цветом,
      подтверждение отличается светлой заливкой — размером и положением, не CTA */
   .form-bar {
-    position: sticky; top: 0; z-index: 3; background: var(--surface);
+    position: sticky; top: 0; z-index: 3; background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
     display: flex; justify-content: space-between; align-items: center;
     padding: 46px 0 8px;
   }
   /* Крестик и галочка — 40, а не 32: это две главные кнопки формы, и в них
      целятся не глядя. Подложка стала полупрозрачной — под шапкой формы едет
      содержимое, и глухой кружок вырезал в нём дыру; полупрозрачный держит
-     край кнопки и не спорит с тем, что под ним. */
+     край кнопки и не спорит с тем, что под ним.
+     Полупрозрачность была половиной ответа: содержимое сквозь неё видно, но
+     читается как вторая надпись поверх первой. Стекло доводит приём до конца —
+     под кнопкой видно, что там что-то есть, но читать это не тянет. */
   .round {
     width: 40px; height: 40px; border-radius: 50%; border: none; padding: 0;
     background: var(--overlay-3); color: var(--ink-3); cursor: pointer;
+    backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    box-shadow: inset 0 1px 0 var(--glass-shine);
     display: flex; align-items: center; justify-content: center;
   }
   .round svg {
@@ -4393,6 +4701,46 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .doc-row .w { flex: 0 0 auto; font-size: 11.5px; color: var(--ink-6); }
   .org-empty { padding: 14px 2px; font-size: 13px; color: var(--ink-6); line-height: 1.5; }
+
+  /* ---------- Контакты ----------
+     Номер сверху, под ним карточки, где он встретился. Список номеров, а не
+     список людей: имя у одного и того же номера в разных карточках написано
+     по-разному («Ирина», «Ирина Петровна», «менеджер»), и сводить их в одного
+     человека приложение может только гаданием. Номер — то, что сходится
+     точно, и связывать по нему честнее. */
+  .ph-row { margin-top: 12px; padding: 13px 14px 8px; background: var(--sheet);
+    border-radius: 16px; corner-shape: squircle; }
+  .ph-num { display: flex; align-items: center; gap: 8px; font-size: 16px;
+    font-variant-numeric: tabular-nums; letter-spacing: 0.2px; }
+  .ph-num .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Прежний номер не вычёркиваем и не прячем: по нему не звонят, но звонок
+     с него узнать надо — строка должна оставаться читаемой, просто тише */
+  .ph-row.past .ph-num .n { color: var(--ink-5); }
+  .ph-tag { flex: 0 0 auto; font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-7); border: 1px solid var(--hair-2); border-radius: 6px; padding: 3px 6px; }
+  /* Связка — единственное, что здесь выделено цветом: ради неё список и
+     заведён, всё остальное фотограф и так знает */
+  .ph-tag.link { color: var(--brass); border-color: var(--brass); }
+  .ph-tag.me { color: var(--green); border-color: var(--green); }
+  .ph-call { flex: 0 0 auto; width: 32px; height: 32px; border: none; background: none;
+    padding: 0; color: var(--ink-5); display: flex; align-items: center; justify-content: center; }
+  .ph-call svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+  .ph-call:active { opacity: 0.6; }
+  .ph-where { margin-top: 6px; }
+  .ph-card { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    padding: 8px 0; background: none; border: none; font-family: inherit; color: var(--ink-4);
+    font-size: 13px; box-shadow: inset 0 1px 0 var(--surface); }
+  .ph-card:first-child { box-shadow: none; }
+  .ph-card:active { opacity: 0.6; }
+  /* Связь, ставшая историей: карточка та же, номер в ней уже другой */
+  .ph-card.past .t, .ph-card.past .r { color: var(--ink-7); }
+  .ph-card.past .ic { stroke: var(--ink-8); }
+  .ph-card .ic { flex: 0 0 auto; width: 15px; height: 15px; fill: none;
+    stroke: var(--ink-6); stroke-width: 1.6; }
+  .ph-card .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Роль номера в карточке: невеста, заказчик, лицо организации. У свадьбы
+     таких строк три-четыре, и без роли они неразличимы */
+  .ph-card .r { flex: 0 0 auto; font-size: 11px; color: var(--ink-7); }
   /* Реквизиты — это дюжина строк с цифрами: поле сразу под их рост */
   #oReq { min-height: 190px; font-size: 15px; }
 
@@ -4410,7 +4758,7 @@
   .notif {
     position: absolute; top: 12px; left: 10px; right: 10px; z-index: 95;
     background: var(--overlay-3);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
     border-radius: 18px; corner-shape: squircle; padding: 13px 15px; display: flex; gap: 11px;
     transform: translateY(-140%); opacity: 0;
     transition: transform 0.5s cubic-bezier(0.25,1,0.4,1), opacity 0.4s ease;
@@ -4607,6 +4955,16 @@
             <stop offset="42%" stop-color="rgba(23,21,15,0.42)"/>
             <stop offset="100%" stop-color="rgba(23,21,15,0)"/>
           </radialGradient>
+          <!-- Свет ушедшего светила: мягкое пятно без кромки. Диск — стрелка
+               прибора и потому плоский, с обозначенным краем; здесь стрелки
+               уже нет, осталcя только свет сквозь землю, и у него края быть
+               не может. Это не отмена решения про плоский диск, это другой
+               предмет с другой работой. -->
+          <radialGradient id="sunDeepGrad" cx="50%" cy="50%" r="50%">
+            <stop id="sdIn" offset="0" stop-opacity="0.34"/>
+            <stop id="sdMid" offset="0.42" stop-opacity="0.13"/>
+            <stop id="sdOut" offset="1" stop-opacity="0"/>
+          </radialGradient>
           <clipPath id="aboveHorizon"><rect x="0" y="0" width="390" height="196"/></clipPath>
         </defs>
         <g clip-path="url(#aboveHorizon)"><g id="stars" opacity="0"></g><g id="meteors"></g></g>
@@ -4619,6 +4977,12 @@
              само и есть источник света, и отброшенная им тень читалась как
              ошибка. Без смещения то же пятно работает глубиной, а не
              причинностью, и диссонанса нет. -->
+        <!-- Светило под горизонтом. Дугу вниз не продолжаем — пробовали, и
+             Алексей: «я нарисовал дугу в фотошопе, мне не понравилось, а вот
+             солнце без дуги по траектории дуги смотрится хорошо». Путь всё
+             равно читается: пятно идёт ровно по эллипсу, `posOn` продолжает
+             его за закат сам, без единой правки. -->
+        <circle id="sunDeep" r="34" fill="url(#sunDeepGrad)" opacity="0"/>
         <circle id="sunShade" class="lit-shade" r="14.5" fill="url(#sunShadeGrad)" opacity="0"/>
         <!-- Диск светила плоский, с обозначенной кромкой: это деталь прибора,
              аппликация на циферблате. Растушёванный ореол пробовали и
@@ -4934,6 +5298,23 @@
       <div class="loc"><div class="name">Light Plan</div><div class="date" data-i18n="set.proto">v3 · прототип</div></div>
     </div>
 
+    <!-- Профиль стоит первым и до сих пор его не было вовсе: приложение знало
+         клиентов, организации и съёмки, но не знало, чьё оно само. Планировщику
+         одиночке этого хватало, узлу Event OS — уже нет (DECISIONS, «ID») -->
+    <div class="grp-label" style="padding-top:20px" data-i18n="set.grpProfile">Профиль</div>
+    <div class="sec-label" data-i18n="set.myPhone">Мой телефон</div>
+    <input class="set-in" type="tel" id="myTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
+    <div class="item" id="appIdRow" style="margin-top:12px"><span class="k" data-i18n="set.appId">ID приложения</span><span class="v" id="appIdV">—</span></div>
+    <p class="seg-note" data-i18n="set.appIdNote">Отдельный код пришлось бы помнить и куда-то записывать. Номер телефона уже всемирный, уже уникальный и уже ваш — он и работает адресом: по нему организатор события свяжет ваши съёмки со своим планом.</p>
+    <!-- Прежние ID. Смена номера не должна рвать связи, которые по нему уже
+         построены: старый ID остаётся действующим именем того же человека -->
+    <div class="sec-label" id="appIdWasLabel" data-i18n="set.appIdWas" hidden>Прежние ID</div>
+    <div id="appIdWas"></div>
+    <p class="seg-note" id="appIdWasNote" data-i18n="set.appIdWasNote" hidden>Старый ID не пропадает. Кто записал вас по нему раньше, тот по нему и найдёт: прежний ID считается тем же самым человеком, что и нынешний.</p>
+    <div class="item" id="phonesRow"><span class="k" data-i18n="set.contacts">Контакты</span><span class="v" id="phonesN">—</span></div>
+    <p class="seg-note" data-i18n="set.contactsNote">Все номера из съёмок и организаций одним списком. Номер, встреченный в двух карточках, — связка: заказчик, оказавшийся отцом невесты, виден только так.</p>
+
+    <div class="grp-label" data-i18n="set.grpView">Вид</div>
     <div class="sec-label" data-i18n="set.mode">Режим</div>
     <div class="seg" id="modeSeg">
       <button class="active" data-mode="simple" data-i18n="set.modeSimple">Просто</button>
@@ -4943,13 +5324,39 @@
 
     <!-- Лента под слайдером — только в астро, поэтому и настройка живёт
          сразу под переключателем режима, а не отдельным разделом внизу
-         списка (docs: DECISIONS, «Барабан вместо ленты — и лента рядом») -->
-    <div class="sec-label" data-i18n="set.ribbon">Лента суток</div>
+         списка (docs: DECISIONS, «Барабан вместо ленты — и лента рядом»).
+         Строка целиком прячется в «Просто»: самой ленты там нет, и выбор
+         вида был бы настройкой без предмета. -->
+    <div class="sec-label" id="ribbonLabel" data-i18n="set.ribbon">Лента суток</div>
     <div class="seg" id="ribbonSeg">
       <button data-ribbon="drum" data-i18n="set.ribbonDrum">Барабан</button>
       <button data-ribbon="lane" data-i18n="set.ribbonLane">Лента</button>
     </div>
     <p class="seg-note" id="ribbonNote"></p>
+
+    <!-- Вид прорези — на голосование, а не выбран за всех: трое одинаково
+         защитимы, и решает вкус, а не замер (docs: DECISIONS, «Барабан:
+         диск в прорези»). Виден только когда выбран барабан и включена
+         светлая тема: в тёмной все три вида сходятся в один (см. CSS —
+         переменные цвета там правит только `:root[data-theme="light"]`),
+         и показывать выбор было бы настройкой без разницы. -->
+    <div class="sec-label" id="drumSlotLabel" data-i18n="set.drumSlot">Прорезь барабана</div>
+    <div class="seg" id="drumSlotSeg">
+      <button data-drum="paper" data-i18n="set.drumPaper">Бумага</button>
+      <button data-drum="graphite" data-i18n="set.drumGraphite">Графит</button>
+      <button data-drum="window" data-i18n="set.drumWindow">Окно</button>
+    </div>
+    <p class="seg-note" id="drumSlotNote"></p>
+    <!-- Живой образец: сама ячейка барабана в выбранном виде, чтобы видеть
+         выбор сразу, не уходя на «Свет». Не второй виджет — те же классы,
+         что у настоящего барабана, поэтому шрифт, блик и тень совпадают
+         буквально, а не «похоже». Нетронутый, без перетаскивания. -->
+    <div class="drum-preview" id="drumPreview" aria-hidden="true">
+      <div class="ribbon-wrap drum">
+        <div class="ribbon-scroll"><div class="ribbon-track" id="drumPreviewTrack"></div></div>
+        <div class="drum-frame"></div>
+      </div>
+    </div>
 
     <div class="sec-label" data-i18n="set.theme">Тема</div>
     <!-- Третий вариант — не «ещё одна тема», а отказ выбирать: телефон уже
@@ -4962,6 +5369,7 @@
     </div>
     <p class="seg-note" data-i18n="set.themeNote">Меняется интерфейс. Небо, свет и карта остаются прежними: закат не зависит от темы.</p>
 
+    <div class="grp-label" data-i18n="set.grpShoots">Съёмки</div>
     <div class="sec-label" data-i18n="set.calendar">Календарь</div>
     <div class="seg" id="calSync">
       <button class="active" data-sync="off" data-i18n="set.off">Выкл</button>
@@ -4989,6 +5397,7 @@
     </div>
     <p class="seg-note" id="stepNote">Шаг барабана в форме. Время, подсказанное светом, остаётся точным при любом шаге: золотой час не округляется.</p>
 
+    <div class="grp-label" data-i18n="set.grpAlerts">Оповещения</div>
     <div class="sec-label" data-i18n="set.feedback">Отклик</div>
     <div class="item"><span class="k" data-i18n="set.clicks">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
 
@@ -4997,6 +5406,7 @@
     <div class="item"><span class="k" data-i18n="set.notifyMorn">Утреннее уточнение</span><span class="toggle on" data-toggle></span></div>
     <div class="item"><span class="k" data-i18n="set.notifyLeave">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
 
+    <div class="grp-label" data-i18n="set.grpPlaces">Карта и места</div>
     <div class="sec-label" data-i18n="nav.map">Карта</div>
     <!-- Холст по умолчанию без подписей: имена улиц спорят с нашей разметкой —
          часами дуги, временами восхода и заката, буквами сторон света.
@@ -5024,8 +5434,12 @@
     <div class="item" id="orgsSetRow"><span class="k" data-i18n="set.orgsDocs">Организации и документы</span><span class="go-chev">›</span></div>
     <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
-         открывать нечего. Строки нет, пока корзина пуста -->
-    <div class="item" id="binSetRow" hidden><span class="k" data-i18n="card.bin">Корзина</span><span class="v" id="binSetN">0</span></div>
+         открывать нечего. Строка стоит и при пустой корзине: место, где
+         лежит удалённое, должно быть известно заранее -->
+    <div class="item" id="binSetRow"><span class="k" data-i18n="card.bin">Корзина</span><span class="v" id="binSetN">пусто</span></div>
+    <!-- Знакомство повторяется отсюда: тур перестал быть одноразовым экраном
+         первого запуска, а вспоминают о нём обычно позже, чем показывают -->
+    <div class="item" id="tourSetRow"><span class="k" data-i18n="tour.row">Знакомство</span><span class="v" data-i18n="tour.rowV">Показать</span><span class="go-chev">›</span></div>
     <!-- Порог дороги между площадками. Значение зашитой константой было
          честным для города и враньём для пригорода: сорок минут между
          разными местами — это про соседние районы, а не про соседний город -->
@@ -5039,6 +5453,7 @@
     <p class="seg-note" id="travelNote">Если между съёмками в разных местах остаётся меньше 40 минут, приложение предупредит. Запрета нет: решает фотограф.</p>
 
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
+    <div class="grp-label" data-i18n="set.grpData">Данные и облако</div>
     <div class="sec-label" data-i18n="set.data">Данные</div>
     <div class="item"><span class="k" data-i18n="set.persistence">Постоянность</span><span class="v" id="storeState">—</span></div>
     <div class="item"><span class="k" data-i18n="set.records">Записей</span><span class="v" id="storeCount">—</span></div>
@@ -5081,6 +5496,7 @@
          Язык меняет слова и разделители числа; градусы и деньги фотограф
          выбирает сам: с английским интерфейсом он всё равно может
          зарабатывать в рублях (DECISIONS.md, «Языки») -->
+    <div class="grp-label" data-i18n="set.grpLocale">Язык и регион</div>
     <div class="sec-label" data-i18n="set.language">Язык</div>
     <div class="chips" id="langChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="langNote"></p>
@@ -5121,6 +5537,7 @@
          Форма ничего не отправляет сама (принцип «на нашем сервере не
          хранится ничего» не тронут) — собирает текст и отдаёт его системной
          отправкой, тем же приёмом, что и ссылка опросника для клиента. -->
+    <div class="grp-label" data-i18n="set.grpAbout">О приложении</div>
     <div class="sec-label" data-i18n="fb.title">Обратная связь</div>
     <div class="seg" id="fbSeg">
       <button class="active" data-fb="idea" data-i18n="fb.idea">Отзыв</button>
@@ -5875,6 +6292,19 @@
     </div>
   </div>
 
+  <!-- Контакты: все номера из карточек одним списком.
+       Это не адресная книга и не замена ей — телефон сам знает контакты
+       лучше. Это внутренняя база связок: какой номер в каких карточках
+       встретился и какой из них уже прежний. Позже её и увидит серверный
+       Event OS, чтобы связать карточки разных исполнителей одного события. -->
+  <div class="overlay pad" id="phoneOverlay">
+    <button class="back" id="phoneBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.back">Назад</span>
+    </button>
+    <div class="g-label"><span data-i18n="set.contacts">Контакты</span><span id="phoneCount"></span></div>
+    <div id="phoneList"></div>
+  </div>
+
   <!-- Карточка организации: реквизиты, документы, архив съёмок -->
   <div class="overlay pad" id="orgCard">
     <button class="back" id="orgCardBack">
@@ -6085,61 +6515,35 @@
     <button class="sheet-done" id="startDone" data-i18n="pick.done">Готово</button>
   </div>
 
-  <!-- ============ ЗНАКОМСТВО (первый запуск) ============
-       Признак «уже видел» — сам факт сохранённых данных (см. `saved` ниже),
-       отдельного флажка нет: тот же принцип, что у вопроса о практике. -->
-  <div class="onboard" id="onboard" hidden>
-    <button class="ob-skip" id="obSkip" data-i18n="onb.skip">Пропустить</button>
-    <div class="ob-view">
-      <div class="ob-track" id="obTrack">
-        <div class="ob-step ob-welcome">
-          <h1 data-i18n="onb.welcomeTitle">Light Plan</h1>
-          <p data-i18n="onb.welcomeSub">Свет, погода и съёмки — в одном месте. Показать в двух словах, как это работает?</p>
-          <button class="sheet-done" id="obStart" data-i18n="onb.start">Ознакомиться</button>
-          <button class="ob-later" id="obLater" data-i18n="onb.later">Пропустить</button>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
-          <h2 data-i18n="onb.geo.t">Место съёмки</h2>
-          <p data-i18n="onb.geo.d">Приложение спросит геопозицию — по ней считаются свет, погода и часовой пояс именно там, где вы снимаете.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 11l4 4 4-4M4.5 19.5h15"/></svg></span>
-          <h2 data-i18n="onb.disk.t">Копия в облаке</h2>
-          <p data-i18n="onb.disk.d">Подключите Яндекс.Диск, Google или Dropbox в настройках — туда уходят копия данных и референсы съёмок.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="4.4" width="17.6" height="15.2" rx="2"/><path d="M3.2 9.2h17.6M9 9.2v10.4M15 9.2v10.4M3.2 14.4h17.6"/></svg></span>
-          <h2 data-i18n="onb.cal.t">Календарь съёмок</h2>
-          <p data-i18n="onb.cal.d">Месяц, неделя или один день — жанр съёмки виден прямо в клетке, а не значком.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17.5 8H20M4 16h3M11.5 16H20"/><circle cx="15.2" cy="8" r="2.3"/><circle cx="9.2" cy="16" r="2.3"/></svg></span>
-          <h2 data-i18n="onb.slider.t">Время в руке</h2>
-          <p data-i18n="onb.slider.d">Один ползунок над таб-баром двигает свет сразу и на «Сегодня», и на карте.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic pair">
-            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M4.4 12H2M22 12h-2.4M6.3 6.3l1.7 1.7M16 16l1.7 1.7M17.7 6.3L16 8M8 16l-1.7 1.7"/></svg>
-            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/></svg>
-          </span>
-          <h2 data-i18n="onb.sunmoon.t">Солнце и луна</h2>
-          <p data-i18n="onb.sunmoon.d">Купол переключается между ними: фазы, восходы и заходы — для обоих.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12.6" r="8.4"/><path d="M15.6 9l-2 5.6-5.6 2 2-5.6z"/><circle cx="12" cy="12.6" r="1.2"/><path d="M12 5.6v1.2M12 18.4v1.2M5.2 12.6h1.2M17.6 12.6h1.2M9.6 4.2L12 1.8l2.4 2.4"/></svg></span>
-          <h2 data-i18n="onb.map.t">Точка на карте</h2>
-          <p data-i18n="onb.map.d">Отметьте, откуда снимаете — компас света покажет направление, тени и золотой час на месте.</p>
-        </div>
-        <div class="ob-step">
-          <span class="ob-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg></span>
-          <h2 data-i18n="onb.add.t">Первая съёмка</h2>
-          <p data-i18n="onb.add.d">Заведите первую запись — дальше календарь и свет работают вместе.</p>
-        </div>
+  <!-- ============ ЗНАКОМСТВО ============
+       Плашки поверх живого интерфейса: рамка адресуется настоящему элементу,
+       а приложение само показывает, о чём речь. Идёт на первом запуске (нет
+       сохранённых данных) и повторяется строкой «Знакомство» в настройках —
+       одноразовым экраном оно быть перестало. -->
+  <div class="tour" id="tour" hidden>
+    <i class="tour-hole" id="tourHole"></i>
+    <i class="tour-ring" id="tourRing"></i>
+    <i class="tour-tap" id="tourTap"></i>
+    <div class="tour-card" id="tourCard">
+      <i class="tour-prog" id="tourProg"></i>
+      <i class="beak up" id="tourBeak"></i>
+      <div class="tc-head">
+        <span class="tc-no" id="tourNo">1 / 14</span>
+        <span class="tc-t" id="tourTitle">Light Plan</span>
+        <button class="tc-x" id="tourX" aria-label="Пропустить знакомство" data-i18n-aria="tour.skipAria">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <p class="tc-d" id="tourText">—</p>
+      <div class="tc-foot">
+        <span class="tc-dots" id="tourDots"></span>
+        <span class="tc-acts">
+          <button class="tc-ghost" id="tourSkip" data-i18n="tour.skip">Пропустить</button>
+          <button class="tc-ghost" id="tourBack" data-i18n="tour.back" hidden>Назад</button>
+          <button class="tc-next" id="tourNext" data-i18n="tour.next">Далее</button>
+        </span>
       </div>
     </div>
-    <div class="ob-dots" id="obDots"></div>
-    <div class="ob-bar"><button class="sheet-done" id="obNext" data-i18n="onb.next">Далее</button></div>
   </div>
 
   <div class="spot-fan" id="spotFan" hidden></div>
@@ -7387,8 +7791,10 @@
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
         }),
+        me: me,
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
+        drumSlot: drumSlot,
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
@@ -8277,6 +8683,8 @@
     if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
     // Буквы тоже: на светлой карте они тёмные, на тёмной светлые
     if (labelTiles) labelTiles.setUrl(labelURL());
+    // Выбор цвета прорези виден только в светлой теме — сменой темы гасится или зажигается
+    if (typeof renderDrumSlotSeg === "function") renderDrumSlotSeg();
     /* Часть цветов ставится из кода (подписи фаз, метки на карте) — их сменой
        класса не переключить, экраны надо перерисовать */
     /* Съёмки перерисовываются тоже: цвет срочности сдачи считается кодом в
@@ -8359,6 +8767,84 @@
     $("mapSave").setAttribute("aria-label", LANG.t(on ? "map.dropPoint" : "map.savePoint"));
     if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' <span class="go-chev">\u203a</span>';
   }
+  /* ---------- Кто владелец ----------
+     Своих данных у приложения до сих пор не было вовсе: оно знало клиентов,
+     организации и съёмки, но не знало, чьё оно. Одиночному планировщику этого
+     хватало, узлу Event OS — уже нет: чтобы событие связало фотографа с
+     организатором и кондитером, у фотографа должен быть адрес, по которому
+     его находят. Адрес — его номер телефона (DECISIONS.md, «ID приложения»).
+
+     Храним как ввели, с пробелами и скобками: ID из этой строки считается, а
+     не хранится рядом, иначе две записи одного и того же разошлись бы при
+     первой же правке. Стоять это должно после `saved`, а не рядом с
+     `saveAll`: `var` поднимает объявление, но не значение, и объявленное
+     выше читало бы из `undefined` — свой номер молча не находился. */
+  var me = (saved && saved.me) || {};
+  function myPhone() { return me.phone || ""; }
+  function myId() { return appId(me.phone); }
+
+  /* ---------- Свой номер тоже не вечен ----------
+     У карточек история номера есть с самого начала (`telLog`), и там «считать
+     А как Б» получается само: оба номера лежат в одной карточке, карточка и
+     есть тот, кто их связывает. У владельца связывать было нечем — `me` знал
+     одно поле. Сменил номер, и `myId()` молча стал другим ID: всё, что снаружи
+     записало прежний, указывает в никуда, а сказать «это тот же человек»
+     некому.
+
+     Поэтому владелец держит цепочку прежних ID — `me.ids`, старые первыми.
+     Храним именно ID, а не номер: наружу уходил ID, его и держат чужие
+     системы, ему и надо находиться. Кто пришёл со старым ID, тот попадает на
+     нынешний — цепочка читается насквозь, а не на один шаг, потому что номер
+     меняют и дважды. */
+  var MY_IDS_MAX = 12;
+  /* Все ID, которыми владелец был и есть, от старого к нынешнему */
+  function myIdAll() {
+    var out = (me.ids || []).map(function (r) { return r.was; });
+    var cur = myId();
+    if (cur) out.push(cur);
+    return out;
+  }
+  /* Ключи всех своих номеров: старый номер, оставшийся в чужой карточке,
+     должен по-прежнему опознаваться как свой, а не как чей-то ещё */
+  function myKeys() {
+    var k = {};
+    myIdAll().forEach(function (x) { var t = telKey(x); if (t) k[t] = 1; });
+    return k;
+  }
+  function myIdRetire(before, after) {
+    /* Пустое поле — не смена номера, а правка на полпути: цепочку не трогаем.
+       Тот же номер, записанный иначе, тоже не смена — сверяются ключи */
+    if (!telReal(before) || !telReal(after) || telKey(before) === telKey(after)) return false;
+    var list = me.ids || (me.ids = []);
+    var nk = telKey(after);
+    /* Вернулись к номеру, которым уже были: почти всегда это исправленная
+       опечатка или временная симка. Кольца A→Б→A не заводим — срезаем цепочку
+       до той точки, где этот номер стоял, и он снова становится нынешним */
+    for (var i = 0; i < list.length; i++) {
+      if (telKey(list[i].was) === nk) { me.ids = list.slice(0, i); return true; }
+    }
+    list.push({ was: appId(before), at: new Date().toISOString() });
+    if (list.length > MY_IDS_MAX) me.ids = list.slice(-MY_IDS_MAX);
+    return true;
+  }
+
+  /* Последний зафиксированный номер. Держим его сами, а не снимаем по `focus`:
+     фокус — событие ненадёжное (поле может получить значение и без него), а
+     эта переменная просто помнит, на чём цепочку остановили в прошлый раз.
+
+     Фиксируем в трёх местах, потому что одного `blur` мало: номер можно
+     набрать и тут же свернуть приложение, не уводя палец с поля, — тогда
+     `blur` не придёт вовсе и смена пропадёт. Уход с экрана настроек и
+     сворачивание приложения закрывают эту дыру. Повторный вызов безвреден:
+     если номер тот же, `myIdRetire` ничего не делает. */
+  var myTelSnap = "";
+  function myTelCommit() {
+    if (!myIdRetire(myTelSnap, myPhone())) { myTelSnap = myPhone(); return; }
+    myTelSnap = myPhone();
+    saveAll();
+    if ($("appIdWas")) renderProfile();
+  }
+
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
      меняется, а история съёмок не рвётся (docs/12_CARD_ARCHITECTURE.md).
@@ -8674,7 +9160,7 @@
     var col = rgb(st.c);
 
     var moon = skyMode === "moon";
-    ["sunCore", "sunGlow", "sunShade"].forEach(function (id) { $(id).style.display = moon ? "none" : ""; });
+    ["sunCore", "sunGlow", "sunShade", "sunDeep"].forEach(function (id) { $(id).style.display = moon ? "none" : ""; });
     $("moonDisc").style.display = moon ? "" : "none";
     $("arcPath").setAttribute("stroke", moon ? "url(#moonLight)" : "url(#dayLight)");
 
@@ -8696,6 +9182,21 @@
     $("sunGlow").setAttribute("fill", rgba(st.c, (0.18 * vis).toFixed(3)));
     $("sunGlow").setAttribute("stroke", rgb(st.c));
     $("sunGlow").setAttribute("stroke-opacity", (0.34 * vis).toFixed(3));
+
+    /* Светило не исчезает на горизонте, а ныряет под него и идёт дальше по
+       той же дуге — видимое насквозь. Раньше `vis` уводил его в ноль на −3°,
+       и весь сумеречный ход прибор просто терял.
+       `vis` не тронут: диск гаснет как гас, стрелке под землёй делать нечего.
+       Пятно поднимается ровно тем же ходом (0 → −3°), то есть передача из рук
+       в руки, а не два предмета разом. Дальше оно тает к −12°: там кончаются
+       навигационные сумерки, и говорить, что внизу ещё есть свет, было бы
+       враньём. Цвет — тот же цвет состояния, что у диска: алый на закате,
+       розовый в сумерках, синий в синий час. */
+    var deep = clamp(-e / 3, 0, 1) * clamp((12 + e) / 9, 0, 1);
+    $("sunDeep").setAttribute("cx", p[0].toFixed(1));
+    $("sunDeep").setAttribute("cy", p[1].toFixed(1));
+    $("sunDeep").setAttribute("opacity", deep.toFixed(3));
+    ["sdIn", "sdMid", "sdOut"].forEach(function (id) { $(id).setAttribute("stop-color", col); });
 
     var drop = $("drop");
     if (e > 0.5 && !moon) {
@@ -11419,8 +11920,12 @@
     if (!b.hidden) paintIcons(b);
     var row = $("binSetRow");
     if (row) {
-      row.hidden = !trashed.length;
-      $("binSetN").innerHTML = trashed.length + ' <span class="go-chev">\u203a</span>';
+      /* \u0421\u0442\u0440\u043e\u043a\u0430 \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043d\u0430 \u043c\u0435\u0441\u0442\u0435 \u0438 \u0441 \u043f\u0443\u0441\u0442\u043e\u0439 \u043a\u043e\u0440\u0437\u0438\u043d\u043e\u0439: \u00ab\u043f\u0443\u0441\u0442\u043e\u00bb \u2014 \u0442\u0430\u043a\u043e\u0439 \u0436\u0435
+         \u043e\u0442\u0432\u0435\u0442, \u043a\u0430\u043a \u0447\u0438\u0441\u043b\u043e, \u0430 \u043f\u0440\u043e\u043f\u0430\u0434\u0430\u044e\u0449\u0430\u044f \u0441\u0442\u0440\u043e\u043a\u0430 \u0443\u0447\u0438\u0442, \u0447\u0442\u043e \u043a\u043e\u0440\u0437\u0438\u043d\u044b \u043d\u0435\u0442.
+         \u0417\u043d\u0430\u043a\u043e\u043c\u0441\u0442\u0432\u043e \u043d\u0430 \u043f\u0435\u0440\u0432\u043e\u043c \u0437\u0430\u043f\u0443\u0441\u043a\u0435 \u0443\u043f\u0438\u0440\u0430\u0435\u0442\u0441\u044f \u0432 \u044d\u0442\u043e \u043f\u0435\u0440\u0432\u044b\u043c (DECISIONS). */
+      row.hidden = false;
+      $("binSetN").innerHTML = (trashed.length
+        ? trashed.length : LANG.t("bin.emptyShort")) + ' <span class="go-chev">\u203a</span>';
     }
   }
   function renderBin() {
@@ -11653,6 +12158,12 @@
      дорожкой света остаётся вариантом (docs: ROADMAP, «Барабан вместо
      ленты — и лента рядом»). */
   var ribbonMode = (saved && saved.ribbonMode === "lane") ? "lane" : "drum";
+  /* Вид прорези барабана. Умолчание — «бумага»: это то, что уже стоит, и
+     менять его до голосования значило бы решить за голосующих. */
+  var DRUM_SLOTS = ["paper", "graphite", "window"];
+  var drumSlot = (saved && DRUM_SLOTS.indexOf(saved.drumSlot) > -1) ? saved.drumSlot : "paper";
+  function applyDrumSlot() { document.body.dataset.drum = drumSlot; }
+  applyDrumSlot();
   function snapMin(m) { return Math.round(m / timeStep) * timeStep; }
   /* Значения барабана минут: шаг плюс текущая минута, если она не по шагу —
      иначе барабан не сможет показать 19:38, пришедшие от заката */
@@ -12028,6 +12539,13 @@
      ОРГАНИЗАЦИИ И ХРАНИЛИЩЕ ДОКУМЕНТОВ
      ============================================================ */
   var orgIdx = null;                 // открытая карточка организации
+  /* Номера организации, какими они были на момент открытия карточки. Поля
+     организации пишутся с каждым нажатием клавиши, и сравнивать «до и после»
+     там негде: на полпути к новому номеру старый уже стёрт побуквенно.
+     Поэтому снимок делаем при открытии, а сверяем при закрытии — заодно это
+     не зависит от порядка правки, а менеджера меняют вместе с номером, и
+     первым правят то имя, то телефон. */
+  var orgTelSnap = [];
 
   /* Все бумаги в одном месте: документы съёмок и документы организаций.
      Реквизиты организации сюда тоже попадают — это такой же файл, который
@@ -12394,6 +12912,7 @@
     orgIdx = i;
     var o = orgs[i];
     if (!o) return;
+    orgTelSnap = orgTels(o);
     $("oName").value = o.name || "";
     $("oPerson").value = o.person || "";
     $("oPhone").value = o.phone || "";
@@ -12405,6 +12924,15 @@
   }
   function closeOrgCard() {
     var o = orgs[orgIdx];
+    /* Менеджер не вечен: через год по этому номеру ответит другой человек, а
+       звонки и письма от прежнего останутся в истории заказов. Уходя, номер
+       забирает с собой имя, которое за ним стояло, — «Ирина, до 27 августа»
+       читается, а голый номер в архиве не значит ничего. */
+    if (o && orgTelSnap.length) {
+      var gone = telRetire(orgTelSnap, orgTels(o), o.telLog);
+      if (gone.length) { o.telLog = gone; saveAll(); }
+    }
+    orgTelSnap = [];
     orgIdx = null;
     $("orgCard").classList.remove("open");
     /* Организацию завели из формы — она же и выбирается: возвращать человека
@@ -13130,6 +13658,162 @@
     if (rest.length > 8) out += "-" + rest.slice(8, 10);
     return out;
   }
+
+  /* ---------- Номер как ключ ----------
+     Номер телефона — готовый всемирный идентификатор: его уже выдали, он уже
+     уникален, и человек уже носит его с собой. Заводить свой генератор ID
+     значило бы просить фотографа помнить вторую такую же строку без выгоды
+     (см. DECISIONS.md, «ID приложения»).
+
+     Три формы одного номера нужны для разного:
+     `telFull` — цифры номера целиком, с кодом страны. Общая основа для двух
+                 форм ниже, наружу сама не показывается.
+     `telE164` — как набрать: `+79234123330`. Только для ссылки «позвонить».
+     `appId`   — как назваться: `id79234123330`. Плюс здесь был бы вредной
+                 подсказкой — строка выглядела бы номером для набора, хотя
+                 это идентификатор. К тому же `+` не переживает адресную
+                 строку: в запросе он читается пробелом, а ID рано или поздно
+                 поедет в ссылке к серверному Event OS.
+     `telKey`  — как понять, что два по-разному записанных номера принадлежат
+                 одному человеку. */
+  function telDigits(v) { return String(v || "").replace(/\D/g, ""); }
+  /* Восьмёрка и подставленная семёрка — те же допущения, что делает formatTel
+     при вводе: приложение выросло на местных номерах, и менять эту привычку
+     здесь, в отрыве от поля ввода, значило бы разойтись с ним в показаниях */
+  function telFull(v) {
+    var d = telDigits(v);
+    if (!d) return "";
+    if (d.length === 11 && d[0] === "8") d = "7" + d.slice(1);
+    if (d.length === 10 && d[0] === "9") d = "7" + d;
+    return d;
+  }
+  function telE164(v) { var d = telFull(v); return d ? "+" + d : ""; }
+  /* Приставка строчными и без разделителя: ID диктуют голосом и вбивают
+     руками, а дефис или точка в середине — лишний повод спросить «какой
+     там знак». `id` читается как приставка на любом языке и не спорит с
+     цифрами при выделении двойным щелчком. */
+  function appId(v) { var d = telFull(v); return d ? "id" + d : ""; }
+  /* Ключ — девять последних цифр. Таблицы кодов стран в приложении нет и
+     заводить её незачем: «8 916 123-45-67», «+7 916 123-45-67» и записанные
+     без кода «916 123-45-67» сходятся хвостом, а девять цифр — самая короткая
+     абонентская часть из встречающихся. Совпадение хвостов у двух разных
+     людей в записной книжке одного фотографа — событие, которого не будет. */
+  function telKey(v) {
+    var d = telDigits(v);
+    return d.length > 9 ? d.slice(-9) : d;
+  }
+  /* Короче пяти цифр — не номер, а обрывок: внутренний добавочный, начало
+     набора, случайные цифры в поле. Такое в базу связок не пускаем */
+  function telReal(v) { return telKey(v).length >= 5; }
+
+  /* ---------- Номер живёт во времени ----------
+     У клиента меняется номер, менеджер уходит из организации, невеста после
+     свадьбы переходит на другой тариф. Если считать номер свойством карточки,
+     то в день замены рвётся вся история: старые съёмки перестают находиться
+     по номеру, с которого по ним и звонили.
+
+     Поэтому карточка постоянна, а номер — её временный атрибут. Тот же
+     принцип уже работает у организации: `orgId` вечен, название и лицо
+     правятся (docs/12_CARD_ARCHITECTURE.md). Ушедший номер не стирается, а
+     ложится в `telLog` карточки вместе с именем, которое за ним стояло, и
+     датой замены. Дозваниваться по нему больше не надо — а вот узнать
+     карточку по звонку со старого номера надо обязательно. */
+  var TEL_LOG_MAX = 12;
+  /* Номера съёмки: их правда бывает три и четыре. У свадьбы — невеста, жених,
+     заказчик и контактное лицо площадки, и это четыре разных человека, а не
+     четыре записи одного. Роль (`f`) поэтому хранится рядом с номером. */
+  function shootTels(s) {
+    var out = [];
+    if (s.clientTel) out.push({ f: "client", tel: s.clientTel, n: s.contact || "" });
+    (s.persons || []).forEach(function (p, i) {
+      if (p && p.tel) out.push({ f: "p" + (i + 1), tel: p.tel, n: p.n || "" });
+    });
+    if (s.phone) out.push({ f: "person", tel: s.phone, n: s.person || "" });
+    return out.filter(function (t) { return telReal(t.tel); });
+  }
+  function orgTels(o) {
+    return o && telReal(o.phone) ? [{ f: "org", tel: o.phone, n: o.person || "" }] : [];
+  }
+  /* Сверяем карточку до правки и после. Сверка идёт по всей карточке, а не по
+     каждому полю отдельно: номер невесты, переписанный в строку заказчика, —
+     это переезд внутри карточки, а не смена номера, и в архив ему не надо. */
+  function telRetire(before, after, log) {
+    var out = (log || []).slice();
+    var now = new Date().toISOString();
+    var live = {};
+    after.forEach(function (t) { live[telKey(t.tel)] = 1; });
+    before.forEach(function (t) {
+      var k = telKey(t.tel);
+      if (live[k]) return;                                     // номер на месте
+      for (var i = 0; i < out.length; i++) if (telKey(out[i].tel) === k) return;
+      out.push({ f: t.f, tel: t.tel, n: t.n, at: now });
+    });
+    /* Архив не растёт бесконечно: дюжина прежних номеров у одной карточки —
+       это уже не история отношений, а мусор от опечаток */
+    return out.slice(-TEL_LOG_MAX);
+  }
+
+  /* ---------- Внутренняя база номеров ----------
+     Собирается заново из карточек, а не хранится отдельно: два списка одних и
+     тех же номеров разошлись бы в первый же день. Это и есть та таблица,
+     которую позже увидит серверный Event OS, — там она свяжет карточки разных
+     исполнителей, здесь пока связывает карточки одного. */
+  function phoneIndex() {
+    var map = {}, order = [];
+    function put(e) {
+      var k = telKey(e.tel);
+      if (!k) return;
+      if (!map[k]) { map[k] = { key: k, tel: e.tel, at: e.at, rows: [] }; order.push(k); }
+      var g = map[k];
+      g.rows.push(e);
+      /* Показываем номер в самой полной из встреченных записей: если где-то он
+         записан с кодом страны, а где-то без — звонить надо по первому */
+      if (!e.past && telDigits(e.tel).length > telDigits(g.tel).length) g.tel = e.tel;
+      if (e.at && (!g.at || e.at > g.at)) g.at = e.at;
+    }
+    sessions.forEach(function (s, i) {
+      var when = s.date ? s.date.toISOString() : null;
+      shootTels(s).forEach(function (t) {
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "shoot", i: i, at: when });
+      });
+      (s.telLog || []).forEach(function (t) {
+        if (!telReal(t.tel)) return;
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "shoot", i: i, at: t.at, past: true });
+      });
+    });
+    orgs.forEach(function (o, i) {
+      orgTels(o).forEach(function (t) {
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "org", i: i, name: o.name, at: null });
+      });
+      (o.telLog || []).forEach(function (t) {
+        if (!telReal(t.tel)) return;
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "org", i: i, name: o.name, at: t.at, past: true });
+      });
+    });
+    /* Свои номера считаем один раз на весь список, а не на каждый номер:
+       сюда входят и прежние — старая симка, оставшаяся в чужой карточке, это
+       по-прежнему я, а не посторонний человек */
+    var mine = myKeys();
+    var out = order.map(function (k) {
+      var g = map[k];
+      /* Связка — это номер, встреченный больше чем в одной карточке. Ради неё
+         всё и затевалось: заказчик, оказавшийся отцом невесты, виден только
+         так. Разные роли внутри одной съёмки связкой не считаем. */
+      var cards = {};
+      g.rows.forEach(function (r) { cards[r.kind + r.i] = 1; });
+      g.cards = Object.keys(cards).length;
+      g.live = g.rows.some(function (r) { return !r.past; });
+      g.me = !!mine[g.key];
+      return g;
+    });
+    /* Сверху — связки, дальше свежее вперёд: список читают, чтобы что-то
+       найти, а не чтобы любоваться алфавитом */
+    return out.sort(function (a, b) {
+      if ((b.cards > 1) - (a.cards > 1)) return (b.cards > 1) - (a.cards > 1);
+      return String(b.at || "").localeCompare(String(a.at || ""));
+    });
+  }
+
   /* Имя без фамилии: в шапке карточки нужны Алексей и Елена, а не паспорт */
   function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || ""; }
 
@@ -16105,6 +16789,15 @@
       route: hasRoute(shootType) ? routeFromEditor() : [],
       synced: syncTarget === "off" ? null : syncTarget
     };
+    /* Номер, пропавший из карточки при этой правке, уходит в её архив, а не в
+       никуда: клиент сменил телефон — по старому больше не звонят, но звонок
+       с него по-прежнему должен узнаваться. Заодно это единственное место,
+       где архив вообще переживает сохранение: форма собирает запись заново из
+       своих полей, и `telLog` в них нет — как и `questSent` выше. */
+    var prevRec = editIdx !== null ? sessions[editIdx] : null;
+    var telGone = telRetire(prevRec ? shootTels(prevRec) : [], shootTels(rec),
+      prevRec && prevRec.telLog);
+    if (telGone.length) rec.telLog = telGone;
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
@@ -16411,7 +17104,7 @@
   function renderRibbon() {
     measureRibbon();
     var drum = ribbonMode === "drum";
-    document.querySelector(".ribbon-wrap").classList.toggle("drum", drum);
+    document.querySelector("#timebar .ribbon-wrap").classList.toggle("drum", drum);
     $("ribbonScroll").classList.toggle("drum", drum);
     var dir = ribbonSpringDir; ribbonSpringDir = 0;
     drumStopSettle(); drumPos = 0;
@@ -17249,6 +17942,7 @@
     if ($("storeCount")) renderStorageInfo();
     if ($("cloudSeg")) renderCloudInfo();
     if ($("spotCount")) renderSpotMark();
+    if ($("appIdV")) renderProfile();
     if (typeof renderBinBtn === "function") renderBinBtn();
     if (!booted) return;
     paintDate();           // дата в шапке живёт отдельно от renderToday
@@ -17318,41 +18012,257 @@
   $("startDone").addEventListener("click", closeStartSheet);
   $("startScrim").addEventListener("click", closeStartSheet);
 
-  /* ---------- Знакомство: приветствие + семь карточек по шагам ----------
-     Показывается один раз, на самом первом запуске (нет сохранённых
-     данных). Приветствие само предлагает выбор «Ознакомиться / Пропустить»
-     — шаги внутри уже просто листаются вперёд и закрываются в любой момент */
-  var OB_STEPS = 7;   // без учёта приветствия
-  var obIdx = 0;
-  function obGoTo(i) {
-    obIdx = Math.max(0, Math.min(OB_STEPS, i));
-    $("obTrack").style.transform = "translateX(-" + (obIdx * 100 / (OB_STEPS + 1)) + "%)";
-    $("onboard").classList.toggle("at-welcome", obIdx === 0);
-    $("obDots").innerHTML = "";
-    for (var k = 1; k <= OB_STEPS; k++) {
-      $("obDots").insertAdjacentHTML("beforeend",
-        '<span class="ob-dot' + (k === obIdx ? " on" : "") + '"></span>');
+  /* ---------- Знакомство: плашки поверх живого интерфейса ----------
+     Тур не пересказывает интерфейс картинками — он водит по нему самому:
+     переключает вкладки, ведёт ползунок времени, включает астро-режим и
+     возвращает его обратно. Плашка стоит у того элемента, о котором
+     говорит; уходит по «Далее», свайпу, тапу по подсвеченному месту или по
+     крестику — выйти можно на любом шаге, это правило, а не удобство.
+     Шаг описывает: `sel` — кандидаты в адресаты (берётся первый видимый,
+     остальные запасные: строки корзины может не быть вовсе), `tab` — экран,
+     `pin` — элемент, под которым встать плашке, если сам адресат мелкий,
+     `run` — что показать; `run` возвращает уборку за собой. */
+  var TOUR = [
+    { k: "hi",    ms: 5200, tab: "s-today" },
+    { k: "dome",  ms: 7000, tab: "s-today", sel: [".dome"] },
+    { k: "time",  ms: 8400, tab: "s-today", sel: ["#timebar"], run: tourScrub },
+    { k: "sky",   ms: 6600, tab: "s-today", sel: ["#skySwap"], pin: ".dome", run: tourSky },
+    { k: "tele",  ms: 6800, tab: "s-today", sel: ["#s-today .telemetry"] },
+    { k: "place", ms: 6600, tab: "s-today", sel: ["#todayLoc"] },
+    { k: "map",   ms: 7200, tab: "s-map",   sel: [".map-frame"] },
+    { k: "cal",   ms: 7200, tab: "s-plan",  sel: ["#cal", "#calHead"] },
+    { k: "stats", ms: 7800, tab: "s-plan",  sel: ["#planStats", "#statsBtn"] },
+    { k: "add",   ms: 6800, tab: "s-plan",  sel: ["#planAdd"] },
+    { k: "bin",   ms: 7400, tab: "s-set",   sel: ["#binSetRow"] },
+    { k: "mode",  ms: 8400, tab: "s-set",   sel: ["#modeSeg"], run: tourMode },
+    { k: "cloud", ms: 7200, tab: "s-set",   sel: ["#cloudSeg"] },
+    { k: "end",   ms: 0,    tab: "s-set",   sel: ["#tourSetRow"] }
+  ];
+  var tourIdx = -1, tourT0 = 0, tourTimer = null, tourUndo = null, tourSwipeX = null, tourScrollAt = 0, tourScrollTimer = 0;
+
+  function tourDev() { return document.querySelector(".device").getBoundingClientRect(); }
+  /* Адресат берётся видимый: скрытую строку обводить нечем, а тур из-за
+     этого останавливаться не должен */
+  /* Экран настроек длиннее рамки: элемент шага может лежать ниже видимого.
+     Подкручиваем сам экран, а не рамку — рамка догонит на следующем тике,
+     она пересчитывается постоянно. scrollIntoView не годится: он дёргает и
+     внешнюю страницу, а нам нужен только внутренний экран телефона. */
+  function tourScroll(el, now) {
+    if (!el) return;
+    var box = el.closest(".screen"); if (!box) return;
+    if (box.scrollHeight - box.clientHeight < 8) return;
+    var er = el.getBoundingClientRect(), br = box.getBoundingClientRect();
+    if (!br.height) return;                       // экран ещё не стал активным
+    var top = er.top - br.top, bot = top + er.height;
+    if (top >= 24 && bot <= br.height - 24) return;   // уже на виду
+    var y = box.scrollTop + top - box.clientHeight * 0.3;
+    y = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, y));
+    if (Math.abs(y - box.scrollTop) < 6) return;
+    if (now) { if (tourScrollTimer) { clearInterval(tourScrollTimer); tourScrollTimer = 0; } box.scrollTop = y; return; }
+    /* Едем сами, а не behavior:"smooth": плавную прокрутку браузера здесь
+       глушит живущее на экране, и адресат так и не доезжал до видимой части.
+       Дуга считается по таймеру, как и весь тур, — так она не зависит от
+       того, отдаёт ли окно кадры анимации. */
+    if (tourScrollTimer) clearInterval(tourScrollTimer);
+    var from = box.scrollTop, t0 = Date.now();
+    tourScrollTimer = setInterval(function () {
+      var p = Math.min(1, (Date.now() - t0) / 340);
+      box.scrollTop = from + (y - from) * (1 - Math.pow(1 - p, 3));
+      if (p >= 1) { clearInterval(tourScrollTimer); tourScrollTimer = 0; }
+    }, 16);
+  }
+  function tourEl(step) {
+    var list = (step && step.sel) || [];
+    for (var i = 0; i < list.length; i++) {
+      var el = document.querySelector(list[i]);
+      if (el && !el.hidden && el.offsetParent !== null) return el;
     }
-    $("obNext").textContent = LANG.t(obIdx === OB_STEPS ? "onb.done" : "onb.next");
+    return null;
   }
-  function openOnboard() {
-    obGoTo(0);
-    $("onboard").hidden = false;
-    requestAnimationFrame(function () { $("onboard").classList.add("open"); });
+  function tourBox(el) {
+    var dr = tourDev(), r = el.getBoundingClientRect();
+    return { x: r.left - dr.left, y: r.top - dr.top, w: r.width, h: r.height };
   }
-  function closeOnboard(openFirstShoot) {
-    $("onboard").classList.remove("open");
-    setTimeout(function () { $("onboard").hidden = true; }, 320);
+  /* Пересчитывается на каждом тике, а не один раз на шаг: подсвеченное
+     умеет ехать само — ползунок, купол, выезжающий лист */
+  function tourPlace() {
+    var step = TOUR[tourIdx]; if (!step) return;
+    var dr = tourDev(), el = tourEl(step), b = el ? tourBox(el) : null;
+    var hole = $("tourHole"), ring = $("tourRing"), card = $("tourCard"), beak = $("tourBeak");
+    var pad = 7;
+    if (b) {
+      var hx = b.x - pad, hy = b.y - pad, hw = b.w + pad * 2, hh = b.h + pad * 2;
+      var rad = Math.min(26, Math.max(12, b.h / 2 + 4));
+      [hole, ring].forEach(function (n) {
+        n.style.left = Math.round(hx) + "px"; n.style.top = Math.round(hy) + "px";
+        n.style.width = Math.round(hw) + "px"; n.style.height = Math.round(hh) + "px";
+        n.style.borderRadius = rad + "px";
+      });
+      ring.classList.remove("blind");
+    } else {
+      /* Плашка без адреса: у понятия бывает не быть места на экране —
+         тогда затемняется всё, и плашка встаёт по центру */
+      [hole, ring].forEach(function (n) {
+        n.style.left = Math.round(dr.width / 2) + "px"; n.style.top = Math.round(dr.height / 2) + "px";
+        n.style.width = "2px"; n.style.height = "2px"; n.style.borderRadius = "2px";
+      });
+      ring.classList.add("blind");
+    }
+    var pinEl = step.pin ? document.querySelector(step.pin) : null;
+    var pb = pinEl && pinEl.offsetParent !== null ? tourBox(pinEl) : b;
+    var cw = card.offsetWidth, ch = card.offsetHeight;
+    var below = pb ? (pb.y + pb.h / 2) < dr.height * 0.46 : true;
+    var cx = b ? b.x + b.w / 2 : dr.width / 2;
+    var left = b ? Math.max(14, Math.min(dr.width - cw - 14, cx - cw / 2)) : (dr.width - cw) / 2;
+    var top = pb ? (below ? pb.y + pb.h + 15 : pb.y - 15 - ch) : (dr.height - ch) / 2;
+    top = Math.max(14, Math.min(dr.height - ch - 14, top));
+    card.style.left = Math.round(left) + "px";
+    card.style.top = Math.round(top) + "px";
+    if (!b) { beak.className = "beak off"; return; }
+    beak.className = "beak " + (below ? "up" : "down");
+    beak.style.left = Math.round(Math.max(18, Math.min(cw - 32, cx - left - 6.5))) + "px";
+  }
+  function tourDots() {
+    var s = "";
+    for (var i = 0; i < TOUR.length; i++) {
+      s += '<i class="' + (i === tourIdx ? "on" : (i < tourIdx ? "done" : "")) + '"></i>';
+    }
+    $("tourDots").innerHTML = s;
+  }
+  function tourGo(i) {
+    if (tourUndo) { try { tourUndo(); } catch (e) {} tourUndo = null; }
+    $("tourTap").className = "tour-tap";
+    tourIdx = Math.max(0, Math.min(TOUR.length - 1, i));
+    var step = TOUR[tourIdx], last = tourIdx === TOUR.length - 1;
+    if (step.tab && document.body.dataset.tab !== step.tab) go(step.tab);
+    $("tourNo").textContent = (tourIdx + 1) + " / " + TOUR.length;
+    $("tourTitle").textContent = LANG.t("tour." + step.k + ".t");
+    $("tourText").textContent = LANG.t("tour." + step.k + ".d");
+    $("tourBack").hidden = tourIdx === 0;
+    $("tourSkip").hidden = tourIdx !== 0;
+    $("tourNext").textContent = LANG.t(last ? "tour.done" : "tour.next");
+    $("tourProg").style.width = "0";
+    tourDots();
+    var card = $("tourCard");
+    card.classList.add("enter");
+    tourPlace();
+    setTimeout(function () { tourPlace(); card.classList.remove("enter"); }, 20);
+    /* Разом, без дуги: шаг начинается с адресата на виду, а плавно доедет
+       уже тик, если экран только что переключился и позиции успели сбиться */
+    setTimeout(function () { if (TOUR[tourIdx] === step) tourScroll(tourEl(step), true); }, 40);
+    tourT0 = Date.now();
+    if (typeof step.run === "function") tourUndo = step.run() || null;
+  }
+  function tourTick() {
+    if (tourIdx < 0) return;
+    tourPlace();
+    /* Прокрутка живёт в тике, а не в переходе на шаг: переключение вкладки
+       само ставит экран в начало, и любая единственная попытка попадала под
+       этот сброс — шаг про корзину так и оставался ниже видимого края.
+       Здесь же она просто повторяется, пока адресат не окажется на виду. */
+    if (Date.now() - tourScrollAt > 340) { tourScrollAt = Date.now(); tourScroll(tourEl(TOUR[tourIdx])); }
+    var ms = TOUR[tourIdx].ms || 0;
+    if (!ms) return;                      // последний шаг ждёт человека, а не таймер
+    var p = (Date.now() - tourT0) / ms;
+    $("tourProg").style.width = Math.min(100, p * 100).toFixed(1) + "%";
+    if (p >= 1 && tourIdx < TOUR.length - 1) tourGo(tourIdx + 1);
+  }
+  function openTour() {
+    $("tour").hidden = false;
+    setTimeout(function () { $("tour").classList.add("open"); }, 20);
+    tourGo(0);
+    clearInterval(tourTimer); tourTimer = setInterval(tourTick, 60);
+  }
+  function closeTour() {
+    clearInterval(tourTimer); tourTimer = null;
+    if (tourUndo) { try { tourUndo(); } catch (e) {} tourUndo = null; }
+    tourIdx = -1;
+    $("tour").classList.remove("open");
+    $("tourTap").className = "tour-tap";
+    setTimeout(function () { $("tour").hidden = true; }, 320);
+    /* Возвращаем туда, откуда начинали: тур уводил по вкладкам, и бросать
+       человека в настройках после знакомства со светом незачем */
+    if (document.body.dataset.tab !== "s-today") go("s-today");
     if (!practiceAsked) setTimeout(openStartSheet, 600);
-    if (openFirstShoot) openForm(new Date(), null);
   }
-  $("obStart").addEventListener("click", function () { obGoTo(1); });
-  $("obLater").addEventListener("click", function () { closeOnboard(false); });
-  $("obSkip").addEventListener("click", function () { closeOnboard(false); });
-  $("obNext").addEventListener("click", function () {
-    if (obIdx >= OB_STEPS) { closeOnboard(true); return; }
-    obGoTo(obIdx + 1);
+
+  /* Ползунок ведёт сам тур: иначе не показать, что от времени меняется всё
+     сразу — купол, телеметрия, погода. Значение возвращается при уходе со
+     шага: тур ничего за собой не оставляет */
+  function tourScrub() {
+    var sc = $("scrub"); if (!sc) return null;
+    var tap = $("tourTap"), was = +sc.value;
+    var from = was, to = Math.min(1435, was + 170), t0 = Date.now();
+    var t = setInterval(function () {
+      var p = Math.min(1, (Date.now() - t0) / 4400);
+      var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      var v = Math.round(from + (to - from) * e);
+      if (+sc.value !== v) { sc.value = v; sc.dispatchEvent(new Event("input", { bubbles: true })); }
+      var r = sc.getBoundingClientRect(), dr = tourDev();
+      tap.style.left = Math.round(r.left - dr.left + 13 + (r.width - 26) * (v / 1440)) + "px";
+      tap.style.top = Math.round(r.top - dr.top + r.height / 2) + "px";
+      tap.classList.add("on"); tap.classList.toggle("press", p < 1);
+      if (p >= 1) clearInterval(t);
+    }, 40);
+    return function () {
+      clearInterval(t); tap.className = "tour-tap";
+      sc.value = was; sc.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+  }
+  /* Тумблер светила нажимается по-настоящему: разница между солнцем и луной
+     видна только на самом куполе. По уходу нажимается обратно */
+  function tourSky() {
+    var b = $("skySwap"); if (!b) return null;
+    var tap = $("tourTap"), dr = tourDev(), r = b.getBoundingClientRect(), flipped = false;
+    tap.style.left = Math.round(r.left - dr.left + r.width / 2) + "px";
+    tap.style.top = Math.round(r.top - dr.top + r.height / 2) + "px";
+    tap.classList.add("on");
+    var t1 = setTimeout(function () { tap.classList.add("press"); }, 700);
+    var t2 = setTimeout(function () { b.click(); flipped = true; tap.classList.remove("press"); }, 1150);
+    return function () {
+      clearTimeout(t1); clearTimeout(t2); tap.className = "tour-tap";
+      if (flipped) b.click();
+    };
+  }
+  /* «Астро» включается на самом шаге — переключатель виден, и видно, что он
+     делает. Настройку тур не меняет: прежний режим возвращается при уходе */
+  function tourMode() {
+    var seg = $("modeSeg"); if (!seg) return null;
+    var was = seg.querySelector("button.active"), pro = seg.querySelector('[data-mode="pro"]');
+    if (!was || !pro) return null;
+    var t = setTimeout(function () { if (was !== pro) pro.click(); }, 1500);
+    return function () {
+      clearTimeout(t);
+      if (was && !was.classList.contains("active")) was.click();
+    };
+  }
+
+  $("tourX").addEventListener("click", closeTour);
+  $("tourSkip").addEventListener("click", closeTour);
+  $("tourBack").addEventListener("click", function () { tourGo(tourIdx - 1); });
+  $("tourNext").addEventListener("click", function () {
+    if (tourIdx >= TOUR.length - 1) { closeTour(); return; }
+    tourGo(tourIdx + 1);
   });
+  /* Тап по обведённому месту — то же «дальше»: человек тянется к тому, что
+     подсвечено, и это не должно быть промахом */
+  $("tour").addEventListener("click", function (e) {
+    if (e.target.closest(".tour-card")) return;
+    var el = tourEl(TOUR[tourIdx]); if (!el) return;
+    var r = el.getBoundingClientRect();
+    if (e.clientX >= r.left - 8 && e.clientX <= r.right + 8 &&
+        e.clientY >= r.top - 8 && e.clientY <= r.bottom + 8) {
+      if (tourIdx >= TOUR.length - 1) closeTour(); else tourGo(tourIdx + 1);
+    }
+  });
+  $("tour").addEventListener("pointerdown", function (e) { tourSwipeX = e.clientX; });
+  $("tour").addEventListener("pointerup", function (e) {
+    if (tourSwipeX == null) return;
+    var dx = e.clientX - tourSwipeX; tourSwipeX = null;
+    if (dx < -45 && tourIdx < TOUR.length - 1) tourGo(tourIdx + 1);
+    else if (dx > 45 && tourIdx > 0) tourGo(tourIdx - 1);
+  });
+  $("tourSetRow").addEventListener("click", openTour);
 
   renderPracticeChips();
   renderLangChips();
@@ -17957,6 +18867,8 @@
       proMode = b.dataset.mode === "pro";
       document.body.classList.toggle("pro-mode", proMode);
       saveAll();
+      // Вид ленты и прорези — настройки без предмета в «Просто», прячутся вместе с режимом
+      if (typeof renderRibbonSeg === "function") renderRibbonSeg();
       // Деления компаса живут в SVG, а не в CSS: одним классом их не показать
       renderMap();
     });
@@ -18197,12 +19109,18 @@
   /* Смена вида — перестройка сразу, дата и время под пальцем не меняются,
      только то, как их показывают (docs: DECISIONS) */
   function renderRibbonSeg() {
+    // Строка целиком по режиму: в «Просто» самой ленты нет, показывать
+    // выбор вида было бы настройкой без предмета
+    $("ribbonLabel").hidden = !proMode;
+    $("ribbonSeg").hidden = !proMode;
+    $("ribbonNote").hidden = !proMode;
     document.querySelectorAll("#ribbonSeg button").forEach(function (b) {
       b.classList.toggle("active", b.dataset.ribbon === ribbonMode);
     });
     $("ribbonNote").textContent = ribbonMode === "drum"
       ? LANG.t("set.ribbonNoteDrum")
       : LANG.t("set.ribbonNoteLane");
+    renderDrumSlotSeg();
   }
   document.querySelectorAll("#ribbonSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -18210,6 +19128,42 @@
       ribbonMode = b.dataset.ribbon;
       saveAll(); renderRibbonSeg();
       if (typeof renderRibbon === "function") renderRibbon();
+    });
+  });
+
+  /* Вид прорези. Прячется вместе с режимом и барабаном (у ленты прорези
+     нет), а в тёмной теме — ещё и сам по себе: три вида в тёмной теме
+     сходятся в один (CSS красит их только под `[data-theme="light"]`),
+     и показывать выбор без разницы незачем.
+     Перерисовки барабана не требует: меняются только переменные темы,
+     ячейки и их положение те же (docs: DECISIONS, «Барабан: диск в прорези») */
+  function renderDrumSlotSeg() {
+    var on = proMode && ribbonMode === "drum" && theme === "light";
+    $("drumSlotLabel").hidden = !on;
+    $("drumSlotSeg").hidden = !on;
+    $("drumSlotNote").hidden = !on;
+    $("drumPreview").hidden = !on;
+    document.querySelectorAll("#drumSlotSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.drum === drumSlot);
+    });
+    $("drumSlotNote").textContent = LANG.t("set.drumNote" + drumSlot[0].toUpperCase() + drumSlot.slice(1));
+    if (on) renderDrumPreview();
+  }
+  /* Живой образец: три ячейки барабана теми же функциями, что строят
+     настоящий (`buildDrumCell`) — значит и знак (луна/погода), и цвет
+     прорези совпадают с тем, что увидишь на «Свете», а не изображают его
+     приблизительно. Без позиционирования: центрирует flex, а не транслейт,
+     ставить курсор смысла нет — образец не перетаскивают. */
+  function renderDrumPreview() {
+    var host = $("drumPreviewTrack"); if (!host) return;
+    host.innerHTML = "";
+    for (var r = -1; r <= 1; r++) host.appendChild(buildDrumCell(addDays(selDate, r), r));
+  }
+  document.querySelectorAll("#drumSlotSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.drum === drumSlot) return;
+      drumSlot = b.dataset.drum;
+      applyDrumSlot(); saveAll(); renderDrumSlotSeg();
     });
   });
   renderRibbonSeg();
@@ -18288,6 +19242,167 @@
   $("mapLoc").addEventListener("click", function () { openLocSheet("app"); });
   $("spotsRow").addEventListener("click", function () { openLocSheet("app"); });
   $("binSetRow").addEventListener("click", openBin);
+
+  /* ---------- Профиль и контакты ---------- */
+  /* Свой номер причёсывается тем же formatTel, что и все остальные: если
+     показывать его иначе, чем номера клиентов, при сверке «мой это или не
+     мой» человек будет спотыкаться на каждом пробеле */
+  (function () {
+    var el = $("myTel");
+    if (!el) return;
+    var lastLen = telDigits(myPhone()).length;
+    el.value = myPhone();
+    el.addEventListener("input", function (e) {
+      var digits = telDigits(this.value).length;
+      var pasted = digits - lastLen > 1
+        || (e && /paste|replacement|autofill/i.test(e.inputType || ""));
+      var end = this.selectionStart === this.value.length;
+      this.value = formatTel(this.value, pasted);
+      lastLen = telDigits(this.value).length;
+      if (end) this.selectionStart = this.selectionEnd = this.value.length;
+      me.phone = this.value.trim();
+      saveAll(); renderProfile();
+    });
+    /* Смену номера фиксируем не в `input`: поле пишется с каждым нажатием
+       клавиши, и по дороге к новому номеру мимо прошёл бы десяток обрывков —
+       каждый со своим «прежним ID». Границы — в myTelCommit */
+    myTelSnap = myPhone();
+    el.addEventListener("blur", myTelCommit);
+  })();
+  /* Свернули приложение с открытым полем — тот же момент «правка закончена».
+     `visibilitychange` приходит и там, где `blur` не приходит */
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") myTelCommit();
+  });
+  function renderProfile() {
+    var id = myId();
+    /* Пока номера нет, строка не молчит прочерком, а говорит, чего не хватает:
+       ID — не настройка на любителя, без него узел Event OS безымянный */
+    $("appIdV").textContent = id || LANG.t("set.appIdNone");
+    $("appIdV").classList.toggle("set", !!id);
+    /* Прежние ID — новыми сверху: чем свежее смена, тем вероятнее, что именно
+       про неё сейчас спрашивают. Показываем их всегда, а не прячем в
+       «подробно»: строка, по которой тебя знают снаружи, не должна тихо
+       меняться под человеком */
+    var was = (me.ids || []).slice().reverse();
+    $("appIdWasLabel").hidden = !was.length;
+    $("appIdWasNote").hidden = !was.length;
+    $("appIdWas").innerHTML = was.map(function (r) {
+      var d = new Date(r.at);
+      return '<div class="item"><span class="k id-was">' + esc(r.was) + "</span>"
+        + '<span class="v">' + esc(dMon(d) + " " + d.getFullYear()) + "</span></div>";
+    }).join("");
+    var n = phoneIndex().length;
+    $("phonesN").innerHTML = (n ? n : esc(LANG.t("card.none")))
+      + ' <span class="go-chev">›</span>';
+  }
+  /* ID копируется по тапу: его диктуют и вставляют, а перепечатывать
+     двенадцать цифр с экрана — способ ошибиться. Подтверждение показываем в
+     самой строке, а не общей подписью `saveNote`: та живёт в шапке карты и с
+     экрана настроек попросту не видна. Строка отвечает там, где нажали. */
+  /* Современный буфер спрашивает разрешение и в обёртке WKWebView отвечает
+     отказом чаще, чем хотелось бы. Старый `execCommand` разрешения не просит
+     и работает там же — держим его запасным, иначе тап по строке иногда не
+     делает ровно ничего, и понять почему нельзя. */
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(t).catch(function () { return legacyCopy(t); });
+    }
+    return legacyCopy(t);
+  }
+  function legacyCopy(t) {
+    return new Promise(function (ok, no) {
+      var ta = document.createElement("textarea");
+      ta.value = t;
+      /* Поле нельзя прятать `display:none` — из невидимого не копируется.
+         Уводим за край экрана и делаем нечитаемым для экранного диктора */
+      ta.setAttribute("readonly", "");
+      ta.setAttribute("aria-hidden", "true");
+      ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, t.length);
+      var done = false;
+      try { done = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      done ? ok() : no();
+    });
+  }
+  var appIdNoteTimer = null;
+  $("appIdRow").addEventListener("click", function () {
+    var id = myId();
+    if (!id) { $("myTel").focus(); return; }
+    copyText(id).then(function () {
+      $("appIdV").textContent = LANG.t("set.appIdCopied");
+      clearTimeout(appIdNoteTimer);
+      appIdNoteTimer = setTimeout(renderProfile, 1600);
+    }).catch(function () {});
+  });
+  $("phonesRow").addEventListener("click", openPhones);
+  $("phoneBack").addEventListener("click", function () {
+    $("phoneOverlay").classList.remove("open");
+  });
+  /* Чей это номер внутри карточки. Роль не выводится из имени: у съёмки без
+     пары контактное лицо и клиент — разные люди с одинаково пустыми полями.
+     Имена ролей берём у жанра, а не заводим свои «первый» и «второй»: на
+     свадьбе это невеста и жених, на празднике — виновник торжества, и второго
+     набора этих же слов в приложении быть не должно. */
+  function telRoleName(f, type) {
+    if (f === "p1" || f === "p2") {
+      var pp = personsOf(type);
+      var k = pp[f === "p1" ? 0 : 1];
+      if (k) return LANG.t(k);
+    }
+    return LANG.t(f === "client" ? "form.clientName"
+      : f === "org" ? "org.one"
+      : "form.person");
+  }
+  function openPhones() {
+    renderPhones();
+    paintIcons($("phoneOverlay"));
+    $("phoneOverlay").classList.add("open");
+  }
+  function renderPhones() {
+    var list = phoneIndex();
+    var links = list.filter(function (g) { return g.cards > 1; }).length;
+    $("phoneCount").textContent = links ? LANG.count("unit.link", links) : "";
+    $("phoneList").innerHTML = list.map(function (g) {
+      var tags = "";
+      if (g.me) tags += '<span class="ph-tag me">' + esc(LANG.t("ph.mine")) + "</span>";
+      if (g.cards > 1) tags += '<span class="ph-tag link">' + esc(LANG.t("ph.link")) + "</span>";
+      if (!g.live) tags += '<span class="ph-tag">' + esc(LANG.t("ph.past")) + "</span>";
+      var rows = g.rows.map(function (r) {
+        var title = r.kind === "org"
+          ? (r.name || LANG.t("org.noName"))
+          : genreName(sessions[r.i].type) + " · " + dMon(sessions[r.i].date)
+            + " " + sessions[r.i].date.getFullYear();
+        /* Имя пишем рядом с ролью, а не вместо неё: «Ирина» без пояснения не
+           говорит, кем она была в этой съёмке, а через год это и забывается */
+        var who = [telRoleName(r.f, r.kind === "shoot" ? sessions[r.i].type : null),
+          firstName(r.n)].filter(function (x) { return x; }).join(" · ");
+        /* Живой номер может держать и ушедшую связь: менеджер сменился, но
+           номер остался за организацией и за прошлой съёмкой. Помечаем не
+           весь номер, а именно ту строку, которая стала историей */
+        return '<button type="button" class="ph-card' + (r.past ? " past" : "")
+          + '" data-k="' + r.kind + '" data-i="' + r.i + '">'
+          + (r.kind === "org" ? IC.svg("city", "ic") : IC.genreSvg(sessions[r.i].type, "ic"))
+          + '<span class="t">' + esc(title) + "</span>"
+          + '<span class="r">' + esc(who) + "</span></button>";
+      }).join("");
+      return '<div class="ph-row' + (g.live ? "" : " past") + '">'
+        + '<div class="ph-num"><span class="n">' + esc(formatTel(g.tel, true)) + "</span>" + tags
+        + (g.live ? '<a class="ph-call" href="tel:' + esc(telE164(g.tel)) + '">'
+            + IC.svg("call") + "</a>" : "")
+        + '</div><div class="ph-where">' + rows + "</div></div>";
+    }).join("") || '<div class="org-empty">' + esc(LANG.t("ph.empty")) + "</div>";
+
+    $("phoneList").querySelectorAll(".ph-card").forEach(function (b) {
+      b.addEventListener("click", function () {
+        $("phoneOverlay").classList.remove("open");
+        if (b.dataset.k === "org") { openOrgs(); openOrgCard(+b.dataset.i); }
+        else openCard(+b.dataset.i);
+      });
+    });
+  }
 
   /* Закладка в шапке карты: одна кнопка на оба состояния. Имя берём то же,
      что показано в шапке, — человек сохраняет то, что видит. Пока геокодер
@@ -18718,6 +19833,9 @@
       .forEach(function (el) { el.classList.remove("open"); });
   }
   function go(id) {
+    /* Уходя с настроек, закрываем правку своего номера: экран сменился —
+       значит с полем закончили, даже если палец так и не ушёл с него */
+    if (document.body.dataset.tab === "s-set" && id !== "s-set") myTelCommit();
     closeAllOverlays();
     tabs.forEach(function (t) { t.classList.toggle("active", t.dataset.go === id); });
     screens.forEach(function (s) { $(s).classList.toggle("active", s === id); });
@@ -18726,7 +19844,10 @@
     measureDockSoon();                   // док на разных экранах разной высоты
     $(id).scrollTop = 0;
     if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
-    else if (id === "s-set") renderMbCount();  // считаем свежо: мудборды копятся где угодно
+    /* Считаем свежо: мудборды копятся где угодно, номера — тоже. Индекс
+       номеров не кэшируем: он собирается за один проход по карточкам, а
+       второй список тех же номеров разошёлся бы с первым в тот же день */
+    else if (id === "s-set") { renderMbCount(); renderProfile(); }
     else if (compassLive) setCompassLive(false);   // уходя с карты, гасим датчик — не нужен нигде больше
     /* Лента мерит себя от собственного `clientWidth`, а он ноль, пока
        `.timebar` скрыт `display: none` (Съёмки/Настройки, и старт тоже —
@@ -18773,7 +19894,7 @@
      под это отдельный флажок незачем. */
   document.body.dataset.tab = "s-today";
   if (saved) go("s-plan");
-  else openOnboard();   // самый первый запуск — приветствие вместо вопроса о практике
+  else openTour();      // самый первый запуск — знакомство вместо вопроса о практике
   applyGeoNames(); scheduleGeoName();   // имя восстановленного места: сразу координаты, город следом
   // Номер сборки — из даты файла (Last-Modified на Pages), без ручного счётчика
   function renderBuildInfo() {
@@ -18811,13 +19932,14 @@
   setMapFold(mapFoldShut);
   renderSpotMark();
   renderDelvSettings();
+  renderProfile();
   renderCal(); renderDayPanel(); renderSessions(); renderBinBtn();
   /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
      После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
      потом спрашивают о правилах. На самом первом запуске экран знакомства
      идёт первым, а этот вопрос он сам зовёт себе вслед при закрытии —
      иначе оба листа встанут друг на друга. */
-  if (!saved && !practiceAsked) { /* закроется знакомством, см. closeOnboard */ }
+  if (!saved && !practiceAsked) { /* закроется знакомством, см. closeTour */ }
   else if (!practiceAsked) setTimeout(openStartSheet, 600);
   measureDockSoon();
   window.addEventListener("resize", measureDock);
