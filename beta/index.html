@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=15"></script>
+<script src="lang.js?v=16"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -3548,8 +3548,8 @@
   .sheet::-webkit-scrollbar { display: none; }
   .sheet.open { transform: none; }
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
-  #gScrim, #locScrim, #kScrim, #mbNewScrim { z-index: 84; }
-  #gSheet, #locSheet, #kSheet, #mbNewSheet { z-index: 86; }
+  #gScrim, #locScrim, #kScrim, #mbNewScrim, #mbAddScrim, #mbItemScrim { z-index: 84; }
+  #gSheet, #locSheet, #kSheet, #mbNewSheet, #mbAddSheet, #mbItemSheet { z-index: 86; }
   /* Опросник вызывается с экрана «Съёмки», но и из карточки тоже должен
      ложиться поверх — держим его на том же уровне, что листы формы */
   #qScrim { z-index: 84; }
@@ -4605,6 +4605,14 @@
     position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
     background: var(--fill-a); border: none; color: var(--ink); cursor: pointer;
     font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  /* Плюс в углу найденного кадра — то же место, что у крестика удаления,
+     но зовёт положить в подборку, а не убрать: акцентный цвет вместо
+     нейтрального. */
+  .ref-card .plus {
+    position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--brass); border: none; color: var(--sheet); cursor: pointer;
+    font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center;
   }
   .ref-card .wait {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -6457,7 +6465,23 @@
     <button class="back" id="mbBack">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
     </button>
+    <!-- Поиск ищет картинку, а не коробку, в которой она лежит: пустое поле
+         и пустой тег показывают подборки, что-то в них — плоскую сетку
+         кадров (docs/15_MOODBOARD.md, «Рубрикатор и поиск»). -->
+    <div class="field" style="margin-top:14px;">
+      <input type="text" id="mbSearchInput" data-i18n-ph="mb.searchPh" placeholder="Тег, подборка или ссылка"/>
+    </div>
+    <div class="rf-tags wrap" id="mbTagRail" style="padding:10px 0 0;"></div>
     <div id="mbGallery"></div>
+  </div>
+
+  <!-- В какую подборку положить найденный кадр — тот же список, что в
+       галерее, плюс жанры без своей подборки ещё (создаются на лету). -->
+  <div class="scrim" id="mbAddScrim"></div>
+  <div class="sheet" id="mbAddSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="mb.addToTitle">Добавить в подборку</div>
+    <div class="group" id="mbAddList" style="margin-top:14px;"></div>
   </div>
 
   <!-- Выбор жанра для новой подборки: подборка жанра — не свободное имя,
@@ -6506,6 +6530,11 @@
     <div class="sheet-title" data-i18n="mb.item">Материал</div>
     <div class="g-label" style="margin:18px 4px 9px;" data-i18n="mb.section">Раздел</div>
     <div class="rf-tags wrap" id="mbItemTags" style="padding:0 13px;"></div>
+    <div class="g-label" style="margin:16px 4px 9px;" data-i18n="mb.freeTags">Теги</div>
+    <div class="rf-tags wrap" id="mbItemFreeTags" style="padding:0 13px;"></div>
+    <div class="field" style="margin:2px 13px 0;">
+      <input type="text" id="mbItemTagInput" data-i18n-ph="mb.addTagPh" placeholder="Свой тег и Enter"/>
+    </div>
     <div class="group" style="margin-top:16px;">
       <button type="button" class="row" id="mbItemOpen" data-i18n="mb.open">Открыть</button>
       <button type="button" class="row sep" id="mbItemMove" hidden>—</button>
@@ -13477,6 +13506,9 @@
      спокойно лежит в нескольких подборках. Файл при этом ровно один, и
      владеет им фонд (docs/15_MOODBOARD.md, «Кадр и подборка — разные
      вещи»). */
+  /* Жанровая подборка живёт, пока жанр включён в «Моих жанрах»: выключили
+     жанр — он и в форме, и в мудборде не нужен. Кадры при этом не трогаем,
+     сам жанр вернут — вернётся и подборка (решено 27 августа 2026). */
   function mbFolders() {
     var out = [];
     sessions.forEach(function (s, i) {
@@ -13484,7 +13516,7 @@
       if (b && b.items.length) out.push({ kind: "session", si: i, b: b });
     });
     boards.forEach(function (b) {
-      if (b.kind === "tpl" && b.items.length) out.push({ kind: "genre", g: b.genre, b: b });
+      if (b.kind === "tpl" && b.items.length && genresOn[b.genre]) out.push({ kind: "genre", g: b.genre, b: b });
     });
     return out;
   }
@@ -13539,7 +13571,80 @@
   }
   $("mbNewScrim").addEventListener("click", closeMbNew);
 
-  function renderMbGallery() {
+  /* ---------- Рубрикатор и поиск ----------
+     Поиск переключает, что показывает сетка: пусто — подборки, как обычно;
+     что-то набрано — плоская сетка кадров, потому что ищут картинку, а не
+     коробку (15_MOODBOARD, «Рубрикатор и поиск»). Тег и текст ищут вместе:
+     тег сперва сужает список, текст режет дальше. */
+  var mbActiveTag = null;
+  function mbAllTagCounts() {
+    var counts = {};
+    shots.forEach(function (r) { (r.tags || []).forEach(function (t) { counts[t] = (counts[t] || 0) + 1; }); });
+    return Object.keys(counts).map(function (t) { return { t: t, n: counts[t] }; })
+      .sort(function (a, b) { return b.n - a.n || a.t.localeCompare(b.t); });
+  }
+  function mbSearchActive() {
+    return !!(mbActiveTag || ($("mbSearchInput").value || "").trim());
+  }
+  function renderMbTagRail() {
+    var counts = mbAllTagCounts();
+    $("mbTagRail").hidden = !counts.length;
+    if (mbActiveTag && counts.every(function (c) { return c.t !== mbActiveTag; })) mbActiveTag = null;
+    $("mbTagRail").innerHTML = counts.map(function (c) {
+      return '<button type="button" class="rf-tag' + (mbActiveTag === c.t ? " on" : "") + '" data-t="' + esc(c.t) + '">'
+        + esc(c.t) + '<span class="n">' + c.n + "</span></button>";
+    }).join("");
+    $("mbTagRail").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        mbActiveTag = mbActiveTag === b.dataset.t ? null : b.dataset.t;
+        renderMbGallery();
+      });
+    });
+  }
+  /* Подборки, куда уже лежит кадр — по ним ищут его имя и место, а не
+     только по тегам: «портрет» должен находить кадр из набора «Портрет»,
+     даже если тег на нём никто не поставил. */
+  function shotBoards(id) { return boards.filter(function (b) { return b.items && b.items.indexOf(id) >= 0; }); }
+  function shotBoardTitles(r) {
+    return shotBoards(r.id).map(function (b) {
+      if (b.kind === "shoot") {
+        var s = sessions.filter(function (x) { return x.id === b.sid; })[0];
+        return s ? (clientName(s) || genreName(s.type)) : "";
+      }
+      return genreName(b.genre);
+    }).filter(Boolean);
+  }
+  function mbShotHay(r) {
+    var bits = (r.tags || []).concat(shotBoardTitles(r));
+    if (r.k === "link") bits.push(refHost(r.url), r.url);
+    return bits.join(" ").toLowerCase();
+  }
+  function renderMbSearchGrid() {
+    var q = ($("mbSearchInput").value || "").trim().toLowerCase();
+    var list = shots.filter(function (r) {
+      if (mbActiveTag && (r.tags || []).indexOf(mbActiveTag) < 0) return false;
+      if (q && mbShotHay(r).indexOf(q) < 0) return false;
+      return true;
+    });
+    $("mbGallery").innerHTML = '<div class="ref-grid" id="mbSearchGrid" style="padding:14px 0 0;"></div>';
+    var box = $("mbSearchGrid");
+    /* Не <button>: внутри лежит своя кнопка «+», а вложенных кнопок не
+       бывает. Клик по карточке ловим отдельным слушателем ниже. */
+    box.innerHTML = list.map(function (r) {
+      var inner = r.k === "link"
+        ? '<span class="host">' + refHost(r.url) + "</span><span class=\"path\">" + refTail(r.url) + "</span>"
+        : refImg(r);
+      return '<span class="ref-card' + (r.k === "link" ? " link" : "") + '" data-id="' + esc(r.id) + '">'
+        + inner + '<button type="button" class="plus" data-id="' + esc(r.id) + '">+</button></span>';
+    }).join("") || '<div class="rt-empty" style="padding:8px 2px">' + esc(LANG.t("mb.searchNothing")) + "</div>";
+    box.querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function () { var r = shotById(b.dataset.id); if (r) openRef(r); });
+    });
+    box.querySelectorAll(".plus").forEach(function (b) {
+      b.addEventListener("click", function (e) { e.stopPropagation(); openMbAdd(b.dataset.id); });
+    });
+  }
+  function renderMbTiles() {
     var folders = mbFolders();
     var sessionsF = folders.filter(function (f) { return f.kind === "session"; })
       .sort(function (a, b) { return sessions[b.si].date - sessions[a.si].date; });
@@ -13575,6 +13680,55 @@
       });
     });
     if ($("mbAddBoard")) $("mbAddBoard").addEventListener("click", function () { openMbNew(genresF); });
+  }
+  function renderMbGallery() {
+    renderMbTagRail();
+    if (mbSearchActive()) renderMbSearchGrid(); else renderMbTiles();
+  }
+  $("mbSearchInput").addEventListener("input", renderMbGallery);
+
+  /* ---------- Куда положить найденный кадр ----------
+     Список — те же папки, что в галерее, плюс жанры без подборки: их можно
+     завести прямо отсюда, одним тычком, не заходя в «+ Новая подборка». */
+  var mbAddShot = null;
+  function openMbAdd(id) {
+    mbAddShot = id;
+    renderMbAddList();
+    $("mbAddSheet").classList.add("open"); $("mbAddScrim").classList.add("open");
+  }
+  function closeMbAdd() {
+    $("mbAddSheet").classList.remove("open"); $("mbAddScrim").classList.remove("open");
+    mbAddShot = null;
+  }
+  $("mbAddScrim").addEventListener("click", closeMbAdd);
+  function renderMbAddList() {
+    var id = mbAddShot, folders = mbFolders();
+    var genresF = folders.filter(function (f) { return f.kind === "genre"; });
+    var rows = folders.map(function (f) {
+      var on = boardHas(mbBoard(f), id);
+      return '<button type="button" class="row" data-kind="' + f.kind + '" data-key="'
+        + esc(f.kind === "session" ? String(f.si) : f.g) + '"><span>' + esc(mbTitle(f)) + "</span>"
+        + (on ? '<span class="rv">✓</span>' : "") + "</button>";
+    });
+    rows = rows.concat(mbFreeGenres(genresF).map(function (g) {
+      return '<button type="button" class="row" data-kind="new" data-key="' + esc(g) + '"><span>' + esc(genreName(g)) + "</span></button>";
+    }));
+    $("mbAddList").innerHTML = rows.join("") || '<div class="rt-empty" style="padding:14px 2px">' + esc(LANG.t("mb.noBoards")) + "</div>";
+    $("mbAddList").querySelectorAll(".row").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var board = b.dataset.kind === "session" ? boardOfSession(sessions[+b.dataset.key], true) : boardTpl(b.dataset.key, true);
+        var dropped = false;
+        if (boardHas(board, mbAddShot)) {
+          boardTake(board, mbAddShot);
+          if (!shotUsed(mbAddShot)) { shotDrop(mbAddShot); dropped = true; } else boardPrune(board);
+        } else {
+          boardPut(board, mbAddShot);
+        }
+        saveAll();
+        if (dropped) closeMbAdd(); else renderMbAddList();
+        renderMbGallery(); renderMbStrip();
+      });
+    });
   }
   /* ---------- Галерея на экране съёмок ----------
      Та же галерея, что в Настройках, но плитками и в потоке экрана. Держим
@@ -13725,6 +13879,7 @@
     });
   }
   $("mbRow").addEventListener("click", function () {
+    mbActiveTag = null; $("mbSearchInput").value = "";   // тот же сброс, что у общего поиска
     renderMbGallery();
     $("mbOverlay").classList.add("open");
   });
@@ -13782,6 +13937,20 @@
         saveAll(); renderMbFolder(); closeMbItem();
       });
     });
+    /* Свободные теги — тап по чипу убирает его: то же прикосновение, что и
+       везде в приложении, без отдельного крестика (15_MOODBOARD, «Кадр и
+       подборка — разные вещи», теги — как GENRE_TAGS: список подсказками,
+       но здесь ещё и то, что человек набрал сам). */
+    $("mbItemFreeTags").innerHTML = (r.tags || []).map(function (t) {
+      return '<button type="button" class="rf-tag on" data-t="' + esc(t) + '">' + esc(t) + "</button>";
+    }).join("");
+    $("mbItemFreeTags").querySelectorAll(".rf-tag").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = (r.tags || []).indexOf(b.dataset.t);
+        if (i >= 0) r.tags.splice(i, 1);
+        saveAll(); renderMbItemSheet();
+      });
+    });
     $("mbItemOpen").textContent = LANG.t(r.k === "link" ? "mb.openLink" : "mb.viewPhoto");
     var mv = $("mbItemMove");
     if (f.kind === "session") {
@@ -13791,6 +13960,18 @@
       mv.hidden = true;
     }
   }
+  $("mbItemTagInput").addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" && e.key !== ",") return;
+    e.preventDefault();
+    var v = this.value.trim().replace(/,$/, "").toLowerCase();
+    this.value = "";
+    if (!v || !mbOpen) return;
+    var r = mbList(mbOpen)[mbItem];
+    if (!r) return;
+    r.tags = r.tags || [];
+    if (r.tags.indexOf(v) < 0) r.tags.push(v);
+    saveAll(); renderMbItemSheet();
+  });
   $("mbItemOpen").addEventListener("click", function () {
     if (!mbOpen) return;
     var r = mbList(mbOpen)[mbItem];
