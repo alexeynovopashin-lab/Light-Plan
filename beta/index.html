@@ -8380,11 +8380,21 @@
     if (!cloudOn()) return Promise.resolve();
     return cloudCall(function (d) { return d.remove(rel); }).catch(function () {});
   }
+  /* ---------- Файл этого устройства ----------
+     Приставки каналов не должны быть началом друг друга: перечисление ищет
+     по приставке, и «dev-» поймало бы заодно «dev-beta-» — бета слилась бы
+     в релиз. Поэтому оба канала названы полностью. */
+  var DEV_PREFIX = CHANNEL === "beta" ? "dev-beta-" : "dev-main-";
+  function devFile(id) { return DEV_PREFIX + (id || deviceId) + ".json"; }
+
+  /* Выгружаем только свой файл. Чужие не трогаем вовсе — в этом вся защита
+     от потерянных правок: перезаписать чужую работу физически некому
+     (docs/13_MULTI_DEVICE.md). */
   function cloudPush() {
     if (!cloudOn() || cloudBusy) return Promise.resolve();
     cloudBusy = true;
     var body = new Blob([backupPayload()], { type: "application/json" });
-    return cloudCall(function (d) { return d.upload(BACKUP_FILE, body); })
+    return cloudCall(function (d) { return d.upload(devFile(), body); })
       .then(function () {
         try { localStorage.setItem(CLOUD_SYNC_KEY, new Date().toISOString()); } catch (e) {}
         renderCloudInfo();
@@ -8394,12 +8404,106 @@
       })
       .then(function () { cloudBusy = false; });
   }
+
+  /* ---------- Круг обмена ----------
+     Перечислить файлы устройств, скачать чужие, слить со своим, выгрузить
+     свой. Никакого опроса по таймеру: обмен нужен там, где человек, —
+     на открытии приложения и на возвращении в него.
+
+     Чужой файл, который не читается или не разбирается, пропускаем молча и
+     идём дальше. Один сломанный сосед не должен останавливать обмен с
+     остальными, а чинить его отсюда всё равно нечем. */
+  function cloudSync(quiet) {
+    if (!cloudOn() || cloudBusy) return Promise.resolve(false);
+    cloudBusy = true;
+    var mine = null;
+    try { mine = JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) {}
+    if (!mine) { cloudBusy = false; return Promise.resolve(false); }
+    var own = devFile();
+    return cloudCall(function (d) { return d.list(DEV_PREFIX); })
+      .then(function (names) {
+        var others = (names || []).filter(function (n) { return n !== own; });
+        return others.reduce(function (chain, name) {
+          return chain.then(function (acc) {
+            return cloudCall(function (d) { return d.text(name); })
+              .then(function (text) {
+                var snap = cloudUnwrap(JSON.parse(text));
+                if (!snap || typeof snap !== "object") return acc;
+                return mergeStores(acc, snap);
+              })
+              .catch(function () { return acc; });
+          });
+        }, Promise.resolve(mine));
+      })
+      .then(function (merged) {
+        var changed = mergeVisible(merged) !== mergeVisible(mine);
+        if (changed) {
+          merged.dev = deviceId;
+          try { localStorage.setItem(STORE, JSON.stringify(merged)); } catch (e) { changed = false; }
+        }
+        return cloudPushRaw(changed ? merged : mine).then(function () { return changed; });
+      })
+      .catch(function (e) {
+        if (!quiet && $("cloudNote")) $("cloudNote").textContent = LANG.t("cloud.pushFail", { err: e.message });
+        return false;
+      })
+      .then(function (changed) { cloudBusy = false; return changed; });
+  }
+  /* Выгрузка изнутри круга: `cloudBusy` уже поднят, и вторая проверка
+     остановила бы сама себя */
+  function cloudPushRaw(data) {
+    /* Обёртка та же, что у `backupPayload`: файл должен называть себя сам,
+       иначе однажды его прочтут как чужой формат. Голым снимком выгружать
+       нельзя — обычная выгрузка пишет обёртку, и соседнее устройство,
+       прочитав голый, не нашло бы в нём ни одной записи */
+    var body = new Blob([JSON.stringify({ app: "Light Plan", format: 1,
+      exported: new Date().toISOString(), data: data })], { type: "application/json" });
+    return cloudCall(function (d) { return d.upload(devFile(), body); })
+      .then(function () {
+        try { localStorage.setItem(CLOUD_SYNC_KEY, new Date().toISOString()); } catch (e) {}
+      })
+      .catch(function () {});
+  }
+  /* Что из снимка человек видит. Служебные отметки сюда не входят: их
+     сдвиг — не повод перезагружать экран под руками. */
+  /* Файл может быть и в обёртке, и голым: обёртку пишем мы, а голый снимок
+     мог приехать из «Сохранить копию» руками. Терпим оба */
+  function cloudUnwrap(o) { return (o && o.data && typeof o.data === "object") ? o.data : o; }
+  function mergeVisible(o) {
+    if (!o) return "";
+    var copy = {};
+    for (var k in o) if (k !== "setMt" && k !== "dev") copy[k] = o[k];
+    return JSON.stringify(copy);
+  }
+
+  /* Ручное «Восстановить из облака». Теперь это не один файл, а все:
+     сливаем устройства между собой и заменяем местное целиком. Прежний
+     общий файл остаётся запасным — у того, кто ещё ни разу не
+     синхронизировался, других файлов в облаке нет. */
   function cloudPull() {
     if (!cloudOn()) return;
     $("cloudNote").textContent = LANG.t("cloud.reading");
-    cloudCall(function (d) { return d.text(BACKUP_FILE); })
-      .then(function (text) {
-        var err = restoreBackup(text);
+    cloudCall(function (d) { return d.list(DEV_PREFIX); })
+      .then(function (names) {
+        var list = names || [];
+        if (!list.length) {
+          return cloudCall(function (d) { return d.text(BACKUP_FILE); })
+            .then(function (text) { return cloudUnwrap(JSON.parse(text)); });
+        }
+        return list.reduce(function (chain, name) {
+          return chain.then(function (acc) {
+            return cloudCall(function (d) { return d.text(name); })
+              .then(function (text) {
+                var snap = cloudUnwrap(JSON.parse(text));
+                return acc ? mergeStores(acc, snap) : snap;
+              })
+              .catch(function () { return acc; });
+          });
+        }, Promise.resolve(null));
+      })
+      .then(function (data) {
+        if (!data) throw new Error(LANG.t("cloud.errNoCopy"));
+        var err = restoreBackup(JSON.stringify({ app: "Light Plan", format: 1, data: data }));
         if (err) throw new Error(err);
         $("cloudNote").textContent = LANG.t("cloud.restored");
         setTimeout(function () { location.reload(); }, 700);
@@ -20773,6 +20877,33 @@
      ему (см. `cloudMigrateYa`), и только потом ловим возврат от сервиса —
      иначе перенос затёр бы токен, только что пойманный в адресе */
   cloudLoad(); cloudMigrateYa(); cloudCatch(); renderCloudInfo();
+
+  /* ---------- Когда обмениваться ----------
+     На открытии приложения и на возвращении в него. Опроса по таймеру нет:
+     обмен нужен там, где человек, а не там, где он оставил телефон на столе.
+
+     Слитое применяем перезагрузкой — так же, как «Восстановить из облака».
+     Разложить чужие правки по десяткам живых переменных на ходу можно, но
+     каждая забытая означала бы экран, показывающий вчерашнее; перезагрузка
+     же обновляет всё разом и ничего не забывает.
+
+     Перезагружаемся только если слияние правда что-то изменило, и только
+     когда на экране нет открытой шторки или карточки: выдёргивать страницу
+     из-под пальца ради чужой правки — хуже, чем показать её минутой позже.
+     Пока показать нельзя, слитое не пишем вовсе: записать его и не
+     перезагрузиться значило бы оставить в памяти старое, а в хранилище
+     новое — и первое же сохранение стёрло бы слияние. */
+  function cloudBusyScreen() {
+    return !!document.querySelector(".sheet.open, .overlay.open, .tour:not([hidden])");
+  }
+  function cloudSyncSoon() {
+    if (!cloudOn() || cloudBusyScreen()) return;
+    cloudSync(true).then(function (changed) { if (changed) location.reload(); });
+  }
+  setTimeout(cloudSyncSoon, 1200);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") setTimeout(cloudSyncSoon, 400);
+  });
   /* Опросник ловим последним: `cloudCatch` тоже правит адресную строку, и
      разбирать её вдвоём одновременно незачем. Форма к этому мгновению
      собрана целиком — ответам есть куда лечь */
