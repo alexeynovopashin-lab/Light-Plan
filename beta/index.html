@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=11"></script>
+<script src="lang.js?v=12"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -5528,6 +5528,14 @@
     <div class="chips" id="practiceChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="practiceNote"></p>
 
+    <!-- Страна номеров — четвёртая ось, рядом с валютой и практикой по той
+         же причине: это факт о территории, а не о языке. Она решает, как
+         читается местная запись номера (восьмёрка у нас, ноль в Европе) и
+         с каким кодом страны считается ID приложения -->
+    <div class="sec-label" data-i18n="set.telCountry">Страна номеров</div>
+    <div class="chips" id="telCcChips" style="padding: 12px 24px 0;"></div>
+    <p class="seg-note" id="telCcNote"></p>
+
     <!-- Копирайт карты переехал сюда с полотна: на экране «Карта» строка
          лицензии занимала правую половину нижнего края и резала компас.
          Лицензии OSM и CARTO это допускают — требование в доступности
@@ -7807,6 +7815,7 @@
           return { rec: r, at: t.at, del: t.del };
         }),
         travelMin: travelMin, tempUnit: tempUnit, currency: currency, clock: clockPref, dayFold: !dayPanelOpen,
+        telCountry: telCountry,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
           return o;
@@ -13628,6 +13637,103 @@
   };
   function personsOf(g) { return GENRE_PERSONS[g] || []; }
 
+  /* ---------- Страна номеров ----------
+     Восьмёрка вместо семёрки — не русская причуда, а всемирное правило:
+     почти у каждой страны есть свой магистральный префикс, который стоит в
+     местной записи и пропадает в международной. У нас и Казахстана это `8`,
+     в Европе и Японии `0`, в Штатах `1`, а Испания и Китай обходятся вовсе
+     без него. Приложение до сих пор знало одну строку этого правила —
+     русскую, зашитую в `telFull` и `formatTel`.
+
+     Всемирную таблицу кодов заводить не нужно. Хватает трёх фактов о
+     стране самого фотографа: код, магистральный префикс и длина
+     национального номера. Чужие номера в его книжке записаны через `+` —
+     значит уже международные, разбирать их не надо.
+
+     `nsn` пустой означает «длина гуляет, проверять нечем» — Германия и
+     Италия действительно такие, там от шести до одиннадцати цифр. Для них
+     механизм работает хуже: чужой номер, записанный без плюса, разойдётся
+     сам с собой. Это ограничение названо вслух, а не спрятано: настоящий
+     разбор требует библиотеки номеров в треть мегабайта.
+
+     `fmt` — как разбить национальный номер на разряды. Решётка это цифра,
+     всё остальное печатается как есть. */
+  var TEL_CC = {
+    RU: { cc: "7",   trunk: "8",  nsn: [10],     fmt: "### ###-##-##" },
+    KZ: { cc: "7",   trunk: "8",  nsn: [10],     fmt: "### ###-##-##" },
+    BY: { cc: "375", trunk: "80", nsn: [9],      fmt: "## ###-##-##" },
+    UA: { cc: "380", trunk: "0",  nsn: [9],      fmt: "## ###-##-##" },
+    UZ: { cc: "998", trunk: "8",  nsn: [9],      fmt: "## ### ## ##" },
+    GE: { cc: "995", trunk: "0",  nsn: [9],      fmt: "### ## ## ##" },
+    AM: { cc: "374", trunk: "0",  nsn: [8],      fmt: "## ## ## ##" },
+    AZ: { cc: "994", trunk: "0",  nsn: [9],      fmt: "## ###-##-##" },
+    US: { cc: "1",   trunk: "1",  nsn: [10],     fmt: "### ###-####" },
+    CA: { cc: "1",   trunk: "1",  nsn: [10],     fmt: "### ###-####" },
+    GB: { cc: "44",  trunk: "0",  nsn: [10],     fmt: "#### ######" },
+    ES: { cc: "34",  trunk: "",   nsn: [9],      fmt: "### ### ###" },
+    PT: { cc: "351", trunk: "",   nsn: [9],      fmt: "### ### ###" },
+    FR: { cc: "33",  trunk: "0",  nsn: [9],      fmt: "# ## ## ## ##" },
+    DE: { cc: "49",  trunk: "0",  nsn: [],       fmt: "### #######" },
+    IT: { cc: "39",  trunk: "",   nsn: [],       fmt: "### ### ####" },
+    PL: { cc: "48",  trunk: "",   nsn: [9],      fmt: "### ### ###" },
+    NL: { cc: "31",  trunk: "0",  nsn: [9],      fmt: "# ########" },
+    TR: { cc: "90",  trunk: "0",  nsn: [10],     fmt: "### ### ## ##" },
+    AE: { cc: "971", trunk: "0",  nsn: [9],      fmt: "## ### ####" },
+    IL: { cc: "972", trunk: "0",  nsn: [9],      fmt: "##-###-####" },
+    TH: { cc: "66",  trunk: "0",  nsn: [9],      fmt: "## ### ####" },
+    IN: { cc: "91",  trunk: "0",  nsn: [10],     fmt: "##### #####" },
+    CN: { cc: "86",  trunk: "",   nsn: [11],     fmt: "### #### ####" },
+    JP: { cc: "81",  trunk: "0",  nsn: [10],     fmt: "##-####-####" },
+    BR: { cc: "55",  trunk: "0",  nsn: [10, 11], fmt: "## #####-####" },
+    MX: { cc: "52",  trunk: "0",  nsn: [10],     fmt: "## #### ####" },
+  };
+  /* Догадка по часовому поясу, а не по языку — тем же доводом, что у
+     практики ведения дел: пояс это география. Язык остаётся запасным
+     ответом, когда пояса нет или он незнакомый: `ru` из `navigator.language`
+     разворачивается в `RU` силами самого браузера. */
+  var TEL_TZ = {
+    "Europe/London": "GB", "Europe/Madrid": "ES", "Atlantic/Canary": "ES",
+    "Europe/Lisbon": "PT", "Europe/Paris": "FR", "Europe/Berlin": "DE",
+    "Europe/Rome": "IT", "Europe/Warsaw": "PL", "Europe/Amsterdam": "NL",
+    "Europe/Istanbul": "TR", "Europe/Minsk": "BY", "Europe/Kiev": "UA",
+    "Europe/Kyiv": "UA", "Asia/Tbilisi": "GE", "Asia/Yerevan": "AM",
+    "Asia/Baku": "AZ", "Asia/Tashkent": "UZ", "Asia/Samarkand": "UZ",
+    "Asia/Almaty": "KZ", "Asia/Aqtobe": "KZ", "Asia/Atyrau": "KZ",
+    "Asia/Dubai": "AE", "Asia/Jerusalem": "IL", "Asia/Bangkok": "TH",
+    "Asia/Kolkata": "IN", "Asia/Calcutta": "IN", "Asia/Shanghai": "CN",
+    "Asia/Tokyo": "JP", "America/Sao_Paulo": "BR", "America/Mexico_City": "MX",
+    "America/Toronto": "CA", "America/Vancouver": "CA", "America/Edmonton": "CA",
+    "America/Winnipeg": "CA", "America/Halifax": "CA"
+  };
+  function guessTelCountry() {
+    var tz = "";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    if (TEL_TZ[tz]) return TEL_TZ[tz];
+    if (/^Europe\/(Moscow|Kaliningrad|Samara|Volgograd|Saratov|Astrakhan|Ulyanovsk|Kirov)$/.test(tz)) return "RU";
+    if (/^Asia\/(Yekaterinburg|Omsk|Novosibirsk|Krasnoyarsk|Irkutsk|Yakutsk|Vladivostok|Magadan|Kamchatka|Sakhalin|Barnaul|Tomsk|Novokuznetsk|Chita|Khandyga|Ust-Nera|Srednekolymsk|Anadyr)$/.test(tz)) return "RU";
+    if (/^America\//.test(tz)) return "US";
+    var reg = "";
+    try { reg = new Intl.Locale(navigator.language || "en").maximize().region || ""; } catch (e) {}
+    return TEL_CC[reg] ? reg : "RU";
+  }
+  var telCountry = (saved && TEL_CC[saved.telCountry]) ? saved.telCountry : guessTelCountry();
+  function telSpec() { return TEL_CC[telCountry] || TEL_CC.RU; }
+  /* Похож ли остаток на местный национальный номер. Это и есть весь замок:
+     без проверки длины чужой номер, записанный без плюса, получил бы сверху
+     ещё и наш код страны и разошёлся бы сам с собой. */
+  function telNsnOk(sp, n) {
+    if (!sp.nsn.length) return n.length >= 6 && n.length <= 11;
+    return sp.nsn.indexOf(n.length) >= 0;
+  }
+  /* «Ещё влезает» — для поля ввода, где номер набирается по цифре и до
+     местной длины пока не дорос. Для ключа и ID годится только `telNsnOk`:
+     там номер уже целый, и «влезает» значило бы «догадка», а ID догадками
+     не считают. */
+  function telNsnFits(sp, n) {
+    var max = sp.nsn.length ? Math.max.apply(null, sp.nsn) : 11;
+    return n.length <= max;
+  }
+
   /* ---------- Телефон ----------
      Номер набирают как придётся, а показывать его надо одинаково:
      «8 923 412-33-33» или «+7 923 412-33-33». Ведущую цифру не меняем —
@@ -13643,20 +13749,70 @@
     /* Плюс набирают первым, и цифр в этот момент ещё нет. Пустая строка тут
        стирала бы символ прямо под пальцем — номер с «+» было не начать */
     if (!d) return plus ? "+" : "";
+    var sp = telSpec();
     /* Автозаполнение отдаёт номер без кода страны: «9618878078». Первая
-       девятка при этом читается как ведущая цифра, и номер разбивается на
-       разряды со сдвигом — «9 618 878-07-8». Десять цифр, начинающихся с
-       девятки, — это мобильный без кода: код возвращаем на место */
-    if (pasted && d.length === 10 && d[0] === "9") d = (plus ? "7" : "8") + d;
-    if (plus && d[0] === "8") d = "7" + d.slice(1);       // «+8» не бывает
-    var lead = plus ? "+" + d[0] : d[0];
-    var rest = d.slice(1, 11);                            // код 3 + номер 7
-    var out = lead;
-    if (rest.length) out += " " + rest.slice(0, 3);
-    if (rest.length > 3) out += " " + rest.slice(3, 6);
-    if (rest.length > 6) out += "-" + rest.slice(6, 8);
-    if (rest.length > 8) out += "-" + rest.slice(8, 10);
-    return out;
+       цифра при этом читается как ведущая, и номер разбивается на разряды
+       со сдвигом — «9 618 878-07-8». Раз длина сошлась с местной, это
+       номер без кода: код возвращаем на место. Раньше условие было
+       «десять цифр, начинающихся с девятки» — русский мобильный и ничего
+       больше; теперь его задаёт страна. */
+    var head = plus ? sp.cc : (sp.trunk || sp.cc);
+    if (pasted && telNsnOk(sp, d) && d.slice(0, head.length) !== head) d = head + d;
+    /* Под плюсом стоит международный номер, и трогать его нельзя. Прежняя
+       редакция правила «+8 не бывает» переписывала любую восьмёрку после
+       плюса в семёрку — и портила японские `+81`, китайские `+86`,
+       корейские `+82`. Стран, чей код начинается с нашего магистрального
+       префикса, больше, чем опечаток вида «+8» вместо «+7».
+
+       Поэтому под плюсом мы либо узнаём свою страну по коду и раскладываем
+       номер по её образцу, либо не раскладываем вовсе: чужой номер честнее
+       показать сплошными цифрами, чем разбить по чужой привычке. Раньше
+       испанский `+34612345678` показывался как «+3 461 234-56-7» — разряды
+       от России, а первая цифра кода оторвана от второй. */
+    /* Ведущая часть отбивается пробелом не всегда. Восьмёрка у нас стоит
+       наособицу — «8 916 …», — а европейский ноль прилипает к коду:
+       «07911 123456», «090-1234-5678». Пишем это правилом, а не пробелом в
+       начале каждого образца, иначе под плюсом получилось бы «+447911». */
+    var lead = "", rest = d;
+    if (plus) {
+      if (d.slice(0, sp.cc.length) !== sp.cc) return "+" + d;
+      lead = "+" + sp.cc + " ";
+      rest = d.slice(sp.cc.length);
+    } else if (sp.trunk && d.slice(0, sp.trunk.length) === sp.trunk) {
+      lead = sp.trunk + (sp.trunk === "0" ? "" : " ");
+      rest = d.slice(sp.trunk.length);
+    } else if (d.slice(0, sp.cc.length) === sp.cc && telNsnFits(sp, d.slice(sp.cc.length))) {
+      /* Код страны написан, а плюс забыт — «79161234567». Случай частый:
+         так номер отдаёт половина сайтов и почти всякий копипаст. Плюс сами
+         не дорисовываем (кто пишет через плюс, тот так и начнёт), а вот
+         ведущей частью код признаём — иначе разряды съедут на цифру.
+
+         Спрашиваем «влезает ли», а не «сошлось ли»: поле правится на ходу,
+         и на второй нажатой цифре номер ещё не дорос до местной длины.
+         Требуй мы полного совпадения — разряды появлялись бы рывком на
+         последней цифре, переписывая всё, что человек уже видел. */
+      lead = sp.cc + " ";
+      rest = d.slice(sp.cc.length);
+    }
+    /* Ни плюса, ни префикса, ни кода — номер набран с середины, и это тоже
+       номер. Прежняя редакция отрывала первую цифру в ведущие и показывала
+       «9 161 234-56-7» вместо «916 123-45-67»; собственный комментарий
+       рядом эту порчу и описывал, но чинил её только для вставки. */
+    /* Хвостовой пробел срезаем: набрали одну восьмёрку — в поле стоит «8»,
+       а не «8 » с пробелом, который курсор перепрыгивает при стирании */
+    return (lead + telGroups(rest, sp.fmt)).replace(/\s+$/, "");
+  }
+  /* Разложить цифры по образцу страны. Решётка это цифра, всё прочее
+     печатается как есть. Кончились цифры — обрываем, не дорисовывая
+     хвост разделителей: поле правится на ходу, и висящий дефис под
+     пальцем читается как часть номера. */
+  function telGroups(d, fmt) {
+    var out = "", j = 0, pend = "";
+    for (var i = 0; i < fmt.length && j < d.length; i++) {
+      if (fmt[i] === "#") { out += pend + d[j++]; pend = ""; }
+      else pend += fmt[i];
+    }
+    return out + d.slice(j);          // длиннее образца — хвост как есть
   }
 
   /* ---------- Номер как ключ ----------
@@ -13677,14 +13833,30 @@
      `telKey`  — как понять, что два по-разному записанных номера принадлежат
                  одному человеку. */
   function telDigits(v) { return String(v || "").replace(/\D/g, ""); }
-  /* Восьмёрка и подставленная семёрка — те же допущения, что делает formatTel
-     при вводе: приложение выросло на местных номерах, и менять эту привычку
-     здесь, в отрыве от поля ввода, значило бы разойтись с ним в показаниях */
+  /* Номер целиком, с кодом страны. Отсюда растёт ID, и потому это место
+     решает, всемирный он или нет: испанец, записавший себя «612 345 678»,
+     раньше получал `id612345678` — девять цифр без страны, которые есть ещё
+     в десятке стран. Два разных фотографа получили бы одно имя в графе.
+
+     Разбор той же лестницей, что и в поле ввода, иначе они разойдутся в
+     показаниях: плюс или два нуля впереди — цифры уже международные;
+     иначе запись местная, снимаем магистральный префикс своей страны и
+     приписываем её код — но только если остаток похож на местный номер
+     длиной. Не похож — значит перед нами чужой номер, записанный без
+     плюса; такой оставляем как есть, приписать ему свой код было бы
+     хуже, чем не приписать ничего. */
   function telFull(v) {
-    var d = telDigits(v);
+    var raw = String(v || "");
+    var d = telDigits(raw);
     if (!d) return "";
-    if (d.length === 11 && d[0] === "8") d = "7" + d.slice(1);
-    if (d.length === 10 && d[0] === "9") d = "7" + d;
+    if (/^\s*\+/.test(raw)) return d;
+    if (d.length > 2 && d.slice(0, 2) === "00") return d.slice(2);
+    var sp = telSpec();
+    if (sp.trunk && d.length > sp.trunk.length && d.slice(0, sp.trunk.length) === sp.trunk) {
+      var cut = d.slice(sp.trunk.length);
+      if (telNsnOk(sp, cut)) return sp.cc + cut;
+    }
+    if (telNsnOk(sp, d)) return sp.cc + d;
     return d;
   }
   function telE164(v) { var d = telFull(v); return d ? "+" + d : ""; }
@@ -17892,6 +18064,47 @@
     $("curNote").textContent = LANG.t("set.curNote", { sample: money(14000) });
   }
 
+  /* Имена стран берём у браузера, а не заводим в словаре: их двадцать семь
+     на пять языков — сто тридцать пять строк, которые кто-то должен
+     перевести, притом что `Intl` знает их все и на любом языке. Тот же
+     довод, по которому месяцы собираются им же, а не массивом. Не знает —
+     печатаем код страны, две буквы читаются и так. */
+  function countryName(code) {
+    try {
+      var n = new Intl.DisplayNames([LANG.code], { type: "region" }).of(code);
+      if (n && n !== code) return n;
+    } catch (e) {}
+    return code;
+  }
+  /* Порядок — по имени в текущем языке: список стран глазами читают
+     по алфавиту, а «самые нужные сверху» у каждого свои */
+  function renderTelCcChips() {
+    var list = Object.keys(TEL_CC).sort(function (a, b) {
+      return countryName(a).localeCompare(countryName(b), LANG.code);
+    });
+    $("telCcChips").innerHTML = list.map(function (c) {
+      return '<button class="chip' + (telCountry === c ? " active" : "") + '" data-cc="' + c + '">'
+        + esc(countryName(c) + " +" + TEL_CC[c].cc) + "</button>";
+    }).join("");
+    $("telCcChips").querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        telCountry = b.dataset.cc;
+        renderTelCcChips(); saveAll();
+        /* ID пересчитывается из номера, а не хранится рядом, — значит
+           сменившаяся страна меняет его прямо сейчас, и «Профиль» обязан
+           это показать, а не ждать следующего открытия */
+        if ($("appIdV")) renderProfile();
+      });
+    });
+    /* Образец — на своём же номере, а не на выдуманном: человек видит не
+       правило, а свой ID, и сразу замечает, если страна выбрана не та.
+       Номера нет — обещать нечего, называем один код страны */
+    var sp = telSpec(), id = appId(myPhone());
+    $("telCcNote").textContent = id
+      ? LANG.t("set.telCountryNoteId", { id: id })
+      : LANG.t("set.telCountryNote", { cc: sp.cc });
+  }
+
   /* Перерисовать то, где уже нарисованы слова словаря и деньги. Полной
      перезагрузки избегаем нарочно: в форме может лежать незаписанная съёмка,
      и терять её ради смены языка — цена, которой фотограф не просил */
@@ -17931,6 +18144,7 @@
        первыми, и половина из них собирается в коде, а не лежит в разметке */
     if ($("fDelvLabels")) buildDelvDial();
     if ($("practiceChips")) renderPracticeChips();
+    if ($("telCcChips")) renderTelCcChips();
     if ($("startPractice") && $("startSheet").classList.contains("open")) renderStartSheet();
     if (typeof updateNowTick === "function" && $("nowTick")) updateNowTick();
     if ($("travelNote")) renderTravelSeg();
@@ -18265,6 +18479,7 @@
   $("tourSetRow").addEventListener("click", openTour);
 
   renderPracticeChips();
+  renderTelCcChips();
   renderLangChips();
   renderCurChips();
   renderClockSeg();
@@ -19261,7 +19476,9 @@
       lastLen = telDigits(this.value).length;
       if (end) this.selectionStart = this.selectionEnd = this.value.length;
       me.phone = this.value.trim();
-      saveAll(); renderProfile();
+      /* Подпись под страной номеров показывает свой же ID — значит она
+         обязана меняться вместе с номером, а не только при смене страны */
+      saveAll(); renderProfile(); renderTelCcChips();
     });
     /* Смену номера фиксируем не в `input`: поле пишется с каждым нажатием
        клавиши, и по дороге к новому номеру мимо прошёл бы десяток обрывков —

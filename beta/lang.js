@@ -1368,6 +1368,13 @@
     "set.unitNoteF":    "Температура показывается в градусах Фаренгейта.",
     "set.currency":     "Валюта",
     "set.practice":     "Ведение дел",
+    "set.telCountry":   "Страна номеров",
+    /* Имя страны в подпись не вставляем: `Intl` отдаёт его в именительном
+       падеже, а фраза требует предложного — «в Россия». Своего списка
+       склонений заводить незачем, довольно переписать фразу так, чтобы
+       падеж не понадобился ни в одном из пяти языков */
+    "set.telCountryNote":   "Номера без кода страны читаются как местные, а ID приложения считается с кодом +{cc}.",
+    "set.telCountryNoteId": "Номера без кода страны читаются как местные. Ваш ID с этой страной: {id}.",
     "set.grpAbout":     "О приложении",
 
     /* ---- Практика ведения дел: третья ось, от языка не зависит ----
@@ -2675,6 +2682,9 @@
     "set.unitNoteF":    "Temperature is shown in degrees Fahrenheit.",
     "set.currency":     "Currency",
     "set.practice":     "Business practice",
+    "set.telCountry":   "Phone number country",
+    "set.telCountryNote":   "Numbers written without a country code are read as local ones, and the app ID is built with the code +{cc}.",
+    "set.telCountryNoteId": "Numbers written without a country code are read as local ones. Your ID for this country: {id}.",
     "set.grpAbout":     "About",
 
     "practice.ru": "Russia and CIS",
