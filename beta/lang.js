@@ -77,6 +77,8 @@
     "unit.day":    ["день", "дня", "дней"],
     /* Связка — один номер, встреченный больше чем в одной карточке */
     "unit.link":   ["связка", "связки", "связок"],
+    "unit.tel":    ["номер", "номера", "номеров"],
+    "unit.org":    ["организация", "организации", "организаций"],
 
     /* Длительность. Половина часа названа отдельно: при дробном числительном
        русский всегда требует «часа» — «1,5 часа», а не «1,5 час» */
@@ -1376,6 +1378,30 @@
        падеж не понадобился ни в одном из пяти языков */
     "set.telCountryNote":   "Номера без кода страны читаются как местные, а ID приложения считается с кодом +{cc}.",
     "set.telCountryNoteId": "Номера без кода страны читаются как местные. Ваш ID с этой страной: {id}.",
+
+    /* ---- Смена своего номера: копия, вопрос, передача ----
+       Номер владельца — это ID, то есть имя, под которым его знают снаружи.
+       Приложение не может знать, новый ли это номер того же человека или
+       телефон достался другому, и потому спрашивает. */
+    "tel.copyD":       "Съёмки, контакты, организации и ссылки на документы уйдут в файл. Из него всё возвращается целиком.",
+    "tel.mineD":       "Съёмки, контакты и документы останутся на месте. Прежний ID продолжит работать: кто записал вас по нему, тот по нему и найдёт.",
+    "tel.handD2":      "Ваш номер её не заменит: календарь не приезжает по номеру, он лежит здесь, на этом телефоне. Копию вы уже сохранили — отдайте её прежнему владельцу.",
+    "tel.wipeD":       "Сотрёт всё на этом устройстве, включая подключение к облаку. Дальше — «Восстановить из копии», если она у вас есть.",
+    "tel.copyT":       "Сначала копия",
+    "tel.copySave":    "Сохранить копию",
+    "tel.skip":        "Продолжить без копии",
+    "tel.skipWait":    "Продолжить без копии · {n}",
+    "tel.cancel":      "Отмена",
+    "tel.becomes":     "ID станет {id}",
+    "tel.becomesNone": "ID пропадёт: с этого номера его не сделать",
+    "tel.whoT":        "Чей это номер",
+    "tel.mine":        "Это мой новый номер",
+    "tel.other":       "Телефоном пользуется другой человек",
+    "tel.handT":       "Это чужая работа",
+    "tel.handD":       "В приложении работа прежнего владельца: {what}.",
+    "tel.wipe":        "Очистить и начать своё",
+    "tel.wipeAsk":     "Стереть всё на этом устройстве? Вернуть можно только из копии.",
+    "tel.back":        "Назад",
     "set.grpAbout":     "О приложении",
 
     /* ---- Практика ведения дел: третья ось, от языка не зависит ----
@@ -1515,6 +1541,8 @@
     "unit.minute": ["min", "min"],
     "unit.day":    ["day", "days"],
     "unit.link":   ["link", "links"],
+    "unit.tel":    ["number", "numbers"],
+    "unit.org":    ["organisation", "organisations"],
 
     "dur.minutes":   "{m} min",
     "dur.hours":     "{h} {hourWord}",
@@ -2687,6 +2715,26 @@
     "set.telCountry":   "Phone number country",
     "set.telCountryNote":   "Numbers written without a country code are read as local ones, and the app ID is built with the code +{cc}.",
     "set.telCountryNoteId": "Numbers written without a country code are read as local ones. Your ID for this country: {id}.",
+
+    "tel.copyD":       "Shoots, contacts, organisations and document links go into a file. Everything comes back from it.",
+    "tel.mineD":       "Shoots, contacts and documents stay where they are. The old ID keeps working: whoever saved you under it will still find you.",
+    "tel.handD2":      "Your number will not replace it: a calendar does not arrive by number, it sits here, on this phone. You already saved a copy — hand it to the previous owner.",
+    "tel.wipeD":       "Erases everything on this device, including the cloud connection. Then use \u00abRestore from a copy\u00bb if you have one.",
+    "tel.copyT":       "A copy first",
+    "tel.copySave":    "Save a copy",
+    "tel.skip":        "Continue without a copy",
+    "tel.skipWait":    "Continue without a copy · {n}",
+    "tel.cancel":      "Cancel",
+    "tel.becomes":     "The ID becomes {id}",
+    "tel.becomesNone": "The ID goes away: this number cannot make one",
+    "tel.whoT":        "Whose number is this",
+    "tel.mine":        "This is my new number",
+    "tel.other":       "Someone else uses this phone now",
+    "tel.handT":       "This is someone else's work",
+    "tel.handD":       "The app holds the previous owner's work: {what}.",
+    "tel.wipe":        "Erase and start my own",
+    "tel.wipeAsk":     "Erase everything on this device? Only a copy can bring it back.",
+    "tel.back":        "Back",
     "set.grpAbout":     "About",
 
     "practice.ru": "Russia and CIS",

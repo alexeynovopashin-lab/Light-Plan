@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=13"></script>
+<script src="lang.js?v=14"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -1997,6 +1997,13 @@
     font-size: 14px; padding: 14px; cursor: pointer; width: 100%; text-align: center;
   }
   .ghost:active { color: var(--ink); }
+  /* Ожидание должно читаться ожиданием, а не мёртвой кнопкой: надпись при
+     этом называет, сколько осталось, — гаснет только цвет */
+  .ghost:disabled { color: var(--ink-5, var(--ink-4)); opacity: 0.45; cursor: default; }
+  .ghost:disabled:active { color: var(--ink-5, var(--ink-4)); }
+  /* Кнопка листа тоже бывает недоступна: «Очистить» ждёт, пока копия
+     чужой работы не окажется у человека на руках */
+  .sheet-done:disabled { opacity: 0.4; cursor: default; }
 
   /* ---------- Карта ---------- */
   .map-frame {
@@ -6523,6 +6530,47 @@
     <button class="sheet-done" id="startDone" data-i18n="pick.done">Готово</button>
   </div>
 
+  <!-- ============ СМЕНА СВОЕГО НОМЕРА ============
+       Номер владельца — это ID приложения, то есть имя, под которым его
+       знают снаружи. Менять такое молча нельзя, а два разных повода менять
+       требуют разного: у одного человека появился новый номер, или телефон
+       достался другому человеку. Приложение различить их не может — знает
+       только тот, кто держит телефон, и потому его и спрашивают.
+
+       Три шага, а не один экран: копия, вопрос, передача. Каждый следующий
+       появляется, только если предыдущий пройден. -->
+  <div class="scrim" id="telScrim"></div>
+  <div class="sheet" id="telSheet">
+    <div class="grip"></div>
+
+    <div id="telStepCopy">
+      <div class="sheet-title" data-i18n="tel.copyT">Сначала копия</div>
+      <div class="sheet-sub" id="telFromTo"></div>
+      <p class="seg-note" data-i18n="tel.copyD" style="padding-left:0">Съёмки, контакты, организации и ссылки на документы уйдут в файл. Из него всё возвращается целиком.</p>
+      <button class="sheet-done" id="telCopyDo" data-i18n="tel.copySave">Сохранить копию</button>
+      <button class="ghost" id="telCopySkip"></button>
+      <button class="ghost" id="telCancel1" data-i18n="tel.cancel">Отмена</button>
+    </div>
+
+    <div id="telStepWho" hidden>
+      <div class="sheet-title" data-i18n="tel.whoT">Чей это номер</div>
+      <div class="sheet-sub" id="telFromTo2"></div>
+      <button class="sheet-done" id="telMine" data-i18n="tel.mine">Это мой новый номер</button>
+      <p class="seg-note" data-i18n="tel.mineD" style="padding-left:0">Съёмки, контакты и документы останутся на месте. Прежний ID продолжит работать: кто записал вас по нему, тот по нему и найдёт.</p>
+      <button class="ghost" id="telOther" data-i18n="tel.other">Телефоном пользуется другой человек</button>
+      <button class="ghost" id="telCancel2" data-i18n="tel.cancel">Отмена</button>
+    </div>
+
+    <div id="telStepHand" hidden>
+      <div class="sheet-title" data-i18n="tel.handT">Это чужая работа</div>
+      <div class="sheet-sub" id="telHandD"></div>
+      <p class="seg-note" data-i18n="tel.handD2" style="padding-left:0">Ваш номер её не заменит: календарь не приезжает по номеру, он лежит здесь, на этом телефоне. Копию вы уже сохранили — отдайте её прежнему владельцу.</p>
+      <button class="sheet-done" id="telWipe" data-i18n="tel.wipe">Очистить и начать своё</button>
+      <p class="seg-note" data-i18n="tel.wipeD" style="padding-left:0">Сотрёт всё на этом устройстве, включая подключение к облаку. Дальше — «Восстановить из копии», если она у вас есть.</p>
+      <button class="ghost" id="telBack" data-i18n="tel.back">Назад</button>
+    </div>
+  </div>
+
   <!-- ============ ЗНАКОМСТВО ============
        Плашки поверх живого интерфейса: рамка адресуется настоящему элементу,
        а приложение само показывает, о чём речь. Идёт на первом запуске (нет
@@ -8339,20 +8387,45 @@
     var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
     return "light-plan-" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + ".json";
   }
-  function doBackup() {
+  /* `done` зовётся, только когда копия правда ушла. Нужен обязательной копии
+     при смене номера: там от ответа «сохранил» зависит, пускать ли дальше, и
+     верить на слово нельзя — «Поделиться» смахивают.
+
+     На десктопе отказ не ловится вовсе: файл уходит ссылкой, и браузер о
+     судьбе его не сообщает. Там `done` зовётся всегда, и обязательность
+     копии остаётся честной ровно настолько, насколько честен браузер. */
+  function doBackup(done) {
     var blob = new Blob([backupPayload()], { type: "application/json" });
     var name = backupName();
+    var ok = function () { markBackup(); if (done) done(); };
     // На iPhone «Поделиться» кладёт файл в Файлы, Яндекс.Диск или почту — куда удобнее
     if (navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type: "application/json" })] })) {
       navigator.share({ files: [new File([blob], name, { type: "application/json" })], title: LANG.t("set.backupTitle") })
-        .then(markBackup).catch(function () {});
+        .then(ok).catch(function () {});
       return;
     }
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-    markBackup();
+    ok();
+  }
+  /* ---------- Полное обнуление ----------
+     Нужно ровно одному случаю: телефон перешёл к другому человеку, и он
+     начинает своё. Стереть только съёмки мало — облачный ключ лежит вне
+     `STORE`, и «Восстановить из копии» его не трогает. Не погасив его, новый
+     владелец через четыре секунды зальёт свои данные в чужой Яндекс.Диск.
+
+     Ключи перечислены поимённо, а не сметены по приставке `lightplan.`:
+     хранилища каналов различаются только именем, и подчистую вымело бы
+     заодно соседний канал. Облачные ключи каналами не разведены — они
+     общие, и гасятся оба, это здесь и верно. */
+  function wipeAll() {
+    [STORE, DRAFT_KEY, BACKUP_KEY,
+     CLOUD_TOKEN_KEY, CLOUD_KIND_KEY, CLOUD_SYNC_KEY, CLOUD_PKCE_KEY,
+     "lightplan.ya.token", "lightplan.ya.synced", "lightplan.beta.ya.synced"
+    ].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+    location.reload();
   }
   function markBackup() {
     try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch (e) {}
@@ -8820,10 +8893,13 @@
     myIdAll().forEach(function (x) { var t = telKey(x); if (t) k[t] = 1; });
     return k;
   }
+  /* Настоящая ли это смена. Пустое поле — не смена, а правка на полпути;
+     тот же номер, записанный иначе, — тоже не смена, сверяются ключи */
+  function telSwapped(before, after) {
+    return telReal(before) && telReal(after) && telKey(before) !== telKey(after);
+  }
   function myIdRetire(before, after) {
-    /* Пустое поле — не смена номера, а правка на полпути: цепочку не трогаем.
-       Тот же номер, записанный иначе, тоже не смена — сверяются ключи */
-    if (!telReal(before) || !telReal(after) || telKey(before) === telKey(after)) return false;
+    if (!telSwapped(before, after)) return false;
     var list = me.ids || (me.ids = []);
     var nk = telKey(after);
     /* Вернулись к номеру, которым уже были: почти всегда это исправленная
@@ -8855,10 +8931,48 @@
      если номер тот же, `myIdRetire` ничего не делает. */
   var myTelSnap = "";
   function myTelCommit() {
-    if (!myIdRetire(myTelSnap, myPhone())) { myTelSnap = myPhone(); return; }
-    myTelSnap = myPhone();
+    var before = myTelSnap, after = myPhone();
+    if (telAskNeeded(before, after)) { telAskOpen(before, after); return; }
+    telTake(before, after);
+  }
+  /* Смена принята: цепочка, отметка времени, снимок */
+  function telTake(before, after) {
+    var real = myIdRetire(before, after);
+    myTelSnap = after;
+    if (!real) return;
+    /* Отметку ставим от смены номера, а не от взятия копии: окно мерится
+       от события, а не от реакции на него (решение Алексея) */
+    me.telAt = new Date().toISOString();
     saveAll();
     if ($("appIdWas")) renderProfile();
+    if ($("telCcChips")) renderTelCcChips();
+  }
+
+  /* ---------- Спрашивать ли перед сменой ----------
+     Копия обязательна, но не всякий раз. Два случая освобождают от неё, и
+     оба названы Алексеем.
+
+     Пусто — терять нечего. «Приложение создали, там нет наполнения,
+     сохранять нечего; создана хотя бы одна запись — храним».
+
+     Пятнадцать минут — опечатку меняют быстро. Если номер правили только
+     что, это та же правка, а не второе решение, и спрашивать во второй раз
+     значит мешать. */
+  var TEL_ASK_MS = 15 * 60 * 1000;
+  function dataEmpty() {
+    return !sessions.length && !orgs.length && !trashed.length
+      && !(typeof spots !== "undefined" && spots && spots.length);
+  }
+  function telAskNeeded(before, after) {
+    /* Спрашиваем и тогда, когда номера не было вовсе: имя впервые ложится
+       на уже накопленную работу, и вопрос «чья она» тут ровно тот же. Год
+       без своего номера, а потом телефон достался другому — случай редкий,
+       но ловить его больше нечем */
+    if (!telReal(after)) return false;
+    if (telReal(before) && !telSwapped(before, after)) return false;
+    if (dataEmpty()) return false;
+    var at = me.telAt ? Date.parse(me.telAt) : 0;
+    return !(at && Date.now() - at < TEL_ASK_MS);
   }
 
   /* ---------- Организации ----------
@@ -19546,10 +19660,115 @@
     el.addEventListener("blur", myTelCommit);
   })();
   /* Свернули приложение с открытым полем — тот же момент «правка закончена».
-     `visibilitychange` приходит и там, где `blur` не приходит */
+     `visibilitychange` приходит и там, где `blur` не приходит.
+
+     Возврат в приложение — второй повод: вопрос, который на свёрнутом экране
+     показывать было некому, ждёт здесь. Без этого смена, начатая перед
+     сворачиванием, осталась бы неотвеченной навсегда. */
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden") myTelCommit();
+    else if (telAsk) telAskOpen(telAsk.before, telAsk.after);
   });
+
+  /* ---------- Шторка смены своего номера ----------
+     Приложение не может знать, новый ли это номер того же человека или
+     телефон достался другому. Знает только тот, кто держит телефон, — его и
+     спрашиваем. Ответ решает многое: в первом случае прежний ID остаётся
+     действующим именем того же человека, во втором он не должен вести на
+     нового владельца вовсе. */
+  var telAsk = null, telCopyTimer = null, telCopyLeft = 0, telCopyDone = false;
+  function telAskOpen(before, after) {
+    telAsk = { before: before, after: after };
+    /* Шторку показываем только видимому экрану: `myTelCommit` зовётся и при
+       сворачивании, а вопрос, заданный в свёрнутое приложение, — не вопрос */
+    if (document.visibilityState !== "visible") return;
+    $("telFromTo").innerHTML = $("telFromTo2").innerHTML = telFromToText(before, after);
+    telStep("Copy");
+    telCopyDone = false;
+    telCopyCount(10);
+    $("telScrim").classList.add("open");
+    $("telSheet").classList.add("open");
+  }
+  function telFromToText(before, after) {
+    var a = appId(before), b = appId(after);
+    return a && b ? esc(a) + " → " + esc(b)
+      : b ? esc(LANG.t("tel.becomes", { id: b }))
+      : esc(LANG.t("tel.becomesNone"));
+  }
+  function telStep(name) {
+    ["Copy", "Who", "Hand"].forEach(function (s) {
+      $("telStep" + s).hidden = s !== name;
+    });
+  }
+  /* Отсчёт не отвечает за человека — он не даёт ответить рефлексом.
+     «Продолжить без копии» стоит на месте с первой секунды и всё это время
+     видно, чем оно грозит; нажать его можно через десять. */
+  function telCopyCount(n) {
+    clearInterval(telCopyTimer);
+    telCopyLeft = n;
+    var b = $("telCopySkip");
+    var tick = function () {
+      b.disabled = telCopyLeft > 0;
+      b.textContent = telCopyLeft > 0
+        ? LANG.t("tel.skipWait", { n: telCopyLeft })
+        : LANG.t("tel.skip");
+      if (telCopyLeft <= 0) clearInterval(telCopyTimer);
+      telCopyLeft--;
+    };
+    tick();
+    telCopyTimer = setInterval(tick, 1000);
+  }
+  function telSheetClose() {
+    clearInterval(telCopyTimer);
+    $("telScrim").classList.remove("open");
+    $("telSheet").classList.remove("open");
+  }
+  /* Отмена возвращает поле к прежнему номеру. Правка шла вживую, ID уже
+     сменился под человеком — «отмена» обязана вернуть и его, иначе слово
+     значит не то, что написано на кнопке */
+  function telCancel() {
+    var back = telAsk ? telAsk.before : myTelSnap;
+    telAsk = null;
+    telSheetClose();
+    me.phone = back;
+    if ($("myTel")) $("myTel").value = back;
+    myTelSnap = back;
+    saveAll(); renderProfile(); renderTelCcChips();
+  }
+  $("telCopyDo").addEventListener("click", function () {
+    doBackup(function () {
+      telCopyDone = true;
+      telStep("Who");
+    });
+  });
+  $("telCopySkip").addEventListener("click", function () { telStep("Who"); });
+  $("telCancel1").addEventListener("click", telCancel);
+  $("telCancel2").addEventListener("click", telCancel);
+  $("telMine").addEventListener("click", function () {
+    var a = telAsk; telAsk = null; telSheetClose();
+    telTake(a ? a.before : myTelSnap, myPhone());
+  });
+  $("telOther").addEventListener("click", function () {
+    /* Считаем только то, чего правда есть: «1 съёмка и 0 номеров» — фраза,
+       которую никто не пишет. Перечисление через запятую, а не через «и»:
+       союз пришлось бы согласовывать в каждом языке отдельно, а запятая
+       читается везде одинаково */
+    var have = [], nt = phoneIndex().length;
+    if (sessions.length) have.push(LANG.count("unit.shoot", sessions.length));
+    if (orgs.length) have.push(LANG.count("unit.org", orgs.length));
+    if (nt) have.push(LANG.count("unit.tel", nt));
+    $("telHandD").textContent = LANG.t("tel.handD", { what: have.join(", ") });
+    /* Копию не взяли — говорим это прямо на шаге, где решается судьба чужой
+       работы, а не прячем за общей формулировкой */
+    $("telWipe").disabled = !telCopyDone;
+    telStep("Hand");
+  });
+  $("telBack").addEventListener("click", function () { telStep("Who"); });
+  $("telWipe").addEventListener("click", function () {
+    if (!confirm(LANG.t("tel.wipeAsk"))) return;
+    wipeAll();
+  });
+  $("telScrim").addEventListener("click", telCancel);
   function renderProfile() {
     var id = myId();
     /* Пока номера нет, строка не молчит прочерком, а говорит, чего не хватает:
