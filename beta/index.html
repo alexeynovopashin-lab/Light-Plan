@@ -2425,6 +2425,54 @@
      Общая рамка обещала выбор одного состояния из трёх, которого в данных
      нет: это три разных действия, и каждое заводит свою запись. Подсказки
      справа сняты — они разгоняли строки по ширине и мешали читать подписи */
+  /* ---------- Мудборды на экране съёмок ----------
+     Плитками-обложками, а не строками: содержимое здесь картинки, и список
+     текста на их месте выглядел бы описью, а не галереей
+     (docs/15_MOODBOARD.md, «Экран»). Обложка — мозаика 2×2 из первых кадров
+     подборки. */
+  .mb-strip { flex: 0 0 auto; margin: 22px 24px 0; }
+  .mb-strip[hidden], .mb-lbl[hidden], .mb-tiles[hidden] { display: none; }
+  .mb-lbl {
+    font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--ink-7); font-weight: 600; padding: 0 0 8px;
+  }
+  .mb-tiles + .mb-lbl { padding-top: 18px; }
+  .mb-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .mb-tile {
+    border: none; background: none; padding: 0; font-family: inherit;
+    text-align: left; cursor: pointer; min-width: 0;
+  }
+  .mb-tile:active .mb-cover { background: var(--press); }
+  .mb-cover {
+    aspect-ratio: 1/1; border-radius: 12px; corner-shape: squircle; overflow: hidden;
+    /* Небо под мозаикой светится сквозь просветы; поверх него лежат кадры */
+    background-color: var(--sheet); background-size: cover; background-position: center;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px;
+  }
+  /* Один кадр занимает всю обложку: мозаика из одной плитки — это просто
+     картинка, разрезать её нечем и незачем */
+  .mb-cover.one { display: block; }
+  .mb-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Пустая ячейка — просвет в небо, залитое на самой обложке, а не свой
+     серый квадрат: четыре отдельных заливки рябили бы */
+  .mb-cover .ph { background: none; }
+  .mb-tile .n {
+    display: block; margin-top: 7px; font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mb-tile .s {
+    display: block; margin-top: 1px; font-size: 11px; color: var(--ink-5);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Плитка «ещё» — не обложка, а дверь: пунктиром, чтобы не читалась
+     подборкой с картинками */
+  .mb-tile.more .mb-cover {
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: none; border: 1px dashed var(--hairline-2, var(--hairline)); background: none;
+    font-size: 13px; color: var(--ink-4);
+  }
+
   .day-states { flex: 0 0 auto; margin: 6px 24px 0; display: flex; flex-direction: column; gap: 6px; }
   .day-states .st {
     display: flex; align-items: center; gap: 13px; padding: 9px 16px; width: 100%;
@@ -4563,13 +4611,19 @@
   .ref-btn:active { color: var(--brass); }
   .ref-note { padding: 0 15px 12px; font-size: 12px; color: var(--ink-4); line-height: 1.45; }
   .ref-note[hidden] { display: none; }
-  /* Просмотр картинки во весь экран */
+  /* Просмотр картинки во весь экран.
+     touch-action: none — щипок здесь наш, браузеру его отдавать нельзя;
+     overflow: hidden — увеличенный кадр не вылезает за края экрана. */
   .ref-view {
     position: absolute; inset: 0; z-index: 95; background: var(--overlay-2);
     display: none; align-items: center; justify-content: center; padding: 24px;
+    touch-action: none; overflow: hidden;
   }
   .ref-view.open { display: flex; }
-  .ref-view img { max-width: 100%; max-height: 100%; border-radius: 12px; corner-shape: squircle; }
+  .ref-view img {
+    max-width: 100%; max-height: 100%; border-radius: 12px; corner-shape: squircle;
+    will-change: transform;
+  }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
   /* Высотой блок правит скрипт, здесь только сам переход и обрезка на время
@@ -5296,6 +5350,19 @@
         <span class="lbl" data-i18n="plan.blockLbl">Занять время</span>
       </button>
     </div>
+    <!-- Мудборды прямо на «Съёмках». Раньше вход был один — Настройки →
+         Хранилище → Мудборды, — и это неправильное место: мудбордом
+         занимаются, планируя съёмку, а не настраивая приложение (Алексей,
+         27 августа 2026: «в экране Съёмки нет входа… под кнопками полно
+         места»). Пятой вкладки при этом не заводим — четыре это четыре
+         (docs/04_ANTI_GOALS.md). Блока нет, пока нет ни одной подборки:
+         не завёл — не показываем, как у всего остального. -->
+    <div class="mb-strip" id="mbStrip" hidden>
+      <div class="mb-lbl" id="mbStripShootsLbl" data-i18n="nav.shoots">Съёмки</div>
+      <div class="mb-tiles" id="mbStripShoots"></div>
+      <div class="mb-lbl" id="mbStripSetsLbl" data-i18n="mb.sets">Подборки</div>
+      <div class="mb-tiles" id="mbStripSets"></div>
+    </div>
     <div id="sessionList" hidden></div>
   </section>
 
@@ -5431,7 +5498,7 @@
          съёмкой и жанровой подборкой было либо неоткуда, либо неудобно —
          через настройку карточки (Алексей: «тут это делать удобнее»).
          Раздел не заводит новых данных, только даёт разложить по полочкам
-         то, что уже лежит в `s.refs` и `genreRefs` (docs: DECISIONS). -->
+         то, что уже лежит в фонде кадров (docs: DECISIONS). -->
     <div class="sec-label" data-i18n="set.storage">Хранилище</div>
     <div class="item" id="mbRow"><span class="k" data-i18n="set.moodboards">Мудборды</span><span class="v" id="mbRowN">— <span class="go-chev">›</span></span></div>
     <!-- Экран организаций живёт и здесь: раньше единственный путь был кнопкой
@@ -6374,8 +6441,9 @@
   <!-- ============ МУДБОРДЫ ============
        Галерея папок: съёмки с референсами и жанровые подборки. Съёмочная
        папка одноразовая (собрал, отснял, дальше архив), жанровая — живёт
-       годами и пополняется отовсюду. Обе читают уже существующие массивы
-       (s.refs, genreRefs) — это редактор над ними, не новый склад. -->
+       годами и пополняется отовсюду. Обе — подборки над общим фондом кадров:
+       держат порядок ссылок, а не сами картинки, и один кадр спокойно лежит
+       в нескольких (docs/15_MOODBOARD.md). -->
   <div class="overlay pad" id="mbOverlay">
     <button class="back" id="mbBack">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
@@ -7766,9 +7834,16 @@
       if (!onMap(e.target)) e.preventDefault();
     }, { passive: false });
   });
-  /* Второй палец вне карты не делает ничего: страница не разъезжается. */
+  /* Второй палец вне карты не делает ничего: страница не разъезжается.
+     Просмотрщик референса — второе исключение: щипок там наш собственный,
+     а WebKit строит pointer-события поверх touch-событий и на отменённом
+     touchmove умеет оборвать всю последовательность через pointercancel.
+     Браузерный жест там и так закрыт правилом touch-action: none. */
+  function onZoomer(el) {
+    return !!(el && el.closest && el.closest("#refView"));
+  }
   document.addEventListener("touchmove", function (e) {
-    if (e.touches.length > 1 && !onMap(e.target)) e.preventDefault();
+    if (e.touches.length > 1 && !onMap(e.target) && !onZoomer(e.target)) e.preventDefault();
   }, { passive: false });
 
   /* ---------- Пасхалка: тишина под звёздами ----------
@@ -7891,7 +7966,8 @@
      выбранный на ноутбуке час назад. Поэтому отметка на ключ, и ставится
      только тем ключам, которые правда изменились. Значения при этом не
      переворачиваются в объекты — хранилище переписывать не нужно. */
-  var SET_SKIP = { sessions: 1, trashed: 1, blocks: 1, orgs: 1, spots: 1, graves: 1, setMt: 1, dev: 1 };
+  var SET_SKIP = { sessions: 1, trashed: 1, blocks: 1, orgs: 1, spots: 1, graves: 1, setMt: 1, dev: 1,
+    shots: 1, boards: 1 };
   function stampSettings(data, now) {
     for (var k in data) {
       if (SET_SKIP[k]) continue;
@@ -7908,13 +7984,17 @@
       var now = Date.now();
       stampList(sessions, now); stampList(orgs, now);
       stampList(spots, now); stampList(blocks, now);
+      stampList(shots, now); stampList(boards, now);
       var data = {
         sessions: sessions.map(function (s) {
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
         }),
         me: me,
-        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
+        delivery: delivery, genres: genresOn, genrePrefs: genrePrefs,
+        /* Фонд кадров и подборки — списки записей со знаком и отметкой
+           правки, сливаются как съёмки (docs/15_MOODBOARD.md) */
+        shots: shots, boards: boards,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
         drumSlot: drumSlot,
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
@@ -8667,7 +8747,7 @@
      Слияние многих устройств — это то же слияние, применённое подряд.
      Порядок применения на ответ не влияет: выбор всегда «позднейшее из
      двух», а это максимум по одному и тому же порядку. */
-  var MERGE_LISTS = ["sessions", "orgs", "spots", "blocks"];
+  var MERGE_LISTS = ["sessions", "orgs", "spots", "blocks", "shots", "boards"];
 
   /* Запись без отметки читается как самая старая: когда её правили, никто не
      знает, и любая известная правка новее незнаемой. Равенство отметок
@@ -8806,6 +8886,16 @@
     try { n = (JSON.parse(raw || "{}").sessions || []).length; } catch (e) {}
     if ($("storeCount")) $("storeCount").textContent = n + " · "
       + LANG.t("doc.kb", { n: num(Math.max(1, Math.round(raw.length / 1024))) });
+    /* Картинки в снимке больше не лежат — их место показывает браузер.
+       Чистить, когда станет тесно, первыми стоит экранные копии прошедших
+       съёмок (docs/15_MOODBOARD.md, «Место на устройстве») */
+    if ($("storeCount") && navigator.storage && navigator.storage.estimate) {
+      var line = $("storeCount");
+      navigator.storage.estimate().then(function (e) {
+        var mb = (e.usage || 0) / 1048576;
+        if (mb >= 0.05) line.textContent += " · " + LANG.t("set.storeImages", { n: num(mb, 1) });
+      }).catch(function () {});
+    }
     var when = localStorage.getItem(BACKUP_KEY);
     if ($("backupWhen")) {
       if (!when) $("backupWhen").textContent = LANG.t("set.backupNever");
@@ -8845,7 +8935,178 @@
       return o;
     } catch (e) { return null; }
   }
+  /* ---------- Картинки: байты отдельно от снимка ----------
+     Превью лежали `data:`-строками внутри общего JSON в `localStorage`.
+     Потолок там около 5 МБ на всё приложение разом, и кончился бы он не у
+     референсов, а у съёмок, денег и документов (docs/15_MOODBOARD.md,
+     «Потолок»). Теперь байты живут в IndexedDB, а в снимке остаётся `im` —
+     имя кадра — и его размеры.
+
+     Побочно это чинит вес обмена: снимок худеет, и превью перестают уезжать
+     в облако при каждой правке мелочи (13_MULTI_DEVICE, «Превью референсов»).
+
+     Между устройствами блобы не ездят намеренно: они восстановимы из облака
+     или из источника. */
+  var BLOB_DB = "lp", BLOB_STORE = "blobs", blobDbP = null;
+  function blobDb() {
+    if (blobDbP) return blobDbP;
+    blobDbP = new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error("no idb")); return; }
+      var rq = indexedDB.open(BLOB_DB, 1);
+      rq.onupgradeneeded = function () {
+        if (!rq.result.objectStoreNames.contains(BLOB_STORE)) rq.result.createObjectStore(BLOB_STORE);
+      };
+      rq.onsuccess = function () { res(rq.result); };
+      rq.onerror = function () { rej(rq.error); };
+    });
+    blobDbP.catch(function () { blobDbP = null; });   // не запоминаем отказ навсегда
+    return blobDbP;
+  }
+  function blobKey(id, kind) { return id + ":" + (kind || "t"); }
+  function blobTx(mode, fn) {
+    return blobDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(BLOB_STORE, mode), rq = fn(tx.objectStore(BLOB_STORE));
+        tx.oncomplete = function () { res(rq && rq.result); };
+        tx.onerror = function () { rej(tx.error); };
+        tx.onabort = function () { rej(tx.error); };
+      });
+    });
+  }
+  /* Превью ~200 px — на устройстве всегда, экранный ~1600 px — то, с чем
+     работают на площадке. Оригинал остаётся в облаке (15_MOODBOARD, «Три
+     размера») */
+  var BLOB_T = 200, BLOB_S = 1600;
+  function blobPut(id, kind, blob) { return blobTx("readwrite", function (st) { return st.put(blob, blobKey(id, kind)); }); }
+  function blobGet(id, kind) { return blobTx("readonly", function (st) { return st.get(blobKey(id, kind)); }); }
+  function blobDrop(id) {
+    blobUrlDrop(id);
+    return blobTx("readwrite", function (st) { st.delete(blobKey(id, "t")); return st.delete(blobKey(id, "s")); })
+      .catch(function () {});
+  }
+  function blobId() { return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7); }
+
+  /* Ссылки на блобы держим в памяти: пересоздавать их на каждый рендер сетки
+     значило бы течь памятью и мигать картинками. */
+  var blobUrls = {}, blobWait = {};
+  function blobUrlDrop(id) {
+    ["t", "s"].forEach(function (k) {
+      var u = blobUrls[blobKey(id, k)];
+      if (u) { URL.revokeObjectURL(u); delete blobUrls[blobKey(id, k)]; }
+    });
+  }
+  function blobUrl(id, kind) { return blobUrls[blobKey(id, kind || "t")] || null; }
+  /* Достать и запомнить. Второй раз за тот же кадр не ходим — обещание общее */
+  function blobUrlLoad(id, kind) {
+    var key = blobKey(id, kind || "t");
+    if (blobUrls[key]) return Promise.resolve(blobUrls[key]);
+    if (blobWait[key]) return blobWait[key];
+    blobWait[key] = blobGet(id, kind).then(function (b) {
+      delete blobWait[key];
+      if (!b) return null;
+      blobUrls[key] = URL.createObjectURL(b);
+      return blobUrls[key];
+    }).catch(function () { delete blobWait[key]; return null; });
+    return blobWait[key];
+  }
+
+  /* ---------- Одна точка подстановки вместо восьми ----------
+     Рендеров, рисующих референс картинкой, восемь, и все они синхронные:
+     собирают строку HTML. Переписывать каждый под промис — восемь мест, где
+     можно разойтись. Вместо этого рендеры ставят `<img data-bid>`, а
+     наблюдатель подставляет `src`, когда картинка появилась в DOM. */
+  function refImg(r, kind) {
+    if (!r || !r.im) return r && r.thumb ? '<img src="' + r.thumb + '" alt="">' : "";
+    var k = kind || "t", have = blobUrl(r.im, k);
+    return '<img data-bid="' + esc(r.im) + '" data-bk="' + k + '"'
+      + (r.w && r.h ? ' width="' + r.w + '" height="' + r.h + '"' : "")
+      + (have ? ' src="' + have + '"' : "") + ' alt="">';
+  }
+  function blobHydrate(root) {
+    (root || document).querySelectorAll("img[data-bid]:not([src])").forEach(function (im) {
+      var id = im.dataset.bid, k = im.dataset.bk || "t";
+      blobUrlLoad(id, k).then(function (u) { if (u && !im.getAttribute("src")) im.src = u; });
+    });
+  }
+  if (window.MutationObserver) {
+    new MutationObserver(function (recs) {
+      for (var i = 0; i < recs.length; i++) {
+        var added = recs[i].addedNodes;
+        for (var j = 0; j < added.length; j++) {
+          var n = added[j];
+          if (n.nodeType !== 1) continue;
+          if (n.matches && n.matches("img[data-bid]")) blobHydrate(n.parentNode || document);
+          else if (n.querySelector && n.querySelector("img[data-bid]")) blobHydrate(n);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  /* Снять с файла картинку заданной стороны. Блоб, не строка: `toDataURL`
+     раздувал байты на треть и клал их прямо в снимок. */
+  function shrink(file, side) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var k = Math.min(side / img.width, side / img.height, 1);
+        var c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * k));
+        c.height = Math.max(1, Math.round(img.height * k));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) {
+          if (b) res({ blob: b, w: c.width, h: c.height }); else rej(new Error("no blob"));
+        }, "image/jpeg", 0.72);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error(LANG.t("ref.errNotImage"))); };
+      img.src = url;
+    });
+  }
+  /* Оба размера снимаются, пока файл в руках: на площадке взять их будет
+     неоткуда. Возвращаем то, что дописывается в запись. */
+  function refShots(file) {
+    var id = blobId();
+    return shrink(file, BLOB_T).then(function (t) {
+      return blobPut(id, "t", t.blob).then(function () {
+        return shrink(file, BLOB_S)
+          .then(function (s) { return blobPut(id, "s", s.blob); })
+          .catch(function () {});          // экранный необязателен, превью важнее
+      }).then(function () { return { im: id, w: t.w, h: t.h }; });
+    });
+  }
+
+  /* ---------- Перенос старых превью ----------
+     Начерно и один раз: данные в прототипе одноразовые, аккуратной миграции
+     не строим (15_MOODBOARD, «Старые данные переносятся один раз»).
+     Экранного размера у старых кадров нет — оригинал лежит на Диске.
+
+     Запись правится сразу, а байты уезжают в базу в фоне: снимок читают
+     ниже по файлу, и он должен быть уже новым к этому моменту. */
+  function dataToBlob(s) {
+    var i = s.indexOf(","), bin = atob(s.slice(i + 1)), a = new Uint8Array(bin.length);
+    for (var n = 0; n < bin.length; n++) a[n] = bin.charCodeAt(n);
+    return new Blob([a], { type: (s.slice(5, i).split(";")[0] || "image/jpeg") });
+  }
+  function migrateThumbs(root) {
+    var n = 0;
+    (function walk(o) {
+      if (!o || typeof o !== "object") return;
+      if (Array.isArray(o)) { o.forEach(walk); return; }
+      if (typeof o.thumb === "string" && o.thumb.slice(0, 5) === "data:") {
+        var id = blobId(), b = null;
+        try { b = dataToBlob(o.thumb); } catch (e) {}
+        if (b) { blobPut(id, "t", b).catch(function () {}); o.im = id; n++; }
+        delete o.thumb;
+      }
+      for (var k in o) walk(o[k]);
+    })(root);
+    return n;
+  }
+
   var saved = loadAll();
+  /* Снимок худеет ровно один раз — после того, как всё ниже успело из него
+     прочитаться и записаться обратно */
+  if (migrateThumbs(saved)) setTimeout(function () { saveAll(); renderStorageInfo(); }, 0);
   /* Корзина: удалённые съёмки с их местом в списке и временем удаления.
      Даты внутри восстанавливаются так же, как у обычных записей.
      Читается сразу после `loadAll`, а не раньше: `var` поднимается вверх, но
@@ -9002,6 +9263,7 @@
     };
     (Array.isArray(d.sessions) ? d.sessions : []).forEach(function (x) { if (x) fix(x.refs); });
     if (d.genreRefs) for (var g in d.genreRefs) fix(d.genreRefs[g]);
+    fix(d.shots);       // кадры фонда — те же теги, только уже не по спискам
     return d;
   }
   saved = migrateRefTags(saved);
@@ -12425,7 +12687,7 @@
     trashed.unshift({ rec: rec, at: i, del: Date.now() });
     undoAt = 0;
     saveAll();
-    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn();
+    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderMbStrip();
     $("undoText").textContent = LANG.t("day.inBin", { name: rec.contact || genreName(rec.type) });
     $("undoBar").classList.add("show");
     clearTimeout(trashTimer);
@@ -12449,7 +12711,7 @@
        приехать с другого устройства */
     graves = graves.filter(function (g) { return g.id !== (t.rec && t.rec.id); });
     saveAll();
-    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderBin();
+    renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderBin(); renderMbStrip();
   }
   $("undoBtn").addEventListener("click", function () {
     if (undoAt === null) return;
@@ -12795,23 +13057,10 @@
   /* ---------- Оплата в форме ---------- */
   function payProbe() { return { pay: fPay, rate: fRate, units: fUnits, dur: fDur, expense: fExpense }; }
   /* ---------- Референсы ----------
-     Оригинал уезжает на Диск фотографа, рядом с ним локально живёт маленькая
-     миниатюра: лента открывается мгновенно и работает без сети. */
-  function refThumb(file, side) {
-    return new Promise(function (res, rej) {
-      var url = URL.createObjectURL(file), img = new Image();
-      img.onload = function () {
-        var k = Math.min(side / img.width, side / img.height, 1);
-        var c = document.createElement("canvas");
-        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        res(c.toDataURL("image/jpeg", 0.72));
-      };
-      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error(LANG.t("ref.errNotImage"))); };
-      img.src = url;
-    });
-  }
+     Оригинал уезжает на Диск фотографа, рядом с ним на устройстве остаются
+     две копии — превью для сетки и экранная для работы на площадке. Байты
+     лежат в IndexedDB, в записи стоит только имя кадра `im` и его размеры
+     (docs/15_MOODBOARD.md). */
   function refHost(url) {
     try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return LANG.t("ref.link"); }
   }
@@ -12831,7 +13080,7 @@
           + '<span class="kill" data-kill="' + i + '">✕</span></button>';
       }
       return '<button type="button" class="ref-card" data-i="' + i + '">'
-        + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "")
+        + refImg(r)
         + (r.pending ? '<span class="wait">…</span>' : "")
         + '<span class="kill" data-kill="' + i + '">✕</span></button>';
     }).join("");
@@ -12843,10 +13092,16 @@
       });
     });
   }
+  /* Кадр, лежащий ещё где-то — в наборе жанра, в другой подборке, — из формы
+     только убирается: стереть его байты значило бы выбить картинку из чужой
+     подборки. Свой, никому больше не нужный, уходит совсем. */
   function removeRef(i) {
     var r = fRefs[i];
     if (!r) return;
-    if (r.k === "img" && r.path) cloudDelete(r.path);   // с Диска тоже убираем
+    if (!(r.id && shotUsed(r.id))) {
+      if (r.k === "img" && r.path) cloudDelete(r.path);   // с Диска тоже убираем
+      if (r.im) blobDrop(r.im);                          // и байты с устройства
+    }
     fRefs.splice(i, 1);
     renderRefs();
   }
@@ -12855,10 +13110,15 @@
   function openRef(r) {
     if (!r) return;
     if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
-    if (!r.path) return;
+    if (!r.im && !r.path) return;
     var img = $("refViewImg"), mine = ++refViewSeq;
-    img.src = r.thumb || "";
+    img.src = (r.im && blobUrl(r.im, "t")) || "";
+    rvReset(false);                     // следующий кадр открывается целым
     $("refView").classList.add("open");
+    /* Экранная копия — то, ради чего всё затевалось: без сети она уже здесь.
+       Оригинал приходит следом и только если сеть есть. */
+    if (r.im) blobUrlLoad(r.im, "s").then(function (u) { if (u && mine === refViewSeq) img.src = u; });
+    if (!r.path) return;
     cloudDownloadUrl(r.path).then(function (href) {
       /* Ссылка с Диска живёт недолго и иногда не открывается вовсе. Раньше мы
          подставляли её сразу — миниатюра стиралась, оригинал не приходил, и
@@ -12871,9 +13131,16 @@
   }
   /* Референсы добавляются в двух местах: в съёмку и в набор жанра.
      Механика одна, различаются только список, папка на Диске и отрисовка. */
-  var refCtx = { list: null, render: null, note: "refNote", dir: "refs", tag: null };
+  var refCtx = { list: null, board: null, render: null, note: "refNote", dir: "refs", tag: null };
   function useRefCtx(list, render, note, dir, tag) {
-    refCtx = { list: list, render: render, note: note, dir: dir, tag: tag || null };
+    refCtx = { list: list, board: null, render: render, note: note, dir: dir, tag: tag || null };
+  }
+  /* Референсы кладутся не в список, а в фонд, и подборка получает ссылку.
+     Формы съёмки это не касается: пока запись не сохранена, её кадры живут
+     в `fRefs` и в фонд не попадают (иначе отменённая правка оставляла бы
+     мусор в библиотеке). */
+  function useRefBoard(board, render, note, dir, tag) {
+    refCtx = { list: null, board: board, render: render, note: note, dir: dir, tag: tag || null };
   }
   /* ---------- Загрузка файлов на Диск ----------
      Одна механика на четыре места: референсы съёмки, набор жанра, документы
@@ -12892,7 +13159,7 @@
      o.save     — сохранять сразу (черновик формы сохраняется своим порядком)
      o.noDiskText — свои слова, когда Диск не подключён */
   function uploadToDisk(files, o) {
-    var list = o.list, render = o.render || function () {}, note = o.note;
+    var list = o.list, board = o.board, render = o.render || function () {}, note = o.note;
     if (!cloudOn()) {
       $(note).hidden = false;
       $(note).textContent = o.noDiskText
@@ -12908,15 +13175,17 @@
         name: file.name, size: file.size };
       var meta = typeof o.meta === "function" ? o.meta(file) : o.meta;
       if (meta) for (var key in meta) rec[key] = meta[key];
-      list.push(rec); render();
+      if (board) { rec.id = newId(); shots.push(rec); shotIndex()[rec.id] = rec; boardPut(board, rec.id); }
+      else list.push(rec);
+      render();
       var stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
       var ext = (file.name.match(/\.[a-z0-9]+$/i) || [isImg ? ".jpg" : ""])[0];
-      /* Миниатюра снимается до отправки: она же остаётся, когда сети нет */
-      var ready = (isImg && o.thumbs) ? refThumb(file, 320).catch(function () { return null; })
+      /* Копии снимаются до отправки: они же остаются, когда сети нет */
+      var ready = (isImg && o.thumbs) ? refShots(file).catch(function () { return null; })
         : Promise.resolve(null);
       ready
-        .then(function (thumb) {
-          if (thumb) { rec.thumb = thumb; render(); }
+        .then(function (shot) {
+          if (shot) { rec.im = shot.im; rec.w = shot.w; rec.h = shot.h; render(); }
           return dirReady.then(function () { return cloudUpload(dir + "/" + stamp + ext, file); })
             // Подпапка не далась — кладём рядом с копией, лишь бы файл не потерялся
             .catch(function () { return cloudUpload(o.dir + "-" + stamp + ext, file); });
@@ -12926,7 +13195,8 @@
           if (o.save !== false) saveAll();
         })
         .catch(function (e) {
-          list.splice(list.indexOf(rec), 1); render();
+          if (board) shotDrop(rec.id); else list.splice(list.indexOf(rec), 1);
+          render();
           $(note).hidden = false;
           $(note).textContent = LANG.t(o.imagesOnly ? "ref.upFailPhoto" : "ref.upFailDoc", { err: e.message });
         });
@@ -13111,7 +13381,7 @@
       });
       (o.reqFiles || []).forEach(function (r, j) {
         out.push({ r: { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
-          thumb: r.thumb, kind: "req" }, from: "req", oi: i, di: j, when: null, who: o.name });
+          im: r.im, w: r.w, h: r.h, kind: "req" }, from: "req", oi: i, di: j, when: null, who: o.name });
       });
     });
     /* Свежие сверху: к бумагам возвращаются от последней к первой */
@@ -13181,27 +13451,26 @@
      refTagsOf) — просто без интерфейса у съёмки. Здесь ровно тот же
      механизм получил вторую дверь: заходишь не через форму съёмки или
      «Мои жанры», а через Хранилище, и раскладываешь по разделам то, что
-     уже лежит в `s.refs`/`genreRefs`. Копирования нет нигде — «Переложить»
-     переносит запись из одного списка в другой (splice + push), а не
-     дублирует путь на Диске: два указателя на один файл — верный способ
-     потерять превью, когда один из них уберут. */
+     уже лежит в фонде кадров. Копий по-прежнему нет — но теперь по другой
+     причине: подборка держит не запись, а ссылку на кадр, и один кадр
+     спокойно лежит в нескольких подборках. Файл при этом ровно один, и
+     владеет им фонд (docs/15_MOODBOARD.md, «Кадр и подборка — разные
+     вещи»). */
   function mbFolders() {
     var out = [];
     sessions.forEach(function (s, i) {
-      if (Array.isArray(s.refs) && s.refs.length) out.push({ kind: "session", si: i });
+      var b = boardOfSession(s, false);
+      if (b && b.items.length) out.push({ kind: "session", si: i, b: b });
     });
-    ALL_GENRES.forEach(function (g) {
-      if ((genreRefs[g] || []).length) out.push({ kind: "genre", g: g });
+    boards.forEach(function (b) {
+      if (b.kind === "tpl" && b.items.length) out.push({ kind: "genre", g: b.genre, b: b });
     });
     return out;
   }
-  function mbList(f) {
-    if (f.kind === "session") {
-      var s = sessions[f.si];
-      return Array.isArray(s.refs) ? s.refs : (s.refs = []);
-    }
-    return genreRefList(f.g);
+  function mbBoard(f) {
+    return f.b || (f.kind === "session" ? boardOfSession(sessions[f.si], true) : boardTpl(f.g, true));
   }
+  function mbList(f) { return boardShots(mbBoard(f)); }
   function mbGenre(f) { return f.kind === "session" ? sessions[f.si].type : f.g; }
   function mbTitle(f) {
     if (f.kind === "session") {
@@ -13228,29 +13497,128 @@
     var sessionsF = folders.filter(function (f) { return f.kind === "session"; })
       .sort(function (a, b) { return sessions[b.si].date - sessions[a.si].date; });
     var genresF = folders.filter(function (f) { return f.kind === "genre"; });
-    function row(f, i, listId) {
+    function tile(f, i, listId) {
       var n = mbList(f).length;
-      return '<button type="button" class="org-item" data-list="' + listId + '" data-i="' + i + '">'
-        + '<span class="badge">' + IC.genreSvg(mbGenre(f)) + "</span>"
-        + '<span class="org-b"><span class="org-n">' + esc(mbTitle(f)) + "</span>"
-        + '<span class="org-s">' + esc(mbSub(f)) + " · " + esc(LANG.count("unit.item", n)) + "</span></span>"
-        + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
+      return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '">'
+        + mbCover(f)
+        + '<span class="n">' + esc(mbTitle(f)) + "</span>"
+        + '<span class="s">' + esc(mbSub(f)) + " · " + esc(LANG.count("unit.item", n)) + "</span></button>";
     }
     var html = '<div class="sec-label" style="padding-left:0;">' + esc(LANG.t("nav.shoots")) + "</div>";
     html += sessionsF.length
-      ? sessionsF.map(function (f, i) { return row(f, i, "s"); }).join("")
+      ? '<div class="mb-tiles">' + sessionsF.map(function (f, i) { return tile(f, i, "s"); }).join("") + "</div>"
       : '<div class="org-empty">' + esc(LANG.t("mb.noShootFolders")) + "</div>";
     html += '<div class="sec-label" style="padding-left:0;margin-top:18px;">' + esc(LANG.t("mb.sets")) + "</div>";
     html += genresF.length
-      ? genresF.map(function (f, i) { return row(f, i, "g"); }).join("")
+      ? '<div class="mb-tiles">' + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("") + "</div>"
       : '<div class="org-empty">' + esc(LANG.t("mb.noGenreSets")) + "</div>";
     $("mbGallery").innerHTML = html;
-    $("mbGallery").querySelectorAll(".org-item").forEach(function (b) {
+    $("mbGallery").querySelectorAll(".mb-tile").forEach(function (b) {
       b.addEventListener("click", function () {
         var list = b.dataset.list === "s" ? sessionsF : genresF;
         openMbFolder(list[+b.dataset.i]);
       });
     });
+  }
+  /* ---------- Галерея на экране съёмок ----------
+     Та же галерея, что в Настройках, но плитками и в потоке экрана. Держим
+     её короткой: экран съёмок — планировщик, а не библиотека. Что не влезло,
+     открывается полной галереей по плитке «ещё». */
+  var MB_STRIP_MAX = 6;
+  /* ---------- Цвет ненаполненной обложки ----------
+     Пустая ячейка мозаики была серой дыркой — раздел от этого выглядел
+     недоделанным, хотя недоделан был не он, а подборка. Алексей, 27 августа
+     2026: цветные плитки «выгодно выделяют раздел и побуждают его
+     наполнить». Значит пустое место должно звать, а не извиняться.
+
+     Цвет берём не случайный, а свой: это те же цвета неба, которыми
+     красится ось дня и дуга света. Ненаполненная обложка — кусок неба, и
+     приложение остаётся собой, а не превращается в радугу.
+
+     Градиент один на всю обложку, а пустые ячейки — просветы в него: четыре
+     разных квадрата рябили бы, а так плитка читается целой даже с одной
+     картинкой в углу.
+
+     Пара выбирается по знаку подборки — та же подборка всегда одного цвета:
+     обложка, которая меняет цвет при каждой перерисовке, запоминаться не
+     может. */
+  var MB_SKY = [[DEEP, BLUE], [BLUE, PINK], [PINK, SCARLET], [SCARLET, GOLD],
+                [GOLD, AMBER], [NIGHT, DEEP], [BLUE, NIGHT], [AMBER, SILVER]];
+  function mbSky(id) {
+    var h = 2166136261, str = String(id || "");
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;   // FNV-1a
+    }
+    /* Младшие биты у коротких знаков похожи — берём старшие, иначе соседние
+       подборки красятся в один цвет, и «свой цвет у каждой» не работает */
+    var p = MB_SKY[(h >>> 16) % MB_SKY.length];
+    return "linear-gradient(145deg," + rgba(p[0], 0.85) + "," + rgba(p[1], 0.85) + ")";
+  }
+  /* Обложка — мозаика 2×2 из первых кадров, либо назначенный кадр целиком */
+  function mbCover(f) {
+    var b = mbBoard(f), list = boardShots(b);
+    var sky = ' style="background-image:' + mbSky(b && b.id) + '"';
+    var set = b.cover ? [shotById(b.cover)].filter(Boolean) : null;
+    /* Мозаику собирают картинки: у кадра-ссылки своей картинки пока нет
+       (она придёт с чтением `og:image`), и в сетке он — пустая ячейка.
+       Поэтому картинки идут вперёд, а ссылки добором. */
+    var pics = set || list.filter(function (r) { return r.im; });
+    /* Одна картинка — не мозаика, а картинка: резать её нечем и незачем.
+       Пустая обложка — тоже одна ячейка, а не сетка из четырёх дырок. */
+    if (pics.length < 2) {
+      return '<span class="mb-cover one"' + sky + ">"
+        + (pics.length ? refImg(pics[0]) : "") + "</span>";
+    }
+    var cells = pics.slice(0, 4).map(function (r) { return refImg(r); });
+    /* Мозаика всегда о четырёх ячейках: три кадра и просвет честнее, чем
+       растянутый третий на пол-обложки */
+    while (cells.length < 4) cells.push('<i class="ph"></i>');
+    return '<span class="mb-cover"' + sky + ">" + cells.join("") + "</span>";
+  }
+  function renderMbStrip() {
+    if (!$("mbStrip")) return;
+    var folders = mbFolders();
+    /* Ближайшая съёмка первой, а не самая поздняя: это планировщик, и
+       мудборд нужен к той, что скоро. Прошедшие уходят в хвост — их
+       подборки уже отработали. */
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var shootsF = folders.filter(function (f) { return f.kind === "session"; })
+      .sort(function (x, y) {
+        var dx = sessions[x.si].date, dy = sessions[y.si].date;
+        var px = dx < today, py = dy < today;
+        if (px !== py) return px ? 1 : -1;
+        return px ? dy - dx : dx - dy;
+      });
+    var setsF = folders.filter(function (f) { return f.kind === "genre"; });
+    $("mbStrip").hidden = !folders.length;
+    if (!folders.length) return;
+    function fill(host, label, list, listId) {
+      var over = list.length - MB_STRIP_MAX;
+      var shown = over > 0 ? list.slice(0, MB_STRIP_MAX - 1) : list;
+      $(label).hidden = !list.length;
+      $(host).hidden = !list.length;
+      var html = shown.map(function (f, i) {
+        return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '">'
+          + mbCover(f)
+          + '<span class="n">' + esc(mbTitle(f)) + "</span>"
+          + '<span class="s">' + esc(LANG.count("unit.item", mbList(f).length)) + "</span></button>";
+      }).join("");
+      if (over > 0) {
+        html += '<button type="button" class="mb-tile more" data-more="1">'
+          + '<span class="mb-cover">+' + (over + 1) + "</span>"
+          + '<span class="n">' + esc(LANG.t("mb.all")) + "</span></button>";
+      }
+      $(host).innerHTML = html;
+      $(host).querySelectorAll(".mb-tile").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (b.dataset.more) { renderMbGallery(); $("mbOverlay").classList.add("open"); return; }
+          openMbFolder(shown[+b.dataset.i]);
+        });
+      });
+    }
+    fill("mbStripShoots", "mbStripShootsLbl", shootsF, "s");
+    fill("mbStripSets", "mbStripSetsLbl", setsF, "g");
   }
   function renderMbCount() {
     if ($("mbRowN")) $("mbRowN").innerHTML = esc(String(mbFolders().length || LANG.t("card.none"))) + ' <span class="go-chev">›</span>';
@@ -13291,7 +13659,7 @@
           + '<span class="path">' + refTail(p.r.url) + "</span></button>";
       }
       return '<button type="button" class="ref-card" data-i="' + p.i + '">'
-        + (p.r.thumb ? '<img src="' + p.r.thumb + '" alt="">' : "")
+        + refImg(p.r)
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + "</button>";
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
@@ -13304,10 +13672,13 @@
     renderMbGallery();
     $("mbOverlay").classList.add("open");
   });
-  $("mbBack").addEventListener("click", function () { $("mbOverlay").classList.remove("open"); });
+  $("mbBack").addEventListener("click", function () {
+    $("mbOverlay").classList.remove("open");
+    renderMbStrip();          // подборки могли поменяться, пока ходили по папкам
+  });
   $("mbFolderBack").addEventListener("click", function () {
     $("mbFolderOverlay").classList.remove("open");
-    renderMbGallery(); renderMbCount();   // счётчики папки могли поменяться
+    renderMbGallery(); renderMbCount(); renderMbStrip();   // счётчики папки могли поменяться
   });
   /* Загрузка фото не требует Диска только формально — без него uploadToDisk
      покажет «подключите Яндекс.Диск» и ничего не добавит (тот же экран, что
@@ -13315,14 +13686,14 @@
      локальное хранение фото придёт позже отдельной задачей. */
   $("mbAddPhoto").addEventListener("click", function () {
     if (!mbOpen) return;
-    useRefCtx(mbList(mbOpen), renderMbFolder, "mbNote", mbDir(mbOpen), mbTag);
+    useRefBoard(mbBoard(mbOpen), renderMbFolder, "mbNote", mbDir(mbOpen), mbTag);
     $("refFile").click();
   });
   $("mbAddLink").addEventListener("click", function () {
     if (!mbOpen) return;
     var url = askLink();
     if (!url) return;
-    mbList(mbOpen).push({ k: "link", url: url, tag: mbTag });
+    boardPut(mbBoard(mbOpen), shotAdd({ k: "link", url: url, tag: mbTag }));
     saveAll(); renderMbFolder();
   });
 
@@ -13367,29 +13738,31 @@
     closeMbItem();
     openRef(r);
   });
-  /* Переезд — не копия: splice из одного списка, push в другой. Второй
-     указатель на тот же путь на Диске было бы легче сделать, чем безопасно
-     удалить — тот, кто уберёт «свою» копию первым, стирает файл для
-     обеих. Одна запись — один список, всегда. */
+  /* Раньше это был переезд записи: splice из одного списка, push в другой —
+     иначе два указателя на один файл на Диске, и тот, кто уберёт «свою»
+     копию первым, стирает картинку для обеих. Фонд снял этот страх: файл
+     один и принадлежит фонду, а подборки держат ссылки. Поэтому «положить в
+     набор» больше не отнимает кадр у съёмки — он остаётся и там, и там. */
   $("mbItemMove").addEventListener("click", function () {
     var f = mbOpen;
     if (!f || f.kind !== "session") return;
-    var list = mbList(f), r = list[mbItem];
+    var r = mbList(f)[mbItem];
     if (!r) return;
-    list.splice(mbItem, 1);
-    var g = mbGenre(f), target = genreRefList(g), targetTags = refTagsFor(g);
-    target.push({ k: r.k, url: r.url, path: r.path, thumb: r.thumb,
-      tag: r.tag && targetTags.indexOf(r.tag) >= 0 ? r.tag : null });
+    boardPut(boardTpl(mbGenre(f), true), r.id);
     saveAll();
     closeMbItem();
     renderMbFolder(); renderMbGallery();
   });
+  /* Убрать из подборки и удалить кадр — разные вещи: первое правит порядок,
+     второе убирает картинку отовсюду. Здесь первое; кадр уходит совсем
+     только если больше нигде не лежит. */
   $("mbItemRemove").addEventListener("click", function () {
     if (!mbOpen) return;
-    var list = mbList(mbOpen), r = list[mbItem];
+    var b = mbBoard(mbOpen), r = mbList(mbOpen)[mbItem];
     if (!r) return;
-    if (r.k === "img" && r.path) cloudDelete(r.path);
-    list.splice(mbItem, 1);
+    boardTake(b, r.id);
+    if (!shotUsed(r.id)) shotDrop(r.id);
+    boardPrune(b);
     saveAll();
     closeMbItem();
     renderMbFolder(); renderMbGallery();
@@ -13524,7 +13897,7 @@
     $("oReqGrid").innerHTML = list.map(function (r, i) {
       if (r.k === "img") {
         return '<button type="button" class="ref-card" data-i="' + i + '">'
-          + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "")
+          + refImg(r)
           + (r.pending ? '<span class="wait">…</span>' : "")
           + '<span class="kill" data-kill="' + i + '">✕</span></button>';
       }
@@ -13680,10 +14053,129 @@
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
     return url;
   }
-  $("refView").addEventListener("click", function () {
+  /* ---------- Щипок в просмотрщике ----------
+     Референс открывают, чтобы разглядеть: складку платья, направление света,
+     положение рук. Раньше кадр просто вписывался в экран и любое касание его
+     закрывало — увеличить было нечем: страничный зум выключен метатегом на всё
+     приложение, а Safari-жест мы гасим (см. «Щипок живёт только на карте»).
+     Поэтому свой: щипок увеличивает, палец возит, касание выходит.
+
+     Двойного касания как зума здесь намеренно нет. Его первый тап неотличим
+     от «закрыть», и чтобы их развести, пришлось бы придержать закрытие на
+     четверть секунды — самое частое действие стало бы вязким ради жеста,
+     который и так дублирует щипок. */
+  var RV_MAX = 6;                        // дальше экранная копия всё равно рассыпается
+  var rvS = 1, rvX = 0, rvY = 0;         // масштаб и сдвиг картинки
+  var rvPts = {}, rvBaseD = 0, rvBaseS = 1, rvPrevC = null;
+  var rvMoved = false, rvPinched = false;
+
+  function rvCount() { return Object.keys(rvPts).length; }
+  function rvPair() {
+    var k = Object.keys(rvPts);
+    if (k.length < 2) return null;
+    var a = rvPts[k[0]], b = rvPts[k[1]];
+    return {
+      d: Math.hypot(b.x - a.x, b.y - a.y) || 1,
+      cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2
+    };
+  }
+  function rvApply(anim) {
+    var img = $("refViewImg");
+    img.style.transition = anim ? "transform .22s cubic-bezier(.22,.61,.36,1)" : "none";
+    img.style.transform = "translate(" + rvX + "px," + rvY + "px) scale(" + rvS + ")";
+  }
+  /* Дальше края кадра не уводим: пустота вместо картинки под пальцем
+     читается как поломка, а не как свобода движения.
+     Мерим экраном, а не рамкой кадра: пока увеличенный кадр в экран
+     помещается, возить его незачем — он держится по центру, и только
+     переросший экран получает свободу до своего края. */
+  function rvClamp() {
+    var img = $("refViewImg"), v = $("refView").getBoundingClientRect();
+    var mx = Math.max(0, (img.clientWidth * rvS - v.width) / 2);
+    var my = Math.max(0, (img.clientHeight * rvS - v.height) / 2);
+    rvX = Math.max(-mx, Math.min(mx, rvX));
+    rvY = Math.max(-my, Math.min(my, rvY));
+  }
+  /* Масштабируем вокруг точки щипка, а не вокруг центра кадра: иначе
+     разглядываемое место уезжает из-под пальцев.
+     Центр считаем из своих же переменных, а не из getBoundingClientRect:
+     за один жест сдвиг успевает поменяться несколько раз, а в разметку он
+     ложится в самом конце — рамка отставала бы на шаг и кадр дрейфовал. */
+  function rvZoom(ns, cx, cy) {
+    var r = $("refView").getBoundingClientRect();
+    var ox = r.left + r.width / 2 + rvX, oy = r.top + r.height / 2 + rvY;
+    var k = ns / rvS;
+    rvX += (cx - ox) * (1 - k);
+    rvY += (cy - oy) * (1 - k);
+    rvS = ns;
+    rvClamp();
+  }
+  function rvReset(anim) { rvS = 1; rvX = 0; rvY = 0; rvApply(anim); }
+  function rvClose() {
     refViewSeq++;                       // отменяем ещё летящую подмену кадра
-    this.classList.remove("open"); $("refViewImg").src = "";
-  });
+    $("refView").classList.remove("open");
+    $("refViewImg").src = "";
+    rvReset(false);
+  }
+  (function () {
+    var rv = $("refView");
+    rv.addEventListener("pointerdown", function (e) {
+      rvPts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      rvMoved = false;
+      if (rvCount() === 2) {
+        var p = rvPair();
+        rvBaseD = p.d; rvBaseS = rvS; rvPrevC = { x: p.cx, y: p.cy };
+        rvPinched = true;               // отпускание после щипка — не касание
+      }
+      /* Захват удерживает палец за просмотрщиком, даже если он съехал за
+         край картинки. Бросает, когда указателя уже нет, — жест из-за этого
+         обрываться не должен. */
+      try { rv.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    rv.addEventListener("pointermove", function (e) {
+      var p = rvPts[e.pointerId];
+      if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) rvMoved = true;
+      p.x = e.clientX; p.y = e.clientY;
+      if (rvCount() >= 2) {
+        var pr = rvPair();
+        if (!pr) return;
+        /* Два пальца и возят, и масштабируют — сдвиг центра щипка берём
+           отдельно, иначе кадр под ними как будто прилипает к экрану. */
+        if (rvPrevC) { rvX += pr.cx - rvPrevC.x; rvY += pr.cy - rvPrevC.y; }
+        rvPrevC = { x: pr.cx, y: pr.cy };
+        rvZoom(Math.max(1, Math.min(RV_MAX, rvBaseS * pr.d / rvBaseD)), pr.cx, pr.cy);
+        rvApply(false);
+      } else if (rvS > 1) {
+        rvX += dx; rvY += dy; rvClamp(); rvApply(false);
+      }
+    });
+    function rvEnd(e) {
+      if (!rvPts[e.pointerId]) return;
+      delete rvPts[e.pointerId];
+      if (rvCount() < 2) rvPrevC = null;
+      /* Оставшийся палец продолжает как перетаскивание — заново, от своей
+         текущей точки, иначе кадр прыгает на разницу. */
+      if (rvCount() === 1) rvMoved = true;
+      if (rvCount()) return;
+      if (!rvMoved && !rvPinched) {
+        /* Касание без движения: целый кадр — выходим, увеличенный — сначала
+           возвращаем целый. Лестница выхода, а не выход из-под пальца. */
+        if (rvS > 1) rvReset(true); else rvClose();
+      }
+      rvPinched = false;
+    }
+    rv.addEventListener("pointerup", rvEnd);
+    rv.addEventListener("pointercancel", rvEnd);
+    /* Мышь и трекпад — то же самое колесом, чтобы проверять не только с телефона */
+    rv.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      var step = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0025));
+      rvZoom(Math.max(1, Math.min(RV_MAX, rvS * step)), e.clientX, e.clientY);
+      rvApply(false);
+    }, { passive: false });
+  })();
 
   function renderPay() {
     var keys = genreSpec(shootType).pay;
@@ -14595,9 +15087,186 @@
 
   /* Правка внутри жанра запоминается и в следующий раз перебивает пресет */
   var genrePrefs = (saved && saved.genrePrefs) || {};
-  /* Набор референсов жанра — сценарий съёмки. Лежит по жанрам, папки внутри
-     жанра размечены тегом: пара, невеста, детали. Хранится на Диске фотографа */
-  var genreRefs = (saved && saved.genreRefs) || {};
+  /* ---------- Фонд кадров и подборки ----------
+     Раньше картинка и её место были одним и тем же: запись лежала ровно в
+     одном списке — `s.refs` съёмки или `genreRefs[жанр]`. Следствия были
+     такие: один кадр не мог лежать в двух подборках, заготовка бывала только
+     одна на жанр, свободной библиотеки не было вовсе (docs/15_MOODBOARD.md,
+     «Кадр и подборка — разные вещи»).
+
+     Теперь это двое.
+
+     **Кадр** — сама картинка или ссылка. Живёт в общем фонде, у него теги,
+     источник и размеры. Владеет файлом фонд, а не подборка, и потому старая
+     опасность двух указателей на один файл снимается сама: файл ровно один.
+
+     **Подборка** — порядок ссылок на кадры плюс имя и обложка. Двух родов:
+     `tpl` — многоразовая заготовка, `shoot` — привязанная к съёмке.
+
+     Убрать из подборки и удалить кадр — разные действия: первое правит
+     порядок, второе убирает картинку отовсюду.
+
+     Оба списка сливаются между устройствами тем же механизмом, что съёмки:
+     `id`, отметка правки `mt`, надгробия. Ничего нового. */
+  var shots = (saved && Array.isArray(saved.shots)) ? saved.shots : [];
+  var boards = (saved && Array.isArray(saved.boards)) ? saved.boards : [];
+  var shotIx = null;
+  function shotIndex() {
+    if (shotIx) return shotIx;
+    shotIx = {};
+    shots.forEach(function (r) { if (r && r.id) shotIx[r.id] = r; });
+    return shotIx;
+  }
+  function shotById(id) { return id ? (shotIndex()[id] || null) : null; }
+  /* Кадр картинки уже носит имя — то самое, под которым лежат его байты.
+     Второго ключа заводить незачем: один файл, одно имя. */
+  function shotAdd(rec) {
+    var r = {}; for (var k in rec) r[k] = rec[k];
+    r.id = r.id || r.im || newId();
+    if (!shotById(r.id)) { shots.push(r); shotIndex()[r.id] = r; }
+    return r.id;
+  }
+  function boardShots(b) {
+    if (!b || !Array.isArray(b.items)) return [];
+    return b.items.map(shotById).filter(Boolean);
+  }
+  function boardHas(b, id) { return !!(b && b.items && b.items.indexOf(id) >= 0); }
+  /* Лежит ли кадр хоть в одной подборке. Отсюда решается, что делать с ним,
+     когда его убрали из последней: держать сироту в фонде незачем */
+  function shotUsed(id) {
+    for (var i = 0; i < boards.length; i++) if (boardHas(boards[i], id)) return true;
+    return false;
+  }
+  /* Один кадр может лежать во многих подборках — но не дважды в одной:
+     это была бы не библиотека, а недосмотр */
+  function boardPut(b, id, at) {
+    if (!b || !id || boardHas(b, id)) return;
+    if (at == null || at < 0 || at > b.items.length) b.items.push(id);
+    else b.items.splice(at, 0, id);
+  }
+  function boardTake(b, id) {
+    if (!b || !b.items) return;
+    var i = b.items.indexOf(id);
+    if (i >= 0) b.items.splice(i, 1);
+  }
+  /* Удалить кадр — убрать его отовсюду разом: из фонда, из всех подборок,
+     с устройства и с Диска. Надгробие нужно, чтобы кадр не вернулся с
+     соседнего устройства при первом же слиянии (13_MULTI_DEVICE). */
+  function shotDrop(id) {
+    var r = shotById(id);
+    if (!r) return;
+    boards.forEach(function (b) { boardTake(b, id); });
+    var i = shots.indexOf(r);
+    if (i >= 0) shots.splice(i, 1);
+    delete shotIndex()[id];
+    if (r.im) blobDrop(r.im);
+    if (r.path) cloudDelete(r.path);
+    bury(id);
+  }
+  /* Опустевшая подборка исчезает сама — кроме той, которой человек дал имя
+     или обложку: тогда это уже его вещь, а не след от кадров */
+  function boardPrune(b) {
+    if (b && !b.items.length && !b.name && !b.cover) boardDrop(b);
+  }
+  function boardDrop(b) {
+    var i = boards.indexOf(b);
+    if (i >= 0) boards.splice(i, 1);
+    if (b && b.id) bury(b.id);
+  }
+  /* Подборка съёмки ищется по знаку съёмки, а не по месту в списке: список
+     переставляют, знак остаётся. Заводится она лениво — не завёл кадров,
+     нет и подборки, как у всего остального (15_MOODBOARD, «Не делаем
+     подборку обязательной») */
+  function boardOfSession(s, make) {
+    if (!s || !s.id) return null;
+    for (var i = 0; i < boards.length; i++) {
+      if (boards[i].kind === "shoot" && boards[i].sid === s.id) return boards[i];
+    }
+    if (!make) return null;
+    var b = { id: newId(), kind: "shoot", sid: s.id, genre: s.type, items: [], name: null, cover: null };
+    boards.push(b);
+    return b;
+  }
+  function boardTpl(g, make) {
+    for (var i = 0; i < boards.length; i++) {
+      if (boards[i].kind === "tpl" && boards[i].genre === g) return boards[i];
+    }
+    if (!make) return null;
+    var b = { id: newId(), kind: "tpl", genre: g, items: [], name: null, cover: null };
+    boards.push(b);
+    return b;
+  }
+  function sessionShots(s) { return boardShots(boardOfSession(s, false)); }
+  /* Форма отдаёт свои кадры обратно: то, что в ней осталось, ложится в фонд
+     и в подборку съёмки, а убранное из формы уходит из подборки — и из
+     фонда, если больше нигде не лежит. Порядок в подборке — тот, что на
+     экране формы: его там и переставляют. */
+  /* Съёмки не стало окончательно — её подборке держаться не за что. Кадры,
+     лежащие ещё где-то, остаются в фонде: подборка их не держала, а
+     называла. В корзину это не входит: оттуда съёмку возвращают, и вернуться
+     она должна со своими кадрами. */
+  function dropSessionBoard(rec) {
+    var b = boardOfSession(rec, false);
+    if (!b) return;
+    var ids = b.items.slice();
+    boardDrop(b);
+    ids.forEach(function (id) { if (!shotUsed(id)) shotDrop(id); });
+  }
+  function syncFormShots(rec, list) {
+    var b = boardOfSession(rec, true), was = b.items.slice(), now = [];
+    (list || []).forEach(function (r) {
+      if (!r || (r.k !== "link" && !r.path && !r.im)) return;
+      var id = shotAdd({ id: r.id || r.im || null, k: r.k, im: r.im || null,
+        w: r.w || null, h: r.h || null, path: r.path || null, url: r.url || null,
+        tag: r.tag || null });
+      var have = shotById(id);
+      /* Кадр мог поменяться в форме — путь на Диске дошёл позже загрузки */
+      if (have) { have.path = r.path || have.path; have.im = r.im || have.im;
+        have.w = r.w || have.w; have.h = r.h || have.h; }
+      if (now.indexOf(id) < 0) now.push(id);
+    });
+    b.items = now;
+    was.forEach(function (id) { if (now.indexOf(id) < 0 && !shotUsed(id)) shotDrop(id); });
+    boardPrune(b);   // пустая подборка не заводится
+  }
+  function genreShots(g) { return boardShots(boardTpl(g, false)); }
+  /* Список кадров подборки жанра — заводится по первому обращению, как
+     раньше заводился `genreRefs[g]` */
+  function genreBoard(g) { return boardTpl(g, true); }
+
+  /* ---------- Перевод старых списков ----------
+     Начерно и один раз, как и перенос превью: данные в прототипе
+     одноразовые. Каждая запись из `s.refs` и `genreRefs` становится кадром
+     в фонде, а её место — строкой в подборке. Старые поля после этого
+     из снимка уходят. */
+  function adoptRefs() {
+    var moved = 0;
+    function take(list, board) {
+      (list || []).forEach(function (r) {
+        if (!r || (r.k !== "link" && !r.im && !r.path)) return;
+        var id = shotAdd({ id: r.im || newId(), k: r.k || "img", im: r.im || null,
+          w: r.w || null, h: r.h || null, path: r.path || null, url: r.url || null,
+          tag: r.tag || null });
+        boardPut(board, id);
+        moved++;
+      });
+    }
+    sessions.forEach(function (s) {
+      if (!Array.isArray(s.refs) || !s.refs.length) { if (s.refs) delete s.refs; return; }
+      take(s.refs, boardOfSession(s, true));
+      delete s.refs;
+    });
+    if (saved && saved.genreRefs) {
+      for (var g in saved.genreRefs) {
+        var list = saved.genreRefs[g];
+        if (list && list.length) take(list, boardTpl(g, true));
+      }
+      delete saved.genreRefs;
+    }
+    return moved;
+  }
+  if (adoptRefs()) setTimeout(function () { saveAll(); }, 0);
+
   /* ---------- Папки набора референсов ----------
      Папки называют предмет съёмки, а не процесс, поэтому идут от жанра, а не
      от группы: «Невеста» в предметке и «Фактура» на свадьбе одинаково нелепы.
@@ -16375,17 +17044,22 @@
     $("cdRefS").textContent = LANG.count("unit.frame", all.length)
       + " · " + LANG.t("card.refsFrom");
     $("cdRefStrip").innerHTML = all.slice(0, 7).map(function (r) {
-      return r.thumb ? '<img src="' + r.thumb + '" alt="">' : '<span class="ph"></span>';
+      return r.im || r.thumb ? refImg(r) : '<span class="ph"></span>';
     }).join("");
   }
   /* Набор жанра и референсы съёмки — вместе: на площадке они об одном */
   function allRefs(s) {
-    var mine = (Array.isArray(s.refs) ? s.refs : []).map(function (r) {
-      return { k: r.k, path: r.path, thumb: r.thumb, url: r.url, tag: r.tag || null, own: true };
-    });
-    var set = (genreRefs[s.type] || []).map(function (r) {
-      return { k: r.k, path: r.path, thumb: r.thumb, url: r.url, tag: r.tag || null, own: false };
-    });
+    function mark(list, own) {
+      return list.map(function (r) {
+        return { id: r.id, k: r.k, path: r.path, im: r.im, w: r.w, h: r.h,
+          url: r.url, tag: r.tag || null, own: own };
+      });
+    }
+    /* Кадр, лежащий и в съёмке, и в наборе жанра, показываем один раз — как
+       свой: он тут не потому, что жанр такой, а потому что его положили */
+    var mine = mark(sessionShots(s), true), seen = {};
+    mine.forEach(function (r) { if (r.id) seen[r.id] = 1; });
+    var set = mark(genreShots(s.type), false).filter(function (r) { return !seen[r.id]; });
     return mine.concat(set);
   }
   function currentStage(s, route) {
@@ -16425,7 +17099,7 @@
           + '<span class="path">' + refTail(r.url) + "</span></button>";
       }
       return '<button type="button" class="rf-cell" data-i="' + i + '">'
-        + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "") + "</button>";
+        + refImg(r) + "</button>";
     }).join("") || '<div class="rf-empty">' + esc(LANG.t("refs.empty")) + "</div>";
     $("rfGrid").querySelectorAll(".rf-cell").forEach(function (b) {
       b.addEventListener("click", function () { openRef(shown[+b.dataset.i]); });
@@ -16568,7 +17242,7 @@
     }
 
     // Референсы — те же карточки, что в форме, но без крестика удаления
-    var refs = Array.isArray(s.refs) ? s.refs : [];
+    var refs = sessionShots(s);
     $("cdRefsLabel").hidden = !refs.length;
     $("cdRefs").innerHTML = refs.map(function (r, i) {
       if (r.k === "link") {
@@ -16577,7 +17251,7 @@
           + '<span class="path">' + refTail(r.url) + "</span></button>";
       }
       return '<button type="button" class="ref-card" data-i="' + i + '">'
-        + (r.thumb ? '<img src="' + r.thumb + '" alt="">' : "") + "</button>";
+        + refImg(r) + "</button>";
     }).join("");
     $("cdRefs").querySelectorAll(".ref-card").forEach(function (b) {
       b.addEventListener("click", function () { openRef(refs[+b.dataset.i]); });
@@ -16699,7 +17373,7 @@
        соседнем устройстве запись жива, и первое же слияние вернёт её —
        корзину пришлось бы чистить на каждом устройстве по отдельности,
        и всё равно не помогло бы (docs/13_MULTI_DEVICE.md) */
-    trashed.forEach(function (t) { bury(t.rec && t.rec.id); });
+    trashed.forEach(function (t) { bury(t.rec && t.rec.id); dropSessionBoard(t.rec); });
     trashed = [];
     saveAll();
     renderBin(); renderBinBtn();
@@ -16871,7 +17545,12 @@
         })
       : [];
     fGear = Array.isArray(s.gear) ? s.gear.filter(function (n) { return typeof n === "string"; }) : [];
-    fRefs = Array.isArray(s.refs) ? s.refs.map(function (r) { return { k: r.k, path: r.path, thumb: r.thumb, url: r.url }; }) : [];
+    /* Черновик несёт кадры при себе (`refs`), сохранённая съёмка — ссылками
+       через подборку. Форма работает с копиями: отменённая правка не должна
+       трогать ни фонд, ни подборку. */
+    fRefs = (Array.isArray(s.refs) ? s.refs : sessionShots(s)).map(function (r) {
+      return { id: r.id || null, k: r.k, path: r.path, im: r.im, w: r.w, h: r.h, url: r.url, tag: r.tag || null };
+    });
     fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
     payFolded = true;
   }
@@ -16961,10 +17640,11 @@
   });
   $("fDelete").addEventListener("click", function () {
     if (editIdx === null) return;
+    dropSessionBoard(sessions[editIdx]);
     sessions.splice(editIdx, 1);
     editIdx = null;
     saveAll();
-    renderSessions(); renderCal(); renderDayPanel();
+    renderSessions(); renderCal(); renderDayPanel(); renderMbStrip();
     closeRows();
     $("formOverlay").classList.remove("open");
     closeCard();     // записи больше нет: карточка под формой указывала бы в пустоту
@@ -16991,12 +17671,11 @@
      Фотограф собирает сценарий заранее: что снять на сборах, что на прогулке.
      На площадке набор открывается в карточке вместе с рефами съёмки. */
   var gRefTag = null;                  // выбранная папка: и фильтр, и метка для новых
-  function genreRefList(g) {
-    if (!genreRefs[g]) genreRefs[g] = [];
-    return genreRefs[g];
-  }
+  /* Набор жанра — подборка-заготовка. Список кадров собирается из неё
+     каждый раз заново: он больше не хранилище, а вид на фонд. */
+  function genreRefList(g) { return boardShots(boardTpl(g, true)); }
   function renderGenreRefs() {
-    var g = shootType, list = genreRefList(g);
+    var g = shootType, board = boardTpl(g, true), list = boardShots(board);
     // Подпись называет жанр словом, а не кодом: на экране «· портрет»
     $("gRefGenre").textContent = "· " + genreName(g).toLowerCase();
     /* Жанр сменили — выбранная папка могла остаться от прежнего набора */
@@ -17023,7 +17702,7 @@
           + '<span class="kill" data-kill="' + p.i + '">✕</span></button>';
       }
       return '<button type="button" class="ref-card" data-i="' + p.i + '">'
-        + (p.r.thumb ? '<img src="' + p.r.thumb + '" alt="">' : "")
+        + refImg(p.r)
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + '<span class="kill" data-kill="' + p.i + '">✕</span></button>';
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
@@ -17035,22 +17714,26 @@
       b.addEventListener("click", function (e) {
         var kill = e.target.closest("[data-kill]");
         if (kill) {
+          /* Крестик в наборе убирает кадр из заготовки. Если он больше нигде
+             не лежит, удаляем и сам кадр: сирота в фонде — не библиотека, а
+             мусор. Кадр, лежащий ещё где-то, остаётся жить там. */
           var i = +kill.dataset.kill, r = list[i];
-          if (r && r.k === "img" && r.path) cloudDelete(r.path);
-          list.splice(i, 1); saveAll(); renderGenreRefs(); return;
+          if (r) { boardTake(board, r.id); if (!shotUsed(r.id)) shotDrop(r.id); boardPrune(board); }
+          saveAll(); renderGenreRefs(); return;
         }
         openRef(list[+b.dataset.i]);
       });
     });
   }
   $("gRefPhoto").addEventListener("click", function () {
-    useRefCtx(genreRefList(shootType), renderGenreRefs, "gRefNote", "genre-refs", gRefTag);
+    useRefBoard(boardTpl(shootType, true), renderGenreRefs, "gRefNote", "genre-refs", gRefTag);
     $("refFile").click();
   });
   $("gRefLink").addEventListener("click", function () {
     var url = askLink();
     if (!url) return;
-    genreRefList(shootType).push({ k: "link", url: url, tag: gRefTag });
+    var id = shotAdd({ k: "link", url: url, tag: gRefTag });
+    boardPut(boardTpl(shootType, true), id);
     saveAll(); renderGenreRefs();
   });
 
@@ -17540,7 +18223,6 @@
         .map(function (r) {
           return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url, kind: r.kind || null };
         }),
-      refs: fRefs.filter(function (r) { return r.k === "link" || r.path; }),
       gear: fGear.slice(),
       /* Когда опросник отправлен. Правка карточки этого не отменяет —
          отправленного не вернуть */
@@ -17566,6 +18248,7 @@
       prevRec && prevRec.telLog);
     if (telGone.length) rec.telLog = telGone;
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
+    syncFormShots(rec, fRefs);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
     /* Настоящая запись легла в список — черновику, который её и держал,
@@ -17574,7 +18257,7 @@
        переписать поверх только что стёртого черновика те же самые данные. */
     if (!wasEdit) draftClear();
     editIdx = null;
-    renderSessions(); renderCal(); renderDayPanel();
+    renderSessions(); renderCal(); renderDayPanel(); renderMbStrip();
     $("savedNote").textContent = wasEdit ? LANG.t("form.savedEdit")
       : syncTarget === "off" ? LANG.t("form.saved")
       : LANG.t("form.savedSync", { cal: LANG.t(syncTarget === "google" ? "cal.google" : "cal.apple") });
@@ -20770,6 +21453,7 @@
        номеров не кэшируем: он собирается за один проход по карточкам, а
        второй список тех же номеров разошёлся бы с первым в тот же день */
     else if (id === "s-set") { renderMbCount(); renderProfile(); }
+    else if (id === "s-plan") renderMbStrip();
     else if (compassLive) setCompassLive(false);   // уходя с карты, гасим датчик — не нужен нигде больше
     /* Лента мерит себя от собственного `clientWidth`, а он ноль, пока
        `.timebar` скрыт `display: none` (Съёмки/Настройки, и старт тоже —
@@ -20855,7 +21539,7 @@
   renderSpotMark();
   renderDelvSettings();
   renderProfile();
-  renderCal(); renderDayPanel(); renderSessions(); renderBinBtn();
+  renderCal(); renderDayPanel(); renderSessions(); renderBinBtn(); renderMbStrip();
   /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
      После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
      потом спрашивают о правилах. На самом первом запуске экран знакомства
