@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=8"></script>
+<script src="lang.js?v=10"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -3353,6 +3353,25 @@
   .empty { color: var(--ink-7); font-size: 14px; padding: 4px 24px 0; }
 
   /* ---------- Настройки ---------- */
+  /* Единственное поле ввода в настройках — свой номер. Отступы и подложка
+     взяты у ряда кнопок под ним: настройки читаются одной колонкой, и поле,
+     выпадающее из неё шириной, читалось бы вставкой из другого экрана.
+     Автозаполнение гасим той же тенью, что и в формах, — причина там. */
+  .set-in {
+    display: block; width: calc(100% - 48px); margin: 12px 24px 0;
+    background: var(--sheet); border: none; border-radius: 12px; corner-shape: squircle;
+    padding: 14px 15px; font-family: inherit; font-size: 16px; color: var(--ink);
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .set-in::placeholder { color: var(--ink-8); }
+  .set-in:-webkit-autofill, .set-in:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--sheet) inset;
+    -webkit-text-fill-color: var(--ink); caret-color: var(--ink);
+    transition: background-color 9999s ease-out 0s;
+  }
+  /* ID показываем моноширинными цифрами и целиком: это строка, которую
+     диктуют и сверяют по цифре, переносить или обрезать её нельзя */
+  #appIdV.set { color: var(--ink); }
   .seg { display: flex; background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 3px; margin: 12px 24px 0; }
   /* `display: flex` бьёт встроенное `[hidden]{display:none}` браузера:
      оба правила из авторской таблицы стилей, порядок в файле решает, а
@@ -4679,6 +4698,46 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .doc-row .w { flex: 0 0 auto; font-size: 11.5px; color: var(--ink-6); }
   .org-empty { padding: 14px 2px; font-size: 13px; color: var(--ink-6); line-height: 1.5; }
+
+  /* ---------- Контакты ----------
+     Номер сверху, под ним карточки, где он встретился. Список номеров, а не
+     список людей: имя у одного и того же номера в разных карточках написано
+     по-разному («Ирина», «Ирина Петровна», «менеджер»), и сводить их в одного
+     человека приложение может только гаданием. Номер — то, что сходится
+     точно, и связывать по нему честнее. */
+  .ph-row { margin-top: 12px; padding: 13px 14px 8px; background: var(--sheet);
+    border-radius: 16px; corner-shape: squircle; }
+  .ph-num { display: flex; align-items: center; gap: 8px; font-size: 16px;
+    font-variant-numeric: tabular-nums; letter-spacing: 0.2px; }
+  .ph-num .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Прежний номер не вычёркиваем и не прячем: по нему не звонят, но звонок
+     с него узнать надо — строка должна оставаться читаемой, просто тише */
+  .ph-row.past .ph-num .n { color: var(--ink-5); }
+  .ph-tag { flex: 0 0 auto; font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ink-7); border: 1px solid var(--hair-2); border-radius: 6px; padding: 3px 6px; }
+  /* Связка — единственное, что здесь выделено цветом: ради неё список и
+     заведён, всё остальное фотограф и так знает */
+  .ph-tag.link { color: var(--brass); border-color: var(--brass); }
+  .ph-tag.me { color: var(--green); border-color: var(--green); }
+  .ph-call { flex: 0 0 auto; width: 32px; height: 32px; border: none; background: none;
+    padding: 0; color: var(--ink-5); display: flex; align-items: center; justify-content: center; }
+  .ph-call svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+  .ph-call:active { opacity: 0.6; }
+  .ph-where { margin-top: 6px; }
+  .ph-card { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    padding: 8px 0; background: none; border: none; font-family: inherit; color: var(--ink-4);
+    font-size: 13px; box-shadow: inset 0 1px 0 var(--surface); }
+  .ph-card:first-child { box-shadow: none; }
+  .ph-card:active { opacity: 0.6; }
+  /* Связь, ставшая историей: карточка та же, номер в ней уже другой */
+  .ph-card.past .t, .ph-card.past .r { color: var(--ink-7); }
+  .ph-card.past .ic { stroke: var(--ink-8); }
+  .ph-card .ic { flex: 0 0 auto; width: 15px; height: 15px; fill: none;
+    stroke: var(--ink-6); stroke-width: 1.6; }
+  .ph-card .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Роль номера в карточке: невеста, заказчик, лицо организации. У свадьбы
+     таких строк три-четыре, и без роли они неразличимы */
+  .ph-card .r { flex: 0 0 auto; font-size: 11px; color: var(--ink-7); }
   /* Реквизиты — это дюжина строк с цифрами: поле сразу под их рост */
   #oReq { min-height: 190px; font-size: 15px; }
 
@@ -5236,7 +5295,18 @@
       <div class="loc"><div class="name">Light Plan</div><div class="date" data-i18n="set.proto">v3 · прототип</div></div>
     </div>
 
-    <div class="grp-label" style="padding-top:20px" data-i18n="set.grpView">Вид</div>
+    <!-- Профиль стоит первым и до сих пор его не было вовсе: приложение знало
+         клиентов, организации и съёмки, но не знало, чьё оно само. Планировщику
+         одиночке этого хватало, узлу Event OS — уже нет (DECISIONS, «ID») -->
+    <div class="grp-label" style="padding-top:20px" data-i18n="set.grpProfile">Профиль</div>
+    <div class="sec-label" data-i18n="set.myPhone">Мой телефон</div>
+    <input class="set-in" type="tel" id="myTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
+    <div class="item" id="appIdRow" style="margin-top:12px"><span class="k" data-i18n="set.appId">ID приложения</span><span class="v" id="appIdV">—</span></div>
+    <p class="seg-note" data-i18n="set.appIdNote">Отдельный код пришлось бы помнить и куда-то записывать. Номер телефона уже всемирный, уже уникальный и уже ваш — он и работает адресом: по нему организатор события свяжет ваши съёмки со своим планом.</p>
+    <div class="item" id="phonesRow"><span class="k" data-i18n="set.contacts">Контакты</span><span class="v" id="phonesN">—</span></div>
+    <p class="seg-note" data-i18n="set.contactsNote">Все номера из съёмок и организаций одним списком. Номер, встреченный в двух карточках, — связка: заказчик, оказавшийся отцом невесты, виден только так.</p>
+
+    <div class="grp-label" data-i18n="set.grpView">Вид</div>
     <div class="sec-label" data-i18n="set.mode">Режим</div>
     <div class="seg" id="modeSeg">
       <button class="active" data-mode="simple" data-i18n="set.modeSimple">Просто</button>
@@ -6212,6 +6282,19 @@
       <div class="rf-tags wrap" id="allDocKinds"></div>
       <div id="allDocs"></div>
     </div>
+  </div>
+
+  <!-- Контакты: все номера из карточек одним списком.
+       Это не адресная книга и не замена ей — телефон сам знает контакты
+       лучше. Это внутренняя база связок: какой номер в каких карточках
+       встретился и какой из них уже прежний. Позже её и увидит серверный
+       Event OS, чтобы связать карточки разных исполнителей одного события. -->
+  <div class="overlay pad" id="phoneOverlay">
+    <button class="back" id="phoneBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.back">Назад</span>
+    </button>
+    <div class="g-label"><span data-i18n="set.contacts">Контакты</span><span id="phoneCount"></span></div>
+    <div id="phoneList"></div>
   </div>
 
   <!-- Карточка организации: реквизиты, документы, архив съёмок -->
@@ -7700,6 +7783,7 @@
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
         }),
+        me: me,
         delivery: delivery, genres: genresOn, genrePrefs: genrePrefs, genreRefs: genreRefs,
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
         drumSlot: drumSlot,
@@ -8675,6 +8759,22 @@
     $("mapSave").setAttribute("aria-label", LANG.t(on ? "map.dropPoint" : "map.savePoint"));
     if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' <span class="go-chev">\u203a</span>';
   }
+  /* ---------- Кто владелец ----------
+     Своих данных у приложения до сих пор не было вовсе: оно знало клиентов,
+     организации и съёмки, но не знало, чьё оно. Одиночному планировщику этого
+     хватало, узлу Event OS — уже нет: чтобы событие связало фотографа с
+     организатором и кондитером, у фотографа должен быть адрес, по которому
+     его находят. Адрес — его номер телефона (DECISIONS.md, «ID приложения»).
+
+     Храним как ввели, с пробелами и скобками: ID из этой строки считается, а
+     не хранится рядом, иначе две записи одного и того же разошлись бы при
+     первой же правке. Стоять это должно после `saved`, а не рядом с
+     `saveAll`: `var` поднимает объявление, но не значение, и объявленное
+     выше читало бы из `undefined` — свой номер молча не находился. */
+  var me = (saved && saved.me) || {};
+  function myPhone() { return me.phone || ""; }
+  function myId() { return telId(me.phone); }
+
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
      меняется, а история съёмок не рвётся (docs/12_CARD_ARCHITECTURE.md).
@@ -12369,6 +12469,13 @@
      ОРГАНИЗАЦИИ И ХРАНИЛИЩЕ ДОКУМЕНТОВ
      ============================================================ */
   var orgIdx = null;                 // открытая карточка организации
+  /* Номера организации, какими они были на момент открытия карточки. Поля
+     организации пишутся с каждым нажатием клавиши, и сравнивать «до и после»
+     там негде: на полпути к новому номеру старый уже стёрт побуквенно.
+     Поэтому снимок делаем при открытии, а сверяем при закрытии — заодно это
+     не зависит от порядка правки, а менеджера меняют вместе с номером, и
+     первым правят то имя, то телефон. */
+  var orgTelSnap = [];
 
   /* Все бумаги в одном месте: документы съёмок и документы организаций.
      Реквизиты организации сюда тоже попадают — это такой же файл, который
@@ -12735,6 +12842,7 @@
     orgIdx = i;
     var o = orgs[i];
     if (!o) return;
+    orgTelSnap = orgTels(o);
     $("oName").value = o.name || "";
     $("oPerson").value = o.person || "";
     $("oPhone").value = o.phone || "";
@@ -12746,6 +12854,15 @@
   }
   function closeOrgCard() {
     var o = orgs[orgIdx];
+    /* Менеджер не вечен: через год по этому номеру ответит другой человек, а
+       звонки и письма от прежнего останутся в истории заказов. Уходя, номер
+       забирает с собой имя, которое за ним стояло, — «Ирина, до 27 августа»
+       читается, а голый номер в архиве не значит ничего. */
+    if (o && orgTelSnap.length) {
+      var gone = telRetire(orgTelSnap, orgTels(o), o.telLog);
+      if (gone.length) { o.telLog = gone; saveAll(); }
+    }
+    orgTelSnap = [];
     orgIdx = null;
     $("orgCard").classList.remove("open");
     /* Организацию завели из формы — она же и выбирается: возвращать человека
@@ -13471,6 +13588,146 @@
     if (rest.length > 8) out += "-" + rest.slice(8, 10);
     return out;
   }
+
+  /* ---------- Номер как ключ ----------
+     Номер телефона — готовый всемирный идентификатор: его уже выдали, он уже
+     уникален, и человек уже носит его с собой. Заводить свой генератор ID
+     значило бы просить фотографа помнить вторую такую же строку без выгоды
+     (см. DECISIONS.md, «ID приложения»).
+
+     Две разные формы одного номера нужны для разного:
+     `telId`   — как записать номер целиком, чтобы по нему дозвонились из
+                 любой страны. Это и есть ID приложения.
+     `telKey`  — как понять, что два по-разному записанных номера принадлежат
+                 одному человеку. */
+  function telDigits(v) { return String(v || "").replace(/\D/g, ""); }
+  /* Восьмёрка и подставленная семёрка — те же допущения, что делает formatTel
+     при вводе: приложение выросло на местных номерах, и менять эту привычку
+     здесь, в отрыве от поля ввода, значило бы разойтись с ним в показаниях */
+  function telId(v) {
+    var d = telDigits(v);
+    if (!d) return "";
+    if (d.length === 11 && d[0] === "8") d = "7" + d.slice(1);
+    if (d.length === 10 && d[0] === "9") d = "7" + d;
+    return "+" + d;
+  }
+  /* Ключ — девять последних цифр. Таблицы кодов стран в приложении нет и
+     заводить её незачем: «8 916 123-45-67», «+7 916 123-45-67» и записанные
+     без кода «916 123-45-67» сходятся хвостом, а девять цифр — самая короткая
+     абонентская часть из встречающихся. Совпадение хвостов у двух разных
+     людей в записной книжке одного фотографа — событие, которого не будет. */
+  function telKey(v) {
+    var d = telDigits(v);
+    return d.length > 9 ? d.slice(-9) : d;
+  }
+  /* Короче пяти цифр — не номер, а обрывок: внутренний добавочный, начало
+     набора, случайные цифры в поле. Такое в базу связок не пускаем */
+  function telReal(v) { return telKey(v).length >= 5; }
+
+  /* ---------- Номер живёт во времени ----------
+     У клиента меняется номер, менеджер уходит из организации, невеста после
+     свадьбы переходит на другой тариф. Если считать номер свойством карточки,
+     то в день замены рвётся вся история: старые съёмки перестают находиться
+     по номеру, с которого по ним и звонили.
+
+     Поэтому карточка постоянна, а номер — её временный атрибут. Тот же
+     принцип уже работает у организации: `orgId` вечен, название и лицо
+     правятся (docs/12_CARD_ARCHITECTURE.md). Ушедший номер не стирается, а
+     ложится в `telLog` карточки вместе с именем, которое за ним стояло, и
+     датой замены. Дозваниваться по нему больше не надо — а вот узнать
+     карточку по звонку со старого номера надо обязательно. */
+  var TEL_LOG_MAX = 12;
+  /* Номера съёмки: их правда бывает три и четыре. У свадьбы — невеста, жених,
+     заказчик и контактное лицо площадки, и это четыре разных человека, а не
+     четыре записи одного. Роль (`f`) поэтому хранится рядом с номером. */
+  function shootTels(s) {
+    var out = [];
+    if (s.clientTel) out.push({ f: "client", tel: s.clientTel, n: s.contact || "" });
+    (s.persons || []).forEach(function (p, i) {
+      if (p && p.tel) out.push({ f: "p" + (i + 1), tel: p.tel, n: p.n || "" });
+    });
+    if (s.phone) out.push({ f: "person", tel: s.phone, n: s.person || "" });
+    return out.filter(function (t) { return telReal(t.tel); });
+  }
+  function orgTels(o) {
+    return o && telReal(o.phone) ? [{ f: "org", tel: o.phone, n: o.person || "" }] : [];
+  }
+  /* Сверяем карточку до правки и после. Сверка идёт по всей карточке, а не по
+     каждому полю отдельно: номер невесты, переписанный в строку заказчика, —
+     это переезд внутри карточки, а не смена номера, и в архив ему не надо. */
+  function telRetire(before, after, log) {
+    var out = (log || []).slice();
+    var now = new Date().toISOString();
+    var live = {};
+    after.forEach(function (t) { live[telKey(t.tel)] = 1; });
+    before.forEach(function (t) {
+      var k = telKey(t.tel);
+      if (live[k]) return;                                     // номер на месте
+      for (var i = 0; i < out.length; i++) if (telKey(out[i].tel) === k) return;
+      out.push({ f: t.f, tel: t.tel, n: t.n, at: now });
+    });
+    /* Архив не растёт бесконечно: дюжина прежних номеров у одной карточки —
+       это уже не история отношений, а мусор от опечаток */
+    return out.slice(-TEL_LOG_MAX);
+  }
+
+  /* ---------- Внутренняя база номеров ----------
+     Собирается заново из карточек, а не хранится отдельно: два списка одних и
+     тех же номеров разошлись бы в первый же день. Это и есть та таблица,
+     которую позже увидит серверный Event OS, — там она свяжет карточки разных
+     исполнителей, здесь пока связывает карточки одного. */
+  function phoneIndex() {
+    var map = {}, order = [];
+    function put(e) {
+      var k = telKey(e.tel);
+      if (!k) return;
+      if (!map[k]) { map[k] = { key: k, tel: e.tel, at: e.at, rows: [] }; order.push(k); }
+      var g = map[k];
+      g.rows.push(e);
+      /* Показываем номер в самой полной из встреченных записей: если где-то он
+         записан с кодом страны, а где-то без — звонить надо по первому */
+      if (!e.past && telDigits(e.tel).length > telDigits(g.tel).length) g.tel = e.tel;
+      if (e.at && (!g.at || e.at > g.at)) g.at = e.at;
+    }
+    sessions.forEach(function (s, i) {
+      var when = s.date ? s.date.toISOString() : null;
+      shootTels(s).forEach(function (t) {
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "shoot", i: i, at: when });
+      });
+      (s.telLog || []).forEach(function (t) {
+        if (!telReal(t.tel)) return;
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "shoot", i: i, at: t.at, past: true });
+      });
+    });
+    orgs.forEach(function (o, i) {
+      orgTels(o).forEach(function (t) {
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "org", i: i, name: o.name, at: null });
+      });
+      (o.telLog || []).forEach(function (t) {
+        if (!telReal(t.tel)) return;
+        put({ tel: t.tel, n: t.n, f: t.f, kind: "org", i: i, name: o.name, at: t.at, past: true });
+      });
+    });
+    var out = order.map(function (k) {
+      var g = map[k];
+      /* Связка — это номер, встреченный больше чем в одной карточке. Ради неё
+         всё и затевалось: заказчик, оказавшийся отцом невесты, виден только
+         так. Разные роли внутри одной съёмки связкой не считаем. */
+      var cards = {};
+      g.rows.forEach(function (r) { cards[r.kind + r.i] = 1; });
+      g.cards = Object.keys(cards).length;
+      g.live = g.rows.some(function (r) { return !r.past; });
+      g.me = !!(myPhone() && telKey(myPhone()) === g.key);
+      return g;
+    });
+    /* Сверху — связки, дальше свежее вперёд: список читают, чтобы что-то
+       найти, а не чтобы любоваться алфавитом */
+    return out.sort(function (a, b) {
+      if ((b.cards > 1) - (a.cards > 1)) return (b.cards > 1) - (a.cards > 1);
+      return String(b.at || "").localeCompare(String(a.at || ""));
+    });
+  }
+
   /* Имя без фамилии: в шапке карточки нужны Алексей и Елена, а не паспорт */
   function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || ""; }
 
@@ -16446,6 +16703,15 @@
       route: hasRoute(shootType) ? routeFromEditor() : [],
       synced: syncTarget === "off" ? null : syncTarget
     };
+    /* Номер, пропавший из карточки при этой правке, уходит в её архив, а не в
+       никуда: клиент сменил телефон — по старому больше не звонят, но звонок
+       с него по-прежнему должен узнаваться. Заодно это единственное место,
+       где архив вообще переживает сохранение: форма собирает запись заново из
+       своих полей, и `telLog` в них нет — как и `questSent` выше. */
+    var prevRec = editIdx !== null ? sessions[editIdx] : null;
+    var telGone = telRetire(prevRec ? shootTels(prevRec) : [], shootTels(rec),
+      prevRec && prevRec.telLog);
+    if (telGone.length) rec.telLog = telGone;
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
@@ -17590,6 +17856,7 @@
     if ($("storeCount")) renderStorageInfo();
     if ($("cloudSeg")) renderCloudInfo();
     if ($("spotCount")) renderSpotMark();
+    if ($("appIdV")) renderProfile();
     if (typeof renderBinBtn === "function") renderBinBtn();
     if (!booted) return;
     paintDate();           // дата в шапке живёт отдельно от renderToday
@@ -18890,6 +19157,145 @@
   $("spotsRow").addEventListener("click", function () { openLocSheet("app"); });
   $("binSetRow").addEventListener("click", openBin);
 
+  /* ---------- Профиль и контакты ---------- */
+  /* Свой номер причёсывается тем же formatTel, что и все остальные: если
+     показывать его иначе, чем номера клиентов, при сверке «мой это или не
+     мой» человек будет спотыкаться на каждом пробеле */
+  (function () {
+    var el = $("myTel");
+    if (!el) return;
+    var lastLen = telDigits(myPhone()).length;
+    el.value = myPhone();
+    el.addEventListener("input", function (e) {
+      var digits = telDigits(this.value).length;
+      var pasted = digits - lastLen > 1
+        || (e && /paste|replacement|autofill/i.test(e.inputType || ""));
+      var end = this.selectionStart === this.value.length;
+      this.value = formatTel(this.value, pasted);
+      lastLen = telDigits(this.value).length;
+      if (end) this.selectionStart = this.selectionEnd = this.value.length;
+      me.phone = this.value.trim();
+      saveAll(); renderProfile();
+    });
+  })();
+  function renderProfile() {
+    var id = myId();
+    /* Пока номера нет, строка не молчит прочерком, а говорит, чего не хватает:
+       ID — не настройка на любителя, без него узел Event OS безымянный */
+    $("appIdV").textContent = id || LANG.t("set.appIdNone");
+    $("appIdV").classList.toggle("set", !!id);
+    var n = phoneIndex().length;
+    $("phonesN").innerHTML = (n ? n : esc(LANG.t("card.none")))
+      + ' <span class="go-chev">›</span>';
+  }
+  /* ID копируется по тапу: его диктуют и вставляют, а перепечатывать
+     двенадцать цифр с экрана — способ ошибиться. Подтверждение показываем в
+     самой строке, а не общей подписью `saveNote`: та живёт в шапке карты и с
+     экрана настроек попросту не видна. Строка отвечает там, где нажали. */
+  /* Современный буфер спрашивает разрешение и в обёртке WKWebView отвечает
+     отказом чаще, чем хотелось бы. Старый `execCommand` разрешения не просит
+     и работает там же — держим его запасным, иначе тап по строке иногда не
+     делает ровно ничего, и понять почему нельзя. */
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(t).catch(function () { return legacyCopy(t); });
+    }
+    return legacyCopy(t);
+  }
+  function legacyCopy(t) {
+    return new Promise(function (ok, no) {
+      var ta = document.createElement("textarea");
+      ta.value = t;
+      /* Поле нельзя прятать `display:none` — из невидимого не копируется.
+         Уводим за край экрана и делаем нечитаемым для экранного диктора */
+      ta.setAttribute("readonly", "");
+      ta.setAttribute("aria-hidden", "true");
+      ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, t.length);
+      var done = false;
+      try { done = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      done ? ok() : no();
+    });
+  }
+  var appIdNoteTimer = null;
+  $("appIdRow").addEventListener("click", function () {
+    var id = myId();
+    if (!id) { $("myTel").focus(); return; }
+    copyText(id).then(function () {
+      $("appIdV").textContent = LANG.t("set.appIdCopied");
+      clearTimeout(appIdNoteTimer);
+      appIdNoteTimer = setTimeout(renderProfile, 1600);
+    }).catch(function () {});
+  });
+  $("phonesRow").addEventListener("click", openPhones);
+  $("phoneBack").addEventListener("click", function () {
+    $("phoneOverlay").classList.remove("open");
+  });
+  /* Чей это номер внутри карточки. Роль не выводится из имени: у съёмки без
+     пары контактное лицо и клиент — разные люди с одинаково пустыми полями.
+     Имена ролей берём у жанра, а не заводим свои «первый» и «второй»: на
+     свадьбе это невеста и жених, на празднике — виновник торжества, и второго
+     набора этих же слов в приложении быть не должно. */
+  function telRoleName(f, type) {
+    if (f === "p1" || f === "p2") {
+      var pp = personsOf(type);
+      var k = pp[f === "p1" ? 0 : 1];
+      if (k) return LANG.t(k);
+    }
+    return LANG.t(f === "client" ? "form.clientName"
+      : f === "org" ? "org.one"
+      : "form.person");
+  }
+  function openPhones() {
+    renderPhones();
+    paintIcons($("phoneOverlay"));
+    $("phoneOverlay").classList.add("open");
+  }
+  function renderPhones() {
+    var list = phoneIndex();
+    var links = list.filter(function (g) { return g.cards > 1; }).length;
+    $("phoneCount").textContent = links ? LANG.count("unit.link", links) : "";
+    $("phoneList").innerHTML = list.map(function (g) {
+      var tags = "";
+      if (g.me) tags += '<span class="ph-tag me">' + esc(LANG.t("ph.mine")) + "</span>";
+      if (g.cards > 1) tags += '<span class="ph-tag link">' + esc(LANG.t("ph.link")) + "</span>";
+      if (!g.live) tags += '<span class="ph-tag">' + esc(LANG.t("ph.past")) + "</span>";
+      var rows = g.rows.map(function (r) {
+        var title = r.kind === "org"
+          ? (r.name || LANG.t("org.noName"))
+          : genreName(sessions[r.i].type) + " · " + dMon(sessions[r.i].date)
+            + " " + sessions[r.i].date.getFullYear();
+        /* Имя пишем рядом с ролью, а не вместо неё: «Ирина» без пояснения не
+           говорит, кем она была в этой съёмке, а через год это и забывается */
+        var who = [telRoleName(r.f, r.kind === "shoot" ? sessions[r.i].type : null),
+          firstName(r.n)].filter(function (x) { return x; }).join(" · ");
+        /* Живой номер может держать и ушедшую связь: менеджер сменился, но
+           номер остался за организацией и за прошлой съёмкой. Помечаем не
+           весь номер, а именно ту строку, которая стала историей */
+        return '<button type="button" class="ph-card' + (r.past ? " past" : "")
+          + '" data-k="' + r.kind + '" data-i="' + r.i + '">'
+          + (r.kind === "org" ? IC.svg("city", "ic") : IC.genreSvg(sessions[r.i].type, "ic"))
+          + '<span class="t">' + esc(title) + "</span>"
+          + '<span class="r">' + esc(who) + "</span></button>";
+      }).join("");
+      return '<div class="ph-row' + (g.live ? "" : " past") + '">'
+        + '<div class="ph-num"><span class="n">' + esc(formatTel(g.tel, true)) + "</span>" + tags
+        + (g.live ? '<a class="ph-call" href="tel:' + esc(telId(g.tel)) + '">'
+            + IC.svg("call") + "</a>" : "")
+        + '</div><div class="ph-where">' + rows + "</div></div>";
+    }).join("") || '<div class="org-empty">' + esc(LANG.t("ph.empty")) + "</div>";
+
+    $("phoneList").querySelectorAll(".ph-card").forEach(function (b) {
+      b.addEventListener("click", function () {
+        $("phoneOverlay").classList.remove("open");
+        if (b.dataset.k === "org") { openOrgs(); openOrgCard(+b.dataset.i); }
+        else openCard(+b.dataset.i);
+      });
+    });
+  }
+
   /* Закладка в шапке карты: одна кнопка на оба состояния. Имя берём то же,
      что показано в шапке, — человек сохраняет то, что видит. Пока геокодер
      не ответил, именем служат координаты, и это честнее пустой строки. */
@@ -19327,7 +19733,10 @@
     measureDockSoon();                   // док на разных экранах разной высоты
     $(id).scrollTop = 0;
     if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
-    else if (id === "s-set") renderMbCount();  // считаем свежо: мудборды копятся где угодно
+    /* Считаем свежо: мудборды копятся где угодно, номера — тоже. Индекс
+       номеров не кэшируем: он собирается за один проход по карточкам, а
+       второй список тех же номеров разошёлся бы с первым в тот же день */
+    else if (id === "s-set") { renderMbCount(); renderProfile(); }
     else if (compassLive) setCompassLive(false);   // уходя с карты, гасим датчик — не нужен нигде больше
     /* Лента мерит себя от собственного `clientWidth`, а он ноль, пока
        `.timebar` скрыт `display: none` (Съёмки/Настройки, и старт тоже —
@@ -19412,6 +19821,7 @@
   setMapFold(mapFoldShut);
   renderSpotMark();
   renderDelvSettings();
+  renderProfile();
   renderCal(); renderDayPanel(); renderSessions(); renderBinBtn();
   /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
      После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
