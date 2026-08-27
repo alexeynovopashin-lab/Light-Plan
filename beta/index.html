@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=14"></script>
+<script src="lang.js?v=15"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -2472,6 +2472,15 @@
     box-shadow: none; border: 1px dashed var(--hairline-2, var(--hairline)); background: none;
     font-size: 13px; color: var(--ink-4);
   }
+  /* Плитка «+ Новая подборка» — тот же пунктир, но крупный знак плюса:
+     пустое и обычное состояние остаются одним компонентом (15_MOODBOARD,
+     «Пустое состояние — не отдельный экран») */
+  .mb-tile.add .mb-cover {
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: none; border: 1px dashed var(--hairline-2, var(--hairline)); background: none;
+  }
+  .mb-tile.add .mb-cover svg { width: 26px; height: 26px; stroke: var(--ink-5); }
+  .mb-tile.add .n { color: var(--ink-5); font-weight: 500; }
 
   .day-states { flex: 0 0 auto; margin: 6px 24px 0; display: flex; flex-direction: column; gap: 6px; }
   .day-states .st {
@@ -3539,8 +3548,8 @@
   .sheet::-webkit-scrollbar { display: none; }
   .sheet.open { transform: none; }
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
-  #gScrim, #locScrim, #kScrim { z-index: 84; }
-  #gSheet, #locSheet, #kSheet { z-index: 86; }
+  #gScrim, #locScrim, #kScrim, #mbNewScrim { z-index: 84; }
+  #gSheet, #locSheet, #kSheet, #mbNewSheet { z-index: 86; }
   /* Опросник вызывается с экрана «Съёмки», но и из карточки тоже должен
      ложиться поверх — держим его на том же уровне, что листы формы */
   #qScrim { z-index: 84; }
@@ -6449,6 +6458,18 @@
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div id="mbGallery"></div>
+  </div>
+
+  <!-- Выбор жанра для новой подборки: подборка жанра — не свободное имя,
+       а один из уже включённых в «Моих жанрах» (docs/15_MOODBOARD.md,
+       «Кадр и подборка — разные вещи»). Список — только те, для которых
+       подборки ещё нет: начатую открывают плиткой, а не отсюда. -->
+  <div class="scrim" id="mbNewScrim"></div>
+  <div class="sheet" id="mbNewSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="mb.newTitle">Новая подборка</div>
+    <div class="sheet-sub" data-i18n="mb.newSub">Для какого жанра?</div>
+    <div class="chips" id="mbNewList" style="margin-top:18px;"></div>
   </div>
 
   <!-- Папка мудборда — съёмка или жанровая подборка. Разделы (чипы) — то же
@@ -13492,6 +13513,32 @@
      мудборды не заводят, это тот же архив со второй дверью. */
   function mbDir(f) { return f.kind === "session" ? "refs" : "genre-refs"; }
 
+  /* Жанры, для которых подборки ещё нет: только они годятся в «+ Новая
+     подборка» — начатую открывают плиткой, а не заводят второй раз. */
+  function mbFreeGenres(genresF) {
+    var used = genresF.map(function (f) { return f.g; });
+    return ALL_GENRES.filter(function (g) { return genresOn[g] && used.indexOf(g) < 0; });
+  }
+  function openMbNew(genresF) {
+    var free = mbFreeGenres(genresF);
+    if (!free.length) return;           // все включённые жанры уже начаты
+    if (free.length === 1) { openMbFolder({ kind: "genre", g: free[0] }); return; }
+    $("mbNewList").innerHTML = free.map(function (g) {
+      return toolBtn(genreName(g), GENRE_IC[g], "", g);
+    }).join("");
+    $("mbNewList").querySelectorAll(".tool").forEach(function (ch) {
+      ch.addEventListener("click", function () {
+        closeMbNew();
+        openMbFolder({ kind: "genre", g: ch.dataset.v });
+      });
+    });
+    $("mbNewSheet").classList.add("open"); $("mbNewScrim").classList.add("open");
+  }
+  function closeMbNew() {
+    $("mbNewSheet").classList.remove("open"); $("mbNewScrim").classList.remove("open");
+  }
+  $("mbNewScrim").addEventListener("click", closeMbNew);
+
   function renderMbGallery() {
     var folders = mbFolders();
     var sessionsF = folders.filter(function (f) { return f.kind === "session"; })
@@ -13504,21 +13551,30 @@
         + '<span class="n">' + esc(mbTitle(f)) + "</span>"
         + '<span class="s">' + esc(mbSub(f)) + " · " + esc(LANG.count("unit.item", n)) + "</span></button>";
     }
+    /* Рамка «+» — всегда первая плитка библиотеки заготовок, пока есть
+       жанр, для которого подборки ещё нет (15_MOODBOARD, «Пустое
+       состояние — не отдельный экран»). */
+    var addTile = mbFreeGenres(genresF).length
+      ? '<button type="button" class="mb-tile add" id="mbAddBoard">'
+        + '<span class="mb-cover"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>'
+        + '<span class="n">' + esc(LANG.t("mb.newTitle")) + "</span></button>"
+      : "";
     var html = '<div class="sec-label" style="padding-left:0;">' + esc(LANG.t("nav.shoots")) + "</div>";
     html += sessionsF.length
       ? '<div class="mb-tiles">' + sessionsF.map(function (f, i) { return tile(f, i, "s"); }).join("") + "</div>"
       : '<div class="org-empty">' + esc(LANG.t("mb.noShootFolders")) + "</div>";
     html += '<div class="sec-label" style="padding-left:0;margin-top:18px;">' + esc(LANG.t("mb.sets")) + "</div>";
-    html += genresF.length
-      ? '<div class="mb-tiles">' + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("") + "</div>"
+    html += (addTile || genresF.length)
+      ? '<div class="mb-tiles">' + addTile + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("") + "</div>"
       : '<div class="org-empty">' + esc(LANG.t("mb.noGenreSets")) + "</div>";
     $("mbGallery").innerHTML = html;
-    $("mbGallery").querySelectorAll(".mb-tile").forEach(function (b) {
+    $("mbGallery").querySelectorAll(".mb-tile:not(.add)").forEach(function (b) {
       b.addEventListener("click", function () {
         var list = b.dataset.list === "s" ? sessionsF : genresF;
         openMbFolder(list[+b.dataset.i]);
       });
     });
+    if ($("mbAddBoard")) $("mbAddBoard").addEventListener("click", function () { openMbNew(genresF); });
   }
   /* ---------- Галерея на экране съёмок ----------
      Та же галерея, что в Настройках, но плитками и в потоке экрана. Держим
@@ -13678,6 +13734,10 @@
   });
   $("mbFolderBack").addEventListener("click", function () {
     $("mbFolderOverlay").classList.remove("open");
+    /* «+ Новая подборка» заводит жанровую подборку заранее, до первого
+       кадра — если вышли ничего не добавив, она не должна остаться пустым
+       следом (тот же boardPrune, что и у обычного опустевания). */
+    if (mbOpen) { boardPrune(mbBoard(mbOpen)); saveAll(); }
     renderMbGallery(); renderMbCount(); renderMbStrip();   // счётчики папки могли поменяться
   });
   /* Загрузка фото не требует Диска только формально — без него uploadToDisk
