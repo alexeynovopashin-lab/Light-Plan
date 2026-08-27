@@ -7840,9 +7840,75 @@
      (маршрут точек, наборы референсов). */
   var CHANNEL = /\/beta\//.test(location.pathname) ? "beta" : "main";
   var STORE = CHANNEL === "beta" ? "lightplan.beta.v1" : "lightplan.v1";
+
+  /* ---------- Метка установки ----------
+     Ноутбук, телефон и планшет должны вести одну книгу съёмок, и для этого
+     каждому нужно имя: в облаке у каждого свой файл, и пишет его только он
+     (docs/13_MULTI_DEVICE.md). Метка называет файл — это вся её работа.
+
+     Лежит **вне** `STORE`, и это не мелочь: `restoreBackup` заменяет базу
+     целиком, и метка, лежащая внутри, приехала бы вместе с копией. Два
+     устройства с одним именем писали бы в один файл — ровно то, ради
+     отсутствия чего вся раскладка и затеяна. Восстановился из копии —
+     остаёшься собой, а не становишься тем, кто копию делал. */
+  var DEVICE_KEY = CHANNEL === "beta" ? "lightplan.beta.device" : "lightplan.device";
+  var deviceId = (function () {
+    var v = "";
+    try { v = localStorage.getItem(DEVICE_KEY) || ""; } catch (e) {}
+    if (!v) {
+      v = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      try { localStorage.setItem(DEVICE_KEY, v); } catch (e) {}
+    }
+    return v;
+  })();
+
+  /* ---------- Когда запись правили последний раз ----------
+     Слияние двух устройств выбирает версию по времени правки, и время надо
+     откуда-то взять. Ставить его руками в каждом месте, где запись меняется,
+     — способ однажды забыть: мест этих десятки, от сохранения формы до
+     галочки «сдано». Поэтому отметка ставится в одном месте, при записи на
+     диск, и по сравнению с прошлым снимком: изменилась запись — изменилась
+     отметка, а не изменилась — стоит прежняя.
+
+     Себя отметка из сравнения исключает, иначе первая же простановка
+     выглядела бы изменением и стамповала бы запись бесконечно. */
+  var mtPrev = {}, setPrev = {};
+  function mtBody(v) {
+    return JSON.stringify(v, function (k, x) { return k === "mt" ? undefined : x; });
+  }
+  function stampList(list, now) {
+    if (!list) return;
+    list.forEach(function (r) {
+      if (!r || !r.id) return;
+      var body = mtBody(r);
+      if (mtPrev[r.id] === body) return;
+      mtPrev[r.id] = body;
+      r.mt = now;
+    });
+  }
+  /* Настройки — не записи с ключами, а плоский объект, и одной отметкой на
+     всю кучу обойтись нельзя: смена темы на телефоне откатила бы язык,
+     выбранный на ноутбуке час назад. Поэтому отметка на ключ, и ставится
+     только тем ключам, которые правда изменились. Значения при этом не
+     переворачиваются в объекты — хранилище переписывать не нужно. */
+  var SET_SKIP = { sessions: 1, trashed: 1, blocks: 1, orgs: 1, spots: 1, graves: 1, setMt: 1, dev: 1 };
+  function stampSettings(data, now) {
+    for (var k in data) {
+      if (SET_SKIP[k]) continue;
+      var body = JSON.stringify(data[k]);
+      if (setPrev[k] === body) continue;
+      setPrev[k] = body;
+      setMt[k] = now;
+    }
+    data.setMt = setMt;
+  }
+
   function saveAll() {
     try {
-      localStorage.setItem(STORE, JSON.stringify({
+      var now = Date.now();
+      stampList(sessions, now); stampList(orgs, now);
+      stampList(spots, now); stampList(blocks, now);
+      var data = {
         sessions: sessions.map(function (s) {
           var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
           return o;
@@ -7867,8 +7933,17 @@
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
           return o;
-        })
-      }));
+        }),
+        /* Тени окончательно удалённых. Пустой массив тоже пишем: он значит
+           «удалений не было», а отсутствие ключа — «эта версия про тени не
+           знала», и на слиянии это разные вещи */
+        graves: graves,
+        /* Кто записал. Для слияния — чтобы при равных отметках спор решался
+           одинаково на всех устройствах, а не по-разному на каждом */
+        dev: deviceId
+      };
+      stampSettings(data, now);
+      localStorage.setItem(STORE, JSON.stringify(data));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
       if (typeof cloudSchedule === "function") cloudSchedule();   // копия уедет на Диск через пару секунд
     } catch (e) {}
@@ -8421,7 +8496,12 @@
      заодно соседний канал. Облачные ключи каналами не разведены — они
      общие, и гасятся оба, это здесь и верно. */
   function wipeAll() {
-    [STORE, DRAFT_KEY, BACKUP_KEY,
+    /* Метку установки тоже гасим, и это не то же самое, что восстановление
+       из копии. Там человек остаётся собой на новом устройстве; здесь
+       устройство начинает жизнь другого человека — значит и участник обмена
+       новый, и занимать в чужом облаке файл прежнего владельца ему незачем.
+       Новая метка выпишется сама при следующем запуске. */
+    [STORE, DRAFT_KEY, BACKUP_KEY, DEVICE_KEY,
      CLOUD_TOKEN_KEY, CLOUD_KIND_KEY, CLOUD_SYNC_KEY, CLOUD_PKCE_KEY,
      "lightplan.ya.token", "lightplan.ya.synced", "lightplan.beta.ya.synced"
     ].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
@@ -8495,6 +8575,33 @@
     var r = {}; for (var k in t.rec) r[k] = (k === "date") ? new Date(t.rec[k]) : t.rec[k];
     return { rec: r, at: t.at || 0, del: t.del || 0 };
   });
+
+  /* ---------- Тени окончательно удалённых ----------
+     Главный закон слияния: **отсутствие записи никогда не значит удаление**
+     (docs/13_MULTI_DEVICE.md). Иначе пустое новое устройство при первом же
+     обмене стёрло бы книгу — «у меня этого нет» читалось бы как «этого не
+     должно быть».
+
+     Корзина уже почти тень: держит запись, место в списке и время удаления.
+     Но «Очистить корзину» стирала её без следа, а на соседнем устройстве
+     запись жива — и вернулась бы обратно при первом же слиянии. Поэтому от
+     окончательно удалённой остаётся ключ и время: десятки байт.
+
+     Через девяносто дней тень выметается. К этому сроку она разошлась по
+     всем устройствам и работу свою сделала; держать её вечно значит копить
+     список, который только растёт. */
+  var GRAVE_DAYS = 90;
+  var graves = (saved && Array.isArray(saved.graves) ? saved.graves : []).filter(function (g) {
+    return g && g.id && (Date.now() - (g.del || 0)) < GRAVE_DAYS * 86400000;
+  });
+  function bury(id) {
+    if (!id) return;
+    graves = graves.filter(function (g) { return g.id !== id; });
+    graves.push({ id: id, del: Date.now() });
+  }
+  /* Отметки настроек по ключу. Читаются как есть: пересчитать их неоткуда,
+     а потерять — значит объявить все настройки одинаково старыми */
+  var setMt = (saved && saved.setMt && typeof saved.setMt === "object") ? saved.setMt : {};
 
   /* ---------- Жанр: код внутри, имя на экране ----------
      Жанр служил сразу тремя вещами: текстом на экране, ключом в таблицах
@@ -8980,6 +9087,25 @@
      меняется, а история съёмок не рвётся (docs/12_CARD_ARCHITECTURE.md).
      В съёмке хранится ссылка orgId, а не строка с названием. */
   var orgs = (saved && saved.orgs) || [];
+
+  /* Засев сравнения. Без него первое же сохранение после запуска объявило бы
+     изменившимся всё подряд — сравнивать было бы не с чем, — и вся книга
+     получила бы одну отметку времени «сейчас». Порядок правок, который
+     отметки и должны хранить, при этом стёрся бы начисто, а слияние с
+     соседним устройством решило бы, что здесь только что переписали всё.
+
+     Записи без отметки остаются без неё. Это честно: когда их правили на
+     самом деле, приложение не знает, и выдумывать время — хуже, чем не
+     иметь его. Слияние такие читает как самые старые, а спор равных решает
+     по метке устройства, одинаково на всех сторонах. */
+  (function seedStamps() {
+    [sessions, orgs, spots, blocks].forEach(function (list) {
+      (list || []).forEach(function (r) { if (r && r.id) mtPrev[r.id] = mtBody(r); });
+    });
+    if (!saved) return;
+    for (var k in saved) if (!SET_SKIP[k]) setPrev[k] = JSON.stringify(saved[k]);
+  })();
+
   function orgById(id) {
     if (!id) return null;
     for (var i = 0; i < orgs.length; i++) if (orgs[i].id === id) return orgs[i];
@@ -12032,6 +12158,10 @@
     if (!t) return;
     trashed.splice(k, 1);
     sessions.splice(Math.min(t.at, sessions.length), 0, t.rec);
+    /* Запись снова жива — тень, если она откуда-то осталась, лжёт. Своей
+       корзиной такого не бывает, но после слияния бывает: там тень могла
+       приехать с другого устройства */
+    graves = graves.filter(function (g) { return g.id !== (t.rec && t.rec.id); });
     saveAll();
     renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderBin();
   }
@@ -13093,6 +13223,7 @@
     var sh = orgShoots(o.id);
     if (sh.length && !confirm(LANG.t("org.delAsk", { n: LANG.count("unit.shoot", sh.length) }))) return;
     sessions.forEach(function (s) { if (s.orgId === o.id) s.orgId = null; });
+    bury(o.id);                       // тень, иначе вернётся при слиянии
     orgs.splice(orgIdx, 1);
     saveAll(); closeOrgCard();
   });
@@ -16278,6 +16409,11 @@
        ловушкой, от которой корзина и заводилась */
     if (!trashed.length) return;
     if (!confirm(LANG.t("bin.wipeAsk", { n: LANG.count("unit.shoot", trashed.length) }))) return;
+    /* От окончательно удалённой остаётся тень: ключ и время. Иначе на
+       соседнем устройстве запись жива, и первое же слияние вернёт её —
+       корзину пришлось бы чистить на каждом устройстве по отдельности,
+       и всё равно не помогло бы (docs/13_MULTI_DEVICE.md) */
+    trashed.forEach(function (t) { bury(t.rec && t.rec.id); });
     trashed = [];
     saveAll();
     renderBin(); renderBinBtn();
@@ -19428,6 +19564,7 @@
     for (var i = 0; i < blocks.length; i++) if (blocks[i].id === id) return openBlockSheet(blocks[i]);
   }
   function removeBlock(id) {
+    bury(id);
     blocks = blocks.filter(function (b) { return b.id !== id; });
     saveAll(); renderCal(); renderDayPanel();
   }
@@ -19924,7 +20061,7 @@
   }
   $("mapSave").addEventListener("click", function () {
     var i = spotHere();
-    if (i >= 0) { unlinkSpot(spots[i].id); spots.splice(i, 1); saveNote(LANG.t("loc.spotRemoved")); }
+    if (i >= 0) { unlinkSpot(spots[i].id); bury(spots[i].id); spots.splice(i, 1); saveNote(LANG.t("loc.spotRemoved")); }
     else {
       spots.unshift({ id: newSpotId(), name: geoCity || coordText(LAT, LON), sub: geoSub || "",
                       named: !!geoCity,          // именем служат координаты — дождёмся геокодера
@@ -20115,7 +20252,7 @@
       del.setAttribute("aria-label", LANG.t("loc.delAria"));
       del.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       del.addEventListener("click", function () {
-        unlinkSpot(sp.id);
+        unlinkSpot(sp.id); bury(sp.id);
         spots.splice(idx, 1); saveAll(); renderSpotMark(); renderSpots();
       });
       row.appendChild(go); row.appendChild(edit); row.appendChild(del);
