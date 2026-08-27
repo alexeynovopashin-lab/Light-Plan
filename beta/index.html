@@ -13304,6 +13304,62 @@
     $("refFile").click();
   });
   $("refFile").addEventListener("change", function () { addRefFiles(this.files || []); this.value = ""; });
+
+  /* ---------- Двери: буфер обмена и перетаскивание ----------
+     На iOS у Share Extension нет пути через веб (Share Target есть только в
+     Chromium на Android) — единственная сегодняшняя дверь с Pinterest:
+     долгий тап на пине → «Скопировать изображение» → вставить сюда.
+     Перетаскивание — то же самое на десктопе. Обе двери ведут туда же, куда
+     кнопка «Фото»: тот же `refCtx`, та же `uploadToDisk` (15_MOODBOARD,
+     «"Поделиться" — дверь, закрывающая оба сервиса»).
+
+     Три места, где кнопка «Фото» уже есть, — те же три места, куда можно
+     вставить или перетащить: форма съёмки, набор жанра, папка мудборда.
+     Дальше приоритет верхнего листа: набор жанра открывается поверх формы
+     (`gSheet` поверх `formOverlay`), и если открыты оба — картинка идёт в
+     набор, а не в форму под ним. */
+  function pasteTarget() {
+    if ($("mbFolderOverlay").classList.contains("open") && mbOpen) {
+      return function () { useRefBoard(mbBoard(mbOpen), renderMbFolder, "mbNote", mbDir(mbOpen), mbTag); };
+    }
+    if ($("gSheet").classList.contains("open")) {
+      return function () { useRefBoard(boardTpl(shootType, true), renderGenreRefs, "gRefNote", "genre-refs", gRefTag); };
+    }
+    if ($("formOverlay").classList.contains("open")) {
+      return function () { useRefCtx(fRefs, renderRefs, "refNote", "refs", null); };
+    }
+    return null;
+  }
+  function imageFilesFrom(dt) {
+    var files = [];
+    if (dt.items) {
+      Array.prototype.forEach.call(dt.items, function (it) {
+        if (it.kind === "file" && /^image\//.test(it.type)) { var f = it.getAsFile(); if (f) files.push(f); }
+      });
+    } else if (dt.files) {
+      Array.prototype.forEach.call(dt.files, function (f) { if (/^image\//.test(f.type)) files.push(f); });
+    }
+    return files;
+  }
+  document.addEventListener("paste", function (e) {
+    var setup = pasteTarget();
+    if (!setup) return;
+    var files = imageFilesFrom(e.clipboardData || {});
+    if (!files.length) return;
+    e.preventDefault();
+    setup(); addRefFiles(files);
+  });
+  /* dragover должен погасить браузерное умолчание («открыть файл вместо
+     приложения»), иначе до drop дело не доходит вовсе */
+  document.addEventListener("dragover", function (e) { if (pasteTarget()) e.preventDefault(); });
+  document.addEventListener("drop", function (e) {
+    var setup = pasteTarget();
+    if (!setup) return;
+    var files = imageFilesFrom(e.dataTransfer || {});
+    if (!files.length) return;
+    e.preventDefault();
+    setup(); addRefFiles(files);
+  });
   $("refLink").addEventListener("click", function () {
     var url = askLink();
     if (!url) return;
