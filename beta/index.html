@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=10"></script>
+<script src="lang.js?v=11"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -3372,6 +3372,9 @@
   /* ID показываем моноширинными цифрами и целиком: это строка, которую
      диктуют и сверяют по цифре, переносить или обрезать её нельзя */
   #appIdV.set { color: var(--ink); }
+  /* Прежний ID стоит в колонке подписи, но читается как значение: это
+     строка, которую сверяют по знаку, а не название строки */
+  .item .k.id-was { color: var(--ink-5); font-variant-numeric: tabular-nums; }
   .seg { display: flex; background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 3px; margin: 12px 24px 0; }
   /* `display: flex` бьёт встроенное `[hidden]{display:none}` браузера:
      оба правила из авторской таблицы стилей, порядок в файле решает, а
@@ -5303,6 +5306,11 @@
     <input class="set-in" type="tel" id="myTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
     <div class="item" id="appIdRow" style="margin-top:12px"><span class="k" data-i18n="set.appId">ID приложения</span><span class="v" id="appIdV">—</span></div>
     <p class="seg-note" data-i18n="set.appIdNote">Отдельный код пришлось бы помнить и куда-то записывать. Номер телефона уже всемирный, уже уникальный и уже ваш — он и работает адресом: по нему организатор события свяжет ваши съёмки со своим планом.</p>
+    <!-- Прежние ID. Смена номера не должна рвать связи, которые по нему уже
+         построены: старый ID остаётся действующим именем того же человека -->
+    <div class="sec-label" id="appIdWasLabel" data-i18n="set.appIdWas" hidden>Прежние ID</div>
+    <div id="appIdWas"></div>
+    <p class="seg-note" id="appIdWasNote" data-i18n="set.appIdWasNote" hidden>Старый ID не пропадает. Кто записал вас по нему раньше, тот по нему и найдёт: прежний ID считается тем же самым человеком, что и нынешний.</p>
     <div class="item" id="phonesRow"><span class="k" data-i18n="set.contacts">Контакты</span><span class="v" id="phonesN">—</span></div>
     <p class="seg-note" data-i18n="set.contactsNote">Все номера из съёмок и организаций одним списком. Номер, встреченный в двух карточках, — связка: заказчик, оказавшийся отцом невесты, виден только так.</p>
 
@@ -8774,6 +8782,68 @@
   var me = (saved && saved.me) || {};
   function myPhone() { return me.phone || ""; }
   function myId() { return appId(me.phone); }
+
+  /* ---------- Свой номер тоже не вечен ----------
+     У карточек история номера есть с самого начала (`telLog`), и там «считать
+     А как Б» получается само: оба номера лежат в одной карточке, карточка и
+     есть тот, кто их связывает. У владельца связывать было нечем — `me` знал
+     одно поле. Сменил номер, и `myId()` молча стал другим ID: всё, что снаружи
+     записало прежний, указывает в никуда, а сказать «это тот же человек»
+     некому.
+
+     Поэтому владелец держит цепочку прежних ID — `me.ids`, старые первыми.
+     Храним именно ID, а не номер: наружу уходил ID, его и держат чужие
+     системы, ему и надо находиться. Кто пришёл со старым ID, тот попадает на
+     нынешний — цепочка читается насквозь, а не на один шаг, потому что номер
+     меняют и дважды. */
+  var MY_IDS_MAX = 12;
+  /* Все ID, которыми владелец был и есть, от старого к нынешнему */
+  function myIdAll() {
+    var out = (me.ids || []).map(function (r) { return r.was; });
+    var cur = myId();
+    if (cur) out.push(cur);
+    return out;
+  }
+  /* Ключи всех своих номеров: старый номер, оставшийся в чужой карточке,
+     должен по-прежнему опознаваться как свой, а не как чей-то ещё */
+  function myKeys() {
+    var k = {};
+    myIdAll().forEach(function (x) { var t = telKey(x); if (t) k[t] = 1; });
+    return k;
+  }
+  function myIdRetire(before, after) {
+    /* Пустое поле — не смена номера, а правка на полпути: цепочку не трогаем.
+       Тот же номер, записанный иначе, тоже не смена — сверяются ключи */
+    if (!telReal(before) || !telReal(after) || telKey(before) === telKey(after)) return false;
+    var list = me.ids || (me.ids = []);
+    var nk = telKey(after);
+    /* Вернулись к номеру, которым уже были: почти всегда это исправленная
+       опечатка или временная симка. Кольца A→Б→A не заводим — срезаем цепочку
+       до той точки, где этот номер стоял, и он снова становится нынешним */
+    for (var i = 0; i < list.length; i++) {
+      if (telKey(list[i].was) === nk) { me.ids = list.slice(0, i); return true; }
+    }
+    list.push({ was: appId(before), at: new Date().toISOString() });
+    if (list.length > MY_IDS_MAX) me.ids = list.slice(-MY_IDS_MAX);
+    return true;
+  }
+
+  /* Последний зафиксированный номер. Держим его сами, а не снимаем по `focus`:
+     фокус — событие ненадёжное (поле может получить значение и без него), а
+     эта переменная просто помнит, на чём цепочку остановили в прошлый раз.
+
+     Фиксируем в трёх местах, потому что одного `blur` мало: номер можно
+     набрать и тут же свернуть приложение, не уводя палец с поля, — тогда
+     `blur` не придёт вовсе и смена пропадёт. Уход с экрана настроек и
+     сворачивание приложения закрывают эту дыру. Повторный вызов безвреден:
+     если номер тот же, `myIdRetire` ничего не делает. */
+  var myTelSnap = "";
+  function myTelCommit() {
+    if (!myIdRetire(myTelSnap, myPhone())) { myTelSnap = myPhone(); return; }
+    myTelSnap = myPhone();
+    saveAll();
+    if ($("appIdWas")) renderProfile();
+  }
 
   /* ---------- Организации ----------
      Отдельная запись с постоянным ключом: название правится, контактное лицо
@@ -13720,6 +13790,10 @@
         put({ tel: t.tel, n: t.n, f: t.f, kind: "org", i: i, name: o.name, at: t.at, past: true });
       });
     });
+    /* Свои номера считаем один раз на весь список, а не на каждый номер:
+       сюда входят и прежние — старая симка, оставшаяся в чужой карточке, это
+       по-прежнему я, а не посторонний человек */
+    var mine = myKeys();
     var out = order.map(function (k) {
       var g = map[k];
       /* Связка — это номер, встреченный больше чем в одной карточке. Ради неё
@@ -13729,7 +13803,7 @@
       g.rows.forEach(function (r) { cards[r.kind + r.i] = 1; });
       g.cards = Object.keys(cards).length;
       g.live = g.rows.some(function (r) { return !r.past; });
-      g.me = !!(myPhone() && telKey(myPhone()) === g.key);
+      g.me = !!mine[g.key];
       return g;
     });
     /* Сверху — связки, дальше свежее вперёд: список читают, чтобы что-то
@@ -19189,13 +19263,35 @@
       me.phone = this.value.trim();
       saveAll(); renderProfile();
     });
+    /* Смену номера фиксируем не в `input`: поле пишется с каждым нажатием
+       клавиши, и по дороге к новому номеру мимо прошёл бы десяток обрывков —
+       каждый со своим «прежним ID». Границы — в myTelCommit */
+    myTelSnap = myPhone();
+    el.addEventListener("blur", myTelCommit);
   })();
+  /* Свернули приложение с открытым полем — тот же момент «правка закончена».
+     `visibilitychange` приходит и там, где `blur` не приходит */
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") myTelCommit();
+  });
   function renderProfile() {
     var id = myId();
     /* Пока номера нет, строка не молчит прочерком, а говорит, чего не хватает:
        ID — не настройка на любителя, без него узел Event OS безымянный */
     $("appIdV").textContent = id || LANG.t("set.appIdNone");
     $("appIdV").classList.toggle("set", !!id);
+    /* Прежние ID — новыми сверху: чем свежее смена, тем вероятнее, что именно
+       про неё сейчас спрашивают. Показываем их всегда, а не прячем в
+       «подробно»: строка, по которой тебя знают снаружи, не должна тихо
+       меняться под человеком */
+    var was = (me.ids || []).slice().reverse();
+    $("appIdWasLabel").hidden = !was.length;
+    $("appIdWasNote").hidden = !was.length;
+    $("appIdWas").innerHTML = was.map(function (r) {
+      var d = new Date(r.at);
+      return '<div class="item"><span class="k id-was">' + esc(r.was) + "</span>"
+        + '<span class="v">' + esc(dMon(d) + " " + d.getFullYear()) + "</span></div>";
+    }).join("");
     var n = phoneIndex().length;
     $("phonesN").innerHTML = (n ? n : esc(LANG.t("card.none")))
       + ' <span class="go-chev">›</span>';
@@ -19737,6 +19833,9 @@
       .forEach(function (el) { el.classList.remove("open"); });
   }
   function go(id) {
+    /* Уходя с настроек, закрываем правку своего номера: экран сменился —
+       значит с полем закончили, даже если палец так и не ушёл с него */
+    if (document.body.dataset.tab === "s-set" && id !== "s-set") myTelCommit();
     closeAllOverlays();
     tabs.forEach(function (t) { t.classList.toggle("active", t.dataset.go === id); });
     screens.forEach(function (s) { $(s).classList.toggle("active", s === id); });
