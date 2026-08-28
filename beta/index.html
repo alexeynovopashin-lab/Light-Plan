@@ -4757,13 +4757,30 @@
      overflow: hidden — увеличенный кадр не вылезает за края экрана. */
   .ref-view {
     position: absolute; inset: 0; z-index: 95; background: var(--overlay-2);
-    display: none; align-items: center; justify-content: center; padding: 24px;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
     touch-action: none; overflow: hidden;
+    /* Гасим видимостью, а не `display: none`: кадр вырастает из своей плитки
+       и возвращается в неё, а измерить плитку и запустить полёт по
+       выключенному экрану нечем — у него нет геометрии. Задержка у
+       `visibility` держит просмотрщик живым, пока фон догорает. */
+    visibility: hidden; opacity: 0;
+    transition: opacity .22s ease, visibility 0s linear .22s;
   }
-  .ref-view.open { display: flex; }
+  .ref-view.open { visibility: visible; opacity: 1; transition: opacity .22s ease; }
   .ref-view img {
     max-width: 100%; max-height: 100%; border-radius: 12px; corner-shape: squircle;
     will-change: transform;
+  }
+  /* Уходящий кадр на время перелистывания. Живёт ровно один переход: снят с
+     живого <img> по его же прямоугольнику, поэтому подгонять геометрию не
+     нужно — она уже посчитана браузером. */
+  .rv-ghost { position: absolute; border-radius: 12px; corner-shape: squircle; pointer-events: none; }
+  /* Панели догоняют кадр, а не едут вместе с ним: пока кадр растёт из
+     плитки, счётчик и теги висели бы в пустоте */
+  .ref-view .rv-bar { opacity: 0; transition: opacity .16s ease; }
+  .ref-view.open .rv-bar { opacity: 1; transition: opacity .2s ease .14s; }
+  @media (prefers-reduced-motion: reduce) {
+    .ref-view, .ref-view.open, .ref-view .rv-bar, .ref-view.open .rv-bar { transition: none; }
   }
   /* Панели просмотрщика — счётчик, теги, подсказка (макет «Moodboard
      Shoots»). Прячутся сами, когда нечего показывать: список из одного
@@ -13435,28 +13452,36 @@
      Список и позиция в нём — для свайпа между кадрами (пусто у одиночных
      вызовов вне мудборда: свайпу просто некуда деть кадр, и он гасится). */
   var refViewSeq = 0;
-  var refViewList = null, refViewIdx = -1, refViewEdit = null;
+  var refViewList = null, refViewIdx = -1, refViewEdit = null, rvFrom = null;
   function openRef(r) { openRefAt(r ? [r] : [], 0); }
   /* `edit` — что делать по касанию строки тегов внизу. Есть только там, где
      кадру есть куда положить тег (папка мудборда); в остальных местах строка
-     остаётся подписью, как была. */
-  function openRefAt(list, i, edit) {
+     остаётся подписью, как была.
+     `from` — плитка, по которой ударили: из неё кадр вырастает и в неё же
+     возвращается. Её не передают там, где кадр открывают не из сетки, — там
+     остаётся общее уменьшение к центру. */
+  function openRefAt(list, i, edit, from) {
     var r = list && list[i];
     if (!r) return;
     if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
     if (!r.im && !r.path) return;
     refViewList = list; refViewIdx = i; refViewEdit = edit || null;
+    rvFrom = from || null;
     $("refView").classList.add("open");
     rvShow(r);
+    rvGrowIn();
   }
   function rvShow(r) {
     var img = $("refViewImg"), mine = ++refViewSeq;
-    img.src = (r.im && blobUrl(r.im, "t")) || "";
+    rvFit(r);
+    img.src = (r.im && (blobUrl(r.im, "s") || blobUrl(r.im, "t"))) || "";
     rvReset(false);                     // следующий кадр открывается целым
     renderRvBars(r);
     /* Экранная копия — то, ради чего всё затевалось: без сети она уже здесь.
        Оригинал приходит следом и только если сеть есть. */
-    if (r.im) blobUrlLoad(r.im, "s").then(function (u) { if (u && mine === refViewSeq) img.src = u; });
+    if (r.im) blobUrlLoad(r.im, "s").then(function (u) {
+      if (u && mine === refViewSeq) { img.src = u; rvNatural(mine); }
+    });
     if (!r.path) return;
     cloudDownloadUrl(r.path).then(function (href) {
       /* Ссылка с Диска живёт недолго и иногда не открывается вовсе. Раньше мы
@@ -13464,7 +13489,7 @@
          картинка пропадала через секунду. Меняем только на загруженный кадр,
          и только если экран за это время не закрыли и не открыли другой. */
       var full = new Image();
-      full.onload = function () { if (mine === refViewSeq) img.src = href; };
+      full.onload = function () { if (mine === refViewSeq) { img.src = href; rvNatural(mine); } };
       full.src = href;
     }).catch(function () {});   // без сети остаётся миниатюра
   }
@@ -13496,12 +13521,130 @@
     var r = refViewList && refViewList[refViewIdx];
     if (r) renderRvBars(r);
   }
+  /* ---------- Переходы просмотрщика ----------
+     Кадр не возникает и не пропадает: он вырастает из своей плитки, уходит
+     в неё же и уезжает вбок при перелистывании. Три движения одной руки —
+     чтобы было видно, откуда кадр взялся и куда девался (08_VISUAL_LANGUAGE:
+     анимируем состояние, а не объект).
+     Двигаем сам <img> просмотрщика, а не клон: клон пришлось бы держать в
+     согласии с подменой миниатюры на оригинал, которая приходит по сети уже
+     во время полёта. Клон нужен только уходящему кадру — его картинка больше
+     никому не принадлежит. */
+  var RV_FLY = 260;
+  /* Размер кадру назначаем сами, а не отдаём на откуп `max-width` — иначе
+     его считает та картинка, что успела прийти. Сначала это миниатюра в 200
+     точек, следом экранная копия в 1600, и кадр подпрыгивал при открытии;
+     полёт, посчитанный по миниатюре, стартовал не от плитки, а от 0.72
+     конечного размера.
+     Из записи берём только пропорцию: `w`/`h` там — стороны миниатюры
+     (`BLOB_T`), а не оригинала, и потолок по ним ужал бы кадр до 133 точек.
+     Прежнее «мелкое не растягиваем» держит `rvNatural` — по картинке, когда
+     та наконец загрузилась. Сторон нет (старая запись) — остаётся `max-width`. */
+  function rvFit(r) {
+    var img = $("refViewImg"), v = $("refView").getBoundingClientRect(), pad = 24;
+    if (!r || !r.w || !r.h || !v.width) { img.style.width = img.style.height = ""; return; }
+    var k = Math.min((v.width - pad * 2) / r.w, (v.height - pad * 2) / r.h);
+    img.style.width = Math.round(r.w * k) + "px";
+    img.style.height = Math.round(r.h * k) + "px";
+  }
+  /* Зовётся только по экранной копии и по оригиналу с Диска, не по миниатюре:
+     у миниатюры своих 200 точек, и по ней кадр схлопнулся бы до плитки. */
+  function rvNatural(mine) {
+    var img = $("refViewImg");
+    var fit = function () {
+      if (mine !== refViewSeq || !img.naturalWidth || !img.style.width) return;
+      if (img.naturalWidth < parseFloat(img.style.width)) {
+        img.style.width = img.naturalWidth + "px";
+        img.style.height = img.naturalHeight + "px";
+      }
+    };
+    if (img.decode) img.decode().then(fit, function () {});
+    else img.addEventListener("load", fit, { once: true });
+  }
+  /* Раньше кадр подгонял под экран сам `max-width`, теперь размер наш — и
+     повернувшийся телефон надо догонять руками, иначе кадр остался бы
+     размером с прошлую ориентацию. */
+  window.addEventListener("resize", function () {
+    if ($("refView").classList.contains("open")) {
+      rvFit(refViewList && refViewList[refViewIdx]);
+      rvReset(false);
+    }
+  });
+  function rvReduced() {
+    return !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+  /* Прямоугольник плитки текущего кадра. Плитка не всегда та, из которой
+     открывали: свайп перебирает кадры, и вернуться кадр должен в свою.
+     Уехавшую за край сетку не ищем — полёт в невидимую точку читается как
+     улёт в никуда, там кадр просто уменьшается на месте. */
+  function rvHome() {
+    if (!rvFrom || !rvFrom.parentElement) return null;
+    var el = rvFrom.parentElement.querySelector('.ref-card[data-vi="' + refViewIdx + '"]') || rvFrom;
+    var r = (el.querySelector("img") || el).getBoundingClientRect();
+    var v = $("refView").getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    var cy = r.top + r.height / 2;
+    if (cy < v.top - 40 || cy > v.bottom + 40) return null;
+    return r;
+  }
+  /* Положение кадра в его плитке: тот же центр, тот же размер. Масштаб один
+     на обе оси — плитка мудборда держит пропорции кадра, а неравномерный
+     сплющивал бы картинку на глазах.
+     Меряем не то, что на экране, а место кадра без сдвига: `transform`
+     задаётся от нетронутой геометрии, а свайп вниз к моменту закрытия уже
+     увёл кадр с места — посчитанный по нему полёт промахивался мимо плитки
+     на всю длину свайпа. Сдвиг и масштаб знаем свои же, снимать `transform`
+     ради замера незачем. */
+  function rvHomeTransform() {
+    var img = $("refViewImg"), ir = img.getBoundingClientRect(), r = rvHome();
+    if (!r || !ir.width || !ir.height) return "scale(.92)";
+    var w = ir.width / rvS, h = ir.height / rvS;
+    var cx = (ir.left + ir.width / 2) - rvX, cy = (ir.top + ir.height / 2) - rvY;
+    return "translate(" + ((r.left + r.width / 2) - cx) + "px,"
+      + ((r.top + r.height / 2) - cy) + "px) scale("
+      + Math.max(r.width / w, r.height / h) + ")";
+  }
+  /* Ждём не загрузку, а декодирование: до него у <img> нет размеров, и лететь
+     не от чего. Опоздавшее декодирование (кадра нет в памяти, тянется с
+     диска) полёт отменяет — рывок через полсекунды после касания читался бы
+     как сбой, а не как переход. */
+  function rvGrowIn() {
+    if (rvReduced()) return;
+    var img = $("refViewImg"), t0 = performance.now(), mine = refViewSeq;
+    var run = function () {
+      if (mine !== refViewSeq || performance.now() - t0 > 140) return;
+      img.animate([{ transform: rvHomeTransform() }, { transform: "none" }],
+        { duration: RV_FLY, easing: "cubic-bezier(.22,1,.36,1)" });
+    };
+    if (img.decode) img.decode().then(run, function () {});
+    else if (img.complete && img.naturalWidth) run();
+  }
   /* Свайп двигает refViewIdx по кругу; список из одного кадра или его
-     отсутствие — просто некуда идти, кадр возвращается на место. */
+     отсутствие — просто некуда идти, кадр возвращается на место.
+     Уходящий кадр снимаем клоном до подмены картинки: новый приезжает с
+     противоположной стороны, и между ними нет пустого экрана — лента, а не
+     мигание. */
   function rvStep(d) {
     if (!refViewList || refViewList.length < 2) { rvReset(true); return; }
+    var rv = $("refView"), img = $("refViewImg"), ghost = null;
+    var v = rv.getBoundingClientRect();
+    if (!rvReduced() && img.src && img.naturalWidth) {
+      var r = img.getBoundingClientRect();
+      ghost = document.createElement("img");
+      ghost.className = "rv-ghost"; ghost.src = img.src;
+      ghost.style.left = (r.left - v.left) + "px"; ghost.style.top = (r.top - v.top) + "px";
+      ghost.style.width = r.width + "px"; ghost.style.height = r.height + "px";
+      rv.appendChild(ghost);
+    }
     refViewIdx = (refViewIdx + d + refViewList.length) % refViewList.length;
     rvShow(refViewList[refViewIdx]);
+    if (!ghost) return;
+    ghost.animate([{ transform: "none", opacity: 1 },
+      { transform: "translateX(" + (-d * v.width * 1.1) + "px)", opacity: .3 }],
+      { duration: RV_FLY, easing: "cubic-bezier(.22,.61,.36,1)", fill: "forwards" })
+      .onfinish = function () { ghost.remove(); };
+    rvX = d * v.width * 1.1; rvApply(false);
+    requestAnimationFrame(function () { rvX = 0; rvApply(true); });
   }
   /* Референсы добавляются в двух местах: в съёмку и в набор жанра.
      Механика одна, различаются только список, папка на Диске и отрисовка. */
@@ -14628,7 +14771,7 @@
       b.addEventListener("pointercancel", release);
       b.addEventListener("click", function () {
         if (longed) { longed = false; return; }
-        if (b.dataset.vi != null) openRefAt(imgList, +b.dataset.vi, mbEditShot);
+        if (b.dataset.vi != null) openRefAt(imgList, +b.dataset.vi, mbEditShot, b);
         else openMbItem(+b.dataset.i);
       });
     });
@@ -15167,7 +15310,7 @@
   }
   function rvApply(anim) {
     var img = $("refViewImg");
-    img.style.transition = anim ? "transform .22s cubic-bezier(.22,.61,.36,1)" : "none";
+    img.style.transition = anim ? "transform " + RV_FLY + "ms cubic-bezier(.22,.61,.36,1)" : "none";
     img.style.transform = "translate(" + rvX + "px," + rvY + "px) scale(" + rvS + ")";
   }
   /* Дальше края кадра не уводим: пустота вместо картинки под пальцем
@@ -15197,12 +15340,27 @@
     rvClamp();
   }
   function rvReset(anim) { rvS = 1; rvX = 0; rvY = 0; rvApply(anim); }
+  /* Закрытие — тот же полёт наоборот. Стартуем от того, где кадр сейчас, а
+     не от центра: свайп вниз уже увёл его с места, и рывок обратно в центр
+     перед уходом в плитку смотрелся бы как отдельное второе движение.
+     Картинку снимаем только по прилёту, и только если за это время не
+     открыли другую, — иначе полёт остался бы без кадра. */
   function rvClose() {
-    refViewSeq++;                       // отменяем ещё летящую подмену кадра
-    $("refView").classList.remove("open");
-    $("refViewImg").src = "";
-    refViewList = null; refViewIdx = -1;
-    rvReset(false);
+    var rv = $("refView"), img = $("refViewImg");
+    var mine = ++refViewSeq;            // отменяем ещё летящую подмену кадра
+    var fly = !rvReduced() && img.src && img.naturalWidth
+      ? [{ transform: getComputedStyle(img).transform }, { transform: rvHomeTransform() }]
+      : null;
+    rv.classList.remove("open");
+    var done = function () {
+      if (mine !== refViewSeq) return;  // просмотрщик успели открыть заново
+      img.src = "";
+      refViewList = null; refViewIdx = -1; rvFrom = null;
+      rvReset(false);
+    };
+    if (!fly) { done(); return; }
+    var a = img.animate(fly, { duration: RV_FLY, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" });
+    a.onfinish = function () { a.cancel(); done(); };
   }
   $("rvClose").addEventListener("click", function (e) { e.stopPropagation(); rvClose(); });
   (function () {
