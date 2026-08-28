@@ -3624,7 +3624,14 @@
   /* Корень настроек — только входы в разделы. Отступ сверху тот же, что был
      у первой главы длинной ленты: список начинается там же, где раньше
      начинался «Профиль», и переезд не сдвигает первую строку под пальцем. */
-  .set-nav { padding-top: 20px; }
+  /* Отступы тут считаны, а не назначены на глаз: с ползунком режима и
+     девятью входами первый экран влезает в телефон с домашним индикатором
+     ровно впритык — последняя строка кончается за несколько точек до
+     таб-бара. Прибавить сюда воздуха значит спрятать «О приложении» под
+     панель (замер: safe-area снизу 34 → строка уходила на 9 точек). */
+  .set-nav { padding-top: 2px; }
+  /* Ряд «Просто/Астро» под шапкой первого экрана; свои 12px у `.seg` есть */
+  .set-mode { padding-top: 4px; }
   .toggle {
     width: 51px; height: 31px; border-radius: 20px; background: var(--rail-2);
     position: relative; transition: background 0.3s ease; flex-shrink: 0; cursor: pointer;
@@ -5680,6 +5687,24 @@
          организации, и возврат у них тот же — «‹ Настройки». Значение
          справа — состояние, а не подпись «что внутри»: в корень вынесено
          то, что приходят проверить (docs: DECISIONS, «Разделы настроек»). -->
+    <!-- Режим стоит на первом экране, а не в «Виде» вместе с темой и лентой
+         (Алексей, вернуть). Он единственный из настроек меняет не оформление,
+         а состав экранов — что вообще показывает прибор, — и переключают его
+         чаще, чем всё остальное здесь вместе взятое. Настройке, ради которой
+         заходят, незачем стоять за входом в раздел. -->
+    <!-- Подписи «Режим» над этим рядом нет намеренно: она стоила бы
+         пятидесяти точек, а девять входов с ней перестают помещаться в экран,
+         и последний уезжает под таб-бар. Слово при этом ничего не добавляет —
+         переключатель стоит прямо под именем приложения, он тут один, и
+         пояснение под ним само называет режим по имени. -->
+    <div class="set-mode">
+      <div class="seg" id="modeSeg">
+        <button class="active" data-mode="simple" data-i18n="set.modeSimple">Просто</button>
+        <button data-mode="pro" data-i18n="set.modePro">Астро</button>
+      </div>
+      <p class="seg-note" data-i18n="set.modeNote">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
+    </div>
+
     <div class="set-nav">
       <div class="item" id="setNavProfile"><span class="k" data-i18n="set.grpProfile">Профиль</span><span class="v" id="setNavProfileV"><span class="go-chev">›</span></span></div>
       <div class="item" id="setNavView"><span class="k" data-i18n="set.grpView">Вид</span><span class="v" id="setNavViewV"><span class="go-chev">›</span></span></div>
@@ -5694,8 +5719,6 @@
       <div class="item" id="setNavLocale"><span class="k" data-i18n="set.grpLocale">Язык и регион</span><span class="v" id="setNavLocaleV"><span class="go-chev">›</span></span></div>
       <div class="item" id="setNavAbout"><span class="k" data-i18n="set.grpAbout">О приложении</span><span class="v"><span class="go-chev">›</span></span></div>
     </div>
-
-    <div class="foot"><span data-i18n="set.tagline">Light Plan · прибор для света</span><br><span id="buildInfo">сборка —</span></div>
   </section>
 
   <!-- ============ РАЗДЕЛЫ НАСТРОЕК ============
@@ -5730,16 +5753,9 @@
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpView">Вид</div>
-    <div class="sec-label" data-i18n="set.mode">Режим</div>
-    <div class="seg" id="modeSeg">
-      <button class="active" data-mode="simple" data-i18n="set.modeSimple">Просто</button>
-      <button data-mode="pro" data-i18n="set.modePro">Астро</button>
-    </div>
-    <p class="seg-note" data-i18n="set.modeNote">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
-
-    <!-- Лента под слайдером — только в астро, поэтому и настройка живёт
-         сразу под переключателем режима, а не отдельным разделом внизу
-         списка (docs: DECISIONS, «Барабан вместо ленты — и лента рядом»).
+    <!-- Лента под слайдером — только в астро (docs: DECISIONS, «Барабан
+         вместо ленты — и лента рядом»). Стояла сразу под переключателем
+         режима, пока тот не уехал на первый экран; связь осталась.
          Строка целиком прячется в «Просто»: самой ленты там нет, и выбор
          вида был бы настройкой без предмета. -->
     <div class="sec-label" id="ribbonLabel" data-i18n="set.ribbon">Лента суток</div>
@@ -5976,9 +5992,24 @@
          же причине: это факт о территории, а не о языке. Она решает, как
          читается местная запись номера (восьмёрка у нас, ноль в Европе) и
          с каким кодом страны считается ID приложения -->
-    <div class="sec-label" data-i18n="set.telCountry">Страна номеров</div>
-    <div class="chips" id="telCcChips" style="padding: 12px 24px 0;"></div>
+    <!-- Двадцать семь стран чипсами занимали шестьсот точек посреди экрана и
+         пугали одним своим видом (Алексей: «люди не поймут, напугаются»).
+         Выбор делается однажды, а стена стояла всегда — значит строка с
+         ответом, а список за ней. Пояснение остаётся здесь: оно говорит, чем
+         этот выбор оборачивается, и ради него открывать список незачем. -->
+    <div class="item" id="telCcRow"><span class="k" data-i18n="set.telCountry">Страна номеров</span><span class="v" id="telCcRowV"><span class="go-chev">›</span></span></div>
     <p class="seg-note" id="telCcNote"></p>
+  </div>
+
+  <!-- Список стран — этажом ниже «Языка и региона», поэтому и возврат в него,
+       а не в корень настроек: закрыв список, человек оказывается там, откуда
+       пришёл. Единственный экран настроек, встающий поверх другого. -->
+  <div class="overlay pad flush" id="setOvTelCc">
+    <button class="back" id="telCcBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="set.grpLocale">Язык и регион</span>
+    </button>
+    <div class="grp-label" data-i18n="set.telCountry">Страна номеров</div>
+    <div class="chips" id="telCcChips" style="padding: 12px 24px 0;"></div>
   </div>
 
   <div class="overlay pad flush" id="setOvAbout">
@@ -6031,6 +6062,11 @@
         <span class="lg-v" data-i18n="lg.sunMoonV">своя модель по алгоритмам NOAA</span></div>
     </div>
     <p class="seg-note" data-i18n="set.privacy">Съёмки, места и настройки хранятся на устройстве. На наш сервер не уходит ничего — его нет.</p>
+
+    <!-- Подпись и штамп сборки стояли под списком разделов, где они держали
+         девяносто точек ради строки, которую читают раз в жизни. Здесь они
+         дома: экран и называется «О приложении». -->
+    <div class="foot"><span data-i18n="set.tagline">Light Plan · прибор для света</span><br><span id="buildInfo">сборка —</span></div>
   </div>
 
   <!-- ============ ТАБ-БАР ============ -->
@@ -21001,10 +21037,18 @@
       return '<button class="chip' + (telCountry === c ? " active" : "") + '" data-cc="' + c + '">'
         + esc(countryName(c) + " +" + TEL_CC[c].cc) + "</button>";
     }).join("");
+    /* Строка в «Языке и регионе» отвечает за весь список: пока она называет
+       выбранную страну, открывать его незачем */
+    if ($("telCcRowV")) {
+      $("telCcRowV").innerHTML = esc(countryName(telCountry) + " +" + TEL_CC[telCountry].cc)
+        + ' <span class="go-chev">\u203a</span>';
+    }
     $("telCcChips").querySelectorAll("button").forEach(function (b) {
       b.addEventListener("click", function () {
         telCountry = b.dataset.cc;
         renderTelCcChips(); saveAll();
+        /* Выбор один, и после него на экране списка делать нечего */
+        if ($("setOvTelCc")) $("setOvTelCc").classList.remove("open");
         /* ID пересчитывается из номера, а не хранится рядом, — значит
            сменившаяся страна меняет его прямо сейчас, и «Профиль» обязан
            это показать, а не ждать следующего открытия */
@@ -21166,7 +21210,7 @@
     { k: "stats", ms: 7800, tab: "s-plan",  sel: ["#planStats", "#statsBtn"] },
     { k: "add",   ms: 6800, tab: "s-plan",  sel: ["#planAdd"] },
     { k: "bin",   ms: 7400, tab: "s-set",   sel: ["#binSetRow"],  ov: "setOvStore" },
-    { k: "mode",  ms: 8400, tab: "s-set",   sel: ["#modeSeg"],    ov: "setOvView", run: tourMode },
+    { k: "mode",  ms: 8400, tab: "s-set",   sel: ["#modeSeg"],    run: tourMode },
     { k: "cloud", ms: 7200, tab: "s-set",   sel: ["#cloudSeg"],   ov: "setOvData" },
     { k: "end",   ms: 0,    tab: "s-set",   sel: ["#tourSetRow"], ov: "setOvAbout" }
   ];
@@ -22409,10 +22453,19 @@
      второй поверх первого означал бы возврат в никуда */
   function setOvOnly(id) {
     SET_NAV.forEach(function (p) { $(p[1]).classList.toggle("open", p[1] === id); });
+    /* Этаж под «Языком и регионом» в список разделов не входит, но остаться
+       висеть поверх закрытого родителя не должен */
+    if ($("setOvTelCc")) $("setOvTelCc").classList.remove("open");
   }
   SET_NAV.forEach(function (p) {
     $(p[0]).addEventListener("click", function () { setOvOnly(p[1]); });
   });
+  /* Список стран — не раздел, а этаж под «Языком и регионом»: открывается
+     поверх него и закрывается в него же, не трогая родителя */
+  if ($("telCcRow")) {
+    $("telCcRow").addEventListener("click", function () { $("setOvTelCc").classList.add("open"); });
+    $("telCcBack").addEventListener("click", function () { $("setOvTelCc").classList.remove("open"); });
+  }
   document.querySelectorAll("[data-set-back]").forEach(function (b) {
     b.addEventListener("click", function () {
       /* Своё имя вводится в «Профиле», и закрытие раздела для поля — то же
@@ -22436,9 +22489,10 @@
       el.innerHTML = esc(String(v)) + chev;
     }
     put("setNavProfileV", myPhone() || LANG.t("set.appIdNone"));
-    put("setNavViewV", LANG.t(proMode ? "set.modePro" : "set.modeSimple") + " \u00b7 "
-      + LANG.t(themePref === "light" ? "set.themeLight"
-             : themePref === "auto"  ? "set.themeAuto" : "set.themeDark"));
+    /* Только тема: режим переехал на первый экран и виден там сам собой,
+       а строка обязана отчитываться о том, что внутри неё */
+    put("setNavViewV", LANG.t(themePref === "light" ? "set.themeLight"
+                            : themePref === "auto"  ? "set.themeAuto" : "set.themeDark"));
     put("setNavShootsV", LANG.t("set.step" + timeStep));
     put("setNavPlacesV", spots.length || LANG.t("card.none"));
     /* «Хранилище — 1» не говорит, чего одна: в имени строки, в отличие от
