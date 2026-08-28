@@ -1406,13 +1406,12 @@
     "set.unitNoteF":    "Температура показывается в градусах Фаренгейта.",
     "set.currency":     "Валюта",
     "set.practice":     "Ведение дел",
-    "set.telCountry":   "Номера без кода",
+    "set.telCountry":   "Мой код страны",
     /* Имя страны в подпись не вставляем: `Intl` отдаёт его в именительном
        падеже, а фраза требует предложного — «в Россия». Своего списка
        склонений заводить незачем, довольно переписать фразу так, чтобы
        падеж не понадобился ни в одном из пяти языков */
-    "set.telCountryNote":   "Ваша страна, а не та, где идёт съёмка: в поездке менять не нужно. Номер, набранный без «+», приложение считает местным для неё, а ID строит с кодом +{cc}. Номер с «+» разбирается сам.",
-    "set.telCountryNoteId": "Ваша страна, а не та, где идёт съёмка: в поездке менять не нужно. Номер, набранный без «+», приложение считает местным для неё. Ваш ID: {id}.",
+    "set.telCountryNote":   "{local} → {intl}. Так приложение достраивает телефоны, записанные без кода страны. Это ваша страна, а не та, где съёмка.",
 
     /* ---- Смена своего номера: копия, вопрос, передача ----
        Номер владельца — это ID, то есть имя, под которым его знают снаружи.
@@ -2782,9 +2781,8 @@
     "set.unitNoteF":    "Temperature is shown in degrees Fahrenheit.",
     "set.currency":     "Currency",
     "set.practice":     "Business practice",
-    "set.telCountry":   "Numbers without a code",
-    "set.telCountryNote":   "Your own country, not the one you are shooting in — travelling changes nothing. A number typed without a “+” is taken as local to it, and your ID is built with the code +{cc}. A number with a “+” is read on its own.",
-    "set.telCountryNoteId": "Your own country, not the one you are shooting in — travelling changes nothing. A number typed without a “+” is taken as local to it. Your ID: {id}.",
+    "set.telCountry":   "My country code",
+    "set.telCountryNote":   "{local} → {intl}. That is how the app completes phone numbers written without a country code. Your own country, not the one you are shooting in.",
 
     "tel.copyD":       "Shoots, contacts, organisations and document links go into a file. Everything comes back from it.",
     "tel.mineD":       "Shoots, contacts and documents stay where they are. The old ID keeps working: whoever saved you under it will still find you.",
