@@ -13292,6 +13292,7 @@
   function addRefFiles(files) {
     uploadToDisk(files, {
       list: refCtx.list || fRefs,
+      board: refCtx.board,
       render: refCtx.render || renderRefs,
       note: refCtx.note,
       dir: refCtx.dir || "refs",
