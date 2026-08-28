@@ -2493,6 +2493,14 @@
   .mb-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .mb-strip-hint { font-size: 10.5px; color: var(--ink-7); line-height: 1.45; padding: 14px 2px 0; }
   .mb-strip-hint[hidden] { display: none; }
+  /* Счётчик над сеткой папки: «12 кадров», а под фильтром — «3 из 12
+     кадров» (макет «Moodboard Shoots»). Та же подпись раздела, что у
+     `.mb-lbl`, только без отбивки сверху — она сидит вплотную к сетке */
+  .mb-grid-lbl {
+    font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--ink-7); font-weight: 600; padding: 8px 2px 0;
+  }
+  .mb-grid-lbl[hidden] { display: none; }
   .mb-tile {
     border: none; background: none; padding: 0; font-family: inherit;
     text-align: left; cursor: pointer; min-width: 0;
@@ -6660,7 +6668,15 @@
       <span class="mb-off-text" id="mbFolderOffText"></span>
       <button type="button" class="rf-tag" id="mbFolderTake" data-i18n="mb.takeWithMe">Взять с собой</button>
     </div>
+    <!-- Поиск внутри папки — по разделу, свободным тегам и адресу ссылки.
+         Поле то же самое (`.field`), что у поиска по всему мудборду этажом
+         выше: два поиска в одном разделе должны выглядеть одним прибором,
+         поэтому лупы из макета здесь нет — её нет и у соседнего поля. -->
+    <div class="field" style="margin-top:10px;">
+      <input type="text" id="mbFolderSearch" data-i18n-ph="mb.folderSearchPh" placeholder="Тег, раздел или заметка"/>
+    </div>
     <div class="rf-tags wrap" id="mbTags" style="padding-left:0;padding-right:0;"></div>
+    <div class="mb-grid-lbl" id="mbGridLabel" hidden></div>
     <div class="ref-grid mb-grid" id="mbGrid" style="margin-top:4px;"></div>
     <div class="ref-add sep">
       <button type="button" class="ref-btn" id="mbAddPhoto">
@@ -14360,11 +14376,24 @@
 
   var mbOpen = null;    // открытая папка: {kind, si|g}
   var mbTag = null;     // выбранный раздел-фильтр внутри папки
+  /* Строка поиска внутри папки. Ищет по разделу, свободным тегам и адресу
+     ссылки — то же, что `mbShotHay` у поиска по всему мудборду, минус
+     названия подборок: внутри папки подборка одна, искать по ней нечего. */
+  function mbFolderHay(r) {
+    var bits = (r.tags || []).slice();
+    if (r.tag) bits.push(tagName(r.tag));
+    if (r.name) bits.push(r.name);
+    if (r.k === "link") bits.push(refHost(r.url), r.url);
+    return bits.join(" ").toLowerCase();
+  }
+  function mbFolderQ() { return ($("mbFolderSearch").value || "").trim().toLowerCase(); }
   function openMbFolder(f) {
     mbOpen = f; mbTag = null;
+    $("mbFolderSearch").value = "";   // новая папка открывается без чужого запроса
     renderMbFolder();
     $("mbFolderOverlay").classList.add("open");
   }
+  $("mbFolderSearch").addEventListener("input", renderMbFolder);
   function renderMbFolder() {
     var f = mbOpen;
     if (!f) return;
@@ -14380,19 +14409,26 @@
     $("mbFolderTake").classList.toggle("on", !!board.take);
     var tags = refTagsOf(g, list);
     if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
-    $("mbTags").innerHTML = tags.map(function (t) {
-      var n = list.filter(function (r) { return r.tag === t; }).length;
-      return '<button type="button" class="rf-tag' + (mbTag === t ? " on" : "") + '" data-t="' + esc(t) + '">'
-        + esc(tagName(t)) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
+    /* «Все» первым чипом — тот же вид рейла, что у полного списка
+       референсов съёмки (`renderRefsFull`): снять фильтр можно и повторным
+       тапом по разделу, но у выбранного состояния должна быть видимая
+       пара, иначе «ничего не выбрано» ничем не показано. */
+    $("mbTags").innerHTML = [""].concat(tags).map(function (t) {
+      var n = t ? list.filter(function (r) { return r.tag === t; }).length : list.length;
+      return '<button type="button" class="rf-tag' + ((mbTag === (t || null)) ? " on" : "") + '" data-t="' + esc(t) + '">'
+        + esc(t ? tagName(t) : LANG.t("refs.all")) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
     }).join("");
     $("mbTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
-        mbTag = mbTag === b.dataset.t ? null : b.dataset.t;
+        var t = b.dataset.t || null;
+        mbTag = (mbTag === t) ? null : t;
         renderMbFolder();
       });
     });
+    var q = mbFolderQ();
     var shown = list.map(function (r, i) { return { r: r, i: i }; })
-      .filter(function (p) { return !mbTag || p.r.tag === mbTag; });
+      .filter(function (p) { return !mbTag || p.r.tag === mbTag; })
+      .filter(function (p) { return !q || mbFolderHay(p.r).indexOf(q) >= 0; });
     /* Сортировка — по решению из макета: вручную (порядок добавления, как
        раньше и был единственным), новые сверху (тот же порядок задом
        наперёд — последний добавленный кадр наверху) или по разделу (тег
@@ -14409,6 +14445,14 @@
     }
     var SORT_LABELS = ["mb.sortManual", "mb.sortNewest", "mb.sortByTag"];
     $("mbSortBtn").textContent = LANG.t("mb.sortLabel", { label: LANG.t(SORT_LABELS[board.sort || 0]) });
+    /* Счётчик над сеткой: сколько всего, а под фильтром — сколько из
+       скольких. У пустой папки прячется: «0 кадров» над строкой «пока
+       пусто — добавьте фото» — это одно и то же сказано дважды. */
+    var filtered = !!(mbTag || q);
+    $("mbGridLabel").hidden = !list.length;
+    $("mbGridLabel").textContent = filtered
+      ? LANG.t("mb.gridSome", { n: shown.length, total: LANG.count("unit.frame", list.length) })
+      : LANG.count("unit.frame", list.length);
     /* Список для просмотрщика — только картинки и в порядке сетки: свайп
        перебирает то, что реально видно на экране, ссылки в нём не участвуют */
     var imgList = shown.filter(function (p) { return p.r.k !== "link"; }).map(function (p) { return p.r; });
@@ -14425,7 +14469,8 @@
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + "</button>";
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
-      + esc(mbTag ? LANG.t("mb.sectionEmpty", { section: tagName(mbTag) }) : LANG.t("mb.empty")) + "</div>";
+      + esc(q ? LANG.t("mb.searchNothing")
+        : (mbTag ? LANG.t("mb.sectionEmpty", { section: tagName(mbTag) }) : LANG.t("mb.empty"))) + "</div>";
     /* Короткий тап открывает кадр во весь экран (макет «Moodboard Shoots»),
        долгий — тот же лист действий, что был раньше: теги, перенос, удаление.
        Тот же порог и разрыв по сдвигу, что у поднятия подборки (mbStartDrag). */
