@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=16"></script>
+<script src="lang.js?v=17"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -2432,6 +2432,18 @@
      подборки. */
   .mb-strip { flex: 0 0 auto; margin: 22px 24px 0; }
   .mb-strip[hidden], .mb-lbl[hidden], .mb-tiles[hidden] { display: none; }
+  /* Своя ручка сворачивания — тот же язык, что у сводки дня (`.day-toggle`):
+     кто убрал плитки с глаз, должен находить ту же ручку на том же месте */
+  .mb-strip-head {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; background: none; border: none; padding: 0 0 10px;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink-3);
+    cursor: pointer;
+  }
+  .mb-strip-head .chev { transition: transform 0.35s ease; font-size: 15px; color: var(--ink-7); }
+  .mb-strip-head.open .chev { transform: rotate(180deg); }
+  .mb-strip-body { max-height: 0; overflow: hidden; transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
+  .mb-strip-body.open { max-height: 900px; }
   .mb-lbl {
     font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
     color: var(--ink-7); font-weight: 600; padding: 0 0 8px;
@@ -5387,10 +5399,16 @@
          (docs/04_ANTI_GOALS.md). Блока нет, пока нет ни одной подборки:
          не завёл — не показываем, как у всего остального. -->
     <div class="mb-strip" id="mbStrip" hidden>
-      <div class="mb-lbl" id="mbStripShootsLbl" data-i18n="nav.shoots">Съёмки</div>
-      <div class="mb-tiles" id="mbStripShoots"></div>
-      <div class="mb-lbl" id="mbStripSetsLbl" data-i18n="mb.sets">Подборки</div>
-      <div class="mb-tiles" id="mbStripSets"></div>
+      <button type="button" class="mb-strip-head" id="mbStripToggle">
+        <span data-i18n="mb.stripTitle">Мудборд</span>
+        <span class="chev">▾</span>
+      </button>
+      <div class="mb-strip-body" id="mbStripBody">
+        <div class="mb-lbl" id="mbStripShootsLbl" data-i18n="nav.shoots">Съёмки</div>
+        <div class="mb-tiles" id="mbStripShoots"></div>
+        <div class="mb-lbl" id="mbStripSetsLbl" data-i18n="mb.sets">Подборки</div>
+        <div class="mb-tiles" id="mbStripSets"></div>
+      </div>
     </div>
     <div id="sessionList" hidden></div>
   </section>
@@ -7977,6 +7995,7 @@
      тот не хочет видеть их и завтра, поэтому состояние переживает перезапуск —
      то же правило, что у свёрнутой сводки карты */
   var dayPanelOpen = !(saved && saved.dayFold);
+  var mbStripOpen = true; // пересчитывается ниже, когда `saved` уже прочитан
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
   /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
      значит, и на одном localStorage. Ключ разводим по каналу, иначе
@@ -8078,6 +8097,7 @@
           return { rec: r, at: t.at, del: t.del };
         }),
         travelMin: travelMin, tempUnit: tempUnit, currency: currency, clock: clockPref, dayFold: !dayPanelOpen,
+        mbStripFold: !mbStripOpen,
         telCountry: telCountry,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
@@ -9190,6 +9210,11 @@
   }
 
   var saved = loadAll();
+  /* Лента мудборда — то же правило свёрнутости, что у сводки дня: кто убрал
+     плитки с глаз, тот убрал их и на следующий день. Читается здесь, а не
+     рядом с `dayPanelOpen`: там `saved` ещё не присвоен (`var` поднимается
+     вверх, значение — нет), и переменная молча получала бы `true` всегда */
+  mbStripOpen = !(saved && saved.mbStripFold);
   /* Снимок худеет ровно один раз — после того, как всё ниже успело из него
      прочитаться и записаться обратно */
   if (migrateThumbs(saved)) setTimeout(function () { saveAll(); renderStorageInfo(); }, 0);
@@ -13962,14 +13987,20 @@
         return px ? dy - dx : dx - dy;
       });
     var setsF = folders.filter(function (f) { return f.kind === "genre"; });
-    $("mbStrip").hidden = !folders.length;
-    if (!folders.length) return;
-    function fill(host, label, list, listId) {
-      var over = list.length - MB_STRIP_MAX;
-      var shown = over > 0 ? list.slice(0, MB_STRIP_MAX - 1) : list;
-      $(label).hidden = !list.length;
-      $(host).hidden = !list.length;
-      var html = shown.map(function (f, i) {
+    /* Блок теперь виден всегда, даже без единой подборки: плитка «+» —
+       единственное, откуда посторонний вообще узнаёт, что мудборд есть
+       (иначе раздел находят только случайно). Сворачивание — как у сводки
+       дня: ручка помнит своё состояние между запусками. */
+    $("mbStrip").hidden = false;
+    $("mbStripToggle").classList.toggle("open", mbStripOpen);
+    $("mbStripBody").classList.toggle("open", mbStripOpen);
+    function fill(host, label, list, listId, prefix) {
+      var slots = MB_STRIP_MAX - (prefix ? 1 : 0);
+      var over = list.length - slots;
+      var shown = over > 0 ? list.slice(0, Math.max(slots - 1, 0)) : list;
+      $(label).hidden = !(list.length || prefix);
+      $(host).hidden = !(list.length || prefix);
+      var html = (prefix || "") + shown.map(function (f, i) {
         return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '">'
           + mbCover(f)
           + '<span class="n">' + esc(mbTitle(f)) + "</span>"
@@ -13981,15 +14012,24 @@
           + '<span class="n">' + esc(LANG.t("mb.all")) + "</span></button>";
       }
       $(host).innerHTML = html;
-      $(host).querySelectorAll(".mb-tile").forEach(function (b) {
+      $(host).querySelectorAll(".mb-tile:not(.add)").forEach(function (b) {
         b.addEventListener("click", function () {
           if (b.dataset.more) { renderMbGallery(); $("mbOverlay").classList.add("open"); return; }
           openMbFolder(shown[+b.dataset.i]);
         });
       });
     }
-    fill("mbStripShoots", "mbStripShootsLbl", shootsF, "s");
-    fill("mbStripSets", "mbStripSetsLbl", setsF, "g");
+    fill("mbStripShoots", "mbStripShootsLbl", shootsF, "s", "");
+    /* Та же учебная рамка, что в общей библиотеке подборок (`renderMbTiles`,
+       15_MOODBOARD, «Пустое состояние — не отдельный экран») — теперь и на
+       ленте съёмок, а не только внутри самого мудборда */
+    var addTile = mbFreeGenres(setsF).length
+      ? '<button type="button" class="mb-tile add" id="mbStripAdd">'
+        + '<span class="mb-cover"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>'
+        + '<span class="n">' + esc(LANG.t("mb.newTitle")) + "</span></button>"
+      : "";
+    fill("mbStripSets", "mbStripSetsLbl", setsF, "g", addTile);
+    if ($("mbStripAdd")) $("mbStripAdd").addEventListener("click", function () { openMbNew(setsF); });
   }
   function renderMbCount() {
     if ($("mbRowN")) $("mbRowN").innerHTML = esc(String(mbFolders().length || LANG.t("card.none"))) + ' <span class="go-chev">›</span>';
@@ -20726,6 +20766,12 @@
     dayPanelOpen = !dayPanelOpen;
     this.classList.toggle("open", dayPanelOpen);
     $("dayPanel").classList.toggle("open", dayPanelOpen);
+    saveAll();
+  });
+  $("mbStripToggle").addEventListener("click", function () {
+    mbStripOpen = !mbStripOpen;
+    this.classList.toggle("open", mbStripOpen);
+    $("mbStripBody").classList.toggle("open", mbStripOpen);
     saveAll();
   });
 
