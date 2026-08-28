@@ -4708,11 +4708,24 @@
   /* ---------- Референсы: картинки и ссылки ---------- */
   .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 12px 15px 0; }
   .ref-grid:empty { display: none; }
+  /* Долгий тап по кадру — наш: он открывает лист с тегами, переносом и
+     удалением. Система на том же жесте показывает поверх своё меню
+     («Поделиться», «Сохранить в Фото», «Скопировать субъект»), и наш лист
+     оказывается под ним — кнопку «Удалить» просто не видно (жалоба Алексея
+     со снимка). `-webkit-touch-callout` это меню и гасит.
+     Перетаскивание кадра тоже системное: сдвинутая пальцем плитка
+     поднималась как файл и падала обратно в ту же подборку через наш приём
+     перетаскивания — кадр раздваивался. Плитке нечего отдавать наружу,
+     поэтому источник перетаскивания выключен целиком. */
   .ref-card {
     position: relative; aspect-ratio: 1/1; border-radius: 10px; corner-shape: squircle; overflow: hidden;
     background: var(--sheet); border: none; padding: 0; cursor: pointer; display: block;
+    -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
   }
-  .ref-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ref-card img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    -webkit-touch-callout: none; -webkit-user-drag: none; user-drag: none;
+  }
   /* Ссылка вместо картинки: домен и хвост адреса, без картинки-заглушки */
   .ref-card.link {
     display: flex; flex-direction: column; gap: 5px;
@@ -9445,10 +9458,15 @@
      собирают строку HTML. Переписывать каждый под промис — восемь мест, где
      можно разойтись. Вместо этого рендеры ставят `<img data-bid>`, а
      наблюдатель подставляет `src`, когда картинка появилась в DOM. */
+  /* `draggable="false"` — вторая половина запрета вытаскивать кадр (первая,
+     `-webkit-user-drag`, стоит в стилях `.ref-card img`). Атрибут понимают
+     все движки, свойство — только WebKit, а раздваивался кадр именно от
+     системного перетаскивания: поднятая пальцем плитка падала обратно в свою
+     же подборку через наш приём файлов. */
   function refImg(r, kind) {
-    if (!r || !r.im) return r && r.thumb ? '<img src="' + r.thumb + '" alt="">' : "";
+    if (!r || !r.im) return r && r.thumb ? '<img src="' + r.thumb + '" alt="" draggable="false">' : "";
     var k = kind || "t", have = blobUrl(r.im, k);
-    return '<img data-bid="' + esc(r.im) + '" data-bk="' + k + '"'
+    return '<img data-bid="' + esc(r.im) + '" data-bk="' + k + '" draggable="false"'
       + (r.w && r.h ? ' width="' + r.w + '" height="' + r.h + '"' : "")
       + (have ? ' src="' + have + '"' : "") + ' alt="">';
   }
