@@ -1113,6 +1113,7 @@
     "mb.remove":       "Убрать из мудборда",
     "mb.moveTo":       "Добавить в подборку «{genre}»",
     "mb.genreSet":     "Жанровая подборка",
+    "mb.setShort":     "заготовка",
     "mb.empty":        "Пока пусто — добавьте фото или ссылку",
     "mb.sectionEmpty": "В разделе «{section}» пока пусто",
 
@@ -2499,6 +2500,7 @@
     "mb.remove":       "Remove from the moodboard",
     "mb.moveTo":       "Add to the “{genre}” set",
     "mb.genreSet":     "Genre set",
+    "mb.setShort":     "template",
     "mb.empty":        "Empty for now — add a photo or a link",
     "mb.sectionEmpty": "“{section}” is still empty",
 

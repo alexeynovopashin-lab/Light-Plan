@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=18"></script>
+<script src="lang.js?v=19"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -2452,7 +2452,11 @@
   .mb-strip-head-t .off:empty, .mb-strip-head-t .sub:empty { display: none; }
   .mb-strip-head .chev { flex: 0 0 auto; transition: transform 0.35s ease; font-size: 16px; color: var(--ink-7); }
   .mb-strip-head.open .chev { transform: rotate(180deg); }
-  .mb-fan { position: relative; flex: 0 0 auto; width: 70px; height: 42px; }
+  /* Ширина веера — не на глаз, а из его же чисел: последний лист сдвинут на
+     46px, сам лист 42px, наклон в 5° добавляет ещё около двух. Меньше — и
+     третья обложка наезжает на слово «Мудборд» (поймано на живых фото:
+     на цветных заглушках столкновение не читалось). */
+  .mb-fan { position: relative; flex: 0 0 auto; width: 90px; height: 42px; }
   .mb-fan-l {
     position: absolute; left: 0; top: 0; width: 42px; height: 42px;
     border-radius: 13px; corner-shape: squircle; overflow: hidden;
@@ -2463,8 +2467,10 @@
   .mb-fan-l.l0 { transform: rotate(-5deg); z-index: 3; }
   .mb-fan-l.l1 { transform: translateX(23px) rotate(0deg); z-index: 2; }
   .mb-fan-l.l2 { transform: translateX(46px) rotate(5deg); z-index: 1; }
+  /* Пустой веер — один квадрат размером с лист, а не растянутая на все
+     90px рамка: показывать нечего, и ширина под три обложки тут ни к чему */
   .mb-fan.empty {
-    display: flex; align-items: center; justify-content: center;
+    width: 42px; display: flex; align-items: center; justify-content: center;
     border: 1px dashed var(--hairline); border-radius: 13px; corner-shape: squircle;
   }
   .mb-fan.empty svg { width: 22px; height: 22px; stroke: var(--ink-5); fill: none; stroke-width: 1.6; }
@@ -4750,8 +4756,13 @@
   /* Панели просмотрщика — счётчик, теги, подсказка (макет «Moodboard
      Shoots»). Прячутся сами, когда нечего показывать: список из одного
      кадра — без счётчика, кадр без тегов — без строки тегов. */
+  /* `top: 0` здесь обязателен, а не для полноты: родитель — флекс с
+     `align-items: center`, и абсолютный блок без своей вертикали встаёт не
+     сверху, а по статическому месту — ровно в середину кадра. Поймано на
+     живом фото: на заглушке полоса посреди картинки читалась как часть
+     самой картинки. */
   .rv-bar {
-    position: absolute; left: 0; right: 0; z-index: 2; display: flex; align-items: center;
+    position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center;
     gap: 10px; padding: 14px 18px; pointer-events: none;
   }
   .rv-bar.bot { top: auto; bottom: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); background: linear-gradient(transparent, rgba(0,0,0,.6)); }
@@ -6675,7 +6686,10 @@
     <div class="field" style="margin-top:10px;">
       <input type="text" id="mbFolderSearch" data-i18n-ph="mb.folderSearchPh" placeholder="Тег, раздел или заметка"/>
     </div>
-    <div class="rf-tags wrap" id="mbTags" style="padding-left:0;padding-right:0;"></div>
+    <!-- Рейл, а не перенос по строкам: разделов у свадьбы семь, и переносом
+         они съедали три строки до первой фотографии. Тот же `.rf-tags` без
+         `wrap`, что у референсов съёмки, и ровно то же, что в макете. -->
+    <div class="rf-tags" id="mbTags" style="padding-left:0;padding-right:0;"></div>
     <div class="mb-grid-lbl" id="mbGridLabel" hidden></div>
     <div class="ref-grid mb-grid" id="mbGrid" style="margin-top:4px;"></div>
     <div class="ref-add sep">
@@ -13846,6 +13860,17 @@
     }
     return LANG.t("mb.genreSet");
   }
+  /* То же самое для плитки — там строка шириной в треть экрана, и полная
+     подпись обрывается на середине даты. Короткий месяц и жанр строчной,
+     как в макете «Moodboard Shoots» («12 сен · свадьба»); год не нужен —
+     подборки живут вокруг ближайших съёмок, а не в архиве. */
+  function mbSubTile(f) {
+    if (f.kind === "session") {
+      var s = sessions[f.si];
+      return dMonShort(s.date) + " · " + genreName(s.type).toLowerCase();
+    }
+    return LANG.t("mb.setShort");
+  }
   /* Папка съёмки грузит файлы в ту же «app:/refs», что и форма съёмки,
      жанровая — в «app:/genre-refs», как «Мои жанры»: своих папок на Диске
      мудборды не заводят, это тот же архив со второй дверью. */
@@ -14065,12 +14090,13 @@
     var sessionsF = folders.filter(function (f) { return f.kind === "session"; })
       .sort(function (a, b) { return sessions[b.si].date - sessions[a.si].date; });
     var genresF = folders.filter(function (f) { return f.kind === "genre"; });
+    /* Счёт кадров здесь тоже не пишем словами — он на обложке кружком,
+       та же причина, что и в ленте (`fill` в renderMbStrip) */
     function tile(f, i, listId) {
-      var n = mbList(f).length;
       return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '" data-bid="' + esc(mbBoard(f).id) + '">'
         + mbTileArt(f)
         + '<span class="n">' + esc(mbTitle(f)) + "</span>"
-        + '<span class="s">' + esc(mbSub(f)) + " · " + esc(LANG.count("unit.item", n)) + "</span></button>";
+        + '<span class="s">' + esc(mbSubTile(f)) + "</span></button>";
     }
     /* Рамка «+» — всегда первая плитка библиотеки заготовок, пока есть
        жанр, для которого подборки ещё нет (15_MOODBOARD, «Пустое
@@ -14290,7 +14316,11 @@
       var sky = ' style="background-image:' + mbSky(b && b.id) + '"';
       return '<span class="mb-fan-l l' + i + '"' + sky + '>' + (pic ? refImg(pic) : "") + "</span>";
     }).join("");
-    return '<span class="mb-fan">' + cells + "</span>";
+    /* Ширина — по числу листьев, а не всегда под три: лист 42px, каждый
+       следующий сдвинут на 23px, плюс пара точек на наклон. Иначе у одной
+       подборки между веером и заголовком зияет полсотни пустых точек. */
+    var w = 42 + 23 * (top.length - 1) + 2;
+    return '<span class="mb-fan" style="width:' + w + 'px">' + cells + "</span>";
   }
   function renderMbStrip() {
     if (!$("mbStrip")) return;
@@ -14337,11 +14367,14 @@
       var shown = over > 0 ? list.slice(0, Math.max(slots - 1, 0)) : list;
       $(label).hidden = !(list.length || prefix);
       $(host).hidden = !(list.length || prefix);
+      /* Вторая строка — дата и жанр, а не счёт кадров: счёт уже стоит
+         кружком на самой обложке, и повторять его словами значило бы
+         сказать одно дважды, потеряв дату (макет «Moodboard Shoots»). */
       var html = (prefix || "") + shown.map(function (f, i) {
         return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '" data-bid="' + esc(mbBoard(f).id) + '">'
           + mbTileArt(f)
           + '<span class="n">' + esc(mbTitle(f)) + "</span>"
-          + '<span class="s">' + esc(LANG.count("unit.item", mbList(f).length)) + "</span></button>";
+          + '<span class="s">' + esc(mbSubTile(f)) + "</span></button>";
       }).join("");
       if (over > 0) {
         html += '<button type="button" class="mb-tile more" data-more="1">'
