@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=20"></script>
+<script src="lang.js?v=21"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -3701,6 +3701,10 @@
      него самого (`.ref-view` — 95): иначе лист уезжает под картинку */
   #askScrim { z-index: 96; }
   #askSheet { z-index: 97; }
+  /* Вопрос «да или нет» ложится поверх всего, откуда его задают, — в том числе
+     поверх листа корзины и листа чужого телефона */
+  #yesScrim { z-index: 98; }
+  #yesSheet { z-index: 99; }
   #mbItemScrim.over-view { z-index: 96; }
   #mbItemSheet.over-view { z-index: 97; }
   /* Опросник вызывается с экрана «Съёмки», но и из карточки тоже должен
@@ -6981,6 +6985,21 @@
     </div>
     <button class="sheet-done" id="askOk" style="margin-top:12px;" data-i18n="ask.ok">Добавить</button>
     <button class="ghost" id="askCancel" style="margin-top:10px;" data-i18n="ask.cancel">Отмена</button>
+  </div>
+
+  <!-- Спросить «да или нет». Та же болезнь, что у листа выше, и незаметнее:
+       `confirm()` в установленном PWA не показывается вовсе и молча возвращает
+       «нет» — кнопка не ломалась, она просто не срабатывала.
+       Заглавие называет действие, подпись — его цену. Согласие набрано терракотой
+       той же кнопкой `danger`, какой удаление названо во всём приложении:
+       латунь здесь означала бы «так и надо». -->
+  <div class="scrim" id="yesScrim"></div>
+  <div class="sheet" id="yesSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" id="yesTitle">—</div>
+    <div class="sheet-sub" id="yesSub">—</div>
+    <button class="danger" id="yesOk">—</button>
+    <button class="ghost" id="yesCancel" style="margin-top:2px;" data-i18n="ask.cancel">Отмена</button>
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
@@ -14272,12 +14291,11 @@
   $("docFileBtn").addEventListener("click", function () { $("docFile").click(); });
   $("docFile").addEventListener("change", function () { addDocFiles(this.files || []); this.value = ""; });
   $("docLink").addEventListener("click", function () {
-    var url = prompt(LANG.t("doc.linkAsk"));
-    if (!url) return;
-    url = url.trim();
-    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-    fDocs.push({ k: "link", url: url, kind: fDocKind || guessDocKind(url) });
-    renderDocs(); renderDocKinds();
+    askUrl(LANG.t("doc.linkAsk"), function (url) {
+      if (!url) return;
+      fDocs.push({ k: "link", url: url, kind: fDocKind || guessDocKind(url) });
+      renderDocs(); renderDocKinds();
+    });
   });
 
   /* ============================================================
@@ -15465,12 +15483,22 @@
     /* Организацию, за которой числятся съёмки, не удаляем молча: ссылка
        в записи осталась бы висеть в пустоту */
     var sh = orgShoots(o.id);
-    if (sh.length && !confirm(LANG.t("org.delAsk", { n: LANG.count("unit.shoot", sh.length) }))) return;
+    if (!sh.length) return delOrg(o);
+    askYes(LANG.t("org.del"),
+           LANG.t("org.delAsk", { n: LANG.count("unit.shoot", sh.length) }),
+           LANG.t("ask.del"), function () { delOrg(o); });
+  });
+  /* Само удаление вынесено из обработчика: с вопросом и без него оно одно и то
+     же, но приходит теперь из двух мест и в разное время. Организация берётся
+     записью, а не номером в списке — пока открыт лист, `orgIdx` уже чужой */
+  function delOrg(o) {
+    var i = orgs.indexOf(o);
+    if (i < 0) return;
     sessions.forEach(function (s) { if (s.orgId === o.id) s.orgId = null; });
     bury(o.id);                       // тень, иначе вернётся при слиянии
-    orgs.splice(orgIdx, 1);
+    orgs.splice(i, 1);
     saveAll(); closeOrgCard();
-  });
+  }
 
   /* Реквизиты: текст живёт в поле, файлы и снимки экрана — на Диске.
      Снимок экрана — картинка, поэтому у него есть миниатюра; договор в PDF
@@ -15556,13 +15584,14 @@
   }
   $("oDocLinkBtn").addEventListener("click", function () {
     if (orgIdx === null) return;
-    var url = prompt(LANG.t("org.docLinkAsk"));
-    if (!url) return;
-    url = url.trim();
-    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-    var o = orgs[orgIdx];
-    (o.docs || (o.docs = [])).push({ k: "link", url: url, kind: oDocKind || guessDocKind(url) });
-    saveAll(); renderOrgDocs();
+    askUrl(LANG.t("org.docLinkAsk"), function (url) {
+      /* Карточку могли закрыть, пока стоял лист: бумага без своей организации
+         легла бы в чужую или в пустоту */
+      if (!url || orgIdx === null) return;
+      var o = orgs[orgIdx];
+      (o.docs || (o.docs = [])).push({ k: "link", url: url, kind: oDocKind || guessDocKind(url) });
+      saveAll(); renderOrgDocs();
+    });
   });
   $("oDocFileBtn").addEventListener("click", function () { $("oDocFile").click(); });
   $("oDocFile").addEventListener("change", function () {
@@ -15654,10 +15683,33 @@
   $("askInput").addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); askClose(this.value); }
   });
+  /* То же самое для «да или нет». `confirm()` в установленном PWA возвращает
+     «нет», ничего не показав: тихий отказ в безопасную сторону, и потому его
+     не замечали дольше, чем упавшую кнопку `prompt()`.
+     Ответ приходит колбэком и только по согласию: закрытие мимо кнопки —
+     это «нет», ровно как было у системного диалога. */
+  var yesDone = null;
+  function askYes(title, sub, ok, cb) {
+    yesDone = cb;
+    $("yesTitle").textContent = title;
+    $("yesSub").textContent = sub;
+    $("yesOk").textContent = ok;
+    $("yesSheet").classList.add("open"); $("yesScrim").classList.add("open");
+  }
+  function yesClose(yes) {
+    $("yesSheet").classList.remove("open"); $("yesScrim").classList.remove("open");
+    var cb = yesDone; yesDone = null;
+    if (cb && yes) cb();
+  }
+  $("yesCancel").addEventListener("click", function () { yesClose(false); });
+  $("yesScrim").addEventListener("click", function () { yesClose(false); });
+  $("yesOk").addEventListener("click", function () { yesClose(true); });
   /* Адрес без схемы — обычный способ его продиктовать («pinterest.com/...»),
-     дописываем сами, как и раньше */
-  function askLink(cb) {
-    askText(LANG.t("ref.linkAsk"), function (url) {
+     дописываем сами, как и раньше. Заглавие приходит снаружи: спрашивают
+     ссылку в трёх разных местах, и референс, договор и бумага организации
+     называются по-разному */
+  function askUrl(title, cb) {
+    askText(title, function (url) {
       if (!url) return cb(null);
       url = url.trim();
       if (!url) return cb(null);
@@ -15665,6 +15717,7 @@
       cb(url);
     });
   }
+  function askLink(cb) { askUrl(LANG.t("ref.linkAsk"), cb); }
   /* ---------- Щипок в просмотрщике ----------
      Референс открывают, чтобы разглядеть: складку платья, направление света,
      положение рук. Раньше кадр просто вписывался в экран и любое касание его
@@ -19078,15 +19131,20 @@
        прямо. Спрашиваем один раз: тихое стирание без вопроса было бы той самой
        ловушкой, от которой корзина и заводилась */
     if (!trashed.length) return;
-    if (!confirm(LANG.t("bin.wipeAsk", { n: LANG.count("unit.shoot", trashed.length) }))) return;
-    /* От окончательно удалённой остаётся тень: ключ и время. Иначе на
-       соседнем устройстве запись жива, и первое же слияние вернёт её —
-       корзину пришлось бы чистить на каждом устройстве по отдельности,
-       и всё равно не помогло бы (docs/13_MULTI_DEVICE.md) */
-    trashed.forEach(function (t) { bury(t.rec && t.rec.id); dropSessionBoard(t.rec); });
-    trashed = [];
-    saveAll();
-    renderBin(); renderBinBtn();
+    askYes(LANG.t("bin.clear"),
+           LANG.t("bin.wipeAsk", { n: LANG.count("unit.shoot", trashed.length) }),
+           LANG.t("ask.wipe"), function () {
+      /* Корзину могли опустошить возвратом, пока стоял вопрос */
+      if (!trashed.length) return;
+      /* От окончательно удалённой остаётся тень: ключ и время. Иначе на
+         соседнем устройстве запись жива, и первое же слияние вернёт её —
+         корзину пришлось бы чистить на каждом устройстве по отдельности,
+         и всё равно не помогло бы (docs/13_MULTI_DEVICE.md) */
+      trashed.forEach(function (t) { bury(t.rec && t.rec.id); dropSessionBoard(t.rec); });
+      trashed = [];
+      saveAll();
+      renderBin(); renderBinBtn();
+    });
   });
 
   /* Встреча → съёмка. Порождение, а не переименование: если бы запись просто
@@ -22684,8 +22742,7 @@
   });
   $("telBack").addEventListener("click", function () { telStep("Who"); });
   $("telWipe").addEventListener("click", function () {
-    if (!confirm(LANG.t("tel.wipeAsk"))) return;
-    wipeAll();
+    askYes(LANG.t("tel.wipe"), LANG.t("tel.wipeAsk"), LANG.t("ask.wipe"), wipeAll);
   });
   $("telScrim").addEventListener("click", telCancel);
   function renderProfile() {
