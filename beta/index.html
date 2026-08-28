@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=19"></script>
+<script src="lang.js?v=20"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -3654,6 +3654,12 @@
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
   #gScrim, #locScrim, #kScrim, #mbNewScrim, #mbAddScrim, #mbItemScrim, #mbCoverScrim { z-index: 84; }
   #gSheet, #locSheet, #kSheet, #mbNewSheet, #mbAddSheet, #mbItemSheet, #mbCoverSheet { z-index: 86; }
+  /* Спрос строки и лист кадра, вызванный из просмотрщика, ложатся поверх
+     него самого (`.ref-view` — 95): иначе лист уезжает под картинку */
+  #askScrim { z-index: 96; }
+  #askSheet { z-index: 97; }
+  #mbItemScrim.over-view { z-index: 96; }
+  #mbItemSheet.over-view { z-index: 97; }
   /* Опросник вызывается с экрана «Съёмки», но и из карточки тоже должен
      ложиться поверх — держим его на том же уровне, что листы формы */
   #qScrim { z-index: 84; }
@@ -4774,7 +4780,12 @@
   .rv-counter { margin-left: auto; color: rgba(255,255,255,.82); font-size: 12.5px; font-variant-numeric: tabular-nums; }
   .rv-tags { display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; }
   .rv-tags:empty { display: none; }
+  /* Строка тегов нажимается только там, где тег есть куда положить */
+  .rv-tags.act { pointer-events: auto; cursor: pointer; }
   .rv-tag { padding: 6px 11px; border-radius: 999px; background: rgba(255,255,255,.14); color: #fff; font-size: 11.5px; }
+  .rv-tags.act:active .rv-tag { background: rgba(255,255,255,.28); }
+  /* «+ тег» у кадра без тегов — пунктиром: это приглашение, а не тег */
+  .rv-tag.add { background: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.34); color: rgba(255,255,255,.82); }
   .rv-hint { margin-left: auto; color: rgba(255,255,255,.6); font-size: 11px; white-space: nowrap; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
@@ -6741,6 +6752,24 @@
       <button type="button" class="row sep" id="mbItemMove" hidden>—</button>
     </div>
     <button class="danger" id="mbItemRemove" style="margin-top:14px;" data-i18n="mb.remove">Убрать из мудборда</button>
+  </div>
+
+  <!-- Спросить строку. Свой лист вместо `prompt()`: в PWA, запущенном с
+       рабочего стола, WebKit системный диалог не показывает вовсе — кнопка
+       «Ссылка» молча ничего не делала. Ещё и клавиатура тут своя: адресу
+       нужна раскладка url, а не текст с автозаглавной. -->
+  <div class="scrim" id="askScrim"></div>
+  <div class="sheet" id="askSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" id="askTitle">—</div>
+    <!-- `type="text"`, а не `url`: стили полей в файле написаны на
+         `input[type="text"]`, и с `url` поле осталось бы браузерным.
+         Клавиатуру адреса задаёт `inputmode`, тип для этого не нужен. -->
+    <div class="field" style="margin-top:16px;">
+      <input type="text" id="askInput" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"/>
+    </div>
+    <button class="sheet-done" id="askOk" style="margin-top:12px;" data-i18n="ask.ok">Добавить</button>
+    <button class="ghost" id="askCancel" style="margin-top:10px;" data-i18n="ask.cancel">Отмена</button>
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ (место) ============ -->
@@ -13398,14 +13427,17 @@
      Список и позиция в нём — для свайпа между кадрами (пусто у одиночных
      вызовов вне мудборда: свайпу просто некуда деть кадр, и он гасится). */
   var refViewSeq = 0;
-  var refViewList = null, refViewIdx = -1;
+  var refViewList = null, refViewIdx = -1, refViewEdit = null;
   function openRef(r) { openRefAt(r ? [r] : [], 0); }
-  function openRefAt(list, i) {
+  /* `edit` — что делать по касанию строки тегов внизу. Есть только там, где
+     кадру есть куда положить тег (папка мудборда); в остальных местах строка
+     остаётся подписью, как была. */
+  function openRefAt(list, i, edit) {
     var r = list && list[i];
     if (!r) return;
     if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
     if (!r.im && !r.path) return;
-    refViewList = list; refViewIdx = i;
+    refViewList = list; refViewIdx = i; refViewEdit = edit || null;
     $("refView").classList.add("open");
     rvShow(r);
   }
@@ -13432,8 +13464,29 @@
     var n = refViewList ? refViewList.length : 1;
     $("rvCounter").textContent = n > 1 ? (refViewIdx + 1) + " / " + n : "";
     var tags = (r.tag ? [tagName(r.tag)] : []).concat(r.tags || []);
-    $("rvTags").innerHTML = tags.map(function (t) { return '<span class="rv-tag">' + esc(t) + "</span>"; }).join("");
+    /* Теги — не подпись, а дверь: раньше разделы и теги правились только
+       долгим тапом по плитке, а долгий тап ничем не показан, и найти его
+       было неоткуда (жалоба Алексея: «не понимаю как добавлять теги»).
+       Теперь строка внизу просмотрщика нажимается, а у кадра без тегов
+       на её месте стоит «+ тег» — иначе нажимать было бы не на что. */
+    var ed = !!refViewEdit;
+    var chips = tags.map(function (t) {
+      return '<span class="rv-tag' + (ed ? " act" : "") + '">' + esc(t) + "</span>";
+    });
+    if (ed && !tags.length) chips.push('<span class="rv-tag act add">' + esc(LANG.t("mb.addTag")) + "</span>");
+    $("rvTags").innerHTML = chips.join("");
+    $("rvTags").classList.toggle("act", ed);
     $("rvHint").textContent = n > 1 ? LANG.t("mb.viewerHint") : "";
+  }
+  $("rvTags").addEventListener("click", function () {
+    if (refViewEdit) refViewEdit(refViewList[refViewIdx]);
+  });
+  /* Тег поставили из листа поверх кадра — строка внизу должна сказать это
+     сразу, не дожидаясь закрытия просмотрщика */
+  function rvRefresh() {
+    if (!$("refView").classList.contains("open")) return;
+    var r = refViewList && refViewList[refViewIdx];
+    if (r) renderRvBars(r);
   }
   /* Свайп двигает refViewIdx по кругу; список из одного кадра или его
      отсутствие — просто некуда идти, кадр возвращается на место. */
@@ -13473,17 +13526,35 @@
      o.noDiskText — свои слова, когда Диск не подключён */
   function uploadToDisk(files, o) {
     var list = o.list, board = o.board, render = o.render || function () {}, note = o.note;
-    if (!cloudOn()) {
+    /* ---------- Устройство первым, облако сверху ----------
+       Раньше без подключённого Диска не добавлялось ничего: функция уходила
+       по первому же `if`. Для документа это честно — своей копии у него нет,
+       кроме как на Диске. Для картинки — нет: экранная копия и превью и так
+       ложатся в IndexedDB (`refShots`), ради этого весь слой блобов и
+       заводился, и мудборд по замыслу работает без сети. Поэтому картинка с
+       копией добавляется всегда, а Диск получает её следом и только если он
+       есть (docs/15_MOODBOARD, «Офлайн»; DECISIONS, «Мост к нативному
+       облаку»: облако — шлюз выгрузки, а не единственное хранилище). */
+    var off = !cloudOn();
+    if (off && !o.thumbs) {
       $(note).hidden = false;
       $(note).textContent = o.noDiskText
         || LANG.t(o.imagesOnly ? "ref.noDiskPhoto" : "ref.noDiskDoc");
       return;
     }
     var dir = o.dir;
-    var dirReady = cloudEnsureDir(dir);          // папку создаём один раз перед загрузкой
+    var dirReady = off ? null : cloudEnsureDir(dir);   // папку создаём один раз перед загрузкой
+    var toldLocal = false;
     Array.prototype.slice.call(files).forEach(function (file) {
       var isImg = /^image\//.test(file.type);
       if (o.imagesOnly && !isImg) return;
+      /* Файл без своей копии и без Диска положить некуда — пропускаем его
+         молча-но-со-словом, а не роняем всю пачку */
+      if (off && !(isImg && o.thumbs)) {
+        $(note).hidden = false;
+        $(note).textContent = LANG.t("ref.noDiskDoc");
+        return;
+      }
       var rec = { k: isImg && o.thumbs ? "img" : "doc", path: null, pending: true,
         name: file.name, size: file.size };
       var meta = typeof o.meta === "function" ? o.meta(file) : o.meta;
@@ -13499,15 +13570,31 @@
       ready
         .then(function (shot) {
           if (shot) { rec.im = shot.im; rec.w = shot.w; rec.h = shot.h; render(); }
+          if (off) return null;                  // Диска нет — кадр остаётся на устройстве
           return dirReady.then(function () { return cloudUpload(dir + "/" + stamp + ext, file); })
             // Подпапка не далась — кладём рядом с копией, лишь бы файл не потерялся
             .catch(function () { return cloudUpload(o.dir + "-" + stamp + ext, file); });
         })
         .then(function (path) {
-          rec.path = path; rec.pending = false; render();
+          if (path) rec.path = path;
+          rec.pending = false; render();
           if (o.save !== false) saveAll();
+          if (off && !toldLocal) {
+            toldLocal = true;
+            $(note).hidden = false;
+            $(note).textContent = LANG.t("ref.localOnly");
+          }
         })
         .catch(function (e) {
+          /* Копия на устройстве уже есть — Диск ей не хозяин. Запись
+             оставляем и говорим про Диск, а не выбрасываем снятое. */
+          if (rec.im) {
+            rec.pending = false; render();
+            if (o.save !== false) saveAll();
+            $(note).hidden = false;
+            $(note).textContent = LANG.t("ref.localKept");
+            return;
+          }
           if (board) shotDrop(rec.id); else list.splice(list.indexOf(rec), 1);
           render();
           $(note).hidden = false;
@@ -13589,10 +13676,11 @@
     setup(); addRefFiles(files);
   });
   $("refLink").addEventListener("click", function () {
-    var url = askLink();
-    if (!url) return;
-    fRefs.push({ k: "link", url: url });
-    renderRefs();
+    askLink(function (url) {
+      if (!url) return;
+      fRefs.push({ k: "link", url: url });
+      renderRefs();
+    });
   });
   /* ---------- Документы заказа ----------
      Механика та же, что у референсов: файл уезжает на Диск фотографа, в записи
@@ -14527,7 +14615,7 @@
       b.addEventListener("pointercancel", release);
       b.addEventListener("click", function () {
         if (longed) { longed = false; return; }
-        if (b.dataset.vi != null) openRefAt(imgList, +b.dataset.vi);
+        if (b.dataset.vi != null) openRefAt(imgList, +b.dataset.vi, mbEditShot);
         else openMbItem(+b.dataset.i);
       });
     });
@@ -14549,10 +14637,9 @@
     if (mbOpen) { boardPrune(mbBoard(mbOpen)); saveAll(); }
     renderMbGallery(); renderMbCount(); renderMbStrip();   // счётчики папки могли поменяться
   });
-  /* Загрузка фото не требует Диска только формально — без него uploadToDisk
-     покажет «подключите Яндекс.Диск» и ничего не добавит (тот же экран, что
-     и в форме съёмки). Ссылки работают всегда, это не зависит от Диска —
-     локальное хранение фото придёт позже отдельной задачей. */
+  /* Фото кладётся на устройство сразу и без Диска (`uploadToDisk`, «Устройство
+     первым, облако сверху»); подключённый Диск получает копию следом. Ссылки
+     от Диска не зависели никогда. */
   $("mbAddPhoto").addEventListener("click", function () {
     if (!mbOpen) return;
     useRefBoard(mbBoard(mbOpen), renderMbFolder, "mbNote", mbDir(mbOpen), mbTag);
@@ -14560,10 +14647,11 @@
   });
   $("mbAddLink").addEventListener("click", function () {
     if (!mbOpen) return;
-    var url = askLink();
-    if (!url) return;
-    boardPut(mbBoard(mbOpen), shotAdd({ k: "link", url: url, tag: mbTag }));
-    saveAll(); renderMbFolder();
+    askLink(function (url) {
+      if (!url || !mbOpen) return;
+      boardPut(mbBoard(mbOpen), shotAdd({ k: "link", url: url, tag: mbTag }));
+      saveAll(); renderMbFolder();
+    });
   });
   $("mbFolderTake").addEventListener("click", function () {
     if (!mbOpen) return;
@@ -14615,11 +14703,21 @@
   $("mbCoverScrim").addEventListener("click", closeMbCover);
 
   var mbItem = null;   // индекс материала в открытом листе действия
-  function openMbItem(i) {
+  function openMbItem(i, overView) {
     if (!mbOpen) return;
     mbItem = i;
+    /* Класс ставим до отрисовки: она по нему решает, прятать ли строку
+       «Смотреть фото» — кадр и так уже открыт под листом */
+    $("mbItemSheet").classList.toggle("over-view", !!overView);
+    $("mbItemScrim").classList.toggle("over-view", !!overView);
     renderMbItemSheet();
     $("mbItemSheet").classList.add("open"); $("mbItemScrim").classList.add("open");
+  }
+  /* Тег кадру прямо из просмотрщика — строка тегов внизу его и зовёт */
+  function mbEditShot(r) {
+    if (!mbOpen || !r) return;
+    var i = mbList(mbOpen).indexOf(r);
+    if (i >= 0) openMbItem(i, true);
   }
   function closeMbItem() {
     $("mbItemSheet").classList.remove("open"); $("mbItemScrim").classList.remove("open");
@@ -14636,7 +14734,7 @@
     $("mbItemTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
         r.tag = r.tag === b.dataset.t ? null : b.dataset.t;
-        saveAll(); renderMbFolder(); closeMbItem();
+        saveAll(); renderMbFolder(); closeMbItem(); rvRefresh();
       });
     });
     /* Свободные теги — тап по чипу убирает его: то же прикосновение, что и
@@ -14650,9 +14748,12 @@
       b.addEventListener("click", function () {
         var i = (r.tags || []).indexOf(b.dataset.t);
         if (i >= 0) r.tags.splice(i, 1);
-        saveAll(); renderMbItemSheet();
+        saveAll(); renderMbItemSheet(); renderMbFolder(); rvRefresh();
       });
     });
+    /* Кадр уже открыт во весь экран — предлагать «Смотреть фото» из листа,
+       который лежит поверх него, незачем */
+    $("mbItemOpen").hidden = $("mbItemSheet").classList.contains("over-view");
     $("mbItemOpen").textContent = LANG.t(r.k === "link" ? "mb.openLink" : "mb.viewPhoto");
     var mv = $("mbItemMove");
     if (f.kind === "session") {
@@ -14672,7 +14773,7 @@
     if (!r) return;
     r.tags = r.tags || [];
     if (r.tags.indexOf(v) < 0) r.tags.push(v);
-    saveAll(); renderMbItemSheet();
+    saveAll(); renderMbItemSheet(); renderMbFolder(); rvRefresh();
   });
   $("mbItemOpen").addEventListener("click", function () {
     if (!mbOpen) return;
@@ -14708,6 +14809,7 @@
     boardPrune(b);
     saveAll();
     closeMbItem();
+    rvClose();                 // кадра больше нет — смотреть во весь экран нечего
     renderMbFolder(); renderMbGallery();
   });
 
@@ -14989,12 +15091,39 @@
     });
   }
 
-  function askLink() {
-    var url = prompt(LANG.t("ref.linkAsk"));
-    if (!url) return null;
-    url = url.trim();
-    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-    return url;
+  /* Спрос строки листом, а не `prompt()`. Системный диалог в установленном
+     PWA не показывается — кнопка «Ссылка» молчала, и это выглядело как
+     сломанная кнопка, а не как отказ браузера. Ответ приходит колбэком:
+     лист живёт до касания, синхронно вернуть значение неоткуда. */
+  var askDone = null;
+  function askText(title, cb) {
+    askDone = cb;
+    $("askTitle").textContent = title;
+    $("askInput").value = "";
+    $("askSheet").classList.add("open"); $("askScrim").classList.add("open");
+    setTimeout(function () { try { $("askInput").focus(); } catch (e) {} }, 60);
+  }
+  function askClose(val) {
+    $("askSheet").classList.remove("open"); $("askScrim").classList.remove("open");
+    var cb = askDone; askDone = null;
+    if (cb) cb(val);
+  }
+  $("askCancel").addEventListener("click", function () { askClose(null); });
+  $("askScrim").addEventListener("click", function () { askClose(null); });
+  $("askOk").addEventListener("click", function () { askClose($("askInput").value); });
+  $("askInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); askClose(this.value); }
+  });
+  /* Адрес без схемы — обычный способ его продиктовать («pinterest.com/...»),
+     дописываем сами, как и раньше */
+  function askLink(cb) {
+    askText(LANG.t("ref.linkAsk"), function (url) {
+      if (!url) return cb(null);
+      url = url.trim();
+      if (!url) return cb(null);
+      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+      cb(url);
+    });
   }
   /* ---------- Щипок в просмотрщике ----------
      Референс открывают, чтобы разглядеть: складку платья, направление света,
@@ -18708,11 +18837,12 @@
     $("refFile").click();
   });
   $("gRefLink").addEventListener("click", function () {
-    var url = askLink();
-    if (!url) return;
-    var id = shotAdd({ k: "link", url: url, tag: gRefTag });
-    boardPut(boardTpl(shootType, true), id);
-    saveAll(); renderGenreRefs();
+    askLink(function (url) {
+      if (!url) return;
+      var id = shotAdd({ k: "link", url: url, tag: gRefTag });
+      boardPut(boardTpl(shootType, true), id);
+      saveAll(); renderGenreRefs();
+    });
   });
 
   /* Пакеты с ценой > 0 — рабочие; недозаполненные строки живут только в редакторе */
