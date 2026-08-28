@@ -2491,6 +2491,8 @@
   }
   .mb-tiles + .mb-lbl { padding-top: 18px; }
   .mb-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .mb-strip-hint { font-size: 10.5px; color: var(--ink-7); line-height: 1.45; padding: 14px 2px 0; }
+  .mb-strip-hint[hidden] { display: none; }
   .mb-tile {
     border: none; background: none; padding: 0; font-family: inherit;
     text-align: left; cursor: pointer; min-width: 0;
@@ -2543,6 +2545,32 @@
   }
   .mb-tile.add .mb-cover svg { width: 26px; height: 26px; stroke: var(--ink-5); }
   .mb-tile.add .n { color: var(--ink-5); font-weight: 500; }
+  /* Слияние подборок вспышкой на цели — тот же приём, что у остальной
+     обратной связи без слов в этом файле (макет «Moodboard Shoots») */
+  @keyframes mbMergeFlash { 0% { transform: scale(1); } 40% { transform: scale(1.09); } 100% { transform: scale(1); } }
+  /* Обложка летит клоном из плитки в шапку папки при открытии — тот же
+     макет. Клон синтетический (одна картинка), а не список DOM-узла
+     мозаики: мозаика из четырёх ячеек не может морфнуть в один квадрат
+     без явного уродства на середине полёта. */
+  .mb-fly {
+    position: fixed; z-index: 9999; pointer-events: none;
+    background-size: cover; background-position: center; background-color: var(--sheet-2);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  }
+  /* Сортировка и выбор обложки — текстовые кнопки под сеткой, тот же
+     акцентный цвет, что у ссылок в мудборде */
+  .mb-tool-row { display: flex; gap: 16px; padding: 14px 15px 4px; }
+  .mb-tool-btn { background: none; border: none; padding: 0; font-family: inherit; font-size: 12.5px; color: var(--brass-soft); cursor: pointer; }
+  /* Лист выбора обложки — тот же `.ref-card`, что и сетка мудборда, плюс
+     галочка на выбранном (тот же приём, что у плюса найденного кадра) и
+     плитка «Автоматически» без картинки */
+  .ref-card .check {
+    position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--brass); border: none; color: var(--sheet); cursor: default;
+    font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .ref-card.auto { display: flex; align-items: center; justify-content: center; background: var(--sheet-4); color: var(--ink-5); }
+  .ref-card.auto svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
   .day-states { flex: 0 0 auto; margin: 6px 24px 0; display: flex; flex-direction: column; gap: 6px; }
   .day-states .st {
@@ -3610,8 +3638,8 @@
   .sheet::-webkit-scrollbar { display: none; }
   .sheet.open { transform: none; }
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
-  #gScrim, #locScrim, #kScrim, #mbNewScrim, #mbAddScrim, #mbItemScrim { z-index: 84; }
-  #gSheet, #locSheet, #kSheet, #mbNewSheet, #mbAddSheet, #mbItemSheet { z-index: 86; }
+  #gScrim, #locScrim, #kScrim, #mbNewScrim, #mbAddScrim, #mbItemScrim, #mbCoverScrim { z-index: 84; }
+  #gSheet, #locSheet, #kSheet, #mbNewSheet, #mbAddSheet, #mbItemSheet, #mbCoverSheet { z-index: 86; }
   /* Опросник вызывается с экрана «Съёмки», но и из карточки тоже должен
      ложиться поверх — держим его на том же уровне, что листы формы */
   #qScrim { z-index: 84; }
@@ -5490,6 +5518,7 @@
         <div class="mb-tiles" id="mbStripShoots"></div>
         <div class="mb-lbl" id="mbStripSetsLbl" data-i18n="mb.sets">Подборки</div>
         <div class="mb-tiles" id="mbStripSets"></div>
+        <div class="mb-strip-hint" id="mbStripHint" data-i18n="mb.mergeHint" hidden>Долгий тап поднимает подборку · перетащите одну на другую, чтобы объединить</div>
       </div>
     </div>
     <div id="sessionList" hidden></div>
@@ -6644,12 +6673,28 @@
       </button>
     </div>
     <div class="ref-note" id="mbNote" hidden></div>
+    <!-- Сортировка кадров и ручной выбор обложки — макет «Moodboard Shoots» -->
+    <div class="mb-tool-row">
+      <button type="button" class="mb-tool-btn" id="mbSortBtn"></button>
+      <button type="button" class="mb-tool-btn" id="mbCoverBtn" data-i18n="mb.pickCover">Выбрать обложку</button>
+    </div>
+  </div>
+
+  <!-- Обложка подборки — ручной выбор перекрывает автоматический (первый
+       кадр или мозаика) на плитке и в шапке папки; поле `board.cover` уже
+       читалось рендером, здесь только интерфейс, которого не хватало. -->
+  <div class="scrim" id="mbCoverScrim"></div>
+  <div class="sheet" id="mbCoverSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="mb.coverTitle">Обложка подборки</div>
+    <div class="sheet-sub" data-i18n="mb.coverSub">Показывается на плитке и в шапке папки</div>
+    <div class="ref-grid" id="mbCoverGrid" style="margin-top:14px;"></div>
   </div>
 
   <!-- Действие с материалом: переложить в раздел, перенести в жанровую
-       подборку (только у съёмочных материалов), открыть, убрать. Один тап,
-       не тап-и-надейся: свайпов и долгих нажатий в приложении нигде нет,
-       заводить их тут ради одного экрана значило бы учить новому жесту. -->
+       подборку (только у съёмочных материалов), открыть, убрать. Раньше
+       открывался любым тапом; теперь — долгим (короткий уходит в
+       просмотрщик), тем же порогом, что и у поднятия подборки для слияния. -->
   <div class="scrim" id="mbItemScrim"></div>
   <div class="sheet" id="mbItemSheet">
     <div class="grip"></div>
@@ -13889,6 +13934,116 @@
       b.addEventListener("click", function (e) { e.stopPropagation(); openMbAdd(b.dataset.id); });
     });
   }
+  /* ---------- Слияние подборок долгим тапом и перетаскиванием ----------
+     Макет «Moodboard Shoots»: долгий тап поднимает плитку, перетаскивание
+     на другую сливает кадры в цель и убирает источник. Один обработчик на
+     плитку — короткий тап без сдвига идёт в `onOpen` (открыть папку),
+     долгий с переносом на другую плитку — в `mbMergeBoards`. Порог 420мс и
+     разрыв 8px — те же, что у долгого тапа по кадру внутри папки. */
+  function mbMergeBoards(fromId, toId) {
+    if (fromId === toId) return;
+    var from = boardById(fromId), to = boardById(toId);
+    if (!from || !to) return;
+    from.items.slice().forEach(function (id) { boardPut(to, id); });
+    var i = boards.indexOf(from);
+    if (i >= 0) boards.splice(i, 1);
+    saveAll();
+    renderMbStrip(); renderMbCount();
+    if ($("mbOverlay").classList.contains("open")) renderMbGallery();
+    var art = document.querySelector('[data-bid="' + toId + '"] .mb-tile-art');
+    if (art) {
+      art.style.animation = "mbMergeFlash .42s cubic-bezier(.3,1.4,.4,1)";
+      setTimeout(function () { art.style.animation = ""; }, 460);
+    }
+  }
+  function mbStartDrag(btn, boardId, onOpen) {
+    var timer = null, lifted = false, consumed = false, sx = 0, sy = 0, target = null;
+    btn.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      sx = e.clientX; sy = e.clientY; lifted = false; target = null;
+      timer = setTimeout(function () {
+        lifted = true; consumed = true;
+        try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
+        btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
+        btn.style.transform = "scale(1.1)";
+        btn.style.zIndex = "40"; btn.style.position = "relative";
+      }, 420);
+    });
+    btn.addEventListener("pointermove", function (e) {
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!lifted) { if (Math.abs(dx) + Math.abs(dy) > 8) clearTimeout(timer); return; }
+      btn.style.transition = "none";
+      btn.style.transform = "translate(" + dx + "px," + dy + "px) scale(1.1)";
+      /* Скрываем себя на миг: иначе `elementFromPoint` каждый раз находит
+         поднятую плитку, а не то, что под ней */
+      btn.style.pointerEvents = "none";
+      var hit = document.elementFromPoint(e.clientX, e.clientY);
+      btn.style.pointerEvents = "";
+      var t = hit && hit.closest ? hit.closest("[data-bid]") : null;
+      var nid = (t && t.dataset.bid !== boardId) ? t.dataset.bid : null;
+      if (nid !== target) {
+        if (target) { var old = document.querySelector('[data-bid="' + target + '"]'); if (old) old.style.transform = "none"; }
+        target = nid;
+        if (target) {
+          var nt = document.querySelector('[data-bid="' + target + '"]');
+          if (nt) { nt.style.transition = "transform .2s ease"; nt.style.transform = "scale(1.07)"; }
+          try { navigator.vibrate && navigator.vibrate(8); } catch (err) {}
+        }
+      }
+    });
+    function release() {
+      clearTimeout(timer);
+      if (!lifted) return;
+      if (target) {
+        var nt = document.querySelector('[data-bid="' + target + '"]');
+        if (nt) nt.style.transform = "none";
+        mbMergeBoards(boardId, target);
+        try { navigator.vibrate && navigator.vibrate(24); } catch (err) {}
+      }
+      btn.style.transition = "transform .42s cubic-bezier(.2,1.3,.35,1)";
+      btn.style.transform = "none"; btn.style.zIndex = ""; btn.style.position = "";
+      target = null;
+    }
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointercancel", release);
+    btn.addEventListener("click", function (e) {
+      if (consumed) { consumed = false; e.preventDefault(); e.stopPropagation(); return; }
+      onOpen();
+    });
+  }
+  /* ---------- Обложка летит в шапку папки ----------
+     Клон — синтетический прямоугольник с одной картинкой (той же, что
+     покажет шапка), а не список DOM-узла обложки: обложка бывает мозаикой
+     из четырёх кадров, и морфинг мозаики в один квадрат 58×58 на середине
+     полёта выглядел бы поломкой, а не полётом. Гасится по
+     `prefers-reduced-motion`, как остальные декоративные переходы в файле. */
+  function openBoardWithFly(f, btn) {
+    var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var coverEl = !reduced && btn.querySelector(".mb-cover");
+    var board = mbBoard(f);
+    var heroPic = (board.cover && shotById(board.cover)) || mbList(f).filter(function (r) { return r.im; })[0];
+    var url = heroPic && heroPic.im && blobUrl(heroPic.im, "t");
+    if (!coverEl || !url) { openMbFolder(f); return; }
+    var r = coverEl.getBoundingClientRect();
+    var clone = document.createElement("div");
+    clone.className = "mb-fly";
+    clone.style.left = r.left + "px"; clone.style.top = r.top + "px";
+    clone.style.width = r.width + "px"; clone.style.height = r.height + "px";
+    clone.style.borderRadius = "12px";
+    clone.style.backgroundImage = 'url("' + url + '")';
+    document.body.appendChild(clone);
+    openMbFolder(f);
+    requestAnimationFrame(function () {
+      var hero = $("mbFolderHero");
+      var h = hero ? hero.getBoundingClientRect() : { left: r.left, top: r.top, width: r.width, height: r.height };
+      clone.animate([
+        { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", borderRadius: "12px" },
+        { left: h.left + "px", top: h.top + "px", width: h.width + "px", height: h.height + "px", borderRadius: "14px" }
+      ], { duration: 430, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" }).onfinish = function () {
+        clone.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: "forwards" }).onfinish = function () { clone.remove(); };
+      };
+    });
+  }
   function renderMbTiles() {
     var folders = mbFolders();
     var sessionsF = folders.filter(function (f) { return f.kind === "session"; })
@@ -13896,7 +14051,7 @@
     var genresF = folders.filter(function (f) { return f.kind === "genre"; });
     function tile(f, i, listId) {
       var n = mbList(f).length;
-      return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '">'
+      return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '" data-bid="' + esc(mbBoard(f).id) + '">'
         + mbTileArt(f)
         + '<span class="n">' + esc(mbTitle(f)) + "</span>"
         + '<span class="s">' + esc(mbSub(f)) + " · " + esc(LANG.count("unit.item", n)) + "</span></button>";
@@ -13917,12 +14072,11 @@
     html += (addTile || genresF.length)
       ? '<div class="mb-tiles">' + addTile + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("") + "</div>"
       : '<div class="org-empty">' + esc(LANG.t("mb.noGenreSets")) + "</div>";
+    if (folders.length > 1) html += '<div class="mb-strip-hint">' + esc(LANG.t("mb.mergeHint")) + "</div>";
     $("mbGallery").innerHTML = html;
     $("mbGallery").querySelectorAll(".mb-tile:not(.add)").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var list = b.dataset.list === "s" ? sessionsF : genresF;
-        openMbFolder(list[+b.dataset.i]);
-      });
+      var list = b.dataset.list === "s" ? sessionsF : genresF;
+      mbStartDrag(b, b.dataset.bid, function () { openBoardWithFly(list[+b.dataset.i], b); });
     });
     if ($("mbAddBoard")) $("mbAddBoard").addEventListener("click", function () { openMbNew(genresF); });
   }
@@ -14168,7 +14322,7 @@
       $(label).hidden = !(list.length || prefix);
       $(host).hidden = !(list.length || prefix);
       var html = (prefix || "") + shown.map(function (f, i) {
-        return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '">'
+        return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '" data-bid="' + esc(mbBoard(f).id) + '">'
           + mbTileArt(f)
           + '<span class="n">' + esc(mbTitle(f)) + "</span>"
           + '<span class="s">' + esc(LANG.count("unit.item", mbList(f).length)) + "</span></button>";
@@ -14180,10 +14334,11 @@
       }
       $(host).innerHTML = html;
       $(host).querySelectorAll(".mb-tile:not(.add)").forEach(function (b) {
-        b.addEventListener("click", function () {
-          if (b.dataset.more) { renderMbGallery(); $("mbOverlay").classList.add("open"); return; }
-          openMbFolder(shown[+b.dataset.i]);
-        });
+        if (b.dataset.more) {
+          b.addEventListener("click", function () { renderMbGallery(); $("mbOverlay").classList.add("open"); });
+          return;
+        }
+        mbStartDrag(b, b.dataset.bid, function () { openBoardWithFly(shown[+b.dataset.i], b); });
       });
     }
     fill("mbStripShoots", "mbStripShootsLbl", shootsF, "s", "");
@@ -14197,6 +14352,7 @@
       : "";
     fill("mbStripSets", "mbStripSetsLbl", setsF, "g", addTile);
     if ($("mbStripAdd")) $("mbStripAdd").addEventListener("click", function () { openMbNew(setsF); });
+    $("mbStripHint").hidden = folders.length < 2;   // сливать нечего, пока подборка одна
   }
   function renderMbCount() {
     if ($("mbRowN")) $("mbRowN").innerHTML = esc(String(mbFolders().length || LANG.t("card.none"))) + ' <span class="go-chev">›</span>';
@@ -14237,6 +14393,22 @@
     });
     var shown = list.map(function (r, i) { return { r: r, i: i }; })
       .filter(function (p) { return !mbTag || p.r.tag === mbTag; });
+    /* Сортировка — по решению из макета: вручную (порядок добавления, как
+       раньше и был единственным), новые сверху (тот же порядок задом
+       наперёд — последний добавленный кадр наверху) или по разделу (тег
+       без раздела уходит в конец, а не путается с первым по алфавиту). */
+    if (board.sort === 1) shown = shown.slice().reverse();
+    else if (board.sort === 2) {
+      shown = shown.slice().sort(function (a, b) {
+        var ta = a.r.tag ? tagName(a.r.tag) : null, tb = b.r.tag ? tagName(b.r.tag) : null;
+        if (ta === tb) return 0;
+        if (ta == null) return 1;
+        if (tb == null) return -1;
+        return ta < tb ? -1 : 1;
+      });
+    }
+    var SORT_LABELS = ["mb.sortManual", "mb.sortNewest", "mb.sortByTag"];
+    $("mbSortBtn").textContent = LANG.t("mb.sortLabel", { label: LANG.t(SORT_LABELS[board.sort || 0]) });
     /* Список для просмотрщика — только картинки и в порядке сетки: свайп
        перебирает то, что реально видно на экране, ссылки в нём не участвуют */
     var imgList = shown.filter(function (p) { return p.r.k !== "link"; }).map(function (p) { return p.r; });
@@ -14322,6 +14494,47 @@
     saveAll(); renderMbFolder();
     if (b.take) mbOfflineRun();   // пометили — закачка начинается сразу, не завтра
   });
+  $("mbSortBtn").addEventListener("click", function () {
+    if (!mbOpen) return;
+    var b = mbBoard(mbOpen);
+    b.sort = ((b.sort || 0) + 1) % 3;
+    saveAll(); renderMbFolder();
+  });
+
+  /* ---------- Обложка подборки ----------
+     Поле `board.cover` уже читалось рендером (плитка, шапка папки) —
+     не хватало только способа его назначить. Лист — тот же `.ref-card`,
+     что и сетка мудборда, плюс плитка «Автоматически» сбрасывает выбор. */
+  function renderMbCoverSheet() {
+    if (!mbOpen) return;
+    var b = mbBoard(mbOpen), pics = mbList(mbOpen).filter(function (r) { return r.im; });
+    var autoTile = '<button type="button" class="ref-card auto" data-cover="">'
+      + '<svg viewBox="0 0 24 24"><path d="M4 16l4.5-4.5 3 3L18 8l2 2"/><circle cx="8" cy="8" r="1.6"/></svg>'
+      + (!b.cover ? '<span class="check">✓</span>' : "") + "</button>";
+    $("mbCoverGrid").innerHTML = autoTile + pics.map(function (r) {
+      return '<button type="button" class="ref-card" data-cover="' + esc(r.id) + '">'
+        + refImg(r) + (b.cover === r.id ? '<span class="check">✓</span>' : "") + "</button>";
+    }).join("");
+    blobHydrate($("mbCoverGrid"));
+    $("mbCoverGrid").querySelectorAll(".ref-card").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        b.cover = btn.dataset.cover || null;
+        saveAll();
+        closeMbCover();
+        renderMbFolder(); renderMbStrip();
+        if ($("mbOverlay").classList.contains("open")) renderMbGallery();
+      });
+    });
+  }
+  function closeMbCover() {
+    $("mbCoverSheet").classList.remove("open"); $("mbCoverScrim").classList.remove("open");
+  }
+  $("mbCoverBtn").addEventListener("click", function () {
+    if (!mbOpen) return;
+    renderMbCoverSheet();
+    $("mbCoverSheet").classList.add("open"); $("mbCoverScrim").classList.add("open");
+  });
+  $("mbCoverScrim").addEventListener("click", closeMbCover);
 
   var mbItem = null;   // индекс материала в открытом листе действия
   function openMbItem(i) {
@@ -15872,6 +16085,10 @@
     var b = { id: newId(), kind: "tpl", genre: g, items: [], name: null, cover: null };
     boards.push(b);
     return b;
+  }
+  function boardById(id) {
+    for (var i = 0; i < boards.length; i++) if (boards[i].id === id) return boards[i];
+    return null;
   }
   function sessionShots(s) { return boardShots(boardOfSession(s, false)); }
   /* Форма отдаёт свои кадры обратно: то, что в ней осталось, ложится в фонд
