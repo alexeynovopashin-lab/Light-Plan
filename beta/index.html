@@ -2065,6 +2065,25 @@
   .map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 460; }
   .map-pin i { display: block; width: 13px; height: 13px; border-radius: 50%;
     background: var(--knob); box-shadow: 0 0 0 2px var(--pin-ring), 0 0 0 3.5px var(--ink-a40); }
+  /* На светлом холсте те же два кольца выворачивались в чёрную обводку: и
+     `--pin-ring`, и `--ink-a40` там тёмные, и белая головка получала двойной
+     кант — самое чёрное пятно на всей карте (Алексей: «спорит с общим
+     визуалом»). Инверсия тут и не работала по существу: на тёмном холсте это
+     не обводка, а гнездо — провал под светлой головкой, — а провал в светлой
+     теме рисуется не чернилами, а тенью под предметом (блик сверху, тень
+     снизу). Отсюда и замена: тёплая кромка по краю головки плюс мягкая тень
+     под ней, ровно так же, как уже сделаны кружки управления на этой же
+     карте (`.map-here`). */
+  /* Тень в два слоя одним и тем же `--glass-cast`: контактная под самой
+     головкой и рассеянная вокруг. У светлой темы этот токен нарочно слабый
+     (0.16), и на 13 пикселях одного слоя не хватало — предмет не отрывался
+     от карты. Два слоя дают у контакта 1−0.84² ≈ 0.29 и не заводят в файл
+     ещё одну плотность тени под один элемент. */
+  :root[data-theme="light"] .map-pin i {
+    box-shadow: 0 0 0 1px var(--knob-edge),
+                0 1px 2px var(--glass-cast),
+                0 2px 6px var(--glass-cast);
+  }
   /* «Моё место» — единственный элемент управления, тихий кружок */
   .map-here {
     position: absolute; right: 12px; bottom: 12px; z-index: 470;
@@ -11138,6 +11157,25 @@
         run.pts.push(xy);
       }
       flush();
+
+      /* Ниже −18° шкала кончается: радиус упирается в предел (`altR`), и
+         рисовать высоту дальше нечем. Но солнце оттуда никуда не делось, а
+         ночью прибор открывают ровно с этим вопросом — когда и с какой
+         стороны рассветёт. Поэтому подгоризонтный ход остаётся нитью по
+         самому пределу пути: про высоту она молчит честно (стрелка уперлась
+         в край шкалы), про азимут говорит правду. Пунктир взят тот же, что у
+         подгоризонтной нити Млечного Пути: мысль одна и та же — «оно там, но
+         смотреть пока не на что», — и знак у неё должен быть один. */
+      var ghD = "", ghBreak = true;
+      for (var gx = 0; gx <= 1440; gx += 8) {
+        if (elevAt(gx) >= PATH_MIN_ALT) { ghBreak = true; continue; }
+        var ghP = A(azAt(gx), PATH_MAX_R);
+        ghD += (ghBreak ? "M" : " L") + ghP[0].toFixed(1) + " " + ghP[1].toFixed(1);
+        ghBreak = false;
+      }
+      if (ghD) svg.appendChild(el("path", { d: ghD, fill: "none",
+        stroke: "rgba(124,156,196,0.45)", "stroke-width": 1.2,
+        "stroke-dasharray": "1 4", "stroke-linecap": "round" }));
     })();
 
     /* Часовые засечки превращают дугу в циферблат: «в котором часу солнце
@@ -11305,17 +11343,33 @@
       }
     })();
 
-    // Луч и солнце — на радиусе своей высоты
-    if (mapLayers.sun && e > PATH_MIN_ALT) {
+    /* Луч и солнце — на радиусе своей высоты. Глубже −18° радиус упирается в
+       предел шкалы, и вместо светила там встаёт его призрак: кольцо без
+       заливки, без луча и без гало. Заливка, луч и гало означают свет, и
+       солнцу, до которого ещё три часа, они не полагаются; но и убирать его с
+       холста совсем было неправильно — ночью прибор переставал отвечать на
+       единственный ночной вопрос: где солнце сейчас и скоро ли вынырнет.
+       Кольцо вместо диска — тот же приём, которым отличено ядро Млечного Пути
+       от залитых светил: «это место, а не тело». Призрак стоит на
+       подгоризонтной нити и по ней же доезжает до начала утренней дуги. */
+    if (mapLayers.sun) {
+      var deepSun = e <= PATH_MIN_ALT;
       var sp = A(az, altR(e)), sc = e > 0 ? "#E2A44C" : "#7C9CC4";
-      svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
-        stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
-      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 11, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
-      /* Обводка светила отделяет диск от полотна и потому равна цвету полотна,
-         а не чёрному: цвет холста был вписан числом, и на светлой карте солнце
-         получало жирный тёмный контур. Луна рядом уже брала его у `mapInk` —
-         разошлись две строки об одном и том же. */
-      svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: mapInk(), "stroke-width": 2 }));
+      if (deepSun) {
+        svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: "none",
+          stroke: "#7C9CC4", "stroke-opacity": 0.6, "stroke-width": 1.6 }));
+        svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 1.5,
+          fill: "#7C9CC4", "fill-opacity": 0.6 }));
+      } else {
+        svg.appendChild(el("line", { x1: MPX, y1: MPY, x2: sp[0], y2: sp[1],
+          stroke: e > 0 ? "rgba(226,164,76,0.55)" : "rgba(124,156,196,0.45)", "stroke-width": 1.5 }));
+        svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 11, fill: e > 0 ? "rgba(226,164,76,0.18)" : "rgba(124,156,196,0.15)" }));
+        /* Обводка светила отделяет диск от полотна и потому равна цвету полотна,
+           а не чёрному: цвет холста был вписан числом, и на светлой карте солнце
+           получало жирный тёмный контур. Луна рядом уже брала его у `mapInk` —
+           разошлись две строки об одном и том же. */
+        svg.appendChild(el("circle", { cx: sp[0], cy: sp[1], r: 5.5, fill: sc, stroke: mapInk(), "stroke-width": 2 }));
+      }
       // Тап по солнцу — тот же приём, что у луны (docs: DECISIONS)
       var sunHit = el("circle", { cx: sp[0], cy: sp[1], r: 16, fill: "transparent" });
       sunHit.setAttribute("pointer-events", "all");
@@ -11339,7 +11393,7 @@
       if (!mapChipMode) return;
       var chips = [];
       if (mapChipMode === "drag") {
-        if (mapLayers.sun && e > PATH_MIN_ALT) chips.push({ az: az, alt: null, color: chipInk("sun") });
+        if (mapLayers.sun) chips.push({ az: az, alt: null, color: chipInk("sun") });   // призрак — тоже отметка на холсте
         if (mapLayers.moon && mNow.alt > -3) chips.push({ az: mNow.az, alt: null, color: chipInk("moon") });
       } else if (mapChipMode === "tap-sun") {
         chips.push({ az: mapTapAz, alt: mapTapAlt, color: chipInk("sun") });
