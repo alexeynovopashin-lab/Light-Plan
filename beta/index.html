@@ -4736,6 +4736,12 @@
   #mbGrid.mb-grid .ref-card { width: 100%; aspect-ratio: auto; break-inside: avoid; margin: 0 0 8px; }
   #mbGrid.mb-grid .ref-card img { height: auto; object-fit: initial; }
   #mbGrid.mb-grid .ref-card.link { aspect-ratio: 1/1; }
+  /* Строка «пока пусто» — поперёк обеих колонок, а не текстом внутри одной.
+     У сетки-масонри раскладка многоколоночная, и текст в ней течёт по
+     колонкам как в газете: фраза разрывалась пополам и уезжала вверх второй
+     половиной. Прежнее `grid-column: 1 / -1` тут бессильно — оно про grid,
+     а здесь `column-count`. */
+  #mbGrid.mb-grid .rt-empty { column-span: all; }
   .ref-add { display: flex; gap: 8px; padding: 12px 15px; }
   .ref-btn {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -4877,6 +4883,8 @@
   .mb-folder-head-t { flex: 1 1 auto; min-width: 0; }
   .mb-folder-head-t .form-title, .mb-folder-head-t .form-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mb-off-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  /* `display` в CSS перебивает атрибут `hidden` — гасим явно (грабли из DECISIONS) */
+  .mb-off-row[hidden] { display: none; }
   .mb-off-row .mb-off-text { font-size: 12.5px; color: var(--ink-4); }
   .mb-off-row #mbFolderTake { margin-left: auto; }
   .form-sub .t { color: var(--brass); font-variant-numeric: tabular-nums; }
@@ -14526,7 +14534,12 @@
     $("mbFolderHero").style.backgroundImage = mbSky(board.id);
     $("mbFolderHero").innerHTML = heroPic ? refImg(heroPic) : "";
     blobHydrate($("mbFolderHero"));
-    $("mbFolderOffText").textContent = boardOfflineLabel(board);
+    /* Пустой подборке нечего брать с собой, и сказать про офлайн ей тоже
+       нечего — строка целиком уходит, а не висит одной кнопкой у правого
+       края (так она и выглядела на пустом экране) */
+    var offLabel = boardOfflineLabel(board);
+    $("mbFolderOffRow").hidden = !offLabel;
+    $("mbFolderOffText").textContent = offLabel;
     $("mbFolderTake").classList.toggle("on", !!board.take);
     var tags = refTagsOf(g, list);
     if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
