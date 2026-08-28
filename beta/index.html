@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=22"></script>
+<script src="lang.js?v=23"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -18385,8 +18385,18 @@
       /* Съёмка без точек — это отрезок: когда начинается и сколько идёт */
       if (phase === "during") {
         $("cdDayNow").textContent = LANG.t("day.running");
-        $("cdDayLeft").innerHTML = LANG.t("day.leftUntil", {
-          left: "<b>" + esc(durLabel(Math.max(0, endMin - nowMin2))) + "</b>", t: esc(fmt(endMin)) });
+        /* Запас `TAIL_MIN` держит фазу «во время» три часа после записанного
+           конца — банкет всегда длиннее, чем записано. Но отсчёт, зажатый
+           нулём, все эти часы показывал «осталось 0 мин · до 19:47»: строка
+           обещала обратный отсчёт, а стояла замороженной. Прибор,
+           застрявший на нуле, читается как сломанный, а не как «идёт сверх
+           плана». Перевалили за конец — говорим, насколько, и по чьей
+           записи. Событие с точками маршрута этой болезни не знало: там
+           текст другой («дальше», «последняя точка дня»). */
+        var left = endMin - nowMin2;
+        $("cdDayLeft").innerHTML = left >= 0
+          ? LANG.t("day.leftUntil", { left: "<b>" + esc(durLabel(left)) + "</b>", t: esc(fmt(endMin)) })
+          : LANG.t("day.overBy", { over: "<b>" + esc(durLabel(-left)) + "</b>", t: esc(fmt(endMin)) });
       } else if (phase === "after") {
         $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : "day.shootDone");
         $("cdDayLeft").textContent = range(s.min, endMin) + " · " + durLabel(dur);

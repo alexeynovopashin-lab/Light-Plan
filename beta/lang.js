@@ -679,6 +679,7 @@
        на глазах, — поэтому {left} приходит уже размеченным */
     "day.running":    "Идёт съёмка",
     "day.leftUntil":  "осталось {left} · до {t}",
+    "day.overBy":     "сверх плана {over} · по записи до {t}",
     "day.meetDone":   "Встреча прошла",
     "day.shootDone":  "Съёмка отработана",
     "day.startsIn":   "через {in}",
@@ -2109,6 +2110,7 @@
 
     "day.running":    "Shoot in progress",
     "day.leftUntil":  "{left} left · until {t}",
+    "day.overBy":     "{over} past plan · written until {t}",
     "day.meetDone":   "Meeting is over",
     "day.shootDone":  "Shoot is done",
     "day.startsIn":   "in {in}",
