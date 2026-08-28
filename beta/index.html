@@ -3629,9 +3629,6 @@
      ровно впритык — последняя строка кончается за несколько точек до
      таб-бара. Прибавить сюда воздуха значит спрятать «О приложении» под
      панель (замер: safe-area снизу 34 → строка уходила на 9 точек). */
-  /* Значение этой строки — самое длинное в настройках («Соединенные Штаты
-     +1»), и переносить его нельзя: шеврон уезжал отдельной строкой */
-  #telCcRow .v { white-space: nowrap; }
   .set-nav { padding-top: 2px; }
   /* Ряд «Просто/Астро» под шапкой первого экрана; свои 12px у `.seg` есть */
   .set-mode { padding-top: 4px; }
@@ -5739,7 +5736,20 @@
          клиентов, организации и съёмки, но не знало, чьё оно само. Планировщику
          одиночке этого хватало, узлу Event OS — уже нет (DECISIONS, «ID») -->
     <div class="sec-label" data-i18n="set.myPhone">Мой телефон</div>
-    <input class="set-in" type="tel" id="myTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
+    <input class="set-in" type="tel" id="myTel" placeholder="Телефон"/>
+    <!-- Вопрос на месте вместо настройки. Страну номеров держали отдельным
+         выбором в «Языке и регионе», и она не понималась ни с какого
+         названия: три редакции имени, проверка на живом человеке — мимо все
+         три (docs: DECISIONS). Настройка снята совсем. Страну теперь знает
+         сам номер: он и есть ответ, надёжнее любой догадки о географии, а
+         часовой пояс отвечает только пока номера нет. Спрашиваем ровно там,
+         где догадка не сложилась, — под полем, в котором номер и набран, и
+         только когда ID по нему не считается: молчаливый отказ «нужен
+         мобильный» был бы тупиком, выйти из которого стало нечем. -->
+    <div id="ccAsk" hidden>
+      <p class="seg-note" id="ccAskNote"></p>
+      <div class="chips" id="ccAskChips" style="padding: 4px 24px 0;"></div>
+    </div>
     <div class="item" id="appIdRow" style="margin-top:12px"><span class="k" data-i18n="set.appId">ID приложения</span><span class="v" id="appIdV">—</span></div>
     <p class="seg-note" data-i18n="set.appIdNote">Отдельный код пришлось бы помнить и куда-то записывать. Номер телефона уже всемирный, уже уникальный и уже ваш — он и работает адресом: по нему организатор события свяжет ваши съёмки со своим планом.</p>
     <!-- Прежние ID. Смена номера не должна рвать связи, которые по нему уже
@@ -5990,38 +6000,6 @@
     <div class="sec-label" data-i18n="set.practice">Ведение дел</div>
     <div class="chips" id="practiceChips" style="padding: 12px 24px 0;"></div>
     <p class="seg-note" id="practiceNote"></p>
-
-    <!-- Страна номеров — четвёртая ось, рядом с валютой и практикой по той
-         же причине: это факт о территории, а не о языке. Она решает, как
-         читается местная запись номера (восьмёрка у нас, ноль в Европе) и
-         с каким кодом страны считается ID приложения -->
-    <!-- Двадцать семь стран чипсами занимали шестьсот точек посреди экрана и
-         пугали одним своим видом (Алексей: «люди не поймут, напугаются»).
-         Выбор делается однажды, а стена стояла всегда — значит строка с
-         ответом, а список за ней. Пояснение остаётся здесь: оно говорит, чем
-         этот выбор оборачивается, и ради него открывать список незачем.
-         Имя менялось трижды и трижды не работало: «Страна номеров» читалось
-         как «страна, где я сейчас», «Номера без кода» — как непонятно что.
-         Проверка живым человеком (Алексей показал строку жене и спросил, для
-         чего это) не прошла ни разу. Объясняет в итоге не имя, а пример под
-         списком — «8 926 123-45-67 → +7 926 123-45-67»; имени осталось не
-         объяснить, а не мешать. «Мой код страны» ещё цеплялся за чтение «мой
-         код» + «страны», и та же проверка это поймала — жена переспросила:
-         «может, код моей страны?». Её редакция и стоит: слово «моей» приросло
-         к стране, а не к коду, и разночтения не осталось. -->
-    <div class="item" id="telCcRow"><span class="k" data-i18n="set.telCountry">Код моей страны</span><span class="v" id="telCcRowV"><span class="go-chev">›</span></span></div>
-    <p class="seg-note" id="telCcNote"></p>
-  </div>
-
-  <!-- Список стран — этажом ниже «Языка и региона», поэтому и возврат в него,
-       а не в корень настроек: закрыв список, человек оказывается там, откуда
-       пришёл. Единственный экран настроек, встающий поверх другого. -->
-  <div class="overlay pad flush" id="setOvTelCc">
-    <button class="back" id="telCcBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="set.grpLocale">Язык и регион</span>
-    </button>
-    <div class="grp-label" data-i18n="set.telCountry">Код моей страны</div>
-    <div class="chips" id="telCcChips" style="padding: 12px 24px 0;"></div>
   </div>
 
   <div class="overlay pad flush" id="setOvAbout">
@@ -10179,7 +10157,7 @@
     me.telAt = new Date().toISOString();
     saveAll();
     if ($("appIdWas")) renderProfile();
-    if ($("telCcChips")) renderTelCcChips();
+    if ($("ccAsk")) renderCcAsk();
   }
 
   /* ---------- Спрашивать ли перед сменой ----------
@@ -16429,6 +16407,47 @@
   }
   var telCountry = (saved && TEL_CC[saved.telCountry]) ? saved.telCountry : guessTelCountry();
   function telSpec() { return TEL_CC[telCountry] || TEL_CC.RU; }
+  /* ---------- Страна по самому номеру ----------
+     Тот же разбор, что у ввода, только прогнанный по всем странам разом.
+     Годным считается ответ, при котором номер выходит мобильным: только
+     такой даёт ID, ради которого страна и нужна. Городской номер сюда не
+     попадает — и правильно, по нему страну не назвать: десять цифр
+     московского городского так же годятся мексиканскому мобильному. */
+  function telCcFit(raw) {
+    var str = String(raw || ""), d = telDigits(str), out = [];
+    if (!d) return out;
+    var plus = /^\s*\+/.test(str) || d.slice(0, 2) === "00";
+    if (d.slice(0, 2) === "00") d = d.slice(2);
+    Object.keys(TEL_CC).forEach(function (c) {
+      var sp = TEL_CC[c], n;
+      if (plus) {
+        if (d.slice(0, sp.cc.length) !== sp.cc) return;
+        n = d.slice(sp.cc.length);
+      } else if (sp.trunk && d.length > sp.trunk.length && d.slice(0, sp.trunk.length) === sp.trunk) {
+        n = d.slice(sp.trunk.length);
+      } else if (d.slice(0, sp.cc.length) === sp.cc && telNsnOk(sp, d.slice(sp.cc.length))) {
+        n = d.slice(sp.cc.length);
+      } else {
+        n = d;
+      }
+      if (telNsnOk(sp, n) && sp.mob.test(n)) out.push(c);
+    });
+    return out;
+  }
+  /* Страна идёт за номером молча, только когда ответ один. «Один» считается
+     по коду, а не по стране: США с Канадой и так неразличимы по номеру —
+     один код, одна длина, один образец мобильного, — и спрашивать, которая
+     из двух, значило бы спрашивать ни о чём. Где кодов несколько, молчать
+     нельзя: там вопрос на месте. */
+  function telCcFollow() {
+    var fit = telCcFit(myPhone());
+    if (!fit.length || fit.indexOf(telCountry) >= 0) return false;
+    var ccs = {};
+    fit.forEach(function (c) { ccs[TEL_CC[c].cc] = 1; });
+    if (Object.keys(ccs).length !== 1) return false;
+    telCountry = fit[0];
+    return true;
+  }
   /* Похож ли остаток на местный национальный номер. Это и есть весь замок:
      без проверки длины чужой номер, записанный без плюса, получил бы сверху
      ещё и наш код страны и разошёлся бы сам с собой. */
@@ -21046,50 +21065,49 @@
     } catch (e) {}
     return code;
   }
-  /* Порядок — по имени в текущем языке: список стран глазами читают
-     по алфавиту, а «самые нужные сверху» у каждого свои */
-  function renderTelCcChips() {
-    var list = Object.keys(TEL_CC).sort(function (a, b) {
-      return countryName(a).localeCompare(countryName(b), LANG.code);
-    });
-    $("telCcChips").innerHTML = list.map(function (c) {
-      return '<button class="chip' + (telCountry === c ? " active" : "") + '" data-cc="' + c + '">'
+  /* ---------- Вопрос на месте ----------
+     Показывается под полем своего номера и только тогда, когда номер уже
+     набран, ID по нему не считается, а какой-то стране он всё же годится.
+     Всё вместе значит одно: страна выбрана не та, и приложение знает, какой
+     она может быть. Молчать здесь нельзя — «нужен мобильный» без выхода был
+     бы тупиком, а настройки, куда за этим ходили, больше нет.
+
+     Ответ материализуется в самом номере: выбрали страну — номер
+     переписывается международной записью, `+7 701 123-45-67`. Дальше он
+     разбирается сам собой и ни от какой настройки не зависит; это и есть
+     причина, по которой вопрос задаётся один раз, а не при каждом запуске. */
+  function renderCcAsk() {
+    var box = $("ccAsk"); if (!box) return;
+    var raw = myPhone(), fit = raw ? telCcFit(raw) : [];
+    var show = !!raw && !appId(raw) && fit.length > 0;
+    box.hidden = !show;
+    if (!show) return;
+    $("ccAskNote").textContent = LANG.t("tel.ccAsk");
+    $("ccAskChips").innerHTML = fit.map(function (c) {
+      return '<button class="chip" data-cc="' + c + '">'
         + esc(countryName(c) + " +" + TEL_CC[c].cc) + "</button>";
     }).join("");
-    /* Строка в «Языке и регионе» отвечает за весь список: пока она называет
-       выбранную страну, открывать его незачем */
-    if ($("telCcRowV")) {
-      $("telCcRowV").innerHTML = esc(countryName(telCountry) + " +" + TEL_CC[telCountry].cc)
-        + ' <span class="go-chev">\u203a</span>';
-    }
-    $("telCcChips").querySelectorAll("button").forEach(function (b) {
+    $("ccAskChips").querySelectorAll("button").forEach(function (b) {
       b.addEventListener("click", function () {
         telCountry = b.dataset.cc;
-        renderTelCcChips(); saveAll();
-        /* Выбор один, и после него на экране списка делать нечего */
-        if ($("setOvTelCc")) $("setOvTelCc").classList.remove("open");
-        /* ID пересчитывается из номера, а не хранится рядом, — значит
-           сменившаяся страна меняет его прямо сейчас, и «Профиль» обязан
-           это показать, а не ждать следующего открытия */
-        if ($("appIdV")) renderProfile();
+        var full = telFull(myPhone());
+        if (full) {
+          me.phone = formatTel("+" + full);
+          if ($("myTel")) $("myTel").value = me.phone;
+        }
+        telPlaceholder(); saveAll(); renderProfile(); renderCcAsk();
       });
     });
-    /* Правило словами не читалось ни в одной редакции: «страна номеров»,
-       «номера без кода» — Алексей показал строку жене, и ни одна её догадка
-       не попала. Показываем не правило, а его работу: слева номер, как его
-       записывают дома, справа — во что приложение его превратит. Обе
-       половины считает `formatTel`, тот самый, что причёсывает настоящий
-       ввод, поэтому пример не расходится с делом. */
+  }
+  /* Образец прямо в поле — всё, что осталось от настройки страны на виду.
+     Он показывает, в каком виде приложение ждёт местный номер, и тем самым
+     называет страну, ни о чём не спрашивая. Место у него дешёвое: пустое
+     поле всё равно чем-то заполнено, и «Телефон» там говорило меньше. */
+  function telPlaceholder() {
+    var el = $("myTel"); if (!el) return;
     var sp = telSpec();
-    /* Магистральную единицу США и Канады в образец не берём: она равна коду
-       страны, и пример вырождался в «1 212 555-0123 → +1 212 555-0123» —
-       будто вся работа в том, чтобы дорисовать плюс. Дома такой номер и
-       пишут без неё. */
     var nat = (sp.trunk && sp.trunk !== sp.cc) ? sp.trunk + sp.ex : sp.ex;
-    $("telCcNote").textContent = LANG.t("set.telCountryNote", {
-      local: formatTel(nat),
-      intl:  formatTel("+" + sp.cc + sp.ex)
-    });
+    el.placeholder = formatTel(nat);
   }
 
   /* Перерисовать то, где уже нарисованы слова словаря и деньги. Полной
@@ -21131,7 +21149,7 @@
        первыми, и половина из них собирается в коде, а не лежит в разметке */
     if ($("fDelvLabels")) buildDelvDial();
     if ($("practiceChips")) renderPracticeChips();
-    if ($("telCcChips")) renderTelCcChips();
+    if ($("ccAsk")) { telPlaceholder(); renderCcAsk(); }
     if ($("startPractice") && $("startSheet").classList.contains("open")) renderStartSheet();
     if (typeof updateNowTick === "function" && $("nowTick")) updateNowTick();
     if ($("travelNote")) renderTravelSeg();
@@ -21475,7 +21493,12 @@
   $("tourSetRow").addEventListener("click", openTour);
 
   renderPracticeChips();
-  renderTelCcChips();
+  /* Догадка часового пояса могла быть сделана в поездке и с тех пор лежать
+     неверной: номер, если он уже есть, знает лучше. Проверяем на запуске, а
+     не только при вводе — иначе старая ошибка так и осталась бы */
+  if (telCcFollow()) saveAll();
+  telPlaceholder();
+  renderCcAsk();
   renderLangChips();
   renderCurChips();
   renderClockSeg();
@@ -22481,19 +22504,10 @@
      второй поверх первого означал бы возврат в никуда */
   function setOvOnly(id) {
     SET_NAV.forEach(function (p) { $(p[1]).classList.toggle("open", p[1] === id); });
-    /* Этаж под «Языком и регионом» в список разделов не входит, но остаться
-       висеть поверх закрытого родителя не должен */
-    if ($("setOvTelCc")) $("setOvTelCc").classList.remove("open");
   }
   SET_NAV.forEach(function (p) {
     $(p[0]).addEventListener("click", function () { setOvOnly(p[1]); });
   });
-  /* Список стран — не раздел, а этаж под «Языком и регионом»: открывается
-     поверх него и закрывается в него же, не трогая родителя */
-  if ($("telCcRow")) {
-    $("telCcRow").addEventListener("click", function () { $("setOvTelCc").classList.add("open"); });
-    $("telCcBack").addEventListener("click", function () { $("setOvTelCc").classList.remove("open"); });
-  }
   document.querySelectorAll("[data-set-back]").forEach(function (b) {
     b.addEventListener("click", function () {
       /* Своё имя вводится в «Профиле», и закрытие раздела для поля — то же
@@ -22552,9 +22566,11 @@
       lastLen = telDigits(this.value).length;
       if (end) this.selectionStart = this.selectionEnd = this.value.length;
       me.phone = this.value.trim();
-      /* Подпись под страной номеров показывает свой же ID — значит она
-         обязана меняться вместе с номером, а не только при смене страны */
-      saveAll(); renderProfile(); renderTelCcChips();
+      /* Страна следует за номером: набрали казахстанский — приложение стало
+         казахстанским, и ID сложился сам. Порядок важен, `renderProfile`
+         считает ID уже по новой стране */
+      if (telCcFollow()) telPlaceholder();
+      saveAll(); renderProfile(); renderCcAsk();
     });
     /* Смену номера фиксируем не в `input`: поле пишется с каждым нажатием
        клавиши, и по дороге к новому номеру мимо прошёл бы десяток обрывков —
@@ -22636,7 +22652,7 @@
     me.phone = back;
     if ($("myTel")) $("myTel").value = back;
     myTelSnap = back;
-    saveAll(); renderProfile(); renderTelCcChips();
+    saveAll(); renderProfile(); renderCcAsk();
   }
   $("telCopyDo").addEventListener("click", function () {
     doBackup(function () {

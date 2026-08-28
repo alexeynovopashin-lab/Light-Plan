@@ -1406,12 +1406,11 @@
     "set.unitNoteF":    "Температура показывается в градусах Фаренгейта.",
     "set.currency":     "Валюта",
     "set.practice":     "Ведение дел",
-    "set.telCountry":   "Код моей страны",
+    "tel.ccAsk":        "Номер не похож на местный. Чей он?",
     /* Имя страны в подпись не вставляем: `Intl` отдаёт его в именительном
        падеже, а фраза требует предложного — «в Россия». Своего списка
        склонений заводить незачем, довольно переписать фразу так, чтобы
        падеж не понадобился ни в одном из пяти языков */
-    "set.telCountryNote":   "{local} → {intl}. Так приложение достраивает телефоны, записанные без кода страны. Это ваша страна, а не та, где съёмка.",
 
     /* ---- Смена своего номера: копия, вопрос, передача ----
        Номер владельца — это ID, то есть имя, под которым его знают снаружи.
@@ -2781,8 +2780,7 @@
     "set.unitNoteF":    "Temperature is shown in degrees Fahrenheit.",
     "set.currency":     "Currency",
     "set.practice":     "Business practice",
-    "set.telCountry":   "My country code",
-    "set.telCountryNote":   "{local} → {intl}. That is how the app completes phone numbers written without a country code. Your own country, not the one you are shooting in.",
+    "tel.ccAsk":        "This does not look like a local number. Where is it from?",
 
     "tel.copyD":       "Shoots, contacts, organisations and document links go into a file. Everything comes back from it.",
     "tel.mineD":       "Shoots, contacts and documents stay where they are. The old ID keeps working: whoever saved you under it will still find you.",
