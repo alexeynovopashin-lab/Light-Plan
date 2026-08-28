@@ -4711,6 +4711,24 @@
     max-width: 100%; max-height: 100%; border-radius: 12px; corner-shape: squircle;
     will-change: transform;
   }
+  /* Панели просмотрщика — счётчик, теги, подсказка (макет «Moodboard
+     Shoots»). Прячутся сами, когда нечего показывать: список из одного
+     кадра — без счётчика, кадр без тегов — без строки тегов. */
+  .rv-bar {
+    position: absolute; left: 0; right: 0; z-index: 2; display: flex; align-items: center;
+    gap: 10px; padding: 14px 18px; pointer-events: none;
+  }
+  .rv-bar.bot { top: auto; bottom: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+  /* Тот же приём, что у остальных полноэкранных шапок (`.overlay.pad`): вырез
+     устройства не должен закрывать крестик и счётчик */
+  .rv-bar.top { padding-top: calc(env(safe-area-inset-top, 0px) + 14px); background: linear-gradient(rgba(0,0,0,.55), transparent); }
+  .rv-close { pointer-events: auto; background: none; border: none; padding: 4px; color: #fff; cursor: pointer; display: flex; }
+  .rv-close svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rv-counter { margin-left: auto; color: rgba(255,255,255,.82); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .rv-tags { display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; }
+  .rv-tags:empty { display: none; }
+  .rv-tag { padding: 6px 11px; border-radius: 999px; background: rgba(255,255,255,.14); color: #fff; font-size: 11.5px; }
+  .rv-hint { margin-left: auto; color: rgba(255,255,255,.6); font-size: 11px; white-space: nowrap; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .pay-row[hidden], #fPayBody[hidden], #fPackChips[hidden] { display: none; }
   /* Высотой блок правит скрипт, здесь только сам переход и обрезка на время
@@ -6986,8 +7004,22 @@
   </div>
 
   <!-- ============ УВЕДОМЛЕНИЕ ============ -->
-  <!-- Референс во весь экран: тап закрывает -->
-  <div class="ref-view" id="refView"><img id="refViewImg" alt="Референс"></div>
+  <!-- Референс во весь экран: тап закрывает; в списке — свайп смахивает
+       соседний кадр, свайп вниз тоже закрывает (15_MOODBOARD, макет
+       «Moodboard Shoots») -->
+  <div class="ref-view" id="refView">
+    <img id="refViewImg" alt="Референс">
+    <div class="rv-bar top">
+      <button type="button" class="rv-close" id="rvClose" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <span class="rv-counter" id="rvCounter"></span>
+    </div>
+    <div class="rv-bar bot">
+      <div class="rv-tags" id="rvTags"></div>
+      <span class="rv-hint" id="rvHint"></span>
+    </div>
+  </div>
 
   <div class="notif" id="notif">
     <div class="n-icon">
@@ -13287,16 +13319,26 @@
     fRefs.splice(i, 1);
     renderRefs();
   }
-  /* Картинка открывается во весь экран, ссылка — в браузере */
+  /* Картинка открывается во весь экран, ссылка — в браузере.
+     Список и позиция в нём — для свайпа между кадрами (пусто у одиночных
+     вызовов вне мудборда: свайпу просто некуда деть кадр, и он гасится). */
   var refViewSeq = 0;
-  function openRef(r) {
+  var refViewList = null, refViewIdx = -1;
+  function openRef(r) { openRefAt(r ? [r] : [], 0); }
+  function openRefAt(list, i) {
+    var r = list && list[i];
     if (!r) return;
     if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
     if (!r.im && !r.path) return;
+    refViewList = list; refViewIdx = i;
+    $("refView").classList.add("open");
+    rvShow(r);
+  }
+  function rvShow(r) {
     var img = $("refViewImg"), mine = ++refViewSeq;
     img.src = (r.im && blobUrl(r.im, "t")) || "";
     rvReset(false);                     // следующий кадр открывается целым
-    $("refView").classList.add("open");
+    renderRvBars(r);
     /* Экранная копия — то, ради чего всё затевалось: без сети она уже здесь.
        Оригинал приходит следом и только если сеть есть. */
     if (r.im) blobUrlLoad(r.im, "s").then(function (u) { if (u && mine === refViewSeq) img.src = u; });
@@ -13310,6 +13352,20 @@
       full.onload = function () { if (mine === refViewSeq) img.src = href; };
       full.src = href;
     }).catch(function () {});   // без сети остаётся миниатюра
+  }
+  function renderRvBars(r) {
+    var n = refViewList ? refViewList.length : 1;
+    $("rvCounter").textContent = n > 1 ? (refViewIdx + 1) + " / " + n : "";
+    var tags = (r.tag ? [tagName(r.tag)] : []).concat(r.tags || []);
+    $("rvTags").innerHTML = tags.map(function (t) { return '<span class="rv-tag">' + esc(t) + "</span>"; }).join("");
+    $("rvHint").textContent = n > 1 ? LANG.t("mb.viewerHint") : "";
+  }
+  /* Свайп двигает refViewIdx по кругу; список из одного кадра или его
+     отсутствие — просто некуда идти, кадр возвращается на место. */
+  function rvStep(d) {
+    if (!refViewList || refViewList.length < 2) { rvReset(true); return; }
+    refViewIdx = (refViewIdx + d + refViewList.length) % refViewList.length;
+    rvShow(refViewList[refViewIdx]);
   }
   /* Референсы добавляются в двух местах: в съёмку и в набор жанра.
      Механика одна, различаются только список, папка на Диске и отрисовка. */
@@ -14181,20 +14237,49 @@
     });
     var shown = list.map(function (r, i) { return { r: r, i: i }; })
       .filter(function (p) { return !mbTag || p.r.tag === mbTag; });
+    /* Список для просмотрщика — только картинки и в порядке сетки: свайп
+       перебирает то, что реально видно на экране, ссылки в нём не участвуют */
+    var imgList = shown.filter(function (p) { return p.r.k !== "link"; }).map(function (p) { return p.r; });
+    var imgAt = 0;
     $("mbGrid").innerHTML = shown.map(function (p) {
       if (p.r.k === "link") {
         return '<button type="button" class="ref-card link" data-i="' + p.i + '">'
           + '<span class="host">' + refHost(p.r.url) + "</span>"
           + '<span class="path">' + refTail(p.r.url) + "</span></button>";
       }
-      return '<button type="button" class="ref-card" data-i="' + p.i + '">'
+      var vi = imgAt++;
+      return '<button type="button" class="ref-card" data-i="' + p.i + '" data-vi="' + vi + '">'
         + refImg(p.r)
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + "</button>";
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
       + esc(mbTag ? LANG.t("mb.sectionEmpty", { section: tagName(mbTag) }) : LANG.t("mb.empty")) + "</div>";
+    /* Короткий тап открывает кадр во весь экран (макет «Moodboard Shoots»),
+       долгий — тот же лист действий, что был раньше: теги, перенос, удаление.
+       Тот же порог и разрыв по сдвигу, что у поднятия подборки (mbStartDrag). */
     $("mbGrid").querySelectorAll(".ref-card").forEach(function (b) {
-      b.addEventListener("click", function () { openMbItem(+b.dataset.i); });
+      var timer = null, longed = false, sx = 0, sy = 0;
+      b.addEventListener("pointerdown", function (e) {
+        longed = false; sx = e.clientX; sy = e.clientY;
+        timer = setTimeout(function () {
+          longed = true;
+          try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
+          openMbItem(+b.dataset.i);
+        }, 420);
+      });
+      b.addEventListener("pointermove", function (e) {
+        if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) {
+          clearTimeout(timer); timer = null;
+        }
+      });
+      function release() { clearTimeout(timer); timer = null; }
+      b.addEventListener("pointerup", release);
+      b.addEventListener("pointercancel", release);
+      b.addEventListener("click", function () {
+        if (longed) { longed = false; return; }
+        if (b.dataset.vi != null) openRefAt(imgList, +b.dataset.vi);
+        else openMbItem(+b.dataset.i);
+      });
     });
   }
   $("mbRow").addEventListener("click", function () {
@@ -14635,6 +14720,7 @@
   var rvS = 1, rvX = 0, rvY = 0;         // масштаб и сдвиг картинки
   var rvPts = {}, rvBaseD = 0, rvBaseS = 1, rvPrevC = null;
   var rvMoved = false, rvPinched = false;
+  var rvSwiping = false, rvGx0 = 0, rvGy0 = 0;   // жест смахивания при масштабе 1
 
   function rvCount() { return Object.keys(rvPts).length; }
   function rvPair() {
@@ -14682,13 +14768,17 @@
     refViewSeq++;                       // отменяем ещё летящую подмену кадра
     $("refView").classList.remove("open");
     $("refViewImg").src = "";
+    refViewList = null; refViewIdx = -1;
     rvReset(false);
   }
+  $("rvClose").addEventListener("click", function (e) { e.stopPropagation(); rvClose(); });
   (function () {
     var rv = $("refView");
     rv.addEventListener("pointerdown", function (e) {
+      if (e.target.closest(".rv-bar")) return;   // кнопки и счётчик — не жест
       rvPts[e.pointerId] = { x: e.clientX, y: e.clientY };
       rvMoved = false;
+      if (rvCount() === 1) { rvGx0 = e.clientX; rvGy0 = e.clientY; rvSwiping = false; }
       if (rvCount() === 2) {
         var p = rvPair();
         rvBaseD = p.d; rvBaseS = rvS; rvPrevC = { x: p.cx, y: p.cy };
@@ -14716,6 +14806,17 @@
         rvApply(false);
       } else if (rvS > 1) {
         rvX += dx; rvY += dy; rvClamp(); rvApply(false);
+      } else {
+        /* Целый кадр, один палец: то же движение, что и «смахнуть»
+           фотографию со стола — сторону выбирает горизонталь, отпустить
+           вниз закрывает. Сопротивление вверх сильнее (0.25 вместо 0.9) —
+           тянуть кадр вверх, к статус-бару, незачем ни разу. */
+        rvSwiping = true;
+        var tdx = e.clientX - rvGx0, tdy = e.clientY - rvGy0;
+        rvX = tdx * 0.9;
+        rvY = tdy > 0 ? tdy * 0.9 : tdy * 0.25;
+        rvS = tdy > 60 ? Math.max(0.82, 1 - tdy / 900) : 1;
+        rvApply(false);
       }
     });
     function rvEnd(e) {
@@ -14726,6 +14827,15 @@
          текущей точки, иначе кадр прыгает на разницу. */
       if (rvCount() === 1) rvMoved = true;
       if (rvCount()) return;
+      if (rvSwiping) {
+        rvSwiping = false;
+        if (rvY > 110) { rvClose(); }
+        else if (rvX < -60) { rvStep(1); }
+        else if (rvX > 60) { rvStep(-1); }
+        else { rvReset(true); }
+        rvPinched = false;
+        return;
+      }
       if (!rvMoved && !rvPinched) {
         /* Касание без движения: целый кадр — выходим, увеличенный — сначала
            возвращаем целый. Лестница выхода, а не выход из-под пальца. */
