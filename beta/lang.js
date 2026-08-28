@@ -1406,13 +1406,13 @@
     "set.unitNoteF":    "Температура показывается в градусах Фаренгейта.",
     "set.currency":     "Валюта",
     "set.practice":     "Ведение дел",
-    "set.telCountry":   "Страна номеров",
+    "set.telCountry":   "Номера без кода",
     /* Имя страны в подпись не вставляем: `Intl` отдаёт его в именительном
        падеже, а фраза требует предложного — «в Россия». Своего списка
        склонений заводить незачем, довольно переписать фразу так, чтобы
        падеж не понадобился ни в одном из пяти языков */
-    "set.telCountryNote":   "Номера без кода страны читаются как местные, а ID приложения считается с кодом +{cc}.",
-    "set.telCountryNoteId": "Номера без кода страны читаются как местные. Ваш ID с этой страной: {id}.",
+    "set.telCountryNote":   "Ваша страна, а не та, где идёт съёмка: в поездке менять не нужно. Номер, набранный без «+», приложение считает местным для неё, а ID строит с кодом +{cc}. Номер с «+» разбирается сам.",
+    "set.telCountryNoteId": "Ваша страна, а не та, где идёт съёмка: в поездке менять не нужно. Номер, набранный без «+», приложение считает местным для неё. Ваш ID: {id}.",
 
     /* ---- Смена своего номера: копия, вопрос, передача ----
        Номер владельца — это ID, то есть имя, под которым его знают снаружи.
@@ -2782,9 +2782,9 @@
     "set.unitNoteF":    "Temperature is shown in degrees Fahrenheit.",
     "set.currency":     "Currency",
     "set.practice":     "Business practice",
-    "set.telCountry":   "Phone number country",
-    "set.telCountryNote":   "Numbers written without a country code are read as local ones, and the app ID is built with the code +{cc}.",
-    "set.telCountryNoteId": "Numbers written without a country code are read as local ones. Your ID for this country: {id}.",
+    "set.telCountry":   "Numbers without a code",
+    "set.telCountryNote":   "Your own country, not the one you are shooting in — travelling changes nothing. A number typed without a “+” is taken as local to it, and your ID is built with the code +{cc}. A number with a “+” is read on its own.",
+    "set.telCountryNoteId": "Your own country, not the one you are shooting in — travelling changes nothing. A number typed without a “+” is taken as local to it. Your ID: {id}.",
 
     "tel.copyD":       "Shoots, contacts, organisations and document links go into a file. Everything comes back from it.",
     "tel.mineD":       "Shoots, contacts and documents stay where they are. The old ID keeps working: whoever saved you under it will still find you.",
