@@ -8646,6 +8646,10 @@
   function cloudSaveTok(t) {
     cloudTok = t;
     try { localStorage.setItem(CLOUD_TOKEN_KEY, JSON.stringify(t)); } catch (e) {}
+    /* Через это место проходит любой рабочий токен — и свежий, и обновлённый.
+       Догон накопленного цепляем сюда, а не к каждому из трёх поставщиков:
+       на обновлении токена проход всё равно пустой и стоит ничего */
+    if (typeof mbCatchRun === "function") mbCatchRun();
   }
   function cloudOn() { return !!(cloudKind && cloudTok && cloudTok.access); }
   function cloudReady(kind) { return !!CLOUD_IDS[kind]; }
@@ -14903,6 +14907,64 @@
       mbOfflineFetch(r).then(next);
     }
     next();
+  }
+  /* ---------- Догон в облако ----------
+     Обратная сторона правила закачки. Кадр, добавленный при отключённом
+     Диске, живёт только на устройстве: `im` у него есть, `path` пуст. Само
+     подключение облака позже накопленного не подбирало — кадр оставался
+     местным навсегда, и подборка считала его «в облаке», хотя в облаке его
+     не было (ROADMAP, «Догон в облако»).
+
+     Уезжает экранная копия, а не оригинал: оригинала у нас нет вовсе.
+     `refShots` снимает две копии и байты файла не хранит, а к моменту догона
+     файл давно закрыт — это не выбор в пользу худшего, это всё, что есть.
+     Поэтому и расширение всегда `.jpg`: `shrink` отдаёт только jpeg.
+
+     Очередь та же, что у закачки, и по той же причине: по одному кадру за
+     раз. Ошибки глотаем молча — нет сети, нет места, отозвали доступ: кадр
+     остаётся местным до следующего запуска, как и был. */
+  function mbCatchDue() {
+    if (!cloudOn()) return [];
+    return shots.filter(function (r) {
+      return r.k !== "link" && r.im && !r.path && !r.pending
+        && (blobHas(r.im, "s") || blobHas(r.im, "t"));
+    });
+  }
+  /* Папка та же, куда кадр уехал бы сразу: подборка съёмки — в `refs`,
+     жанровая — в `genre-refs`. Кадр лежит в нескольких подборках, и любая
+     годится: путь после отправки записан в самом кадре, второй раз вопрос
+     не встанет. Сирота без подборки едет в `refs` — так же, как поедет
+     оттуда обратно. */
+  function mbCatchDir(r) {
+    var b = boards.filter(function (x) { return boardHas(x, r.id); })[0];
+    return b && b.kind !== "session" ? "genre-refs" : "refs";
+  }
+  var mbCatchBusy = false;
+  function mbCatchSend(r) {
+    var dir = mbCatchDir(r);
+    return blobGet(r.im, blobHas(r.im, "s") ? "s" : "t")
+      .then(function (blob) {
+        if (!blob) return null;
+        return cloudEnsureDir(dir)
+          .then(function () { return cloudUpload(dir + "/" + r.im + ".jpg", blob); });
+      })
+      .then(function (path) { if (path) { r.path = path; saveAll(); } })
+      .catch(function () {});
+  }
+  function mbCatchRun() {
+    if (mbCatchBusy || !cloudOn()) return;
+    /* Список лежащего на устройстве может быть ещё не прочитан: догон зовут
+       и сразу после подключения облака, не только на запуске */
+    (blobHave ? Promise.resolve() : blobHaveReady()).then(function () {
+      var queue = mbCatchDue();
+      if (!queue.length) return;
+      mbCatchBusy = true;
+      (function next() {
+        var r = queue.shift();
+        if (!r) { mbCatchBusy = false; renderMbStrip(); return; }
+        mbCatchSend(r).then(next);
+      })();
+    });
   }
   function mbCover(f) {
     var b = mbBoard(f), list = boardShots(b);
@@ -23413,7 +23475,7 @@
   /* Список того, что уже лежит на устройстве, готов не сразу — до этого
      момента обложки молча считают всё «в облаке». Как только список готов,
      перерисовываем и запускаем правило закачки (15_MOODBOARD, «Офлайн»). */
-  blobHaveReady().then(function () { renderMbStrip(); mbOfflineRun(); });
+  blobHaveReady().then(function () { renderMbStrip(); mbOfflineRun(); mbCatchRun(); });
   /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
      После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
      потом спрашивают о правилах. На самом первом запуске экран знакомства
