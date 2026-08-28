@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=17"></script>
+<script src="lang.js?v=18"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -2434,14 +2434,55 @@
   .mb-strip[hidden], .mb-lbl[hidden], .mb-tiles[hidden] { display: none; }
   /* Своя ручка сворачивания — тот же язык, что у сводки дня (`.day-toggle`):
      кто убрал плитки с глаз, должен находить ту же ручку на том же месте */
+  /* Ручка теперь и сводка сразу: веер из обложек + счёт подборок и кадров,
+     чтобы состояние мудборда читалось не открывая его (макет «Moodboard
+     Shoots») */
   .mb-strip-head {
-    display: flex; align-items: center; justify-content: space-between;
-    width: 100%; background: none; border: none; padding: 0 0 10px;
-    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink-3);
-    cursor: pointer;
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    background: var(--sheet-4); border: none; padding: 12px 14px;
+    font-family: inherit; text-align: left; cursor: pointer;
+    border-radius: 20px; corner-shape: squircle;
+    box-shadow: inset 0 0 0 1px var(--hairline);
   }
-  .mb-strip-head .chev { transition: transform 0.35s ease; font-size: 15px; color: var(--ink-7); }
+  .mb-strip-head:active { background: var(--press); }
+  .mb-strip-head-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .mb-strip-head-t .ti { font-size: 16px; font-weight: 650; letter-spacing: -0.2px; color: var(--ink); }
+  .mb-strip-head-t .sub { font-size: 12.5px; color: var(--ink-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mb-strip-head-t .off { font-size: 11px; color: var(--brass-deep); font-variant-numeric: tabular-nums; }
+  .mb-strip-head-t .off:empty, .mb-strip-head-t .sub:empty { display: none; }
+  .mb-strip-head .chev { flex: 0 0 auto; transition: transform 0.35s ease; font-size: 16px; color: var(--ink-7); }
   .mb-strip-head.open .chev { transform: rotate(180deg); }
+  .mb-fan { position: relative; flex: 0 0 auto; width: 70px; height: 42px; }
+  .mb-fan-l {
+    position: absolute; left: 0; top: 0; width: 42px; height: 42px;
+    border-radius: 13px; corner-shape: squircle; overflow: hidden;
+    background-color: var(--sheet-2); background-size: cover; background-position: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18), inset 0 0 0 1px var(--hairline);
+  }
+  .mb-fan-l img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mb-fan-l.l0 { transform: rotate(-5deg); z-index: 3; }
+  .mb-fan-l.l1 { transform: translateX(23px) rotate(0deg); z-index: 2; }
+  .mb-fan-l.l2 { transform: translateX(46px) rotate(5deg); z-index: 1; }
+  .mb-fan.empty {
+    display: flex; align-items: center; justify-content: center;
+    border: 1px dashed var(--hairline); border-radius: 13px; corner-shape: squircle;
+  }
+  .mb-fan.empty svg { width: 22px; height: 22px; stroke: var(--ink-5); fill: none; stroke-width: 1.6; }
+  /* Стопка: два повёрнутых листа под обложкой читаются как пачка
+     распечаток, а кружок поверх — сколько кадров внутри, не открывая её */
+  .mb-tile-art { display: block; position: relative; aspect-ratio: 1/1; }
+  .mb-tile-art .leaf {
+    position: absolute; inset: 5px 5px 0 5px; border-radius: 11px; corner-shape: squircle;
+    background: var(--sheet-2); box-shadow: inset 0 0 0 1px var(--hairline);
+    transform: translateY(-6px) rotate(-3.5deg);
+  }
+  .mb-tile-art .leaf.b { inset: 3px 3px 0 3px; background: var(--sheet-4); transform: translateY(-3px) rotate(2.5deg); }
+  .mb-tile-art .mb-cover { position: absolute; inset: 0; box-shadow: 0 4px 14px rgba(0,0,0,0.18), inset 0 0 0 1px var(--hairline); }
+  .mb-tile-art .count {
+    position: absolute; top: 6px; right: 6px; min-width: 19px; height: 19px; padding: 0 5px;
+    border-radius: 999px; background: rgba(0,0,0,0.55); color: #fff; font-size: 10.5px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; z-index: 1;
+  }
   .mb-strip-body { max-height: 0; overflow: hidden; transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
   .mb-strip-body.open { max-height: 900px; }
   .mb-lbl {
@@ -4639,6 +4680,14 @@
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: var(--fill-b); font-size: 11px; color: var(--ink-3);
   }
+  /* Мудборд — плитка-масонри: кадры в естественных пропорциях, а не
+     квадратный обрез (макет «Moodboard Shoots»). Только тут: у остальных
+     `.ref-grid` (референсы съёмки, набор жанра, документы) квадрат
+     остаётся правильным выбором — их не трогаем. */
+  #mbGrid.mb-grid { display: block; column-count: 2; column-gap: 8px; }
+  #mbGrid.mb-grid .ref-card { width: 100%; aspect-ratio: auto; break-inside: avoid; margin: 0 0 8px; }
+  #mbGrid.mb-grid .ref-card img { height: auto; object-fit: initial; }
+  #mbGrid.mb-grid .ref-card.link { aspect-ratio: 1/1; }
   .ref-add { display: flex; gap: 8px; padding: 12px 15px; }
   .ref-btn {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -4741,6 +4790,16 @@
   .gear:active { color: var(--ink); }
   .form-title { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; margin-top: 10px; }
   .form-sub { color: var(--ink-4); font-size: 14px; margin-top: 6px; }
+  .mb-folder-head { display: flex; align-items: flex-end; gap: 12px; }
+  .mb-folder-hero {
+    flex: 0 0 auto; width: 58px; height: 58px; margin-top: 10px;
+    border-radius: 14px; corner-shape: squircle; overflow: hidden;
+    background-color: var(--sheet-2); background-size: cover; background-position: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18), inset 0 0 0 1px var(--hairline);
+  }
+  .mb-folder-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mb-folder-head-t { flex: 1 1 auto; min-width: 0; }
+  .mb-folder-head-t .form-title, .mb-folder-head-t .form-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mb-off-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .mb-off-row .mb-off-text { font-size: 12.5px; color: var(--ink-4); }
   .mb-off-row #mbFolderTake { margin-left: auto; }
@@ -5400,7 +5459,12 @@
          не завёл — не показываем, как у всего остального. -->
     <div class="mb-strip" id="mbStrip" hidden>
       <button type="button" class="mb-strip-head" id="mbStripToggle">
-        <span data-i18n="mb.stripTitle">Мудборд</span>
+        <span class="mb-fan" id="mbStripFan"></span>
+        <span class="mb-strip-head-t">
+          <span class="ti" data-i18n="mb.stripTitle">Мудборд</span>
+          <span class="sub" id="mbStripSub"></span>
+          <span class="off" id="mbStripOff"></span>
+        </span>
         <span class="chev">▾</span>
       </button>
       <div class="mb-strip-body" id="mbStripBody">
@@ -6533,8 +6597,15 @@
     <button class="back" id="mbFolderBack">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="set.moodboards">Мудборды</span>
     </button>
-    <h2 class="form-title" id="mbFolderTitle" style="font-size:22px;">—</h2>
-    <p class="form-sub" id="mbFolderSub">—</p>
+    <!-- Обложка папки рядом с названием — тот же приём, что в шапке сводки
+         на «Съёмках»: узнают подборку по картинке раньше, чем читают текст -->
+    <div class="mb-folder-head">
+      <div class="mb-folder-hero" id="mbFolderHero"></div>
+      <div class="mb-folder-head-t">
+        <h2 class="form-title" id="mbFolderTitle" style="font-size:22px;">—</h2>
+        <p class="form-sub" id="mbFolderSub">—</p>
+      </div>
+    </div>
     <!-- «на устройстве» / «12 из 40» / «в облаке» + пометка «взять с собой»,
          которая продлевает автозакачку дальше «ближайших дней»
          (15_MOODBOARD, «Офлайн»). -->
@@ -6543,7 +6614,7 @@
       <button type="button" class="rf-tag" id="mbFolderTake" data-i18n="mb.takeWithMe">Взять с собой</button>
     </div>
     <div class="rf-tags wrap" id="mbTags" style="padding-left:0;padding-right:0;"></div>
-    <div class="ref-grid" id="mbGrid" style="margin-top:4px;"></div>
+    <div class="ref-grid mb-grid" id="mbGrid" style="margin-top:4px;"></div>
     <div class="ref-add sep">
       <button type="button" class="ref-btn" id="mbAddPhoto">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
@@ -13770,7 +13841,7 @@
     function tile(f, i, listId) {
       var n = mbList(f).length;
       return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '">'
-        + mbCover(f)
+        + mbTileArt(f)
         + '<span class="n">' + esc(mbTitle(f)) + "</span>"
         + '<span class="s">' + esc(mbSub(f)) + " · " + esc(LANG.count("unit.item", n)) + "</span></button>";
     }
@@ -13972,6 +14043,29 @@
     while (cells.length < 4) cells.push('<i class="ph"></i>');
     return '<span class="mb-cover"' + sky + ">" + cells.join("") + off + "</span>";
   }
+  /* Обложка на стопке из двух листов + кружок-счётчик — подборка читается
+     как пачка распечаток, а не плоская карточка (макет «Moodboard Shoots») */
+  function mbTileArt(f) {
+    var n = mbList(f).length;
+    return '<span class="mb-tile-art"><span class="leaf a"></span><span class="leaf b"></span>'
+      + mbCover(f) + (n ? '<span class="count">' + n + "</span>" : "") + "</span>";
+  }
+  /* Веер из первых трёх обложек в ручке сводки — то же небо и та же
+     логика назначенной обложки, что у самой плитки, просто без мозаики */
+  function mbFanHtml(folders) {
+    var top = folders.slice(0, 3);
+    if (!top.length) {
+      return '<span class="mb-fan empty"><svg viewBox="0 0 24 24" stroke-linecap="round">'
+        + '<path d="M12 5v14M5 12h14"/></svg></span>';
+    }
+    var cells = top.map(function (f, i) {
+      var b = mbBoard(f), list = boardShots(b);
+      var pic = (b.cover && shotById(b.cover)) || list.filter(function (r) { return r.im; })[0];
+      var sky = ' style="background-image:' + mbSky(b && b.id) + '"';
+      return '<span class="mb-fan-l l' + i + '"' + sky + '>' + (pic ? refImg(pic) : "") + "</span>";
+    }).join("");
+    return '<span class="mb-fan">' + cells + "</span>";
+  }
   function renderMbStrip() {
     if (!$("mbStrip")) return;
     var folders = mbFolders();
@@ -13994,6 +14088,23 @@
     $("mbStrip").hidden = false;
     $("mbStripToggle").classList.toggle("open", mbStripOpen);
     $("mbStripBody").classList.toggle("open", mbStripOpen);
+    /* Сводка в самой ручке: веер обложек + счёт подборок и кадров + сколько
+       из них уже на устройстве — состояние читается не открывая блок */
+    $("mbStripFan").innerHTML = mbFanHtml(folders);
+    blobHydrate($("mbStripFan"));
+    if (folders.length) {
+      var sumFrames = 0, sumPicsN = 0, sumPicsHave = 0;
+      folders.forEach(function (f) {
+        var b = mbBoard(f), st = boardOfflineState(b);
+        sumFrames += mbList(f).length;
+        if (st) { sumPicsN += st.n; sumPicsHave += st.have; }
+      });
+      $("mbStripSub").textContent = LANG.count("unit.board", folders.length) + " · " + LANG.count("unit.frame", sumFrames);
+      $("mbStripOff").textContent = sumPicsN ? LANG.t("mb.stripOff", { have: sumPicsHave, n: sumPicsN }) : "";
+    } else {
+      $("mbStripSub").textContent = LANG.t("mb.stripEmpty");
+      $("mbStripOff").textContent = "";
+    }
     function fill(host, label, list, listId, prefix) {
       var slots = MB_STRIP_MAX - (prefix ? 1 : 0);
       var over = list.length - slots;
@@ -14002,7 +14113,7 @@
       $(host).hidden = !(list.length || prefix);
       var html = (prefix || "") + shown.map(function (f, i) {
         return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '">'
-          + mbCover(f)
+          + mbTileArt(f)
           + '<span class="n">' + esc(mbTitle(f)) + "</span>"
           + '<span class="s">' + esc(LANG.count("unit.item", mbList(f).length)) + "</span></button>";
       }).join("");
@@ -14049,6 +14160,10 @@
     $("mbFolderTitle").textContent = mbTitle(f);
     $("mbFolderSub").textContent = mbSub(f);
     var board = mbBoard(f);
+    var heroPic = (board.cover && shotById(board.cover)) || list.filter(function (r) { return r.im; })[0];
+    $("mbFolderHero").style.backgroundImage = mbSky(board.id);
+    $("mbFolderHero").innerHTML = heroPic ? refImg(heroPic) : "";
+    blobHydrate($("mbFolderHero"));
     $("mbFolderOffText").textContent = boardOfflineLabel(board);
     $("mbFolderTake").classList.toggle("on", !!board.take);
     var tags = refTagsOf(g, list);

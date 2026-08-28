@@ -72,6 +72,7 @@
   DICT.ru = {
     /* Единицы счёта. Ими меряют съёмки и время, и они встречаются всюду */
     "unit.shoot":  ["съёмка", "съёмки", "съёмок"],
+    "unit.board":  ["подборка", "подборки", "подборок"],
     "unit.hour":   ["час", "часа", "часов"],
     "unit.minute": ["мин", "мин", "мин"],
     "unit.day":    ["день", "дня", "дней"],
@@ -1127,6 +1128,8 @@
     "mb.sets":           "Подборки",
     "mb.all":            "Все",
     "mb.stripTitle":     "Мудборд",
+    "mb.stripEmpty":     "Пока пусто — начните первую подборку",
+    "mb.stripOff":       "{have} из {n} на устройстве",
     "mb.noShootFolders": "Съёмок с материалами пока нет — добавьте фото или ссылку прямо в форме съёмки, папка появится сама.",
     "mb.noGenreSets":    "Жанровые подборки пока пусты — заведите первый референс в «Моих жанрах».",
     "mb.newTitle":       "Новая подборка",
@@ -1552,6 +1555,7 @@
      Запасной язык для всех пустых словарей — держим его полным всегда. */
   DICT.en = {
     "unit.shoot":  ["shoot", "shoots"],
+    "unit.board":  ["set", "sets"],
     "unit.hour":   ["hour", "hours"],
     "unit.minute": ["min", "min"],
     "unit.day":    ["day", "days"],
@@ -2498,6 +2502,8 @@
     "mb.sets":           "Sets",
     "mb.all":            "All",
     "mb.stripTitle":     "Moodboard",
+    "mb.stripEmpty":     "Empty for now — start your first set",
+    "mb.stripOff":       "{have} of {n} on this device",
     "mb.noShootFolders": "No shoots with material yet — add a photo or a link right in the shoot form and the folder appears by itself.",
     "mb.newTitle":       "New set",
     "mb.newSub":         "For which genre?",
@@ -2925,6 +2931,7 @@
 
   DICT.es = {
     "unit.shoot": ["sesión", "sesiones"],
+    "unit.board": ["set", "sets"],
     "unit.hour": ["hora", "horas"],
     "unit.minute": ["min", "min"],
     "unit.day": ["día", "días"],
@@ -3764,6 +3771,8 @@
     "mb.sets": "Sets",
     "mb.all": "Todos",
     "mb.stripTitle": "Moodboard",
+    "mb.stripEmpty": "Vacío por ahora — crea tu primer set",
+    "mb.stripOff": "{have} de {n} en este dispositivo",
     "mb.noShootFolders": "Todavía no hay sesiones con material — agrega una foto o un enlace en el formulario de la sesión y la carpeta aparece sola.",
     "mb.newTitle": "Nuevo set",
     "mb.newSub": "¿Para qué género?",
@@ -4110,6 +4119,7 @@
      «Китайский словарь»). */
   DICT.zh = {
     "unit.shoot": "拍摄",
+    "unit.board": "个",
     "unit.hour": "小时",
     "unit.minute": "分钟",
     "unit.day": "天",
@@ -4949,6 +4959,8 @@
     "mb.sets": "集合",
     "mb.all": "全部",
     "mb.stripTitle": "灵感板",
+    "mb.stripEmpty": "暂时空着 — 新建第一个集合",
+    "mb.stripOff": "{have}/{n} 已在本机",
     "mb.noShootFolders": "尚无带资料的拍摄——在拍摄表单中添加照片或链接，文件夹会自动创建。",
     "mb.newTitle": "新建集合",
     "mb.newSub": "选择类型",
