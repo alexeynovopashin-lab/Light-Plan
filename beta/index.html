@@ -4331,6 +4331,29 @@
   .rt-empty { padding: 14px 15px; font-size: 13px; color: var(--ink-8); }
   /* Подсказка внутри сетки — во всю ширину: колонка ломала её по слову */
   .ref-grid .rt-empty { grid-column: 1 / -1; line-height: 1.5; }
+  /* ---------- Пустая подборка показывает, чем станет ----------
+     Строкой «пока пусто» дело не обходится: пустой экран нечем разглядывать,
+     и подборку не заводят вовсе (Алексей просил об этом не первый раз).
+     Кладём ту же сетку с теми же карточками, только кадры в них ещё не свои:
+     плашка-призрак взята из того же вещества, что обложки подборок
+     (`MB_SKY`), с тем же радиусом и разнобоем высот. Это карточка кадра без
+     кадра, а не картинка про пустоту, — 15_MOODBOARD, «пустое и обычное
+     состояние оказываются одним компонентом».
+     Приглашение осталось строкой, но теперь оно подпись к сетке, а не
+     единственное, что есть на экране. Поверх плашек его класть пробовал —
+     подложка разрезала сетку пополам ровно там, где сетка и должна
+     читаться. */
+  .rt-ghost { column-span: all; }
+  .rt-ghost .gh-say { padding: 2px 2px 12px; font-size: 13px; line-height: 1.5; color: var(--ink-8); }
+  .rt-ghost .gh-cols { column-count: 2; column-gap: 8px; }
+  .rt-ghost .gh {
+    display: block; width: 100%; margin: 0 0 8px; break-inside: avoid;
+    border-radius: 10px; corner-shape: squircle;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  /* Призраки подборок в галерее — те же плитки, только без имени и счёта */
+  .gh-tiles .mb-cover { background-size: cover; }
+  .gh-tiles + .org-empty { padding-top: 10px; }
 
   .card-money {
     display: flex; justify-content: space-between; align-items: center;
@@ -8215,30 +8238,51 @@
     for (var p in extra) o[p] = extra[p];
     return o;
   }
+  /* Цвет неба по высоте светила — лестница, которая раньше жила внутри
+     `stateAt`. Вынута, потому что небо теперь спрашивают дважды: своё (там она
+     и была) и чужое — призрак солнца ночью берёт цвет по высоте, на которой
+     солнце стоит на другой стороне планеты, а это ровно −e. Лестница одна на
+     оба неба: две копии разъехались бы на первой же правке палитры. */
+  function skyColor(e) {
+    if (e >= -0.833) {
+      if (e > 40) return SILVER;
+      if (e > 20) return lerp(AMBER, SILVER, 0.6);
+      if (e > 6.05) return AMBER;
+      return GOLD;
+    }
+    var d = -e;
+    if (d < 1.8) return lerp(GOLD, SCARLET, d / 1.8);
+    if (d < 4)   return lerp(SCARLET, PINK, (d - 1.8) / 2.2);
+    if (d < 6)   return lerp(PINK, BLUE, (d - 4) / 2);
+    if (d < 12)  return lerp(BLUE, DEEP, (d - 6) / 6);
+    if (d < 18)  return lerp(DEEP, NIGHT, (d - 12) / 6);
+    return NIGHT;
+  }
+
   function stateAt(t) {
     var e = elevAt(t), morning = t < solarNoon;
     if (e >= -0.833) {
-      if (e > 40) return sunState("noon", { c: SILVER, glow: 0.05, level: 2, tone: "neutral" });
+      if (e > 40) return sunState("noon", { c: skyColor(e), glow: 0.05, level: 2, tone: "neutral" });
       if (e > 20) return sunState(morning ? "morning" : "day",
-        { c: lerp(AMBER, SILVER, 0.6), glow: 0.08, level: 3, tone: "good" });
+        { c: skyColor(e), glow: 0.08, level: 3, tone: "good" });
       // Допуск: граница золотого часа считается по +6°, и на самом стыке
       // погрешность float иначе показывает «Вечереет» вместо золотого часа
       if (e > 6.05) return sunState(morning ? "morningWarm" : "evening",
-        { c: AMBER, glow: 0.16, level: 4, tone: "good" });
-      return sunState("golden", { c: GOLD, glow: 0.34, level: 5, tone: "excellent" });
+        { c: skyColor(e), glow: 0.16, level: 4, tone: "good" });
+      return sunState("golden", { c: skyColor(e), glow: 0.34, level: 5, tone: "excellent" });
     }
     var d = -e;
     if (d < 1.8) return sunState(morning ? "dawn" : "sunset",
-      { c: lerp(GOLD, SCARLET, d/1.8), glow: 0.34, level: 5, tone: "excellent" });
+      { c: skyColor(e), glow: 0.34, level: 5, tone: "excellent" });
     if (d < 4) return sunState(morning ? "dawning" : "dusk",
-      { c: lerp(SCARLET, PINK, (d-1.8)/2.2), glow: 0.28, level: 4, tone: "excellent" });
+      { c: skyColor(e), glow: 0.28, level: 4, tone: "excellent" });
     if (d < 6) return sunState("blue",
-      { c: lerp(PINK, BLUE, (d-4)/2), glow: 0.24, level: 5, tone: "excellent" });
+      { c: skyColor(e), glow: 0.24, level: 5, tone: "excellent" });
     if (d < 12) return sunState("deepDusk",
-      { c: lerp(BLUE, DEEP, (d-6)/6), glow: 0.13, level: 1, tone: "neutral" });
+      { c: skyColor(e), glow: 0.13, level: 1, tone: "neutral" });
     if (d < 18) return sunState(morning ? "astroDawn" : "astroDusk",
-      { c: lerp(DEEP, NIGHT, (d-12)/6), glow: 0.06, stars: true, tone: "stars" });
-    return sunState("astroNight", { c: NIGHT, glow: 0.04, stars: true, tone: "stars" });
+      { c: skyColor(e), glow: 0.06, stars: true, tone: "stars" });
+    return sunState("astroNight", { c: skyColor(e), glow: 0.04, stars: true, tone: "stars" });
   }
   function shadowWord(t) {
     var e = elevAt(t);
@@ -10521,7 +10565,38 @@
     $("sunDeep").setAttribute("cx", p[0].toFixed(1));
     $("sunDeep").setAttribute("cy", p[1].toFixed(1));
     $("sunDeep").setAttribute("opacity", deep.toFixed(3));
-    ["sdIn", "sdMid", "sdOut"].forEach(function (id) { $(id).setAttribute("stop-color", col); });
+    /* Цвет пятна. До −18° это наше небо, как и было: алый на закате, розовый
+       в сумерках, синий в синий час. Глубже своё небо сказать больше ничего не
+       может — астрономическая ночь, `NIGHT`, и так до рассвета, — а сказать
+       есть что: на другой стороне планеты в этот час идёт свой день. Высота
+       солнца там равна −e, и цвет берётся той же лестницей неба (`skyColor`).
+       Отсюда ход призрака за ночь: наши закатные цвета, синий час, ночь — и
+       дальше пятно теплеет чужим утром до бледного чужого полудня в солнечную
+       полночь, а к нашему рассвету остывает обратно тем же порядком. Алексей:
+       «на обратной стороне планеты тоже сменяется день на закат и сумерки,
+       синий час, пусть это будет сказано такой визуализацией».
+       Стык стоит на −18° не для ровного числа: чужое небо заговаривает ровно
+       там, где замолкает своё. Переход занимает 6° — за них синева проходит
+       через нейтральное и становится тёплой; это не муть на полпути, это и
+       есть то, как выглядит рассвет.
+       Светлая тема берёт ступень темнее (×0.55). Чужой полдень — `SILVER`
+       #EFEAE0, почти цвет листа: без ступени пятно исчезало бы ровно там, где
+       интереснее всего (контраст к листу 1.06 : 1 против 1.27 : 1 со ступенью
+       — та же величина, что у ночной синевы, которую уже приняли). Решению
+       «светило держит свой цвет в обеих темах» это не противоречит: там речь
+       о диске, у которого есть кромка и тень, и светлое от светлого отделяет
+       глубина. У пятна кромки нет по устройству — «остался только свет сквозь
+       землю, и у него края быть не может», — тени ему взять неоткуда, и
+       остаётся ступень цвета: тот же приём, которым латунь на светлом
+       становится медью. */
+    var deepCol = st.c, below = -e - 18;
+    if (below > 0) {
+      var other = skyColor(-e);
+      if (theme === "light") other = [Math.round(other[0] * 0.55), Math.round(other[1] * 0.55), Math.round(other[2] * 0.55)];
+      deepCol = lerp(st.c, other, clamp(below / 6, 0, 1));
+    }
+    var deepInk = rgb(deepCol);
+    ["sdIn", "sdMid", "sdOut"].forEach(function (id) { $(id).setAttribute("stop-color", deepInk); });
 
     var drop = $("drop");
     if (e > 0.5 && !moon) {
@@ -14541,6 +14616,11 @@
       ], { duration: 430, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" }).onfinish = function () {
         clone.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: "forwards" }).onfinish = function () { clone.remove(); };
       };
+      /* Уборка не на одном `onfinish`: анимация может и не закончиться —
+         вкладка ушла в фон, экран сменился под ней, — а клон висит поверх
+         всего с z-index 9999. Поймал такой на пустой подборке: кадр из
+         прошлой папки остался лежать на её плашках. */
+      setTimeout(function () { clone.remove(); }, 900);
     });
   }
   function renderMbTiles() {
@@ -14567,14 +14647,21 @@
     var html = '<div class="sec-label" style="padding-left:0;">' + esc(LANG.t("nav.shoots")) + "</div>";
     html += sessionsF.length
       ? '<div class="mb-tiles">' + sessionsF.map(function (f, i) { return tile(f, i, "s"); }).join("") + "</div>"
-      : '<div class="org-empty">' + esc(LANG.t("mb.noShootFolders")) + "</div>";
+      : mbGhostTiles(LANG.t("mb.noShootFolders"), 0);
     html += '<div class="sec-label" style="padding-left:0;margin-top:18px;">' + esc(LANG.t("mb.sets")) + "</div>";
     html += (addTile || genresF.length)
-      ? '<div class="mb-tiles">' + addTile + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("") + "</div>"
-      : '<div class="org-empty">' + esc(LANG.t("mb.noGenreSets")) + "</div>";
+      /* Рамка «+» одна в ряду смотрится так же пусто, как строка «пока
+         пусто»: ряд добирается призраками до полного, и сразу видно, во что
+         эта рамка превратится. Как только заведена хоть одна подборка,
+         показывать нечего — призраки уходят. */
+      ? '<div class="mb-tiles">' + addTile + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("")
+        + (genresF.length ? "" : mbGhostCells(2, 3)) + "</div>"
+      /* Второй раздел начинает с другого места палитры: два одинаковых ряда
+         подряд читались бы как одна повторённая заготовка. */
+      : mbGhostTiles(LANG.t("mb.noGenreSets"), 3);
     if (folders.length > 1) html += '<div class="mb-strip-hint">' + esc(LANG.t("mb.mergeHint")) + "</div>";
     $("mbGallery").innerHTML = html;
-    $("mbGallery").querySelectorAll(".mb-tile:not(.add)").forEach(function (b) {
+    $("mbGallery").querySelectorAll(".mb-tile:not(.add):not(.gh-tile)").forEach(function (b) {
       var list = b.dataset.list === "s" ? sessionsF : genresF;
       mbStartDrag(b, b.dataset.bid, function () { openBoardWithFly(list[+b.dataset.i], b); });
     });
@@ -14653,7 +14740,7 @@
      может. */
   var MB_SKY = [[DEEP, BLUE], [BLUE, PINK], [PINK, SCARLET], [SCARLET, GOLD],
                 [GOLD, AMBER], [NIGHT, DEEP], [BLUE, NIGHT], [AMBER, SILVER]];
-  function mbSky(id) {
+  function mbSkyIdx(id) {
     var h = 2166136261, str = String(id || "");
     for (var i = 0; i < str.length; i++) {
       h ^= str.charCodeAt(i);
@@ -14661,8 +14748,50 @@
     }
     /* Младшие биты у коротких знаков похожи — берём старшие, иначе соседние
        подборки красятся в один цвет, и «свой цвет у каждой» не работает */
-    var p = MB_SKY[(h >>> 16) % MB_SKY.length];
-    return "linear-gradient(145deg," + rgba(p[0], 0.85) + "," + rgba(p[1], 0.85) + ")";
+    return (h >>> 16) % MB_SKY.length;
+  }
+  function mbSkyAt(i, a) {
+    var p = MB_SKY[((i % MB_SKY.length) + MB_SKY.length) % MB_SKY.length];
+    return "linear-gradient(145deg," + rgba(p[0], a) + "," + rgba(p[1], a) + ")";
+  }
+  function mbSky(id) { return mbSkyAt(mbSkyIdx(id), 0.85); }
+  /* ---------- Чем станет пустая подборка ----------
+     Высоты подобраны разнобоем, как у настоящих кадров: ровный ряд одинаковых
+     прямоугольников читался бы как таблица, а не как подборка. Числа
+     постоянные, не случайные, — иначе сетка перекладывалась бы на каждой
+     перерисовке (а она перерисовывается на каждый тег и каждую букву поиска).
+     Цвет чуть мягче обложек (0.72 против 0.85): призрак не должен спорить с
+     первым же настоящим кадром, который сюда ляжет. Ниже пробовал 0.5 —
+     плашки уходили в землистое, и экран снова читался как неудавшийся, а не
+     как приглашение. */
+  var MB_GHOST_H = [152, 108, 96, 138, 126, 112];
+  function mbGhostGrid(say, id) {
+    var from = mbSkyIdx(id);
+    return '<div class="rt-ghost"><div class="gh-say">' + esc(say) + "</div>"
+      + '<div class="gh-cols">'
+      + MB_GHOST_H.map(function (h, i) {
+        return '<span class="gh" style="height:' + h + "px;background:" + mbSkyAt(from + i, 0.72) + '"></span>';
+      }).join("")
+      + "</div></div>";
+  }
+  /* Тот же приём для пустого раздела галереи: обложки без подборок под ними.
+     Подпись здесь обычной строкой снизу — плитки мельче, и накрывать их
+     подложкой значило бы закрыть всё, что они показывают.
+     Класс `gh-tile` обязателен, а не для порядка: обработчики галереи
+     разбирают `.mb-tile:not(.add)` и вешают на каждую плитку перетаскивание
+     подборки. Призрак под этот же селектор попадал, и тап по нему падал с
+     «Cannot read properties of undefined» — подборки за ним нет. */
+  function mbGhostCells(n, from) {
+    var out = "";
+    for (var i = 0; i < n; i++) {
+      out += '<span class="mb-tile gh-tile"><span class="mb-cover" style="background-image:'
+        + mbSkyAt((from || 0) + i, 0.72) + '"></span></span>';
+    }
+    return out;
+  }
+  function mbGhostTiles(say, from) {
+    return '<div class="mb-tiles gh-tiles">' + mbGhostCells(3, from) + "</div>"
+      + '<div class="org-empty">' + esc(say) + "</div>";
   }
   /* Обложка — мозаика 2×2 из первых кадров, либо назначенный кадр целиком */
   /* ---------- Подборка говорит своё состояние вслух ----------
@@ -14839,8 +14968,11 @@
           + '<span class="mb-cover">+' + (over + 1) + "</span>"
           + '<span class="n">' + esc(LANG.t("mb.all")) + "</span></button>";
       }
+      /* Та же добивка ряда, что в галерее: рамка «+» в одиночестве — это
+         снова пустой экран, только с рамкой посередине. */
+      if (!list.length && prefix) html += mbGhostCells(2, 3);
       $(host).innerHTML = html;
-      $(host).querySelectorAll(".mb-tile:not(.add)").forEach(function (b) {
+      $(host).querySelectorAll(".mb-tile:not(.add):not(.gh-tile)").forEach(function (b) {
         if (b.dataset.more) {
           b.addEventListener("click", function () { renderMbGallery(); $("mbOverlay").classList.add("open"); });
           return;
@@ -14964,9 +15096,16 @@
         + refImg(p.r)
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + "</button>";
-    }).join("") || '<div class="rt-empty" style="padding:8px 2px">'
-      + esc(q ? LANG.t("mb.searchNothing")
-        : (mbTag ? LANG.t("mb.sectionEmpty", { section: tagName(mbTag) }) : LANG.t("mb.empty"))) + "</div>";
+    }).join("") || (function () {
+      /* Поиск и раздел пусты по-разному: там кадры есть, просто не эти, и
+         рисовать под «ничего не нашлось» шесть призраков — обещать то, чего
+         фильтр всё равно не покажет. Призраки только у подборки, в которой
+         кадров нет вовсе. */
+      if (q) return '<div class="rt-empty" style="padding:8px 2px">' + esc(LANG.t("mb.searchNothing")) + "</div>";
+      if (mbTag) return '<div class="rt-empty" style="padding:8px 2px">'
+        + esc(LANG.t("mb.sectionEmpty", { section: tagName(mbTag) })) + "</div>";
+      return mbGhostGrid(LANG.t("mb.empty"), board.id);
+    })();
     /* Короткий тап открывает кадр во весь экран (макет «Moodboard Shoots»),
        долгий — тот же лист действий, что был раньше: теги, перенос, удаление.
        Тот же порог и разрыв по сдвигу, что у поднятия подборки (mbStartDrag). */
