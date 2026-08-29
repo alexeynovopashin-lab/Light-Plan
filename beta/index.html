@@ -880,6 +880,10 @@
 </script>
 <script src="lang.js?v=24"></script>
 <script src="qr.js?v=1"></script>
+<!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
+     файлом, потому что это данные, а не код страницы — и потому что грузить
+     их незачем никому, кроме одного слоя. -->
+<script src="sky.js?v=1"></script>
 <style>
   /* ============================================================
      ЦВЕТА ОДНИМ СПИСКОМ
@@ -3693,33 +3697,28 @@
     opacity: 0; animation: as-veil 2.4s ease forwards;
   }
   .astro-sky[hidden] { display: none; }
-  .astro-sky svg { position: absolute; overflow: visible; }
+  /* Купол: круг вписан в ширину слоя и стоит по центру экрана. Зенит в
+     середине, горизонт по ободу, север вверху, восток слева — так небо
+     выглядит, когда смотришь вверх, а не когда читаешь карту со стены. */
+  .as-dome {
+    position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+    width: 100%; height: auto; aspect-ratio: 1 / 1; overflow: visible;
+  }
   .as-star { fill: var(--brass); opacity: 0; animation: as-lit 1.9s ease forwards; }
   .as-line {
-    fill: none; stroke: var(--brass); stroke-width: 0.7; opacity: 0.34;
+    fill: none; stroke: var(--brass); stroke-width: 0.45; opacity: 0.34;
     stroke-linecap: round; stroke-linejoin: round;
-    stroke-dasharray: 260; stroke-dashoffset: 260;
-    animation: as-draw 1.5s cubic-bezier(0.3,0.9,0.4,1) 0.35s forwards;
+    /* pathLength нормализует длину: одна и та же анимация прочерчивает и
+       короткую перемычку пояса Ориона, и хребет Дракона через полнеба */
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+    animation: as-draw 1.5s cubic-bezier(0.3,0.9,0.4,1) 0.3s forwards;
   }
-  /* Звёзды загораются не разом: глаз успевает прочесть форму, а не вспышку */
-  .as-star.s1 { animation-delay: 0.02s; } .as-star.s2 { animation-delay: 0.1s; }
-  .as-star.s3 { animation-delay: 0.18s; } .as-star.s4 { animation-delay: 0.26s; }
-  .as-star.s5 { animation-delay: 0.34s; } .as-star.s6 { animation-delay: 0.42s; }
-  .as-star.s7 { animation-delay: 0.5s; }
-  .as-moon {
-    top: 8%; right: 9%; width: 46px; height: 46px;
-    fill: var(--brass); stroke: none; opacity: 0;
-    animation: as-moon 2.4s cubic-bezier(0.25,1,0.4,1) forwards;
-  }
-  /* Фигуры стоят по свободным полям экрана, а не по центру: ковш в левой
-     верхней четверти, Орион ниже и правее — они не должны накладываться друг
-     на друга и садиться на одну строку списка */
-  .as-ursa  { top: 21%; left: 7%; width: 44%; }
-  .as-orion { top: 54%; right: 10%; width: 29%; }
-  /* Светлая тема: та же тёмная вуаль, но плотнее — иначе латунь звёзд ложится
-     на светло-серое поле и не читается. Инверсии нет: небо тёмное в обеих
-     темах, темнеет только фон под ним */
-  :root[data-theme="light"] .astro-sky { background: rgba(24,20,15,0.62); }
+  /* Обод горизонта и четыре буквы — это гид, а не рамка: без них купол не
+     сказал бы, куда повернуться, чтобы увидеть то, что нарисовано */
+  .as-rim { fill: none; stroke: var(--ink-4); stroke-width: 0.4; opacity: 0.35; }
+  .as-card { fill: var(--ink-4); opacity: 0.55; font-size: 7px; font-family: inherit;
+    text-anchor: middle; dominant-baseline: middle; }
+  .as-moon { fill: var(--brass); opacity: 0; animation: as-moon 2.4s cubic-bezier(0.25,1,0.4,1) forwards; }
   @keyframes as-veil { 0% { opacity: 0; } 14% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; } }
   @keyframes as-lit  { 0% { opacity: 0; transform: scale(0.4); } 22% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1); } }
   @keyframes as-draw { to { stroke-dashoffset: 0; } }
@@ -5802,32 +5801,7 @@
          поднимал голову. Звёзды разного размера, потому что они разной
          величины, а не для красоты. -->
     <div class="astro-sky" id="astroSky" hidden aria-hidden="true">
-      <svg class="as-moon" viewBox="0 0 24 24"><path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/></svg>
-      <svg class="as-ursa" viewBox="0 0 100 56">
-        <polyline class="as-line" points="8,26 24,20 39,20 52,26 56,40 86,44 88,26 52,26"/>
-        <circle class="as-star s1" cx="8" cy="26" r="2.2"/>
-        <circle class="as-star s2" cx="24" cy="20" r="1.8"/>
-        <circle class="as-star s3" cx="39" cy="20" r="2"/>
-        <circle class="as-star s4" cx="52" cy="26" r="1.5"/>
-        <circle class="as-star s5" cx="56" cy="40" r="1.9"/>
-        <circle class="as-star s6" cx="86" cy="44" r="1.9"/>
-        <circle class="as-star s7" cx="88" cy="26" r="2.3"/>
-      </svg>
-      <svg class="as-orion" viewBox="0 0 84 116">
-        <polyline class="as-line" points="18,28 62,24"/>
-        <polyline class="as-line" points="18,28 30,60"/>
-        <polyline class="as-line" points="62,24 56,55"/>
-        <polyline class="as-line" points="30,60 43,58 56,55"/>
-        <polyline class="as-line" points="30,60 26,98"/>
-        <polyline class="as-line" points="56,55 66,94"/>
-        <circle class="as-star s1" cx="18" cy="28" r="2.4"/>
-        <circle class="as-star s2" cx="62" cy="24" r="1.8"/>
-        <circle class="as-star s3" cx="30" cy="60" r="1.7"/>
-        <circle class="as-star s4" cx="43" cy="58" r="1.7"/>
-        <circle class="as-star s5" cx="56" cy="55" r="1.7"/>
-        <circle class="as-star s6" cx="26" cy="98" r="1.6"/>
-        <circle class="as-star s7" cx="66" cy="94" r="2.4"/>
-      </svg>
+      <svg class="as-dome" id="asDome" viewBox="0 0 200 200"></svg>
     </div>
 
     <!-- Настройки читались одной лентой: восемь глав, двадцать пять
@@ -22538,8 +22512,65 @@
      две секунды и гаснут сами. Таймер держим в переменной — быстрые нажатия
      подряд не должны гасить слой раньше срока чужим отсчётом */
   var astroSkyT = null;
+  /* Купол собирается заново на каждое включение: небо за час поворачивается на
+     пятнадцать градусов, и вчерашняя разметка соврала бы. Всё, что нужно, —
+     уже есть в приложении: место (`LAT`/`LON`), время (`toDays`) и поворот
+     купола (`eqToAltAz`, тот же, что у луны и Млечного Пути). Каталог —
+     `sky.js`, константы эпохи J2000.
+
+     Проекция простая и честная: расстояние от центра — угол от зенита, то
+     есть у горизонта фигуры растягиваются ровно так же, как растягиваются
+     они в глазах у живого неба. Север вверху, восток слева: смотрим вверх,
+     а не читаем карту со стены. */
+  function buildAstroSky() {
+    var dome = $("asDome"); if (!dome || !window.SKY) return;
+    var R = 92, cx = 100, cy = 100, d = toDays(new Date()), out = [], n = 0;
+    function pt(alt, az) {
+      var r = (90 - alt) / 90 * R, a = rad(az);
+      return [cx - r * Math.sin(a), cy - r * Math.cos(a)];
+    }
+    out.push('<circle class="as-rim" cx="100" cy="100" r="' + R + '"/>');
+    [["card.n", 0], ["card.e", 90], ["card.s", 180], ["card.w", 270]].forEach(function (c) {
+      var p = pt(-7, c[1]);
+      out.push('<text class="as-card" x="' + p[0].toFixed(1) + '" y="' + p[1].toFixed(1)
+        + '">' + esc(LANG.t(c[0])) + "</text>");
+    });
+    SKY.forEach(function (con) {
+      var pos = con.s.map(function (st) {
+        return eqToAltAz(st[0] * Math.PI / 12, rad(st[1]), d);
+      });
+      /* Созвездие показывается целиком или не показывается вовсе: половина
+         фигуры за горизонтом читается как другая фигура, а это уже неправда */
+      var up = pos.every(function (p) { return p.alt > 1; });
+      if (!up) return;
+      con.l.forEach(function (ln) {
+        var a = pt(pos[ln[0]].alt, pos[ln[0]].az), b = pt(pos[ln[1]].alt, pos[ln[1]].az);
+        out.push('<line class="as-line" pathLength="1" x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1)
+          + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '"/>');
+      });
+      con.s.forEach(function (st, i) {
+        var p = pt(pos[i].alt, pos[i].az);
+        /* Радиус по звёздной величине: Вега и Полярная не могут быть одной
+           точкой, иначе созвездие не узнать — глаз ведёт по ярким */
+        var r = Math.max(0.7, 1.9 - 0.28 * st[2]);
+        out.push('<circle class="as-star" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1)
+          + '" r="' + r.toFixed(2) + '" style="animation-delay:' + (0.02 * (n++ % 40)).toFixed(2) + 's"/>');
+      });
+    });
+    /* Луна — на своём настоящем месте, а не в углу для красоты. Под горизонтом
+       её просто нет: это купол видимого неба, а не карта эфемерид */
+    var now = new Date(), mp = moonAt(now, now.getHours() * 60 + now.getMinutes());
+    if (mp.alt > 0) {
+      var m = pt(mp.alt, mp.az);
+      out.push('<g class="as-moon" transform="translate(' + (m[0] - 6).toFixed(1) + ','
+        + (m[1] - 6).toFixed(1) + ') scale(0.5)">'
+        + '<path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/></g>');
+    }
+    dome.innerHTML = out.join("");
+  }
   function showAstroSky() {
     var sky = $("astroSky"); if (!sky) return;
+    buildAstroSky();
     clearTimeout(astroSkyT);
     sky.hidden = true;
     void sky.offsetWidth;              /* перезапуск анимации: без чтения раскладки браузер не заметит смены */
