@@ -4088,6 +4088,8 @@
     stroke-linecap: round; stroke-linejoin: round; }
   .wx-h .tt { font-size: 11.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
   .wx-h .pp { font-size: 10px; color: var(--ink-7); }
+  /* Час до и час после съёмки: те же колонки, ступень второстепенного 0.45 */
+  .wx-h.aside { opacity: 0.45; }
 
   /* Разворачиваемое: маршрут и референсы. Свёрнуто — знак и суть одной строкой */
   .fold { margin-top: 9px; background: var(--sheet); border-radius: 16px; corner-shape: squircle; overflow: hidden; }
@@ -18775,12 +18777,23 @@
           return out;
         })();
     hours = hours.slice(0, 6);
+    /* Панель показывается по основным точкам: добавки не должны выводить её
+       туда, где её раньше не было */
     $("cdWx").hidden = hours.length < 2;
     if (hours.length < 2) return;
-    $("cdWx").innerHTML = '<div class="wx-hours wide">' + hours.map(function (t) {
-      return '<div class="wx-h"><div class="hh">' + fmt(t) + "</div>"
+    /* Короткая съёмка вырождается в две колонки по краям и дыру между ними.
+       Добавляем час до и час после — дорога на площадку и дорога домой,
+       блекло: это часть дня, но не оплачиваемая. fmt и tempAt считают по
+       модулю суток, полночь их не смущает */
+    var cols = hours.map(function (t) { return { t: t, aside: false }; });
+    if (cols.length < 3) {
+      cols.unshift({ t: cols[0].t - 60, aside: true });
+      cols.push({ t: cols[cols.length - 1].t + 60, aside: true });
+    }
+    $("cdWx").innerHTML = '<div class="wx-hours wide">' + cols.map(function (c) {
+      return '<div class="wx-h' + (c.aside ? " aside" : "") + '"><div class="hh">' + fmt(c.t) + "</div>"
         + wxSign(q)
-        + '<div class="tt">' + tempOut(wx.tempBase, t) + "°</div>"
+        + '<div class="tt">' + tempOut(wx.tempBase, c.t) + "°</div>"
         + '<div class="pp">' + wx.cloud + "%</div></div>";
     }).join("") + "</div>";
   }
