@@ -3626,9 +3626,12 @@
     border-bottom: 1px solid var(--hair-2);
   }
   .item .k { color: var(--ink); }
-  /* Знак в строке настроек. Заведён для корзины: удалённое ищут глазами, и
-     ведро находится быстрее слова. Форма не новая — тот же `trash`, каким
-     корзина подписана в карточке, и та же метрика знака (17 px, ход 1.6) */
+  /* Знак в строке настроек. Правило: знак получает строка, которая ведёт
+     дальше (у неё шеврон), — переключатели и справочные значения остаются без
+     него, иначе список кричит весь сразу и не показывает ничего. Формы не
+     новые: все двенадцать знаков взяты из библиотеки приложения, метрика одна
+     (17 px, ход 1.6), тон — тон значения, а не названия: знак помогает найти
+     строку, а не спорит с ней за внимание */
   .item .ir { display: flex; align-items: center; gap: 11px; }
   .item-ic { display: flex; }
   .item-ic svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-4);
@@ -5743,18 +5746,18 @@
     </div>
 
     <div class="set-nav">
-      <div class="item" id="setNavProfile"><span class="k" data-i18n="set.grpProfile">Профиль</span><span class="v" id="setNavProfileV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavView"><span class="k" data-i18n="set.grpView">Вид</span><span class="v" id="setNavViewV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavShoots"><span class="k" data-i18n="set.grpShoots">Съёмки</span><span class="v" id="setNavShootsV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavProfile"><span class="ir"><span class="item-ic" data-ic="phone"></span><span class="k" data-i18n="set.grpProfile">Профиль</span></span><span class="v" id="setNavProfileV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavView"><span class="ir"><span class="item-ic" data-ic="sun_moon"></span><span class="k" data-i18n="set.grpView">Вид</span></span><span class="v" id="setNavViewV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavShoots"><span class="ir"><span class="item-ic" data-ic="camera"></span><span class="k" data-i18n="set.grpShoots">Съёмки</span></span><span class="v" id="setNavShootsV"><span class="go-chev">›</span></span></div>
       <!-- Оповещения без значения: три переключателя уведомлений пока
            ничего не включают (`[data-toggle]` лишь меняет класс), и «3 из 4»
            в корне было бы точностью на пустом месте -->
-      <div class="item" id="setNavAlerts"><span class="k" data-i18n="set.grpAlerts">Оповещения</span><span class="v"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavPlaces"><span class="k" data-i18n="set.grpPlaces">Карта и места</span><span class="v" id="setNavPlacesV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavStore"><span class="k" data-i18n="set.storage">Хранилище</span><span class="v" id="setNavStoreV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavData"><span class="k" data-i18n="set.grpData">Данные и облако</span><span class="v" id="setNavDataV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavLocale"><span class="k" data-i18n="set.grpLocale">Язык и регион</span><span class="v" id="setNavLocaleV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavAbout"><span class="k" data-i18n="set.grpAbout">О приложении</span><span class="v"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavAlerts"><span class="ir"><span class="item-ic" data-ic="alarm"></span><span class="k" data-i18n="set.grpAlerts">Оповещения</span></span><span class="v"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavPlaces"><span class="ir"><span class="item-ic" data-ic="pin"></span><span class="k" data-i18n="set.grpPlaces">Карта и места</span></span><span class="v" id="setNavPlacesV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavStore"><span class="ir"><span class="item-ic" data-ic="briefcase"></span><span class="k" data-i18n="set.storage">Хранилище</span></span><span class="v" id="setNavStoreV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavData"><span class="ir"><span class="item-ic" data-ic="cloud"></span><span class="k" data-i18n="set.grpData">Данные и облако</span></span><span class="v" id="setNavDataV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavLocale"><span class="ir"><span class="item-ic" data-ic="chat"></span><span class="k" data-i18n="set.grpLocale">Язык и регион</span></span><span class="v" id="setNavLocaleV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavAbout"><span class="ir"><span class="item-ic" data-ic="aperture"></span><span class="k" data-i18n="set.grpAbout">О приложении</span></span><span class="v"><span class="go-chev">›</span></span></div>
     </div>
   </section>
 
@@ -5934,7 +5937,7 @@
     <div class="sec-label" data-i18n="set.places">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
-    <div class="item" id="spotsRow"><span class="k" data-i18n="loc.myPlaces">Мои места</span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <div class="item" id="spotsRow"><span class="ir"><span class="item-ic" data-ic="star"></span><span class="k" data-i18n="loc.myPlaces">Мои места</span></span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
   </div>
 
   <div class="overlay pad flush" id="setOvStore">
@@ -5948,12 +5951,12 @@
          через настройку карточки (Алексей: «тут это делать удобнее»).
          Раздел не заводит новых данных, только даёт разложить по полочкам
          то, что уже лежит в фонде кадров (docs: DECISIONS). -->
-    <div class="item" id="mbRow"><span class="k" data-i18n="set.moodboards">Мудборды</span><span class="v" id="mbRowN">— <span class="go-chev">›</span></span></div>
+    <div class="item" id="mbRow"><span class="ir"><span class="item-ic" data-ic="album"></span><span class="k" data-i18n="set.moodboards">Мудборды</span></span><span class="v" id="mbRowN">— <span class="go-chev">›</span></span></div>
     <!-- Экран организаций живёт и здесь: раньше единственный путь был кнопкой
          в шапке «Съёмок», её место занял вход в статистику. Строка в форме
          съёмки («Заказчик») по-прежнему открывает тот же список для выбора,
          а этот пункт — для того, чтобы просто посмотреть архив без съёмки под рукой -->
-    <div class="item" id="orgsSetRow"><span class="k" data-i18n="set.orgsDocs">Организации и документы</span><span class="go-chev">›</span></div>
+    <div class="item" id="orgsSetRow"><span class="ir"><span class="item-ic" data-ic="doc"></span><span class="k" data-i18n="set.orgsDocs">Организации и документы</span></span><span class="go-chev">›</span></div>
     <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
          открывать нечего. Строка стоит и при пустой корзине: место, где
@@ -10545,7 +10548,20 @@
        доля ночи переваливает за единицу и точка наматывает лишние обороты. */
     if (frac > 1) return posOn(t > b ? t - 1440 : t + 1440, a, b);
     var th = rad(t > b ? -frac * 180 : 180 + frac * 180);
-    return [cx + rx * Math.cos(th), cy - ry * Math.sin(th)];
+    /* Вбок призрак идёт по доле ночи — так круг сходится (см. выше). А вниз —
+       по настоящей высоте светила, а не по той же доле. Доля ночи говорит
+       «середина ночи — значит дно круга», и на средней широте это совпадает с
+       делом: в середине ночи солнце и правда на −30°. На 82° с.ш. в сентябре
+       ночь идёт целиком под самым горизонтом: глубже −2° солнце не опускается,
+       а призрак падал на 148 px вниз — за нижний край купола (viewBox 240 при
+       горизонте 196), наружу, поверх строк под ним.
+       Теперь глубина — сама высота: 0 на горизонте (стык с концами дуги точный)
+       и полная на −18°, где кончаются астрономические сумерки. Ноль берётся
+       от −0.833° — высоты самого восхода, — иначе на стыке с концом дуги
+       призрак прыгал бы на 7 px. Полярная ночь
+       остаётся мелкой рябью под линией, обычная — прежним нырком. */
+    var depth = clamp((-elevAt(t) - 0.833) / 18, 0, 1);
+    return [cx + rx * Math.cos(th), cy + ry * depth];
   }
 
   /* Освещённая доля диска: правая половина плюс-минус половина эллипса-терминатора */
