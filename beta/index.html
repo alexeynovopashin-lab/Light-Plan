@@ -1344,6 +1344,21 @@
   .card-del:active { opacity: 0.6; }
   .card-del[hidden] { display: none; }
 
+  /* Завершение — своей строкой над удалением и с другого края. Обводка вместо
+     заливки и зелёный вместо красного: съёмка завершается сама, а это ручной
+     дубликат для тех, кто считает переработку, — предложение, а не приговор
+     записи. Отступ снизу больше собственного, чтобы «Удалить» не читалось
+     второй кнопкой той же пары. */
+  .card-fin { display: flex; margin: 22px 0 0; }
+  .card-fin[hidden] { display: none; }
+  .card-fin + .card-acts { margin-top: 14px; }
+  .card-done {
+    padding: 10px 16px; border: 1px solid var(--green); border-radius: 999px;
+    background: none; color: var(--green);
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .card-done:active { opacity: 0.6; }
+
   /* ---------- Корзина ----------
      Карточка уходит в корзину джинном: уменьшается и стягивается к значку,
      который на время полёта выезжает снизу. Это не украшение — движение
@@ -4024,11 +4039,6 @@
   /* Завершение — тихая кнопка, не действие первого плана: съёмка кончается
      сама, а это ручной дубликат для тех, кто считает переработку. Оттого
      обводка вместо заливки, и зелёный — тот же, каким плитка говорит «идёт». */
-  .dt-done { margin-top: 9px; padding: 6px 13px; font-size: 12.5px; font-family: inherit;
-    color: var(--green); background: none; border: 1px solid var(--green);
-    border-radius: 999px; opacity: 0.75; cursor: pointer; }
-  .dt-done:active { opacity: 1; }
-  .dt-done[hidden] { display: none; }
 
   /* Лента точек: знаки сверху, латунная нить, время и подпись снизу */
   .lane { display: flex; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
@@ -6244,11 +6254,6 @@
           <div class="dt-clock" id="cdDayClock"></div>
         </div>
         <div class="dt-left" id="cdDayLeft"></div>
-        <!-- Завершение вручную: появляется только при включённой настройке и
-             только пока съёмка идёт. Стоит внутри плитки дня, у той самой
-             строки, что говорит «идёт съёмка», — действие рядом со своим
-             показанием, а не в подвале карточки среди опасного «Удалить». -->
-        <button type="button" class="dt-done" id="cdDayDone" hidden data-i18n="day.finish">Завершить</button>
         <div class="lane" id="cdLane"></div>
       </div>
     </div>
@@ -6374,6 +6379,16 @@
          Слева корзина, справа удаление пилюлей. Корзины нет, пока она пуста:
          функция обязана уметь исчезнуть, и пустая корзина на экране — это
          обещание работы, которой нет. -->
+    <!-- Завершение вручную: появляется только при включённой настройке и только
+         пока съёмка идёт. Стояло в плитке дня, у строки «идёт съёмка», — место
+         не принято: плитка дня сводка, а не пульт, она говорит, а не
+         спрашивает. Здесь кнопка своей строкой, отдельно от «Удалить»: разные
+         стороны, разный способ (обводка против заливки), разный цвет и полтора
+         десятка пикселей между — два действия не должны читаться однородными,
+         одно завершает работу, другое стирает запись. -->
+    <div class="card-fin" id="cdFinRow" hidden>
+      <button type="button" class="card-done" id="cdDayDone" data-i18n="day.finish">Завершить</button>
+    </div>
     <div class="card-acts">
       <button class="card-bin" id="cdBin" hidden aria-label="Корзина" data-i18n-aria="card.bin">
         <span class="ic" data-ic="trash"></span><span class="n" id="cdBinN">0</span>
@@ -18463,7 +18478,7 @@
     $("cdDayDot").style.display = phase === "during" ? "" : "none";
     /* Кнопка живёт только там, где ей есть что сделать: включённая настройка,
        идущая съёмка, сегодняшний день. Встречу не завершают — она не работа. */
-    $("cdDayDone").hidden = !(manualEnd && phase === "during" && today && !isMeet(s));
+    $("cdFinRow").hidden = !(manualEnd && phase === "during" && today && !isMeet(s));
 
     var dur = s.dur || 90, endMin = s.end != null ? s.end : s.min + dur;
     if (!route.length) {
