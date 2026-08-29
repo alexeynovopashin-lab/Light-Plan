@@ -3655,6 +3655,57 @@
      таб-бара. Прибавить сюда воздуха значит спрятать «О приложении» под
      панель (замер: safe-area снизу 34 → строка уходила на 9 точек). */
   .set-nav { padding-top: 2px; }
+  /* ---------- Небо на включение «Астро» ----------
+     Слой лежит поверх настроек и ничего не ловит: `pointer-events: none`.
+     Звёзды латунью, нити созвездий — тем же волосом, каким прибор рисует свои
+     линии. Гало нет намеренно (08_VISUAL_LANGUAGE): звезда — точка, а не
+     размытое пятно света. */
+  .astro-sky {
+    position: absolute; inset: 0; z-index: 20; pointer-events: none;
+    /* Лёгкое затемнение — не картинка ночи, а тот же приём, каким штора
+       отодвигает экран за лист. Без него звёзды садятся на строки списка и
+       спорят с ними за чтение: свободного поля на этом экране нет */
+    background: rgba(0,0,0,0.42);
+    opacity: 0; animation: as-veil 2.4s ease forwards;
+  }
+  .astro-sky[hidden] { display: none; }
+  .astro-sky svg { position: absolute; overflow: visible; }
+  .as-star { fill: var(--brass); opacity: 0; animation: as-lit 1.9s ease forwards; }
+  .as-line {
+    fill: none; stroke: var(--brass); stroke-width: 0.7; opacity: 0.34;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 260; stroke-dashoffset: 260;
+    animation: as-draw 1.5s cubic-bezier(0.3,0.9,0.4,1) 0.35s forwards;
+  }
+  /* Звёзды загораются не разом: глаз успевает прочесть форму, а не вспышку */
+  .as-star.s1 { animation-delay: 0.02s; } .as-star.s2 { animation-delay: 0.1s; }
+  .as-star.s3 { animation-delay: 0.18s; } .as-star.s4 { animation-delay: 0.26s; }
+  .as-star.s5 { animation-delay: 0.34s; } .as-star.s6 { animation-delay: 0.42s; }
+  .as-star.s7 { animation-delay: 0.5s; }
+  .as-moon {
+    top: 8%; right: 9%; width: 46px; height: 46px;
+    fill: var(--brass); stroke: none; opacity: 0;
+    animation: as-moon 2.4s cubic-bezier(0.25,1,0.4,1) forwards;
+  }
+  /* Фигуры стоят по свободным полям экрана, а не по центру: ковш в левой
+     верхней четверти, Орион ниже и правее — они не должны накладываться друг
+     на друга и садиться на одну строку списка */
+  .as-ursa  { top: 21%; left: 7%; width: 44%; }
+  .as-orion { top: 54%; right: 10%; width: 29%; }
+  /* Светлая тема: та же тёмная вуаль, но плотнее — иначе латунь звёзд ложится
+     на светло-серое поле и не читается. Инверсии нет: небо тёмное в обеих
+     темах, темнеет только фон под ним */
+  :root[data-theme="light"] .astro-sky { background: rgba(24,20,15,0.62); }
+  @keyframes as-veil { 0% { opacity: 0; } 14% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes as-lit  { 0% { opacity: 0; transform: scale(0.4); } 22% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes as-draw { to { stroke-dashoffset: 0; } }
+  @keyframes as-moon { 0% { opacity: 0; transform: translateY(9px) rotate(-12deg); } 30% { opacity: 0.9; transform: none; } 100% { opacity: 0.9; transform: none; } }
+  /* Кому движение мешает — тому небо просто проступает и гаснет */
+  @media (prefers-reduced-motion: reduce) {
+    .as-star, .as-line, .as-moon { animation: none; opacity: 0.9; stroke-dashoffset: 0; }
+    .as-line { opacity: 0.34; }
+  }
+
   /* Ряд «Просто/Астро» под шапкой первого экрана; свои 12px у `.seg` есть */
   .set-mode { padding-top: 4px; }
   .toggle {
@@ -5715,6 +5766,44 @@
   <section class="screen" id="s-set">
     <div class="header">
       <div class="loc"><div class="name">Light Plan</div><div class="date" data-i18n="set.proto">v3 · прототип</div></div>
+    </div>
+
+    <!-- Небо на включение «Астро». Не украшение и не изображение ночи: режим
+         добавляет на экраны азимуты, высоту светила и сумерки, и небо —
+         короткий ответ прибора «понял, считаю по звёздам». Гаснет само за две
+         секунды, тапы сквозь себя пропускает.
+
+         Созвездия настоящие, а не орнамент: ковш Медведицы с настоящим изломом
+         у Мицара и Орион с поясом из трёх — их узнаёт любой, кто хоть раз
+         поднимал голову. Звёзды разного размера, потому что они разной
+         величины, а не для красоты. -->
+    <div class="astro-sky" id="astroSky" hidden aria-hidden="true">
+      <svg class="as-moon" viewBox="0 0 24 24"><path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/></svg>
+      <svg class="as-ursa" viewBox="0 0 100 56">
+        <polyline class="as-line" points="8,26 24,20 39,20 52,26 56,40 86,44 88,26 52,26"/>
+        <circle class="as-star s1" cx="8" cy="26" r="2.2"/>
+        <circle class="as-star s2" cx="24" cy="20" r="1.8"/>
+        <circle class="as-star s3" cx="39" cy="20" r="2"/>
+        <circle class="as-star s4" cx="52" cy="26" r="1.5"/>
+        <circle class="as-star s5" cx="56" cy="40" r="1.9"/>
+        <circle class="as-star s6" cx="86" cy="44" r="1.9"/>
+        <circle class="as-star s7" cx="88" cy="26" r="2.3"/>
+      </svg>
+      <svg class="as-orion" viewBox="0 0 84 116">
+        <polyline class="as-line" points="18,28 62,24"/>
+        <polyline class="as-line" points="18,28 30,60"/>
+        <polyline class="as-line" points="62,24 56,55"/>
+        <polyline class="as-line" points="30,60 43,58 56,55"/>
+        <polyline class="as-line" points="30,60 26,98"/>
+        <polyline class="as-line" points="56,55 66,94"/>
+        <circle class="as-star s1" cx="18" cy="28" r="2.4"/>
+        <circle class="as-star s2" cx="62" cy="24" r="1.8"/>
+        <circle class="as-star s3" cx="30" cy="60" r="1.7"/>
+        <circle class="as-star s4" cx="43" cy="58" r="1.7"/>
+        <circle class="as-star s5" cx="56" cy="55" r="1.7"/>
+        <circle class="as-star s6" cx="26" cy="98" r="1.6"/>
+        <circle class="as-star s7" cx="66" cy="94" r="2.4"/>
+      </svg>
     </div>
 
     <!-- Настройки читались одной лентой: восемь глав, двадцать пять
@@ -22398,6 +22487,19 @@
   $("searchBack").addEventListener("click", function () { $("searchOverlay").classList.remove("open"); });
   $("searchInput").addEventListener("input", renderSearch);
 
+  /* Небо на включение «Астро»: луна, ковш Медведицы и Орион проступают на
+     две секунды и гаснут сами. Таймер держим в переменной — быстрые нажатия
+     подряд не должны гасить слой раньше срока чужим отсчётом */
+  var astroSkyT = null;
+  function showAstroSky() {
+    var sky = $("astroSky"); if (!sky) return;
+    clearTimeout(astroSkyT);
+    sky.hidden = true;
+    void sky.offsetWidth;              /* перезапуск анимации: без чтения раскладки браузер не заметит смены */
+    sky.hidden = false;
+    astroSkyT = setTimeout(function () { sky.hidden = true; }, 2400);
+  }
+
   // Режим и спойлеры
   document.querySelectorAll("#modeSeg button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -22405,6 +22507,11 @@
       b.classList.add("active");
       proMode = b.dataset.mode === "pro";
       document.body.classList.toggle("pro-mode", proMode);
+      /* Небо показывается только на включении: «Просто» — это возврат к
+         обычному счёту, ему праздновать нечего. Слой перезапускается снятием
+         и постановкой `hidden`, иначе второе нажатие подряд не оживит уже
+         отыгравшую анимацию */
+      if (proMode) showAstroSky();
       saveAll();
       // Вид ленты и прорези — настройки без предмета в «Просто», прячутся вместе с режимом
       if (typeof renderRibbonSeg === "function") renderRibbonSeg();
