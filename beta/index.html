@@ -3603,6 +3603,30 @@
   }
   .seg button.active { background: var(--seg-on); color: var(--ink); }
   .seg-note { font-size: 12px; color: var(--ink-6); padding: 10px 24px 0; line-height: 1.5; }
+  /* ---------- Небо на самой кнопке «Астро» ----------
+     Небо на экране гаснет, но признак режима остаётся: те же две фигуры
+     проявляются на включённой кнопке и живут, пока режим включён. Слой
+     накрывает правую половину сегмента — ровно площадь кнопки «Астро» —
+     и ничего не ловит.
+
+     Проявляются они не сразу: `sky-wait` держит их погашенными, пока идёт
+     небо на экране, и снимается вместе с ним. При запуске с уже включённым
+     режимом класса нет — звёзды на месте с первого кадра, ждать нечего. */
+  .set-mode .seg { position: relative; }
+  .seg-sky {
+    position: absolute; top: 3px; bottom: 3px; left: 50%; right: 3px;
+    pointer-events: none; opacity: 0; transition: opacity 0.7s ease;
+  }
+  body.pro-mode .seg-sky { opacity: 1; }
+  body.pro-mode #modeSeg.sky-wait .seg-sky { opacity: 0; transition: none; }
+  .seg-sky svg { position: absolute; overflow: visible; }
+  .ss-star { fill: var(--brass); opacity: 0.8; }
+  .ss-line { fill: none; stroke: var(--brass); stroke-width: 1; opacity: 0.28;
+    stroke-linecap: round; stroke-linejoin: round; }
+  /* Ковш по левому краю кнопки, Орион по правому — слово «Астро» остаётся
+     посередине незанятым */
+  .ss-ursa  { left: 4%; top: 30%; width: 30%; }
+  .ss-orion { right: 6%; top: 14%; width: 13%; }
 
   /* Работа с копией данных: действие, а не плашка-CTA */
   .data-btn {
@@ -5830,6 +5854,29 @@
       <div class="seg" id="modeSeg">
         <button class="active" data-mode="simple" data-i18n="set.modeSimple">Просто</button>
         <button data-mode="pro" data-i18n="set.modePro">Астро</button>
+        <!-- Небо садится на кнопку и остаётся там, пока режим включён: сам
+             переключатель и есть признак режима, и признак этот — звёздный.
+             Слой лежит поверх правой половины сегмента, а не внутри кнопки:
+             `data-i18n` переписывает содержимое своего элемента, и знак внутри
+             кнопки стёрся бы первой же сменой языка. -->
+        <div class="seg-sky" id="segSky" aria-hidden="true">
+          <svg class="ss-ursa" viewBox="0 0 100 56">
+            <polyline class="ss-line" points="8,26 24,20 39,20 52,26 56,40 86,44 88,26 52,26"/>
+            <circle class="ss-star" cx="8" cy="26" r="3"/><circle class="ss-star" cx="24" cy="20" r="2.4"/>
+            <circle class="ss-star" cx="39" cy="20" r="2.7"/><circle class="ss-star" cx="52" cy="26" r="2.1"/>
+            <circle class="ss-star" cx="56" cy="40" r="2.6"/><circle class="ss-star" cx="86" cy="44" r="2.6"/>
+            <circle class="ss-star" cx="88" cy="26" r="3.1"/>
+          </svg>
+          <svg class="ss-orion" viewBox="0 0 84 116">
+            <polyline class="ss-line" points="18,28 62,24"/><polyline class="ss-line" points="18,28 30,60"/>
+            <polyline class="ss-line" points="62,24 56,55"/><polyline class="ss-line" points="30,60 43,58 56,55"/>
+            <polyline class="ss-line" points="30,60 26,98"/><polyline class="ss-line" points="56,55 66,94"/>
+            <circle class="ss-star" cx="18" cy="28" r="4.2"/><circle class="ss-star" cx="62" cy="24" r="3.4"/>
+            <circle class="ss-star" cx="30" cy="60" r="3.2"/><circle class="ss-star" cx="43" cy="58" r="3.2"/>
+            <circle class="ss-star" cx="56" cy="55" r="3.2"/><circle class="ss-star" cx="26" cy="98" r="3"/>
+            <circle class="ss-star" cx="66" cy="94" r="4.2"/>
+          </svg>
+        </div>
       </div>
       <p class="seg-note" data-i18n="set.modeNote">Астро режим добавляет на экраны азимуты, высоту солнца, длину тени, сумерки и погодные данные — под спойлером «Подробно».</p>
     </div>
@@ -22497,7 +22544,14 @@
     sky.hidden = true;
     void sky.offsetWidth;              /* перезапуск анимации: без чтения раскладки браузер не заметит смены */
     sky.hidden = false;
-    astroSkyT = setTimeout(function () { sky.hidden = true; }, 2400);
+    /* Звёзды на кнопке ждут своей очереди: пока небо на экране, они погашены,
+       и проявляются ровно тогда, когда оно гаснет */
+    var seg = $("modeSeg");
+    if (seg) seg.classList.add("sky-wait");
+    astroSkyT = setTimeout(function () {
+      sky.hidden = true;
+      if (seg) seg.classList.remove("sky-wait");
+    }, 2400);
   }
 
   // Режим и спойлеры
