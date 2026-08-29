@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=26"></script>
+<script src="lang.js?v=28"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -5576,6 +5576,10 @@
       <button data-layer="sun"><span class="mk" data-ic="check"></span><span class="ic" data-ic="sun_disc"></span><span data-i18n="layer.sun">Солнце</span></button>
       <button data-layer="moon"><span class="mk" data-ic="check"></span><span class="ic" data-ic="moon"></span><span data-i18n="layer.moon">Луна</span></button>
       <button data-layer="mw"><span class="mk" data-ic="check"></span><span class="ic" data-ic="stars"></span><span data-i18n="layer.mw">Млечный Путь</span></button>
+      <!-- Осадки: радар, а не прогноз. Прогноз говорит «дождь», радар говорит
+           «ливень пройдёт мимо через двадцать минут» — на съёмке это разные
+           сведения, и переносить нельзя как раз тогда, когда важен второй -->
+      <button data-layer="rain"><span class="mk" data-ic="check"></span><span class="ic" data-ic="rain"></span><span data-i18n="layer.rain">Осадки</span></button>
     </div>
 
     <!-- Время выбранного момента — единственное, что переживает сворачивание -->
@@ -5595,6 +5599,9 @@
         <div class="t-row"><span class="t-label" data-i18n="map.golden">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
         <div class="t-row"><span class="t-label" data-i18n="map.blue">Синий час</span><span class="t-value" id="mBlue">—</span></div>
         <div class="t-row"><span class="t-label" data-i18n="map.moon">Луна</span><span class="t-value" id="mMoon">—</span></div>
+        <!-- Радар говорит «сейчас», но снимок сделан до десяти минут назад:
+             без времени кадра это обещание, которое слой не держит -->
+        <div class="t-row" id="mRadarRow" hidden><span class="t-label" data-i18n="map.radar">Радар</span><span class="t-value" id="mRadar">—</span></div>
         <div class="t-row"><span class="t-label" data-i18n="map.spot">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
         <!-- Ближайшее событие с отсчётом. Диапазоны выше отвечают на вопрос дня
              («когда золотой час»), а эта строка — на вопрос момента: сколько
@@ -6199,6 +6206,8 @@
         <span class="lg-v"><a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> 1.9.4 · BSD-2-Clause</span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.weather">Погода</span>
         <span class="lg-v"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0</span></div>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.radar">Радар осадков</span>
+        <span class="lg-v"><a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a></span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.geocode">Поиск места</span>
         <span class="lg-v"><a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a> · OpenStreetMap</span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.placeName">Имя места</span>
@@ -10269,7 +10278,8 @@
   /* Слои компаса. Солнце и луна были на карте всегда — умолчание сохраняет
      это, чтобы включение слоёв ничего не поменяло тем, кто их не открывал.
      Млечный Путь — новый слой и нишевый, включается по запросу */
-  var mapLayers = (saved && saved.mapLayers) || { sun: true, moon: true, mw: false };
+  var mapLayers = (saved && saved.mapLayers) || { sun: true, moon: true, mw: false, rain: false };
+  if (mapLayers.rain === undefined) mapLayers.rain = false;   /* слой заведён позже прежних настроек */
   /* Астро-режим сохраняется наравне с темой. Он не сохранялся вовсе: стоял
      первым в настройках, включался — и слетал при следующем запуске. Настройка,
      которую надо ставить заново каждый раз, читается как сломанная. */
@@ -12349,6 +12359,58 @@
     if (!mapLabels) return;
     labelTiles = L.tileLayer(labelURL(), { subdomains: "abcd", maxZoom: 19, pane: "shadowPane", className: "tile-labels" }).addTo(lmap);
   }
+
+  /* ---------- Радар осадков ----------
+     RainViewer: открытый каталог кадров без ключа. Отдаёт список снимков за
+     последние два часа и ближайший прогноз; берём последний прошедший — это
+     «сейчас», а не модель.
+
+     Слой необязателен во всех смыслах: выключен по умолчанию, при отсутствии
+     сети просто не появляется, и карта работает как работала. Условие
+     бесплатного доступа — видимая атрибуция; она в «Правовой информации»
+     вместе с CARTO и OSM. */
+  var rainTiles = null, rainFrame = null, rainHost = "", rainAt = 0;
+  function fetchRadar() {
+    if (typeof fetch === "undefined" || rainFrame) return Promise.resolve();
+    return fetch("https://api.rainviewer.com/public/weather-maps.json")
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var past = j && j.radar && j.radar.past;
+        if (!past || !past.length) return;
+        rainHost = j.host || "https://tilecache.rainviewer.com";
+        rainFrame = past[past.length - 1].path;
+        rainAt = past[past.length - 1].time * 1000;
+      }).catch(function () {});
+  }
+  /* Строка со временем снимка: она и есть честность слоя. Кадр обновляется
+     раз в десять минут, и «сейчас» на карте — это всегда немного «только
+     что» */
+  function renderRadarRow() {
+    var row = $("mRadarRow"); if (!row) return;
+    var show = !!(mapLayers.rain && rainAt);
+    row.hidden = !show;
+    if (!show) return;
+    var mins = Math.max(0, Math.round((Date.now() - rainAt) / 60000));
+    var d = new Date(rainAt);
+    $("mRadar").textContent = fmt(d.getHours() * 60 + d.getMinutes())
+      + (mins ? " · " + LANG.t("radar.ago", { n: mins }) : "");
+  }
+  function setMapRain(on) {
+    mapLayers.rain = !!on;
+    if (!lmap) return;
+    if (rainTiles) { lmap.removeLayer(rainTiles); rainTiles = null; }
+    if (!mapLayers.rain) { renderRadarRow(); return; }
+    fetchRadar().then(function () {
+      renderRadarRow();
+      if (!mapLayers.rain || !rainFrame || !lmap) return;
+      if (rainTiles) lmap.removeLayer(rainTiles);
+      /* 256 — размер плитки, 2 — цветовая схема, 1_1 — сглаживание и снег
+         отдельным цветом. Полупрозрачно: радар кладётся на карту, а не вместо
+         неё, и метки съёмки должны читаться сквозь ливень */
+      rainTiles = L.tileLayer(rainHost + rainFrame + "/256/{z}/{x}/{y}/2/1_1.png",
+        { maxZoom: 19, opacity: 0.62, pane: "overlayPane", className: "tile-rain" }).addTo(lmap);
+    });
+  }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
     lmap = L.map("lmap", { zoomControl: false, attributionControl: false }).setView([LAT, LON], 15);
@@ -12360,6 +12422,7 @@
     }).addTo(lmap);
     setBldEdge();
     setMapLabels(mapLabels);
+    if (mapLayers.rain) setMapRain(true);
     lmap.on("zoomend", setBldEdge);
     // Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место
     lmap.on("moveend", function () {
@@ -15247,7 +15310,7 @@
     var queue = [], seen = {};
     mbOfflineDue().forEach(function (b) {
       boardShots(b).forEach(function (r) {
-        if (r.k !== "link" && r.im && !seen[r.im]) { seen[r.im] = 1; queue.push(r); }
+        if (r.im && !seen[r.im]) { seen[r.im] = 1; queue.push(r); }
       });
     });
     if (!queue.length) return;
@@ -15277,7 +15340,7 @@
   function mbCatchDue() {
     if (!cloudOn()) return [];
     return shots.filter(function (r) {
-      return r.k !== "link" && r.im && !r.path && !r.pending
+      return r.im && !r.path && !r.pending
         && (blobHas(r.im, "s") || blobHas(r.im, "t"));
     });
   }
@@ -15763,6 +15826,10 @@
     var r = mbList(mbOpen)[mbItem];
     if (!r) return;
     closeMbItem();
+    /* Ссылка со своей картинкой всё равно открывается адресом, не
+       просмотрщиком — кнопка называется «Открыть ссылку» и держит слово,
+       даже когда `og:image` уже подтянулся. Разглядывают тапом по плитке. */
+    if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
     openRef(r);
   });
   /* Раньше это был переезд записи: splice из одного списка, push в другой —
@@ -19352,7 +19419,7 @@
 
     var shown = rfList.filter(function (r) { return !rfTag || r.tag === rfTag; });
     $("rfGrid").innerHTML = shown.map(function (r, i) {
-      if (r.k === "link") {
+      if (r.k === "link" && !r.im) {
         return '<button type="button" class="rf-cell link" data-i="' + i + '">'
           + '<span class="host">' + refHost(r.url) + "</span>"
           + '<span class="path">' + refTail(r.url) + "</span></button>";
@@ -22426,7 +22493,9 @@
       /* Звёзды двигают границы суток, а от них считается всё остальное —
          поэтому пересобираем день целиком, а не перерисовываем одну карту.
          Время под пальцем сохраняем: человек смотрел на свой момент. */
-      if (k === "mw") applyDate(viewMin); else renderMap();
+      if (k === "rain") setMapRain(mapLayers.rain);
+      else if (k === "mw") applyDate(viewMin);
+      else renderMap();
     });
   });
 
