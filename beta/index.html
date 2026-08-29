@@ -3626,6 +3626,13 @@
     border-bottom: 1px solid var(--hair-2);
   }
   .item .k { color: var(--ink); }
+  /* Знак в строке настроек. Заведён для корзины: удалённое ищут глазами, и
+     ведро находится быстрее слова. Форма не новая — тот же `trash`, каким
+     корзина подписана в карточке, и та же метрика знака (17 px, ход 1.6) */
+  .item .ir { display: flex; align-items: center; gap: 11px; }
+  .item-ic { display: flex; }
+  .item-ic svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-4);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .item .v { color: var(--ink-4); font-size: 14px; font-variant-numeric: tabular-nums; }
   /* Стрелка перехода в настройках была обычным символом «›» в потоке значения:
      четырнадцать пикселей самым бледным тоном, приклеенные к тексту. Её
@@ -3712,6 +3719,12 @@
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
   #gScrim, #locScrim, #kScrim, #mbNewScrim, #mbAddScrim, #mbItemScrim, #mbCoverScrim { z-index: 84; }
   #gSheet, #locSheet, #kSheet, #mbNewSheet, #mbAddSheet, #mbItemSheet, #mbCoverSheet { z-index: 86; }
+  /* Корзина открывается двумя путями: значком в карточке (78) и строкой в
+     настройках, а та живёт в оверлее «Хранилище» (80). Со своими 70 лист
+     уходил под экран настроек: нажатие как будто не срабатывало, и находился
+     лист, только когда настройки свернут. Та же ступень, что у листов формы */
+  #binScrim { z-index: 84; }
+  #binSheet { z-index: 86; }
   /* Спрос строки и лист кадра, вызванный из просмотрщика, ложатся поверх
      него самого (`.ref-view` — 95): иначе лист уезжает под картинку */
   #askScrim { z-index: 96; }
@@ -5945,7 +5958,7 @@
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
          открывать нечего. Строка стоит и при пустой корзине: место, где
          лежит удалённое, должно быть известно заранее -->
-    <div class="item" id="binSetRow"><span class="k" data-i18n="card.bin">Корзина</span><span class="v" id="binSetN">пусто</span></div>
+    <div class="item" id="binSetRow"><span class="ir"><span class="item-ic" data-ic="trash"></span><span class="k" data-i18n="card.bin">Корзина</span></span><span class="v" id="binSetN">пусто</span></div>
   </div>
 
   <div class="overlay pad flush" id="setOvData">
