@@ -9960,7 +9960,7 @@
      картинки, а дальше это тот же `refShots`, что и у обычного фото: два
      размера, оба в IndexedDB. Не настроен адрес читалки — вызов молча ничего
      не делает, и ссылка остаётся текстовой карточкой, как была всегда. */
-  var OG_READER_URL = "";     // https://<адрес>.workers.dev — подставить после деплоя
+  var OG_READER_URL = "https://light-plan-og-reader.novopashin-alexey.workers.dev";
   function fetchOgImage(url, apply) {
     if (!OG_READER_URL) return;
     fetch(OG_READER_URL + "?url=" + encodeURIComponent(url))
