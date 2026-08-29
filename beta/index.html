@@ -3694,30 +3694,26 @@
        отодвигает экран за лист. Без него звёзды садятся на строки списка и
        спорят с ними за чтение: свободного поля на этом экране нет */
     background: rgba(0,0,0,0.42);
+    /* Небо крупнее экрана: край режет его, как режет любой взгляд вверх */
+    overflow: hidden;
     opacity: 0; animation: as-veil 2.4s ease forwards;
   }
   .astro-sky[hidden] { display: none; }
-  /* Купол: круг вписан в ширину слоя и стоит по центру экрана. Зенит в
-     середине, горизонт по ободу, север вверху, восток слева — так небо
-     выглядит, когда смотришь вверх, а не когда читаешь карту со стены. */
-  .as-dome {
-    position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
-    width: 100%; height: auto; aspect-ratio: 1 / 1; overflow: visible;
-  }
+  /* Купол во весь слой и крупно: зенит в середине экрана, масштаб взят такой,
+     при котором ковш Медведицы занимает те же сорок процентов ширины, что и в
+     первом варианте с двумя созвездиями. Небо при этом в экран не помещается
+     — и не должно: обрезка честнее, чем мелкий рисунок, который не узнать.
+     Север вверху, восток слева: смотрим вверх, а не читаем карту со стены. */
+  .as-dome { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .as-star { fill: var(--brass); opacity: 0; animation: as-lit 1.9s ease forwards; }
   .as-line {
-    fill: none; stroke: var(--brass); stroke-width: 0.45; opacity: 0.34;
+    fill: none; stroke: var(--brass); stroke-width: 0.6; opacity: 0.34;
     stroke-linecap: round; stroke-linejoin: round;
     /* pathLength нормализует длину: одна и та же анимация прочерчивает и
        короткую перемычку пояса Ориона, и хребет Дракона через полнеба */
     stroke-dasharray: 1; stroke-dashoffset: 1;
     animation: as-draw 1.5s cubic-bezier(0.3,0.9,0.4,1) 0.3s forwards;
   }
-  /* Обод горизонта и четыре буквы — это гид, а не рамка: без них купол не
-     сказал бы, куда повернуться, чтобы увидеть то, что нарисовано */
-  .as-rim { fill: none; stroke: var(--ink-4); stroke-width: 0.4; opacity: 0.35; }
-  .as-card { fill: var(--ink-4); opacity: 0.55; font-size: 7px; font-family: inherit;
-    text-anchor: middle; dominant-baseline: middle; }
   .as-moon { fill: var(--brass); opacity: 0; animation: as-moon 2.4s cubic-bezier(0.25,1,0.4,1) forwards; }
   @keyframes as-veil { 0% { opacity: 0; } 14% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; } }
   @keyframes as-lit  { 0% { opacity: 0; transform: scale(0.4); } 22% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1); } }
@@ -5801,7 +5797,7 @@
          поднимал голову. Звёзды разного размера, потому что они разной
          величины, а не для красоты. -->
     <div class="astro-sky" id="astroSky" hidden aria-hidden="true">
-      <svg class="as-dome" id="asDome" viewBox="0 0 200 200"></svg>
+      <svg class="as-dome" id="asDome" viewBox="0 0 200 430" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
     <!-- Настройки читались одной лентой: восемь глав, двадцать пять
@@ -22524,17 +22520,16 @@
      а не читаем карту со стены. */
   function buildAstroSky() {
     var dome = $("asDome"); if (!dome || !window.SKY) return;
-    var R = 92, cx = 100, cy = 100, d = toDays(new Date()), out = [], n = 0;
+    /* R — радиус горизонта в единицах поля 200×430. Триста означает, что в
+       экран попадает круг радиусом около шестидесяти градусов от зенита, а
+       фигуры выходят того же размера, что были у первых двух созвездий.
+       Обод горизонта и буквы сторон света сняты: это был гид, а просили
+       небо. */
+    var R = 300, cx = 100, cy = 215, d = toDays(new Date()), out = [], n = 0;
     function pt(alt, az) {
       var r = (90 - alt) / 90 * R, a = rad(az);
       return [cx - r * Math.sin(a), cy - r * Math.cos(a)];
     }
-    out.push('<circle class="as-rim" cx="100" cy="100" r="' + R + '"/>');
-    [["card.n", 0], ["card.e", 90], ["card.s", 180], ["card.w", 270]].forEach(function (c) {
-      var p = pt(-7, c[1]);
-      out.push('<text class="as-card" x="' + p[0].toFixed(1) + '" y="' + p[1].toFixed(1)
-        + '">' + esc(LANG.t(c[0])) + "</text>");
-    });
     SKY.forEach(function (con) {
       var pos = con.s.map(function (st) {
         return eqToAltAz(st[0] * Math.PI / 12, rad(st[1]), d);
@@ -22552,7 +22547,7 @@
         var p = pt(pos[i].alt, pos[i].az);
         /* Радиус по звёздной величине: Вега и Полярная не могут быть одной
            точкой, иначе созвездие не узнать — глаз ведёт по ярким */
-        var r = Math.max(0.7, 1.9 - 0.28 * st[2]);
+        var r = Math.max(0.8, 2.1 - 0.3 * st[2]);
         out.push('<circle class="as-star" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1)
           + '" r="' + r.toFixed(2) + '" style="animation-delay:' + (0.02 * (n++ % 40)).toFixed(2) + 's"/>');
       });
@@ -22562,8 +22557,8 @@
     var now = new Date(), mp = moonAt(now, now.getHours() * 60 + now.getMinutes());
     if (mp.alt > 0) {
       var m = pt(mp.alt, mp.az);
-      out.push('<g class="as-moon" transform="translate(' + (m[0] - 6).toFixed(1) + ','
-        + (m[1] - 6).toFixed(1) + ') scale(0.5)">'
+      out.push('<g class="as-moon" transform="translate(' + (m[0] - 13).toFixed(1) + ','
+        + (m[1] - 13).toFixed(1) + ') scale(1.1)">'
         + '<path d="M19.2 13.9A7.7 7.7 0 1 1 10.4 5a6.1 6.1 0 0 0 8.8 8.9z"/></g>');
     }
     dome.innerHTML = out.join("");
