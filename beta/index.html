@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=24"></script>
+<script src="lang.js?v=25"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -8264,8 +8264,20 @@
     var days = {};
     for (var i = 0; i < h.time.length; i++) {
       var dt = h.time[i], date = dt.slice(0, 10), hh = +dt.slice(11, 13);
-      var day = days[date] || (days[date] = { cSum: 0, cN: 0, precip: 0, winds: [], temps: [], byHour: {}, fogAM: false });
-      if (hh >= 8 && hh <= 20) { day.cSum += h.cloud_cover[i]; day.cN++; day.winds.push(h.wind_speed_10m[i]); }
+      var day = days[date] || (days[date] = { cSum: 0, cN: 0, precip: 0, winds: [], temps: [], byHour: {}, fogAM: false,
+        dirX: 0, dirY: 0, gust: 0 });
+      if (hh >= 8 && hh <= 20) {
+        day.cSum += h.cloud_cover[i]; day.cN++; day.winds.push(h.wind_speed_10m[i]);
+        /* Направление усредняется по составляющим, а не по градусам: среднее
+           между 350° и 10° арифметически даёт юг, то есть ровно обратное
+           правде. Складываем единичные векторы — тогда северный ветер и
+           остаётся северным */
+        if (has("wind_direction_10m")) {
+          var wd = rad(h.wind_direction_10m[i]);
+          day.dirX += Math.cos(wd); day.dirY += Math.sin(wd);
+        }
+        if (has("wind_gusts_10m")) day.gust = Math.max(day.gust, h.wind_gusts_10m[i] || 0);
+      }
       day.precip += h.precipitation[i] || 0;
       day.temps.push(h.temperature_2m[i]);
       day.byHour[hh] = {
@@ -8273,7 +8285,10 @@
         low: has("cloud_cover_low") ? h.cloud_cover_low[i] : h.cloud_cover[i],
         mid: has("cloud_cover_mid") ? h.cloud_cover_mid[i] : 0,
         high: has("cloud_cover_high") ? h.cloud_cover_high[i] : 0,
-        hum: has("relative_humidity_2m") ? h.relative_humidity_2m[i] : 50
+        hum: has("relative_humidity_2m") ? h.relative_humidity_2m[i] : 50,
+        wind: h.wind_speed_10m[i],
+        wdir: has("wind_direction_10m") ? h.wind_direction_10m[i] : null,
+        gust: has("wind_gusts_10m") ? h.wind_gusts_10m[i] : null
       };
       if (hh >= 5 && hh <= 9 && (h.weather_code[i] === 45 || h.weather_code[i] === 48)) day.fogAM = true;
     }
@@ -8302,6 +8317,11 @@
         q: q, cloud: cloud, sunset: score, layers: layers,
         tempBase: Math.round(mean(d.temps)),
         wind: Math.round(mean(d.winds)),
+        /* Откуда дует, в градусах. Ноль длины вектора — это не север, а
+           «направления нет»: ветер за день переменился со всех сторон */
+        windDir: (d.dirX || d.dirY)
+          ? (deg(Math.atan2(d.dirY, d.dirX)) + 360) % 360 : null,
+        gust: Math.round(d.gust),
         trend: [16, 17, 18, 19, 20, 21].map(function (hh) { return (d.byHour[hh] || { cloud: cloud }).cloud; }),
         real: true
       };
@@ -8314,7 +8334,7 @@
     if (key === wxKey && wxLive) return;         // это место уже загружено
     wxKey = key;
     var url = "https://api.open-meteo.com/v1/forecast?latitude=" + LAT + "&longitude=" + LON
-      + "&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,temperature_2m,wind_speed_10m,precipitation,weather_code"
+      + "&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,weather_code"
       + "&forecast_days=16&past_days=5&timezone=auto&windspeed_unit=ms";
     fetch(url).then(function (r) { return r.json(); }).then(function (j) {
       if (!j.hourly || key !== wxKey) return;    // место успело смениться — ответ уже неактуален
@@ -8339,6 +8359,20 @@
   function windWord(w) {
     return w <= 1 ? LANG.t("wind.calm") : w <= 3 ? LANG.t("wind.light")
       : w <= 6 ? LANG.t("wind.moderate") : LANG.t("wind.strong");
+  }
+  /* Ветер строкой: скорость, слово, откуда дует и порывы. Направление
+     показывается не всегда — при переменном ветре его нет вовсе, и назвать
+     сторону значило бы соврать. Порывы говорятся, только когда они и правда
+     сильнее ровного ветра: иначе строка растёт, а нового не сообщает.
+
+     Зачем это фотографу: фата, волосы и дым летят по ветру, и от стороны
+     зависит, куда ставить пару. Число «5 м/с» на это не отвечает. */
+  function windLine(w) {
+    if (!w) return "";
+    var out = LANG.t("tele.windVal", { n: w.wind }) + " · " + windWord(w.wind);
+    if (w.windDir != null && w.wind > 1) out += " · " + LANG.t("wind.from", { dir: dirOf(w.windDir) });
+    if (w.gust && w.gust >= w.wind + 3) out += " · " + LANG.t("wind.gust", { n: w.gust });
+    return out;
   }
   function durShort(m) {
     m = Math.max(0, Math.round(m));
@@ -10880,7 +10914,7 @@
 
     var wx = curWeather;
     $("tSky").innerHTML = skyIcon(q) + '<span>' + QUAL[q].sky + " · " + wx.cloud + "%</span>";
-    $("tWind").textContent = LANG.t("tele.windVal", { n: wx.wind }) + " · " + windWord(wx.wind);
+    $("tWind").textContent = windLine(wx);
 
     // Шапка: как виджет Apple — иконка, температура, состояние, мин/макс за день
     $("hwIcon").innerHTML = skyIcon(q);
@@ -10999,8 +11033,7 @@
         ["pro.sky", QUAL[q].sky],
         ["pro.cloud", (curWeather ? curWeather.cloud : QUAL[q].cloud) + "%"],
         ["pro.temp", tempOut((curWeather || { tempBase: 19 }).tempBase, t) + " " + unitLabel()],
-        ["pro.wind", LANG.t("pro.windAt", { n: (curWeather ? curWeather.wind : 3),
-                                            word: windWord(curWeather ? curWeather.wind : 3) })],
+        ["pro.wind", windLine(curWeather || { wind: 3, windDir: null, gust: 0 })],
         ["pro.source", wxLive ? LANG.t("pro.srcLive") : LANG.t("pro.srcMock")]
       ]]
     ])) + (

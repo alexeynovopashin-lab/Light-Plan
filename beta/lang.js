@@ -401,6 +401,8 @@
     "moon.wanCres":    "Убывающий серп",
 
     /* Ветер словом */
+    "wind.from":     "с {dir}",
+    "wind.gust":     "порывы {n}",
     "wind.calm":     "штиль",
     "wind.light":    "слабый",
     "wind.moderate": "умеренный",
@@ -1869,6 +1871,8 @@
     "moon.lastQ":      "Last quarter",
     "moon.wanCres":    "Waning crescent",
 
+    "wind.from":     "from {dir}",
+    "wind.gust":     "gusts {n}",
     "wind.calm":     "calm",
     "wind.light":    "light",
     "wind.moderate": "moderate",
@@ -3218,6 +3222,8 @@
     "moon.wanGib": "Gibosa menguante",
     "moon.lastQ": "Cuarto menguante",
     "moon.wanCres": "Luna menguante",
+    "wind.from": "del {dir}",
+    "wind.gust": "rachas {n}",
     "wind.calm": "calma",
     "wind.light": "leve",
     "wind.moderate": "moderado",
@@ -4410,6 +4416,8 @@
     "moon.wanGib": "亏凸月",
     "moon.lastQ": "下弦月",
     "moon.wanCres": "蛾眉月（渐亏）",
+    "wind.from": "{dir}风",
+    "wind.gust": "阵风{n}",
     "wind.calm": "无风",
     "wind.light": "微风",
     "wind.moderate": "和风",
