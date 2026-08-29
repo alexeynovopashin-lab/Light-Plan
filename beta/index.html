@@ -11781,8 +11781,20 @@
   /* Тайлы одни на обе темы: тёмный холст делает фильтр, а не второй источник.
      Разные наборы означали бы и разную геометрию — на светлой теме улица есть,
      на тёмной её нет, — а это одна и та же карта. */
+  /* Ключ CARTO. В августе 2026 поставщик сменил политику: растровая плитка без
+     ключа отдаётся с кодом 200, но с водяным знаком «API KEY REQUIRED»,
+     впечатанным в саму картинку. Под знаком все стили разом — и voyager, и
+     light_all, и dark_all, — поэтому сменой стиля не обойтись, а сменой
+     поставщика тем более: фильтр `tileTone` узнаёт воду, зелень и дома по
+     разрывам каналов именно этой палитры (замер — в DECISIONS).
+     Ключ бесплатный, до пяти миллионов плиток в месяц, и берётся формой на
+     carto.com/basemaps/apikey — аккаунт заводить не требуется.
+     Пустая строка значит «ключа ещё нет»: адрес тогда остаётся прежним, со
+     знаком, а не ломается. Приложение обязано работать и без ключа. */
+  var CARTO_KEY = "";
+  function cartoKey() { return CARTO_KEY ? "?key=" + CARTO_KEY : ""; }
   function tileURL() {
-    return "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png";
+    return "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png" + cartoKey();
   }
   /* Подписи — отдельный прозрачный слой поверх холста. Он идёт вторым слоем, а
      не другим набором тайлов, и потому не проходит через фильтр перекраски:
@@ -11791,8 +11803,8 @@
      светлые, а сама геометрия у обоих одна. */
   function labelURL() {
     return theme === "light"
-      ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
-      : "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png";
+      ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png" + cartoKey()
+      : "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png" + cartoKey();
   }
   function tzFor(lon) { return Math.max(-12, Math.min(14, HOME_TZ + Math.round((lon - HOME_LON) / 15))); }
   function coordText(lat, lon) {
