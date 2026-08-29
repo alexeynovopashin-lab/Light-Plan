@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=23"></script>
+<script src="lang.js?v=24"></script>
 <script src="qr.js?v=1"></script>
 <style>
   /* ============================================================
@@ -4021,6 +4021,14 @@
   .dt-clock { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .dt-left { font-size: 12.5px; color: var(--ink-4); margin-top: 3px; }
   .dt-left b { color: var(--green); font-weight: 400; }
+  /* Завершение — тихая кнопка, не действие первого плана: съёмка кончается
+     сама, а это ручной дубликат для тех, кто считает переработку. Оттого
+     обводка вместо заливки, и зелёный — тот же, каким плитка говорит «идёт». */
+  .dt-done { margin-top: 9px; padding: 6px 13px; font-size: 12.5px; font-family: inherit;
+    color: var(--green); background: none; border: 1px solid var(--green);
+    border-radius: 999px; opacity: 0.75; cursor: pointer; }
+  .dt-done:active { opacity: 1; }
+  .dt-done[hidden] { display: none; }
 
   /* Лента точек: знаки сверху, латунная нить, время и подпись снизу */
   .lane { display: flex; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
@@ -5861,6 +5869,14 @@
       <button data-travel="90">90</button>
     </div>
     <p class="seg-note" id="travelNote">Если между съёмками в разных местах остаётся меньше 40 минут, приложение предупредит. Запрета нет: решает фотограф.</p>
+
+    <!-- Завершение съёмки. По умолчанию съёмка кончается сама, ровно по
+         записанным рамкам: от них считается стоимость работы, и расходиться
+         с ними приложение не должно. Кнопка нужна не всем — только тем, у
+         кого переработка это деньги, а не досада -->
+    <div class="sec-label" data-i18n="set.finish">Завершение съёмки</div>
+    <div class="item"><span class="k" data-i18n="set.manualEnd">Завершать вручную</span><span class="toggle" id="manualEndToggle"></span></div>
+    <p class="seg-note" data-i18n="set.manualEndNote">Обычно съёмка завершается сама в записанное время конца. Включите, если снимаете дольше плана и хотите отмечать конец сами — в карточке появится кнопка «Завершить», а до нажатия она покажет, сколько идёт сверх плана.</p>
   </div>
 
   <div class="overlay pad flush" id="setOvAlerts">
@@ -6226,6 +6242,11 @@
           <div class="dt-clock" id="cdDayClock"></div>
         </div>
         <div class="dt-left" id="cdDayLeft"></div>
+        <!-- Завершение вручную: появляется только при включённой настройке и
+             только пока съёмка идёт. Стоит внутри плитки дня, у той самой
+             строки, что говорит «идёт съёмка», — действие рядом со своим
+             показанием, а не в подвале карточки среди опасного «Удалить». -->
+        <button type="button" class="dt-done" id="cdDayDone" hidden data-i18n="day.finish">Завершить</button>
         <div class="lane" id="cdLane"></div>
       </div>
     </div>
@@ -8554,7 +8575,7 @@
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
-        pro: proMode,
+        pro: proMode, manualEnd: manualEnd,
         /* Практика пишется, только когда её выбрали: пока вопрос не задан,
            в записи её нет, и первый запуск остаётся первым */
         practice: practiceAsked ? practice : undefined,
@@ -9958,6 +9979,9 @@
   var mapFoldShut = !!(saved && saved.mapFold);
   // Подписи на карте — выключены, пока их не попросили
   var mapLabels = !!(saved && saved.mapLabels);
+  /* Ручное завершение съёмки. Выключено по умолчанию: автомат по записанным
+     рамкам покрывает обычный день, а кнопка нужна тем, кто считает переработку. */
+  var manualEnd = !!(saved && saved.manualEnd);
   /* Слои компаса. Солнце и луна были на карте всегда — умолчание сохраняет
      это, чтобы включение слоёв ничего не поменяло тем, кто их не открывал.
      Млечный Путь — новый слой и нишевый, включается по запросу */
@@ -17877,16 +17901,29 @@
   }
 
   /* Фаза события: до / во время / после.
-     Граница «во время» — от первой точки дня до последней плюс запас на то,
-     что банкет всегда длиннее, чем записано. Дальше — «после». */
-  var TAIL_MIN = 180;
-  function eventPhase(s, route) {
+     Границы — записанные рамки съёмки, начало и конец, а не маршрут. Так
+     решено 29 августа 2026, и довод не про удобство: от рамок считается
+     стоимость работы. Фаза, живущая дольше записи, расходится со счётом —
+     съёмка выглядит идущей, когда оплаченное время кончилось.
+
+     Прежде здесь стоял запас `TAIL_MIN` в три часа: замысел был про банкет,
+     который всегда длиннее записанного. Но запас давался всем одинаково, и
+     часовой портрет держал «Идёт съёмка» вчетверо дольше самой съёмки —
+     видно на живом телефоне 29 августа. Затянувшуюся съёмку теперь закрывает
+     человек кнопкой, а не догадка приложения о банкете.
+
+     Ручное завершение — настройка, по умолчанию выключенная: большинству
+     нужен автомат по рамкам, и лишний шаг им незачем. Кому важен факт
+     окончания (почасовая работа, переработка) — включает, и тогда фаза
+     держится, пока не нажмут, а `doneAt` хранит нажатое время. */
+  function eventPhase(s) {
     var now = new Date();
     if (!sameDay(s.date, now)) return s.date > now ? "before" : "after";
     var m = now.getHours() * 60 + now.getMinutes();
-    var from = route.length ? route[0].t : s.min;
-    var to = (route.length ? route[route.length - 1].t : (s.end != null ? s.end : s.min + (s.dur || 90))) + TAIL_MIN;
-    if (m < from) return "before";
+    var to = s.end != null ? s.end : s.min + (s.dur || 90);
+    if (m < s.min) return "before";
+    if (s.doneAt != null) return m < s.doneAt ? "during" : "after";
+    if (manualEnd) return "during";
     return m <= to ? "during" : "after";
   }
 
@@ -18198,7 +18235,7 @@
     /* Сброс перекладывает сами блоки: сворачиваем, ставим их по умолчанию и
        сворачиваем снова — иначе на экране остался бы прежний порядок */
     unfoldBlocks();
-    applyOrder(s.type, eventPhase(s, isMeet(s) ? [] : routeOf(s)));
+    applyOrder(s.type, eventPhase(s));
     foldBlocks(s);
   });
 
@@ -18210,7 +18247,7 @@
        вместе со съёмкой, а не на разговоре о ней. Иначе свадебный пресет
        подсовывал встрече ЗАГС и прогулку */
     var route = isMeet(s) ? [] : routeOf(s);
-    var phase = eventPhase(s, route);
+    var phase = eventPhase(s);
     var sun = cardSun(s);
     var light = phase === "after" ? null : lightCase(s, route, sun);
 
@@ -18422,6 +18459,9 @@
 
     $("cdDayClock").textContent = today ? fmt(nowMin2) : "";
     $("cdDayDot").style.display = phase === "during" ? "" : "none";
+    /* Кнопка живёт только там, где ей есть что сделать: включённая настройка,
+       идущая съёмка, сегодняшний день. Встречу не завершают — она не работа. */
+    $("cdDayDone").hidden = !(manualEnd && phase === "during" && today && !isMeet(s));
 
     var dur = s.dur || 90, endMin = s.end != null ? s.end : s.min + dur;
     if (!route.length) {
@@ -18436,6 +18476,9 @@
            плана». Перевалили за конец — говорим, насколько, и по чьей
            записи. Событие с точками маршрута этой болезни не знало: там
            текст другой («дальше», «последняя точка дня»). */
+        /* «Сверх плана» достижимо только при ручном завершении: автомат по
+           рамкам закрывает фазу ровно в конце записи, и отрицательного
+           остатка там не бывает. */
         var left = endMin - nowMin2;
         $("cdDayLeft").innerHTML = left >= 0
           ? LANG.t("day.leftUntil", { left: "<b>" + esc(durLabel(left)) + "</b>", t: esc(fmt(endMin)) })
@@ -18534,7 +18577,7 @@
       var s = sessions[cardIdx];
       if (!s) { stopStudioTick(); return; }
       var route = isMeet(s) ? [] : routeOf(s);
-      var phase = eventPhase(s, route);
+      var phase = eventPhase(s);
       var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
       renderStudioTimer(s, route, phase, curIndex(route, nowMin2), nowMin2);
     }, 20000);
@@ -18772,7 +18815,7 @@
      говорить «вы были в двух местах» поздно и незачем */
   function renderClash(s) {
     var list = cardIdx === null ? [] : clashesOf(cardIdx);
-    var show = list.length && eventPhase(s, routeOf(s)) !== "after";
+    var show = list.length && eventPhase(s) !== "after";
     $("cdClash").hidden = !show;
     if (!show) return;
     var c = list[0];
@@ -19051,7 +19094,7 @@
        чтобы обо всём расспросить. У съёмки — только до неё: после съёмки
        спрашивать нечего, а во время неё карточка занята другим.
        У выросшей встречи строки нет — опросник переехал в съёмку. */
-    var qPhase = eventPhase(s, routeOf(s));
+    var qPhase = eventPhase(s);
     var qShow = s.type === "wedding" && (meet ? !s.grewOn : (qPhase === "before"));
     $("cdQuest").hidden = !qShow;
     if (qShow) {
@@ -19992,6 +20035,20 @@
     questRec = sessions[cardIdx];
     openQuest();
     markQuestSent();          // знак показан — считаем отданным
+  });
+  /* Завершение записывает время нажатия, а не подставляет конец по записи:
+     смысл кнопки именно в том, что факт разошёлся с планом. Дальше `doneAt`
+     читает `eventPhase`, и съёмка уходит в «после» тем же путём, что по
+     автомату — второй ветки «завершено» в фазе не заводим. */
+  $("cdDayDone").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    var s = sessions[cardIdx];
+    if (!s) return;
+    var now = new Date();
+    s.doneAt = now.getHours() * 60 + now.getMinutes();
+    saveAll();
+    renderEventCard(s);
+    renderSessions(); renderCal(); renderDayPanel(); renderMbStrip();
   });
   $("qSend").addEventListener("click", sendQuestLink);
   $("qDone").addEventListener("click", closeQuest);
@@ -21690,6 +21747,18 @@
     this.classList.toggle("on");
     setMapLabels(this.classList.contains("on"));
     saveAll();                       // выбор переживает перезапуск
+  });
+
+  $("manualEndToggle").classList.toggle("on", manualEnd);
+  /* Выключение снимает и уже проставленные отметки: иначе съёмка, завершённая
+     руками, осталась бы завершённой в режиме, где кнопки больше нет, и
+     объяснить это было бы нечем. */
+  $("manualEndToggle").addEventListener("click", function () {
+    this.classList.toggle("on");
+    manualEnd = this.classList.contains("on");
+    if (!manualEnd) sessions.forEach(function (s) { delete s.doneAt; });
+    saveAll();
+    renderSessions(); renderCal(); renderDayPanel();
   });
 
   $("soundToggle").addEventListener("click", function () {
