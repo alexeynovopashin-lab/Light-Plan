@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=25"></script>
+<script src="lang.js?v=26"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -5500,6 +5500,9 @@
       <div class="t-row"><span class="t-label" data-i18n="tele.shadow">Тени</span><span class="t-value" id="tShadow">—</span></div>
       <div class="t-row"><span class="t-label" data-i18n="tele.sky">Небо</span><span class="t-value" id="tSky">—</span></div>
       <div class="t-row"><span class="t-label" data-i18n="tele.wind">Ветер</span><span class="t-value" id="tWind">—</span></div>
+      <!-- Воздух появляется, только когда есть что сказать: прозрачное небо
+           не новость. Дым и пыль меняют закат сильнее иных облаков -->
+      <div class="t-row" id="tAirRow" hidden><span class="t-label" data-i18n="tele.air">Воздух</span><span class="t-value" id="tAir">—</span></div>
     </div>
 
     <div class="pro">
@@ -8239,7 +8242,7 @@
      Верхний (>7 км) — экран: перистые держат afterglow, дают красный и розовый.
      Влажность — дымка (рассеяние Ми), гасит чистый цвет. */
   function bell(x, c, w) { var z = (x - c) / w; return Math.exp(-z * z); }   // 0..1, пик в c
-  function sunsetScore(low, mid, high, hum) {
+  function sunsetScore(low, mid, high, hum, air) {
     var hi = bell(high, 50, 30);            // экран afterglow: лучший около 50%
     var md = bell(mid, 45, 30);             // текстура: лучшая около 45%
     var canvas = 30 + hi * 45 + md * 25;    // чистое небо — приятно, но не шедевр
@@ -8247,7 +8250,25 @@
     var gap = low <= 20 ? 1 : low >= 70 ? 0.05 : 1 - (low - 20) / 50 * 0.95;
     var score = canvas * gap;
     if (hum > 70) score -= (hum - 70) * 0.6;   // дымка от влаги
+    /* Аэрозоль — поправка, а не слагаемое канвы: он красит уже имеющийся свет.
+       До 0.3 взвесь работает светофильтром и добавляет цвета; выше — гасит,
+       и к единице от заката остаётся мутное пятно. Порог 0.35 не выдуман:
+       примерно с него дым виден глазом как белёсое небо. Нет данных — нет и
+       поправки, оценка остаётся прежней */
+    if (air && isFinite(air.aod)) {
+      if (air.aod <= 0.35) score += 10 * bell(air.aod * 100, 15, 14);
+      else score *= Math.max(0.5, 1 - (air.aod - 0.35) * 0.8);
+    }
     return clamp(Math.round(score), 0, 100);
+  }
+  /* Слово о воздухе — только когда есть что сказать. Прозрачный воздух не
+     новость, о нём молчим */
+  function airWord(air) {
+    if (!air) return null;
+    if (air.dust >= 20) return LANG.t("air.dust");
+    if (air.aod >= 0.6) return LANG.t("air.smoke");
+    if (air.aod >= 0.35) return LANG.t("air.haze");
+    return null;
   }
   function scoreCat(s) { return s >= 75 ? "excellent" : s >= 50 ? "good" : s >= 28 ? "plain" : "poor"; }
 
@@ -8304,14 +8325,24 @@
       var code = (d.byHour[15] || d.byHour[12] || { code: 0 }).code;
       // Ярусы облаков в час заката — там и решается, каким будет закат
       computeSun(new Date(+p[0], +p[1] - 1, +p[2]));   // applyDate ниже вернёт SUN на selDate
-      var q, score = null, layers = null;
+      var q, score = null, bare = null, layers = null;
       var lay = SUN.set !== null ? nearHour(d.byHour, clamp(Math.round(SUN.set / 60), 0, 23)) : null;
       // Балл считаем всегда, когда есть ярусы — даже в дождь честнее показать низкий
-      if (lay) { score = sunsetScore(lay.low, lay.mid, lay.high, lay.hum); layers = lay; }
+      if (lay) {
+        var setHr = SUN.set !== null ? clamp(Math.round(SUN.set / 60), 0, 23) : 19;
+        /* Два балла, и это не дублирование. `score` — про закат, он знает про
+           дым. `bare` — про небо, он про облака и только про них: категорию
+           дня подписывают словами «Ясно», «Переменно», «Дождь», и опустить
+           её дымом значит объявить осадки там, где ни облака. Замер поймал
+           это сразу: Якутск при AOD 2.17 и ясном небе назывался дождливым. */
+        bare = sunsetScore(lay.low, lay.mid, lay.high, lay.hum);
+        score = sunsetScore(lay.low, lay.mid, lay.high, lay.hum, airAt(date, setHr));
+        layers = lay;
+      }
       // Дождь и туман перебивают категорию дня; иначе категория из балла
       if (d.fogAM) q = "fog";
       else if (d.precip > 0.5 || code >= 51) q = "poor";
-      else if (score !== null) q = scoreCat(score);
+      else if (bare !== null) q = scoreCat(bare);
       else q = deriveQ(cloud, code, d.precip, d.fogAM);
       out[(+p[0]) + "-" + (+p[1] - 1) + "-" + (+p[2])] = {
         q: q, cloud: cloud, sunset: score, layers: layers,
@@ -8338,6 +8369,10 @@
       + "&forecast_days=16&past_days=5&timezone=auto&windspeed_unit=ms";
     fetch(url).then(function (r) { return r.json(); }).then(function (j) {
       if (!j.hourly || key !== wxKey) return;    // место успело смениться — ответ уже неактуален
+      /* Ответ держим целиком: воздух приходит вторым запросом и позже, а
+         поправка на дым живёт внутри сборки дней — без исходных часов её
+         некуда было бы подмешать, кроме как сходив в сеть второй раз */
+      wxRaw = j.hourly;
       wxReal = buildWx(j.hourly);
       if (isFinite(j.utc_offset_seconds)) TZ = j.utc_offset_seconds / 3600;   // настоящий пояс — бонусом
       wxLive = true;
@@ -8345,8 +8380,66 @@
       applyDate(viewMin); renderCal(); renderDayPanel();
     }).catch(function () { wxLive = false; });     // офлайн — молча остаётся мок
   }
+  /* ---------- Воздух: аэрозоль и пыль ----------
+     Отдельная служба Open-Meteo, отдельный домен и свой горизонт прогноза —
+     около пяти суток против шестнадцати у погоды. Поэтому это не поле в общем
+     ответе, а второй запрос, и всё, что он даёт, — необязательная поправка:
+     нет ответа, нет сети, день дальше горизонта — оценка заката считается ровно
+     так, как считалась раньше.
+
+     Зачем это в приложении про свет: оптическая толщина аэрозоля и есть та
+     величина, которой закат делается красным. Немного взвеси — цвет гуще и
+     теплее; много (дым от пожаров, пыльный вынос) — солнце тускнеет ещё
+     высоко, и вместо заката остаётся мутное пятно. Дым от лесных пожаров у
+     нас летом — обычное дело, и он приходит за тысячи километров, когда на
+     небе ни облака. */
+  var airDay = {}, airKey = "", wxRaw = null;
+  function fetchAir() {
+    if (typeof fetch === "undefined") return;
+    var key = LAT.toFixed(3) + "," + LON.toFixed(3);
+    if (key === airKey) return;
+    airKey = key;
+    var url = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + LAT
+      + "&longitude=" + LON + "&hourly=aerosol_optical_depth,dust&forecast_days=5&timezone=auto";
+    fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.hourly || !j.hourly.time || key !== airKey) return;
+      var by = {};
+      for (var i = 0; i < j.hourly.time.length; i++) {
+        var t = j.hourly.time[i], date = t.slice(0, 10), hh = +t.slice(11, 13);
+        var d = by[date] || (by[date] = { byHour: {} });
+        d.byHour[hh] = { aod: j.hourly.aerosol_optical_depth[i], dust: j.hourly.dust[i] };
+      }
+      airDay = by;
+      /* Дни пересобираются: они уже посчитаны без воздуха, и поправка на дым
+         иначе досталась бы только следующему месту */
+      if (wxRaw) wxReal = buildWx(wxRaw);
+      qCache = {}; wCache = {};
+      applyDate(viewMin); renderCal(); renderDayPanel();
+    }).catch(function () {});                    /* воздуха нет — небо считается без него */
+  }
+  /* Аэрозоль в час заката, а не средний за сутки: дым приходит и уходит за
+     полдня, а важен он ровно в тот час, когда снимают */
+  /* Ключ дня для воздуха — строкой «ГГГГ-ММ-ДД» по местному календарю.
+     `toISOString` здесь не годится: он переводит в UTC и в вечерние часы
+     показал бы завтрашний день */
+  function airKeyOf(date) {
+    var m = date.getMonth() + 1, dd = date.getDate();
+    return date.getFullYear() + "-" + (m < 10 ? "0" + m : m) + "-" + (dd < 10 ? "0" + dd : dd);
+  }
+  function airAt(dateKey, hour) {
+    var d = airDay[dateKey];
+    if (!d) return null;
+    for (var o = 0; o <= 3; o++) {
+      if (d.byHour[hour - o]) return d.byHour[hour - o];
+      if (d.byHour[hour + o]) return d.byHour[hour + o];
+    }
+    return null;
+  }
   /* При таскании карты moveend сыплется часто — не дёргаем сервер на каждый кадр */
-  function scheduleWeather() { clearTimeout(wxTimer); wxTimer = setTimeout(fetchWeather, 500); }
+  function scheduleWeather() {
+    clearTimeout(wxTimer);
+    wxTimer = setTimeout(function () { fetchWeather(); fetchAir(); }, 500);
+  }
   function tempAt(base, t) { return Math.round(base + 5 * Math.sin((t - 600) / 1440 * 2 * Math.PI)); }
   /* Модель считает в Цельсии всегда — прогноз приходит в нём, и переводить
      внутри значило бы держать две правды. Единицы живут только на выходе.
@@ -9849,6 +9942,24 @@
       }).then(function () { return { im: id, w: t.w, h: t.h }; });
     });
   }
+  /* ---------- Ссылка становится картинкой ----------
+     og:image — метатег, который Pinterest и подобные сервисы публикуют сами,
+     специально для превью в чужих мессенджерах (docs/15_MOODBOARD.md,
+     «Pinterest и Instagram → Ссылка становится картинкой»). Браузеру мешает
+     CORS, поэтому страница и картинка идут через читалку (`og-reader/`,
+     отдельный воркер без хранения и логов) — она отдаёт готовые байты
+     картинки, а дальше это тот же `refShots`, что и у обычного фото: два
+     размера, оба в IndexedDB. Не настроен адрес читалки — вызов молча ничего
+     не делает, и ссылка остаётся текстовой карточкой, как была всегда. */
+  var OG_READER_URL = "";     // https://<адрес>.workers.dev — подставить после деплоя
+  function fetchOgImage(url, apply) {
+    if (!OG_READER_URL) return;
+    fetch(OG_READER_URL + "?url=" + encodeURIComponent(url))
+      .then(function (res) { return res.ok ? res.blob() : null; })
+      .then(function (blob) { return blob ? refShots(blob) : null; })
+      .then(function (shot) { if (shot) apply(shot); })
+      .catch(function () {});    // без сети или без og:image остаётся текстовая карточка
+  }
 
   /* ---------- Перенос старых превью ----------
      Начерно и один раз: данные в прототипе одноразовые, аккуратной миграции
@@ -10915,6 +11026,12 @@
     var wx = curWeather;
     $("tSky").innerHTML = skyIcon(q) + '<span>' + QUAL[q].sky + " · " + wx.cloud + "%</span>";
     $("tWind").textContent = windLine(wx);
+    /* Воздух: строка живёт только в те дни, когда взвесь заметна. Данные есть
+       на ближайшие пять суток — дальше строки просто нет, и это честно */
+    var airNow = airAt(airKeyOf(selDate), SUN.set !== null ? clamp(Math.round(SUN.set / 60), 0, 23) : 19);
+    var aw = airWord(airNow);
+    $("tAirRow").hidden = !aw;
+    if (aw) $("tAir").textContent = aw;
 
     // Шапка: как виджет Apple — иконка, температура, состояние, мин/макс за день
     $("hwIcon").innerHTML = skyIcon(q);
@@ -13980,7 +14097,9 @@
   function renderRefs() {
     var box = $("refGrid");
     box.innerHTML = fRefs.map(function (r, i) {
-      if (r.k === "link") {
+      /* Ссылка со своим `og:image` рисуется картинкой — текстовая карточка
+         остаётся только пока читалка не ответила или не нашла её */
+      if (r.k === "link" && !r.im) {
         return '<button type="button" class="ref-card link" data-i="' + i + '">'
           + '<span class="host">' + refHost(r.url) + "</span>"
           + '<span class="path">' + refTail(r.url) + "</span>"
@@ -14027,7 +14146,10 @@
   function openRefAt(list, i, edit, from) {
     var r = list && list[i];
     if (!r) return;
-    if (r.k === "link") { window.open(r.url, "_blank", "noopener"); return; }
+    /* Ссылка со своей картинкой (`og:image` подтянулся — 15_MOODBOARD,
+       «Ссылка становится картинкой») открывается как кадр: разглядывают
+       именно её. Без картинки — как раньше, адрес сразу в браузер. */
+    if (r.k === "link" && !r.im) { window.open(r.url, "_blank", "noopener"); return; }
     if (!r.im && !r.path) return;
     refViewList = list; refViewIdx = i; refViewEdit = edit || null;
     rvFrom = from || null;
@@ -14393,8 +14515,15 @@
   $("refLink").addEventListener("click", function () {
     askLink(function (url) {
       if (!url) return;
-      fRefs.push({ k: "link", url: url });
+      var rec = { k: "link", url: url };
+      fRefs.push(rec);
       renderRefs();
+      /* Запись ещё черновик — сохранять нечего, форма сохранит её целиком,
+         когда её вообще сохранят */
+      fetchOgImage(url, function (shot) {
+        rec.im = shot.im; rec.w = shot.w; rec.h = shot.h;
+        renderRefs();
+      });
     });
   });
   /* ---------- Документы заказа ----------
@@ -14764,10 +14893,11 @@
     /* Не <button>: внутри лежит своя кнопка «+», а вложенных кнопок не
        бывает. Клик по карточке ловим отдельным слушателем ниже. */
     box.innerHTML = list.map(function (r) {
-      var inner = r.k === "link"
+      var isLink = r.k === "link" && !r.im;
+      var inner = isLink
         ? '<span class="host">' + refHost(r.url) + "</span><span class=\"path\">" + refTail(r.url) + "</span>"
         : refImg(r);
-      return '<span class="ref-card' + (r.k === "link" ? " link" : "") + '" data-id="' + esc(r.id) + '">'
+      return '<span class="ref-card' + (isLink ? " link" : "") + '" data-id="' + esc(r.id) + '">'
         + inner + '<button type="button" class="plus" data-id="' + esc(r.id) + '">+</button></span>';
     }).join("") || '<div class="rt-empty" style="padding:8px 2px">' + esc(LANG.t("mb.searchNothing")) + "</div>";
     box.querySelectorAll(".ref-card").forEach(function (b) {
@@ -15065,10 +15195,10 @@
   /* Обложка — мозаика 2×2 из первых кадров, либо назначенный кадр целиком */
   /* ---------- Подборка говорит своё состояние вслух ----------
      «на устройстве» / «12 из 40» / «в облаке» — 15_MOODBOARD, «Офлайн».
-     Ссылки в счёт не идут: качать у них нечего, своя картинка появится
-     только с чтением og:image (это отдельный, ещё не сделанный пункт). */
+     Ссылка без своей картинки в счёт не идёт — качать у неё нечего; со
+     своей (og:image подтянулся) считается наравне с фото — она уже здесь. */
   function boardOfflineState(b) {
-    var pics = boardShots(b).filter(function (r) { return r.k !== "link" && r.im; });
+    var pics = boardShots(b).filter(function (r) { return r.im; });
     if (!pics.length) return null;
     var have = pics.filter(function (r) { return blobHas(r.im, "s"); }).length;
     return { have: have, n: pics.length };
@@ -15409,11 +15539,13 @@
       ? LANG.t("mb.gridSome", { n: shown.length, total: LANG.count("unit.frame", list.length) })
       : LANG.count("unit.frame", list.length);
     /* Список для просмотрщика — только картинки и в порядке сетки: свайп
-       перебирает то, что реально видно на экране, ссылки в нём не участвуют */
-    var imgList = shown.filter(function (p) { return p.r.k !== "link"; }).map(function (p) { return p.r; });
+       перебирает то, что реально видно на экране. Ссылка со своим `og:image`
+       участвует наравне с фото — картинка у неё уже есть; без картинки ей
+       в списке смотреть нечего. */
+    var imgList = shown.filter(function (p) { return p.r.im; }).map(function (p) { return p.r; });
     var imgAt = 0;
     $("mbGrid").innerHTML = shown.map(function (p) {
-      if (p.r.k === "link") {
+      if (p.r.k === "link" && !p.r.im) {
         return '<button type="button" class="ref-card link" data-i="' + p.i + '">'
           + '<span class="host">' + refHost(p.r.url) + "</span>"
           + '<span class="path">' + refTail(p.r.url) + "</span></button>";
@@ -15488,10 +15620,20 @@
   });
   $("mbAddLink").addEventListener("click", function () {
     if (!mbOpen) return;
+    var openedIn = mbOpen;
     askLink(function (url) {
       if (!url || !mbOpen) return;
-      boardPut(mbBoard(mbOpen), shotAdd({ k: "link", url: url, tag: mbTag }));
+      var board = mbBoard(openedIn);
+      var id = shotAdd({ k: "link", url: url, tag: mbTag });
+      boardPut(board, id);
       saveAll(); renderMbFolder();
+      fetchOgImage(url, function (shot) {
+        var r = shotById(id);
+        if (!r) return;                 // кадр могли убрать, пока читалка ходила
+        r.im = shot.im; r.w = shot.w; r.h = shot.h;
+        saveAll();
+        if (mbOpen === openedIn) renderMbFolder();    // могли уже выйти из папки
+      });
     });
   });
   $("mbFolderTake").addEventListener("click", function () {
@@ -19857,6 +19999,12 @@
       var id = shotAdd({ k: "link", url: url, tag: gRefTag });
       boardPut(boardTpl(shootType, true), id);
       saveAll(); renderGenreRefs();
+      fetchOgImage(url, function (shot) {
+        var r = shotById(id);
+        if (!r) return;                 // кадр могли убрать, пока читалка ходила
+        r.im = shot.im; r.w = shot.w; r.h = shot.h;
+        saveAll(); renderGenreRefs();
+      });
     });
   });
 
@@ -23891,6 +24039,7 @@
     visualViewport.addEventListener("resize", measureDock);
   }
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
+  fetchAir();       // воздух приходит вторым и только поправляет закат
   askPersistence(); renderStorageInfo();   // просим у браузера не стирать наши записи
   /* Порядок важен: сперва читаем свой ключ, перенос старого молча уступает
      ему (см. `cloudMigrateYa`), и только потом ловим возврат от сервиса —
