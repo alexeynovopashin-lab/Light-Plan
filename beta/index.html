@@ -9960,7 +9960,7 @@
      картинки, а дальше это тот же `refShots`, что и у обычного фото: два
      размера, оба в IndexedDB. Не настроен адрес читалки — вызов молча ничего
      не делает, и ссылка остаётся текстовой карточкой, как была всегда. */
-  var OG_READER_URL = "https://light-plan-og-reader.novopashin-alexey.workers.dev";
+  var OG_READER_URL = "https://light-plan-og-reader.alexeynovopashin.workers.dev";
   function fetchOgImage(url, apply) {
     if (!OG_READER_URL) return;
     fetch(OG_READER_URL + "?url=" + encodeURIComponent(url))
@@ -9968,6 +9968,37 @@
       .then(function (blob) { return blob ? refShots(blob) : null; })
       .then(function (shot) { if (shot) apply(shot); })
       .catch(function () {});    // без сети или без og:image остаётся текстовая карточка
+  }
+
+  /* Доска Pinterest — не просто ссылка с одной обложкой: путь вида
+     /<пользователь>/<доска>/ (два сегмента, первый не "pin") читалка
+     разворачивает во весь список пинов через внутренний, недокументированный
+     API самого сайта Pinterest (не OAuth v5 — тот чужую публичную доску
+     перечислить не даёт, см. docs/15_MOODBOARD.md, «Доски»). Раз это чужая
+     лазейка, а не контракт, она может однажды перестать отвечать — тогда
+     board вернёт пусто, и ссылка останется как одна текстовая карточка. */
+  function isPinterestBoardUrl(url) {
+    var u;
+    try { u = new URL(url); } catch (e) { return false; }
+    if (!/(^|\.)pinterest\.[a-z.]+$/i.test(u.hostname)) return false;
+    var segs = u.pathname.split("/").filter(Boolean);
+    return segs.length >= 2 && segs[0] !== "pin";
+  }
+  function fetchOgBoard(url, onPin, onFail) {
+    if (!OG_READER_URL) return;
+    fetch(OG_READER_URL + "?board=" + encodeURIComponent(url))
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (!data || !data.pins || !data.pins.length) { if (onFail) onFail(); return; }
+        data.pins.forEach(function (pin) {
+          fetch(OG_READER_URL + "?img=" + encodeURIComponent(pin.image))
+            .then(function (res) { return res.ok ? res.blob() : null; })
+            .then(function (blob) { return blob ? refShots(blob) : null; })
+            .then(function (shot) { if (shot) onPin(shot, pin); })
+            .catch(function () {});
+        });
+      })
+      .catch(function () { if (onFail) onFail(); });
   }
 
   /* ---------- Перенос старых превью ----------
@@ -15687,6 +15718,34 @@
     askLink(function (url) {
       if (!url || !mbOpen) return;
       var board = mbBoard(openedIn);
+      if (isPinterestBoardUrl(url)) {
+        /* Доска — не одна карточка, а целый список пинов; каждый приходит
+           отдельно и асинхронно, поэтому просто кладём его в подборку по
+           готовности, без промежуточной текстовой заглушки. Лазейка может
+           однажды перестать отвечать (docs/15_MOODBOARD.md, «Доски») — тогда
+           откатываемся на старое честное поведение, одну обложку. */
+        fetchOgBoard(url, function (shot, pin) {
+          if (mbBoard(openedIn) !== board) return;   // подборку могли убрать
+          var id = shotAdd({ k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tag: mbTag });
+          boardPut(board, id);
+          saveAll();
+          if (mbOpen === openedIn) renderMbFolder();
+        }, function () {
+          if (mbBoard(openedIn) !== board) return;
+          var id = shotAdd({ k: "link", url: url, tag: mbTag });
+          boardPut(board, id);
+          saveAll();
+          if (mbOpen === openedIn) renderMbFolder();
+          fetchOgImage(url, function (shot) {
+            var r = shotById(id);
+            if (!r) return;
+            r.im = shot.im; r.w = shot.w; r.h = shot.h;
+            saveAll();
+            if (mbOpen === openedIn) renderMbFolder();
+          });
+        });
+        return;
+      }
       var id = shotAdd({ k: "link", url: url, tag: mbTag });
       boardPut(board, id);
       saveAll(); renderMbFolder();
