@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=31"></script>
+<script src="lang.js?v=32"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -5161,12 +5161,25 @@
   /* `display` в CSS перебивает атрибут `hidden` — гасим явно (грабли из DECISIONS) */
   .mb-off-row[hidden] { display: none; }
   .mb-off-row .mb-off-text { font-size: 12.5px; color: var(--ink-4); }
-  .mb-off-row #mbFolderKeep { margin-left: auto; background: none; border: none; padding: 4px;
-    color: var(--ink-4); cursor: pointer; display: flex; align-items: center; }
-  .mb-off-row #mbFolderKeep svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  /* ---------- Верхняя строка папки ----------
+     Стрелка, состояние хранения, и две двери справа — вся служебная часть
+     экрана в одной строке (макет 30 августа 2026). */
+  .mb-topbar { display: flex; align-items: center; gap: 6px; padding: 2px 0 6px; }
+  .mb-topbar .back { margin: 0; padding: 6px 4px 6px 0; }
+  .mb-topbar .mb-off-text { margin-left: 4px; }
+  .mb-top-btn { background: none; border: none; padding: 5px; cursor: pointer;
+    color: var(--ink-4); display: flex; align-items: center; }
+  .mb-top-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  .mb-top-btn:active { color: var(--brass); }
+  /* Первая из двух правых кнопок отжимается к правому краю — между ней и
+     текстом состояния всё свободное место строки */
+  #mbFolderCog { margin-left: auto; }
   /* Срок назначен — дискета латунная: это состояние прибора, а не действие */
-  .mb-off-row #mbFolderKeep.on { color: var(--brass); }
-  .mb-off-ic { display: flex; align-items: center; margin-right: 7px; color: var(--ink-4); }
+  #mbFolderKeep.on { color: var(--brass); }
+  .mb-off-ic { display: flex; align-items: center; color: var(--ink-4); }
+  /* Ничего из этого нет в облаке — знак глуше остальных: он не про
+     состояние, а про отсутствие */
+  .mb-off-ic.none { color: var(--ink-8); }
   .mb-off-ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.5; }
   /* Всё на устройстве — знак залит; не всё — только контур. Один знак в двух
      состояниях, а не два разных: это одна и та же вещь, сказанная про разное
@@ -7126,10 +7139,40 @@
   <!-- Папка мудборда — съёмка или жанровая подборка. Разделы (чипы) — то же
        поле tag, что и раньше было только у жанра (docs/DECISIONS): у съёмки
        оно просто не имело интерфейса, а не отсутствовало как возможность. -->
-  <div class="overlay pad" id="mbFolderOverlay">
-    <button class="back" id="mbFolderBack">
+  <!-- Полка жанра: список папок внутри него. Открывается, только когда
+       папок больше одной, — иначе плитка ведёт прямо в кадры, и за папки не
+       платит тапом тот, у кого их одна (дерево Алексея, 30 августа 2026). -->
+  <div class="overlay pad" id="mbShelfOverlay">
+    <button class="back" id="mbShelfBack">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="set.moodboards">Мудборды</span>
     </button>
+    <h2 class="form-title" id="mbShelfTitle" style="font-size:22px;">—</h2>
+    <p class="form-sub" id="mbShelfSub">—</p>
+    <div class="mb-tiles" id="mbShelfTiles" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="overlay pad" id="mbFolderOverlay">
+    <!-- Одна строка вместо трёх (макет 30 августа 2026): стрелка назад,
+         состояние хранения знаками, и справа две двери — настройки папки и
+         срок хранения. Слово «Мудборды» рядом со стрелкой убрано: экран, с
+         которого пришли, и так помнят, а строка стоила высоты. -->
+    <div class="mb-topbar">
+      <button class="back" id="mbFolderBack" aria-label="Назад">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="mb-off-ic" id="mbFolderOffIc"></span>
+      <span class="mb-off-ic" id="mbFolderCloudIc"></span>
+      <span class="mb-off-text" id="mbFolderOffText"></span>
+      <button type="button" class="mb-top-btn" id="mbFolderCog" aria-label="Настройки подборки">
+        <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"/><circle cx="16" cy="8" r="2"/><circle cx="10" cy="16" r="2"/></svg>
+      </button>
+      <button type="button" class="mb-top-btn" id="mbFolderKeep" aria-label="Хранение на устройстве">
+        <svg viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M4.5 5.5A1.5 1.5 0 0 1 6 4h10.5L20 7.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V5.5z"/>
+          <path d="M8 4v5h7V4"/><rect x="7.5" y="12.5" width="9" height="7" rx="1"/>
+        </svg>
+      </button>
+    </div>
     <!-- Обложка папки рядом с названием — тот же приём, что в шапке сводки
          на «Съёмках»: узнают подборку по картинке раньше, чем читают текст -->
     <div class="mb-folder-head">
@@ -7142,32 +7185,22 @@
     <!-- «на устройстве» / «12 из 40» / «в облаке» + пометка «взять с собой»,
          которая продлевает автозакачку дальше «ближайших дней»
          (15_MOODBOARD, «Офлайн»). -->
-    <!-- Слева знак: телефон закрашен — все кадры лежат на устройстве, пустой
-         контур — лежат не все. Справа дискета: сколько подборку держать
-         скачанной (Алексей, 30 августа 2026). -->
-    <div class="mb-off-row" id="mbFolderOffRow">
-      <span class="mb-off-ic" id="mbFolderOffIc"></span>
-      <span class="mb-off-text" id="mbFolderOffText"></span>
-      <button type="button" class="mb-keep" id="mbFolderKeep" aria-label="Хранение на устройстве">
-        <svg viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round">
-          <path d="M4.5 5.5A1.5 1.5 0 0 1 6 4h10.5L20 7.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V5.5z"/>
-          <path d="M8 4v5h7V4"/><rect x="7.5" y="12.5" width="9" height="7" rx="1"/>
-        </svg>
-      </button>
-    </div>
     <!-- Инструменты подборки — над сеткой, а не под ней: в подборке на семь
          десятков кадров нижняя строка требовала прокрутить всё, чтобы начать
          выбор (замечено на прогоне 30 августа 2026). Здесь же и поиск: в
          спокойном состоянии он знак, а не поле — поле занимало строку ради
          запроса, который вводят раз в сессию, и рейл разделов налезал на
          него. -->
+    <!-- Осталась одна лупа: сортировка, обложка и выбор ушли под знак
+         настроек в верхней строке. Экран облегчается, функции остаются
+         (Алексей: «мы не убираем функционал, мы облегчаем интерфейс»). -->
     <div class="mb-tool-row" id="mbToolRow">
       <button type="button" class="mb-tool-ic" id="mbSearchBtn" aria-label="Поиск">
         <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
       </button>
-      <button type="button" class="mb-tool-btn" id="mbSortBtn"></button>
-      <button type="button" class="mb-tool-btn" id="mbCoverBtn" data-i18n="mb.pickCover">Выбрать обложку</button>
-      <button type="button" class="mb-tool-btn" id="mbPickBtn" data-i18n="mb.pick">Выбрать</button>
+      <button type="button" class="mb-tool-btn" id="mbSortBtn" hidden></button>
+      <button type="button" class="mb-tool-btn" id="mbCoverBtn" hidden data-i18n="mb.pickCover">Выбрать обложку</button>
+      <button type="button" class="mb-tool-btn" id="mbPickBtn" hidden data-i18n="mb.pick">Выбрать</button>
     </div>
     <div class="field" id="mbSearchField" hidden style="margin-top:10px;">
       <input type="text" id="mbFolderSearch" data-i18n-ph="mb.folderSearchPh" placeholder="Тег, раздел или заметка"/>
@@ -14999,10 +15032,38 @@
        августа 2026). Пустая плитка — не след и не недосмотр, а место,
        которое ждёт кадров, и цвет неба на ней зовёт их положить. Условие
        `items.length` прятало ровно это место. */
+    /* Жанр — одна плитка, сколько бы папок внутри ни лежало: лента
+       показывает полки, а не всё их содержимое (дерево Алексея, 30 августа
+       2026). Внутрь ведёт список папок — или сразу кадры, если папка одна. */
+    var shelf = {};
+    boards.forEach(function (b) {
+      if (b.kind !== "tpl" || !genresOn[b.genre] || shelf[b.genre]) return;
+      shelf[b.genre] = 1;
+      out.push({ kind: "genre", g: b.genre, b: boardTpl(b.genre, true), shelf: true });
+    });
+    return out;
+  }
+  /* Папки жанра — то, что показывает сам жанр, когда его открыли */
+  function mbShelfFolders(g) {
+    return boardsOfGenre(g).map(function (b) { return { kind: "genre", g: g, b: b }; });
+  }
+  /* Плоский список всех папок: он нужен там, где выбирают, куда положить
+     кадр, — класть кладут в папку, а не на полку */
+  function mbAllFolders() {
+    var out = [];
+    sessions.forEach(function (s, i) {
+      var b = boardOfSession(s, false);
+      if (b && b.items.length) out.push({ kind: "session", si: i, b: b });
+    });
     boards.forEach(function (b) {
       if (b.kind === "tpl" && genresOn[b.genre]) out.push({ kind: "genre", g: b.genre, b: b });
     });
     return out;
+  }
+  /* Сколько кадров показывает плитка: у полки — по всем её папкам */
+  function mbCountOf(f) {
+    if (!f.shelf) return mbList(f).length;
+    return boardsOfGenre(f.g).reduce(function (n, b) { return n + b.items.length; }, 0);
   }
   function mbBoard(f) {
     return f.b || (f.kind === "session" ? boardOfSession(sessions[f.si], true) : boardTpl(f.g, true));
@@ -15022,7 +15083,10 @@
       return genreName(s.type) + " · " + dMon(s.date) + " " + s.date.getFullYear()
         + (s.place ? " · " + shortPlace(s.place) : "");
     }
-    return LANG.t("mb.genreSet");
+    /* Подпись папки — её имя (макет 30 августа 2026): жанр уже стоит
+       заголовком, повторять его словом «жанровая подборка» незачем.
+       У основной папки имени нет — она и есть жанр. */
+    return (f.b && f.b.name) || LANG.t("mb.genreSet");
   }
   /* То же самое для плитки — там строка шириной в треть экрана, и полная
      подпись обрывается на середине даты. Короткий месяц и жанр строчной,
@@ -15033,7 +15097,11 @@
       var s = sessions[f.si];
       return dMonShort(s.date) + " · " + genreName(s.type).toLowerCase();
     }
-    return LANG.t("mb.setShort");
+    if (f.shelf) {
+      var n = boardsOfGenre(f.g).length;
+      return n > 1 ? LANG.count("unit.folder", n) : LANG.t("mb.setShort");
+    }
+    return (f.b && f.b.name) || LANG.t("mb.setShort");
   }
   /* Папка съёмки грузит файлы в ту же «app:/refs», что и форма съёмки,
      жанровая — в «app:/genre-refs», как «Мои жанры»: своих папок на Диске
@@ -15258,6 +15326,66 @@
       setTimeout(function () { clone.remove(); }, 900);
     });
   }
+  /* Куда ведёт плитка: полка с одной папкой — сразу в кадры, полка с
+     несколькими — в список папок. Разводится здесь, а не в двух местах
+     вызова: лента и галерея должны вести себя одинаково. */
+  function openFolderOrShelf(f, btn) {
+    if (f.shelf) {
+      var fs = mbShelfFolders(f.g);
+      if (fs.length > 1) { openMbShelf(f.g); return; }
+      f = fs[0] || f;
+    }
+    openBoardWithFly(f, btn);
+  }
+  var mbShelf = null;    // открытая полка: код жанра
+  function openMbShelf(g) {
+    mbShelf = g;
+    renderMbShelf();
+    $("mbShelfOverlay").classList.add("open");
+  }
+  function renderMbShelf() {
+    if (!mbShelf) return;
+    var fs = mbShelfFolders(mbShelf);
+    $("mbShelfTitle").textContent = genreName(mbShelf);
+    $("mbShelfSub").textContent = LANG.count("unit.folder", fs.length)
+      + " · " + LANG.count("unit.frame", fs.reduce(function (n, f) { return n + mbList(f).length; }, 0));
+    var html = fs.map(function (f, i) {
+      return '<button type="button" class="mb-tile" data-i="' + i + '" data-bid="' + esc(f.b.id) + '">'
+        + mbTileArt(f)
+        + '<span class="n">' + esc(f.b.name || genreName(mbShelf)) + "</span>"
+        + '<span class="s">' + esc(LANG.count("unit.frame", mbList(f).length)) + "</span></button>";
+    }).join("");
+    html += '<button type="button" class="mb-tile add" id="mbShelfAdd">'
+      + '<span class="mb-cover"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>'
+      + '<span class="n">' + esc(LANG.t("mb.newFolder")) + "</span></button>";
+    $("mbShelfTiles").innerHTML = html;
+    blobHydrate($("mbShelfTiles"));
+    paintIcons($("mbShelfTiles"));
+    $("mbShelfTiles").querySelectorAll(".mb-tile:not(.add)").forEach(function (b) {
+      mbStartDrag(b, b.dataset.bid, function () { openBoardWithFly(fs[+b.dataset.i], b); }, openMbBoardSheet);
+    });
+    $("mbShelfAdd").addEventListener("click", function () { mbNewFolder(mbShelf); });
+  }
+  /* Новая папка заводится с именем сразу: две безымянные папки в одном
+     жанре не отличить друг от друга */
+  function mbNewFolder(g) {
+    askText(LANG.t("mb.newFolderAsk"), function (name) {
+      name = (name || "").trim();
+      if (!name) return;
+      var b = boardAddFolder(g, name);
+      saveAll();
+      renderMbShelf(); renderMbStrip(); renderMbCount();
+      if ($("mbOverlay").classList.contains("open")) renderMbGallery();
+      openMbFolder({ kind: "genre", g: g, b: b });
+    });
+  }
+  $("mbShelfBack").addEventListener("click", function () {
+    $("mbShelfOverlay").classList.remove("open");
+    mbShelf = null;
+    renderMbStrip(); renderMbCount();
+    if ($("mbOverlay").classList.contains("open")) renderMbGallery();
+  });
+
   function renderMbTiles() {
     var folders = mbFolders();
     var sessionsF = folders.filter(function (f) { return f.kind === "session"; })
@@ -15298,7 +15426,7 @@
     $("mbGallery").innerHTML = html;
     $("mbGallery").querySelectorAll(".mb-tile:not(.add):not(.gh-tile)").forEach(function (b) {
       var list = b.dataset.list === "s" ? sessionsF : genresF;
-      mbStartDrag(b, b.dataset.bid, function () { openBoardWithFly(list[+b.dataset.i], b); }, openMbBoardSheet);
+      mbStartDrag(b, b.dataset.bid, function () { openFolderOrShelf(list[+b.dataset.i], b); }, openMbBoardSheet);
     });
     if ($("mbAddBoard")) $("mbAddBoard").addEventListener("click", function () { openMbNew(genresF); });
   }
@@ -15389,12 +15517,15 @@
   }
   $("mbAddScrim").addEventListener("click", closeMbAdd);
   function renderMbAddList() {
-    var id = mbAddShot, folders = mbFolders();
+    var id = mbAddShot, folders = mbAllFolders();
     var genresF = folders.filter(function (f) { return f.kind === "genre"; });
     var rows = folders.map(function (f) {
       var on = !mbAddMany && boardHas(mbBoard(f), id);
+      /* У жанра теперь несколько папок — строку опознаём знаком подборки,
+         а не кодом жанра: код указал бы только на первую из них */
+      var name = mbTitle(f) + (f.kind === "genre" && f.b && f.b.name ? " · " + f.b.name : "");
       return '<button type="button" class="row" data-kind="' + f.kind + '" data-key="'
-        + esc(f.kind === "session" ? String(f.si) : f.g) + '"><span>' + esc(mbTitle(f)) + "</span>"
+        + esc(f.kind === "session" ? String(f.si) : f.b.id) + '"><span>' + esc(name) + "</span>"
         + (on ? '<span class="rv">✓</span>' : "") + "</button>";
     });
     rows = rows.concat(mbFreeGenres(genresF).map(function (g) {
@@ -15403,7 +15534,9 @@
     $("mbAddList").innerHTML = rows.join("") || '<div class="rt-empty" style="padding:14px 2px">' + esc(LANG.t("mb.noBoards")) + "</div>";
     $("mbAddList").querySelectorAll(".row").forEach(function (b) {
       b.addEventListener("click", function () {
-        var board = b.dataset.kind === "session" ? boardOfSession(sessions[+b.dataset.key], true) : boardTpl(b.dataset.key, true);
+        var board = b.dataset.kind === "session" ? boardOfSession(sessions[+b.dataset.key], true)
+          : (b.dataset.kind === "new" ? boardTpl(b.dataset.key, true) : boardById(b.dataset.key));
+        if (!board) return;
         if (mbAddMany) {
           var from = mbOpen ? mbBoard(mbOpen) : null;
           mbAddMany.forEach(function (sid) { boardPut(board, sid); });
@@ -15719,7 +15852,7 @@
   /* Обложка на стопке из двух листов + кружок-счётчик — подборка читается
      как пачка распечаток, а не плоская карточка (макет «Moodboard Shoots») */
   function mbTileArt(f) {
-    var n = mbList(f).length;
+    var n = mbCountOf(f);
     return '<span class="mb-tile-art"><span class="leaf a"></span><span class="leaf b"></span>'
       + mbCover(f) + (n ? '<span class="count">' + n + "</span>" : "") + "</span>";
   }
@@ -15811,7 +15944,7 @@
           b.addEventListener("click", function () { renderMbGallery(); $("mbOverlay").classList.add("open"); });
           return;
         }
-        mbStartDrag(b, b.dataset.bid, function () { openBoardWithFly(shown[+b.dataset.i], b); }, openMbBoardSheet);
+        mbStartDrag(b, b.dataset.bid, function () { openFolderOrShelf(shown[+b.dataset.i], b); }, openMbBoardSheet);
       });
     }
     fill("mbStripShoots", "mbStripShootsLbl", shootsF, "s", "");
@@ -15906,7 +16039,6 @@
        края (так она и выглядела на пустом экране) */
     var offLabel = boardOfflineLabel(board);
     var offSt = boardOfflineState(board);
-    $("mbFolderOffRow").hidden = !offLabel;
     $("mbFolderOffText").textContent = offLabel
       + (board.keep && boardKeeps(board) ? " · " + mbKeepLabel(board) : "");
     /* Знак телефона: залит — всё лежит здесь, контур — лежит не всё */
@@ -15919,6 +16051,16 @@
       + '<rect x="7" y="2.5" width="10" height="19" rx="2.5" stroke="currentColor"/>'
       + '<path d="M10.6 5.1h2.8" stroke="currentColor" stroke-linecap="round"/>'
       + (full ? '<rect x="8.6" y="7.2" width="6.8" height="10.4" rx="1.2" fill="currentColor" stroke="none"/>' : "")
+      + "</svg>";
+    /* Знак облака — второе хранилище: горит, когда кадры выгружены на Диск.
+       Два знака рядом отвечают на один вопрос — где кадры лежат: только на
+       телефоне, только в облаке или и там, и там (Алексей, 30 августа). */
+    var pics = boardShots(board).filter(function (r) { return r.im; });
+    var inCloud = pics.filter(function (r) { return r.path; }).length;
+    $("mbFolderCloudIc").classList.toggle("full", !!pics.length && inCloud === pics.length);
+    $("mbFolderCloudIc").classList.toggle("none", !inCloud);
+    $("mbFolderCloudIc").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-linejoin="round">'
+      + '<path d="M7 18.5h9.5a3.8 3.8 0 0 0 .4-7.6 5.4 5.4 0 0 0-10.3-1.2A3.9 3.9 0 0 0 7 18.5z" stroke="currentColor"/>'
       + "</svg>";
     $("mbFolderKeep").classList.toggle("on", !!(board.keep && boardKeeps(board)));
     /* Рейл показывает только те разделы, которые в подборке действительно
@@ -15975,16 +16117,15 @@
     mbShownIds = shown.map(function (p) { return p.r.id; });
     var picking = mbPickOn();
     var allOn = picking && mbShownIds.length && mbShownIds.every(function (id) { return mbPicked.indexOf(id) >= 0; });
-    $("mbSortBtn").textContent = picking
-      ? LANG.t(allOn ? "mb.selNone" : "mb.selAll")
-      : LANG.t("mb.sortLabel", { label: LANG.t(SORT_LABELS[board.sort || 0]) });
-    /* Обложку назначают один раз: пока её нет, кнопка зовёт: обложка сейчас
-       первая фотография, и это не выбор, а умолчание. Назначили — кнопка
-       уходит, менять обложку теперь долгим тапом по ней самой (Алексей,
-       30 августа 2026). */
-    $("mbCoverBtn").hidden = picking || !!board.cover;
-    $("mbPickBtn").textContent = LANG.t(picking ? "mb.pickDone" : "mb.pick");
-    $("mbPickBtn").hidden = !list.length;      // в пустой подборке выбирать нечего
+    /* В спокойном виде строка — одна лупа: сортировка, обложка и выбор
+       живут под знаком настроек. В режиме выбора те же две кнопки
+       возвращаются на своё место: «Выбрать все» и «Готово» нужны прямо над
+       сеткой, а не через лист. */
+    $("mbSortBtn").textContent = LANG.t(allOn ? "mb.selNone" : "mb.selAll");
+    $("mbSortBtn").hidden = !picking;
+    $("mbCoverBtn").hidden = true;
+    $("mbPickBtn").textContent = LANG.t("mb.pickDone");
+    $("mbPickBtn").hidden = !picking;
     $("mbSelActs").hidden = !picking;
     $("mbAddRow").hidden = picking;
     $("mbSelDel").textContent = LANG.t("mb.selDel") + (picking && mbPicked.length ? " " + mbPicked.length : "");
@@ -16219,19 +16360,16 @@
     hero.addEventListener("pointerup", release);
     hero.addEventListener("pointercancel", release);
   })();
+  /* Кнопка в строке инструментов теперь одна на два имени и живёт только в
+     режиме выбора: «Выбрать все» / «Снять все». Сортировка переехала в
+     настройки папки — там ей и место, её меняют раз в сезон. */
   $("mbSortBtn").addEventListener("click", function () {
-    if (!mbOpen) return;
-    if (mbPickOn()) {
-      /* «Все» — это всё, что сейчас на глазах, а не всё, что в подборке:
-         под фильтром раздела или поиском обещать большее было бы обманом. */
-      var allOn = mbShownIds.length && mbShownIds.every(function (id) { return mbPicked.indexOf(id) >= 0; });
-      mbPicked = allOn ? [] : mbShownIds.slice();
-      renderMbFolder();
-      return;
-    }
-    var b = mbBoard(mbOpen);
-    b.sort = ((b.sort || 0) + 1) % 3;
-    saveAll(); renderMbFolder();
+    if (!mbOpen || !mbPickOn()) return;
+    /* «Все» — это всё, что сейчас на глазах, а не всё, что в подборке: под
+       фильтром раздела или поиском обещать большее было бы обманом. */
+    var allOn = mbShownIds.length && mbShownIds.every(function (id) { return mbPicked.indexOf(id) >= 0; });
+    mbPicked = allOn ? [] : mbShownIds.slice();
+    renderMbFolder();
   });
   /* Три действия над выбранным. «Добавить» и «Переместить» — один лист с
      разным заголовком; «Убрать» спрашивает, потому что необратимо для тех
@@ -16258,6 +16396,38 @@
       rvClose();               // выбранное могло быть открыто во весь экран
       renderMbFolder(); renderMbGallery(); renderMbStrip(); renderMbCount();
     });
+  });
+  /* ---------- Настройки папки ----------
+     Всё, что делают с подборкой целиком, собрано под один знак: порядок,
+     обложка, выбор кадров, имя, новая папка в этом же жанре и удаление.
+     Экран от этого худеет на три подписи, а функции остаются на месте —
+     это и просили («мы не убираем функционал, мы облегчаем интерфейс»). */
+  var SORT_KEYS = ["mb.sortManual", "mb.sortNewest", "mb.sortByTag"];
+  $("mbFolderCog").addEventListener("click", function () {
+    if (!mbOpen) return;
+    var f = mbOpen, b = mbBoard(f), has = mbList(f).length;
+    var items = [];
+    items.push({ t: LANG.t("mb.sortWord"), sub: LANG.t(SORT_KEYS[b.sort || 0]), go: function () {
+      askPick(LANG.t("mb.sortWord"), SORT_KEYS.map(function (k, i) {
+        return { t: LANG.t(k), on: (b.sort || 0) === i, go: function () { b.sort = i; saveAll(); renderMbFolder(); } };
+      }));
+    } });
+    if (has) {
+      items.push({ t: LANG.t(b.cover ? "mb.coverChange" : "mb.pickCover"), go: openMbCover });
+      items.push({ t: LANG.t("mb.pick"), go: function () { mbPicked = []; renderMbFolder(); } });
+    }
+    items.push({ t: LANG.t("mb.rename"), sub: b.name || "", go: function () {
+      askText(LANG.t("mb.renameAsk"), function (name) {
+        name = (name || "").trim();
+        b.name = name || null;
+        saveAll(); renderMbFolder(); renderMbStrip(); renderMbShelf();
+      });
+    } });
+    if (f.kind === "genre") {
+      items.push({ t: LANG.t("mb.newFolder"), sub: genreName(f.g), go: function () { mbNewFolder(f.g); } });
+    }
+    items.push({ t: LANG.t("mb.delBoard"), go: function () { openMbBoardSheet(b.id); } });
+    askPick(mbTitle(f), items, mbSub(f));
   });
   $("mbPickBtn").addEventListener("click", function () {
     if (!mbOpen) return;
@@ -18064,12 +18234,32 @@
     boards.push(b);
     return b;
   }
+  /* ---------- Папки внутри жанра ----------
+     У жанра больше не одна подборка, а полка: «Портрет» держит «Мужской
+     портрет» и «Женский портрет», «Свадьба» — «в золотых тонах» и «на море»
+     (Алексей, 30 августа 2026, дерево нарисовано его рукой).
+
+     `boardTpl` при этом остаётся и означает **основную папку жанра** — ту,
+     что заводится первой. На ней держится всё, что знает жанр, но не знает
+     папки: заготовка жанра в форме съёмки, строка «Добавить в подборку
+     «портрет»», перенос старых наборов. Так правка не расходится по всему
+     файлу: новое — рядом, а не вместо. */
+  function boardsOfGenre(g) {
+    return boards.filter(function (b) { return b.kind === "tpl" && b.genre === g; });
+  }
   function boardTpl(g, make) {
-    for (var i = 0; i < boards.length; i++) {
-      if (boards[i].kind === "tpl" && boards[i].genre === g) return boards[i];
-    }
+    var found = boardsOfGenre(g);
+    if (found.length) return found[0];
     if (!make) return null;
     var b = { id: newId(), kind: "tpl", genre: g, items: [], name: null, cover: null };
+    boards.push(b);
+    return b;
+  }
+  /* Новая папка в жанре — всегда со своим именем: безымянных папок в одном
+     жанре не отличить друг от друга, а основную и не надо называть, у неё
+     имя жанра. */
+  function boardAddFolder(g, name) {
+    var b = { id: newId(), kind: "tpl", genre: g, items: [], name: name || null, cover: null };
     boards.push(b);
     return b;
   }
