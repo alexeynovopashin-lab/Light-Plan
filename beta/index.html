@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=30"></script>
+<script src="lang.js?v=31"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2631,8 +2631,15 @@
   }
   /* Сортировка и выбор обложки — текстовые кнопки под сеткой, тот же
      акцентный цвет, что у ссылок в мудборде */
-  .mb-tool-row { display: flex; gap: 16px; padding: 14px 15px 4px; }
+  .mb-tool-row { display: flex; align-items: center; gap: 16px; padding: 12px 2px 2px; }
   .mb-tool-btn { background: none; border: none; padding: 0; font-family: inherit; font-size: 12.5px; color: var(--brass-soft); cursor: pointer; }
+  .mb-tool-btn[hidden] { display: none; }
+  /* Лупа — знак того же веса, что и слова рядом: не кнопка-плашка, а
+     подпись, которой досталась форма вместо слова */
+  .mb-tool-ic { background: none; border: none; padding: 0; margin-right: 2px; cursor: pointer;
+    display: flex; align-items: center; color: var(--brass-soft); }
+  .mb-tool-ic svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .mb-tool-ic.on { color: var(--brass); }
   /* Лист выбора обложки — тот же `.ref-card`, что и сетка мудборда, плюс
      галочка на выбранном (тот же приём, что у плюса найденного кадра) и
      плитка «Автоматически» без картинки */
@@ -3799,6 +3806,12 @@
   /* Листы, которые вызываются из формы съёмки, обязаны лежать выше неё (80) */
   #gScrim, #locScrim, #kScrim, #mbNewScrim, #mbAddScrim, #mbItemScrim, #mbCoverScrim { z-index: 84; }
   #gSheet, #locSheet, #kSheet, #mbNewSheet, #mbAddSheet, #mbItemSheet, #mbCoverSheet { z-index: 86; }
+  /* Лист выбора зовут и поверх других листов (со строки инструментов папки) */
+  #pickSheet { z-index: 88; }
+  #pickScrim { z-index: 87; }
+  #pickSheet .sheet-sub[hidden] { display: none; }
+  /* Пояснение под названием строки — второй строкой, тише названия */
+  .row-sub { display: block; margin-top: 2px; font-size: 12.5px; color: var(--ink-4); }
   /* Корзина открывается двумя путями: значком в карточке (78) и строкой в
      настройках, а та живёт в оверлее «Хранилище» (80). Со своими 70 лист
      уходил под экран настроек: нажатие как будто не срабатывало, и находился
@@ -4396,6 +4409,7 @@
     padding: 46px 16px 10px; flex-shrink: 0; }
   .rf-title { font-size: 17px; color: var(--ink); }
   .rf-title span { font-size: 12px; color: var(--ink-6); display: block; margin-top: 2px; }
+  .rf-tags[hidden] { display: none; }   /* flex перебивает hidden — грабли этого файла */
   .rf-tags { display: flex; gap: 7px; overflow-x: auto; padding: 0 16px 10px;
     flex-shrink: 0; scrollbar-width: none; }
   .rf-tags::-webkit-scrollbar { display: none; }
@@ -4480,6 +4494,15 @@
      подборок у листа «Добавить в подборку»: одно и то же значит одно и то
      же. Сам кадр приглушается, а не обводится рамкой: рамка на масонри
      ломала бы ряд, сдвигая соседей на свою толщину. */
+  /* Плитка «+» — рамка, а не картинка: она обещает место, а не показывает
+     содержимое (та же рамка, что у «+ Новая подборка» в ленте) */
+  .ref-card.add {
+    display: flex; align-items: center; justify-content: center;
+    aspect-ratio: 1/1; background: none;
+    border: 1px dashed var(--hairline); color: var(--ink-4);
+  }
+  .ref-card.add svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  #mbGrid.mb-grid .ref-card.add { aspect-ratio: 1/1; }
   .ref-card .pick {
     position: absolute; top: 7px; right: 7px; z-index: 2;
     width: 22px; height: 22px; border-radius: 50%; corner-shape: squircle;
@@ -5131,7 +5154,18 @@
   /* `display` в CSS перебивает атрибут `hidden` — гасим явно (грабли из DECISIONS) */
   .mb-off-row[hidden] { display: none; }
   .mb-off-row .mb-off-text { font-size: 12.5px; color: var(--ink-4); }
-  .mb-off-row #mbFolderTake { margin-left: auto; }
+  .mb-off-row #mbFolderKeep { margin-left: auto; background: none; border: none; padding: 4px;
+    color: var(--ink-4); cursor: pointer; display: flex; align-items: center; }
+  .mb-off-row #mbFolderKeep svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  /* Срок назначен — дискета латунная: это состояние прибора, а не действие */
+  .mb-off-row #mbFolderKeep.on { color: var(--brass); }
+  .mb-off-ic { display: flex; align-items: center; margin-right: 7px; color: var(--ink-4); }
+  .mb-off-ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.5; }
+  /* Всё на устройстве — знак залит; не всё — только контур. Один знак в двух
+     состояниях, а не два разных: это одна и та же вещь, сказанная про разное
+     наполнение (Алексей, 30 августа 2026). */
+  .mb-off-ic.full { color: var(--brass); }
+  .mb-off-ic.full svg { fill: currentColor; stroke: none; }
   .form-sub .t { color: var(--brass); font-variant-numeric: tabular-nums; }
   .field { margin-top: 22px; }
   .f-label {
@@ -7101,15 +7135,34 @@
     <!-- «на устройстве» / «12 из 40» / «в облаке» + пометка «взять с собой»,
          которая продлевает автозакачку дальше «ближайших дней»
          (15_MOODBOARD, «Офлайн»). -->
+    <!-- Слева знак: телефон закрашен — все кадры лежат на устройстве, пустой
+         контур — лежат не все. Справа дискета: сколько подборку держать
+         скачанной (Алексей, 30 августа 2026). -->
     <div class="mb-off-row" id="mbFolderOffRow">
+      <span class="mb-off-ic" id="mbFolderOffIc"></span>
       <span class="mb-off-text" id="mbFolderOffText"></span>
-      <button type="button" class="rf-tag" id="mbFolderTake" data-i18n="mb.takeWithMe">Взять с собой</button>
+      <button type="button" class="mb-keep" id="mbFolderKeep" aria-label="Хранение на устройстве">
+        <svg viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M4.5 5.5A1.5 1.5 0 0 1 6 4h10.5L20 7.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V5.5z"/>
+          <path d="M8 4v5h7V4"/><rect x="7.5" y="12.5" width="9" height="7" rx="1"/>
+        </svg>
+      </button>
     </div>
-    <!-- Поиск внутри папки — по разделу, свободным тегам и адресу ссылки.
-         Поле то же самое (`.field`), что у поиска по всему мудборду этажом
-         выше: два поиска в одном разделе должны выглядеть одним прибором,
-         поэтому лупы из макета здесь нет — её нет и у соседнего поля. -->
-    <div class="field" style="margin-top:10px;">
+    <!-- Инструменты подборки — над сеткой, а не под ней: в подборке на семь
+         десятков кадров нижняя строка требовала прокрутить всё, чтобы начать
+         выбор (замечено на прогоне 30 августа 2026). Здесь же и поиск: в
+         спокойном состоянии он знак, а не поле — поле занимало строку ради
+         запроса, который вводят раз в сессию, и рейл разделов налезал на
+         него. -->
+    <div class="mb-tool-row" id="mbToolRow">
+      <button type="button" class="mb-tool-ic" id="mbSearchBtn" aria-label="Поиск">
+        <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      </button>
+      <button type="button" class="mb-tool-btn" id="mbSortBtn"></button>
+      <button type="button" class="mb-tool-btn" id="mbCoverBtn" data-i18n="mb.pickCover">Выбрать обложку</button>
+      <button type="button" class="mb-tool-btn" id="mbPickBtn" data-i18n="mb.pick">Выбрать</button>
+    </div>
+    <div class="field" id="mbSearchField" hidden style="margin-top:10px;">
       <input type="text" id="mbFolderSearch" data-i18n-ph="mb.folderSearchPh" placeholder="Тег, раздел или заметка"/>
     </div>
     <!-- Рейл, а не перенос по строкам: разделов у свадьбы семь, и переносом
@@ -7138,12 +7191,6 @@
       </button>
     </div>
     <div class="ref-note" id="mbNote" hidden></div>
-    <!-- Сортировка кадров и ручной выбор обложки — макет «Moodboard Shoots» -->
-    <div class="mb-tool-row">
-      <button type="button" class="mb-tool-btn" id="mbSortBtn"></button>
-      <button type="button" class="mb-tool-btn" id="mbCoverBtn" data-i18n="mb.pickCover">Выбрать обложку</button>
-      <button type="button" class="mb-tool-btn" id="mbPickBtn" data-i18n="mb.pick">Выбрать</button>
-    </div>
   </div>
 
   <!-- Обложка подборки — ручной выбор перекрывает автоматический (первый
@@ -7162,6 +7209,18 @@
        перетащив, — значит хотели не слить, а что-то с ней сделать. Раньше
        эта ветка не делала ничего, а удалять подборку было нечем вовсе
        (жалоба с телефона: «нет функции удалить подборку»). -->
+  <!-- Лист выбора из нескольких строк. Заведён для плитки «+» (что кладём —
+       фото или ссылку) и для срока хранения на устройстве; заголовок и
+       строки приходят вызовом, разметка одна на всех. -->
+  <div class="scrim" id="pickScrim"></div>
+  <div class="sheet" id="pickSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" id="pickTitle">—</div>
+    <div class="sheet-sub" id="pickSub" hidden></div>
+    <div class="group" id="pickList" style="margin-top:14px;"></div>
+    <button type="button" class="ghost" id="pickCancel" style="margin-top:10px;" data-i18n="ask.cancel">Отмена</button>
+  </div>
+
   <div class="scrim" id="mbBoardScrim"></div>
   <div class="sheet" id="mbBoardSheet">
     <div class="grip"></div>
@@ -15242,6 +15301,17 @@
   }
   $("mbSearchInput").addEventListener("input", renderMbGallery);
 
+  /* Плитка «+» спрашивает, что кладём: тот же выбор, что у двух кнопок
+     внизу, только собранный в одно место. Отдельного листа для этого не
+     заводим — жмём те же самые кнопки, чтобы путь добавления остался один
+     на всё приложение. */
+  function openMbAddWhat() {
+    askPick(LANG.t("mb.addWhat"), [
+      { t: LANG.t("ref.photo"), go: function () { $("mbAddPhoto").click(); } },
+      { t: LANG.t("ref.link"), go: function () { $("mbAddLink").click(); } }
+    ]);
+  }
+
   /* ---------- Лист самой подборки ----------
      Пока в нём одно действие, и это правильно: остальное у подборки уже
      есть внутри неё (обложка, сортировка, теги), а наружу просилось ровно
@@ -15460,6 +15530,65 @@
     if (st.have === st.n) return LANG.t("mb.offHere");
     return LANG.t("mb.offPart", { have: st.have, n: st.n });
   }
+  /* ---------- Сколько держать подборку на устройстве ----------
+     Прежняя пометка «взять с собой» отвечала только «да или нет» и не
+     кончалась никогда: помеченная подборка занимала место до тех пор, пока
+     о ней не вспомнят. Алексей (30 августа 2026): пусть будет срок —
+     сутки, пятнадцать дней, бессрочно, а у подборки съёмки ещё и «до конца
+     съёмки».
+
+     Важная граница: снять с устройства можно только то, что есть в облаке.
+     У кадра без `path` экранная копия — единственная, и «освободить место»
+     значило бы её потерять. Такие кадры остаются, сколько бы ни истекло. */
+  var KEEP_MODES = { day: 1, half: 15, ever: 0, shoot: 0 };
+  function boardKeepUntil(b) {
+    if (!b || !b.keep) return 0;
+    if (b.keep.mode === "ever") return Infinity;
+    if (b.keep.mode === "shoot") {
+      /* Съёмка кончилась — кончился и срок. Отметка о завершении вручную
+         (`doneAt`) главнее календаря: она и есть конец работы. */
+      var s = null;
+      for (var i = 0; i < sessions.length; i++) if (sessions[i].id === b.sid) { s = sessions[i]; break; }
+      if (!s) return 0;
+      if (s.doneAt) return s.doneAt;
+      var end = new Date(s.date); end.setHours(23, 59, 59, 0);
+      return end.getTime();
+    }
+    var days = KEEP_MODES[b.keep.mode] || 0;
+    return (b.keep.at || 0) + days * 86400000;
+  }
+  function boardKeeps(b) { return boardKeepUntil(b) > Date.now(); }
+  /* Срок вышел — освобождаем экранные копии тех кадров, у которых есть
+     облачная копия. Миниатюра остаётся всегда: по ней подборка и читается
+     без сети, а весит она десятки килобайт. */
+  function mbKeepSweep() {
+    var changed = false;
+    boards.forEach(function (b) {
+      if (!b.keep || boardKeeps(b)) return;
+      boardShots(b).forEach(function (r) {
+        if (r.im && r.path && blobHas(r.im, "s") && !shotKeptElsewhere(r.id, b)) blobFree(r.im);
+      });
+      b.keep = null; changed = true;
+    });
+    if (changed) saveAll();
+  }
+  /* Кадр может лежать в другой подборке, срок которой ещё идёт, — тогда он
+     остаётся на устройстве: срок ставят подборке, а место занимает кадр. */
+  function shotKeptElsewhere(id, except) {
+    for (var i = 0; i < boards.length; i++) {
+      var b = boards[i];
+      if (b !== except && boardHas(b, id) && boardKeeps(b)) return true;
+    }
+    return false;
+  }
+  /* Освобождаем только экранную копию: миниатюра — это сама подборка на
+     экране, без неё останутся серые дырки */
+  function blobFree(id) {
+    blobUrlDrop(id);
+    if (blobHave) blobHave.delete(blobKey(id, "s"));
+    return blobTx("readwrite", function (st) { return st.delete(blobKey(id, "s")); }).catch(function () {});
+  }
+
   /* ---------- Правило закачки ----------
      Экранные копии качаются сами для подборок съёмок ближайших дней, и
      вручную — по пометке «взять с собой» на любой подборке (решено 27
@@ -15474,9 +15603,9 @@
     var due = [];
     sessions.forEach(function (s) {
       var b = boardOfSession(s, false);
-      if (b && (b.take || (s.date >= today && s.date <= until))) due.push(b);
+      if (b && (boardKeeps(b) || (s.date >= today && s.date <= until))) due.push(b);
     });
-    boards.forEach(function (b) { if (b.kind === "tpl" && b.take) due.push(b); });
+    boards.forEach(function (b) { if (b.kind === "tpl" && boardKeeps(b)) due.push(b); });
     return due;
   }
   /* Один кадр за раз: параллельная закачка полусотни картинок в мобильной
@@ -15570,24 +15699,15 @@
   function mbCover(f) {
     var b = mbBoard(f), list = boardShots(b);
     var sky = ' style="background-image:' + mbSky(b && b.id) + '"';
-    var set = b.cover ? [shotById(b.cover)].filter(Boolean) : null;
-    /* Мозаику собирают картинки: у кадра-ссылки своей картинки пока нет
-       (она придёт с чтением `og:image`), и в сетке он — пустая ячейка.
-       Поэтому картинки идут вперёд, а ссылки добором. */
-    var pics = set || list.filter(function (r) { return r.im; });
+    /* Обложка — одна картинка: назначенная, а если не назначали — первая в
+       подборке (Алексей, 30 августа 2026). Мозаика 2×2 отменена: она
+       показывала подборку четырьмя ногтями, ни один из которых не
+       разглядеть. Ссылка без своей картинки обложкой быть не может. */
+    var pic = (b.cover && shotById(b.cover)) || list.filter(function (r) { return r.im; })[0];
     var offLabel = boardOfflineLabel(b);
     var off = offLabel ? '<span class="off">' + esc(offLabel) + "</span>" : "";
-    /* Одна картинка — не мозаика, а картинка: резать её нечем и незачем.
-       Пустая обложка — тоже одна ячейка, а не сетка из четырёх дырок. */
-    if (pics.length < 2) {
-      return '<span class="mb-cover one"' + sky + ">"
-        + (pics.length ? refImg(pics[0]) : "") + off + "</span>";
-    }
-    var cells = pics.slice(0, 4).map(function (r) { return refImg(r); });
-    /* Мозаика всегда о четырёх ячейках: три кадра и просвет честнее, чем
-       растянутый третий на пол-обложки */
-    while (cells.length < 4) cells.push('<i class="ph"></i>');
-    return '<span class="mb-cover"' + sky + ">" + cells.join("") + off + "</span>";
+    return '<span class="mb-cover one"' + sky + ">"
+      + (pic ? refImg(pic) : "") + off + "</span>";
   }
   /* Обложка на стопке из двух листов + кружок-счётчик — подборка читается
      как пачка распечаток, а не плоская карточка (макет «Moodboard Shoots») */
@@ -15741,10 +15861,28 @@
     var fresh = f.kind === "genre" && !boardTpl(f.g, false);
     if (fresh) { boardTpl(f.g, true); saveAll(); renderMbStrip(); renderMbCount(); }
     $("mbFolderSearch").value = "";   // новая папка открывается без чужого запроса
+    $("mbSearchField").hidden = true;
+    $("mbSearchBtn").classList.remove("on");
     renderMbFolder();
     $("mbFolderOverlay").classList.add("open");
   }
   $("mbFolderSearch").addEventListener("input", renderMbFolder);
+  /* Лупа разворачивает поле и сама остаётся зажжённой, пока в нём что-то
+     набрано: свёрнутый поиск с непустым запросом молча прятал бы половину
+     подборки. Повторный тап по пустому полю сворачивает его обратно. */
+  $("mbSearchBtn").addEventListener("click", function () {
+    var fld = $("mbSearchField");
+    if (fld.hidden) {
+      fld.hidden = false;
+      $("mbSearchBtn").classList.add("on");
+      $("mbFolderSearch").focus();
+      return;
+    }
+    $("mbFolderSearch").value = "";
+    fld.hidden = true;
+    $("mbSearchBtn").classList.remove("on");
+    renderMbFolder();
+  });
   function renderMbFolder() {
     var f = mbOpen;
     if (!f) return;
@@ -15760,15 +15898,34 @@
        нечего — строка целиком уходит, а не висит одной кнопкой у правого
        края (так она и выглядела на пустом экране) */
     var offLabel = boardOfflineLabel(board);
+    var offSt = boardOfflineState(board);
     $("mbFolderOffRow").hidden = !offLabel;
-    $("mbFolderOffText").textContent = offLabel;
-    $("mbFolderTake").classList.toggle("on", !!board.take);
-    var tags = refTagsOf(g, list);
+    $("mbFolderOffText").textContent = offLabel
+      + (board.keep && boardKeeps(board) ? " · " + mbKeepLabel(board) : "");
+    /* Знак телефона: залит — всё лежит здесь, контур — лежит не всё */
+    var full = !!(offSt && offSt.have === offSt.n);
+    $("mbFolderOffIc").classList.toggle("full", full);
+    $("mbFolderOffIc").innerHTML = '<svg viewBox="0 0 24 24" stroke-linejoin="round">'
+      + '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/>'
+      + (full ? "" : '<path d="M10.5 5.2h3" stroke-linecap="round"/>') + "</svg>";
+    $("mbFolderKeep").classList.toggle("on", !!(board.keep && boardKeeps(board)));
+    /* Рейл показывает только те разделы, которые в подборке действительно
+       есть. Раньше он выкладывал весь список жанра — семь слов на свадьбу, —
+       и обещал разделы, за которыми ни одного кадра: рейл переносился в две
+       строки, наползая на поиск, а тап по такому чипу давал пустую сетку.
+       Полный список остался там, где тег назначают, — в листе «Материал»
+       (Алексей, 30 августа 2026). */
+    var used = {};
+    list.forEach(function (r) { if (r.tag) used[r.tag] = 1; });
+    var tags = refTagsOf(g, list).filter(function (t) { return used[t]; });
     if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
     /* «Все» первым чипом — тот же вид рейла, что у полного списка
        референсов съёмки (`renderRefsFull`): снять фильтр можно и повторным
        тапом по разделу, но у выбранного состояния должна быть видимая
        пара, иначе «ничего не выбрано» ничем не показано. */
+    /* Разделов нет вовсе — нет и рейла: чип «Все» в одиночестве говорит
+       только то, что и так видно. Появится первый тег — появится строка. */
+    $("mbTags").hidden = !tags.length;
     $("mbTags").innerHTML = [""].concat(tags).map(function (t) {
       var n = t ? list.filter(function (r) { return r.tag === t; }).length : list.length;
       return '<button type="button" class="rf-tag' + ((mbTag === (t || null)) ? " on" : "") + '" data-t="' + esc(t) + '">'
@@ -15809,7 +15966,11 @@
     $("mbSortBtn").textContent = picking
       ? LANG.t(allOn ? "mb.selNone" : "mb.selAll")
       : LANG.t("mb.sortLabel", { label: LANG.t(SORT_LABELS[board.sort || 0]) });
-    $("mbCoverBtn").hidden = picking;
+    /* Обложку назначают один раз: пока её нет, кнопка зовёт: обложка сейчас
+       первая фотография, и это не выбор, а умолчание. Назначили — кнопка
+       уходит, менять обложку теперь долгим тапом по ней самой (Алексей,
+       30 августа 2026). */
+    $("mbCoverBtn").hidden = picking || !!board.cover;
     $("mbPickBtn").textContent = LANG.t(picking ? "mb.pickDone" : "mb.pick");
     $("mbPickBtn").hidden = !list.length;      // в пустой подборке выбирать нечего
     $("mbSelActs").hidden = !picking;
@@ -15831,6 +15992,13 @@
        в списке смотреть нечего. */
     var imgList = shown.filter(function (p) { return p.r.im; }).map(function (p) { return p.r; });
     var imgAt = 0;
+    /* Плитка «+» последней в сетке — дверь туда же, куда ведут кнопки внизу
+       (Алексей, 30 августа 2026). Кнопки остались: сетка длинная, и у конца
+       её человек оказывается не всегда. В режиме выбора плитки нет — там
+       тап значит «отметить», и класть новое посреди выбора незачем. */
+    var addTile = (mbPickOn() || mbTag || q) ? "" :
+      '<button type="button" class="ref-card add" id="mbGridAdd">'
+      + '<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>';
     $("mbGrid").innerHTML = shown.map(function (p) {
       if (p.r.k === "link" && !p.r.im) {
         var onL = mbPickOn() && mbPicked.indexOf(p.r.id) >= 0;
@@ -15846,7 +16014,7 @@
         + (on ? '<span class="pick">✓</span>' : "")
         + (p.r.pending ? '<span class="wait">…</span>' : "")
         + "</button>";
-    }).join("") || (function () {
+    }).join("") + (shown.length ? addTile : "") || (function () {
       /* Поиск и раздел пусты по-разному: там кадры есть, просто не эти, и
          рисовать под «ничего не нашлось» шесть призраков — обещать то, чего
          фильтр всё равно не покажет. Призраки только у подборки, в которой
@@ -15860,7 +16028,8 @@
     /* Короткий тап открывает кадр во весь экран (макет «Moodboard Shoots»),
        долгий — тот же лист действий, что был раньше: теги, перенос, удаление.
        Тот же порог и разрыв по сдвигу, что у поднятия подборки (mbStartDrag). */
-    $("mbGrid").querySelectorAll(".ref-card").forEach(function (b) {
+    if ($("mbGridAdd")) $("mbGridAdd").addEventListener("click", openMbAddWhat);
+    $("mbGrid").querySelectorAll(".ref-card:not(.add)").forEach(function (b) {
       var timer = null, longed = false, sx = 0, sy = 0;
       /* В режиме выбора у плитки одно поведение — отметить. Долгий тап и
          просмотрщик на это время молчат: два разных смысла у одного
@@ -15985,13 +16154,59 @@
       });
     });
   });
-  $("mbFolderTake").addEventListener("click", function () {
+  /* Меню дискеты: срок хранения на устройстве. Пункт «до конца съёмки» —
+     только у подборки съёмки: жанровой заготовке нечего кончаться. */
+  function mbKeepLabel(b) {
+    if (!b.keep || !boardKeeps(b)) return LANG.t("mb.keepNo");
+    if (b.keep.mode === "ever") return LANG.t("mb.keepEver");
+    if (b.keep.mode === "shoot") return LANG.t("mb.keepShoot");
+    var left = Math.max(1, Math.ceil((boardKeepUntil(b) - Date.now()) / 86400000));
+    return LANG.count("unit.day", left);
+  }
+  function mbSetKeep(b, mode) {
+    b.keep = mode ? { mode: mode, at: Date.now() } : null;
+    saveAll();
+    renderMbFolder(); renderMbStrip();
+    if (mode) mbOfflineRun();     // срок назначили — качаем сразу, не завтра
+    else mbKeepSweep();           // сняли — освобождаем то, что есть в облаке
+  }
+  $("mbFolderKeep").addEventListener("click", function () {
     if (!mbOpen) return;
-    var b = mbBoard(mbOpen);
-    b.take = !b.take;
-    saveAll(); renderMbFolder();
-    if (b.take) mbOfflineRun();   // пометили — закачка начинается сразу, не завтра
+    var b = mbBoard(mbOpen), cur = (b.keep && boardKeeps(b)) ? b.keep.mode : null;
+    var items = [
+      { t: LANG.t("mb.keepDay"), on: cur === "day", go: function () { mbSetKeep(b, "day"); } },
+      { t: LANG.t("mb.keepHalf"), on: cur === "half", go: function () { mbSetKeep(b, "half"); } },
+      { t: LANG.t("mb.keepEver"), on: cur === "ever", go: function () { mbSetKeep(b, "ever"); } }
+    ];
+    if (mbOpen.kind === "session") {
+      items.push({ t: LANG.t("mb.keepShoot"), sub: LANG.t("mb.keepShootSub"), on: cur === "shoot",
+        go: function () { mbSetKeep(b, "shoot"); } });
+    }
+    if (cur) items.push({ t: LANG.t("mb.keepDrop"), go: function () { mbSetKeep(b, null); } });
+    askPick(LANG.t("mb.keepTitle"), items, LANG.t("mb.keepSub"));
   });
+  /* Обложка в шапке — дверь к своей замене. Долгий тап, а не короткий:
+     короткий по обложке ничего не значил и не должен начать значить
+     что-то настолько редкое. Тот же порог 420 мс, что у остальных долгих
+     тапов файла. */
+  (function () {
+    var hero = $("mbFolderHero"), timer = null, sx = 0, sy = 0;
+    hero.addEventListener("pointerdown", function (e) {
+      sx = e.clientX; sy = e.clientY;
+      timer = setTimeout(function () {
+        timer = null;
+        if (!mbOpen || !mbList(mbOpen).filter(function (r) { return r.im; }).length) return;
+        try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
+        openMbCover();
+      }, 420);
+    });
+    hero.addEventListener("pointermove", function (e) {
+      if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) { clearTimeout(timer); timer = null; }
+    });
+    function release() { clearTimeout(timer); timer = null; }
+    hero.addEventListener("pointerup", release);
+    hero.addEventListener("pointercancel", release);
+  })();
   $("mbSortBtn").addEventListener("click", function () {
     if (!mbOpen) return;
     if (mbPickOn()) {
@@ -16066,11 +16281,12 @@
   function closeMbCover() {
     $("mbCoverSheet").classList.remove("open"); $("mbCoverScrim").classList.remove("open");
   }
-  $("mbCoverBtn").addEventListener("click", function () {
+  function openMbCover() {
     if (!mbOpen) return;
     renderMbCoverSheet();
     $("mbCoverSheet").classList.add("open"); $("mbCoverScrim").classList.add("open");
-  });
+  }
+  $("mbCoverBtn").addEventListener("click", openMbCover);
   $("mbCoverScrim").addEventListener("click", closeMbCover);
 
   var mbItem = null;   // индекс материала в открытом листе действия
@@ -16546,6 +16762,34 @@
   $("yesCancel").addEventListener("click", function () { yesClose(false); });
   $("yesScrim").addEventListener("click", function () { yesClose(false); });
   $("yesOk").addEventListener("click", function () { yesClose(true); });
+  /* ---------- Лист выбора из строк ----------
+     Тот же приём, что у `askYes`: своя разметка вместо системного диалога,
+     ответ колбэком. Строки приходят списком `{t, sub, on, go}` — заголовок,
+     пояснение, отметка «сейчас так» и действие. */
+  function askPick(title, items, sub) {
+    $("pickTitle").textContent = title;
+    $("pickSub").textContent = sub || "";
+    $("pickSub").hidden = !sub;
+    $("pickList").innerHTML = items.map(function (it, i) {
+      return '<button type="button" class="row' + (i ? " sep" : "") + '" data-i="' + i + '">'
+        + "<span>" + esc(it.t) + (it.sub ? '<span class="row-sub">' + esc(it.sub) + "</span>" : "") + "</span>"
+        + (it.on ? '<span class="rv">✓</span>' : "") + "</button>";
+    }).join("");
+    $("pickList").querySelectorAll(".row").forEach(function (b) {
+      b.addEventListener("click", function () {
+        pickClose();
+        var it = items[+b.dataset.i];
+        if (it && it.go) it.go();
+      });
+    });
+    $("pickSheet").classList.add("open"); $("pickScrim").classList.add("open");
+  }
+  function pickClose() {
+    $("pickSheet").classList.remove("open"); $("pickScrim").classList.remove("open");
+  }
+  $("pickScrim").addEventListener("click", pickClose);
+  $("pickCancel").addEventListener("click", pickClose);
+
   /* Адрес без схемы — обычный способ его продиктовать («pinterest.com/...»),
      дописываем сами, как и раньше. Заглавие приходит снаружи: спрашивают
      ссылку в трёх разных местах, и референс, договор и бумага организации
@@ -24435,7 +24679,9 @@
   /* Список того, что уже лежит на устройстве, готов не сразу — до этого
      момента обложки молча считают всё «в облаке». Как только список готов,
      перерисовываем и запускаем правило закачки (15_MOODBOARD, «Офлайн»). */
-  blobHaveReady().then(function () { renderMbStrip(); mbOfflineRun(); mbCatchRun(); });
+  /* Сначала подметаем истёкшие сроки, потом качаем: иначе закачка вернула
+     бы на устройство ровно то, что через миг освободят */
+  blobHaveReady().then(function () { mbKeepSweep(); renderMbStrip(); mbOfflineRun(); mbCatchRun(); });
   /* Вопрос о практике задаётся один раз и только тому, у кого её ещё нет.
      После первого экрана, а не поверх пустого: сперва видно, чем пользуешься,
      потом спрашивают о правилах. На самом первом запуске экран знакомства
