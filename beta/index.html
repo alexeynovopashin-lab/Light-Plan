@@ -15576,16 +15576,28 @@
           renderMbFolder(); renderMbGallery(); renderMbStrip(); renderMbCount();
           return;
         }
-        var dropped = false;
-        if (boardHas(board, mbAddShot)) {
-          boardTake(board, mbAddShot);
-          if (!shotUsed(mbAddShot)) { shotDrop(mbAddShot); dropped = true; } else boardPrune(board);
-        } else {
+        if (!boardHas(board, mbAddShot)) {
           boardPut(board, mbAddShot);
+          saveAll(); renderMbAddList();
+          renderMbGallery(); renderMbStrip();
+          return;
         }
-        saveAll();
-        if (dropped) closeMbAdd(); else renderMbAddList();
-        renderMbGallery(); renderMbStrip();
+        /* Снятая галочка — это «убрать отсюда», и обычно так и есть. Но если
+           подборка была последней, то же движение стирает кадр насовсем:
+           `shotDrop` уносит и файл с Диска. Лист называется «Добавить в
+           подборку» и не должен уметь удалять молча — спрашиваем, теми же
+           словами, что и групповое «Убрать» (`mbSelDel`). */
+        var id = mbAddShot;
+        var lone = !boards.some(function (o) { return o !== board && boardHas(o, id); });
+        function take() {
+          boardTake(board, id);
+          if (!shotUsed(id)) shotDrop(id); else boardPrune(board);
+          saveAll();
+          if (lone) closeMbAdd(); else renderMbAddList();
+          renderMbGallery(); renderMbStrip();
+        }
+        if (!lone) { take(); return; }
+        askYes(LANG.t("mb.loneTitle"), LANG.t("mb.loneSub"), LANG.t("mb.selDelOk"), take);
       });
     });
   }
