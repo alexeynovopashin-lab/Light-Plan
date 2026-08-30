@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=37"></script>
+<script src="lang.js?v=38"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -15391,18 +15391,63 @@
       setTimeout(function () { art.style.animation = ""; }, 460);
     }
   }
-  /* Один жест отвечает на два вопроса — «куда переставить» и «с чем слить», —
-     и разводит их так же, как iOS разводит перестановку значков и сборку
-     папки: край плитки про порядок, середина про слияние, и слияние ждёт
-     полсекунды неподвижности. Пройти плитку насквозь, случайно слив с ней
-     свою, поэтому нельзя: на проходе палец не стоит (Алексей, 30 августа
-     2026). Числа — половина ширины плитки под «середину» и полсекунды под
-     задержку — взяты как самые терпимые к дрожанию руки. */
-  var MB_MERGE_DWELL = 520, MB_MERGE_ZONE = 0.25;
-  function mbInMiddle(el, x, y) {
-    var r = el.getBoundingClientRect();
-    var ix = r.width * MB_MERGE_ZONE, iy = r.height * MB_MERGE_ZONE;
-    return x > r.left + ix && x < r.right - ix && y > r.top + iy && y < r.bottom - iy;
+  /* Один жест отвечает на два вопроса — «куда переставить» и «с чем слить».
+     Первая редакция разводила их местом на плитке (край про порядок,
+     середина про слияние, полсекунды неподвижности) — и на телефоне
+     развалилась: чтобы поставить плитку на место соседа, палец обязан
+     замереть ровно в его середине, то есть ровно в ловушке слияния.
+     Алексей 30 августа 2026: «слияние надо сделать просто позже, наводим
+     папку на папку и ждём 2 секунды». Так и разведено теперь — не местом, а
+     временем: порядок меняется от движения, слияние от неподвижности.
+
+     `MB_MERGE_DWELL` — те самые две секунды: столько палец должен простоять,
+     не шевелясь, чтобы прицел загорелся. `MB_MERGE_COVER` — насколько плитка
+     должна накрыть чужую, чтобы та вообще считалась целью: четверть площади,
+     то есть «наехал краем» целью не считается. */
+  var MB_MERGE_DWELL = 2000, MB_MERGE_COVER = 0.25, MB_SWAP_CORE = 0.35;
+  /* Клетки ряда — где плитки стоят по разметке. Снимаются один раз, при
+     подъёме, и берутся из `offsetLeft/offsetTop`, а не из
+     `getBoundingClientRect`: те врут, пока идёт перестановка (плитки в этот
+     момент сдвинуты `transform`, и прямоугольник у них промежуточный), а
+     offset живёт в разметке и про анимацию не знает. */
+  function mbCells(host) {
+    return Array.prototype.slice.call(host.querySelectorAll("[data-rk]")).map(function (c) {
+      return { rk: c.dataset.rk, x: c.offsetLeft, y: c.offsetTop, w: c.offsetWidth, h: c.offsetHeight };
+    });
+  }
+  /* Куда метит поднятая плитка: клетка, в чью сердцевину зашла её середина.
+     Считаем по серединам, а не по тому, что под пальцем
+     (`elementFromPoint`): палец то и дело оказывается в зазоре между
+     плитками или над самой поднятой — и ряд замирал, хотя рука уже увела
+     плитку на место соседа.
+
+     Сердцевина — `MB_SWAP_CORE` от размера клетки, а не половина ряда, и
+     это не украшение: между «сдвинул на полклетки» и «поставил на место
+     соседа» лежит всё окно, в котором плитка накрывает чужую и её можно
+     держать ради слияния. Порог в полклетки оставлял под это окно двадцать
+     пикселей — наведение было бы не поймать. */
+  function mbCoreCell(cells, cx, cy) {
+    var best = -1, bd = Infinity;
+    cells.forEach(function (c, i) {
+      var dx = cx - (c.x + c.w / 2), dy = cy - (c.y + c.h / 2);
+      if (Math.abs(dx) > c.w * MB_SWAP_CORE || Math.abs(dy) > c.h * MB_SWAP_CORE) return;
+      var d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = i; }
+    });
+    return best;
+  }
+  /* С кем сливать, когда палец замер: чью клетку поднятая плитка накрыла
+     больше всех. Своя клетка из счёта исключена — с собой не сливаются. */
+  function mbCoverBest(cells, box, skipIdx) {
+    var best = -1, bs = box.w * box.h * MB_MERGE_COVER;
+    cells.forEach(function (c, i) {
+      if (i === skipIdx) return;
+      var w = Math.min(box.x + box.w, c.x + c.w) - Math.max(box.x, c.x);
+      var h = Math.min(box.y + box.h, c.y + c.h) - Math.max(box.y, c.y);
+      if (w <= 0 || h <= 0) return;
+      if (w * h > bs) { bs = w * h; best = i; }
+    });
+    return best;
   }
   /* Порядок ряда читаем из самого ряда, а не из данных: так он всегда
      совпадает с тем, что человек видит, и плитки без `data-rk` — рамка «+»,
@@ -15419,7 +15464,8 @@
     if (!boardId && !reorder) { btn.addEventListener("click", onOpen); return; }
     var timer = null, lifted = false, dragged = false, consumed = false;
     var sx = 0, sy = 0, order = null, was = "";
-    var aimEl = null, dwellEl = null, dwellT = null;
+    var cells = null, myCx = 0, myCy = 0, myBox = null;
+    var aimEl = null, dwellT = null, activeId = null;
     /* Цель слияния подсвечиваем сам найденный узел, а не переспрашиваем его
        у документа по знаку подборки: одна и та же подборка лежит на экране
        дважды — плиткой в ленте и плиткой в галерее, — и поиск по документу
@@ -15433,7 +15479,7 @@
       el.style.transform = "scale(1.07)";
       try { navigator.vibrate && navigator.vibrate(8); } catch (err) {}
     }
-    function dwellOff() { clearTimeout(dwellT); dwellT = null; dwellEl = null; }
+    function dwellOff() { clearTimeout(dwellT); dwellT = null; }
     btn.addEventListener("pointerdown", function (e) {
       if (e.button) return;
       /* Сбрасываем в начале жеста, а не в обработчике клика: после
@@ -15443,9 +15489,22 @@
          позже этой строки. Так же сделано у кадров в сетке (`longed`). */
       consumed = false;
       sx = e.clientX; sy = e.clientY; lifted = false; dragged = false;
+      /* Указатель забираем себе с первого касания. На пальце это делает и
+         сам браузер, а мышью без захвата события уходят соседу под
+         курсором, и плитка остаётся поднятой навсегда. */
+      activeId = e.pointerId;
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
       timer = setTimeout(function () {
         lifted = true; consumed = true;
-        if (reorder) { order = mbRkOrder(reorder.host); was = order.join(); }
+        if (reorder) {
+          order = mbRkOrder(reorder.host); was = order.join();
+          cells = mbCells(reorder.host);
+          var mine = cells[order.indexOf(btn.dataset.rk)];
+          /* Середина поднятой плитки в той же системе, что и клетки: дальше
+             к ней прибавляется сдвиг пальца, и ничего читать не нужно */
+          myCx = mine.x + mine.w / 2; myCy = mine.y + mine.h / 2;
+          myBox = { w: mine.w, h: mine.h };
+        }
         try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
         btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
         btn.style.transform = "scale(1.1)";
@@ -15458,34 +15517,34 @@
       dragged = true;
       btn.style.transition = "none";
       btn.style.transform = "translate(" + dx + "px," + dy + "px) scale(1.1)";
-      /* Скрываем себя на миг: иначе `elementFromPoint` каждый раз находит
-         поднятую плитку, а не то, что под ней */
-      btn.style.pointerEvents = "none";
-      var hit = document.elementFromPoint(e.clientX, e.clientY);
-      btn.style.pointerEvents = "";
-      var over = hit && hit.closest ? hit.closest(".mb-tile") : null;
-      if (over === btn) over = null;
-      var mergeable = over && boardId && over.dataset.bid && over.dataset.bid !== boardId;
-      if (mergeable && mbInMiddle(over, e.clientX, e.clientY)) {
-        /* Ждём настоящим таймером, а не разницей отметок времени: палец,
-           замерший над плиткой, новых событий не шлёт вовсе — по отметкам
-           задержка не наступила бы никогда. */
-        if (dwellEl !== over) {
-          dwellOff(); dwellEl = over;
-          dwellT = setTimeout(function () { aim(dwellEl); }, MB_MERGE_DWELL);
-        }
-        return;
-      }
+      /* Двинулись — прицел слияния сбит, отсчёт двух секунд начинается
+         заново. Слияние ждёт неподвижности, а не места: это и есть всё
+         различение между «переставить» и «объединить». */
       dwellOff(); aim(null);
-      if (!order || !over || !over.dataset.rk) return;
-      var from = order.indexOf(btn.dataset.rk), to = order.indexOf(over.dataset.rk);
-      if (from < 0 || to < 0 || from === to) return;
-      order.splice(from, 1);
-      order.splice(to, 0, btn.dataset.rk);
-      mbTilesFlip(reorder.host, order, btn);
+      if (!order) return;
+      var cx = myCx + dx, cy = myCy + dy;
+      var here = order.indexOf(btn.dataset.rk);
+      var to = mbCoreCell(cells, cx, cy);
+      if (to >= 0 && to !== here) {
+        order.splice(here, 1);
+        order.splice(to, 0, btn.dataset.rk);
+        mbTilesFlip(reorder.host, order, btn);
+        here = to;
+      }
+      if (!boardId) return;                 // полке сливаться нечем и не с чем
+      dwellT = setTimeout(function () {
+        var j = mbCoverBest(cells, { x: cx - myBox.w / 2, y: cy - myBox.h / 2, w: myBox.w, h: myBox.h }, here);
+        if (j < 0) return;
+        var el = reorder.host.querySelector('[data-rk="' + order[j] + '"]');
+        if (el && el.dataset.bid && el.dataset.bid !== boardId) aim(el);
+      }, MB_MERGE_DWELL);
     });
-    function release() {
+    function release(e) {
+      /* Чужое касание нам не конец: на экране бывает второй палец */
+      if (e && e.pointerId != null && activeId != null && e.pointerId !== activeId) return;
       clearTimeout(timer); dwellOff();
+      try { if (activeId != null) btn.releasePointerCapture(activeId); } catch (err) {}
+      activeId = null;
       if (!lifted) return;
       var mergeId = aimEl && aimEl.dataset.bid;
       aim(null);
@@ -15500,10 +15559,26 @@
            кадров в сетке (`mbGridDrag`). */
         if (order && order.join() !== was) reorder.commit(order);
       } else if (onMenu) onMenu(boardId);
-      order = null;
+      order = null; cells = null;
     }
     btn.addEventListener("pointerup", release);
     btn.addEventListener("pointercancel", release);
+    /* Конец касания ловим ещё и окном. iOS в середине жеста забирает
+       касание себе — горизонтальное движение по странице читается как
+       листание месяца в календаре наверху, — и плитке не достаётся больше
+       ни одного события: ни `pointerup`, ни `pointercancel`. Она так и
+       оставалась поднятой поверх соседки, а ряд разъехавшимся (снимок с
+       телефона Алексея, 30 августа 2026; симулятор повторил это в
+       точности, обеими редакциями). Отсюда же и «плитки не двигаются»:
+       жест обрывался на первом же горизонтальном движении. */
+    ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach(function (t) {
+      window.addEventListener(t, release);
+    });
+    /* А чтобы касание не отнимали вовсе, пока плитка поднята, гасим
+       браузерный жест руками. `touch-action: none` в стилях не годится: он
+       читается в начале касания, а плитка поднимается через 420 мс после
+       него — до подъёма страница должна прокручиваться пальцем как всегда. */
+    btn.addEventListener("touchmove", function (e) { if (lifted) e.preventDefault(); }, { passive: false });
     btn.addEventListener("click", function (e) {
       if (consumed) { consumed = false; e.preventDefault(); e.stopPropagation(); return; }
       onOpen();
@@ -15526,10 +15601,18 @@
       host.appendChild(c.dataset.rk ? byKey[order[qi++]] : c);
     });
     before.forEach(function (p) {
+      /* Снимаем незаконченный сдвиг ДО замера «после». Иначе прямоугольник
+         читается посреди чужого перехода, промежуточным, и новый сдвиг
+         считается от него, а не от клетки ряда: на быстром движении вызовы
+         идут чаще, чем заканчиваются переходы, ошибки складываются, и ряд
+         разъезжается — плитка поверх плитки, подписи внахлёст (телефон
+         Алексея, 30 августа 2026). Первый замер, наоборот, нарочно взят
+         вместе со сдвигом: он и есть то, где плитка видна сейчас. */
+      p.el.style.transition = "none";
+      p.el.style.transform = "none";
       var a = p.el.getBoundingClientRect();
       var dx = p.r.left - a.left, dy = p.r.top - a.top;
-      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
-      p.el.style.transition = "none";
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { p.el.style.transform = ""; return; }
       p.el.style.transform = "translate(" + dx + "px," + dy + "px)";
       requestAnimationFrame(function () {
         p.el.style.transition = "transform .22s ease";
