@@ -15458,6 +15458,124 @@
       onOpen();
     });
   }
+  /* Перестановка кадров в сетке подборки перетаскиванием — то же поднятие
+     и то же различение «подержали не двигая — открылось меню» / «потянули —
+     что-то случилось», что у `mbStartDrag` выше, только результат другой:
+     не слияние двух подборок, а порядок внутри одной (Алексей, 30 августа
+     2026, «как иконки в iOS»). Включается только на голом виде подборки —
+     `renderMbFolder` решает это через `reorderable`, здесь предполагается,
+     что `board.items` и есть видимый порядок один в один. */
+  function mbGridDrag(btn, board, onOpen, onMenu) {
+    var timer = null, lifted = false, dragged = false, consumed = false;
+    var sx = 0, sy = 0, order = null, sid = btn.dataset.sid, lastY = 0, scrollRaf = null;
+    /* Плитка может уехать перетаскиванием за край видимой части — длинная
+       подборка не помещается на экран целиком. Без автопрокрутки нижние
+       кадры были бы недостижимы жестом, только через сортировку. */
+    function autoScroll() {
+      var sc = $("mbFolderOverlay"), r = sc.getBoundingClientRect(), edge = 56, speed = 12;
+      if (lastY < r.top + edge) sc.scrollTop -= speed;
+      else if (lastY > r.bottom - edge) sc.scrollTop += speed;
+      scrollRaf = requestAnimationFrame(autoScroll);
+    }
+    btn.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      consumed = false;
+      sx = e.clientX; sy = e.clientY; lifted = false; dragged = false;
+      timer = setTimeout(function () {
+        lifted = true; consumed = true;
+        order = board.items.slice();
+        try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
+        btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
+        btn.style.transform = "scale(1.06)";
+        btn.style.boxShadow = "0 10px 24px var(--glass-cast)";
+        btn.style.zIndex = "40"; btn.style.position = "relative";
+        scrollRaf = requestAnimationFrame(autoScroll);
+      }, 420);
+    });
+    btn.addEventListener("pointermove", function (e) {
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!lifted) { if (Math.abs(dx) + Math.abs(dy) > 8) clearTimeout(timer); return; }
+      dragged = true; lastY = e.clientY;
+      btn.style.transition = "none";
+      btn.style.transform = "translate(" + dx + "px," + dy + "px) scale(1.06)";
+      /* Тот же приём, что у `mbStartDrag`: гасим себя на миг, иначе
+         `elementFromPoint` каждый раз находит поднятую плитку, а не то,
+         что под ней */
+      btn.style.pointerEvents = "none";
+      var hit = document.elementFromPoint(e.clientX, e.clientY);
+      btn.style.pointerEvents = "";
+      var over = hit && hit.closest ? hit.closest(".ref-card:not(.add)") : null;
+      if (over && over !== btn && over.dataset.sid) {
+        var toId = over.dataset.sid;
+        var fromPos = order.indexOf(sid), toPos = order.indexOf(toId);
+        if (fromPos >= 0 && toPos >= 0 && fromPos !== toPos) {
+          order.splice(fromPos, 1);
+          order.splice(toPos, 0, sid);
+          mbFlipReorder(order, btn);
+        }
+      }
+    });
+    function release() {
+      clearTimeout(timer);
+      if (scrollRaf) { cancelAnimationFrame(scrollRaf); scrollRaf = null; }
+      if (!lifted) return;
+      btn.style.transition = "transform .3s cubic-bezier(.2,1.3,.35,1)";
+      btn.style.transform = "none"; btn.style.boxShadow = "none";
+      btn.style.zIndex = ""; btn.style.position = "";
+      /* Подняли и подержали не двигая — то же самое, что было тут раньше:
+         открываем лист действий. Двигали — хоть на пиксель, хоть обратно на
+         своё место — жест уже случился, меню поверх него было бы лишним. */
+      if (dragged) {
+        if (order && order.join() !== board.items.join()) {
+          board.items = order;
+          saveAll();
+          try { navigator.vibrate && navigator.vibrate(20); } catch (err) {}
+        }
+        renderMbFolder();
+      } else if (onMenu) onMenu();
+      order = null;
+    }
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointercancel", release);
+    btn.addEventListener("click", function (e) {
+      if (consumed) { consumed = false; e.preventDefault(); e.stopPropagation(); return; }
+      onOpen();
+    });
+  }
+  /* Соседи расступаются под перетаскиваемым кадром: снимаем их положение до
+     перестановки DOM-узлов и после, разницу гасим transform-переходом
+     (приём FLIP). Сетка мудборда — масонри (`column-count`, не `grid`), и
+     точного «на чьё место» тут нет — переставляем узлы по-настоящему и
+     меряем, а не вычисляем геометрию заранее. */
+  function mbFlipReorder(order, draggedBtn) {
+    var grid = $("mbGrid");
+    var cards = Array.prototype.slice.call(grid.querySelectorAll(".ref-card:not(.add)"));
+    var before = {}, bySid = {};
+    cards.forEach(function (c) {
+      bySid[c.dataset.sid] = c;
+      if (c !== draggedBtn) before[c.dataset.sid] = c.getBoundingClientRect();
+    });
+    order.forEach(function (id) {
+      var el = bySid[id];
+      if (el && el !== draggedBtn) grid.appendChild(el);
+    });
+    var addEl = grid.querySelector(".ref-card.add");
+    if (addEl) grid.appendChild(addEl);
+    cards.forEach(function (c) {
+      if (c === draggedBtn) return;
+      var b = before[c.dataset.sid];
+      if (!b) return;
+      var a = c.getBoundingClientRect();
+      var dx = b.left - a.left, dy = b.top - a.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      c.style.transition = "none";
+      c.style.transform = "translate(" + dx + "px," + dy + "px)";
+      requestAnimationFrame(function () {
+        c.style.transition = "transform .22s ease";
+        c.style.transform = "";
+      });
+    });
+  }
   /* ---------- Обложка летит в шапку папки ----------
      Клон — синтетический прямоугольник с одной картинкой (той же, что
      покажет шапка), а не список DOM-узла обложки: обложка бывает мозаикой
@@ -16459,14 +16577,14 @@
     $("mbGrid").innerHTML = shown.map(function (p) {
       if (p.r.k === "link" && !p.r.im) {
         var onL = mbPickOn() && mbPicked.indexOf(p.r.id) >= 0;
-        return '<button type="button" class="ref-card link' + (onL ? " picked" : "") + '" data-i="' + p.i + '">'
+        return '<button type="button" class="ref-card link' + (onL ? " picked" : "") + '" data-i="' + p.i + '" data-sid="' + p.r.id + '">'
           + '<span class="host">' + refHost(p.r.url) + "</span>"
           + '<span class="path">' + refTail(p.r.url) + "</span>"
           + (onL ? '<span class="pick">✓</span>' : "") + "</button>";
       }
       var vi = imgAt++;
       var on = mbPickOn() && mbPicked.indexOf(p.r.id) >= 0;
-      return '<button type="button" class="ref-card' + (on ? " picked" : "") + '" data-i="' + p.i + '" data-vi="' + vi + '">'
+      return '<button type="button" class="ref-card' + (on ? " picked" : "") + '" data-i="' + p.i + '" data-vi="' + vi + '" data-sid="' + p.r.id + '">'
         + refImg(p.r)
         + (on ? '<span class="pick">✓</span>' : "")
         + (p.r.pending ? '<span class="wait">…</span>' : "")
@@ -16484,10 +16602,15 @@
     })();
     /* Короткий тап открывает кадр во весь экран (макет «Moodboard Shoots»),
        долгий — тот же лист действий, что был раньше: теги, перенос, удаление.
-       Тот же порог и разрыв по сдвигу, что у поднятия подборки (mbStartDrag). */
+       Тот же порог и разрыв по сдвигу, что у поднятия подборки (mbStartDrag).
+       Потянули вместо того чтобы держать не двигая — переставили кадр
+       (`mbGridDrag`), но только на голом виде: в разделе, поиске и любой
+       сортировке кроме ручной место в отфильтрованном списке разошлось бы
+       с местом в `board.items` (Алексей, 30 августа 2026, «как иконки в
+       iOS»). */
     if ($("mbGridAdd")) $("mbGridAdd").addEventListener("click", openMbAddWhat);
+    var reorderable = !mbPickOn() && !filtered && !board.sort;
     $("mbGrid").querySelectorAll(".ref-card:not(.add)").forEach(function (b) {
-      var timer = null, longed = false, sx = 0, sy = 0;
       /* В режиме выбора у плитки одно поведение — отметить. Долгий тап и
          просмотрщик на это время молчат: два разных смысла у одного
          прикосновения — верный способ отметить не то, что хотел. */
@@ -16500,12 +16623,19 @@
         });
         return;
       }
+      var i = +b.dataset.i;
+      var openThis = function () {
+        if (b.dataset.vi != null) openRefAt(imgList, +b.dataset.vi, mbEditShot, b);
+        else openMbItem(i);
+      };
+      if (reorderable) { mbGridDrag(b, board, openThis, function () { openMbItem(i); }); return; }
+      var timer = null, longed = false, sx = 0, sy = 0;
       b.addEventListener("pointerdown", function (e) {
         longed = false; sx = e.clientX; sy = e.clientY;
         timer = setTimeout(function () {
           longed = true;
           try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
-          openMbItem(+b.dataset.i);
+          openMbItem(i);
         }, 420);
       });
       b.addEventListener("pointermove", function (e) {
@@ -16518,8 +16648,7 @@
       b.addEventListener("pointercancel", release);
       b.addEventListener("click", function () {
         if (longed) { longed = false; return; }
-        if (b.dataset.vi != null) openRefAt(imgList, +b.dataset.vi, mbEditShot, b);
-        else openMbItem(+b.dataset.i);
+        openThis();
       });
     });
     mbFolderJump();   // сетка сменилась — прыжок мог стать не нужен или наоборот
