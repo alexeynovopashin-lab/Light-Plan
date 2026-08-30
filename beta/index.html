@@ -15244,8 +15244,11 @@
     var from = boardById(fromId), to = boardById(toId);
     if (!from || !to) return;
     from.items.slice().forEach(function (id) { boardPut(to, id); });
-    var i = boards.indexOf(from);
-    if (i >= 0) boards.splice(i, 1);
+    /* Через `boardDrop`, а не голым `splice`: только он ставит надгробие
+       (`bury`). Без него слитая подборка возвращается при первом же слиянии
+       с соседнего устройства, и кадры оказываются разом в двух местах
+       (13_MULTI_DEVICE, та же причина, что у `shotDrop`). */
+    boardDrop(from);
     saveAll();
     renderMbStrip(); renderMbCount();
     if ($("mbOverlay").classList.contains("open")) renderMbGallery();
