@@ -15553,9 +15553,17 @@
     var name = $("mbBoardTitle").textContent;
     closeMbBoardSheet();
     askYes(LANG.t("mb.delTitle"), LANG.t("mb.delSub", { name: name }), LANG.t("mb.delOk"), function () {
+      /* Стоим внутри той самой подборки — выходим из неё, и до удаления:
+         `mbBoard` у описателя без своей подборки завёл бы новую взамен
+         только что убранной. Оставаться было нельзя — экран продолжал
+         показывать удалённую папку, и всё, что в неё клали дальше, шло
+         в объект вне `boards` и до записи не доживало. */
+      var inside = mbOpen && mbBoard(mbOpen) === b;
+      if (inside) { mbPickEnd(); mbOpen = null; $("mbFolderOverlay").classList.remove("open"); }
       dropBoardWithShots(b);
       saveAll();
       renderMbStrip(); renderMbCount();
+      renderMbShelf();          // молчит, если полка не открыта
       if ($("mbOverlay").classList.contains("open")) renderMbGallery();
     });
   });
