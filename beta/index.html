@@ -16633,7 +16633,7 @@
   function renderMbItemSheet() {
     var f = mbOpen, list = mbList(f), r = list[mbItem];
     if (!r) { closeMbItem(); return; }
-    var suggest = refTagsOf(mbGenre(f), list), mine = r.tags || [];
+    var suggest = refTagsOf(mbGenre(f)), mine = r.tags || [];
     var own = mine.filter(function (t) { return suggest.indexOf(t) < 0; });
     var words = suggest.concat(own);
     $("mbItemTags").innerHTML = words.map(function (t) {
