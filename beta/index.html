@@ -18393,9 +18393,14 @@
     function take(list, board) {
       (list || []).forEach(function (r) {
         if (!r || (r.k !== "link" && !r.im && !r.path)) return;
+        /* `tags` переносим наравне с `tag`: свободные теги стояли на записи
+           рядом с разделом, и раньше их тут просто не копировали — а старые
+           поля после переноса удаляются, и восстановить было нечем. Раздел
+           остаётся отдельным полем до слияния ниже: сливает его одно место
+           на весь файл, а не каждый перенос по-своему. */
         var id = shotAdd({ id: r.im || newId(), k: r.k || "img", im: r.im || null,
           w: r.w || null, h: r.h || null, path: r.path || null, url: r.url || null,
-          tag: r.tag || null });
+          tags: Array.isArray(r.tags) ? r.tags.slice() : [], tag: r.tag || null });
         boardPut(board, id);
         moved++;
       });
