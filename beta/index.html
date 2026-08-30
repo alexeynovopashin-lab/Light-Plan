@@ -17963,6 +17963,13 @@
   var boards = (saved && Array.isArray(saved.boards)) ? saved.boards : [];
   /* Тот же признак по уже наполненным подборкам: у кого мудборд давно
      живёт, приглашения не увидит, даже если сегодня убрал из него всё */
+  /* Прежняя пометка «взять с собой» читается как «держать бессрочно»: она
+     означала ровно это, только без срока. Одна строка вместо миграции —
+     данные прототипа одноразовые, но терять уже сделанный выбор незачем. */
+  boards.forEach(function (b) {
+    if (b && b.take && !b.keep) { b.keep = { mode: "ever", at: Date.now() }; }
+    if (b) delete b.take;
+  });
   if (!mbSeen) {
     for (var bi = 0; bi < boards.length; bi++) {
       if (boards[bi] && boards[bi].items && boards[bi].items.length) { mbSeen = true; break; }
