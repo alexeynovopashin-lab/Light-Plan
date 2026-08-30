@@ -112,6 +112,13 @@ async function proxyImage(imgHref) {
    отдельно отсеивать их тут не нужно. */
 function pinterestBoardParts(pageUrl) {
   if (!/(^|\.)pinterest\.[a-z.]+$/i.test(pageUrl.hostname)) return null;
+  /* `api.pinterest.com/url_shortener/<код>/redirect/` — промежуточная
+     ступенька короткой ссылки, и по формальному признаку («два сегмента,
+     первый не pin») она неотличима от доски. Раскрутка на ней и замирала,
+     после чего доска искалась по пользователю «url_shortener» и честно не
+     находилась: 404 вместо кадров. Считаем доской только то, что лежит на
+     самом сайте. */
+  if (/^api\./i.test(pageUrl.hostname)) return null;
   // `.pathname` отдаёт сегменты percent-encoded — кириллический слаг (обычное
   // дело для доски) иначе уедет в JSON как буквальные "%D0%.." вместо текста
   const segs = pageUrl.pathname.split("/").filter(Boolean).map(decodeURIComponent);
@@ -199,8 +206,10 @@ async function handleBoard(boardHref) {
   const board = boardData && boardData.resource_response && boardData.resource_response.data;
   if (!board || !board.id) return jsonResponse({ error: "board not found" }, 404);
 
-  // Потолок в 50: доска — не бесконечная лента, а подборка образцов для клиента
-  const pageSize = Math.max(1, Math.min(board.pin_count || 25, 50));
+  /* Потолок в 100 (был 50): доска всё ещё не бесконечная лента, но живая
+     доска Алексея — 79 пинов, и полсотни резали её посередине. Решение
+     30 августа 2026. */
+  const pageSize = Math.max(1, Math.min(board.pin_count || 25, 100));
   const feedData = await pinResourceGet(origin, "BoardFeedResource", {
     options: { board_id: board.id, board_url: pageUrl.pathname, page_size: pageSize },
     context: {},

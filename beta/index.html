@@ -15760,6 +15760,14 @@
            откатываемся на старое честное поведение, одну обложку. */
         fetchOgBoard(url, function (shot, pin) {
           if (mbBoard(openedIn) !== board) return;   // подборку могли убрать
+          /* Ту же доску приносят второй раз чаще, чем кажется: «Скопировать
+             ссылку» в приложении Pinterest выдаёт каждый раз новый одноразовый
+             инвайт, и по адресу двух ссылок не видно, что доска одна (Алексей
+             прислал четыре разных адреса одной доски). Узнаём кадр по пину, а
+             не по ссылке-двери: пин у него один и тот же навсегда. Байты уже
+             скачаны — их и выбрасываем, лишней записи в фонде не заводим. */
+          var twin = boardShots(board).filter(function (r) { return r.url === pin.permalink; })[0];
+          if (twin) { blobDrop(shot.im); return; }
           var id = shotAdd({ k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tag: mbTag });
           boardPut(board, id);
           saveAll();
