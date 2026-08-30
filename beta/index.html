@@ -16095,7 +16095,9 @@
        (Алексей, 30 августа 2026). */
     var used = {};
     list.forEach(function (r) { (r.tags || []).forEach(function (t) { used[t] = 1; }); });
-    var tags = refTagsOf(g, list).filter(function (t) { return used[t]; });
+    var suggest = refTagsOf(g);
+    var tags = suggest.filter(function (t) { return used[t]; })
+      .concat(Object.keys(used).filter(function (t) { return suggest.indexOf(t) < 0; }));
     if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
     /* «Все» первым чипом — тот же вид рейла, что у полного списка
        референсов съёмки (`renderRefsFull`): снять фильтр можно и повторным
@@ -20277,11 +20279,16 @@
     $("refsFull").classList.add("open");
   }
   function renderRefsFull() {
-    var tags = refTagsOf(rfGenre, rfList).filter(function (t) {
-      return rfList.some(function (r) { return (r.tags || []).indexOf(t) >= 0; });
-    });
+    var usedR = {};
+    rfList.forEach(function (r) { (r.tags || []).forEach(function (t) { usedR[t] = 1; }); });
+    var suggestR = refTagsOf(rfGenre);
+    var tags = suggestR.filter(function (t) { return usedR[t]; })
+      .concat(Object.keys(usedR).filter(function (t) { return suggestR.indexOf(t) < 0; }));
     $("rfTags").innerHTML = (tags.length ? [""].concat(tags) : []).map(function (t) {
-      return '<button type="button" class="rf-tag' + ((rfTag === (t || null)) ? " on" : "") + '" data-t="' + t + '">'
+      /* Экранируем: с 30 августа сюда попадают не только коды жанра, но и
+         слова, набранные руками, — а кавычка в атрибуте разрывает разметку.
+         Три соседних рейла делали это всегда, этот один отставал. */
+      return '<button type="button" class="rf-tag' + ((rfTag === (t || null)) ? " on" : "") + '" data-t="' + esc(t) + '">'
         + esc(t ? tagName(t) : LANG.t("refs.all")) + "</button>";
     }).join("");
     $("rfTags").querySelectorAll(".rf-tag").forEach(function (b) {
@@ -20881,7 +20888,13 @@
     // Подпись называет жанр словом, а не кодом: на экране «· портрет»
     $("gRefGenre").textContent = "· " + genreName(g).toLowerCase();
     /* Жанр сменили — выбранная папка могла остаться от прежнего набора */
-    var tags = refTagsOf(g, list);
+    var used = {};
+    list.forEach(function (r) { (r.tags || []).forEach(function (t) { used[t] = 1; }); });
+    var suggest = refTagsOf(g);
+    /* Здесь набор планируют заранее — полный список подсказок жанра нужен
+       и без единого кадра внутри. Свои слова, которых в подсказках нет,
+       дописываются следом, только если ими что-то уже помечено. */
+    var tags = suggest.concat(Object.keys(used).filter(function (t) { return suggest.indexOf(t) < 0; }));
     if (gRefTag && tags.indexOf(gRefTag) < 0) gRefTag = null;
     $("gRefTags").innerHTML = tags.map(function (t) {
       var n = list.filter(function (r) { return (r.tags || []).indexOf(t) >= 0; }).length;
