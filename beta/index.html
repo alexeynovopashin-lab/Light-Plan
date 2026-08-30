@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=35"></script>
+<script src="lang.js?v=36"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2647,6 +2647,33 @@
     display: flex; align-items: center; color: var(--brass-soft); }
   .mb-tool-ic svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; }
   .mb-tool-ic.on { color: var(--brass); }
+  /* ---------- Прыжок к концу и к началу длинной подборки ----------
+     Форму не выдумываем: «тихий кружок над богатой картинкой» в файле уже
+     принят — это `.map-here` над тайлами карты. Здесь под кружком те же
+     фотографии, и подложка нужна такая же лёгкая. Знак — та же ломаная
+     галочка, что у кнопки «назад», только повёрнутая.
+
+     Кнопка липкая, а не плавающая: обёртка стоит в потоке сразу за сеткой
+     и нулевой высоты, поэтому пока внизу есть что показать — кружок висит
+     над сеткой, а у самого конца садится на своё место в потоке, над
+     кнопками добавления, и ничего не закрывает. `position: fixed` тут не
+     годится вовсе: оверлей открывается через `transform`, и на время
+     полёта точка отсчёта у fixed уезжает вместе с ним. */
+  .mb-jump-wrap { position: sticky; bottom: 10px; height: 0; z-index: 6;
+    display: flex; justify-content: flex-end; pointer-events: none; }
+  .mb-jump-wrap[hidden] { display: none; }   /* flex перебивает hidden — грабли этого файла */
+  .mb-jump {
+    pointer-events: auto; transform: translateY(-100%);
+    width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--bar-2);
+    backdrop-filter: blur(12px) saturate(1.6); -webkit-backdrop-filter: blur(12px) saturate(1.6);
+    box-shadow: inset 0 1px 0 var(--glass-shine), 0 2px 8px var(--glass-cast);
+    display: flex; align-items: center; justify-content: center; color: var(--ink-3);
+    -webkit-touch-callout: none;
+  }
+  .mb-jump svg { width: 19px; height: 19px; stroke: currentColor; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .mb-jump:active { color: var(--brass); }
   /* Лист выбора обложки — тот же `.ref-card`, что и сетка мудборда, плюс
      галочка на выбранном (тот же приём, что у плюса найденного кадра) и
      плитка «Автоматически» без картинки */
@@ -7219,6 +7246,13 @@
     <div class="rf-tags" id="mbTags" style="padding-left:0;padding-right:0;"></div>
     <div class="mb-grid-lbl" id="mbGridLabel" hidden></div>
     <div class="ref-grid mb-grid" id="mbGrid" style="margin-top:4px;"></div>
+    <!-- Прыжок к дальнему концу: в подборке на семь десятков кадров дорога
+         пальцем в оба конца одинаково долгая. Кнопка одна, а не две: она
+         всегда ведёт туда, где ты не находишься, и стрелка это показывает.
+         Появляется, только когда прокрутки действительно много. -->
+    <div class="mb-jump-wrap" id="mbJumpWrap" hidden>
+      <button type="button" class="mb-jump" id="mbJump" aria-label="В конец"></button>
+    </div>
     <!-- Выбор нескольких кадров: пока он включён, сетка не открывает
          просмотрщик, а помечает; действия те же три, что и у одного кадра,
          только разом. Кнопки добавления на это время прячутся — класть новое
@@ -16144,6 +16178,54 @@
     $("mbSearchBtn").classList.remove("on");
     renderMbFolder();
   });
+  /* ---------- Прыжок к дальнему концу длинного списка ----------
+     Одна кнопка на оба конца, а не две. Вторая понадобилась бы ровно тогда,
+     когда первая бесполезна: у начала списка нужен только низ, у конца —
+     только верх. Кнопка ведёт туда, где ты не находишься, и стрелка это
+     говорит заранее.
+
+     Порог: под экраном должно остаться больше половины экрана. Списку в
+     полтора экрана кнопка не нужна — свайп быстрее, чем прицелиться в неё.
+
+     Сделано общей функцией: длинных списков в приложении не один, и второй
+     такой кнопке хватит одной строки. */
+  var JUMP_MIN = 0.6;
+  function jumpAttach(scroller, wrap, btn, content) {
+    var DOWN = '<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
+    var UP = '<svg viewBox="0 0 24 24"><polyline points="6 15 12 9 18 15"/></svg>';
+    var shown = null;
+    /* Куда вести — считаем от нынешнего положения, а не от нарисованной
+       стрелки. Стрелка — подсказка, и она может отстать: положение меняют и
+       без события прокрутки (сетка перерисовалась, папку открыли на прежнем
+       месте). Кнопка, ведущая не туда, куда показывает, хуже отсутствующей. */
+    function toEnd() {
+      var over = scroller.scrollHeight - scroller.clientHeight;
+      return scroller.scrollTop < over / 2;
+    }
+    function sync() {
+      var over = scroller.scrollHeight - scroller.clientHeight;
+      if (over < scroller.clientHeight * JUMP_MIN) { wrap.hidden = true; return; }
+      wrap.hidden = false;
+      var down = toEnd();
+      if (down === shown) return;        // разметку зря не трогаем: сюда приходят на каждый пиксель прокрутки
+      shown = down;
+      btn.innerHTML = down ? DOWN : UP;
+      btn.setAttribute("aria-label", LANG.t(down ? "mb.jumpEnd" : "mb.jumpTop"));
+    }
+    scroller.addEventListener("scroll", sync, { passive: true });
+    /* Картинки в сетке доезжают позже разметки, и высота списка растёт уже
+       после отрисовки: без этого кнопка у пограничного списка появлялась бы
+       только от первого касания. */
+    if (window.ResizeObserver && content) new ResizeObserver(sync).observe(content);
+    btn.addEventListener("click", function () {
+      var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var to = toEnd() ? scroller.scrollHeight : 0;
+      if (reduced) scroller.scrollTop = to;
+      else scroller.scrollTo({ top: to, behavior: "smooth" });
+    });
+    return sync;
+  }
+  var mbFolderJump = jumpAttach($("mbFolderOverlay"), $("mbJumpWrap"), $("mbJump"), $("mbGrid"));
   function renderMbFolder() {
     var f = mbOpen;
     if (!f) return;
@@ -16348,6 +16430,7 @@
         else openMbItem(+b.dataset.i);
       });
     });
+    mbFolderJump();   // сетка сменилась — прыжок мог стать не нужен или наоборот
   }
   $("mbRow").addEventListener("click", function () {
     mbActiveTag = null; $("mbSearchInput").value = "";   // тот же сброс, что у общего поиска
