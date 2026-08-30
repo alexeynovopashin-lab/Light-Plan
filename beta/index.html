@@ -15259,6 +15259,9 @@
     }
   }
   function mbStartDrag(btn, boardId, onOpen, onMenu) {
+    /* Без знака подборки тянуть нечего и удалять нечего — плитка умеет
+       только открыться (полка с несколькими папками, см. `mbDragId`) */
+    if (!boardId) { btn.addEventListener("click", onOpen); return; }
     var timer = null, lifted = false, consumed = false, sx = 0, sy = 0, target = null;
     btn.addEventListener("pointerdown", function (e) {
       if (e.button) return;
@@ -15365,6 +15368,24 @@
     }
     openBoardWithFly(f, btn);
   }
+  /* Знак подборки для перетаскивания — только у плитки, которая и есть одна
+     подборка. Полка с несколькими папками ею не является: бейдж на ней
+     считает кадры по всем папкам, а слить она умела бы только первую —
+     тянешь плитку с числом 69, переезжают 12. Такая плитка ни поднимается,
+     ни принимает чужие кадры: она открывается, и внутри уже видно, какая
+     папка есть какая. Правило то же, что у навигации (`openFolderOrShelf`):
+     одна папка — плитка и есть эта папка, несколько — это полка. */
+  function mbDragId(f) {
+    if (f.shelf && mbShelfFolders(f.g).length > 1) return null;
+    return mbBoard(f).id;
+  }
+  /* Атрибут ставим только тому, кого можно тянуть и на кого можно бросить:
+     `mbStartDrag` ищет цель по `[data-bid]`, и полка без знака в цели не
+     попадает — а с ней и кадры не уедут в первую попавшуюся её папку. */
+  function mbBidAttr(f) {
+    var id = mbDragId(f);
+    return id ? ' data-bid="' + esc(id) + '"' : "";
+  }
   var mbShelf = null;    // открытая полка: код жанра
   function openMbShelf(g) {
     mbShelf = g;
@@ -15422,7 +15443,7 @@
     /* Счёт кадров здесь тоже не пишем словами — он на обложке кружком,
        та же причина, что и в ленте (`fill` в renderMbStrip) */
     function tile(f, i, listId) {
-      return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '" data-bid="' + esc(mbBoard(f).id) + '">'
+      return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '"' + mbBidAttr(f) + ">"
         + mbTileArt(f)
         + '<span class="n">' + esc(mbTitle(f)) + "</span>"
         + '<span class="s">' + esc(mbSubTile(f)) + "</span></button>";
@@ -15965,7 +15986,7 @@
          кружком на самой обложке, и повторять его словами значило бы
          сказать одно дважды, потеряв дату (макет «Moodboard Shoots»). */
       var html = (prefix || "") + shown.map(function (f, i) {
-        return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '" data-bid="' + esc(mbBoard(f).id) + '">'
+        return '<button type="button" class="mb-tile" data-list="' + listId + '" data-i="' + i + '"' + mbBidAttr(f) + ">"
           + mbTileArt(f)
           + '<span class="n">' + esc(mbTitle(f)) + "</span>"
           + '<span class="s">' + esc(mbSubTile(f)) + "</span></button>";
