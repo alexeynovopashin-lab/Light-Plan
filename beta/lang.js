@@ -597,7 +597,9 @@
     "plan.meet":       "Встреча",
     "plan.meetClient": "Встреча с клиентом",
     "plan.blockLbl":   "Занять время",
-    "plan.goldenLen":  "золотой час · {dur}",
+    /* Имя приборной панели дня вслух. В самой строке слов нет — только знаки
+       и числа, — поэтому всё, что она показывает, произносится здесь */
+    "plan.barAria":    "Рассвет {rise}, закат {set}, золотой час {golden}. Закат: {sunset}. Погода: {cond}, {temp}°",
 
     /* Строки телеметрии — подписи слева */
     "tele.cond":   "Условия",
@@ -2093,7 +2095,7 @@
     "plan.meet":       "Meeting",
     "plan.meetClient": "Meeting with client",
     "plan.blockLbl":   "Block out time",
-    "plan.goldenLen":  "golden hour · {dur}",
+    "plan.barAria":    "Sunrise {rise}, sunset {set}, golden hour {golden}. Sunset: {sunset}. Weather: {cond}, {temp}°",
 
     "tele.cond":   "Conditions",
     "tele.sunrise": "Sunrise",
@@ -3475,7 +3477,7 @@
     "plan.meet": "Reunión",
     "plan.meetClient": "Reunión con el cliente",
     "plan.blockLbl": "Bloquear tiempo",
-    "plan.goldenLen": "hora dorada · {dur}",
+    "plan.barAria": "Amanecer {rise}, atardecer {set}, hora dorada {golden}. Atardecer: {sunset}. Tiempo: {cond}, {temp}°",
     "tele.cond": "Condiciones",
     "tele.sunrise": "Amanecer",
     "tele.sunset": "Atardecer",
@@ -4717,7 +4719,7 @@
     "plan.meet": "会议",
     "plan.meetClient": "与客户会议",
     "plan.blockLbl": "占用时间",
-    "plan.goldenLen": "黄金时刻 · {dur}",
+    "plan.barAria": "日出 {rise}，日落 {set}，黄金时刻 {golden}。日落：{sunset}。天气：{cond}，{temp}°",
     "tele.cond": "条件",
     "tele.sunrise": "日出",
     "tele.sunset": "日落",

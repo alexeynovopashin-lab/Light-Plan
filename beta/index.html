@@ -2417,28 +2417,25 @@
   .day-panel { max-height: 0; overflow: hidden; flex-shrink: 0; margin: 0 20px;
     transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
   .day-panel.open { max-height: 420px; }
-  /* Сводка дня — два равных виджета, свет и погода. Раньше это была одна
-     карточка с рамкой: одно окно света слева, погода справа. Разделены,
-     потому что весят одинаково — оба говорят о дне, а не друг о друге */
-  /* Поле 4px, а не 24: обёртка `.day-panel` уже отступает на 20px от края, и
-     свои 24 складывались с ними в 44 — ряд виджетов вставал на 40px уже
-     карточки действий под ним, отчего виджет света душил строку золотого часа
-     переносом. Складывать поля вложенных блоков — грабля, а не настройка */
-  /* Колонки не поровну: слева три строки текста, справа три коротких. При
-     ровном делении худшей строке («золотой час · 1 ч 47 м», а он бывает длиннее
-     часа весной и в высоких широтах) не хватало 0.2px, и она срывалась на
-     второй ряд. Перевес отдан тому, кому есть что сказать */
-  .dp-widgets { display: grid; grid-template-columns: 1.15fr 1fr; gap: 10px; margin: 0 4px; }
-  .dp-w {
+  /* Приборная панель дня — одна строка показаний вместо двух карточек.
+     Поле 4px, а не 24: обёртка `.day-panel` уже отступает на 20px от края, и
+     свои 24 складывались с ними в 44 — строка вставала на 40px уже карточки
+     действий под ней. Складывать поля вложенных блоков — грабля, а не
+     настройка.
+     Ширина здесь не запас, а весь бюджет: 318px на все показания (см.
+     замер в разметке). Поэтому `white-space: nowrap` без переносов —
+     показание, сорвавшееся на второй ряд, ломает саму идею панели, и лучше
+     узнать об этом переполнением, чем получить два этажа втихую. */
+  .dp-bar {
     border: none; background: none; font-family: inherit; text-align: left;
+    width: calc(100% - 8px); margin: 0 4px; cursor: pointer;
     border-radius: 16px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
-    padding: 10px 12px; display: flex; flex-direction: column;
+    padding: 9px 12px; display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: var(--ink-2);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
   }
-  .dp-w-light { gap: 9px; cursor: pointer; }
-  .dp-w-light:active { background: var(--press); }
-  .dp-w-wx { gap: 2px; }
-  .dp-sun-row { display: flex; justify-content: space-between; align-items: center; }
+  .dp-bar:active { background: var(--press); }
   /* По базовой линии, а не по центру строки. У рассвета и заката линия
      горизонта проходит на 16.5 из 24 высоты, то есть под ней 31.25% пустоты.
      При центровании по строке эта пустота уравнивалась с текстом, и рисунок
@@ -2447,25 +2444,28 @@
      она по нижнему краю — и опускаем на те самые 31.25% собственной высоты:
      тогда на базовой линии оказывается горизонт, как и положено, а купол с
      лучами встаёт над ней, как буквы. Проценты берутся от высоты самого
-     знака, поэтому одно правило годится и на 14px в неделе, и на 19px здесь.
+     знака, поэтому одно правило годится и на 14px в неделе, и на 15px здесь.
      `transform` на разметку не влияет — базовая линия остаётся прежней, и
      сдвиг не тянет за собой соседей. */
-  .dp-sun-item { display: flex; align-items: baseline; gap: 5px; font-size: 14px; font-weight: 600;
-    color: var(--ink-2); font-variant-numeric: tabular-nums; }
-  .dp-sun-item svg { transform: translateY(31.25%); }
-  /* 19px и толщина 1.6 — те же, что у этой пары над слайдером в таймбаре.
-     Мельчить незачем: место в виджете есть, а на 16px рисунок начинал
-     рассыпаться в пиксели (замечание с телефона) */
-  .dp-sun-item svg { width: 19px; height: 19px; fill: none; stroke: var(--ink-4); stroke-width: 1.6; }
-  .dp-sun-set { color: var(--brass); }
-  .dp-sun-set svg { stroke: var(--brass); }
-  .dp-golden-row {
-    padding-top: 8px; border-top: 1px solid var(--hairline);
-    font-size: 12.5px; line-height: 1.3; color: var(--ink-4); font-variant-numeric: tabular-nums;
-  }
-  .dp-score-row { display: flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--ink-4); }
-  .dp-score-word { flex: 1; font-weight: 600; }
-  .dp-score-row .dp-chev svg { width: 12px; height: 12px; fill: none; stroke: var(--brass-deep);
+  .dp-b { display: flex; align-items: baseline; gap: 3px; }
+  .dp-b svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; transform: translateY(31.25%); }
+  /* Знак наследует цвет строки, а не красится своей краской: цвет времени
+     заката несёт качество заката (см. `renderDayPanel`), и знак обязан уйти
+     в тот же цвет — иначе латунное солнце спорит с синим числом рядом */
+  .dp-b-set { color: var(--brass); }
+  /* Часы и облако стоят на своей геометрии: у них нет линии горизонта, и
+     общий сдвиг на 31.25% топил бы их ниже строки */
+  #dpGold svg, .dp-b-wx svg { transform: none; }
+  #dpGold { color: var(--ink-4); font-weight: 500; }
+  #dpGold svg { width: 13px; height: 13px; }
+  .dp-b-wx { color: var(--ink); align-items: center; }
+  .dp-b-wx svg { width: 17px; height: 17px; }
+  /* Черта делит панель на свет и погоду: слева то, чем управляет солнце,
+     справа то, чем небо. Без неё пять показаний читались одним списком */
+  .dp-b-sep { width: 1px; height: 12px; background: var(--hairline); }
+  .dp-b-chev { margin-left: auto; display: flex; }
+  .dp-b-chev svg { width: 12px; height: 12px; fill: none; stroke: var(--brass-deep);
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   /* Строка «день свободен» вынута из виджетов: она про день, а не про свет
      и не про погоду. Раньше этот же факт говорился ещё раз секцией
@@ -3489,7 +3489,7 @@
      подсказка на её собственном месте, только слева */
   .wk-sun.has-bin { justify-content: space-between; }
   /* Горизонт знака — на базовую линию строки, как в виджете сводки
-     (см. `.dp-sun-item`) */
+     (см. `.dp-b`) */
   .wk-sun-t { display: flex; align-items: baseline; gap: 6px; }
   .wk-sun-t svg { transform: translateY(31.25%); }
   /* Сдача материала в этот день — тоже занятость */
@@ -5843,27 +5843,28 @@
 
     <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
     <div class="day-panel" id="dayPanel">
-     <div class="dp-widgets">
-      <!-- Кликабелен целиком: это и есть переход на экран «Свет», подписи
-           «свет» в заголовке нет — содержимое само себя называет -->
-      <button class="dp-w dp-w-light" id="seeLight">
-        <div class="dp-sun-row">
-          <span class="dp-sun-item"><span id="dpRiseIc"></span><span id="dpRise">—</span></span>
-          <span class="dp-sun-item dp-sun-set"><span id="dpSetIc"></span><span id="dpSet">—</span></span>
-        </div>
-        <div class="dp-golden-row" id="dpGoldenRow">—</div>
-        <div class="dp-score-row" id="dpScoreRow" hidden>
-          <span id="dpScoreLabel">—</span>
-          <span class="dp-score-word" id="dpScoreWord">—</span>
-          <span class="dp-chev" id="dpChev"></span>
-        </div>
-      </button>
-      <div class="dp-w dp-w-wx">
-        <div class="hw-top"><span id="dpIcon"></span><span class="temp" id="dpTemp">—</span></div>
-        <div class="hw-cond" id="dpCond">—</div>
-        <div class="hw-hilo"><span id="dpLo">↓ —</span><span id="dpHi">↑ —</span></div>
-      </div>
-     </div>
+     <!-- Приборная панель дня: одна строка знаков вместо двух карточек света
+          и погоды. Карточки занимали 96px высоты ради шести значений, и
+          главное на экране съёмок — сами съёмки — уезжало под сгиб (Алексей:
+          «эти виджеты не дают мне покоя, давай попробуем сделать их как
+          приборную панель из маленьких иконок»). Образец — строка состояния
+          Android: знак и показание, без подписей.
+          Кликабельна целиком, это по-прежнему переход на экран «Свет».
+          Что не влезло и почему: доступной ширины 318px (390 экрана минус
+          поля панели и своё поле). Замер строки: свет и погода — 271px в
+          обычный день и 278px в худший («1 ч 47 м»), а со словом качества
+          заката — 320px и 358px, то есть рвётся всегда. Поэтому качество
+          заката ушло в цвет самого времени заката, а минимум и максимум
+          температуры сняты совсем: приборная панель показывает показание,
+          а не сводку. Подробности обоих — на экране «Свет» по клику. -->
+     <button class="dp-bar" id="seeLight">
+       <span class="dp-b"><span id="dpRiseIc"></span><span id="dpRise">—</span></span>
+       <span class="dp-b dp-b-set" id="dpSetItem"><span id="dpSetIc"></span><span id="dpSet">—</span></span>
+       <span class="dp-b" id="dpGold"><span id="dpGoldIc"></span><span id="dpGoldVal">—</span></span>
+       <span class="dp-b-sep"></span>
+       <span class="dp-b dp-b-wx"><span id="dpIcon"></span><span id="dpTemp">—</span></span>
+       <span class="dp-b-chev" id="dpChev"></span>
+     </button>
      <div class="dp-free" id="dpLoad">—</div>
     </div>
     <div class="day-line" id="dpSessions"></div>
@@ -13675,36 +13676,47 @@
       }
     }
 
-    /* Виджет света: восход и закат в одну строку, длина золотого часа под
-       ней, оценка заката — только когда она настоящая (реальный прогноз),
-       никогда из генератора-заглушки: три звезды на выдумке были бы враньём */
+    /* Приборная панель дня: восход, закат, длина золотого часа, погода —
+       по знаку и показанию, без подписей. Слов в строке нет вовсе, поэтому
+       кнопке нужно имя вслух: иначе для голосового доступа она пустая */
     $("dpRiseIc").innerHTML = ICONS.svg("sunrise");
     $("dpSetIc").innerHTML = ICONS.svg("sunset");
+    /* Часы, а не второе солнце: знак заката в проекте уже занят самим
+       закатом (см. строку света в неделе), и два одинаковых солнца в одной
+       строке читались бы как два заката. Здесь показание — длительность,
+       и знак часов ровно о ней */
+    $("dpGoldIc").innerHTML = ICONS.svg("clock");
+    $("dpChev").innerHTML = ICONS.svg("chevron");
     $("dpRise").textContent = fmt(SUN.rise);
     $("dpSet").textContent = fmt(SUN.set);
+    /* Золотой час прячется целиком, когда его нет (полярный день и ночь):
+       знак часов при прочерке обещал бы показание, которого не существует */
     var goldenMin = w.k === "sunset" ? (SUN.set - SUN.goldB) : (SUN.rise - SUN.goldA);
-    $("dpGoldenRow").textContent = isFinite(goldenMin) && goldenMin > 0
-      ? LANG.t("plan.goldenLen", { dur: durShort(goldenMin) }) : "—";
+    var goldOk = isFinite(goldenMin) && goldenMin > 0;
+    $("dpGold").hidden = !goldOk;
+    if (goldOk) $("dpGoldVal").textContent = durShort(goldenMin);
+    /* Качество заката — цветом самого времени заката, а не словом рядом.
+       Замер: со словом строка выходит 320px из 318 доступных в обычный день
+       и 358px в худший, то есть рвётся всегда. Цвет не стоит ни пикселя.
+       Шкала та же, что была у слова. Красим только по настоящему прогнозу:
+       цвет на выдумке генератора-заглушки был бы таким же враньём, каким
+       были бы три звезды. Без прогноза закат остаётся латунным — это его
+       собственный цвет, а не оценка */
     var dw0 = dayWeather(calSel);
-    var scoreRow = $("dpScoreRow");
-    if (dw0.real && dw0.sunset !== null && dw0.sunset !== undefined) {
-      var sc = dw0.sunset;
-      scoreRow.hidden = false;
-      $("dpScoreLabel").textContent = w.label;
-      $("dpScoreWord").textContent = sunsetShort(sc);
-      $("dpScoreWord").style.color = sc >= 75 ? "var(--brass)" : sc >= 50 ? "var(--green)"
-        : sc >= 28 ? "var(--ink)" : "var(--blue)";
-      $("dpChev").innerHTML = ICONS.svg("chevron");
-    } else {
-      scoreRow.hidden = true;
-    }
-    // Погода дня — в сводке, как на главном экране
+    var sc = dw0.real && dw0.sunset !== null && dw0.sunset !== undefined ? dw0.sunset : null;
+    $("dpSetItem").style.color = sc === null ? ""
+      : sc >= 75 ? "var(--brass)" : sc >= 50 ? "var(--green)"
+      : sc >= 28 ? "var(--ink)" : "var(--blue)";
+    // Погода дня — знак неба и температура; подробности на экране «Свет»
     var wx = dayWeather(calSel);
     $("dpIcon").innerHTML = skyIcon(q);
     $("dpTemp").textContent = tempOut(wx.tempBase, 900) + "°";
-    $("dpCond").textContent = QUAL[q].cond;
-    $("dpLo").textContent = "↓ " + tempOut(wx.tempBase, 240) + "°";
-    $("dpHi").textContent = "↑ " + tempOut(wx.tempBase, 960) + "°";
+    $("seeLight").setAttribute("aria-label", LANG.t("plan.barAria", {
+      rise: fmt(SUN.rise), set: fmt(SUN.set),
+      golden: goldOk ? durShort(goldenMin) : "—",
+      sunset: sc === null ? "—" : sunsetShort(sc),
+      cond: QUAL[q].cond, temp: tempOut(wx.tempBase, 900)
+    }));
 
     /* День собирается одной хронологической лентой: съёмки, встречи и занятость
        идут вперемешку по времени, между ними встают свободные окна, а свет
