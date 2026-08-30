@@ -4544,7 +4544,17 @@
     border: 1px dashed var(--hairline); color: var(--ink-4);
   }
   .ref-card.add svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.5; }
-  #mbGrid.mb-grid .ref-card.add { aspect-ratio: 1/1; }
+  /* `column-span: all` — не украшение, а единственный способ гарантировать,
+     что «+» окажется под обеими колонками. Масонри расставляет плитки по
+     высоте, балансируя колонки, а не по порядку в разметке: плитка,
+     последняя в HTML, могла достаться более короткой колонке и повиснуть
+     выше последнего кадра в другой — сетка «росла» из-под неё. Ширина и
+     отступ те же, что были у плитки в одну колонку — только сама колонка
+     здесь общая для обеих. */
+  #mbGrid.mb-grid .ref-card.add {
+    aspect-ratio: 1/1; column-span: all;
+    width: calc(50% - 4px); margin: 0 auto 8px;
+  }
   .ref-card .pick {
     position: absolute; top: 7px; right: 7px; z-index: 2;
     width: 22px; height: 22px; border-radius: 50%; corner-shape: squircle;
