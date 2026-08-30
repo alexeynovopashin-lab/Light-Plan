@@ -15085,10 +15085,14 @@
     });
     return out;
   }
+  /* Подборки, которые стоят за плиткой: у полки — все её папки, у остальных
+     одна. Всё, что считают про плитку, считается по этому списку — иначе
+     кружок на обложке и сводка в ручке ленты говорят разные числа про одно
+     и то же (так и было: 69 на плитке, 12 в сводке). */
+  function mbBoardsOf(f) { return f.shelf ? boardsOfGenre(f.g) : [mbBoard(f)]; }
   /* Сколько кадров показывает плитка: у полки — по всем её папкам */
   function mbCountOf(f) {
-    if (!f.shelf) return mbList(f).length;
-    return boardsOfGenre(f.g).reduce(function (n, b) { return n + b.items.length; }, 0);
+    return mbBoardsOf(f).reduce(function (n, b) { return n + boardShots(b).length; }, 0);
   }
   function mbBoard(f) {
     return f.b || (f.kind === "session" ? boardOfSession(sessions[f.si], true) : boardTpl(f.g, true));
@@ -15964,11 +15968,16 @@
     $("mbStripFan").innerHTML = mbFanHtml(folders);
     blobHydrate($("mbStripFan"));
     if (folders.length) {
+      /* По всем папкам плитки, а не по одной первой: у жанра с тремя
+         папками сводка говорила про первую, пока кружок на обложке рядом
+         считал все три. Два числа про одно и то же на одном экране. */
       var sumFrames = 0, sumPicsN = 0, sumPicsHave = 0;
       folders.forEach(function (f) {
-        var b = mbBoard(f), st = boardOfflineState(b);
-        sumFrames += mbList(f).length;
-        if (st) { sumPicsN += st.n; sumPicsHave += st.have; }
+        mbBoardsOf(f).forEach(function (b) {
+          var st = boardOfflineState(b);
+          sumFrames += boardShots(b).length;
+          if (st) { sumPicsN += st.n; sumPicsHave += st.have; }
+        });
       });
       $("mbStripSub").textContent = LANG.count("unit.board", folders.length) + " · " + LANG.count("unit.frame", sumFrames);
       $("mbStripOff").textContent = sumPicsN ? LANG.t("mb.stripOff", { have: sumPicsHave, n: sumPicsN }) : "";
