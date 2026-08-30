@@ -2467,10 +2467,13 @@
   .dp-b-chev { margin-left: auto; display: flex; }
   .dp-b-chev svg { width: 12px; height: 12px; fill: none; stroke: var(--brass-deep);
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-  /* Строка «день свободен» вынута из виджетов: она про день, а не про свет
-     и не про погоду. Раньше этот же факт говорился ещё раз секцией
-     «Запланировано» на 40px ниже — дубль снят */
-  .dp-free { margin: 6px 4px 0; font-size: 13px; color: var(--ink-4); text-align: center; }
+  /* Загрузка дня — заголовок списка съёмок (`.sec-label`, тот же капс, что у
+     заголовков секций в форме и настройках). Свой отступ сверху вместо 30px
+     наследуемых: между приборной панелью и списком не нужен разрыв величиной
+     в целую секцию, они про один и тот же день */
+  /* Двойным классом, а не одним: `.sec-label` объявлен ниже по файлу и своим
+     `padding: 30px 24px 8px` перебивал бы одиночный `.day-sec` */
+  .sec-label.day-sec { padding: 16px 24px 7px; color: var(--ink-4); }
 
   /* Три действия дня — три отдельные кнопки, а не строки одной таблицы.
      Общая рамка обещала выбор одного состояния из трёх, которого в данных
@@ -2685,21 +2688,23 @@
   .ref-card.auto { display: flex; align-items: center; justify-content: center; background: var(--sheet-4); color: var(--ink-5); }
   .ref-card.auto svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-  .day-states { flex: 0 0 auto; margin: 6px 24px 0; display: flex; flex-direction: column; gap: 6px; }
+  /* Ряд из трёх равных долей. 44px — не круглое число, а нижняя граница
+     нажимаемой цели: прежние 38px её не добирали */
+  .day-states { flex: 0 0 auto; margin: 14px 24px 0; display: flex; gap: 6px; }
   .day-states .st {
-    display: flex; align-items: center; gap: 13px; padding: 9px 16px; width: 100%;
+    flex: 1 1 0; min-width: 0; height: 44px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     border: none; background: none; font-family: inherit; cursor: pointer;
     border-radius: 14px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
   }
   .day-states .st:active { background: var(--press); }
   .day-states .st.on { background: var(--sheet-4); }
-  .day-states .st .ic { width: 20px; height: 20px; fill: none; stroke-width: 1.6; flex-shrink: 0; }
-  /* Влево, а не по центру: подсказки справа сняты, и без явного выравнивания
-     подпись уезжала в середину кнопки, оставляя знак сиротой у левого края */
-  .day-states .st .lbl { flex: 1 1 auto; min-width: 0; font-size: 15.5px; font-weight: 500;
-    color: var(--ink-2); text-align: left;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day-states .st .ic { width: 18px; height: 18px; fill: none; stroke-width: 1.6; flex-shrink: 0; }
+  /* Кегль подписи 11px — она не читается отдельно от знака, а называет его.
+     Знак несёт смысл, подпись снимает двусмысленность */
+  .day-states .st .lbl { max-width: 100%; font-size: 11px; font-weight: 500;
+    color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .day-states .st.on .lbl { font-weight: 600; color: var(--ink); }
   .day-states .st.dim .lbl { color: var(--ink-4); }
 
@@ -2721,6 +2726,39 @@
   .pr-who { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pr-due { margin-left: auto; font-size: 12px; white-space: nowrap; }
   .plan-empty { color: var(--ink-7); font-size: 14px; padding: 6px 0 2px; }
+  /* Съёмка под календарём — карточка, а не голая строка. Голой она весила
+     меньше кнопок под собой (16px/400 против 15.5px/600 в рамке), и экран
+     говорил, что кнопки главнее того, ради чего их нажимают. Фон и вес
+     возвращают первенство содержимому.
+     Только в списке дня: та же `.plan-row` служит поиску и ленте, где
+     карточка была бы чужой */
+  /* `--sheet-4`, а не `--surface`: последний отличается от фона экрана на
+     восемь единиц в канале, и карточка на нём была неотличима от голой
+     строки — замерено. Это тот же тон, которым залита выбранная кнопка
+     действия, то есть уже принятая в проекте «поднятая» поверхность */
+  #dpSessions .plan-row {
+    background: var(--sheet-4); border-radius: 12px; corner-shape: squircle;
+    padding: 11px 12px; margin-bottom: 5px;
+  }
+  #dpSessions .plan-row:last-child { margin-bottom: 0; }
+  #dpSessions .plan-row .pr-who { font-weight: 500; }
+  /* Свободный день не пустой: в нём есть свет. Плашка говорит то, чего не
+     говорят ни календарь, ни приборная панель, — во сколько начнётся золотой
+     час, то есть ради чего этот день вообще открывают. Пунктир, а не рамка:
+     это приглашение, а не запись */
+  .day-free {
+    display: flex; align-items: center; gap: 11px;
+    border: 1px dashed var(--ink-10); border-radius: 12px; corner-shape: squircle;
+    padding: 15px 12px;
+  }
+  .day-free svg { width: 22px; height: 22px; flex-shrink: 0; fill: none; stroke: var(--ink-5);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  /* Заглавная — правкой отображения, а не пятым словарным ключом: строка
+     взята у клетки недели («золотой час 19:45»), где она хвост и пишется
+     строчной, а здесь начинает фразу */
+  .day-free-t { font-size: 13.5px; color: var(--ink-2); }
+  .day-free-t::first-letter { text-transform: uppercase; }
+  .day-free-s { font-size: 11.5px; color: var(--ink-4); margin-top: 2px; }
   /* Занятое время в списке дня: приглушено и со знаком причины. Латунь времени
      достаётся съёмкам — они про свет, а отпуск про его отсутствие */
   .plan-row.busy { align-items: center; color: var(--ink-3); }
@@ -5865,28 +5903,40 @@
        <span class="dp-b dp-b-wx"><span id="dpIcon"></span><span id="dpTemp">—</span></span>
        <span class="dp-b-chev" id="dpChev"></span>
      </button>
-     <div class="dp-free" id="dpLoad">—</div>
     </div>
+    <!-- Загрузка дня стоит заголовком списка, а не подписью под приборной
+         панелью. Подписью она была ничьей: центрированная строка между двумя
+         левовыровненными блоками, с почти равными отступами вверх и вниз —
+         не принадлежала ни свету, ни съёмкам (Алексей: «смущает сиротливо
+         зажатый статус „день свободен“»). Заголовком у неё появилась роль:
+         она называет то, что под ней, и в занятый день перестаёт быть
+         дублем строки съёмки — становится её шапкой.
+         Снаружи `.day-panel`, а не внутри: панель сворачивается стрелкой,
+         и заголовок уезжал бы, оставляя список без имени. -->
+    <div class="sec-label day-sec" id="dpLoad">—</div>
     <div class="day-line" id="dpSessions"></div>
     <!-- Три действия дня — три отдельные кнопки, а не строки одной таблицы.
          Таблица обещала выбор одного состояния из трёх, которого в данных
-         нет: это три разных действия, каждое заводит свою запись. Подсказок
-         справа у них тоже нет — они разгоняли строки по ширине и мешали
-         читать сами подписи (замечание с телефона) -->
+         нет: это три разных действия, каждое заводит свою запись.
+         Рядом, а не столбцом: тремя полосами во всю ширину они весили 126px
+         и были самым тяжёлым блоком экрана — тяжелее самой съёмки, ради
+         которой нажимаются. В ряду те же три действия стоят 44px, и вес
+         вернулся содержимому. Подпись под знаком короткая: полная («Занять
+         время») в третьей доле ширины экрана всё равно обрезалась бы. -->
     <div class="day-states" id="dayStates">
       <button class="st on" id="planDay">
         <svg class="ic" viewBox="0 0 24 24" stroke="var(--brass)" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg>
-        <span class="lbl" data-i18n="plan.planShoot">Запланировать съёмку</span>
+        <span class="lbl" data-i18n="plan.shortShoot">Съёмка</span>
       </button>
       <button class="st" id="planMeet">
         <svg class="ic" viewBox="0 0 24 24" stroke="var(--brass)" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="10.5" r="2.4"/><path d="M15 19.5c0-2.2 1.4-3.8 3.4-3.8 1.1 0 2.1.5 2.6 1.3"/></svg>
-        <span class="lbl" data-i18n="plan.meetClient">Встреча с клиентом</span>
+        <span class="lbl" data-i18n="plan.shortMeet">Встреча</span>
       </button>
       <!-- Занять время — действие тише съёмки: планировщик про съёмки,
            а выходной ставят реже -->
       <button class="st dim" id="planBlock">
         <svg class="ic" viewBox="0 0 24 24" stroke="var(--ink-5)" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.2"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/></svg>
-        <span class="lbl" data-i18n="plan.blockLbl">Занять время</span>
+        <span class="lbl" data-i18n="plan.shortBlock">Занять</span>
       </button>
     </div>
     <!-- Мудборды прямо на «Съёмках». Раньше вход был один — Настройки →
@@ -13861,7 +13911,24 @@
     }
     html = '<div class="dl-grid">' + grid + '</div><div class="dl-layer">' + layer + "</div>";
     }
-    box.innerHTML = html;   // пустая лента и есть «нет событий» — строка не нужна
+    /* Свободный день под календарём получает плашку, а не пустоту. Пустая
+       лента честно говорила «событий нет», но день без съёмок — это не
+       отсутствие содержимого, а свободный свет: плашка называет час, ради
+       которого этот день и открывают. В дневном виде её нет — там пустые
+       часы сами по себе приглашение, в каждый можно ткнуть */
+    if (!html && calScope !== "day") {
+      var freeGold = sky.goldB !== null && sky.goldB !== undefined ? sky.goldB : sky.set;
+      html = '<div class="day-free">' + IC.svg("sunset")
+        + "<div><div class=\"day-free-t\">"
+        + esc(freeGold !== null && freeGold !== undefined
+            ? LANG.t("week.goldenAt", { t: fmt(freeGold) })
+            : LANG.t("day.freeDay"))
+        + "</div>"
+        + (freeGold !== null && freeGold !== undefined
+            ? '<div class="day-free-s">' + esc(LANG.t("day.freeAllDay")) + "</div>" : "")
+        + "</div></div>";
+    }
+    box.innerHTML = html;
     /* Переход между днями: лента въезжает с той стороны, откуда пришёл день.
        Анимация короткая (0.22 с) и только по горизонтали — вертикаль в этом
        экране означает время, и двигать её значило бы сказать неправду.
@@ -13994,7 +14061,10 @@
        где ленты часов нет и ткнуть некуда */
     var onLine = calScope === "day";
     $("dayStates").hidden = onLine;
-    $("planDay").querySelector(".lbl").textContent = shootCount ? LANG.t("day.addMore") : LANG.t("plan.planShoot");
+    /* Подпись больше не переключается на «Добавить съёмку»: в ряду она
+       короткая («Съёмка»), и добавление уже сказано плюсом на самом знаке.
+       Прежняя пара подписей была нужна широкой кнопке, где слово стояло
+       одно и обязано было договаривать за знак */
   }
 
   /* ---------- Свайп влево по строке съёмки ---------- */
