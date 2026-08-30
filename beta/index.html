@@ -2561,7 +2561,14 @@
   .mb-tile {
     border: none; background: none; padding: 0; font-family: inherit;
     text-align: left; cursor: pointer; min-width: 0;
+    /* Тот же запрет системного меню, что у карточки кадра. Без него iOS по
+       долгому тапу показывает поверх нашего листа своё меню картинки
+       («Поделиться», «Сохранить в Фото»): обложка подборки — тоже картинка,
+       и долгий тап по ней у нас занят. Поймано на симуляторе; у кадров это
+       было закрыто раньше, у обложек — нет. */
+    -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
   }
+  .mb-tile img, .mb-fan img { -webkit-touch-callout: none; pointer-events: none; }
   .mb-tile:active .mb-cover { background: var(--press); }
   .mb-cover {
     position: relative;
