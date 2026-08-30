@@ -15507,12 +15507,24 @@
      но только те, что больше нигде не лежат: подборка их называла, а не
      держала (15_MOODBOARD, «Кадр и подборка — разные вещи»). */
   var mbSheetBoard = null;
+  /* Как называется подборка сама по себе, без плитки. Лист открывают и с
+     полки, где лежат папки, которых в `mbFolders` нет вовсе: там одна
+     плитка на жанр. Поиск описателя такую папку не находил, заголовок
+     падал на общее «Подборки» — и подтверждение спрашивало про него,
+     а стирало «Женский портрет». Подборка знает своё имя сама. */
+  function boardTitle(b) {
+    if (!b) return LANG.t("mb.sets");
+    if (b.kind === "shoot") {
+      var s = sessions.filter(function (x) { return x.id === b.sid; })[0];
+      return s ? (clientName(s) || genreName(s.type)) : LANG.t("mb.sets");
+    }
+    return b.name || genreName(b.genre);
+  }
   function openMbBoardSheet(id) {
     var b = boardById(id);
     if (!b) return;
     mbSheetBoard = id;
-    var f = mbFolders().filter(function (x) { return mbBoard(x) === b; })[0];
-    $("mbBoardTitle").textContent = f ? mbTitle(f) : LANG.t("mb.sets");
+    $("mbBoardTitle").textContent = boardTitle(b);
     /* Считаем не все кадры, а те, что уйдут насовсем: остальные лежат ещё
        где-то, и обещать их пропажу было бы неправдой. */
     var lone = b.items.filter(function (x) { return !boards.some(function (o) { return o !== b && boardHas(o, x); }); }).length;
