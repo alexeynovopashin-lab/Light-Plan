@@ -5157,10 +5157,10 @@
   .mb-folder-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .mb-folder-head-t { flex: 1 1 auto; min-width: 0; }
   .mb-folder-head-t .form-title, .mb-folder-head-t .form-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mb-off-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-  /* `display` в CSS перебивает атрибут `hidden` — гасим явно (грабли из DECISIONS) */
-  .mb-off-row[hidden] { display: none; }
-  .mb-off-row .mb-off-text { font-size: 12.5px; color: var(--ink-4); }
+  /* Состояние хранения переехало в верхнюю строку — от прежней строки
+     осталась только подпись, она же и там */
+  .mb-off-text { font-size: 12.5px; color: var(--ink-4);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* ---------- Верхняя строка папки ----------
      Стрелка, состояние хранения, и две двери справа — вся служебная часть
      экрана в одной строке (макет 30 августа 2026). */
