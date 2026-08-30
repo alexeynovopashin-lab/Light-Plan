@@ -4968,6 +4968,11 @@
   .ref-btn:active { color: var(--brass); }
   .ref-note { padding: 0 15px 12px; font-size: 12px; color: var(--ink-4); line-height: 1.45; }
   .ref-note[hidden] { display: none; }
+  /* `display: flex` перебивает атрибут `hidden` — те же грабли, что уже
+     записаны в DECISIONS для карточки съёмки. Поймано на симуляторе: строка
+     действий выбора висела на экране при выключенном режиме, а проверка в
+     песочнице смотрела на свойство `hidden`, а не на то, что видно. */
+  .ref-add[hidden] { display: none; }
   /* Просмотр картинки во весь экран.
      touch-action: none — щипок здесь наш, браузеру его отдавать нельзя;
      overflow: hidden — увеличенный кадр не вылезает за края экрана. */
