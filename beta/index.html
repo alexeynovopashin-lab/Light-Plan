@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=33"></script>
+<script src="lang.js?v=34"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -3819,6 +3819,14 @@
   #pickSheet .sheet-sub[hidden] { display: none; }
   /* Пояснение под названием строки — второй строкой, тише названия */
   .row-sub { display: block; margin-top: 2px; font-size: 12.5px; color: var(--ink-4); }
+  /* Поле тега с кнопкой внутри: кнопка лежит поверх правого края поля, а
+     тексту оставлено место под неё */
+  .tag-field { position: relative; }
+  .tag-field input[type="text"] { padding-right: 44px; }
+  .tag-add-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; padding: 8px; cursor: pointer; color: var(--brass-soft);
+    display: flex; align-items: center; }
+  .tag-add-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
   /* Корзина открывается двумя путями: значком в карточке (78) и строкой в
      настройках, а та живёт в оверлее «Хранилище» (80). Со своими 70 лист
      уходил под экран настроек: нажатие как будто не срабатывало, и находился
@@ -7281,8 +7289,15 @@
     <div class="rf-tags wrap" id="mbItemTags" style="padding:0 13px;"></div>
     <div class="g-label" style="margin:16px 4px 9px;" data-i18n="mb.freeTags">Теги</div>
     <div class="rf-tags wrap" id="mbItemFreeTags" style="padding:0 13px;"></div>
-    <div class="field" style="margin:2px 13px 0;">
-      <input type="text" id="mbItemTagInput" data-i18n-ph="mb.addTagPh" placeholder="Свой тег и Enter"/>
+    <div class="field tag-field" style="margin:2px 13px 0;">
+      <!-- Своя кнопка рядом с полем: на iOS клавиша ввода при включённых
+           подсказках клавиатуры до страницы доходит не всегда, и тег
+           оставался лежать набранным в поле (жалоба с телефона 30 августа
+           2026). Теперь дверей три: клавиша, эта кнопка и выход из поля. -->
+      <input type="text" id="mbItemTagInput" data-i18n-ph="mb.addTagPh" placeholder="Свой тег"/>
+      <button type="button" class="tag-add-btn" id="mbItemTagAdd" aria-label="Добавить тег">
+        <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>
     <div class="group" style="margin-top:16px;">
       <button type="button" class="row" id="mbItemOpen" data-i18n="mb.open">Открыть</button>
@@ -16532,17 +16547,42 @@
       mv.hidden = true;
     }
   }
-  $("mbItemTagInput").addEventListener("keydown", function (e) {
-    if (e.key !== "Enter" && e.key !== ",") return;
-    e.preventDefault();
-    var v = this.value.trim().replace(/,$/, "").toLowerCase();
-    this.value = "";
+  /* ---------- Записать набранный тег ----------
+     Клавиша ввода была единственной дверью, и на телефоне она закрылась:
+     при включённых подсказках iOS-клавиатуры `keydown` доходит до страницы
+     не с тем ключом, и набранный тег оставался лежать в поле (жалоба
+     30 августа 2026). Теперь дверей три — клавиша, кнопка «+» в поле и
+     простой уход из поля: набрал и закрыл лист — тег записан, потому что
+     набрал его человек не случайно. Запись одна на все три. */
+  function mbAddTypedTag() {
+    var el = $("mbItemTagInput");
+    var v = (el.value || "").trim().replace(/,$/, "").toLowerCase();
+    el.value = "";
     if (!v || !mbOpen) return;
     var r = mbList(mbOpen)[mbItem];
     if (!r) return;
     r.tags = r.tags || [];
     if (r.tags.indexOf(v) < 0) r.tags.push(v);
     saveAll(); renderMbItemSheet(); renderMbFolder(); rvRefresh();
+  }
+  $("mbItemTagInput").addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" && e.key !== ",") return;
+    e.preventDefault();
+    mbAddTypedTag();
+  });
+  /* Перевод строки приходит и так — от клавиатуры, минуя `keydown` */
+  $("mbItemTagInput").addEventListener("beforeinput", function (e) {
+    if (e.inputType === "insertLineBreak" || e.inputType === "insertParagraph") {
+      e.preventDefault();
+      mbAddTypedTag();
+    }
+  });
+  $("mbItemTagInput").addEventListener("blur", mbAddTypedTag);
+  /* Кнопка жмётся раньше, чем поле теряет фокус, — иначе `blur` запишет тег,
+     а тап по кнопке попадёт уже в пустое поле */
+  $("mbItemTagAdd").addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    mbAddTypedTag();
   });
   $("mbItemOpen").addEventListener("click", function () {
     if (!mbOpen) return;
