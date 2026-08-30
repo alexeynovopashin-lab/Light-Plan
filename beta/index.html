@@ -15795,7 +15795,9 @@
   function mbKeepSweep() {
     var changed = false;
     boards.forEach(function (b) {
-      if (!b.keep || boardKeeps(b)) return;
+      /* Тем же вопросом, что и всюду: срок вышел, но съёмка через два дня —
+         кадры ещё нужны здесь, освобождать нечего */
+      if (!b.keep || boardWantsOffline(b)) return;
       boardShots(b).forEach(function (r) {
         if (r.im && r.path && blobHas(r.im, "s") && !shotKeptElsewhere(r.id, b)) blobFree(r.im);
       });
@@ -15803,12 +15805,14 @@
     });
     if (changed) saveAll();
   }
-  /* Кадр может лежать в другой подборке, срок которой ещё идёт, — тогда он
-     остаётся на устройстве: срок ставят подборке, а место занимает кадр. */
+  /* Кадр может лежать в другой подборке, которой он ещё нужен на устройстве,
+     — тогда он остаётся: срок ставят подборке, а место занимает кадр.
+     Спрашиваем тем же `boardWantsOffline`, каким решают, что качать: иначе
+     уборка освобождает ровно то, что закачка только что принесла. */
   function shotKeptElsewhere(id, except) {
     for (var i = 0; i < boards.length; i++) {
       var b = boards[i];
-      if (b !== except && boardHas(b, id) && boardKeeps(b)) return true;
+      if (b !== except && boardHas(b, id) && boardWantsOffline(b)) return true;
     }
     return false;
   }
@@ -15827,17 +15831,31 @@
      проверить — Network Information API в Safari нет, поэтому качаем при
      открытии приложения, когда съёмка близко, без различения сети. */
   var MB_OFFLINE_DAYS = 3;
-  function mbOfflineDue() {
-    if (!cloudOn()) return [];
+  /* Съёмка, которой принадлежит подборка */
+  function sessionOfBoard(b) {
+    if (!b || b.kind !== "shoot" || !b.sid) return null;
+    for (var i = 0; i < sessions.length; i++) if (sessions[i].id === b.sid) return sessions[i];
+    return null;
+  }
+  /* Съёмка на носу — её кадры уезжают на устройство сами, без пометки */
+  function boardSoon(b) {
+    var s = sessionOfBoard(b);
+    if (!s) return false;
     var today = new Date(); today.setHours(0, 0, 0, 0);
     var until = new Date(today); until.setDate(until.getDate() + MB_OFFLINE_DAYS);
-    var due = [];
-    sessions.forEach(function (s) {
-      var b = boardOfSession(s, false);
-      if (b && (boardKeeps(b) || (s.date >= today && s.date <= until))) due.push(b);
-    });
-    boards.forEach(function (b) { if (b.kind === "tpl" && boardKeeps(b)) due.push(b); });
-    return due;
+    return s.date >= today && s.date <= until;
+  }
+  /* ---------- Один вопрос на два места ----------
+     «Держит ли подборка кадры на устройстве» решает и что качать, и что
+     можно освободить. Раньше это были два разных ответа: качали по сроку
+     **и** по близкой съёмке, а убирали — зная только про срок. Кадр,
+     лежащий и в жанровой папке с истёкшим сроком, и в съёмке через два
+     дня, освобождался сразу после того, как его для этой съёмки скачали,
+     и качался снова на следующем запуске — так по кругу до самой съёмки. */
+  function boardWantsOffline(b) { return !!b && (boardKeeps(b) || boardSoon(b)); }
+  function mbOfflineDue() {
+    if (!cloudOn()) return [];
+    return boards.filter(boardWantsOffline);
   }
   /* Один кадр за раз: параллельная закачка полусотни картинок в мобильной
      сети — то, из-за чего человек поставит приложение в авиарежим. Молча
