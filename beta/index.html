@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=38"></script>
+<script src="lang.js?v=39"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2572,6 +2572,31 @@
     -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
   }
   .mb-tile img, .mb-fan img { -webkit-touch-callout: none; pointer-events: none; }
+  /* ---------- Режим сортировки ----------
+     Как на домашнем экране iOS: долгий тап переводит мудборд в отдельный
+     режим, и пока он включён, ряд принадлежит пальцу целиком — страница не
+     едет, календарь наверху не листается, плитки покачиваются (Алексей,
+     31 августа 2026: «зажатия недостаточно… экран переключается в режим
+     сортировки»). Признак висит на `body`, а не на самом ряду: ряды
+     перерисовываются целиком после каждой перестановки, и класс на них не
+     пережил бы и одного шага.
+
+     Качается обложка, а не сама плитка. CSS-анимация перебивает inline
+     `transform` — а им живут и перетаскивание, и расступание соседей
+     (`mbTilesFlip`): покачивание стёрло бы оба. */
+  body.mb-sorting .mb-tiles { touch-action: none; }
+  body.mb-sorting .mb-tile .mb-tile-art {
+    animation: mbJiggle 0.26s ease-in-out infinite alternate;
+    transform-origin: 50% 55%;
+  }
+  body.mb-sorting .mb-tile:nth-child(2n) .mb-tile-art { animation-delay: -0.13s; }
+  body.mb-sorting .mb-tile:nth-child(3n) .mb-tile-art { animation-delay: -0.07s; }
+  /* Поднятая не качается: она в руке, а не в очереди */
+  body.mb-sorting .mb-tile.mb-lift .mb-tile-art { animation: none; }
+  @keyframes mbJiggle { from { transform: rotate(-0.8deg); } to { transform: rotate(0.8deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    body.mb-sorting .mb-tile .mb-tile-art { animation: none; }
+  }
   .mb-tile:active .mb-cover { background: var(--press); }
   .mb-cover {
     position: relative;
@@ -15456,13 +15481,71 @@
     return Array.prototype.slice.call(host.querySelectorAll("[data-rk]"))
       .map(function (c) { return c.dataset.rk; });
   }
+  /* ---------- Режим сортировки ----------
+     Долгий тап по плитке больше не «поднимает одну», а переводит мудборд в
+     режим сортировки — как домашний экран iOS. Пока он включён:
+     — все жесты страницы погашены (`touchmove` на документе), поэтому
+       касание уже некому отнять: именно этим умирал прежний жест, iOS читал
+       движение вбок как листание месяца и переставал слать события;
+     — плитки покачиваются, показывая, что ряд ждёт руки;
+     — тащить можно сразу, без повторного удержания;
+     — тап по плитке открывает её лист (там переименование, обложка,
+       удаление), тап мимо ряда — выход из режима.
+     Решено с Алексеем 31 августа 2026 после двух неудачных подходов. */
+  var mbSorting = false;
+  /* Гасим только те касания, что начались на плитках: у `touchmove` цель —
+     элемент, где палец лёг, а не тот, над которым он сейчас. Всё остальное
+     прокручивается как всегда — иначе в режиме нельзя было бы добраться до
+     нижних подборок в длинной галерее. */
+  function mbSortBlock(e) {
+    if (!mbSorting) return;
+    var t = e.target;
+    if (t && t.closest && t.closest(".mb-tiles")) e.preventDefault();
+  }
+  /* Выход — по щелчку мимо ряда, а не по касанию: касание бывает началом
+     прокрутки, и режим выпадал бы от простого пролистывания. После
+     настоящей прокрутки `click` не приходит вовсе — это и есть нужное
+     различение. */
+  function mbSortOutside(e) {
+    var t = e.target;
+    if (t && t.closest && t.closest(".mb-tiles")) return;   // свой ряд не в счёт
+    mbSortOff();
+  }
+  function mbSortKey(e) { if (e.key === "Escape") mbSortOff(); }
+  function mbSortHint() {
+    var key = mbSorting ? "mb.sortHint" : "mb.mergeHint";
+    document.querySelectorAll(".mb-strip-hint").forEach(function (h) {
+      h.textContent = LANG.t(key); h.dataset.i18n = key;
+    });
+  }
+  function mbSortOn() {
+    if (mbSorting) return;
+    mbSorting = true;
+    document.body.classList.add("mb-sorting");
+    /* `passive: false` обязателен: без него `preventDefault` не считается, и
+       страница едет как ни в чём не бывало */
+    document.addEventListener("touchmove", mbSortBlock, { passive: false });
+    document.addEventListener("click", mbSortOutside, true);
+    document.addEventListener("keydown", mbSortKey);
+    mbSortHint();
+    try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
+  }
+  function mbSortOff() {
+    if (!mbSorting) return;
+    mbSorting = false;
+    document.body.classList.remove("mb-sorting");
+    document.removeEventListener("touchmove", mbSortBlock, { passive: false });
+    document.removeEventListener("click", mbSortOutside, true);
+    document.removeEventListener("keydown", mbSortKey);
+    mbSortHint();
+  }
   function mbStartDrag(btn, boardId, onOpen, onMenu, reorder) {
     /* Тянуть можно ради слияния (у плитки есть знак подборки) или ради
        порядка. Полка с несколькими папками сливаться не умеет (см.
        `mbDragId`), но переставляться — вполне, и раньше она выпадала из
        жеста целиком. Не умеет ни того, ни другого — только открыться. */
     if (!boardId && !reorder) { btn.addEventListener("click", onOpen); return; }
-    var timer = null, lifted = false, dragged = false, consumed = false;
+    var timer = null, lifted = false, dragged = false, consumed = false, entered = false;
     var sx = 0, sy = 0, order = null, was = "";
     var cells = null, myCx = 0, myCy = 0, myBox = null;
     var aimEl = null, dwellT = null, activeId = null;
@@ -15488,32 +15571,49 @@
          Внутри одного жеста его взводит только долгий тап, который всегда
          позже этой строки. Так же сделано у кадров в сетке (`longed`). */
       consumed = false;
-      sx = e.clientX; sy = e.clientY; lifted = false; dragged = false;
+      sx = e.clientX; sy = e.clientY; lifted = false; dragged = false; entered = false;
       /* Указатель забираем себе с первого касания. На пальце это делает и
          сам браузер, а мышью без захвата события уходят соседу под
          курсором, и плитка остаётся поднятой навсегда. */
       activeId = e.pointerId;
       try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+      /* В режиме сортировки ждать нечего: ряд уже в руках, плитка едет от
+         первого же движения. Вне режима долгий тап в этот режим вводит. */
+      if (mbSorting && reorder) return;
       timer = setTimeout(function () {
-        lifted = true; consumed = true;
-        if (reorder) {
-          order = mbRkOrder(reorder.host); was = order.join();
-          cells = mbCells(reorder.host);
-          var mine = cells[order.indexOf(btn.dataset.rk)];
-          /* Середина поднятой плитки в той же системе, что и клетки: дальше
-             к ней прибавляется сдвиг пальца, и ничего читать не нужно */
-          myCx = mine.x + mine.w / 2; myCy = mine.y + mine.h / 2;
-          myBox = { w: mine.w, h: mine.h };
-        }
-        try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
-        btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
-        btn.style.transform = "scale(1.1)";
-        btn.style.zIndex = "40"; btn.style.position = "relative";
+        if (reorder && !mbSorting) { entered = true; mbSortOn(); }
+        lift();
       }, 420);
     });
+    /* Подъём: плитка выходит из ряда в руку. Клетки ряда снимаются здесь же
+       — до первого движения, пока всё стоит на своих местах. */
+    function lift() {
+      lifted = true; consumed = true;
+      if (reorder) {
+        order = mbRkOrder(reorder.host); was = order.join();
+        cells = mbCells(reorder.host);
+        var mine = cells[order.indexOf(btn.dataset.rk)];
+        /* Середина поднятой плитки в той же системе, что и клетки: дальше
+           к ней прибавляется сдвиг пальца, и ничего читать не нужно */
+        myCx = mine.x + mine.w / 2; myCy = mine.y + mine.h / 2;
+        myBox = { w: mine.w, h: mine.h };
+      }
+      try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
+      btn.classList.add("mb-lift");
+      btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
+      btn.style.transform = "scale(1.1)";
+      btn.style.zIndex = "40"; btn.style.position = "relative";
+    }
     btn.addEventListener("pointermove", function (e) {
       var dx = e.clientX - sx, dy = e.clientY - sy;
-      if (!lifted) { if (Math.abs(dx) + Math.abs(dy) > 8) clearTimeout(timer); return; }
+      if (!lifted) {
+        if (Math.abs(dx) + Math.abs(dy) <= 8) return;
+        clearTimeout(timer);
+        /* Внутри режима порог движения и есть начало перетаскивания —
+           второй раз держать плитку не надо */
+        if (!(mbSorting && reorder)) return;
+        lift();
+      }
       dragged = true;
       btn.style.transition = "none";
       btn.style.transform = "translate(" + dx + "px," + dy + "px) scale(1.1)";
@@ -15548,6 +15648,7 @@
       if (!lifted) return;
       var mergeId = aimEl && aimEl.dataset.bid;
       aim(null);
+      btn.classList.remove("mb-lift");
       btn.style.transition = "transform .42s cubic-bezier(.2,1.3,.35,1)";
       btn.style.transform = "none"; btn.style.zIndex = ""; btn.style.position = "";
       if (mergeId) {
@@ -15558,6 +15659,11 @@
            случился, меню поверх него было бы лишним. То же правило, что у
            кадров в сетке (`mbGridDrag`). */
         if (order && order.join() !== was) reorder.commit(order);
+      } else if (entered) {
+        /* Долгий тап всего лишь ввёл в режим сортировки — этого и довольно.
+           Лист подборки здесь открывать нельзя: он накрыл бы ряд, который
+           человек только что попросил показать целиком. Внутри режима лист
+           зовут обычным тапом. */
       } else if (onMenu) onMenu(boardId);
       order = null; cells = null;
     }
@@ -15581,6 +15687,11 @@
     btn.addEventListener("touchmove", function (e) { if (lifted) e.preventDefault(); }, { passive: false });
     btn.addEventListener("click", function (e) {
       if (consumed) { consumed = false; e.preventDefault(); e.stopPropagation(); return; }
+      /* В режиме сортировки плитка не открывается: тап зовёт её лист —
+         переименовать, сменить обложку, удалить. Так же ведёт себя
+         домашний экран iOS, где в режиме правки иконка не запускает
+         приложение. */
+      if (mbSorting && reorder && onMenu) { e.preventDefault(); e.stopPropagation(); onMenu(boardId); return; }
       onOpen();
     });
   }
@@ -25522,6 +25633,10 @@
     /* Уходя с настроек, закрываем правку своего номера: экран сменился —
        значит с полем закончили, даже если палец так и не ушёл с него */
     if (document.body.dataset.tab === "s-set" && id !== "s-set") myTelCommit();
+    /* Сортировка живёт, пока ряд на глазах: ушли с экрана — вышли из неё.
+       Иначе она ждала бы возвращения, а вернувшийся человек про неё уже
+       забыл, и первый же тап открыл бы не подборку, а её лист. */
+    mbSortOff();
     closeAllOverlays();
     tabs.forEach(function (t) { t.classList.toggle("active", t.dataset.go === id); });
     screens.forEach(function (s) { $(s).classList.toggle("active", s === id); });
