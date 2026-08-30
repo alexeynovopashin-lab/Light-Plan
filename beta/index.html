@@ -7294,7 +7294,12 @@
            подсказках клавиатуры до страницы доходит не всегда, и тег
            оставался лежать набранным в поле (жалоба с телефона 30 августа
            2026). Теперь дверей три: клавиша, эта кнопка и выход из поля. -->
-      <input type="text" id="mbItemTagInput" data-i18n-ph="mb.addTagPh" placeholder="Свой тег"/>
+      <!-- Автозамена здесь только вредит: тег — слово фотографа, не словарное
+           («контровой», «репортажка», латиницей вперемешку), и iOS честно
+           исправляет его на своё. Поймано на симуляторе: «svet» стало
+           «ever». Тот же набор запретов, что у поля адреса. -->
+      <input type="text" id="mbItemTagInput" data-i18n-ph="mb.addTagPh" placeholder="Свой тег"
+        autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"/>
       <button type="button" class="tag-add-btn" id="mbItemTagAdd" aria-label="Добавить тег">
         <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
