@@ -15170,7 +15170,10 @@
      тег сперва сужает список, текст режет дальше. */
   var mbActiveTag = null;
   function mbAllTagCounts() {
-    var counts = {};
+    /* `Object.create(null)`, а не `{}`: ключи здесь — слова, набранные
+       руками, и тег с именем `constructor` или `toString` читался бы как
+       уже существующий (наследство от прототипа), давая счёт-мусор */
+    var counts = Object.create(null);
     shots.forEach(function (r) { (r.tags || []).forEach(function (t) { counts[t] = (counts[t] || 0) + 1; }); });
     return Object.keys(counts).map(function (t) { return { t: t, n: counts[t] }; })
       .sort(function (a, b) { return b.n - a.n || a.t.localeCompare(b.t); });
@@ -16187,7 +16190,7 @@
        строки, наползая на поиск, а тап по такому чипу давал пустую сетку.
        Полный список остался там, где тег назначают, — в листе «Материал»
        (Алексей, 30 августа 2026). */
-    var used = {};
+    var used = Object.create(null);   // ключи — слова человека, прототип тут лишний
     list.forEach(function (r) { (r.tags || []).forEach(function (t) { used[t] = 1; }); });
     var suggest = refTagsOf(g);
     var tags = suggest.filter(function (t) { return used[t]; })
@@ -20411,7 +20414,7 @@
     $("refsFull").classList.add("open");
   }
   function renderRefsFull() {
-    var usedR = {};
+    var usedR = Object.create(null);
     rfList.forEach(function (r) { (r.tags || []).forEach(function (t) { usedR[t] = 1; }); });
     var suggestR = refTagsOf(rfGenre);
     var tags = suggestR.filter(function (t) { return usedR[t]; })
@@ -21020,7 +21023,7 @@
     // Подпись называет жанр словом, а не кодом: на экране «· портрет»
     $("gRefGenre").textContent = "· " + genreName(g).toLowerCase();
     /* Жанр сменили — выбранная папка могла остаться от прежнего набора */
-    var used = {};
+    var used = Object.create(null);
     list.forEach(function (r) { (r.tags || []).forEach(function (t) { used[t] = 1; }); });
     var suggest = refTagsOf(g);
     /* Здесь набор планируют заранее — полный список подсказок жанра нужен
