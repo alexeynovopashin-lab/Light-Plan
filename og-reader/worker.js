@@ -138,19 +138,34 @@ async function pinResourceGet(origin, resource, dataObj) {
 }
 
 /* Короткая ссылка `pin.it` — это то, что даёт «Поделиться» в самом
-   приложении Pinterest на телефоне, и именно ею доску присылают чаще всего.
-   Хоста `pinterest.*` в ней нет, пути доски — тоже, поэтому разбор ниже её
-   не узнавал, доска молча падала в запасной путь и ложилась одной обложкой.
-   Раскрываем её так же, как раскрыл бы браузер: идём по перенаправлениям и
-   берём тот адрес, на котором остановились (`pin.it` → api.pinterest.com →
-   настоящая страница доски или пина). Тело не читаем — нужен только адрес. */
-async function resolveShort(href) {
-  let res;
-  try {
-    res = await fetch(href, { headers: { "user-agent": UA }, redirect: "follow" });
-  } catch (e) { return null; }
-  try { if (res.body) res.body.cancel(); } catch (e) {}
-  return res.url || null;
+   приложении Pinterest на телефоне, и именно ею доску присылают чаще всего
+   (проверено на живой ссылке Алексея: `pin.it/<код>` → api.pinterest.com →
+   `pinterest.ru/<пользователь>/<доска>/?invite_code=…`). Хоста `pinterest.*`
+   в ней нет, пути доски — тоже, поэтому разбор её не узнавал, и доска молча
+   падала в запасной путь, ложась одной обложкой.
+
+   Идём по шагам вручную, а не `redirect: "follow"` с чтением `res.url`:
+   конечный адрес там доступен не во всяком исполнении воркера, и проверка
+   это поймала — раскрытие возвращало пусто. Заголовок `location` есть
+   всегда. Как только адрес стал узнаваемым (`stop`), останавливаемся, не
+   запрашивая саму страницу: она большая, не нужна нам вовсе, а из локального
+   прогона Pinterest её и вовсе не отдаёт — на этом лишнем запросе раскрутка
+   и падала. */
+async function resolveShort(href, stop) {
+  let url = href;
+  for (let i = 0; i < 5; i++) {
+    if (stop && stop(url)) return url;
+    let res;
+    try {
+      res = await fetch(url, { headers: { "user-agent": UA }, redirect: "manual" });
+    } catch (e) { return url; }
+    try { if (res.body) res.body.cancel(); } catch (e) {}
+    if (res.status < 300 || res.status > 399) return url;
+    const loc = res.headers.get("location");
+    if (!loc) return url;
+    try { url = new URL(loc, url).href; } catch (e) { return url; }
+  }
+  return url;
 }
 
 async function handleBoard(boardHref) {
@@ -163,7 +178,9 @@ async function handleBoard(boardHref) {
   }
   let parts = pinterestBoardParts(pageUrl);
   if (!parts) {
-    const real = await resolveShort(pageUrl.href);
+    const real = await resolveShort(pageUrl.href, (u) => {
+      try { return !!pinterestBoardParts(new URL(u)); } catch (e) { return false; }
+    });
     if (real) {
       try {
         const u = new URL(real);
