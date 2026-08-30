@@ -15726,6 +15726,13 @@
   function mbFolderQ() { return ($("mbFolderSearch").value || "").trim().toLowerCase(); }
   function openMbFolder(f) {
     mbOpen = f; mbTag = null; mbPickEnd();
+    /* Подборка заводится лениво, первым обращением, — и раньше запись на
+       диск ждала выхода из папки, потому что пустую всё равно подметали.
+       Теперь пустая остаётся, значит и записать её надо сразу: приложение
+       на телефоне закрывают прямо из папки, и заведённая подборка исчезала
+       (поймано на симуляторе). */
+    var fresh = f.kind === "genre" && !boardTpl(f.g, false);
+    if (fresh) { boardTpl(f.g, true); saveAll(); renderMbStrip(); renderMbCount(); }
     $("mbFolderSearch").value = "";   // новая папка открывается без чужого запроса
     renderMbFolder();
     $("mbFolderOverlay").classList.add("open");
