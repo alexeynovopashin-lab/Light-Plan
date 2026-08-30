@@ -16648,7 +16648,7 @@
      набрал его человек не случайно. Запись одна на все три. */
   function mbAddTypedTag() {
     var el = $("mbItemTagInput");
-    var v = (el.value || "").trim().replace(/,$/, "").toLowerCase();
+    var v = tagCanon((el.value || "").replace(/,$/, ""));
     el.value = "";
     if (!v || !mbOpen) return;
     var r = mbList(mbOpen)[mbItem];
@@ -18528,6 +18528,32 @@
     return v === "tag." + code ? t : v;
   }
   function refTagsFor(g) { return GENRE_TAGS[g] || REF_TAGS_DEFAULT; }
+  /* Все коды разделов, какие знает приложение — по ним сверяют набранное */
+  function allTagCodes() {
+    var out = [], seen = Object.create(null);
+    function put(c) { if (!seen[c]) { seen[c] = 1; out.push(c); } }
+    for (var g in GENRE_TAGS) GENRE_TAGS[g].forEach(put);
+    REF_TAGS_DEFAULT.forEach(put);
+    return out;
+  }
+  /* Слово, набранное руками, вполне может оказаться уже известным: «Руки» —
+     это код `hands`, и без сверки оно вставало вторым чипом рядом с готовым,
+     на вид тем же самым, но с отдельным фильтром и отдельным счётом.
+     Сверяем без оглядки на регистр — и по таблице русских имён (`TAG_CODE`,
+     она осталась от прежнего формата), и по тому, как коды называются на
+     нынешнем языке. Не узнали — слово проходит собой, как и проходило:
+     чужое слово честнее пустоты. */
+  function tagCanon(word) {
+    var w = String(word || "").trim();
+    if (!w) return "";
+    var low = w.toLowerCase();
+    for (var ru in TAG_CODE) if (ru.toLowerCase() === low) return TAG_CODE[ru];
+    var codes = allTagCodes();
+    for (var i = 0; i < codes.length; i++) {
+      if (codes[i].toLowerCase() === low || tagName(codes[i]).toLowerCase() === low) return codes[i];
+    }
+    return low;
+  }
   /* Папки жанра плюс те, что уже стоят на снимках: набор мог быть собран
      до этой правки, и прятать чужую папку значило бы прятать сами кадры */
   /* Раньше сюда добавлялось чужое слово, если кадр держал `.tag` не из
