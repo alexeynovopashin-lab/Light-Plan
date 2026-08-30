@@ -1133,6 +1133,7 @@
     "mb.genreSet":     "Жанровая подборка",
     "mb.setShort":     "заготовка",
     "mb.empty":        "Пока пусто — добавьте фото или ссылку",
+    "mb.boardOne":     "Доска не открылась целиком — легла одной обложкой",
     "mb.sectionEmpty": "В разделе «{section}» пока пусто",
 
     /* ---- Организации и документы ---- */
@@ -2540,6 +2541,7 @@
     "mb.genreSet":     "Genre set",
     "mb.setShort":     "template",
     "mb.empty":        "Empty for now — add a photo or a link",
+    "mb.boardOne":     "The board did not open in full — it landed as one cover",
     "mb.sectionEmpty": "“{section}” is still empty",
 
     "org.tabOrgs":       "Companies",
@@ -3834,6 +3836,7 @@
     "mb.moveTo": "Añadir al set de «{genre}»",
     "mb.genreSet": "Set del género",
     "mb.empty": "Todavía vacío — agrega una foto o un enlace",
+    "mb.boardOne": "El tablero no se abrió entero: quedó como una sola portada",
     "mb.sectionEmpty": "La sección «{section}» todavía está vacía",
     "org.tabOrgs": "Empresas",
     "org.one": "Empresa",
@@ -5036,6 +5039,7 @@
     "mb.moveTo": "添加到“{genre}”集",
     "mb.genreSet": "类型集",
     "mb.empty": "目前为空——添加照片或链接",
+    "mb.boardOne": "画板未能整体打开——只落下一张封面",
     "mb.sectionEmpty": "部分“{section}”目前为空",
     "org.tabOrgs": "公司",
     "org.one": "公司",

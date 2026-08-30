@@ -137,6 +137,22 @@ async function pinResourceGet(origin, resource, dataObj) {
   try { return await res.json(); } catch (e) { return null; }
 }
 
+/* Короткая ссылка `pin.it` — это то, что даёт «Поделиться» в самом
+   приложении Pinterest на телефоне, и именно ею доску присылают чаще всего.
+   Хоста `pinterest.*` в ней нет, пути доски — тоже, поэтому разбор ниже её
+   не узнавал, доска молча падала в запасной путь и ложилась одной обложкой.
+   Раскрываем её так же, как раскрыл бы браузер: идём по перенаправлениям и
+   берём тот адрес, на котором остановились (`pin.it` → api.pinterest.com →
+   настоящая страница доски или пина). Тело не читаем — нужен только адрес. */
+async function resolveShort(href) {
+  let res;
+  try {
+    res = await fetch(href, { headers: { "user-agent": UA }, redirect: "follow" });
+  } catch (e) { return null; }
+  try { if (res.body) res.body.cancel(); } catch (e) {}
+  return res.url || null;
+}
+
 async function handleBoard(boardHref) {
   let pageUrl;
   try {
@@ -145,7 +161,17 @@ async function handleBoard(boardHref) {
   } catch (e) {
     return jsonResponse({ error: "bad url" }, 400);
   }
-  const parts = pinterestBoardParts(pageUrl);
+  let parts = pinterestBoardParts(pageUrl);
+  if (!parts) {
+    const real = await resolveShort(pageUrl.href);
+    if (real) {
+      try {
+        const u = new URL(real);
+        const p2 = pinterestBoardParts(u);
+        if (p2) { pageUrl = u; parts = p2; }
+      } catch (e) {}
+    }
+  }
   if (!parts) return jsonResponse({ error: "not a board url" }, 400);
   const origin = pageUrl.origin;
 
