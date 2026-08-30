@@ -15269,6 +15269,12 @@
     var timer = null, lifted = false, consumed = false, sx = 0, sy = 0, target = null;
     btn.addEventListener("pointerdown", function (e) {
       if (e.button) return;
+      /* Сбрасываем в начале жеста, а не в обработчике клика: после
+         настоящего перетаскивания клик не приходит вовсе, и флаг оставался
+         взведён — съедалось следующее касание, плитка требовала двух тапов.
+         Внутри одного жеста его взводит только долгий тап, который всегда
+         позже этой строки. Так же сделано у кадров в сетке (`longed`). */
+      consumed = false;
       sx = e.clientX; sy = e.clientY; lifted = false; target = null;
       timer = setTimeout(function () {
         lifted = true; consumed = true;
