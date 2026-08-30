@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=34"></script>
+<script src="lang.js?v=35"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -7284,11 +7284,16 @@
   <div class="scrim" id="mbItemScrim"></div>
   <div class="sheet" id="mbItemSheet">
     <div class="grip"></div>
-    <div class="sheet-title" data-i18n="mb.item">Материал</div>
-    <div class="g-label" style="margin:18px 4px 9px;" data-i18n="mb.section">Раздел</div>
+    <!-- Заголовок «Материал» и деление на «Раздел»/«Теги» убраны (Алексей,
+         30 августа 2026): это было одно и то же под старым решением от
+         3 августа — жёсткий список слов на жанр и свободные слова лежали в
+         двух блоках просто потому, что появились в разное время. Теперь один
+         список подсказок жанра вперемешку с уже набранными своими словами,
+         без видимой границы между ними. Лист открыт поверх кадра — называть
+         его нечем, картинка и так видна; грип остаётся подсказкой, что лист
+         закрывается свайпом. -->
+    <div class="g-label" style="margin:4px 4px 9px;" data-i18n="mb.freeTags">Теги</div>
     <div class="rf-tags wrap" id="mbItemTags" style="padding:0 13px;"></div>
-    <div class="g-label" style="margin:16px 4px 9px;" data-i18n="mb.freeTags">Теги</div>
-    <div class="rf-tags wrap" id="mbItemFreeTags" style="padding:0 13px;"></div>
     <div class="field tag-field" style="margin:2px 13px 0;">
       <!-- Своя кнопка рядом с полем: на iOS клавиша ввода при включённых
            подсказках клавиатуры до страницы доходит не всегда, и тег
@@ -14729,7 +14734,7 @@
       note: refCtx.note,
       dir: refCtx.dir || "refs",
       imagesOnly: true, thumbs: true,
-      meta: { tag: refCtx.tag }
+      meta: { tags: refCtx.tag ? [refCtx.tag] : [] }
     });
   }
   $("refPhoto").addEventListener("click", function () {
@@ -15175,7 +15180,7 @@
     if (mbActiveTag && counts.every(function (c) { return c.t !== mbActiveTag; })) mbActiveTag = null;
     $("mbTagRail").innerHTML = counts.map(function (c) {
       return '<button type="button" class="rf-tag' + (mbActiveTag === c.t ? " on" : "") + '" data-t="' + esc(c.t) + '">'
-        + esc(c.t) + '<span class="n">' + c.n + "</span></button>";
+        + esc(tagName(c.t)) + '<span class="n">' + c.n + "</span></button>";
     }).join("");
     $("mbTagRail").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -15198,7 +15203,7 @@
     }).filter(Boolean);
   }
   function mbShotHay(r) {
-    var bits = (r.tags || []).concat(shotBoardTitles(r));
+    var bits = (r.tags || []).map(tagName).concat(shotBoardTitles(r));
     if (r.k === "link") bits.push(refHost(r.url), r.url);
     return bits.join(" ").toLowerCase();
   }
@@ -16004,8 +16009,7 @@
      ссылки — то же, что `mbShotHay` у поиска по всему мудборду, минус
      названия подборок: внутри папки подборка одна, искать по ней нечего. */
   function mbFolderHay(r) {
-    var bits = (r.tags || []).slice();
-    if (r.tag) bits.push(tagName(r.tag));
+    var bits = (r.tags || []).map(tagName);
     if (r.name) bits.push(r.name);
     if (r.k === "link") bits.push(refHost(r.url), r.url);
     return bits.join(" ").toLowerCase();
@@ -16090,7 +16094,7 @@
        Полный список остался там, где тег назначают, — в листе «Материал»
        (Алексей, 30 августа 2026). */
     var used = {};
-    list.forEach(function (r) { if (r.tag) used[r.tag] = 1; });
+    list.forEach(function (r) { (r.tags || []).forEach(function (t) { used[t] = 1; }); });
     var tags = refTagsOf(g, list).filter(function (t) { return used[t]; });
     if (mbTag && tags.indexOf(mbTag) < 0) mbTag = null;
     /* «Все» первым чипом — тот же вид рейла, что у полного списка
@@ -16101,7 +16105,7 @@
        только то, что и так видно. Появится первый тег — появится строка. */
     $("mbTags").hidden = !tags.length;
     $("mbTags").innerHTML = [""].concat(tags).map(function (t) {
-      var n = t ? list.filter(function (r) { return r.tag === t; }).length : list.length;
+      var n = t ? list.filter(function (r) { return (r.tags || []).indexOf(t) >= 0; }).length : list.length;
       return '<button type="button" class="rf-tag' + ((mbTag === (t || null)) ? " on" : "") + '" data-t="' + esc(t) + '">'
         + esc(t ? tagName(t) : LANG.t("refs.all")) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
     }).join("");
@@ -16114,7 +16118,7 @@
     });
     var q = mbFolderQ();
     var shown = list.map(function (r, i) { return { r: r, i: i }; })
-      .filter(function (p) { return !mbTag || p.r.tag === mbTag; })
+      .filter(function (p) { return !mbTag || (p.r.tags || []).indexOf(mbTag) >= 0; })
       .filter(function (p) { return !q || mbFolderHay(p.r).indexOf(q) >= 0; });
     /* Сортировка — по решению из макета: вручную (порядок добавления, как
        раньше и был единственным), новые сверху (тот же порядок задом
@@ -16122,8 +16126,15 @@
        без раздела уходит в конец, а не путается с первым по алфавиту). */
     if (board.sort === 1) shown = shown.slice().reverse();
     else if (board.sort === 2) {
+      /* Слов на кадре теперь может быть несколько — сортируем по первому
+         по алфавиту переведённых слов: сравнивать целые наборы было бы
+         сравнивать не по чему одному */
+      function firstWord(r) {
+        var words = (r.tags || []).map(tagName).sort();
+        return words.length ? words[0] : null;
+      }
       shown = shown.slice().sort(function (a, b) {
-        var ta = a.r.tag ? tagName(a.r.tag) : null, tb = b.r.tag ? tagName(b.r.tag) : null;
+        var ta = firstWord(a.r), tb = firstWord(b.r);
         if (ta === tb) return 0;
         if (ta == null) return 1;
         if (tb == null) return -1;
@@ -16287,7 +16298,7 @@
              скачаны — их и выбрасываем, лишней записи в фонде не заводим. */
           var twin = boardShots(board).filter(function (r) { return r.url === pin.permalink; })[0];
           if (twin) { blobDrop(shot.im); return; }
-          var id = shotAdd({ k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tag: mbTag });
+          var id = shotAdd({ k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tags: mbTag ? [mbTag] : [] });
           boardPut(board, id);
           saveAll();
           if (mbOpen === openedIn) renderMbFolder();
@@ -16301,7 +16312,7 @@
             $("mbNote").hidden = false;
             $("mbNote").textContent = LANG.t("mb.boardOne");
           }
-          var id = shotAdd({ k: "link", url: url, tag: mbTag });
+          var id = shotAdd({ k: "link", url: url, tags: mbTag ? [mbTag] : [] });
           boardPut(board, id);
           saveAll();
           if (mbOpen === openedIn) renderMbFolder();
@@ -16315,7 +16326,7 @@
         });
         return;
       }
-      var id = shotAdd({ k: "link", url: url, tag: mbTag });
+      var id = shotAdd({ k: "link", url: url, tags: mbTag ? [mbTag] : [] });
       boardPut(board, id);
       saveAll(); renderMbFolder();
       fetchOgImage(url, function (shot) {
@@ -16513,30 +16524,28 @@
     mbItem = null;
   }
   $("mbItemScrim").addEventListener("click", closeMbItem);
+  /* ---------- Одна строка тегов вместо двух ----------
+     Подсказки жанра (бывший «Раздел») идут первыми в списке, а следом —
+     свои слова, которых нет среди подсказок: порядок не скачет, когда
+     подсказанное слово снимают и снова ставят. Тап по любому чипу
+     переключает его — ставит или снимает; лист теперь не закрывается сам,
+     потому что на кадре может быть не одно слово (Алексей, 30 августа
+     2026). Закрывает лист по-прежнему только грип или скрим. */
   function renderMbItemSheet() {
     var f = mbOpen, list = mbList(f), r = list[mbItem];
     if (!r) { closeMbItem(); return; }
-    var tags = refTagsOf(mbGenre(f), list);
-    $("mbItemTags").innerHTML = tags.map(function (t) {
-      return '<button type="button" class="rf-tag' + (r.tag === t ? " on" : "") + '" data-t="' + esc(t) + '">' + esc(tagName(t)) + "</button>";
+    var suggest = refTagsOf(mbGenre(f), list), mine = r.tags || [];
+    var own = mine.filter(function (t) { return suggest.indexOf(t) < 0; });
+    var words = suggest.concat(own);
+    $("mbItemTags").innerHTML = words.map(function (t) {
+      return '<button type="button" class="rf-tag' + (mine.indexOf(t) >= 0 ? " on" : "") + '" data-t="' + esc(t) + '">' + esc(tagName(t)) + "</button>";
     }).join("");
     $("mbItemTags").querySelectorAll(".rf-tag").forEach(function (b) {
       b.addEventListener("click", function () {
-        r.tag = r.tag === b.dataset.t ? null : b.dataset.t;
-        saveAll(); renderMbFolder(); closeMbItem(); rvRefresh();
-      });
-    });
-    /* Свободные теги — тап по чипу убирает его: то же прикосновение, что и
-       везде в приложении, без отдельного крестика (15_MOODBOARD, «Кадр и
-       подборка — разные вещи», теги — как GENRE_TAGS: список подсказками,
-       но здесь ещё и то, что человек набрал сам). */
-    $("mbItemFreeTags").innerHTML = (r.tags || []).map(function (t) {
-      return '<button type="button" class="rf-tag on" data-t="' + esc(t) + '">' + esc(t) + "</button>";
-    }).join("");
-    $("mbItemFreeTags").querySelectorAll(".rf-tag").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var i = (r.tags || []).indexOf(b.dataset.t);
-        if (i >= 0) r.tags.splice(i, 1);
+        var t = b.dataset.t;
+        r.tags = r.tags || [];
+        var i = r.tags.indexOf(t);
+        if (i >= 0) r.tags.splice(i, 1); else r.tags.push(t);
         saveAll(); renderMbItemSheet(); renderMbFolder(); rvRefresh();
       });
     });
@@ -18334,7 +18343,7 @@
       if (!r || (r.k !== "link" && !r.path && !r.im)) return;
       var id = shotAdd({ id: r.id || r.im || null, k: r.k, im: r.im || null,
         w: r.w || null, h: r.h || null, path: r.path || null, url: r.url || null,
-        tag: r.tag || null });
+        tags: r.tags ? r.tags.slice() : [] });
       var have = shotById(id);
       /* Кадр мог поменяться в форме — путь на Диске дошёл позже загрузки */
       if (have) { have.path = r.path || have.path; have.im = r.im || have.im;
@@ -18383,6 +18392,26 @@
   }
   if (adoptRefs()) setTimeout(function () { saveAll(); }, 0);
 
+  /* ---------- Раздел и теги — один список слов ----------
+     До 30 августа 2026 «Раздел» был жёстким и одним на кадр (GENRE_TAGS,
+     решение от 3 августа — из времён до самого мудборда, когда референсы
+     были простыми списками, а не фондом кадров), а свободные теги — вторым,
+     отдельным списком в том же листе. Алексей: граница между ними
+     надуманная, кадр может быть и «Невестой», и «Парой» разом. Переносим
+     значение раздела в тот же список, что и свободные теги, и убираем поле
+     `tag` совсем — начерно и один раз, как остальные переносы формата
+     (данные прототипа одноразовые, аккуратной миграции не строим). */
+  var mergedTags = 0;
+  shots.forEach(function (r) {
+    if (r && r.tag) {
+      r.tags = r.tags || [];
+      if (r.tags.indexOf(r.tag) < 0) r.tags.push(r.tag);
+      delete r.tag;
+      mergedTags++;
+    }
+  });
+  if (mergedTags) setTimeout(function () { saveAll(); }, 0);
+
   /* ---------- Папки набора референсов ----------
      Папки называют предмет съёмки, а не процесс, поэтому идут от жанра, а не
      от группы: «Невеста» в предметке и «Фактура» на свадьбе одинаково нелепы.
@@ -18411,13 +18440,13 @@
   function refTagsFor(g) { return GENRE_TAGS[g] || REF_TAGS_DEFAULT; }
   /* Папки жанра плюс те, что уже стоят на снимках: набор мог быть собран
      до этой правки, и прятать чужую папку значило бы прятать сами кадры */
-  function refTagsOf(g, list) {
-    var out = refTagsFor(g).slice();
-    (list || []).forEach(function (r) {
-      if (r.tag && out.indexOf(r.tag) < 0) out.push(r.tag);
-    });
-    return out;
-  }
+  /* Раньше сюда добавлялось чужое слово, если кадр держал `.tag` не из
+     текущего списка жанра — способ не прятать категоризацию, сделанную до
+     смены жанра. С уходом единственного `.tag` в общий список `tags` смысл
+     этой добавки пропал: чужое слово просто лежит среди свободных тегов
+     кадра (`renderMbItemSheet` показывает его отдельной группой «own»),
+     а не пытается выглядеть категорией жанра, которым не является. */
+  function refTagsOf(g) { return refTagsFor(g).slice(); }
   function rememberGenre(key, val) {
     if (!genrePrefs[shootType]) genrePrefs[shootType] = {};
     genrePrefs[shootType][key] = val;
@@ -20220,7 +20249,7 @@
     function mark(list, own) {
       return list.map(function (r) {
         return { id: r.id, k: r.k, path: r.path, im: r.im, w: r.w, h: r.h,
-          url: r.url, tag: r.tag || null, own: own };
+          url: r.url, tags: r.tags || [], own: own };
       });
     }
     /* Кадр, лежащий и в съёмке, и в наборе жанра, показываем один раз — как
@@ -20249,7 +20278,7 @@
   }
   function renderRefsFull() {
     var tags = refTagsOf(rfGenre, rfList).filter(function (t) {
-      return rfList.some(function (r) { return r.tag === t; });
+      return rfList.some(function (r) { return (r.tags || []).indexOf(t) >= 0; });
     });
     $("rfTags").innerHTML = (tags.length ? [""].concat(tags) : []).map(function (t) {
       return '<button type="button" class="rf-tag' + ((rfTag === (t || null)) ? " on" : "") + '" data-t="' + t + '">'
@@ -20259,7 +20288,7 @@
       b.addEventListener("click", function () { rfTag = b.dataset.t || null; renderRefsFull(); });
     });
 
-    var shown = rfList.filter(function (r) { return !rfTag || r.tag === rfTag; });
+    var shown = rfList.filter(function (r) { return !rfTag || (r.tags || []).indexOf(rfTag) >= 0; });
     $("rfGrid").innerHTML = shown.map(function (r, i) {
       if (r.k === "link" && !r.im) {
         return '<button type="button" class="rf-cell link" data-i="' + i + '">'
@@ -20722,7 +20751,7 @@
        через подборку. Форма работает с копиями: отменённая правка не должна
        трогать ни фонд, ни подборку. */
     fRefs = (Array.isArray(s.refs) ? s.refs : sessionShots(s)).map(function (r) {
-      return { id: r.id || null, k: r.k, path: r.path, im: r.im, w: r.w, h: r.h, url: r.url, tag: r.tag || null };
+      return { id: r.id || null, k: r.k, path: r.path, im: r.im, w: r.w, h: r.h, url: r.url, tags: r.tags || [] };
     });
     fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
     payFolded = true;
@@ -20855,7 +20884,7 @@
     var tags = refTagsOf(g, list);
     if (gRefTag && tags.indexOf(gRefTag) < 0) gRefTag = null;
     $("gRefTags").innerHTML = tags.map(function (t) {
-      var n = list.filter(function (r) { return r.tag === t; }).length;
+      var n = list.filter(function (r) { return (r.tags || []).indexOf(t) >= 0; }).length;
       return '<button type="button" class="rf-tag' + (gRefTag === t ? " on" : "") + '" data-t="' + esc(t) + '">'
         + esc(tagName(t)) + (n ? '<span class="n">' + n + "</span>" : "") + "</button>";
     }).join("");
@@ -20866,7 +20895,7 @@
       });
     });
     var shown = list.map(function (r, i) { return { r: r, i: i }; })
-      .filter(function (p) { return !gRefTag || p.r.tag === gRefTag; });
+      .filter(function (p) { return !gRefTag || (p.r.tags || []).indexOf(gRefTag) >= 0; });
     $("gRefGrid").innerHTML = shown.map(function (p) {
       if (p.r.k === "link") {
         return '<button type="button" class="ref-card link" data-i="' + p.i + '">'
@@ -20905,7 +20934,7 @@
   $("gRefLink").addEventListener("click", function () {
     askLink(function (url) {
       if (!url) return;
-      var id = shotAdd({ k: "link", url: url, tag: gRefTag });
+      var id = shotAdd({ k: "link", url: url, tags: gRefTag ? [gRefTag] : [] });
       boardPut(boardTpl(shootType, true), id);
       saveAll(); renderGenreRefs();
       fetchOgImage(url, function (shot) {
