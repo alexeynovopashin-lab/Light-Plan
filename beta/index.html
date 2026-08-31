@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=41"></script>
+<script src="lang.js?v=42"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2588,8 +2588,8 @@
      Качается обложка, а не сама плитка. Разделение не косметическое:
      CSS-анимация перебивает inline `transform`, а им живут и перетаскивание
      поднятой, и расступание соседей — оба висят на самой плитке. Обложке
-     остаётся качание, и они не спорят. У поднятой и у цели объединения
-     качание гасится: там обложке нужен масштаб. */
+     остаётся качание, и они не спорят. У поднятой качание гасится: там
+     обложке нужен масштаб. */
   body.mb-sorting .mb-tiles { touch-action: none; }
   /* Зона нажатия шире самого знака: пальцем в кружок 23 точки не попасть.
      Знак сидит внутри обложки, а не свешивается с её угла, как на домашнем
@@ -2612,7 +2612,7 @@
     content: ""; width: 11px; height: 2px; border-radius: 2px; background: var(--bg);
   }
   body.mb-sorting .mb-tile .mb-del { opacity: 1; transform: scale(1); pointer-events: auto; }
-  /* Поднятая плитка минус прячет: он мешал бы прицелу объединения */
+  /* Поднятая плитка минус прячет: он мешал бы обложке в руке */
   body.mb-sorting .mb-tile.mb-lift .mb-del { opacity: 0; pointer-events: none; }
   body.mb-sorting .mb-tile .mb-tile-art {
     animation: mbJiggle 0.26s ease-in-out infinite alternate;
@@ -2686,9 +2686,6 @@
   }
   .mb-tile.add .mb-cover svg { width: 26px; height: 26px; stroke: var(--ink-5); }
   .mb-tile.add .n { color: var(--ink-5); font-weight: 500; }
-  /* Слияние подборок вспышкой на цели — тот же приём, что у остальной
-     обратной связи без слов в этом файле (макет «Moodboard Shoots») */
-  @keyframes mbMergeFlash { 0% { transform: scale(1); } 40% { transform: scale(1.09); } 100% { transform: scale(1); } }
   /* Обложка летит клоном из плитки в шапку папки при открытии — тот же
      макет. Клон синтетический (одна картинка), а не список DOM-узла
      мозаики: мозаика из четырёх ячеек не может морфнуть в один квадрат
@@ -6030,7 +6027,7 @@
         <div class="mb-tiles" id="mbStripShoots"></div>
         <div class="mb-lbl" id="mbStripSetsLbl" data-i18n="mb.sets">Подборки</div>
         <div class="mb-tiles" id="mbStripSets"></div>
-        <div class="mb-strip-hint" id="mbStripHint" data-i18n="mb.mergeHint" hidden>Долгий тап поднимает подборку · перетащите одну на другую, чтобы объединить</div>
+        <div class="mb-strip-hint" id="mbStripHint" data-i18n="mb.holdHint" hidden>Долгий тап включает сортировку: там подборки переставляют местами</div>
       </div>
     </div>
     <div id="sessionList" hidden></div>
@@ -15452,31 +15449,6 @@
       b.addEventListener("click", function (e) { e.stopPropagation(); openMbAdd(b.dataset.id); });
     });
   }
-  /* ---------- Слияние подборок долгим тапом и перетаскиванием ----------
-     Макет «Moodboard Shoots»: долгий тап поднимает плитку, перетаскивание
-     на другую сливает кадры в цель и убирает источник. Один обработчик на
-     плитку — короткий тап без сдвига идёт в `onOpen` (открыть папку),
-     долгий с переносом на другую плитку — в `mbMergeBoards`. Порог 420мс и
-     разрыв 8px — те же, что у долгого тапа по кадру внутри папки. */
-  function mbMergeBoards(fromId, toId) {
-    if (fromId === toId) return;
-    var from = boardById(fromId), to = boardById(toId);
-    if (!from || !to) return;
-    from.items.slice().forEach(function (id) { boardPut(to, id); });
-    /* Через `boardDrop`, а не голым `splice`: только он ставит надгробие
-       (`bury`). Без него слитая подборка возвращается при первом же слиянии
-       с соседнего устройства, и кадры оказываются разом в двух местах
-       (13_MULTI_DEVICE, та же причина, что у `shotDrop`). */
-    boardDrop(from);
-    saveAll();
-    renderMbStrip(); renderMbCount();
-    if ($("mbOverlay").classList.contains("open")) renderMbGallery();
-    var art = document.querySelector('[data-bid="' + toId + '"] .mb-tile-art');
-    if (art) {
-      art.style.animation = "mbMergeFlash .42s cubic-bezier(.3,1.4,.4,1)";
-      setTimeout(function () { art.style.animation = ""; }, 460);
-    }
-  }
   /* ---------- Жест сортировки подборок ----------
      Три редакции этого жеста Алексей забраковал на телефоне: плитки не
      ловились, ряд разъезжался, страница уезжала из-под пальца. 31 августа
@@ -15484,13 +15456,11 @@
      лежит рядом в `beta/`), и здесь она перенесена один в один. Четыре
      отличия от прежних редакций и есть причины, по которым те не работали:
 
-     1. Такт держит `setInterval`, а не события указателя. Отсчёт до
-        объединения должен идти и когда палец стоит; прежняя редакция
-        сбрасывала его любым движением — пальцем такую неподвижность не
-        выдать, и объединение не срабатывало никогда. `requestAnimationFrame`
-        тоже не годится: в неактивном окне он засыпает вместе с жестом.
-     2. Отсчёт привязан к клетке, а не к покою: дрожь внутри клетки его не
-        трогает, уход в соседнюю — обнуляет.
+     1. Такт держит `setInterval`, а не события указателя: плитка должна
+        доезжать за прокруткой и когда палец стоит. `requestAnimationFrame`
+        не годится — в неактивном окне он засыпает вместе с жестом.
+     2. Место плитки считается от клетки разметки, а не от покоя: дрожь
+        внутри клетки его не трогает, уход в соседнюю — переставляет.
      3. Соседи расступаются сдвигом от своего домашнего места, а DOM во
         время жеста не трогается вовсе. Прежний FLIP переносил узлы и мерил
         их посреди чужих переходов — отсюда «плитки разлетаются».
@@ -15498,11 +15468,16 @@
         прокрутка страницы, а не перенос плитки. Прежняя редакция держала
         касание за собой, и список залипал под пальцем.
 
-     Что настраивается: `MB_HOLD` — сколько держать до входа в режим,
-     `MB_DWELL` — сколько водить над чужой плиткой до объединения. Первая
-     треть отсчёта — мёртвая зона (прицел не загорается от пролёта мимо),
-     остальное наливается кольцом. */
-  var MB_HOLD = 420, MB_DWELL = 1100;
+     Объединения подборок перетаскиванием здесь нет и не будет. Оно тут
+     было — задержал плитку над соседней, и через 1,1 с они сливались, — но
+     перестановка неизбежно ставит плитку на место соседа, и обычная пауза
+     посреди переноса съедала папку. За один сеанс Алексей потерял четыре из
+     двенадцати (31 августа 2026: «перетаскивание оставляем, объединение
+     убираем совсем»). Жест, у которого безобидное и разрушительное действие
+     различаются только длиной паузы, разделить порогом нельзя.
+
+     Что настраивается: `MB_HOLD` — сколько держать до входа в режим. */
+  var MB_HOLD = 420;
   var mbSorting = false, mbDrag = null, mbSettling = false;
   function mbBuzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
   /* Порядок ряда читаем из самого ряда, а не из данных: так он всегда
@@ -15518,7 +15493,7 @@
      едет, календарь наверху не листается, плитки покачиваются, тащить
      можно сразу, без повторного удержания. */
   function mbSortHint() {
-    var key = mbSorting ? "mb.sortHint" : "mb.mergeHint";
+    var key = mbSorting ? "mb.sortHint" : "mb.holdHint";
     document.querySelectorAll(".mb-strip-hint").forEach(function (h) {
       h.textContent = LANG.t(key); h.dataset.i18n = key;
     });
@@ -15662,18 +15637,16 @@
           return { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
         }),
         ids: els.map(function (el) { return el.dataset.rk; }),
-        cand: null, armed: null, timer: null, edgeOk: false
+        timer: null, edgeOk: false
       };
       els.forEach(function (el, i) { d.elBy[el.dataset.rk] = el; d.homeIdx[el.dataset.rk] = i; });
       d.order = d.ids.slice();
       d.was = d.order.join();
-      d.orderPre = d.order.slice(); d.orderPost = d.order.slice();
       d.me = btn.dataset.rk;
       d.fromIdx = d.homeIdx[d.me];
       /* Ряд разошёлся с разметкой — плитки в нём нет: поднимать нечего */
       if (d.fromIdx == null) return;
       d.zone = d.fromIdx;
-      d.zoneAt = performance.now();
       d.scroller = mbScroller(btn);
       d.top0 = d.scroller ? d.scroller.scrollTop : 0;
       mbDrag = d;
@@ -15716,7 +15689,6 @@
   }
   function mbFrame() {
     var d = mbDrag; if (!d) return;
-    var now = performance.now();
     mbAutoScroll(d);
     var top = d.scroller ? d.scroller.scrollTop : 0;
     var dx = mbLastX - d.sx, dy = mbLastY - d.sy + (top - d.top0);
@@ -15725,31 +15697,18 @@
 
     var c = d.cells[d.fromIdx];
     var cx = c.x + c.w / 2 + dx, cy = c.y + c.h / 2 + dy;
-    var z = -1, best = Infinity, core = false;
+    var z = -1, best = Infinity;
     for (var i = 0; i < d.cells.length; i++) {
       var q = d.cells[i];
       var ax = cx - (q.x + q.w / 2), ay = cy - (q.y + q.h / 2);
       if (Math.abs(ax) > q.w * 0.5 + 6 || Math.abs(ay) > q.h * 0.5 + 6) continue;
       var dd = ax * ax + ay * ay;
-      if (dd < best) { best = dd; z = i; core = Math.abs(ax) < q.w * 0.46 && Math.abs(ay) < q.h * 0.42; }
+      if (dd < best) { best = dd; z = i; }
     }
     if (z >= 0 && z !== d.zone) {
-      mbAim(0); mbDisarm();
-      d.zone = z; d.zoneAt = now;
-      d.orderPre = d.order.slice();
-      var displaced = d.order[z];
-      /* Сливать даём только с тем, у кого есть свой знак подборки: полка
-         жанра с несколькими папками целью объединения не бывает. */
-      var el = displaced && displaced !== d.me ? d.elBy[displaced] : null;
-      d.cand = (el && el.dataset.bid && el.dataset.bid !== d.boardId && d.boardId) ? displaced : null;
+      d.zone = z;
       mbMoveTo(z);
-      d.orderPost = d.order.slice();
       mbBuzz(5);
-    }
-    if (d.armed) { if (!core) mbDisarm(); }
-    else if (d.cand) {
-      var pr = core ? (now - d.zoneAt - MB_DWELL * 0.34) / (MB_DWELL * 0.66) : 0;
-      if (pr >= 1) mbArm(); else mbAim(pr > 0 ? pr : 0);
     }
   }
   /* Краевая полоса начинает работать не раньше, чем палец из неё выйдет.
@@ -15786,89 +15745,19 @@
       el.style.transform = (ox || oy) ? ("translate(" + ox + "px," + oy + "px)") : "";
     });
   }
-  /* Прицел: пока идёт отсчёт, кольцо наливается и на поднятой плитке, и на
-     той, чьё место она заняла. Человек видит объединение до того, как оно
-     случится, и успевает уйти. Покачивание у цели на это время гасим —
-     CSS-анимация обложки перебила бы наш масштаб. */
-  function mbAim(p) {
-    var d = mbDrag; if (!d) return;
-    if (d.cand && d.elBy[d.cand]) {
-      var art = d.elBy[d.cand].querySelector(".mb-tile-art");
-      if (art) {
-        art.style.animation = p ? "none" : "";
-        art.style.transition = "box-shadow .12s linear, transform .12s linear";
-        art.style.boxShadow = p ? ("0 0 0 " + (2.5 * p).toFixed(2) + "px var(--brass), 0 8px 20px rgba(0,0,0,.3)") : "";
-        art.style.transform = p ? ("scale(" + (1 + 0.04 * p).toFixed(3) + ")") : "";
-        art.style.opacity = p ? String(0.55 + 0.45 * p) : "";
-      }
-    }
-    mbDragRing(p);
-  }
-  function mbDragRing(p) {
-    var d = mbDrag; if (!d) return;
-    var art = d.btn.querySelector(".mb-tile-art");
-    if (art) art.style.boxShadow = "0 18px 32px rgba(0,0,0,.4)" + (p ? (", 0 0 0 " + (2.5 * p).toFixed(2) + "px var(--brass)") : "");
-  }
-  /* Взведено: соседи возвращаются на место, цель встаёт обратно под палец и
-     подсвечивается. Отпустил — объединили; ушёл в сторону — снова перенос. */
-  function mbArm() {
-    var d = mbDrag;
-    if (!d || d.armed || !d.cand) return;
-    d.armed = d.cand;
-    d.order = d.orderPre.slice();
-    mbApplyOrder(d.order, true);
-    var el = d.elBy[d.armed], art = el.querySelector(".mb-tile-art");
-    el.style.position = "relative"; el.style.zIndex = "30";
-    if (art) {
-      art.style.animation = "none";
-      art.style.transition = "transform .26s cubic-bezier(.2,1.5,.4,1), box-shadow .2s ease";
-      art.style.transform = "scale(1.13)";
-      art.style.opacity = "1";
-      art.style.boxShadow = "0 0 0 2.5px var(--brass), 0 16px 32px rgba(0,0,0,.4)";
-    }
-    mbMyArt("scale(.86)");
-    mbDragRing(1);
-    mbBuzz(20);
-  }
-  function mbDisarm() {
-    var d = mbDrag;
-    if (!d || !d.armed) return;
-    var el = d.elBy[d.armed], art = el.querySelector(".mb-tile-art");
-    if (art) { art.style.transform = ""; art.style.boxShadow = ""; art.style.opacity = ""; art.style.animation = ""; }
-    el.style.zIndex = "";
-    d.armed = null;
-    d.order = d.orderPost.slice();
-    mbApplyOrder(d.order, true);
-    mbMyArt("scale(1.09)");
-    mbDragRing(0);
-  }
   function mbMyArt(t) {
     var d = mbDrag; if (!d) return;
     var a = d.btn.querySelector(".mb-tile-art");
     if (a) a.style.transform = t;
   }
-  /* Отпустили: либо объединяем (плитка уезжает в цель и гаснет), либо
-     доводим её до нового места и записываем порядок. Пока идёт доводка,
-     новый жест не начинается — `mbSettling`. */
+  /* Отпустили: доводим плитку до нового места и записываем порядок. Пока
+     идёт доводка, новый жест не начинается — `mbSettling`. */
   function mbDrop(p) {
     var d = mbDrag; mbDrag = null;
     clearInterval(d.timer);
-    var armed = d.armed, btn = d.btn;
+    var btn = d.btn;
     var from = d.cells[d.fromIdx];
     mbSettling = true;
-    if (armed) {
-      var to = d.cells[d.order.indexOf(armed)];
-      btn.style.transition = "transform .34s cubic-bezier(.4,0,.3,1), opacity .28s ease .06s";
-      btn.style.transform = "translate(" + (to.x - from.x) + "px," + (to.y - from.y) + "px) scale(.3)";
-      btn.style.opacity = "0";
-      mbBuzz(26);
-      var mergeTo = d.elBy[armed].dataset.bid;
-      setTimeout(function () {
-        mbClearStyles(d); mbSettling = false;
-        mbMergeBoards(d.boardId, mergeTo);
-      }, 300);
-      return;
-    }
     var j = d.order.indexOf(d.me), t2 = d.cells[j];
     btn.style.transition = "transform .36s cubic-bezier(.2,1.25,.35,1)";
     btn.style.transform = "translate(" + (t2.x - from.x) + "px," + (t2.y - from.y) + "px)";
@@ -16217,8 +16106,8 @@
        галерея перерисовывается после каждой перестановки, и подпись,
        поставленную руками, следующая же перерисовка стёрла бы. */
     if (folders.length > 1) {
-      html += '<div class="mb-strip-hint" data-i18n="' + (mbSorting ? "mb.sortHint" : "mb.mergeHint") + '">'
-        + esc(LANG.t(mbSorting ? "mb.sortHint" : "mb.mergeHint")) + "</div>";
+      html += '<div class="mb-strip-hint" data-i18n="' + (mbSorting ? "mb.sortHint" : "mb.holdHint") + '">'
+        + esc(LANG.t(mbSorting ? "mb.sortHint" : "mb.holdHint")) + "</div>";
     }
     $("mbGallery").innerHTML = html;
     $("mbGallery").querySelectorAll(".mb-tile:not(.add):not(.gh-tile)").forEach(function (b) {
@@ -16876,7 +16765,7 @@
       + '<span class="n">' + esc(LANG.t("mb.newTitle")) + "</span></button>";
     fill("mbStripSets", "mbStripSetsLbl", setsF, "g", addTile);
     if ($("mbStripAdd")) $("mbStripAdd").addEventListener("click", function () { openMbNew(); });
-    $("mbStripHint").hidden = folders.length < 2;   // сливать нечего, пока подборка одна
+    $("mbStripHint").hidden = folders.length < 2;   // переставлять нечего, пока подборка одна
   }
   function renderMbCount() {
     if ($("mbRowN")) $("mbRowN").innerHTML = esc(String(mbFolders().length || LANG.t("card.none"))) + ' <span class="go-chev">›</span>';
@@ -24478,13 +24367,21 @@
   (function () {
     var host = $("s-plan"), x0 = null, y0 = null;
     host.addEventListener("touchstart", function (e) {
-      if (e.touches.length !== 1) { x0 = null; return; }
+      /* В режиме сортировки ряд принадлежит пальцу целиком — это было
+         записано при вводе режима, но месяца не касалось: боковой перенос
+         плитки листал календарь заодно. Видно на видео Алексея (31 августа
+         2026, Июнь → Июль посреди переноса) и в замере на симуляторе. */
+      if (mbSorting || mbDrag || e.touches.length !== 1) { x0 = null; return; }
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
     }, { passive: true });
     host.addEventListener("touchend", function (e) {
       if (x0 === null) return;
       var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
       x0 = null;
+      /* Спрашиваем в конце жеста, а не в начале: режим сортировки включается
+         через 420 мс после касания, и на `touchstart` его ещё нет. Замер на
+         симуляторе: проверка только в начале месяц не удержала. */
+      if (mbSorting || mbDrag) return;
       if (Math.abs(dx) < 60 || Math.abs(dy) > 40) return;   // вертикальную прокрутку не трогаем
       stepCal(dx < 0 ? 1 : -1);
     }, { passive: true });
