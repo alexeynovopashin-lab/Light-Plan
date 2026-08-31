@@ -2991,6 +2991,9 @@
     font-family: inherit; font-size: 15px; color: var(--ink); text-align: left;
   }
   .scope-menu button:active { background: var(--press); }
+  /* display сильнее браузерного [hidden] — правило пишем сразу, иначе снятый
+     пункт меню остаётся на виду (так и вышло с «Осадками») */
+  .scope-menu button[hidden] { display: none; }
   .scope-menu .mk { width: 16px; flex-shrink: 0; display: flex; }
   .scope-menu .mk svg { width: 16px; height: 16px; fill: none; stroke: var(--brass);
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
@@ -3907,6 +3910,7 @@
   .lg-row { display: flex; gap: 14px; align-items: baseline; padding: 8px 0;
     border-bottom: 1px solid var(--hair-2); font-size: 13px; }
   .lg-row:last-child { border-bottom: none; }
+  .lg-row[hidden] { display: none; }   /* тот же каскад: display перебивает [hidden] */
   .lg-k { color: var(--ink-4); flex: 0 0 108px; }
   .lg-v { color: var(--ink-2); flex: 1; line-height: 1.45; }
   .lg-v a { color: var(--brass); text-decoration: none; }
@@ -6463,7 +6467,7 @@
         <span class="lg-v"><a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> 1.9.4 · BSD-2-Clause</span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.weather">Погода</span>
         <span class="lg-v"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0</span></div>
-      <div class="lg-row"><span class="lg-k" data-i18n="lg.radar">Радар осадков</span>
+      <div class="lg-row" id="lgRadarRow"><span class="lg-k" data-i18n="lg.radar">Радар осадков</span>
         <span class="lg-v"><a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a></span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.geocode">Поиск места</span>
         <span class="lg-v"><a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a> · OpenStreetMap</span></div>
@@ -10688,8 +10692,25 @@
   /* Слои компаса. Солнце и луна были на карте всегда — умолчание сохраняет
      это, чтобы включение слоёв ничего не поменяло тем, кто их не открывал.
      Млечный Путь — новый слой и нишевый, включается по запросу */
+  /* Осадки временно сняты с карты (Алексей, 31 августа 2026). Две причины,
+     обе замерены, а не предположены:
+     1. Бесплатный кэш RainViewer отдаёт радар только до z7. С z8 и выше
+        вместо осадков приходит серая плашка «Zoom Level Not Supported» —
+        картинка одна и та же на весь мир, 1370 байт. Карта открывается на
+        z15, то есть слой не работал ни на одном рабочем масштабе, а честно
+        сообщал об этом ватермарком поверх города.
+     2. Радар мозаичный, из национальных сетей, и дыр в нём больше, чем
+        покрытия. Кадр от 31 августа: из 26 проверенных точек данные были в
+        15; пусто — Москва, Томск, Новосибирск, Екатеринбург, Стамбул, Дубай,
+        Каир, Алматы, Бали, Кейптаун, Мальдивы. Маска покрытия RainViewer
+        подтверждает: это не ясная погода, это край мозаики.
+     Слой без ключа не чинится: обе границы — политика поставщика. Код
+     оставлен целиком, флага достаточно, чтобы вернуть его вместе с ключом
+     RainViewer (тогда проверить заново обе границы — зум и покрытие). */
+  var RAIN_OK = false;
   var mapLayers = (saved && saved.mapLayers) || { sun: true, moon: true, mw: false, rain: false };
   if (mapLayers.rain === undefined) mapLayers.rain = false;   /* слой заведён позже прежних настроек */
+  if (!RAIN_OK) mapLayers.rain = false;   /* включённый прежде слой гаснет вместе с флагом */
   /* Астро-режим сохраняется наравне с темой. Он не сохранялся вовсе: стоял
      первым в настройках, включался — и слетал при следующем запуске. Настройка,
      которую надо ставить заново каждый раз, читается как сломанная. */
@@ -12806,7 +12827,7 @@
       + (mins ? " · " + LANG.t("radar.ago", { n: mins }) : "");
   }
   function setMapRain(on) {
-    mapLayers.rain = !!on;
+    mapLayers.rain = RAIN_OK && !!on;
     if (!lmap) return;
     if (rainTiles) { lmap.removeLayer(rainTiles); rainTiles = null; }
     if (!mapLayers.rain) { renderRadarRow(); return; }
@@ -12823,7 +12844,16 @@
   }
   function initMap() {
     if (lmap || typeof L === "undefined") return;
-    lmap = L.map("lmap", { zoomControl: false, attributionControl: false }).setView([LAT, LON], 15);
+    /* fadeAnimation выключён не ради скорости, а ради подписей. С плавным
+       проявлением Leaflet помечает свежий тайл «живым» только через 200 мс
+       затухания, а уборку прошлого масштаба назначает на кадр раньше — и
+       уборка застаёт новые тайлы ещё «неживыми», оставляя прошлый уровень
+       навсегда. Полотно этого не показывает: его тайлы непрозрачны и накрывают
+       старьё. Слой подписей прозрачен, и сквозь него светил прежний масштаб,
+       растянутый вдвое: одно и то же имя улицы стояло рядом мелким и крупным
+       (замер: на z16 в контейнере оставались четыре тайла z15 со scale(2)).
+       Без затухания тайл живой сразу, и уборка срабатывает на месте. */
+    lmap = L.map("lmap", { zoomControl: false, attributionControl: false, fadeAnimation: false }).setView([LAT, LON], 15);
     /* Полотно одно на обе темы: voyager_nolabels — обычная карта без подписей,
        чтобы имена улиц не спорили с нашей разметкой. Тёмную из неё делает
        фильтр тона. */
@@ -24287,6 +24317,14 @@
       });
       paintIcons($("mapLayersMenu"));
     }
+  }
+  /* Пункт «Осадки» не отключается, а убирается: серый тумблер обещает, что
+     слой есть и его когда-то дадут, а его нет — см. RAIN_OK у настроек слоёв */
+  if (!RAIN_OK) {
+    var rainItem = $("mapLayersMenu").querySelector('[data-layer="rain"]');
+    if (rainItem) rainItem.hidden = true;
+    var rainCredit = $("lgRadarRow");
+    if (rainCredit) rainCredit.hidden = true;   /* ссылка на поставщика, чьих плиток мы не берём */
   }
   $("mapLayersBtn").addEventListener("click", function () {
     openMapLayers($("mapLayersMenu").hidden);
