@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<style>
+html,body{margin:0;padding:0;background:#141210;}
+sc-for,sc-if{display:contents}
+a{color:#E2A44C}a:hover{color:#D9AC6B}
+@keyframes jg{from{transform:rotate(-0.85deg) translateY(-0.4px)}to{transform:rotate(0.85deg) translateY(0.4px)}}
+@keyframes pop{0%{transform:scale(1)}42%{transform:scale(1.11)}100%{transform:scale(1)}}
+@keyframes tin{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sin{from{transform:translateY(102%)}to{transform:translateY(0)}}
+@keyframes fin{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#141210;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',system-ui,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;">
+<div ref="{{ rootRef }}" style="--brass:#E2A44C;--ink:#EFEAE0;--ink-2:#C9C2B6;--ink-4:#8A8478;--ink-5:#6B6559;--ink-7:#55504A;--sheet:#17150F;--sheet-2:#131109;--sheet-4:#1A1712;--hairline:#1C1913;position:relative;width:390px;height:844px;border-radius:46px;overflow:hidden;background:#070606;color:#EFEAE0;box-shadow:0 40px 90px rgba(0,0,0,.65),0 0 0 1px #221F19;user-select:none;-webkit-user-select:none;">
+
+  <div ref="{{ scrollRef }}" style="position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:104px;">
+
+    <div style="display:flex;align-items:center;gap:12px;padding:46px 20px 10px;">
+      <div style="width:44px;height:44px;border-radius:14px;background:#17150F;box-shadow:inset 0 0 0 1px #221F19;display:flex;align-items:center;justify-content:center;flex:0 0 auto;">
+        <svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:#E2A44C;fill:none;stroke-width:1.6;"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17M9 9.5v10M15 9.5v10M3.5 14.5h17"/></svg>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;font-size:21px;font-weight:650;letter-spacing:-.4px;">
+        Август<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#8A8478;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;"><path d="M5 9l7 6 7-6"/></svg>
+      </div>
+      <sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:15px;flex:0 0 auto;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#E2A44C;fill:none;stroke-width:1.6;stroke-linecap:round;"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M8 3v4M16 3v4M12 11.5v6M9 14.5h6"/></svg>
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#E2A44C;fill:none;stroke-width:1.9;stroke-linecap:round;"><path d="M5 20V13M12 20V6M19 20v-9"/></svg>
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#EFEAE0;fill:none;stroke-width:1.7;stroke-linecap:round;"><circle cx="11" cy="11" r="6.8"/><path d="M16 16l4.5 4.5"/></svg>
+        </div>
+      </sc-if>
+      <sc-if value="{{ editing }}">
+        <button type="button" data-keep onClick="{{ onDone }}" style="flex:0 0 auto;border:none;background:none;font:inherit;font-size:15px;font-weight:650;color:#E2A44C;padding:10px 2px 10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Готово</button>
+      </sc-if>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:4px 14px 0;font-variant-numeric:tabular-nums;">
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#55504A;">24</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#55504A;">25</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#55504A;">26</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#55504A;">27</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#55504A;">28</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#55504A;">29</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#55504A;">30</div>
+      <div style="display:flex;justify-content:center;"><div style="width:38px;height:38px;border-radius:12px;background:#1A1712;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:650;color:#E2A44C;">31</div></div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#3A352F;">1</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#3A352F;">2</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#3A352F;">3</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#3A352F;">4</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#3A352F;">5</div>
+      <div style="text-align:center;padding:9px 0;font-size:19px;color:#3A352F;">6</div>
+    </div>
+
+    <div style="height:1px;background:#221F19;margin:12px 0 0;"></div>
+    <div style="display:flex;justify-content:center;padding:7px 0 2px;"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:#55504A;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;"><path d="M5 15l7-6 7 6"/></svg></div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:8px 20px 0;padding:13px 14px;border-radius:18px;background:#131109;box-shadow:inset 0 0 0 1px #1C1913;font-variant-numeric:tabular-nums;">
+      <span style="display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#8A8478;fill:none;stroke-width:1.6;stroke-linecap:round;"><path d="M4 17h16M8 17a4 4 0 018 0M12 4v3M6 7l2 2M18 7l-2 2"/></svg>05:32</span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#8A8478;fill:none;stroke-width:1.6;stroke-linecap:round;"><path d="M4 17h16M8 17a4 4 0 018 0M12 10V7M6 7l2 2M18 7l-2 2"/></svg>19:30</span>
+      <span style="font-size:15px;color:#8A8478;">50 мин</span>
+      <span style="width:1px;height:16px;background:#2B2822;"></span>
+      <span style="font-size:15px;font-weight:600;">22°</span>
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#E2A44C;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;margin-left:auto;"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;margin:14px 20px 0;padding:12px 14px;border-radius:20px;background:#1A1712;box-shadow:inset 0 0 0 1px #1C1913;">
+      <span style="position:relative;width:82px;height:42px;flex:0 0 auto;">
+        <span style="position:absolute;left:0;top:1px;width:40px;height:40px;border-radius:12px;background:linear-gradient(158deg,#D9662F,#E2A44C);transform:rotate(-6deg);box-shadow:0 3px 10px rgba(0,0,0,.4);"></span>
+        <span style="position:absolute;left:21px;top:0;width:40px;height:40px;border-radius:12px;background:linear-gradient(158deg,#4E6E9E,#7E9AB8);box-shadow:0 3px 10px rgba(0,0,0,.4);"></span>
+        <span style="position:absolute;left:42px;top:1px;width:40px;height:40px;border-radius:12px;background:linear-gradient(158deg,#D2542A,#E2A44C);transform:rotate(6deg);box-shadow:0 3px 10px rgba(0,0,0,.4);"></span>
+      </span>
+      <span style="flex:1;min-width:0;">
+        <span style="display:block;font-size:19px;font-weight:650;letter-spacing:-.3px;">Мудборд</span>
+        <span style="display:block;margin-top:2px;font-size:13px;color:#8A8478;">{{ summary }}</span>
+      </span>
+      <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:#55504A;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;"><path d="M5 15l7-6 7 6"/></svg>
+    </div>
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:18px 22px 9px;">
+      <span style="font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:#55504A;font-weight:600;">Подборки</span>
+      <span style="font-size:11px;color:#8A8478;">{{ modeTag }}</span>
+    </div>
+
+    <div data-grid ref="{{ gridRef }}" style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;padding:0 20px;">
+      <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6">
+        <button type="button" data-tile="{{ t.id }}" style="border:none;background:none;padding:0;margin:0;font:inherit;text-align:left;cursor:pointer;min-width:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;">
+          <span data-jig style="display:block;transform-origin:50% 44%;">
+            <span data-art style="display:block;position:relative;aspect-ratio:1/1;border-radius:24px;">
+              <span style="position:absolute;inset:6px 6px 0;border-radius:15px;background:#131109;box-shadow:inset 0 0 0 1px #221F19;transform:translateY(-7px) rotate(-3.5deg);"></span>
+              <span style="position:absolute;inset:3px 3px 0;border-radius:18px;background:#1A1712;box-shadow:inset 0 0 0 1px #221F19;transform:translateY(-3.5px) rotate(2.5deg);"></span>
+              <span data-cover data-g="{{ t.g }}" style="position:absolute;inset:0;border-radius:24px;background:#2A2620;box-shadow:0 5px 16px rgba(0,0,0,.34),inset 0 0 0 1px rgba(255,255,255,.06);"></span>
+              <span style="position:absolute;top:6px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:10.5px;font-weight:600;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;">{{ t.count }}</span>
+              <span data-del role="button" style="position:absolute;top:-13px;left:-13px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.3);pointer-events:none;transition:opacity .16s ease,transform .18s cubic-bezier(.2,1.5,.4,1);z-index:6;">
+                <span style="width:23px;height:23px;border-radius:999px;background:#EFEAE0;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;">
+                  <span style="width:11px;height:2px;border-radius:2px;background:#16120C;"></span>
+                </span>
+              </span>
+            </span>
+            <span style="display:block;margin-top:8px;font-size:12.5px;font-weight:600;color:#C9C2B6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.name }}</span>
+            <span style="display:block;margin-top:1px;font-size:11px;color:#6B6559;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.sub }}</span>
+          </span>
+        </button>
+      </sc-for>
+      <div style="min-width:0;">
+        <div style="display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:24px;border:1px dashed #2B2822;">
+          <svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:#6B6559;fill:none;stroke-width:1.6;stroke-linecap:round;"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+        <span style="display:block;margin-top:8px;font-size:12.5px;font-weight:500;color:#6B6559;">Новая</span>
+      </div>
+    </div>
+
+    <div style="padding:16px 22px 6px;font-size:11px;line-height:1.5;color:#55504A;">{{ hint }}</div>
+  </div>
+
+  <div style="position:absolute;left:0;right:0;bottom:0;height:84px;padding:0 8px;display:flex;align-items:flex-start;gap:0;background:rgba(15,14,12,0.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.05);">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 0;color:#635E54;">
+      <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;"><circle cx="12" cy="12" r="4"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></svg>
+      <span style="font-size:10px;font-weight:500;">Свет</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 0;color:#635E54;">
+      <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 21c4-5 6.5-8 6.5-11a6.5 6.5 0 10-13 0c0 3 2.5 6 6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>
+      <span style="font-size:10px;font-weight:500;">Карта</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 0;color:#E2A44C;">
+      <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h4"/></svg>
+      <span style="font-size:10px;font-weight:600;">Съёмки</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 0;color:#635E54;">
+      <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;"><path d="M4 8h16M4 16h16"/><circle cx="10" cy="8" r="2.4" fill="#0F0E0C"/><circle cx="15" cy="16" r="2.4" fill="#0F0E0C"/></svg>
+      <span style="font-size:10px;font-weight:500;">Настройки</span>
+    </div>
+  </div>
+
+  <sc-if value="{{ hasToast }}">
+    <div data-keep style="position:absolute;left:16px;right:16px;bottom:98px;display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:17px;background:rgba(38,34,26,.96);backdrop-filter:blur(14px);box-shadow:0 12px 34px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.07);animation:tin .28s cubic-bezier(.2,1.2,.35,1);">
+      <span style="flex:1;min-width:0;font-size:13.5px;color:#C9C2B6;line-height:1.35;">{{ toastText }}</span>
+      <button type="button" onClick="{{ onUndo }}" style="flex:0 0 auto;border:none;background:none;font:inherit;font-size:13.5px;font-weight:650;color:#E2A44C;padding:4px 2px;cursor:pointer;">Отменить</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasSheet }}">
+    <div data-keep style="position:absolute;inset:0;z-index:80;">
+      <div data-keep onClick="{{ onSheetClose }}" style="position:absolute;inset:0;background:rgba(6,5,4,.6);animation:fin .2s ease;"></div>
+      <div data-keep style="position:absolute;left:0;right:0;bottom:0;padding:10px 20px 28px;border-radius:26px 26px 0 0;background:#17150F;box-shadow:0 -14px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);animation:sin .3s cubic-bezier(.2,.9,.25,1);">
+        <div style="width:36px;height:4px;border-radius:999px;background:#2B2822;margin:0 auto 16px;"></div>
+        <div style="font-size:17px;font-weight:650;letter-spacing:-.2px;">Подборка</div>
+        <input value="{{ sheetName }}" onInput="{{ onSheetName }}" style="display:block;width:100%;box-sizing:border-box;margin-top:14px;padding:14px 15px;border:none;border-radius:14px;background:#1C1A16;color:#EFEAE0;font:inherit;font-size:16px;outline:none;-webkit-appearance:none;"/>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button type="button" onClick="{{ onSheetDelete }}" style="flex:1;border:none;border-radius:14px;padding:14px;background:#1D1512;color:#D9A08A;font:inherit;font-size:15px;font-weight:600;cursor:pointer;">Удалить</button>
+          <button type="button" onClick="{{ onSheetSave }}" style="flex:1;border:none;border-radius:14px;padding:14px;background:#33291A;color:#E2A44C;font:inherit;font-size:15px;font-weight:600;cursor:pointer;">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 438, &quot;height&quot;: 892 },
+  &quot;mergeDwell&quot;: { &quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 1100, &quot;min&quot;: 500, &quot;max&quot;: 2500, &quot;step&quot;: 100, &quot;unit&quot;: &quot;мс&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Жест&quot;, &quot;label&quot;: &quot;Задержка до объединения&quot; },
+  &quot;mergeEnabled&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Жест&quot; },
+  &quot;holdToEdit&quot;: { &quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 420, &quot;min&quot;: 200, &quot;max&quot;: 800, &quot;step&quot;: 20, &quot;unit&quot;: &quot;мс&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Жест&quot; },
+  &quot;jiggle&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Режим правки&quot; },
+  &quot;deleteBadge&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Режим правки&quot; },
+  &quot;accent&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#E2A44C&quot;, &quot;options&quot;: [&quot;#E2A44C&quot;, &quot;#7C9CC4&quot;, &quot;#C9663D&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Вид&quot; }
+}">
+class Component extends DCLogic {
+  state = {
+    tiles: [
+      { id: "p", name: "Портрет",  n: 12, g: "linear-gradient(158deg,#D9662F,#E2A44C)" },
+      { id: "w", name: "Свадьбы",  n: 34, g: "linear-gradient(158deg,#4E6E9E,#7E9AB8)" },
+      { id: "h", name: "Праздник", n: 8,  g: "linear-gradient(158deg,#D2542A,#E2A44C)" },
+      { id: "l", name: "Лавстори", n: 21, g: "linear-gradient(158deg,#7E7BC0,#C56E96)" },
+      { id: "f", name: "Семья",    n: 6,  g: "linear-gradient(158deg,#4F6E92,#8AA6C2)" },
+      { id: "n", name: "Пейзаж",   n: 17, g: "linear-gradient(158deg,#D9A03C,#E0C169)" }
+    ],
+    editing: false, toast: null, sheet: null
+  };
+  phase = {}; drag = null; pd = null; settling = false;
+
+  /* ---------- настройки жеста ---------- */
+  LP() { return this.props.holdToEdit ?? 420; }
+  DW() { return this.props.mergeDwell ?? 1100; }
+  mergeOn() { return this.props.mergeEnabled !== false; }
+  jigOn() { return (this.props.jiggle !== false) && !this.reduce; }
+  delOn() { return this.props.deleteBadge !== false; }
+  acc() { return this.props.accent || "#E2A44C"; }
+  buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+
+  plural(n, a) { var m = n % 100, k = n % 10; return n + " " + (m > 4 && m < 21 ? a[2] : k === 1 ? a[0] : k > 1 && k < 5 ? a[1] : a[2]); }
+
+  /* ---------- монтаж ---------- */
+  componentDidMount() {
+    this.reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.addEventListener("pointerdown", this.onTapDown, true);
+    document.addEventListener("pointerup", this.onTapUp, true);
+    document.addEventListener("keydown", this.onKey);
+    this.paint();
+  }
+  componentWillUnmount() {
+    document.removeEventListener("pointerdown", this.onTapDown, true);
+    document.removeEventListener("pointerup", this.onTapUp, true);
+    document.removeEventListener("keydown", this.onKey);
+    clearInterval(this.timer); clearTimeout(this.pressT); clearTimeout(this.toastT);
+  }
+  componentDidUpdate() { this.paint(); }
+
+  rootRef = (el) => { if (el) { this.root = el; el.style.setProperty("--brass", this.acc()); } };
+  scrollRef = (el) => { this.scroller = el; };
+  gridRef = (el) => {
+    if (!el || el === this.grid) return;
+    this.grid = el;
+    el.addEventListener("pointerdown", this.onDown);
+    el.addEventListener("click", this.onGridClick, true);
+    el.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    el.addEventListener("touchmove", (e) => { if (this.drag) e.preventDefault(); }, { passive: false });
+    this.paint();
+  };
+
+  /* Покачивание, крестики, обложки и запрет прокрутки — не через классы:
+     состояние режима живёт в DOM, чтобы перерисовка списка его не сбивала. */
+  paint() {
+    if (!this.grid) return;
+    var on = this.state.editing;
+    this.grid.style.touchAction = on ? "none" : "";
+    if (this.root) this.root.style.setProperty("--brass", this.acc());
+    var tiles = this.grid.querySelectorAll("[data-tile]");
+    for (var i = 0; i < tiles.length; i++) {
+      var el = tiles[i], id = el.dataset.tile;
+      var cov = el.querySelector("[data-cover]");
+      if (cov && cov.dataset.g) cov.style.background = cov.dataset.g;
+      var jig = el.querySelector("[data-jig]");
+      var want = (on && this.jigOn() && !(this.drag && this.drag.el === el)) ? "1" : "0";
+      if (jig && jig.dataset.jigOn !== want) {
+        jig.dataset.jigOn = want;
+        if (want === "1") {
+          if (this.phase[id] == null) this.phase[id] = -(Math.random() * 0.3);
+          jig.style.animation = "jg .3s ease-in-out " + this.phase[id].toFixed(2) + "s infinite alternate";
+        } else jig.style.animation = "none";
+      }
+      var del = el.querySelector("[data-del]");
+      if (del) {
+        var show = on && this.delOn();
+        del.style.opacity = show ? "1" : "0";
+        del.style.transform = show ? "scale(1)" : "scale(.3)";
+        del.style.pointerEvents = show ? "auto" : "none";
+      }
+    }
+  }
+
+  setEdit(on) {
+    if (this.state.editing === on) return;
+    this.setState({ editing: on, sheet: null });
+    if (on) this.buzz(12);
+  }
+  onDone = () => this.setEdit(false);
+  onKey = (e) => { if (e.key === "Escape") { if (this.state.sheet) this.setState({ sheet: null }); else this.setEdit(false); } };
+  /* Выход — тапом мимо плитки. Не по касанию как таковому: касание бывает
+     началом прокрутки. Но и одним click обойтись нельзя — iOS не рассылает
+     его с обычных, «некликабельных» узлов, и тап по пустому месту до
+     документа не доходил: гасили режим только «Готово» и Esc. Поэтому тап
+     собираем сами — где палец лёг и где встал. Мимо плитки — это и зазор
+     внутри самой сетки: зазор плиткой не является, и на домашнем экране iOS
+     тап по нему правку закрывает. */
+  keeps(t) { return !!(t && t.closest && (t.closest("[data-tile]") || t.closest("[data-keep]"))); }
+  onTapDown = (e) => {
+    this.tapOut = !this.keeps(e.target);
+    this.tapX = e.clientX; this.tapY = e.clientY;
+  };
+  onTapUp = (e) => {
+    if (!this.tapOut) return;
+    this.tapOut = false;
+    if (!this.state.editing || this.drag) return;
+    if (Math.abs(e.clientX - this.tapX) + Math.abs(e.clientY - this.tapY) > 12) return;
+    if (this.keeps(e.target)) return;
+    this.setEdit(false);
+  };
+
+  /* ---------- касание ---------- */
+  onDown = (e) => {
+    if (e.button || this.settling) return;
+    var t = e.target;
+    if (!t || !t.closest) return;
+    if (t.closest("[data-del]")) return;
+    var el = t.closest("[data-tile]");
+    if (!el) return;
+    this.pd = { id: el.dataset.tile, el: el, x: e.clientX, y: e.clientY, moved: false };
+    this.lastX = e.clientX; this.lastY = e.clientY; this.entered = false;
+    window.addEventListener("pointermove", this.onMove);
+    window.addEventListener("pointerup", this.onUp);
+    window.addEventListener("pointercancel", this.onUp);
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    if (!this.state.editing) {
+      this.pressT = setTimeout(() => { this.entered = true; this.setEdit(true); this.lift(); }, this.LP());
+    }
+  };
+  onMove = (e) => {
+    this.lastX = e.clientX; this.lastY = e.clientY;
+    var p = this.pd; if (!p) return;
+    if (!this.drag) {
+      if (Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) < 8) return;
+      clearTimeout(this.pressT);
+      /* Вне режима сдвиг — это прокрутка страницы, а не перенос плитки:
+         жест отпускаем целиком, иначе список залипает под пальцем. */
+      if (!this.state.editing) { this.unbind(); this.pd = null; return; }
+      this.lift();
+    }
+    p.moved = true;
+  };
+  unbind() {
+    window.removeEventListener("pointermove", this.onMove);
+    window.removeEventListener("pointerup", this.onUp);
+    window.removeEventListener("pointercancel", this.onUp);
+  }
+
+  /* Клетки ряда снимаем один раз, из разметки (offsetLeft/Top): при
+     перестановке плитки сдвинуты трансформом, и getBoundingClientRect врёт. */
+  lift() {
+    var p = this.pd; if (!p || this.drag) return;
+    var els = Array.prototype.slice.call(this.grid.querySelectorAll("[data-tile]"));
+    this.cells = els.map(function (el) { return { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }; });
+    this.ids = els.map(function (el) { return el.dataset.tile; });
+    this.elBy = {}; this.homeIdx = {};
+    els.forEach((el, i) => { this.elBy[el.dataset.tile] = el; this.homeIdx[el.dataset.tile] = i; });
+    this.order = this.ids.slice();
+    this.orderPre = this.order.slice(); this.orderPost = this.order.slice();
+    this.fromIdx = this.homeIdx[p.id];
+    this.zone = this.fromIdx; this.zoneAt = performance.now();
+    this.cand = null; this.armed = null;
+    this.drag = { id: p.id, el: p.el, sx: p.x, sy: p.y, top0: this.scroller ? this.scroller.scrollTop : 0 };
+    p.el.style.position = "relative"; p.el.style.zIndex = "60";
+    var jig = p.el.querySelector("[data-jig]");
+    if (jig) { jig.style.animation = "none"; jig.dataset.jigOn = "0"; }
+    var art = p.el.querySelector("[data-art]");
+    art.style.transition = "transform .2s cubic-bezier(.2,1.3,.4,1), box-shadow .2s ease";
+    art.style.transform = "scale(1.09)";
+    art.style.boxShadow = "0 18px 32px rgba(0,0,0,.6)";
+    this.buzz(14);
+    /* Сдвиг пишем прямо из события указателя, а такт отсчёта держим на
+       интервале: requestAnimationFrame в неактивном окне засыпает, и вместе
+       с ним засыпали и перенос, и объединение. Подъём плитки отдан CSS —
+       масштаб живёт на обложке, смещение на самой плитке. */
+    this.timer = setInterval(this.frame, 60);
+    this.frame();
+  }
+
+  /* Кадр за кадром, а не по событию указателя: отсчёт до объединения должен
+     идти и когда палец стоит. Прежняя редакция сбрасывала его любым
+     движением — пальцем такую неподвижность не выдать, и объединение не
+     срабатывало никогда. Теперь отсчёт привязан к клетке, а не к покою:
+     дрожь внутри клетки его не трогает, уход в соседнюю — обнуляет. */
+  frame = () => {
+    if (!this.drag) return;
+    var now = performance.now(), d = this.drag;
+    this.autoScroll();
+    var top = this.scroller ? this.scroller.scrollTop : 0;
+    var dx = this.lastX - d.sx, dy = this.lastY - d.sy + (top - d.top0);
+    d.el.style.transition = "none";
+    d.el.style.transform = "translate(" + dx + "px," + dy + "px)";
+
+    var c = this.cells[this.fromIdx];
+    var cx = c.x + c.w / 2 + dx, cy = c.y + c.h / 2 + dy;
+    var z = -1, best = Infinity, core = false;
+    for (var i = 0; i < this.cells.length; i++) {
+      var q = this.cells[i];
+      var ax = cx - (q.x + q.w / 2), ay = cy - (q.y + q.h / 2);
+      if (Math.abs(ax) > q.w * 0.5 + 6 || Math.abs(ay) > q.h * 0.5 + 6) continue;
+      var dd = ax * ax + ay * ay;
+      if (dd < best) { best = dd; z = i; core = Math.abs(ax) < q.w * 0.46 && Math.abs(ay) < q.h * 0.42; }
+    }
+    if (z >= 0 && z !== this.zone) {
+      this.aimProgress(0); this.disarm();
+      this.zone = z; this.zoneAt = now;
+      this.orderPre = this.order.slice();
+      var displaced = this.order[z];
+      this.cand = (displaced && displaced !== d.id) ? displaced : null;
+      this.moveTo(z);
+      this.orderPost = this.order.slice();
+      this.buzz(5);
+    }
+    if (this.mergeOn()) {
+      if (this.armed) { if (!core) this.disarm(); }
+      else if (this.cand) {
+        var dw = this.DW();
+        var pr = core ? (now - this.zoneAt - dw * 0.34) / (dw * 0.66) : 0;
+        if (pr >= 1) this.arm(); else this.aimProgress(pr > 0 ? pr : 0);
+      }
+    }
+  };
+
+  autoScroll() {
+    var s = this.scroller; if (!s) return;
+    var r = s.getBoundingClientRect();
+    var v = 0;
+    if (this.lastY - r.top < 130) v = -Math.min(15, (130 - (this.lastY - r.top)) / 5);
+    else if (r.bottom - this.lastY < 150) v = Math.min(15, (150 - (r.bottom - this.lastY)) / 5);
+    if (v) s.scrollTop += v;
+  }
+
+  /* Перестановка сдвигом, а не переносом узлов: DOM во время жеста не
+     трогаем вовсе, поэтому нечему «разъезжаться» от гонки переходов. */
+  moveTo(z) {
+    var cur = this.order.indexOf(this.drag.id);
+    if (cur === z) return;
+    this.order.splice(cur, 1);
+    this.order.splice(z, 0, this.drag.id);
+    this.applyOrder(this.order, true);
+  }
+  applyOrder(order, animate) {
+    order.forEach((id, j) => {
+      if (id === this.drag.id) return;
+      var el = this.elBy[id], home = this.homeIdx[id];
+      var ox = this.cells[j].x - this.cells[home].x, oy = this.cells[j].y - this.cells[home].y;
+      el.style.transition = animate ? "transform .3s cubic-bezier(.22,.9,.25,1)" : "none";
+      el.style.transform = (ox || oy) ? ("translate(" + ox + "px," + oy + "px)") : "none";
+    });
+  }
+
+  /* Прицел: пока идёт отсчёт, латунное кольцо наливается и на поднятой
+     плитке, и на той, чьё место она заняла. Человек видит объединение до
+     того, как оно случится, и успевает уйти. */
+  aimProgress(p) {
+    var col = this.acc();
+    if (this.cand && this.elBy[this.cand]) {
+      var art = this.elBy[this.cand].querySelector("[data-art]");
+      art.style.transition = "box-shadow .12s linear, transform .12s linear";
+      art.style.boxShadow = p ? ("0 0 0 " + (2.5 * p).toFixed(2) + "px " + col + ", 0 8px 20px rgba(0,0,0,.45)") : "none";
+      art.style.transform = p ? ("scale(" + (1 + 0.04 * p).toFixed(3) + ")") : "none";
+      art.style.opacity = p ? String(0.55 + 0.45 * p) : "";
+    }
+    this.dragRing(p);
+  }
+  dragRing(p) {
+    if (!this.drag) return;
+    var art = this.drag.el.querySelector("[data-art]");
+    art.style.boxShadow = "0 18px 32px rgba(0,0,0,.6)" + (p ? (", 0 0 0 " + (2.5 * p).toFixed(2) + "px " + this.acc()) : "");
+  }
+  /* Взведено: соседи возвращаются на место, цель встаёт обратно под палец и
+     подсвечивается. Отпустил — объединили; ушёл в сторону — снова перенос. */
+  arm() {
+    if (this.armed || !this.cand) return;
+    this.armed = this.cand;
+    this.order = this.orderPre.slice();
+    this.applyOrder(this.order, true);
+    var el = this.elBy[this.armed], art = el.querySelector("[data-art]");
+    el.style.position = "relative"; el.style.zIndex = "30";
+    art.style.transition = "transform .26s cubic-bezier(.2,1.5,.4,1), box-shadow .2s ease";
+    art.style.transform = "scale(1.13)";
+    art.style.opacity = "1";
+    art.style.boxShadow = "0 0 0 2.5px " + this.acc() + ", 0 16px 32px rgba(0,0,0,.55)";
+    this.myArt("scale(.86)");
+    this.dragRing(1);
+    this.buzz(20);
+  }
+  disarm() {
+    if (!this.armed) return;
+    var el = this.elBy[this.armed], art = el.querySelector("[data-art]");
+    art.style.transform = "none"; art.style.boxShadow = "none"; art.style.opacity = "";
+    el.style.zIndex = "";
+    this.armed = null;
+    this.order = this.orderPost.slice();
+    this.applyOrder(this.order, true);
+    this.myArt("scale(1.09)");
+    this.dragRing(0);
+  }
+  myArt(t) {
+    if (!this.drag) return;
+    var a = this.drag.el.querySelector("[data-art]");
+    if (a) a.style.transform = t;
+  }
+
+  onUp = () => {
+    clearTimeout(this.pressT); this.unbind();
+    var p = this.pd; this.pd = null;
+    if (!this.drag) {
+      /* В правке тап по плитке пуст — как на домашнем экране: правку ведёт
+         только минус, иначе случайное касание при переносе открывает плашку. */
+      if (p && !p.moved && !this.state.editing) this.flash("Подборка «" + this.nameOf(p.id) + "» открыта");
+      return;
+    }
+    clearInterval(this.timer);
+    var d = this.drag, armed = this.armed;
+    this.drag = null; this.armed = null;
+    var el = d.el, from = this.cells[this.fromIdx];
+    this.settling = true;
+    if (armed) {
+      var to = this.cells[this.order.indexOf(armed)];
+      el.style.transition = "transform .34s cubic-bezier(.4,0,.3,1), opacity .28s ease .06s";
+      el.style.transform = "translate(" + (to.x - from.x) + "px," + (to.y - from.y) + "px) scale(.3)";
+      el.style.opacity = "0";
+      this.buzz(26);
+      setTimeout(() => this.commitMerge(d.id, armed), 300);
+    } else {
+      var j = this.order.indexOf(d.id), t2 = this.cells[j];
+      el.style.transition = "transform .36s cubic-bezier(.2,1.25,.35,1), box-shadow .3s ease";
+      el.style.transform = "translate(" + (t2.x - from.x) + "px," + (t2.y - from.y) + "px)";
+      var mine = el.querySelector("[data-art]");
+      mine.style.transition = "transform .3s cubic-bezier(.2,1.2,.35,1), box-shadow .3s ease";
+      mine.style.transform = "none";
+      mine.style.boxShadow = "0 5px 16px rgba(0,0,0,.34)";
+      var ord = this.order.slice();
+      setTimeout(() => this.commitOrder(ord), 320);
+    }
+  };
+
+  clearStyles() {
+    if (!this.grid) return;
+    var tiles = this.grid.querySelectorAll("[data-tile]");
+    for (var i = 0; i < tiles.length; i++) {
+      var el = tiles[i];
+      el.style.transition = "none"; el.style.transform = "none";
+      el.style.zIndex = ""; el.style.position = ""; el.style.opacity = "";
+      var art = el.querySelector("[data-art]");
+      art.style.transition = "none"; art.style.transform = "none";
+      art.style.boxShadow = ""; art.style.opacity = "";
+    }
+  }
+  commitOrder(ord) {
+    var map = {}; this.state.tiles.forEach(function (t) { map[t.id] = t; });
+    var tiles = ord.map(function (id) { return map[id]; }).filter(Boolean);
+    this.clearStyles(); this.settling = false;
+    this.setState({ tiles: tiles });
+  }
+  commitMerge(fromId, toId) {
+    var prev = this.state.tiles;
+    var tiles = prev.slice();
+    var fi = -1, ti = -1;
+    tiles.forEach(function (t, i) { if (t.id === fromId) fi = i; if (t.id === toId) ti = i; });
+    if (fi < 0 || ti < 0) { this.clearStyles(); this.settling = false; this.forceUpdate(); return; }
+    var src = tiles[fi], dst = Object.assign({}, tiles[ti]);
+    dst.n = dst.n + src.n;
+    tiles[ti] = dst; tiles.splice(fi, 1);
+    this.clearStyles(); this.settling = false;
+    this.showToast("«" + src.name + "» вошла в «" + dst.name + "»", prev, tiles);
+    setTimeout(() => {
+      var a = this.grid && this.grid.querySelector('[data-tile="' + toId + '"] [data-art]');
+      if (a) { a.style.animation = "pop .44s cubic-bezier(.3,1.4,.4,1)"; setTimeout(function () { a.style.animation = ""; }, 460); }
+    }, 20);
+  }
+  showToast(text, prev, tiles) {
+    clearTimeout(this.toastT);
+    this.setState({ tiles: tiles, toast: { text: text, prev: prev } });
+    this.toastT = setTimeout(() => this.setState({ toast: null }), 5200);
+  }
+  flash(text) {
+    clearTimeout(this.toastT);
+    this.setState({ toast: { text: text, prev: null } });
+    this.toastT = setTimeout(() => this.setState({ toast: null }), 2400);
+  }
+  onUndo = () => {
+    var t = this.state.toast;
+    clearTimeout(this.toastT);
+    if (t && t.prev) { this.clearStyles(); this.setState({ tiles: t.prev, toast: null }); }
+    else this.setState({ toast: null });
+  };
+
+  nameOf(id) { var f = this.state.tiles.filter(function (t) { return t.id === id; })[0]; return f ? f.name : ""; }
+  onGridClick = (e) => {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var del = t.closest("[data-del]");
+    if (!del) return;
+    e.preventDefault(); e.stopPropagation();
+    var el = t.closest("[data-tile]"); if (!el) return;
+    this.buzz(14);
+    this.openSheet(el.dataset.tile);
+  };
+  openSheet(id) { this.setState({ sheet: { id: id, name: this.nameOf(id) } }); }
+  onSheetName = (e) => { this.setState({ sheet: { id: this.state.sheet.id, name: e.target.value } }); };
+  onSheetClose = () => this.setState({ sheet: null });
+  onSheetSave = () => {
+    var s = this.state.sheet; if (!s) return;
+    this.setState({ sheet: null, tiles: this.state.tiles.map(function (t) { return t.id === s.id ? Object.assign({}, t, { name: s.name || t.name }) : t; }) });
+  };
+  onSheetDelete = () => {
+    var s = this.state.sheet; if (!s) return;
+    var prev = this.state.tiles;
+    this.setState({ sheet: null });
+    this.showToast("«" + this.nameOf(s.id) + "» удалена", prev, prev.filter(function (t) { return t.id !== s.id; }));
+  };
+
+  renderVals() {
+    var ed = this.state.editing, frames = 0;
+    this.state.tiles.forEach(function (t) { frames += t.n; });
+    return {
+      tiles: this.state.tiles.map((t) => ({ id: t.id, name: t.name, g: t.g, count: String(t.n), sub: this.plural(t.n, ["кадр", "кадра", "кадров"]) })),
+      summary: this.plural(this.state.tiles.length, ["подборка", "подборки", "подборок"]) + " · " + this.plural(frames, ["кадр", "кадра", "кадров"]),
+      modeTag: ed ? "правка" : "долгий тап — сортировка",
+      hint: ed
+        ? "Тащите, чтобы переставить · задержите над другой — объединить · минус — переименовать или убрать"
+        : "Долгий тап по подборке включает сортировку",
+      editing: ed, idle: !ed,
+      hasToast: !!this.state.toast,
+      toastText: this.state.toast ? this.state.toast.text : "",
+      hasSheet: !!this.state.sheet,
+      sheetName: this.state.sheet ? this.state.sheet.name : "",
+      rootRef: this.rootRef, gridRef: this.gridRef, scrollRef: this.scrollRef,
+      onDone: this.onDone, onUndo: this.onUndo,
+      onSheetName: this.onSheetName, onSheetClose: this.onSheetClose,
+      onSheetSave: this.onSheetSave, onSheetDelete: this.onSheetDelete
+    };
+  }
+}
+</script>
+</body>
+</html>
