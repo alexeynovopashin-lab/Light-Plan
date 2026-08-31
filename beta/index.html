@@ -2660,11 +2660,20 @@
   }
   /* Плитка «ещё» — не обложка, а дверь: пунктиром, чтобы не читалась
      подборкой с картинками */
-  .mb-tile.more .mb-cover {
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: none; border: 1px dashed var(--hairline-2, var(--hairline)); background: none;
-    font-size: 13px; color: var(--ink-4);
+  .mb-cover.mo {
+    display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr;
+    gap: 2px; overflow: hidden;
   }
+  .mb-cover.mo .mo-c {
+    position: relative; display: block; min-width: 0; min-height: 0;
+    background-size: cover; background-position: center; overflow: hidden;
+  }
+  .mb-cover.mo .mo-c img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Одна обложка в мозаике занимает весь квадрат, две — две половины: пустых
+     клеток в сетке не остаётся */
+  .mb-cover.mo .mo-c:only-child { grid-column: 1 / -1; grid-row: 1 / -1; }
+  .mb-cover.mo .mo-c:first-child:nth-last-child(2), .mb-cover.mo .mo-c:first-child:nth-last-child(2) ~ .mo-c { grid-row: 1 / -1; }
+  .mb-cover.mo .mo-c:first-child:nth-last-child(3) { grid-column: 1 / -1; }
   /* Плитка «+ Новая подборка» — тот же пунктир, но крупный знак плюса:
      пустое и обычное состояние остаются одним компонентом (15_MOODBOARD,
      «Пустое состояние — не отдельный экран») */
@@ -4617,12 +4626,15 @@
      читаться. */
   .rt-ghost { column-span: all; }
   .rt-ghost .gh-say { padding: 2px 2px 12px; font-size: 13px; line-height: 1.5; color: var(--ink-8); }
-  .rt-ghost .gh-cols { column-count: 2; column-gap: 8px; }
+  .rt-ghost .gh-cols { display: flex; gap: 8px; align-items: flex-start; }
+  .rt-ghost .gh-col { flex: 1; min-width: 0; display: block; }
   .rt-ghost .gh {
-    display: block; width: 100%; margin: 0 0 8px; break-inside: avoid;
+    display: block; width: 100%; margin: 0 0 8px;
     border-radius: 10px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
   }
+  .rt-ghost .gh.v { aspect-ratio: 2/3; }
+  .rt-ghost .gh.h { aspect-ratio: 3/2; }
   /* ---------- Выбранный кадр ----------
      Отметка — латунный кружок в углу, тем же знаком «✓», что и в списке
      подборок у листа «Добавить в подборку»: одно и то же значит одно и то
@@ -16418,13 +16430,28 @@
      первым же настоящим кадром, который сюда ляжет. Ниже пробовал 0.5 —
      плашки уходили в землистое, и экран снова читался как неудавшийся, а не
      как приглашение. */
-  var MB_GHOST_H = [152, 108, 96, 138, 126, 112];
+  /* Только два формата: портрет 2:3 и альбом 3:2 (Алексей, 31 августа 2026).
+     Прежде высоты стояли пикселями вразнобой — плашки выходили около
+     квадратных, и коллаж читался сеткой ячеек, а не пачкой снимков. Кадр
+     бывает либо стоя, либо лёжа; третьего в подборке не будет, и обещать
+     его нечего. Порядок постоянный, не случайный, — иначе коллаж
+     перекладывался бы на каждой перерисовке (а она идёт на каждый тег и
+     каждую букву поиска). */
+  /* По колонкам раскладываем сами, а не отдаём `column-count`: тот
+     балансирует высоту как умеет, и при двух разных пропорциях низ выходил
+     рваным — одна колонка обрывалась на треть выше другой. Здесь в каждой
+     колонке лежит один портрет и два альбома (1.5 + 0.667 + 0.667 ширины),
+     поэтому обе кончаются вровень, а начинаются по-разному — ритм живой, но
+     не случайный. */
+  var MB_GHOST_F = [["h", "v", "h"], ["v", "h", "h"]];
   function mbGhostGrid(say, id) {
-    var from = mbSkyIdx(id);
+    var from = mbSkyIdx(id), n = 0;
     return '<div class="rt-ghost"><div class="gh-say">' + esc(say) + "</div>"
       + '<div class="gh-cols">'
-      + MB_GHOST_H.map(function (h, i) {
-        return '<span class="gh" style="height:' + h + "px;background:" + mbSkyAt(from + i, 0.72) + '"></span>';
+      + MB_GHOST_F.map(function (col) {
+        return '<span class="gh-col">' + col.map(function (f) {
+          return '<span class="gh ' + f + '" style="background:' + mbSkyAt(from + (n++), 0.72) + '"></span>';
+        }).join("") + "</span>";
       }).join("")
       + "</div></div>";
   }
@@ -16678,6 +16705,21 @@
     return '<span class="mb-cover one"' + sky + ">"
       + (pic ? refImg(pic) : "") + off + "</span>";
   }
+  /* Мозаика 2×2 — обложки четырёх подборок в одном квадрате. Ячейка берёт
+     то же назначенное фото и то же небо, что и целая плитка, просто вчетверо
+     мельче: ряд остаётся одним и тем же материалом, показанным крупнее или
+     мельче. Меньше четырёх — сетка не ломается, ячейки растягиваются по
+     месту; совсем пусто не бывает, мозаику зовут только когда есть что
+     показать. */
+  function mbMosaic(list) {
+    var cells = list.slice(0, 4).map(function (f) {
+      var b = mbBoard(f), pics = boardShots(b);
+      var pic = (b && b.cover && shotById(b.cover)) || pics.filter(function (r) { return r.im; })[0];
+      return '<span class="mo-c" style="background-image:' + mbSky(b && b.id) + '">'
+        + (pic ? refImg(pic) : "") + "</span>";
+    }).join("");
+    return '<span class="mb-cover mo">' + cells + "</span>";
+  }
   /* Обложка на стопке из двух листов + кружок-счётчик — подборка читается
      как пачка распечаток, а не плоская карточка (макет «Moodboard Shoots») */
   /* Минус в углу — как на домашнем экране iOS: он и есть вход в правку
@@ -16772,8 +16814,15 @@
           + '<span class="s">' + esc(mbSubTile(f)) + "</span></button>";
       }).join("");
       if (over > 0) {
+        /* Плитка «Все» показывает, что за ней лежит: мозаика из четырёх
+           обложек тех подборок, которые в ряд не поместились (Алексей,
+           31 августа 2026). Пунктирная рамка с одной цифрой не говорила
+           ничего — ряд обрывался пустым местом. Счёт остался кружком в углу,
+           как у остальных плиток: язык у ряда один. */
         html += '<button type="button" class="mb-tile more" data-more="1">'
-          + '<span class="mb-cover">+' + (over + 1) + "</span>"
+          + '<span class="mb-tile-art"><span class="leaf a"></span><span class="leaf b"></span>'
+          + mbMosaic(list.slice(shown.length))
+          + '<span class="count">+' + (over + 1) + "</span></span>"
           + '<span class="n">' + esc(LANG.t("mb.all")) + "</span></button>";
       }
       $(host).innerHTML = html;
