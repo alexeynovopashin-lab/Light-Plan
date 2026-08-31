@@ -2029,6 +2029,10 @@
     font-size: 14px; padding: 14px; cursor: pointer; width: 100%; text-align: center;
   }
   .ghost:active { color: var(--ink); }
+  /* Отмена и удаление одной строкой: лист подборки спрашивает один раз, и
+     оба ответа должны быть видны разом, без второго окна поверх */
+  .mb-sheet-row { display: flex; gap: 10px; align-items: stretch; }
+  .mb-sheet-row .ghost, .mb-sheet-row .danger { flex: 1; width: auto; margin: 0; }
   /* Ожидание должно читаться ожиданием, а не мёртвой кнопкой: надпись при
      этом называет, сколько осталось, — гаснет только цвет */
   .ghost:disabled { color: var(--ink-5, var(--ink-4)); opacity: 0.45; cursor: default; }
@@ -7414,7 +7418,14 @@
     <div class="grip"></div>
     <div class="sheet-title" id="mbBoardTitle">—</div>
     <div class="sheet-sub" id="mbBoardSub"></div>
-    <button class="danger" id="mbBoardDel" data-i18n="mb.delBoard">Удалить подборку</button>
+    <!-- Два окна подряд («Удалить подборку» → «Удалить / Отмена») сведены в
+         одно (Алексей, 31 августа 2026). Спрашивать дважды было нечего: этот
+         лист и открывается ради одного действия, а сколько кадров уйдёт
+         насовсем, сказано тут же, в подписи. -->
+    <div class="mb-sheet-row">
+      <button class="ghost" id="mbBoardCancel" data-i18n="ask.cancel">Отмена</button>
+      <button class="danger" id="mbBoardDel" data-i18n="mb.delBoard">Удалить подборку</button>
+    </div>
   </div>
 
   <!-- Действие с материалом: переложить в раздел, перенести в жанровую
@@ -9074,6 +9085,10 @@
   var dayPanelOpen = !(saved && saved.dayFold);
   var mbStripOpen = true; // пересчитывается ниже, когда `saved` уже прочитан
   var mbSeen = false;     // то же самое: признак читается ниже, вместе с `saved`
+  /* Заготовки под все жанры раскладываются один раз, при первом запуске.
+     Признак нужен именно липкий: без него удалённая подборка возвращалась бы
+     при следующем открытии приложения, и убрать её было бы нельзя вовсе. */
+  var mbSeeded = false;
   /* ---------- Локальное хранение: записи живут на устройстве ---------- */
   /* Бета живёт в /beta/ рядом со стабильной версией и на том же origin —
      значит, и на одном localStorage. Ключ разводим по каналу, иначе
@@ -9175,7 +9190,7 @@
           return { rec: r, at: t.at, del: t.del };
         }),
         travelMin: travelMin, tempUnit: tempUnit, currency: currency, clock: clockPref, dayFold: !dayPanelOpen,
-        mbStripFold: !mbStripOpen, mbSeen: mbSeen,
+        mbStripFold: !mbStripOpen, mbSeen: mbSeen, mbSeeded: mbSeeded,
         telCountry: telCountry,
         blocks: blocks.map(function (b) {
           var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
@@ -15314,17 +15329,23 @@
     var used = genresF.map(function (f) { return f.g; });
     return ALL_GENRES.filter(function (g) { return genresOn[g] && used.indexOf(g) < 0; });
   }
-  function openMbNew(genresF) {
-    var free = mbFreeGenres(genresF);
-    if (!free.length) return;           // все включённые жанры уже начаты
-    if (free.length === 1) { openMbFolder({ kind: "genre", g: free[0] }); return; }
-    $("mbNewList").innerHTML = free.map(function (g) {
-      return toolBtn(genreName(g), GENRE_IC[g], "", g);
+  /* Список — все жанры сразу, включённые и нет (Алексей, 31 августа 2026:
+     «плюс должен всегда давать возможность завести/включить новый жанр,
+     сделать новую подборку»). Выключенный показан приглушённо, как в «Моих
+     жанрах», и тап его включает: отдельного захода в настройки ради одной
+     подборки не нужно. Жанр, где подборка уже есть, заводит вторую папку —
+     дальше он раскрывается полкой. */
+  function openMbNew() {
+    $("mbNewList").innerHTML = ALL_GENRES.map(function (g) {
+      return toolBtn(genreName(g), GENRE_IC[g], genresOn[g] ? "" : "off", g);
     }).join("");
     $("mbNewList").querySelectorAll(".tool").forEach(function (ch) {
       ch.addEventListener("click", function () {
+        var g = ch.dataset.v;
         closeMbNew();
-        openMbFolder({ kind: "genre", g: ch.dataset.v });
+        if (!genresOn[g]) { genresOn[g] = 1; renderGenres(); saveAll(); }
+        if (boardsOfGenre(g).length) { mbNewFolder(g); return; }
+        openMbFolder({ kind: "genre", g: g });
       });
     });
     $("mbNewSheet").classList.add("open"); $("mbNewScrim").classList.add("open");
@@ -16146,29 +16167,25 @@
         + '<span class="n">' + esc(mbTitle(f)) + "</span>"
         + '<span class="s">' + esc(mbSubTile(f)) + "</span></button>";
     }
-    /* Рамка «+» — всегда первая плитка библиотеки заготовок, пока есть
-       жанр, для которого подборки ещё нет (15_MOODBOARD, «Пустое
-       состояние — не отдельный экран»). */
-    var addTile = mbFreeGenres(genresF).length
-      ? '<button type="button" class="mb-tile add" id="mbAddBoard">'
-        + '<span class="mb-cover"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>'
-        + '<span class="n">' + esc(LANG.t("mb.newTitle")) + "</span></button>"
-      : "";
+    /* Рамка «+» стоит в ряду всегда (Алексей, 31 августа 2026: «+ это
+       создание новой подборки, вход»). Прежде она появлялась, только пока
+       оставался включённый жанр без подборки, — и пропадала ровно тогда,
+       когда человек уже освоился и захотел завести вторую папку. */
+    var addTile = '<button type="button" class="mb-tile add" id="mbAddBoard">'
+      + '<span class="mb-cover"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>'
+      + '<span class="n">' + esc(LANG.t("mb.newTitle")) + "</span></button>";
     var html = '<div class="sec-label" style="padding-left:0;">' + esc(LANG.t("nav.shoots")) + "</div>";
     html += sessionsF.length
       ? '<div class="mb-tiles">' + sessionsF.map(function (f, i) { return tile(f, i, "s"); }).join("") + "</div>"
       : mbEmptyTiles(LANG.t("mb.noShootFolders"), 0);
     html += '<div class="sec-label" style="padding-left:0;margin-top:18px;">' + esc(LANG.t("mb.sets")) + "</div>";
-    html += (addTile || genresF.length)
-      /* Рамка «+» одна в ряду смотрится так же пусто, как строка «пока
-         пусто»: ряд добирается призраками до полного, и сразу видно, во что
-         эта рамка превратится. Как только заведена хоть одна подборка,
-         показывать нечего — призраки уходят. */
-      ? '<div class="mb-tiles">' + addTile + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("")
-        + (genresF.length || !mbGhostsOn() ? "" : mbGhostCells(2, 3)) + "</div>"
-      /* Второй раздел начинает с другого места палитры: два одинаковых ряда
-         подряд читались бы как одна повторённая заготовка. */
-      : mbEmptyTiles(LANG.t("mb.noGenreSets"), 3);
+    /* Добивка ряда призраками снята (Алексей, 31 августа 2026: «две мёртвые
+       плитки, они нам не нужны»). Она и не нужна больше: жанры включены все
+       и у каждого своя заготовка — ряд полон сам собой, а когда подборки
+       убраны все до одной, честнее показать одну рамку «+», чем дорисовывать
+       к ней то, чего нет. Ряд поэтому есть всегда. */
+    html += '<div class="mb-tiles">' + addTile
+      + genresF.map(function (f, i) { return tile(f, i, "g"); }).join("") + "</div>";
     /* Ключ выбираем при отрисовке, а не переписываем текст задним числом:
        галерея перерисовывается после каждой перестановки, и подпись,
        поставленную руками, следующая же перерисовка стёрла бы. */
@@ -16182,7 +16199,7 @@
       mbStartDrag(b, b.dataset.bid, function () { openFolderOrShelf(list[+b.dataset.i], b); }, openMbBoardSheet,
         b.dataset.rk ? mbGenreReorder(b.parentNode) : null);
     });
-    if ($("mbAddBoard")) $("mbAddBoard").addEventListener("click", function () { openMbNew(genresF); });
+    if ($("mbAddBoard")) $("mbAddBoard").addEventListener("click", function () { openMbNew(); });
   }
   function renderMbGallery() {
     renderMbTagRail();
@@ -16245,23 +16262,21 @@
   $("mbBoardDel").addEventListener("click", function () {
     var b = boardById(mbSheetBoard);
     if (!b) return;
-    var name = $("mbBoardTitle").textContent;
     closeMbBoardSheet();
-    askYes(LANG.t("mb.delTitle"), LANG.t("mb.delSub", { name: name }), LANG.t("mb.delOk"), function () {
-      /* Стоим внутри той самой подборки — выходим из неё, и до удаления:
-         `mbBoard` у описателя без своей подборки завёл бы новую взамен
-         только что убранной. Оставаться было нельзя — экран продолжал
-         показывать удалённую папку, и всё, что в неё клали дальше, шло
-         в объект вне `boards` и до записи не доживало. */
-      var inside = mbOpen && mbBoard(mbOpen) === b;
-      if (inside) { mbPickEnd(); mbOpen = null; $("mbFolderOverlay").classList.remove("open"); }
-      dropBoardWithShots(b);
-      saveAll();
-      renderMbStrip(); renderMbCount();
-      renderMbShelf();          // молчит, если полка не открыта
-      if ($("mbOverlay").classList.contains("open")) renderMbGallery();
-    });
+    /* Стоим внутри той самой подборки — выходим из неё, и до удаления:
+       `mbBoard` у описателя без своей подборки завёл бы новую взамен только
+       что убранной. Оставаться было нельзя — экран продолжал показывать
+       удалённую папку, и всё, что в неё клали дальше, шло в объект вне
+       `boards` и до записи не доживало. */
+    var inside = mbOpen && mbBoard(mbOpen) === b;
+    if (inside) { mbPickEnd(); mbOpen = null; $("mbFolderOverlay").classList.remove("open"); }
+    dropBoardWithShots(b);
+    saveAll();
+    renderMbStrip(); renderMbCount();
+    renderMbShelf();          // молчит, если полка не открыта
+    if ($("mbOverlay").classList.contains("open")) renderMbGallery();
   });
+  $("mbBoardCancel").addEventListener("click", closeMbBoardSheet);
 
   /* ---------- Куда положить найденный кадр ----------
      Список — те же папки, что в галерее, плюс жанры без подборки: их можно
@@ -16756,9 +16771,6 @@
           + '<span class="mb-cover">+' + (over + 1) + "</span>"
           + '<span class="n">' + esc(LANG.t("mb.all")) + "</span></button>";
       }
-      /* Та же добивка ряда, что в галерее: рамка «+» в одиночестве — это
-         снова пустой экран, только с рамкой посередине. */
-      if (!list.length && prefix && mbGhostsOn()) html += mbGhostCells(2, 3);
       $(host).innerHTML = html;
       $(host).querySelectorAll(".mb-tile:not(.add):not(.gh-tile)").forEach(function (b) {
         if (b.dataset.more) {
@@ -16773,13 +16785,11 @@
     /* Та же учебная рамка, что в общей библиотеке подборок (`renderMbTiles`,
        15_MOODBOARD, «Пустое состояние — не отдельный экран») — теперь и на
        ленте съёмок, а не только внутри самого мудборда */
-    var addTile = mbFreeGenres(setsF).length
-      ? '<button type="button" class="mb-tile add" id="mbStripAdd">'
-        + '<span class="mb-cover"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>'
-        + '<span class="n">' + esc(LANG.t("mb.newTitle")) + "</span></button>"
-      : "";
+    var addTile = '<button type="button" class="mb-tile add" id="mbStripAdd">'
+      + '<span class="mb-cover"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>'
+      + '<span class="n">' + esc(LANG.t("mb.newTitle")) + "</span></button>";
     fill("mbStripSets", "mbStripSetsLbl", setsF, "g", addTile);
-    if ($("mbStripAdd")) $("mbStripAdd").addEventListener("click", function () { openMbNew(setsF); });
+    if ($("mbStripAdd")) $("mbStripAdd").addEventListener("click", function () { openMbNew(); });
     $("mbStripHint").hidden = folders.length < 2;   // сливать нечего, пока подборка одна
   }
   function renderMbCount() {
@@ -17053,7 +17063,11 @@
       if (q) return '<div class="rt-empty" style="padding:8px 2px">' + esc(LANG.t("mb.searchNothing")) + "</div>";
       if (mbTag) return '<div class="rt-empty" style="padding:8px 2px">'
         + esc(LANG.t("mb.sectionEmpty", { section: tagName(mbTag) })) + "</div>";
-      if (!mbGhostsOn()) return '<div class="rt-empty" style="padding:8px 2px">' + esc(LANG.t("mb.empty")) + "</div>";
+      /* Сетка плашек показывается всегда, пока подборка пуста, а не только
+         до первой заполненной (Алексей, 31 августа 2026). Заготовок теперь
+         столько же, сколько жанров, и в каждую заходят впервые в свой день:
+         строка «пока пусто» вместо коллажа встречала бы человека в девятой
+         папке так, будто он здесь уже всё видел. */
       return mbGhostGrid(LANG.t("mb.empty"), board.id);
     })();
     /* Короткий тап открывает кадр во весь экран (макет «Moodboard Shoots»),
@@ -19679,7 +19693,27 @@
     }
     applyGenreShape();
   }
-  var genresOn = (saved && saved.genres) || { "portrait": 1, "wedding": 1, "lovestory": 1, "landscape": 1, "architecture": 1, "street": 1 };
+  /* Изначально включены все жанры, и на каждый заведена пустая подборка
+     (Алексей, 31 августа 2026). Мудборд перестаёт начинаться с пустого места:
+     ряд сразу выложен градиентными плитками, и первый кадр кладут в готовую
+     папку, а не заводят её сами. Выключить лишнее можно в «Моих жанрах» —
+     обратный порядок, но верный: убрать чужое проще, чем угадать своё. */
+  var genresOn = (saved && saved.genres) || (function () {
+    var all = {}; ALL_GENRES.forEach(function (g) { all[g] = 1; }); return all;
+  })();
+  /* Раскладка заготовок — здесь, а не при отрисовке ряда: ряд рисуется по
+     фонду, и заводить в нём подборки на лету значило бы менять данные из
+     отрисовки. Одним заходом: что включено, у того есть папка. */
+  mbSeeded = !!(saved && saved.mbSeeded);
+  if (!mbSeeded) {
+    ALL_GENRES.forEach(function (g) { if (genresOn[g]) boardTpl(g, true); });
+    mbSeeded = true;
+    /* Записать нужно тут же, иначе признак не доживёт до следующего запуска
+       и заготовки разложатся заново — вместе с теми, что человек убрал.
+       Через `setTimeout`, тем же приёмом, что и у `migrateThumbs`: на этой
+       строке половина состояния приложения ещё не объявлена. */
+    setTimeout(function () { saveAll(); renderMbStrip(); renderMbCount(); }, 0);
+  }
   /* Имя пожелания для экрана. `WISH_CODE` заведён у migrateWishes. */
   function wishName(w) {
     var code = WISH_CODE[w] || w;
