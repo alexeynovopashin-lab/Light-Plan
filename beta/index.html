@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=39"></script>
+<script src="lang.js?v=41"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2581,10 +2581,30 @@
      перерисовываются целиком после каждой перестановки, и класс на них не
      пережил бы и одного шага.
 
-     Качается обложка, а не сама плитка. CSS-анимация перебивает inline
-     `transform` — а им живут и перетаскивание, и расступание соседей
-     (`mbTilesFlip`): покачивание стёрло бы оба. */
+     Качается обложка, а не сама плитка. Разделение не косметическое:
+     CSS-анимация перебивает inline `transform`, а им живут и перетаскивание
+     поднятой, и расступание соседей — оба висят на самой плитке. Обложке
+     остаётся качание, и они не спорят. У поднятой и у цели объединения
+     качание гасится: там обложке нужен масштаб. */
   body.mb-sorting .mb-tiles { touch-action: none; }
+  /* Зона нажатия шире самого знака: пальцем в кружок 23 точки не попасть */
+  .mb-tile-art .mb-del {
+    position: absolute; top: -13px; left: -13px; width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center; z-index: 6;
+    opacity: 0; transform: scale(0.3); pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.2,1.5,0.4,1);
+  }
+  .mb-tile-art .mb-del i {
+    width: 23px; height: 23px; border-radius: 999px; background: var(--ink);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5); display: flex;
+    align-items: center; justify-content: center;
+  }
+  .mb-tile-art .mb-del i::before {
+    content: ""; width: 11px; height: 2px; border-radius: 2px; background: var(--bg);
+  }
+  body.mb-sorting .mb-tile .mb-del { opacity: 1; transform: scale(1); pointer-events: auto; }
+  /* Поднятая плитка минус прячет: он мешал бы прицелу объединения */
+  body.mb-sorting .mb-tile.mb-lift .mb-del { opacity: 0; pointer-events: none; }
   body.mb-sorting .mb-tile .mb-tile-art {
     animation: mbJiggle 0.26s ease-in-out infinite alternate;
     transform-origin: 50% 55%;
@@ -15416,64 +15436,34 @@
       setTimeout(function () { art.style.animation = ""; }, 460);
     }
   }
-  /* Один жест отвечает на два вопроса — «куда переставить» и «с чем слить».
-     Первая редакция разводила их местом на плитке (край про порядок,
-     середина про слияние, полсекунды неподвижности) — и на телефоне
-     развалилась: чтобы поставить плитку на место соседа, палец обязан
-     замереть ровно в его середине, то есть ровно в ловушке слияния.
-     Алексей 30 августа 2026: «слияние надо сделать просто позже, наводим
-     папку на папку и ждём 2 секунды». Так и разведено теперь — не местом, а
-     временем: порядок меняется от движения, слияние от неподвижности.
+  /* ---------- Жест сортировки подборок ----------
+     Три редакции этого жеста Алексей забраковал на телефоне: плитки не
+     ловились, ряд разъезжался, страница уезжала из-под пальца. 31 августа
+     2026 он собрал рабочую демку сам («Мудборд - сортировка.dc.html»,
+     лежит рядом в `beta/`), и здесь она перенесена один в один. Четыре
+     отличия от прежних редакций и есть причины, по которым те не работали:
 
-     `MB_MERGE_DWELL` — те самые две секунды: столько палец должен простоять,
-     не шевелясь, чтобы прицел загорелся. `MB_MERGE_COVER` — насколько плитка
-     должна накрыть чужую, чтобы та вообще считалась целью: четверть площади,
-     то есть «наехал краем» целью не считается. */
-  var MB_MERGE_DWELL = 2000, MB_MERGE_COVER = 0.25, MB_SWAP_CORE = 0.35;
-  /* Клетки ряда — где плитки стоят по разметке. Снимаются один раз, при
-     подъёме, и берутся из `offsetLeft/offsetTop`, а не из
-     `getBoundingClientRect`: те врут, пока идёт перестановка (плитки в этот
-     момент сдвинуты `transform`, и прямоугольник у них промежуточный), а
-     offset живёт в разметке и про анимацию не знает. */
-  function mbCells(host) {
-    return Array.prototype.slice.call(host.querySelectorAll("[data-rk]")).map(function (c) {
-      return { rk: c.dataset.rk, x: c.offsetLeft, y: c.offsetTop, w: c.offsetWidth, h: c.offsetHeight };
-    });
-  }
-  /* Куда метит поднятая плитка: клетка, в чью сердцевину зашла её середина.
-     Считаем по серединам, а не по тому, что под пальцем
-     (`elementFromPoint`): палец то и дело оказывается в зазоре между
-     плитками или над самой поднятой — и ряд замирал, хотя рука уже увела
-     плитку на место соседа.
+     1. Такт держит `setInterval`, а не события указателя. Отсчёт до
+        объединения должен идти и когда палец стоит; прежняя редакция
+        сбрасывала его любым движением — пальцем такую неподвижность не
+        выдать, и объединение не срабатывало никогда. `requestAnimationFrame`
+        тоже не годится: в неактивном окне он засыпает вместе с жестом.
+     2. Отсчёт привязан к клетке, а не к покою: дрожь внутри клетки его не
+        трогает, уход в соседнюю — обнуляет.
+     3. Соседи расступаются сдвигом от своего домашнего места, а DOM во
+        время жеста не трогается вовсе. Прежний FLIP переносил узлы и мерил
+        их посреди чужих переходов — отсюда «плитки разлетаются».
+     4. Вне режима сортировки сдвиг пальца отпускает жест целиком: это
+        прокрутка страницы, а не перенос плитки. Прежняя редакция держала
+        касание за собой, и список залипал под пальцем.
 
-     Сердцевина — `MB_SWAP_CORE` от размера клетки, а не половина ряда, и
-     это не украшение: между «сдвинул на полклетки» и «поставил на место
-     соседа» лежит всё окно, в котором плитка накрывает чужую и её можно
-     держать ради слияния. Порог в полклетки оставлял под это окно двадцать
-     пикселей — наведение было бы не поймать. */
-  function mbCoreCell(cells, cx, cy) {
-    var best = -1, bd = Infinity;
-    cells.forEach(function (c, i) {
-      var dx = cx - (c.x + c.w / 2), dy = cy - (c.y + c.h / 2);
-      if (Math.abs(dx) > c.w * MB_SWAP_CORE || Math.abs(dy) > c.h * MB_SWAP_CORE) return;
-      var d = dx * dx + dy * dy;
-      if (d < bd) { bd = d; best = i; }
-    });
-    return best;
-  }
-  /* С кем сливать, когда палец замер: чью клетку поднятая плитка накрыла
-     больше всех. Своя клетка из счёта исключена — с собой не сливаются. */
-  function mbCoverBest(cells, box, skipIdx) {
-    var best = -1, bs = box.w * box.h * MB_MERGE_COVER;
-    cells.forEach(function (c, i) {
-      if (i === skipIdx) return;
-      var w = Math.min(box.x + box.w, c.x + c.w) - Math.max(box.x, c.x);
-      var h = Math.min(box.y + box.h, c.y + c.h) - Math.max(box.y, c.y);
-      if (w <= 0 || h <= 0) return;
-      if (w * h > bs) { bs = w * h; best = i; }
-    });
-    return best;
-  }
+     Что настраивается: `MB_HOLD` — сколько держать до входа в режим,
+     `MB_DWELL` — сколько водить над чужой плиткой до объединения. Первая
+     треть отсчёта — мёртвая зона (прицел не загорается от пролёта мимо),
+     остальное наливается кольцом. */
+  var MB_HOLD = 420, MB_DWELL = 1100;
+  var mbSorting = false, mbDrag = null, mbSettling = false;
+  function mbBuzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
   /* Порядок ряда читаем из самого ряда, а не из данных: так он всегда
      совпадает с тем, что человек видит, и плитки без `data-rk` — рамка «+»,
      «ещё N», призраки — в перестановке не участвуют по построению. */
@@ -15482,253 +15472,381 @@
       .map(function (c) { return c.dataset.rk; });
   }
   /* ---------- Режим сортировки ----------
-     Долгий тап по плитке больше не «поднимает одну», а переводит мудборд в
-     режим сортировки — как домашний экран iOS. Пока он включён:
-     — все жесты страницы погашены (`touchmove` на документе), поэтому
-       касание уже некому отнять: именно этим умирал прежний жест, iOS читал
-       движение вбок как листание месяца и переставал слать события;
-     — плитки покачиваются, показывая, что ряд ждёт руки;
-     — тащить можно сразу, без повторного удержания;
-     — тап по плитке открывает её лист (там переименование, обложка,
-       удаление), тап мимо ряда — выход из режима.
-     Решено с Алексеем 31 августа 2026 после двух неудачных подходов. */
-  var mbSorting = false;
-  /* Гасим только те касания, что начались на плитках: у `touchmove` цель —
-     элемент, где палец лёг, а не тот, над которым он сейчас. Всё остальное
-     прокручивается как всегда — иначе в режиме нельзя было бы добраться до
-     нижних подборок в длинной галерее. */
-  function mbSortBlock(e) {
-    if (!mbSorting) return;
-    var t = e.target;
-    if (t && t.closest && t.closest(".mb-tiles")) e.preventDefault();
-  }
-  /* Выход — по щелчку мимо ряда, а не по касанию: касание бывает началом
-     прокрутки, и режим выпадал бы от простого пролистывания. После
-     настоящей прокрутки `click` не приходит вовсе — это и есть нужное
-     различение. */
-  function mbSortOutside(e) {
-    var t = e.target;
-    if (t && t.closest && t.closest(".mb-tiles")) return;   // свой ряд не в счёт
-    mbSortOff();
-  }
-  function mbSortKey(e) { if (e.key === "Escape") mbSortOff(); }
+     Долгий тап переводит мудборд в отдельный режим — как домашний экран
+     iOS. Пока он включён, ряд принадлежит пальцу целиком: страница не
+     едет, календарь наверху не листается, плитки покачиваются, тащить
+     можно сразу, без повторного удержания. */
   function mbSortHint() {
     var key = mbSorting ? "mb.sortHint" : "mb.mergeHint";
     document.querySelectorAll(".mb-strip-hint").forEach(function (h) {
       h.textContent = LANG.t(key); h.dataset.i18n = key;
     });
   }
+  /* Выход — тапом мимо плитки. Не по касанию как таковому: касание бывает
+     началом прокрутки. Но и одним `click` обойтись нельзя — iOS не рассылает
+     его с обычных, «некликабельных» узлов, и тап по пустому месту до
+     документа не доходит. Поэтому тап собираем сами: где палец лёг и где
+     встал. Мимо плитки — это и зазор внутри самой сетки: зазор плиткой не
+     является, и на домашнем экране iOS тап по нему правку закрывает. */
+  function mbKeeps(t) {
+    return !!(t && t.closest && (t.closest(".mb-tile") || t.closest(".sheet")));
+  }
+  var mbTapOut = false, mbTapX = 0, mbTapY = 0;
+  function mbTapDown(e) { mbTapOut = !mbKeeps(e.target); mbTapX = e.clientX; mbTapY = e.clientY; }
+  function mbTapUp(e) {
+    if (!mbTapOut) return;
+    mbTapOut = false;
+    if (!mbSorting || mbDrag) return;
+    if (Math.abs(e.clientX - mbTapX) + Math.abs(e.clientY - mbTapY) > 12) return;
+    if (mbKeeps(e.target)) return;
+    mbSortOff();
+  }
+  /* Лист поверх режима закрывается первым: Escape при открытом листе — про
+     лист, а не про сортировку (порядок из демки). */
+  function mbSortKey(e) {
+    if (e.key !== "Escape") return;
+    if (document.querySelector(".sheet.open")) return;
+    mbSortOff();
+  }
   function mbSortOn() {
     if (mbSorting) return;
     mbSorting = true;
     document.body.classList.add("mb-sorting");
-    /* `passive: false` обязателен: без него `preventDefault` не считается, и
-       страница едет как ни в чём не бывало */
-    document.addEventListener("touchmove", mbSortBlock, { passive: false });
-    document.addEventListener("click", mbSortOutside, true);
+    document.addEventListener("pointerdown", mbTapDown, true);
+    document.addEventListener("pointerup", mbTapUp, true);
     document.addEventListener("keydown", mbSortKey);
     mbSortHint();
-    try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
+    mbBuzz(12);
   }
   function mbSortOff() {
     if (!mbSorting) return;
     mbSorting = false;
     document.body.classList.remove("mb-sorting");
-    document.removeEventListener("touchmove", mbSortBlock, { passive: false });
-    document.removeEventListener("click", mbSortOutside, true);
+    document.removeEventListener("pointerdown", mbTapDown, true);
+    document.removeEventListener("pointerup", mbTapUp, true);
     document.removeEventListener("keydown", mbSortKey);
     mbSortHint();
   }
   function mbStartDrag(btn, boardId, onOpen, onMenu, reorder) {
     /* Тянуть можно ради слияния (у плитки есть знак подборки) или ради
        порядка. Полка с несколькими папками сливаться не умеет (см.
-       `mbDragId`), но переставляться — вполне, и раньше она выпадала из
-       жеста целиком. Не умеет ни того, ни другого — только открыться. */
+       `mbDragId`), но переставляться — вполне. Не умеет ни того, ни
+       другого — только открыться. */
     if (!boardId && !reorder) { btn.addEventListener("click", onOpen); return; }
-    var timer = null, lifted = false, dragged = false, consumed = false, entered = false;
-    var sx = 0, sy = 0, order = null, was = "";
-    var cells = null, myCx = 0, myCy = 0, myBox = null;
-    var aimEl = null, dwellT = null, activeId = null;
-    /* Цель слияния подсвечиваем сам найденный узел, а не переспрашиваем его
-       у документа по знаку подборки: одна и та же подборка лежит на экране
-       дважды — плиткой в ленте и плиткой в галерее, — и поиск по документу
-       мог поднять не ту. */
-    function aim(el) {
-      if (aimEl === el) return;
-      if (aimEl) aimEl.style.transform = "none";
-      aimEl = el;
-      if (!el) return;
-      el.style.transition = "transform .2s ease";
-      el.style.transform = "scale(1.07)";
-      try { navigator.vibrate && navigator.vibrate(8); } catch (err) {}
-    }
-    function dwellOff() { clearTimeout(dwellT); dwellT = null; }
-    btn.addEventListener("pointerdown", function (e) {
-      if (e.button) return;
-      /* Сбрасываем в начале жеста, а не в обработчике клика: после
-         настоящего перетаскивания клик не приходит вовсе, и флаг оставался
-         взведён — съедалось следующее касание, плитка требовала двух тапов.
-         Внутри одного жеста его взводит только долгий тап, который всегда
-         позже этой строки. Так же сделано у кадров в сетке (`longed`). */
-      consumed = false;
-      sx = e.clientX; sy = e.clientY; lifted = false; dragged = false; entered = false;
-      /* Указатель забираем себе с первого касания. На пальце это делает и
-         сам браузер, а мышью без захвата события уходят соседу под
-         курсором, и плитка остаётся поднятой навсегда. */
-      activeId = e.pointerId;
-      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
-      /* В режиме сортировки ждать нечего: ряд уже в руках, плитка едет от
-         первого же движения. Вне режима долгий тап в этот режим вводит. */
-      if (mbSorting && reorder) return;
-      timer = setTimeout(function () {
-        if (reorder && !mbSorting) { entered = true; mbSortOn(); }
-        lift();
-      }, 420);
-    });
-    /* Подъём: плитка выходит из ряда в руку. Клетки ряда снимаются здесь же
-       — до первого движения, пока всё стоит на своих местах. */
-    function lift() {
-      lifted = true; consumed = true;
-      if (reorder) {
-        order = mbRkOrder(reorder.host); was = order.join();
-        cells = mbCells(reorder.host);
-        var mine = cells[order.indexOf(btn.dataset.rk)];
-        /* Середина поднятой плитки в той же системе, что и клетки: дальше
-           к ней прибавляется сдвиг пальца, и ничего читать не нужно */
-        myCx = mine.x + mine.w / 2; myCy = mine.y + mine.h / 2;
-        myBox = { w: mine.w, h: mine.h };
-      }
-      try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
-      btn.classList.add("mb-lift");
-      btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
-      btn.style.transform = "scale(1.1)";
-      btn.style.zIndex = "40"; btn.style.position = "relative";
-    }
-    btn.addEventListener("pointermove", function (e) {
-      var dx = e.clientX - sx, dy = e.clientY - sy;
-      if (!lifted) {
-        if (Math.abs(dx) + Math.abs(dy) <= 8) return;
-        clearTimeout(timer);
-        /* Внутри режима порог движения и есть начало перетаскивания —
-           второй раз держать плитку не надо */
-        if (!(mbSorting && reorder)) return;
-        lift();
-      }
-      dragged = true;
-      btn.style.transition = "none";
-      btn.style.transform = "translate(" + dx + "px," + dy + "px) scale(1.1)";
-      /* Двинулись — прицел слияния сбит, отсчёт двух секунд начинается
-         заново. Слияние ждёт неподвижности, а не места: это и есть всё
-         различение между «переставить» и «объединить». */
-      dwellOff(); aim(null);
-      if (!order) return;
-      var cx = myCx + dx, cy = myCy + dy;
-      var here = order.indexOf(btn.dataset.rk);
-      var to = mbCoreCell(cells, cx, cy);
-      if (to >= 0 && to !== here) {
-        order.splice(here, 1);
-        order.splice(to, 0, btn.dataset.rk);
-        mbTilesFlip(reorder.host, order, btn);
-        here = to;
-      }
-      if (!boardId) return;                 // полке сливаться нечем и не с чем
-      dwellT = setTimeout(function () {
-        var j = mbCoverBest(cells, { x: cx - myBox.w / 2, y: cy - myBox.h / 2, w: myBox.w, h: myBox.h }, here);
-        if (j < 0) return;
-        var el = reorder.host.querySelector('[data-rk="' + order[j] + '"]');
-        if (el && el.dataset.bid && el.dataset.bid !== boardId) aim(el);
-      }, MB_MERGE_DWELL);
-    });
-    function release(e) {
-      /* Чужое касание нам не конец: на экране бывает второй палец */
-      if (e && e.pointerId != null && activeId != null && e.pointerId !== activeId) return;
-      clearTimeout(timer); dwellOff();
-      try { if (activeId != null) btn.releasePointerCapture(activeId); } catch (err) {}
-      activeId = null;
-      if (!lifted) return;
-      var mergeId = aimEl && aimEl.dataset.bid;
-      aim(null);
-      btn.classList.remove("mb-lift");
-      btn.style.transition = "transform .42s cubic-bezier(.2,1.3,.35,1)";
-      btn.style.transform = "none"; btn.style.zIndex = ""; btn.style.position = "";
-      if (mergeId) {
-        mbMergeBoards(boardId, mergeId);
-        try { navigator.vibrate && navigator.vibrate(24); } catch (err) {}
-      } else if (dragged) {
-        /* Двигали — хоть на пиксель, хоть обратно на своё место — жест уже
-           случился, меню поверх него было бы лишним. То же правило, что у
-           кадров в сетке (`mbGridDrag`). */
-        if (order && order.join() !== was) reorder.commit(order);
-      } else if (entered) {
-        /* Долгий тап всего лишь ввёл в режим сортировки — этого и довольно.
-           Лист подборки здесь открывать нельзя: он накрыл бы ряд, который
-           человек только что попросил показать целиком. Внутри режима лист
-           зовут обычным тапом. */
-      } else if (onMenu) onMenu(boardId);
-      order = null; cells = null;
-    }
-    btn.addEventListener("pointerup", release);
-    btn.addEventListener("pointercancel", release);
-    /* Конец касания ловим ещё и окном. iOS в середине жеста забирает
-       касание себе — горизонтальное движение по странице читается как
-       листание месяца в календаре наверху, — и плитке не достаётся больше
-       ни одного события: ни `pointerup`, ни `pointercancel`. Она так и
-       оставалась поднятой поверх соседки, а ряд разъехавшимся (снимок с
-       телефона Алексея, 30 августа 2026; симулятор повторил это в
-       точности, обеими редакциями). Отсюда же и «плитки не двигаются»:
-       жест обрывался на первом же горизонтальном движении. */
-    ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach(function (t) {
-      window.addEventListener(t, release);
-    });
-    /* А чтобы касание не отнимали вовсе, пока плитка поднята, гасим
-       браузерный жест руками. `touch-action: none` в стилях не годится: он
-       читается в начале касания, а плитка поднимается через 420 мс после
-       него — до подъёма страница должна прокручиваться пальцем как всегда. */
-    btn.addEventListener("touchmove", function (e) { if (lifted) e.preventDefault(); }, { passive: false });
+    var pd = null, consumed = false, timer = null;
+    /* Крестик зовёт лист подборки — переименовать, сменить обложку, убрать.
+       Тап по самой плитке в режиме тоже его зовёт: на домашнем экране iOS
+       иконка в правке молчит, но там у неё нет ничего, кроме крестика, а
+       у подборки лист — единственный вход в её настройки. */
     btn.addEventListener("click", function (e) {
       if (consumed) { consumed = false; e.preventDefault(); e.stopPropagation(); return; }
-      /* В режиме сортировки плитка не открывается: тап зовёт её лист —
-         переименовать, сменить обложку, удалить. Так же ведёт себя
-         домашний экран iOS, где в режиме правки иконка не запускает
-         приложение. */
-      if (mbSorting && reorder && onMenu) { e.preventDefault(); e.stopPropagation(); onMenu(boardId); return; }
+      if (mbSorting && e.target && e.target.closest && e.target.closest(".mb-del")) {
+        e.preventDefault(); e.stopPropagation();
+        if (onMenu && boardId) onMenu(boardId); else onOpen();
+        return;
+      }
+      /* Полка жанра с несколькими папками своего знака не имеет, и листа у
+         неё нет: в режиме она открывается — внутри плитки сортируются тем
+         же жестом. */
+      if (mbSorting && onMenu && boardId) { e.preventDefault(); e.stopPropagation(); onMenu(boardId); return; }
       onOpen();
     });
+    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    /* Пока плитка в руке, браузерный жест гасим сами. `touch-action: none`
+       в стилях этого не заменяет: он читается в начале касания, а плитка
+       поднимается позже — до подъёма страница должна прокручиваться. */
+    btn.addEventListener("touchmove", function (e) { if (mbDrag) e.preventDefault(); }, { passive: false });
+    btn.addEventListener("pointerdown", function (e) {
+      if (e.button || mbSettling || mbDrag) return;
+      /* Минус — не ручка для переноса: касание на нём жест не начинает */
+      if (e.target && e.target.closest && e.target.closest(".mb-del")) return;
+      consumed = false;
+      pd = { x: e.clientX, y: e.clientY, moved: false, id: e.pointerId };
+      mbLastX = e.clientX; mbLastY = e.clientY;
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+      /* Указатель забираем себе с первого касания: мышью без захвата
+         события уходят соседу под курсором, и плитка остаётся поднятой. */
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+      /* Ряд съёмок не переставляется: порядок в нём календарный, ближайшая
+         съёмка первой, и перестановка рукой не пережила бы перерисовки. Там
+         долгий тап делает то, что и делал, — зовёт лист подборки. */
+      if (!mbSorting) {
+        timer = setTimeout(function () {
+          consumed = true;
+          if (reorder) { mbSortOn(); lift(); }
+          else if (onMenu) onMenu(boardId);
+        }, MB_HOLD);
+      }
+    });
+    function onMove(e) {
+      mbLastX = e.clientX; mbLastY = e.clientY;
+      if (!pd) return;
+      if (!mbDrag) {
+        if (Math.abs(e.clientX - pd.x) + Math.abs(e.clientY - pd.y) < 8) return;
+        clearTimeout(timer);
+        /* Вне режима сдвиг — это прокрутка страницы, а не перенос плитки:
+           жест отпускаем целиком, иначе список залипает под пальцем. */
+        if (!mbSorting || !reorder) { unbind(); pd = null; return; }
+        consumed = true;
+        lift();
+      }
+      pd.moved = true;
+    }
+    function unbind() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      try { if (pd && pd.id != null) btn.releasePointerCapture(pd.id); } catch (err) {}
+    }
+    /* Клетки ряда снимаем один раз, при подъёме, из разметки
+       (`offsetLeft/Top`): при перестановке плитки сдвинуты трансформом, и
+       `getBoundingClientRect` врёт. */
+    function lift() {
+      if (mbDrag || !pd) return;
+      var host = reorder ? reorder.host : btn.parentNode;
+      var els = Array.prototype.slice.call(host.querySelectorAll("[data-rk]"));
+      var d = {
+        btn: btn, boardId: boardId, reorder: reorder, host: host,
+        sx: pd.x, sy: pd.y, els: els, elBy: {}, homeIdx: {},
+        cells: els.map(function (el) {
+          return { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+        }),
+        ids: els.map(function (el) { return el.dataset.rk; }),
+        cand: null, armed: null, timer: null, edgeOk: false
+      };
+      els.forEach(function (el, i) { d.elBy[el.dataset.rk] = el; d.homeIdx[el.dataset.rk] = i; });
+      d.order = d.ids.slice();
+      d.was = d.order.join();
+      d.orderPre = d.order.slice(); d.orderPost = d.order.slice();
+      d.me = btn.dataset.rk;
+      d.fromIdx = d.homeIdx[d.me];
+      /* Ряд разошёлся с разметкой — плитки в нём нет: поднимать нечего */
+      if (d.fromIdx == null) return;
+      d.zone = d.fromIdx;
+      d.zoneAt = performance.now();
+      d.scroller = mbScroller(btn);
+      d.top0 = d.scroller ? d.scroller.scrollTop : 0;
+      mbDrag = d;
+      btn.classList.add("mb-lift");
+      btn.style.position = "relative"; btn.style.zIndex = "60";
+      var art = btn.querySelector(".mb-tile-art");
+      if (art) {
+        art.style.transition = "transform .2s cubic-bezier(.2,1.3,.4,1), box-shadow .2s ease";
+        art.style.transform = "scale(1.09)";
+        art.style.boxShadow = "0 18px 32px rgba(0,0,0,.4)";
+      }
+      mbBuzz(14);
+      /* Сдвиг пишем из последних координат указателя, а такт держим на
+         интервале — см. причину в шапке блока. */
+      d.timer = setInterval(mbFrame, 60);
+      mbFrame();
+    }
+    function onUp(e) {
+      if (e && e.pointerId != null && pd && pd.id != null && e.pointerId !== pd.id) return;
+      clearTimeout(timer); unbind();
+      var p = pd; pd = null;
+      if (!mbDrag) {
+        /* Долгий тап вне режима открывал лист подборки. Теперь он вводит в
+           режим — этого и довольно; лист зовут обычным тапом уже внутри. */
+        return;
+      }
+      mbDrop(p);
+    }
   }
-  /* Соседи расступаются под поднятой плиткой — тот же приём FLIP, что у
-     кадров внутри подборки (`mbFlipReorder`), но с одной добавкой: узлы без
-     `data-rk` остаются ровно на своих местах в ряду. Благодаря этому рамка
-     «+» держится того конца, где стояла, и перестановка не может загнать её
-     в середину ряда (Алексей, 30 августа 2026). */
-  function mbTilesFlip(host, order, draggedBtn) {
-    var kids = Array.prototype.slice.call(host.children);
-    var byKey = Object.create(null), before = [];
-    kids.forEach(function (c) {
-      if (c.dataset.rk) byKey[c.dataset.rk] = c;
-      if (c !== draggedBtn) before.push({ el: c, r: c.getBoundingClientRect() });
+  var mbLastX = 0, mbLastY = 0;
+  /* Прокручиваемый предок ряда: у ленты это экран, у галереи и полки —
+     их собственные слои поверх. Плитка может уехать за край видимой части,
+     и без этого нижние подборки были бы недостижимы жестом. */
+  function mbScroller(el) {
+    for (var p = el.parentNode; p && p !== document.body; p = p.parentNode) {
+      var st = getComputedStyle(p).overflowY;
+      if ((st === "auto" || st === "scroll") && p.scrollHeight > p.clientHeight + 4) return p;
+    }
+    return null;
+  }
+  function mbFrame() {
+    var d = mbDrag; if (!d) return;
+    var now = performance.now();
+    mbAutoScroll(d);
+    var top = d.scroller ? d.scroller.scrollTop : 0;
+    var dx = mbLastX - d.sx, dy = mbLastY - d.sy + (top - d.top0);
+    d.btn.style.transition = "none";
+    d.btn.style.transform = "translate(" + dx + "px," + dy + "px)";
+
+    var c = d.cells[d.fromIdx];
+    var cx = c.x + c.w / 2 + dx, cy = c.y + c.h / 2 + dy;
+    var z = -1, best = Infinity, core = false;
+    for (var i = 0; i < d.cells.length; i++) {
+      var q = d.cells[i];
+      var ax = cx - (q.x + q.w / 2), ay = cy - (q.y + q.h / 2);
+      if (Math.abs(ax) > q.w * 0.5 + 6 || Math.abs(ay) > q.h * 0.5 + 6) continue;
+      var dd = ax * ax + ay * ay;
+      if (dd < best) { best = dd; z = i; core = Math.abs(ax) < q.w * 0.46 && Math.abs(ay) < q.h * 0.42; }
+    }
+    if (z >= 0 && z !== d.zone) {
+      mbAim(0); mbDisarm();
+      d.zone = z; d.zoneAt = now;
+      d.orderPre = d.order.slice();
+      var displaced = d.order[z];
+      /* Сливать даём только с тем, у кого есть свой знак подборки: полка
+         жанра с несколькими папками целью объединения не бывает. */
+      var el = displaced && displaced !== d.me ? d.elBy[displaced] : null;
+      d.cand = (el && el.dataset.bid && el.dataset.bid !== d.boardId && d.boardId) ? displaced : null;
+      mbMoveTo(z);
+      d.orderPost = d.order.slice();
+      mbBuzz(5);
+    }
+    if (d.armed) { if (!core) mbDisarm(); }
+    else if (d.cand) {
+      var pr = core ? (now - d.zoneAt - MB_DWELL * 0.34) / (MB_DWELL * 0.66) : 0;
+      if (pr >= 1) mbArm(); else mbAim(pr > 0 ? pr : 0);
+    }
+  }
+  /* Краевая полоса начинает работать не раньше, чем палец из неё выйдет.
+     Ряд подборок стоит внизу экрана, и без этого условия сам подъём плитки
+     запускал прокрутку: палец уже в полосе, лист едет, плитка уезжает вниз
+     вместе с ним, палец остаётся в полосе — и так до упора (замер в
+     браузере: плитка ушла на 235 точек, ряд не переставлялся вовсе). */
+  function mbAutoScroll(d) {
+    var s = d.scroller; if (!s) return;
+    var r = s.getBoundingClientRect(), top = mbLastY - r.top, bot = r.bottom - mbLastY;
+    if (!d.edgeOk) { if (top >= 120 && bot >= 140) d.edgeOk = true; return; }
+    var v = 0;
+    if (top < 120) v = -Math.min(15, (120 - top) / 5);
+    else if (bot < 140) v = Math.min(15, (140 - bot) / 5);
+    if (v) s.scrollTop += v;
+  }
+  /* Перестановка сдвигом, а не переносом узлов: DOM во время жеста не
+     трогаем вовсе, поэтому нечему разъезжаться от гонки переходов. */
+  function mbMoveTo(z) {
+    var d = mbDrag, cur = d.order.indexOf(d.me);
+    if (cur === z || cur < 0) return;
+    d.order.splice(cur, 1);
+    d.order.splice(z, 0, d.me);
+    mbApplyOrder(d.order, true);
+  }
+  function mbApplyOrder(order, animate) {
+    var d = mbDrag;
+    order.forEach(function (id, j) {
+      if (id === d.me) return;
+      var el = d.elBy[id], home = d.homeIdx[id];
+      if (!el || home == null) return;
+      var ox = d.cells[j].x - d.cells[home].x, oy = d.cells[j].y - d.cells[home].y;
+      el.style.transition = animate ? "transform .3s cubic-bezier(.22,.9,.25,1)" : "none";
+      el.style.transform = (ox || oy) ? ("translate(" + ox + "px," + oy + "px)") : "";
     });
-    var qi = 0;
-    kids.forEach(function (c) {
-      host.appendChild(c.dataset.rk ? byKey[order[qi++]] : c);
-    });
-    before.forEach(function (p) {
-      /* Снимаем незаконченный сдвиг ДО замера «после». Иначе прямоугольник
-         читается посреди чужого перехода, промежуточным, и новый сдвиг
-         считается от него, а не от клетки ряда: на быстром движении вызовы
-         идут чаще, чем заканчиваются переходы, ошибки складываются, и ряд
-         разъезжается — плитка поверх плитки, подписи внахлёст (телефон
-         Алексея, 30 августа 2026). Первый замер, наоборот, нарочно взят
-         вместе со сдвигом: он и есть то, где плитка видна сейчас. */
-      p.el.style.transition = "none";
-      p.el.style.transform = "none";
-      var a = p.el.getBoundingClientRect();
-      var dx = p.r.left - a.left, dy = p.r.top - a.top;
-      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { p.el.style.transform = ""; return; }
-      p.el.style.transform = "translate(" + dx + "px," + dy + "px)";
-      requestAnimationFrame(function () {
-        p.el.style.transition = "transform .22s ease";
-        p.el.style.transform = "";
-      });
+  }
+  /* Прицел: пока идёт отсчёт, кольцо наливается и на поднятой плитке, и на
+     той, чьё место она заняла. Человек видит объединение до того, как оно
+     случится, и успевает уйти. Покачивание у цели на это время гасим —
+     CSS-анимация обложки перебила бы наш масштаб. */
+  function mbAim(p) {
+    var d = mbDrag; if (!d) return;
+    if (d.cand && d.elBy[d.cand]) {
+      var art = d.elBy[d.cand].querySelector(".mb-tile-art");
+      if (art) {
+        art.style.animation = p ? "none" : "";
+        art.style.transition = "box-shadow .12s linear, transform .12s linear";
+        art.style.boxShadow = p ? ("0 0 0 " + (2.5 * p).toFixed(2) + "px var(--brass), 0 8px 20px rgba(0,0,0,.3)") : "";
+        art.style.transform = p ? ("scale(" + (1 + 0.04 * p).toFixed(3) + ")") : "";
+        art.style.opacity = p ? String(0.55 + 0.45 * p) : "";
+      }
+    }
+    mbDragRing(p);
+  }
+  function mbDragRing(p) {
+    var d = mbDrag; if (!d) return;
+    var art = d.btn.querySelector(".mb-tile-art");
+    if (art) art.style.boxShadow = "0 18px 32px rgba(0,0,0,.4)" + (p ? (", 0 0 0 " + (2.5 * p).toFixed(2) + "px var(--brass)") : "");
+  }
+  /* Взведено: соседи возвращаются на место, цель встаёт обратно под палец и
+     подсвечивается. Отпустил — объединили; ушёл в сторону — снова перенос. */
+  function mbArm() {
+    var d = mbDrag;
+    if (!d || d.armed || !d.cand) return;
+    d.armed = d.cand;
+    d.order = d.orderPre.slice();
+    mbApplyOrder(d.order, true);
+    var el = d.elBy[d.armed], art = el.querySelector(".mb-tile-art");
+    el.style.position = "relative"; el.style.zIndex = "30";
+    if (art) {
+      art.style.animation = "none";
+      art.style.transition = "transform .26s cubic-bezier(.2,1.5,.4,1), box-shadow .2s ease";
+      art.style.transform = "scale(1.13)";
+      art.style.opacity = "1";
+      art.style.boxShadow = "0 0 0 2.5px var(--brass), 0 16px 32px rgba(0,0,0,.4)";
+    }
+    mbMyArt("scale(.86)");
+    mbDragRing(1);
+    mbBuzz(20);
+  }
+  function mbDisarm() {
+    var d = mbDrag;
+    if (!d || !d.armed) return;
+    var el = d.elBy[d.armed], art = el.querySelector(".mb-tile-art");
+    if (art) { art.style.transform = ""; art.style.boxShadow = ""; art.style.opacity = ""; art.style.animation = ""; }
+    el.style.zIndex = "";
+    d.armed = null;
+    d.order = d.orderPost.slice();
+    mbApplyOrder(d.order, true);
+    mbMyArt("scale(1.09)");
+    mbDragRing(0);
+  }
+  function mbMyArt(t) {
+    var d = mbDrag; if (!d) return;
+    var a = d.btn.querySelector(".mb-tile-art");
+    if (a) a.style.transform = t;
+  }
+  /* Отпустили: либо объединяем (плитка уезжает в цель и гаснет), либо
+     доводим её до нового места и записываем порядок. Пока идёт доводка,
+     новый жест не начинается — `mbSettling`. */
+  function mbDrop(p) {
+    var d = mbDrag; mbDrag = null;
+    clearInterval(d.timer);
+    var armed = d.armed, btn = d.btn;
+    var from = d.cells[d.fromIdx];
+    mbSettling = true;
+    if (armed) {
+      var to = d.cells[d.order.indexOf(armed)];
+      btn.style.transition = "transform .34s cubic-bezier(.4,0,.3,1), opacity .28s ease .06s";
+      btn.style.transform = "translate(" + (to.x - from.x) + "px," + (to.y - from.y) + "px) scale(.3)";
+      btn.style.opacity = "0";
+      mbBuzz(26);
+      var mergeTo = d.elBy[armed].dataset.bid;
+      setTimeout(function () {
+        mbClearStyles(d); mbSettling = false;
+        mbMergeBoards(d.boardId, mergeTo);
+      }, 300);
+      return;
+    }
+    var j = d.order.indexOf(d.me), t2 = d.cells[j];
+    btn.style.transition = "transform .36s cubic-bezier(.2,1.25,.35,1)";
+    btn.style.transform = "translate(" + (t2.x - from.x) + "px," + (t2.y - from.y) + "px)";
+    var mine = btn.querySelector(".mb-tile-art");
+    if (mine) {
+      mine.style.transition = "transform .3s cubic-bezier(.2,1.2,.35,1), box-shadow .3s ease";
+      mine.style.transform = ""; mine.style.boxShadow = "";
+    }
+    var ord = d.order.slice(), changed = ord.join() !== d.was;
+    setTimeout(function () {
+      mbClearStyles(d); mbSettling = false;
+      /* Перерисовка сама расставит плитки по новому порядку — снятые
+         стили ей не мешают, узлы всё равно создаются заново. */
+      if (changed && d.reorder) d.reorder.commit(ord);
+    }, 320);
+  }
+  function mbClearStyles(d) {
+    d.btn.classList.remove("mb-lift");
+    d.els.concat([d.btn]).forEach(function (el) {
+      el.style.transition = "none"; el.style.transform = "";
+      el.style.zIndex = ""; el.style.position = ""; el.style.opacity = "";
+      var art = el.querySelector(".mb-tile-art");
+      if (art) {
+        art.style.transition = "none"; art.style.transform = "";
+        art.style.boxShadow = ""; art.style.opacity = ""; art.style.animation = "";
+      }
     });
   }
   /* Порядок плиток жанра — это и есть порядок подборок в фонде: `mbFolders`
@@ -15851,6 +15969,11 @@
     btn.addEventListener("pointercancel", release);
     btn.addEventListener("click", function (e) {
       if (consumed) { consumed = false; e.preventDefault(); e.stopPropagation(); return; }
+      if (mbSorting && e.target && e.target.closest && e.target.closest(".mb-del")) {
+        e.preventDefault(); e.stopPropagation();
+        if (onMenu && boardId) onMenu(boardId); else onOpen();
+        return;
+      }
       onOpen();
     });
   }
@@ -16046,7 +16169,13 @@
       /* Второй раздел начинает с другого места палитры: два одинаковых ряда
          подряд читались бы как одна повторённая заготовка. */
       : mbEmptyTiles(LANG.t("mb.noGenreSets"), 3);
-    if (folders.length > 1) html += '<div class="mb-strip-hint">' + esc(LANG.t("mb.mergeHint")) + "</div>";
+    /* Ключ выбираем при отрисовке, а не переписываем текст задним числом:
+       галерея перерисовывается после каждой перестановки, и подпись,
+       поставленную руками, следующая же перерисовка стёрла бы. */
+    if (folders.length > 1) {
+      html += '<div class="mb-strip-hint" data-i18n="' + (mbSorting ? "mb.sortHint" : "mb.mergeHint") + '">'
+        + esc(LANG.t(mbSorting ? "mb.sortHint" : "mb.mergeHint")) + "</div>";
+    }
     $("mbGallery").innerHTML = html;
     $("mbGallery").querySelectorAll(".mb-tile:not(.add):not(.gh-tile)").forEach(function (b) {
       var list = b.dataset.list === "s" ? sessionsF : genresF;
@@ -16531,10 +16660,16 @@
   }
   /* Обложка на стопке из двух листов + кружок-счётчик — подборка читается
      как пачка распечаток, а не плоская карточка (макет «Moodboard Shoots») */
+  /* Минус в углу — как на домашнем экране iOS: он и есть вход в правку
+     подборки (переименовать, сменить обложку, убрать). Виден только в режиме
+     сортировки, до него плитку не загораживает. Лежит в разметке всегда, а
+     не подставляется при входе в режим: ряды перерисовываются после каждой
+     перестановки, и подставлять пришлось бы каждый раз заново. */
   function mbTileArt(f) {
     var n = mbCountOf(f);
     return '<span class="mb-tile-art"><span class="leaf a"></span><span class="leaf b"></span>'
-      + mbCover(f) + (n ? '<span class="count">' + n + "</span>" : "") + "</span>";
+      + mbCover(f) + (n ? '<span class="count">' + n + "</span>" : "")
+      + '<span class="mb-del" aria-hidden="true"><i></i></span></span>';
   }
   /* Веер из первых трёх обложек в ручке сводки — то же небо и та же
      логика назначенной обложки, что у самой плитки, просто без мозаики */
