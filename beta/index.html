@@ -2591,9 +2591,14 @@
      остаётся качание, и они не спорят. У поднятой и у цели объединения
      качание гасится: там обложке нужен масштаб. */
   body.mb-sorting .mb-tiles { touch-action: none; }
-  /* Зона нажатия шире самого знака: пальцем в кружок 23 точки не попасть */
+  /* Зона нажатия шире самого знака: пальцем в кружок 23 точки не попасть.
+     Знак сидит внутри обложки, а не свешивается с её угла, как на домашнем
+     экране iOS: лента подборок живёт в слое с обрезкой (`.mb-strip-body`,
+     она сворачивается по высоте), и у первой колонки левый край откусывал у
+     минуса кусок — на телефоне тоже (Алексей, 31 августа 2026). Отступ тот
+     же, что у счётчика кадров в правом углу: углы читаются парой. */
   .mb-tile-art .mb-del {
-    position: absolute; top: -13px; left: -13px; width: 42px; height: 42px;
+    position: absolute; top: 0; left: 0; width: 38px; height: 38px;
     display: flex; align-items: center; justify-content: center; z-index: 6;
     opacity: 0; transform: scale(0.3); pointer-events: none;
     transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.2,1.5,0.4,1);
