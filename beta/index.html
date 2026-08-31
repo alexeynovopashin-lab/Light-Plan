@@ -878,7 +878,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=42"></script>
+<script src="lang.js?v=43"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2461,8 +2461,18 @@
   /* Часы и облако стоят на своей геометрии: у них нет линии горизонта, и
      общий сдвиг на 31.25% топил бы их ниже строки */
   #dpGold svg, .dp-b-wx svg { transform: none; }
-  #dpGold { color: var(--ink-4); font-weight: 500; }
-  #dpGold svg { width: 13px; height: 13px; }
+  /* Часы по середине строки, а не по базовой линии: круг нарисован по центру
+     поля, и посаженный низом на базовую линию он выскакивал над цифрами
+     (Алексей, 31 августа 2026). Тот же приём, что у облака погоды рядом.
+     Латунь — своя, не унаследованная: правило «знак идёт в цвет строки»
+     заведено ради заката, у которого цвет времени несёт качество света; тут
+     число статично, спорить не с чем, а золотой час зовут золотым. */
+  #dpGold { color: var(--ink-4); font-weight: 500; align-items: center; }
+  #dpGold svg { width: 13px; height: 13px; stroke: var(--brass); }
+  /* Обёртка знака сжата по нему: у строчного SVG под ним остаётся место под
+     выносные элементы, и центрировалась бы обёртка вместе с этим пустым
+     полем — знак так и стоял бы на 1,25px выше цифр (замер). */
+  #dpGoldIc { display: flex; }
   .dp-b-wx { color: var(--ink); align-items: center; }
   .dp-b-wx svg { width: 17px; height: 17px; }
   /* Черта делит панель на свет и погоду: слева то, чем управляет солнце,
@@ -2827,7 +2837,6 @@
      строчной, а здесь начинает фразу */
   .day-free-t { font-size: 13.5px; color: var(--ink-2); }
   .day-free-t::first-letter { text-transform: uppercase; }
-  .day-free-s { font-size: 11.5px; color: var(--ink-4); margin-top: 2px; }
   /* Занятое время в списке дня: приглушено и со знаком причины. Латунь времени
      достаётся съёмкам — они про свет, а отпуск про его отсутствие */
   .plan-row.busy { align-items: center; color: var(--ink-3); }
@@ -14000,16 +14009,22 @@
        которого этот день и открывают. В дневном виде её нет — там пустые
        часы сами по себе приглашение, в каждый можно ткнуть */
     if (!html && calScope !== "day") {
+      /* Плашка называет промежуток, а не момент: «золотой час 18:40» рядом с
+         заголовком «ДЕНЬ СВОБОДЕН» просил вторую строку, и та повторяла
+         заголовок словами («свободен весь день») — тавтология, которую Алексей
+         и поймал (31 августа 2026). Место второй строки занял конец часа:
+         промежуток — это и есть то, ради чего день открывают, а «свободен» уже
+         сказано сверху. Конец берётся из `blueB` — там золотой сменяется синим
+         (то же окно, что у `tele.goldenTill` на экране «Свет»). */
       var freeGold = sky.goldB !== null && sky.goldB !== undefined ? sky.goldB : sky.set;
-      html = '<div class="day-free">' + IC.svg("sunset")
-        + "<div><div class=\"day-free-t\">"
-        + esc(freeGold !== null && freeGold !== undefined
+      var goldEnd = sky.blueB;
+      var say = (sky.goldB !== null && sky.goldB !== undefined && goldEnd !== null && goldEnd !== undefined)
+        ? LANG.t("day.goldenSpan", { a: fmt(sky.goldB), b: fmt(goldEnd) })
+        : (freeGold !== null && freeGold !== undefined
             ? LANG.t("week.goldenAt", { t: fmt(freeGold) })
-            : LANG.t("day.freeDay"))
-        + "</div>"
-        + (freeGold !== null && freeGold !== undefined
-            ? '<div class="day-free-s">' + esc(LANG.t("day.freeAllDay")) + "</div>" : "")
-        + "</div></div>";
+            : LANG.t("day.freeDay"));
+      html = '<div class="day-free">' + IC.svg("sunset")
+        + '<div><div class="day-free-t">' + esc(say) + "</div></div></div>";
     }
     box.innerHTML = html;
     /* Переход между днями: лента въезжает с той стороны, откуда пришёл день.
