@@ -13,9 +13,10 @@
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-180.png">
 <!-- Настоящая карта: единственная внешняя зависимость, только при сети.
-     Тайлы — тёмные без подписей (CARTO), держат монохром и «карту-холст». -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+     Плитки векторные (CARTO), холст красится нашим стилем — см. mapstyle.js. -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="mapstyle.js?v=1"></script>
 <!-- Словарь знаков: слепок icons.js встроен сюда, чтобы приложение снова
      было одним самодостаточным файлом (ROADMAP, пункт 1). Рабочая копия для
      правок остаётся в icons.js — при следующей правке набора снимок здесь
@@ -2043,11 +2044,12 @@
 
   /* ---------- Карта ---------- */
   .map-frame {
-    /* Было 370 из-за строки лицензии Leaflet — она резала компас снизу, ровно
-       там, где стоит «Ю». Копирайт переехал в настройки (DECISIONS), полотно
-       его больше не несёт, и минимум вернулся к 340: освободившаяся высота
+    /* Было 370 из-за строки лицензии, которую рисовала библиотека карты снизу
+       кадра, — она резала компас ровно там, где стоит «Ю». Своя атрибуция
+       стоит теперь малой плашкой в правом верхнем углу (`.map-credit`), низ
+       кадра свободен, и минимум держится на 340: освободившаяся высота
        достаётся не кадру, а сводке дня под ним. */
-    /* isolation: isolate — Leaflet раскладывает свои панели по z-index до 700,
+    /* isolation: isolate — карта раскладывает свои слои по z-index высоко,
        и без своего контекста наложения они спорят со всем приложением: веер
        точек на 97 уезжал под карту. Замкнув их в кадре, наружу карта выходит
        одним слоем, а порядок внутри неё сохраняется */
@@ -2073,7 +2075,7 @@
      наблюдатель (.map-pin). Без transition: угол ставит rAF каждый кадр,
      css-переход между кадрами только запаздывал бы за сглаживанием в JS. */
   .map-rotor { position: absolute; inset: 0; transform-origin: 50% 50%; }
-  /* touch-action: none — Leaflet водит палец сам через JS (drag и пинч-зум),
+  /* touch-action: none — карту водит палец через JS (drag и пинч-зум),
      браузеру тут решать нечего, это и советует сама библиотека */
   /* Квадрат со стороной в диагональ кадра (--rotor-d, JS: measureMapRotor) —
      единственный размер, покрывающий прямоугольный кадр на любом угле
@@ -2143,44 +2145,41 @@
   /* Позицию задаёт скрипт от самой кнопки; здесь только слой поверх скрима */
   #mapLayersMenu { position: fixed; z-index: 41; transform-origin: 20px 100%; }
 
-  /* Тёмный Leaflet: карта — холст, а не интерфейс */
-  .leaflet-container { background: var(--canvas); font-family: inherit; outline: none; }
-  .leaflet-control-zoom { display: none; }
-  .leaflet-control-attribution {
-    background: var(--fill-b) !important; color: var(--ink-8) !important;
-    font-size: 9px !important; padding: 1px 5px !important;
-  }
-  .leaflet-control-attribution a { color: var(--ink-5) !important; }
-  /* Тёмный холст собирается фильтром из тех же светлых тайлов (разбор — у
-     самого фильтра наверху страницы). CSS этого не выражает: нужно сжатие
-     уровней по каждому каналу отдельно, а не общая яркость. */
+  /* Карта — холст, а не интерфейс. Своих элементов управления у неё нет:
+     зум делает палец, «моё место» и слои — наши кружки снаружи кадра. */
+  .maplibregl-map { background: var(--canvas); font-family: inherit; outline: none; }
+  .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-top-left { display: none; }
+  .maplibregl-canvas:focus { outline: none; }
   .filter-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
-  /* Фильтр висит на самих тайлах, а не на контейнере слоя. Через контейнер
-     было бы дешевле — один расчёт на слой вместо одного на тайл, и обводка
-     зданий не рвалась бы на швах, — но на iOS карта при этом осталась
-     нефильтрованной в обеих темах. На телефоне выиграл вариант, который там
-     работает, а не тот, который экономнее.
-     Подписи исключены явно: фильтр начинается с заливки землёй и потому
-     непрозрачен по всей своей области — попав на прозрачный слой, он
-     превратил бы его в сплошной прямоугольник поверх карты. */
-  .leaflet-tile { filter: url(#tileTone); }
-  .tile-labels .leaflet-tile { filter: none; }
-  /* Светлой теме тайлы годятся как есть: зелень зелёная, вода голубая,
-     дороги серые, здания бежевые */
-  :root[data-theme="light"] .leaflet-tile { filter: none; }
+  /* Холст красится стилем, а не фильтром: цвет каждого слоя назван числом в
+     mapstyle.js. Фильтр `tileTone` вытягивал те же семь ступеней из чужой
+     палитры по разрывам каналов — приём работал, но чинил следствие.
+     Здесь остаётся только цвет самого контейнера: он виден ту долю секунды,
+     пока стиль не встал, и в светлой теме белая вспышка была бы заметна. */
   :root[data-theme="light"] .map-frame,
   :root[data-theme="light"] #lmap,
-  :root[data-theme="light"] .leaflet-container { background: #E8E3DA; }
+  :root[data-theme="light"] .maplibregl-map { background: #E8E3DA; }
   /* Звёзды на дневной карте не читаются вовсе: полоса Млечного Пути светлее
      бежевого холста, и слой пропадает. Поэтому со звёздами холст уходит в
      ночь даже в светлой теме — но только холст. Тема приложения не трогается:
      это карта сменила время суток, а не человек передумал про интерфейс.
      Отдельного «ночного режима» под это не заводим: слой включён — небо
-     тёмное, выключен — обычная карта, второго переключателя не нужно. */
-  :root[data-theme="light"] body.mw-sky .leaflet-tile { filter: url(#tileTone); }
+     тёмное, выключен — обычная карта, второго переключателя не нужно.
+     Сам холст переключает `lightCanvas()` выбором стиля — здесь только
+     подложка под ним. */
   :root[data-theme="light"] body.mw-sky .map-frame,
   :root[data-theme="light"] body.mw-sky #lmap,
-  :root[data-theme="light"] body.mw-sky .leaflet-container { background: #14110E; }
+  :root[data-theme="light"] body.mw-sky .maplibregl-map { background: #14110E; }
+  /* Атрибуция — условие бесплатного доступа к плиткам, и стоять она должна на
+     самом холсте, а не в настройках: правый верхний угол кадра свободен, и
+     плашка там ничего не закрывает. Полупрозрачная и мелкая — это сноска,
+     а не подпись автора. */
+  .map-credit {
+    position: absolute; z-index: 470; top: 8px; right: 8px;
+    padding: 2px 6px; border-radius: 7px; corner-shape: squircle;
+    background: var(--bar-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    font-size: 9px; letter-spacing: 0.2px; color: var(--ink-7); pointer-events: none;
+  }
 
   /* ---------- Календарь ---------- */
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
@@ -5499,105 +5498,13 @@
 </head>
 <body>
 
-<!-- Тон тайлов карты. Тёмный холст делается из светлых тайлов, а не берётся
-     готовым: у CARTO dark_nolabels одиннадцать цветов на весь мир и яркость
-     1–39 из 255, причём парк отличается от застройки не тоном, а дизерингом —
-     регулярной смесью двух уровней со средней разницей в полтора уровня.
-     Замерено по тайлам Москвы, Питера, Сокольников и Альп: вытащить из этого
-     кварталы и зелень нельзя ничем, любой фильтр даёт либо черноту, либо рябь.
-     У voyager_nolabels на том же кадре 136 цветов и вся графика на месте.
-     Поэтому холст получается сжатием: светлый диапазон (200–255, где лежит
-     весь voyager) отображается в тёмный, порядок слоёв сохраняется — дороги
-     светлее фона, зелень и вода темнее, — а насыщенность приглушается, чтобы
-     карта осталась холстом и не спорила со слоем света. -->
-<svg class="filter-defs" aria-hidden="true"><defs>
-  <!-- Карта не приглушается, а перекрашивается по слоям. Приглушение чужой
-       палитры даёт ровно то, чем она и была, только тусклее; холст должен быть
-       собран из наших цветов, иначе гармонии взяться неоткуда.
-
-       Классы узнаются по разрыву каналов исходного тайла — замерено по тайлам
-       Москвы, Питера, Лобни и Сокольников:
-         вода       B−R = +22   (единственный положительный разрыв синего)
-         зелень     G−R = +12   при отрицательном B−R
-         магистраль B−R = −62   (жёлтая заливка главных дорог)
-         здания     B−R от −28 до −14 (тёплая бежевая заливка)
-         улицы      светлота ≥ 250
-       Разрывы не пересекаются, поэтому классы разделяются линейной матрицей:
-       она кладёт признак в альфу, а множитель 40 делает границу резкой, но не
-       рваной — антиалиас исходных линий доживает до края маски.
-
-       Порядок наложения — обратный приоритету: последний рисуется поверх. -->
-  <filter id="tileTone" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-    <!-- Земля: самая тёмная ступень, дорожная сетка прорезает её светлотой -->
-    <feFlood flood-color="#15191C" result="base"/>
-
-    <!-- Здания: графит на две ступени светлее земли. Порядок обратный дневному —
-         ночью подложка проваливается, а застройка всплывает, и морфология
-         города читается без единой обводки -->
-    <feColorMatrix in="SourceGraphic" type="matrix" result="b1"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  40 0 -40 0 -1.696"/>
-    <feColorMatrix in="SourceGraphic" type="matrix" result="b2"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -40 0 40 0 4.892"/>
-    <feComposite in="b1" in2="b2" operator="in" result="mBld"/>
-    <feFlood flood-color="#2A3034" result="cBld"/>
-    <feComposite in="cBld" in2="mBld" operator="in" result="lBld"/>
-    <feComposite in="lBld" in2="base" operator="over" result="s0"/>
-
-    <!-- Обводка зданий. Контур самого тайла — в один пиксель, его приходится
-         искать глазами, поэтому обводку рисуем свою.
-         Обводка идёт внутрь, а не наружу: город плотный, и наружные кольца
-         соседних домов слипаются — проверено, кварталы зарастают светлым и
-         промежутки между домами исчезают.
-         Обводку получает только здание, у которого после сжатия осталось ядро.
-         Простая разница «маска минус её сжатие» красит мелкий дом кольцом
-         целиком, и на среднем масштабе застройка рассыпается в рябь. Здесь
-         кольцо строится от ядра наружу: нет ядра — нет обводки, дом остаётся
-         ровной заливкой и держит квартал спокойным.
-         Светлота на ступень выше заливки, но не выше улиц: здание всплывает
-         над землёй, а самым светлым на холсте остаётся дорожная сетка -->
-    <feMorphology id="bldCore" in="mBld" operator="erode" radius="0.9" result="mCore"/>
-    <feMorphology id="bldGrow" in="mCore" operator="dilate" radius="0.9" result="mGrown"/>
-    <feComposite in="mGrown" in2="mCore" operator="out" result="mBldEdge"/>
-    <feFlood flood-color="#3D484D" result="cEdge"/>
-    <feComposite in="cEdge" in2="mBldEdge" operator="in" result="lEdge"/>
-    <feComposite in="lEdge" in2="s0" operator="over" result="s1"/>
-
-    <!-- Улицы: холодный асфальт, самая светлая ступень холста -->
-    <feColorMatrix in="SourceGraphic" type="matrix" result="mRoad"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  25.56 85.8 8.64 0 -118.08"/>
-    <feFlood flood-color="#3E4244" result="cRoad"/>
-    <feComposite in="cRoad" in2="mRoad" operator="in" result="lRoad"/>
-    <feComposite in="lRoad" in2="s1" operator="over" result="s2"/>
-
-    <!-- Магистрали: единственный тёплый слой холста. Медь глуше латуни вдвое
-         (насыщенность 22% против 72%) — она ведёт взгляд по городу, но не
-         спорит со слоем света, который на этом же экране рисуется латунью -->
-    <feColorMatrix in="SourceGraphic" type="matrix" result="mHwy"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  40 0 -40 0 -4.204"/>
-    <feFlood flood-color="#4F3F33" result="cHwy"/>
-    <feComposite in="cHwy" in2="mHwy" operator="in" result="lHwy"/>
-    <feComposite in="lHwy" in2="s2" operator="over" result="s3"/>
-
-    <!-- Зелень: тональный отвод на 148°, светлота почти как у земли. Парк не
-         спорит с застройкой за передний план — он читается «другой землёй» -->
-    <feColorMatrix in="SourceGraphic" type="matrix" result="g1"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -40 40 0 0 -0.284"/>
-    <feColorMatrix in="SourceGraphic" type="matrix" result="g2"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  40 0 -40 0 0.5"/>
-    <feComposite in="g1" in2="g2" operator="in" result="mPark"/>
-    <feFlood flood-color="#1C2922" result="cPark"/>
-    <feComposite in="cPark" in2="mPark" operator="in" result="lPark"/>
-    <feComposite in="lPark" in2="s3" operator="over" result="s4"/>
-
-    <!-- Вода поверх всего: она отделена от суши не синевой, а тем, что светлее
-         и без застройки. Серая вода читалась бы пустырём — это разобрано
-         отдельным решением и не изменилось -->
-    <feColorMatrix in="SourceGraphic" type="matrix" result="mWat"
-      values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -40 0 40 0 -0.756"/>
-    <feFlood flood-color="#24343A" result="cWat"/>
-    <feComposite in="cWat" in2="mWat" operator="in" result="lWat"/>
-    <feComposite in="lWat" in2="s4" operator="over"/>
-  </filter>
+<!-- Холст карты собирается стилем, а не фильтром: цвет каждого слоя назван
+     числом в mapstyle.js, потому что плитки приходят геометрией. До вектора
+     здесь стоял фильтр `tileTone` — он вытягивал те же семь ступеней из
+     растровых плиток voyager по разрывам каналов. Разбор обоих подходов и
+     почему первый пришлось делать так — DECISIONS, «Карта на вектор». -->
+<svg class="filter-defs" aria-hidden="true">
+<defs>
 
   <!-- Заливка полосы Млечного Пути. Градиент, а не фильтр: размытие на iOS
        в PWA стоит дорого и на движении ползунка заметно, а нужна ровно
@@ -5796,6 +5703,10 @@
         <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
         <div class="map-pin"><i></i></div>
       </div>
+      <!-- Условие бесплатного доступа к плиткам: атрибуция должна быть видна
+           на самом холсте. Стоит снаружи ротора — со сноской, которая ездит
+           вместе с картой на живом компасе, читать было бы нечего. -->
+      <div class="map-credit">© CARTO · © OpenStreetMap</div>
       <!-- Слои — не переключатель темы карты, а выбор, что на ней светится:
            солнце и луна включены по умолчанию (так компас работал и раньше),
            Млечный Путь — по запросу, это нишевый слой для тех, кто его ищет -->
@@ -5813,7 +5724,7 @@
       </button>
     </div>
     <!-- Меню стоит рядом со скримом, а не внутри кадра карты. В кадре у него
-         `isolation: isolate` (он держит слои Leaflet), и всё внутри заперто в
+         `isolation: isolate` (он держит слои карты), и всё внутри заперто в
          своём контексте наложения: скрим, объявленный снаружи и позже, ложился
          поверх меню, и палец попадал в него, а не в кнопку. Мышью в браузере
          этого не видно — там клик шёл программно, мимо попадания.
@@ -6464,7 +6375,7 @@
       <div class="lg-row"><span class="lg-k" data-i18n="nav.map">Карта</span>
         <span class="lg-v">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a><span data-i18n="lg.osmTail">, участники</span> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.tiles">Карты и слои</span>
-        <span class="lg-v"><a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> 1.9.4 · BSD-2-Clause</span></div>
+        <span class="lg-v"><a href="https://maplibre.org/" target="_blank" rel="noopener">MapLibre GL JS</a> 4.7.1 · BSD-3-Clause</span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.weather">Погода</span>
         <span class="lg-v"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0</span></div>
       <div class="lg-row" id="lgRadarRow"><span class="lg-k" data-i18n="lg.radar">Радар осадков</span>
@@ -9036,7 +8947,7 @@
   /* ---------- Щипок живёт только на карте ----------
      touch-action и метатег держат оборону в большинстве мест, но Safari на iOS
      умеет свой жест: gesturestart/gesturechange масштабируют страницу мимо CSS.
-     Гасим их везде, кроме поля карты — там зум нужен, и делает его Leaflet. */
+     Гасим их везде, кроме поля карты — там зум нужен, и делает его карта. */
   function onMap(el) {
     return !!(el && el.closest && el.closest("#lmap"));
   }
@@ -10746,9 +10657,8 @@
       // Отмечен выбор, а не результат: при «как в системе» горит именно он
       b.classList.toggle("active", b.dataset.theme === themePref);
     });
-    if (tiles) tiles.setUrl(tileURL());   // полотно карты меняется вместе с темой
-    // Буквы тоже: на светлой карте они тёмные, на тёмной светлые
-    if (labelTiles) labelTiles.setUrl(labelURL());
+    // Холст карты меняется вместе с темой — и подписи на нём заодно
+    applyMapStyle();
     // Выбор цвета прорези виден только в светлой теме — сменой темы гасится или зажигается
     if (typeof renderDrumSlotSeg === "function") renderDrumSlotSeg();
     /* Часть цветов ставится из кода (подписи фаз, метки на карте) — их сменой
@@ -12543,35 +12453,32 @@
     return [["stars", "mpro.mw", rows]];
   }
 
-  /* ---------- Настоящая карта: Leaflet + тёмные тайлы ---------- */
-  var lmap = null, mapQuiet = false, tiles = null, labelTiles = null;
-  /* Тайлы одни на обе темы: тёмный холст делает фильтр, а не второй источник.
-     Разные наборы означали бы и разную геометрию — на светлой теме улица есть,
-     на тёмной её нет, — а это одна и та же карта. */
-  /* Ключ CARTO. В августе 2026 поставщик сменил политику: растровая плитка без
-     ключа отдаётся с кодом 200, но с водяным знаком «API KEY REQUIRED»,
-     впечатанным в саму картинку. Под знаком все стили разом — и voyager, и
-     light_all, и dark_all, — поэтому сменой стиля не обойтись, а сменой
-     поставщика тем более: фильтр `tileTone` узнаёт воду, зелень и дома по
-     разрывам каналов именно этой палитры (замер — в DECISIONS).
-     Ключ бесплатный, до пяти миллионов плиток в месяц, и берётся формой на
-     carto.com/basemaps/apikey — аккаунт заводить не требуется.
-     Пустая строка значит «ключа ещё нет»: адрес тогда остаётся прежним, со
-     знаком, а не ломается. Приложение обязано работать и без ключа. */
-  var CARTO_KEY = "cb1_2i93_1_ce545ee5c99fec0644591b06";
-  function cartoKey() { return CARTO_KEY ? "?key=" + CARTO_KEY : ""; }
-  function tileURL() {
-    return "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png" + cartoKey();
+  /* ---------- Настоящая карта: MapLibre + векторные плитки ----------
+     Плитки приходят геометрией, а не картинкой: цвет каждого слоя задаётся
+     нашим стилем (mapstyle.js), а не вытягивается фильтром из чужой палитры.
+     Растровый ключ CARTO больше не нужен — водяного знака в векторе не бывает,
+     это данные. Плитки идут до z14, дальше растягивается геометрия, а не
+     пиксели, поэтому подпись остаётся чёткой на любом приближении.
+
+     Зум MapLibre на единицу меньше зума Leaflet при той же крупности
+     (замерено: Leaflet z15 и MapLibre z14 дают 2,64 м на пиксель на широте
+     Томска). Все пороги ниже — в зумах MapLibre. */
+  var lmap = null, mapQuiet = false;
+  var MAP_Z = 14;                 // прежний z15 у Leaflet — тот же вид
+
+  /* Стиль пересобирается целиком на смену темы, языка и тумблера подписей.
+     Раздельных путей не заводим: `setStyle` сличает старый стиль с новым и
+     трогает только разницу — источник тот же, значит плитки не перекачиваются.
+     Одна дорога вместо трёх стоит одного вызова и не расходится со временем. */
+  function mapStyleNow() {
+    return MAPSTYLE.build({
+      dark: !lightCanvas(),       // со звёздами холст уходит в ночь и в светлой теме
+      lang: LANG.code,
+      labels: mapLabels
+    });
   }
-  /* Подписи — отдельный прозрачный слой поверх холста. Он идёт вторым слоем, а
-     не другим набором тайлов, и потому не проходит через фильтр перекраски:
-     иначе буквы попали бы в классы вместе с домами и покрасились землёй.
-     Слой берётся по теме: на светлой карте нужны тёмные буквы, на тёмной —
-     светлые, а сама геометрия у обоих одна. */
-  function labelURL() {
-    return theme === "light"
-      ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png" + cartoKey()
-      : "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png" + cartoKey();
+  function applyMapStyle() {
+    if (lmap) lmap.setStyle(mapStyleNow(), { diff: true });
   }
   function tzFor(lon) { return Math.max(-12, Math.min(14, HOME_TZ + Math.round((lon - HOME_LON) / 15))); }
   function coordText(lat, lon) {
@@ -12756,7 +12663,7 @@
   function gotoLocation(lat, lon) {
     if (lmap) {
       mapQuiet = true;
-      lmap.setView([lat, lon], lmap.getZoom() || 13, { animate: false });
+      lmap.jumpTo({ center: [lon, lat], zoom: lmap.getZoom() });
       setTimeout(function () { mapQuiet = false; }, 300);
     }
     setLocation(lat, lon);
@@ -12767,28 +12674,18 @@
      нечего: дома там в несколько пикселей, обводка съедает их целиком и
      квартал рассыпается в рябь. Замерено на Петербурге: на z=13 обводка
      занимала пятую часть кадра и поднимала среднюю яркость холста с 27 до 50.
-     Дальше z=16 здания различаются заливкой — она светлее земли на две
-     ступени, этого хватает. */
-  function setBldEdge() {
-    var z = lmap ? lmap.getZoom() : 15;
-    /* Ширина кольца равна радиусу и задана в CSS-пикселях: на retina-экране
-       это вдвое больше физических точек, поэтому числа здесь меньше, чем
-       кажется по виду обводки */
-    var r = z <= 15 ? 0 : (z === 16 ? 0.9 : 1.2);
-    ["bldCore", "bldGrow"].forEach(function (id) {
-      var f = document.getElementById(id);
-      if (f) f.setAttribute("radius", r);
-    });
-  }
-  /* Слой подписей заводится только когда его включили: выключенный тумблер
-     не должен стоить ни одного запроса. Снятие слоя тоже полное — прятать его
-     прозрачностью значило бы продолжать качать тайлы впустую. */
+
+     Порог никуда не делся, он переехал в стиль: раньше его каждый раз ставила
+     рука (`setBldEdge` менял радиус морфологии по событию зума), теперь он
+     записан выражением по зуму в слое `building-edge` и считается сам. Числа
+     те же, сдвинутые на ступень вместе с зумом MapLibre.
+
+     Слой подписей тоже больше не отдельный набор плиток, а видимость слоёв
+     того же стиля: выключенный тумблер не стоит ни одного запроса, как и
+     раньше, но и включённый не стоит второго. */
   function setMapLabels(on) {
     mapLabels = !!on;
-    if (!lmap) return;
-    if (labelTiles) { lmap.removeLayer(labelTiles); labelTiles = null; }
-    if (!mapLabels) return;
-    labelTiles = L.tileLayer(labelURL(), { subdomains: "abcd", maxZoom: 19, pane: "shadowPane", className: "tile-labels" }).addTo(lmap);
+    applyMapStyle();
   }
 
   /* ---------- Радар осадков ----------
@@ -12826,53 +12723,75 @@
     $("mRadar").textContent = fmt(d.getHours() * 60 + d.getMinutes())
       + (mins ? " · " + LANG.t("radar.ago", { n: mins }) : "");
   }
+  function dropRain() {
+    if (!lmap || !rainTiles) return;
+    if (lmap.getLayer("rain")) lmap.removeLayer("rain");
+    if (lmap.getSource("rain")) lmap.removeSource("rain");
+    rainTiles = null;
+  }
   function setMapRain(on) {
     mapLayers.rain = RAIN_OK && !!on;
     if (!lmap) return;
-    if (rainTiles) { lmap.removeLayer(rainTiles); rainTiles = null; }
+    dropRain();
     if (!mapLayers.rain) { renderRadarRow(); return; }
     fetchRadar().then(function () {
       renderRadarRow();
-      if (!mapLayers.rain || !rainFrame || !lmap) return;
-      if (rainTiles) lmap.removeLayer(rainTiles);
+      if (!mapLayers.rain || !rainFrame || !lmap || !lmap.isStyleLoaded()) return;
+      dropRain();
       /* 256 — размер плитки, 2 — цветовая схема, 1_1 — сглаживание и снег
          отдельным цветом. Полупрозрачно: радар кладётся на карту, а не вместо
-         неё, и метки съёмки должны читаться сквозь ливень */
-      rainTiles = L.tileLayer(rainHost + rainFrame + "/256/{z}/{x}/{y}/2/1_1.png",
-        { maxZoom: 19, opacity: 0.62, pane: "overlayPane", className: "tile-rain" }).addTo(lmap);
+         неё, и метки съёмки должны читаться сквозь ливень. Растровый слой
+         поверх векторного стиля — движку это всё равно, источники смешиваются */
+      lmap.addSource("rain", { type: "raster", tileSize: 256, maxzoom: 7,
+        tiles: [rainHost + rainFrame + "/256/{z}/{x}/{y}/2/1_1.png"] });
+      lmap.addLayer({ id: "rain", type: "raster", source: "rain",
+        paint: { "raster-opacity": 0.62 } });
+      rainTiles = true;
     });
   }
   function initMap() {
-    if (lmap || typeof L === "undefined") return;
-    /* fadeAnimation выключён не ради скорости, а ради подписей. С плавным
-       проявлением Leaflet помечает свежий тайл «живым» только через 200 мс
-       затухания, а уборку прошлого масштаба назначает на кадр раньше — и
-       уборка застаёт новые тайлы ещё «неживыми», оставляя прошлый уровень
-       навсегда. Полотно этого не показывает: его тайлы непрозрачны и накрывают
-       старьё. Слой подписей прозрачен, и сквозь него светил прежний масштаб,
-       растянутый вдвое: одно и то же имя улицы стояло рядом мелким и крупным
-       (замер: на z16 в контейнере оставались четыре тайла z15 со scale(2)).
-       Без затухания тайл живой сразу, и уборка срабатывает на месте. */
-    lmap = L.map("lmap", { zoomControl: false, attributionControl: false, fadeAnimation: false }).setView([LAT, LON], 15);
-    /* Полотно одно на обе темы: voyager_nolabels — обычная карта без подписей,
-       чтобы имена улиц не спорили с нашей разметкой. Тёмную из неё делает
-       фильтр тона. */
-    tiles = L.tileLayer(tileURL(), {
-      subdomains: "abcd", maxZoom: 19
-    }).addTo(lmap);
-    setBldEdge();
-    setMapLabels(mapLabels);
-    if (mapLayers.rain) setMapRain(true);
-    lmap.on("zoomend", setBldEdge);
-    // Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место
+    if (lmap || typeof maplibregl === "undefined" || typeof MAPSTYLE === "undefined") return;
+    lmap = new maplibregl.Map({
+      container: "lmap",
+      style: mapStyleNow(),
+      center: [LON, LAT],
+      zoom: MAP_Z,
+      attributionControl: false,     // атрибуция стоит своей плашкой на кадре
+      /* Поворот и наклон делает не движок: живой компас крутит ротор целиком —
+         карту и прибор одним слоем, как и раньше. Чужой поворот развёл бы их
+         (подписи остались бы горизонтальными, прибор — нет), а прибор здесь
+         и есть карта. Разбор — ROADMAP, «Развилки закрыты 31 августа». */
+      dragRotate: false, pitchWithRotate: false, touchZoomRotate: true,
+      /* Иероглифы рисуются шрифтом телефона, а не тянутся глифовыми
+         диапазонами: китайский словарь целиком стоил бы первой отрисовки */
+      localIdeographFontFamily: "'PingFang SC','Hiragino Sans GB','Noto Sans CJK SC',sans-serif"
+    });
+    lmap.touchZoomRotate.disableRotation();
+    /* Плитка приходит одна на всю колонку зумов, и проявлять её незачем:
+       затухание только растягивало бы подмену масштаба. */
+    lmap.on("load", function () { if (mapLayers.rain) setMapRain(true); });
+    /* Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место */
     lmap.on("moveend", function () {
       if (mapQuiet) return;
       var c = lmap.getCenter();
       setLocation(c.lat, c.lng);
     });
+    /* WebGL-контекст на iOS отбирают при нехватке памяти и при возврате из
+       фона. Молча потерянная карта выглядит поломкой приложения, поэтому
+       собираем её заново — место и приближение при этом сохраняются. */
+    lmap.on("webglcontextlost", function () {
+      var c = lmap.getCenter(), z = lmap.getZoom();
+      try { lmap.remove(); } catch (e) {}
+      lmap = null;
+      setTimeout(function () {
+        initMap();
+        if (lmap) { mapQuiet = true; lmap.jumpTo({ center: c, zoom: z });
+          setTimeout(function () { mapQuiet = false; }, 300); }
+      }, 120);
+    });
     applyGeoNames();
   }
-  /* Экран карты показывается — Leaflet должен пересчитать размер и встать на место */
+  /* Экран карты показывается — движок должен пересчитать размер и встать на место */
   function showMap() {
     /* Кадр невидим при загрузке (boot зовёт renderMap() до первого показа
        экрана), и offsetWidth/Height тогда нулевые — измерение молча
@@ -12881,8 +12800,8 @@
     initMap();
     if (!lmap) return;
     mapQuiet = true;
-    lmap.invalidateSize();
-    lmap.setView([LAT, LON], lmap.getZoom() || 15, { animate: false });
+    lmap.resize();
+    lmap.jumpTo({ center: [LON, LAT], zoom: lmap.getZoom() });
     setTimeout(function () { mapQuiet = false; }, 300);
   }
 
@@ -23614,6 +23533,9 @@
   function relangUI() {
     dtfReset();            // форматы дат и времени закэшированы по языку
     relangMarkup();
+    /* Улицы на карте тоже говорят на языке приложения: имя берётся из плитки
+       по ключу языка, с откатом на то, что написано на доме */
+    if (typeof applyMapStyle === "function") applyMapStyle();
     if ($("clockSeg")) renderClockSeg();   // «как в языке» зависит от языка
     if ($("buildInfo")) renderBuildInfo();  // в штампе и слово, и вид даты
     if (typeof fillHourWheel === "function") fillHourWheel();  // «7 PM» вместо «19»
@@ -24379,11 +24301,11 @@
         headingListening = true;
         window.addEventListener("deviceorientation", handleHeading, true);
       }
-      if (lmap) lmap.dragging.disable();   // под поворотом пиксели жеста врут — тянуть нельзя
+      if (lmap) lmap.dragPan.disable();   // под поворотом пиксели жеста врут — тянуть нельзя
       rotor.style.transition = "";
       if (!headingRAF) tickHeading();
     } else {
-      if (lmap) lmap.dragging.enable();
+      if (lmap) lmap.dragPan.enable();
       if (headingRAF) { cancelAnimationFrame(headingRAF); headingRAF = null; }
       rotor.style.transition = "transform .3s ease";
       rotor.style.transform = "rotate(0deg)";
@@ -24730,8 +24652,8 @@
     $("mapRead").classList.toggle("shut", shut);
     $("mapRead").setAttribute("aria-expanded", shut ? "false" : "true");
     document.body.classList.toggle("map-shut", shut);
-    // Кадр сменил высоту — Leaflet об этом сам не узнает
-    if (lmap) setTimeout(function () { lmap.invalidateSize(); }, 420);
+    // Кадр сменил высоту — движок карты об этом сам не узнает
+    if (lmap) setTimeout(function () { lmap.resize(); }, 420);
   }
 
   /* ---------- Занять время ----------
@@ -25855,7 +25777,7 @@
     document.body.dataset.tab = id;      // прячет закреплённый ползунок на Съёмках/Настройках
     measureDockSoon();                   // док на разных экранах разной высоты
     $(id).scrollTop = 0;
-    if (id === "s-map") showMap();       // Leaflet пересчитывает размер, когда экран виден
+    if (id === "s-map") showMap();       // движок пересчитывает размер, когда экран виден
     /* Считаем свежо: мудборды копятся где угодно, номера — тоже. Индекс
        номеров не кэшируем: он собирается за один проход по карточкам, а
        второй список тех же номеров разошёлся бы с первым в тот же день */
