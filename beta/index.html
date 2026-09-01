@@ -2654,6 +2654,27 @@
      картинка, разрезать её нечем и незачем */
   .mb-cover.one { display: block; }
   .mb-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Знак жанра на ненаполненной обложке. Доля от обложки, а не пиксели: один
+     и тот же знак стоит и на плитке ленты, и в шапке папки, и вырастает
+     вместе с ними. Белый штрих с мягкой тенью — небо под ним одинаково в
+     обеих темах, и знак читается на любой паре, включая светлую
+     «янтарь — серебро». */
+  .mb-mark {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .mb-mark svg {
+    width: 42%; height: 42%; fill: none;
+    stroke: rgba(255,255,255,0.7); stroke-width: 1.5;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.28));
+  }
+  /* Мелкие места — ячейка мозаики «Все» и лист веера в ручке сводки. Доля там
+     больше, а штрих толще: на сорока точках знак в 42% и волосяной линией
+     превращается в точку. Обводки на них нет, поэтому знак не жмётся к
+     краям и берёт больше места (Алексей, 1 сентября 2026: «сюда должны
+     попадать знаки с обложек, если там нет фото»). */
+  .mb-cover.mo .mo-c .mb-mark svg, .mb-fan-l .mb-mark svg { width: 56%; height: 56%; stroke-width: 1.9; }
+
   /* Пустая ячейка — просвет в небо, залитое на самой обложке, а не свой
      серый квадрат: четыре отдельных заливки рябили бы */
   .mb-cover .ph { background: none; }
@@ -4681,17 +4702,21 @@
     border: 1px dashed var(--hairline); color: var(--ink-4);
   }
   .ref-card.add svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.5; }
-  /* `column-span: all` — не украшение, а единственный способ гарантировать,
-     что «+» окажется под обеими колонками. Масонри расставляет плитки по
-     высоте, балансируя колонки, а не по порядку в разметке: плитка,
-     последняя в HTML, могла достаться более короткой колонке и повиснуть
-     выше последнего кадра в другой — сетка «росла» из-под неё. Ширина и
-     отступ те же, что были у плитки в одну колонку — только сама колонка
-     здесь общая для обеих. */
-  #mbGrid.mb-grid .ref-card.add {
-    aspect-ratio: 1/1; column-span: all;
-    width: calc(50% - 4px); margin: 0 auto 8px;
-  }
+  /* Плитка «+» стоит в потоке, как обычный кадр, и достаётся той колонке,
+     которая короче, — то есть первому свободному месту.
+
+     До 1 сентября 2026 здесь стоял `column-span: all`: он гарантировал, что
+     «+» окажется под обеими колонками, потому что масонри расставляет плитки
+     по высоте, а не по порядку в разметке, и последняя в HTML могла повиснуть
+     выше последнего кадра в соседней колонке. Цена оказалась виднее выигрыша:
+     при одном кадре «+» уезжала вниз и вставала посередине, хотя справа от
+     кадра пустовало ровно её место (Алексей, 1 сентября 2026, замерено —
+     кадр на x=15, «+» на x=93 и на 148 точек ниже).
+
+     «Повиснуть выше» — это и есть масонри: короткая колонка короче, и «+»
+     кончает именно её. Пустоты под ней ровно столько же, сколько было бы
+     без «+». */
+  #mbGrid.mb-grid .ref-card.add { aspect-ratio: 1/1; width: 100%; margin: 0 0 8px; }
   .ref-card .pick {
     position: absolute; top: 7px; right: 7px; z-index: 2;
     width: 22px; height: 22px; border-radius: 50%; corner-shape: squircle;
@@ -5331,6 +5356,9 @@
   .form-sub { color: var(--ink-4); font-size: 14px; margin-top: 6px; }
   .mb-folder-head { display: flex; align-items: flex-end; gap: 12px; }
   .mb-folder-hero {
+    /* `relative` — ради знака жанра поверх неба: он лежит `absolute` и без
+       этого цеплялся бы за экран, а не за квадратик обложки */
+    position: relative;
     flex: 0 0 auto; width: 58px; height: 58px; margin-top: 10px;
     border-radius: 14px; corner-shape: squircle; overflow: hidden;
     background-color: var(--sheet-2); background-size: cover; background-position: center;
@@ -16645,6 +16673,27 @@
     return (b.cover && shotById(b.cover))
       || boardShots(b).filter(function (r) { return r.im; })[0] || null;
   }
+  /* ---------- Знак жанра на ненаполненной обложке ----------
+     Пустая обложка была куском неба и только: цвет свой у каждой подборки,
+     но что за ней стоит — не сказано ничем, и ряд заготовок читался как
+     набор цветных пятен (Алексей, 1 сентября 2026: «мы поместим внутрь svg
+     иконки, так мы закроем пустоту и оживим, осмыслим визуал»).
+
+     Знак берётся тот же, каким жанр подписан везде — в форме, в «Моих
+     жанрах», в листе новой подборки (`GENRE_IC`). Заводить для обложки
+     второй рисунок того же самого значило бы развести их при первой же
+     правке.
+
+     Белый штрих с мягкой тенью, а не цвет чернил: небо одно и то же в обеих
+     темах, и знак поверх него тоже один — светлый на тёмной паре и читаемый
+     на светлой за счёт тени. Инвертировать тут нечего (DECISIONS, «Светлая
+     тема — не инверсия»). */
+  function mbGenreMark(g) {
+    var ic = GENRE_IC[g];
+    if (!ic) return "";
+    return '<span class="mb-mark"><svg viewBox="0 0 24 24" stroke-linecap="round" '
+      + 'stroke-linejoin="round">' + ic + "</svg></span>";
+  }
   function mbCover(f) {
     var b = mbBoard(f), list = boardShots(b);
     var sky = ' style="background-image:' + mbSky(b && b.id) + '"';
@@ -16656,7 +16705,7 @@
     var offLabel = boardOfflineLabel(b);
     var off = offLabel ? '<span class="off">' + esc(offLabel) + "</span>" : "";
     return '<span class="mb-cover one"' + sky + ">"
-      + (pic ? refImg(pic) : "") + off + "</span>";
+      + (pic ? refImg(pic) : mbGenreMark(mbGenre(f))) + off + "</span>";
   }
   /* Мозаика 2×2 — обложки четырёх подборок в одном квадрате. Ячейка берёт
      то же назначенное фото и то же небо, что и целая плитка, просто вчетверо
@@ -16682,8 +16731,11 @@
     var cells = pool.filter(function (c) { return c.pic; })
       .concat(pool.filter(function (c) { return !c.pic; }))
       .slice(0, 4).map(function (c) {
+        /* Ячейка без фото носит тот же знак жанра, что и целая плитка: она
+           показывает те же подборки, только вчетверо мельче, и голое небо
+           в ней читалось бы иначе, чем то же небо этажом выше */
         return '<span class="mo-c" style="background-image:' + mbSky(c.b.id) + '">'
-          + (c.pic ? refImg(c.pic) : "") + "</span>";
+          + (c.pic ? refImg(c.pic) : mbGenreMark(c.b.genre)) + "</span>";
       }).join("");
     return '<span class="mb-cover mo">' + cells + "</span>";
   }
@@ -16712,7 +16764,8 @@
       var b = mbBoard(f), list = boardShots(b);
       var pic = (b.cover && shotById(b.cover)) || list.filter(function (r) { return r.im; })[0];
       var sky = ' style="background-image:' + mbSky(b && b.id) + '"';
-      return '<span class="mb-fan-l l' + i + '"' + sky + '>' + (pic ? refImg(pic) : "") + "</span>";
+      return '<span class="mb-fan-l l' + i + '"' + sky + '>'
+        + (pic ? refImg(pic) : mbGenreMark(mbGenre(f))) + "</span>";
     }).join("");
     /* Ширина — по числу листьев, а не всегда под три: лист 42px, каждый
        следующий сдвинут на 23px, плюс пара точек на наклон. Иначе у одной
@@ -16932,7 +16985,9 @@
     var board = mbBoard(f);
     var heroPic = (board.cover && shotById(board.cover)) || list.filter(function (r) { return r.im; })[0];
     $("mbFolderHero").style.backgroundImage = mbSky(board.id);
-    $("mbFolderHero").innerHTML = heroPic ? refImg(heroPic) : "";
+    /* Шапка папки — та же обложка, что на плитке, только крупнее: пустая
+       носит тот же знак жанра, а не голое небо */
+    $("mbFolderHero").innerHTML = heroPic ? refImg(heroPic) : mbGenreMark(g);
     blobHydrate($("mbFolderHero"));
     /* Пустой подборке нечего брать с собой, и сказать про офлайн ей тоже
        нечего — строка целиком уходит, а не висит одной кнопкой у правого
