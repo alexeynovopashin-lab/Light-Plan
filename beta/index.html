@@ -879,7 +879,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=43"></script>
+<script src="lang.js?v=44"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -3836,10 +3836,25 @@
      попросту не видели, и строка читалась подписью, а не входом. Знак вырос
      вдвое, отделён отступом и потемнел — теперь он говорит «здесь откроется
      ещё экран», как и шеврон в карточке. */
-  .item .v .go-chev {
+  /* Шеврон перехода — один знак на строку настроек и на строку формы:
+     «дальше» выглядит одинаково, где бы за ним ни лежала дверь */
+  .item .v .go-chev, .row .rv .go-chev {
     display: inline-block; margin-left: 7px; font-size: 22px; line-height: 1;
     color: var(--ink-4); vertical-align: -2px;
   }
+  /* Полоса кадров живёт под своей строкой и обрезается по краю группы:
+     сколько поместилось, столько и видно — считает всё равно строка */
+  #fMbStrip { padding: 0 15px 13px; overflow: hidden; }
+  /* Число и шеврон — одна строка. Значение строки формы по умолчанию стоит
+     столбиком (`.row .rv` ниже: там под ним живёт вторая строчка-подсказка),
+     и «Собрать» с шевроном разъезжались на два этажа — замерено в PWA,
+     середины расходились на 24 пикселя. Направление здесь своё. */
+  #fMbRow .rv { display: flex; flex-direction: row; align-items: center;
+    gap: 0; white-space: nowrap; }
+  /* Тот же грабль, что у `.row[hidden]` и у полей формы: `display:flex`
+     сильнее браузерного `[hidden]`, и спрятанная полоса продолжала занимать
+     свои 13 пикселей нижнего поля (замерено в PWA) */
+  .strip[hidden] { display: none; }
   /* Корень настроек — только входы в разделы. Отступ сверху тот же, что был
      у первой главы длинной ленты: список начинается там же, где раньше
      начинался «Профиль», и переезд не сдвигает первую строку под пальцем. */
@@ -6937,19 +6952,17 @@
     </div>
 
     <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
+    <!-- Референсы съёмки — не свой список в форме, а её подборка в мудборде:
+         дверь туда, где кадрами и занимаются (docs/15_MOODBOARD.md). Полоса
+         под строкой показывает, что внутри, — блок остаётся картинками, а
+         не строкой текста. -->
     <div class="g-label" id="fRefsLabel" data-i18n="card.refs">Референсы</div>
     <div class="group" id="fRefsGroup">
-      <div class="ref-grid" id="refGrid"></div>
-      <div class="ref-add sep">
-        <button type="button" class="ref-btn" id="refPhoto">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
-          <span data-i18n="ref.photo">Фото</span>
-        </button>
-        <button type="button" class="ref-btn" id="refLink">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
-          <span data-i18n="ref.link">Ссылка</span>
-        </button>
-      </div>
+      <button class="row" id="fMbRow">
+        <span><span data-i18n="mb.stripTitle">Мудборд</span><span class="sub2" id="fMbSub">—</span></span>
+        <span class="rv"><span id="fMbN">—</span><span class="go-chev">›</span></span>
+      </button>
+      <div class="strip" id="fMbStrip" hidden></div>
       <input type="file" id="refFile" accept="image/*" multiple hidden>
       <div class="ref-note" id="refNote" hidden></div>
     </div>
@@ -14482,9 +14495,13 @@
   var fPrepay = 0;
   /* Гости — только у события дня; 0 значит «не указано», а не «нет гостей» */
   var fGuests = 0;
-  /* Референсы съёмки: {k:"img", path, thumb} — оригинал на Диске, миниатюра рядом;
-     {k:"link", url} — ссылка на Pinterest или что угодно ещё */
-  var fRefs = [];
+  /* Знак записи, с которой работает форма. Раньше он рождался только при
+     «Сохранить», и до этой минуты у съёмки не было ничего, к чему привязать
+     подборку, — поэтому кадры и лежали в форме своим списком `fRefs`, а
+     `syncFormShots` переливал их в подборку при сохранении. Знак выдаётся
+     при открытии формы: подборка находится по нему с первой минуты, и
+     мудборд у новой съёмки такой же, как у сохранённой. */
+  var fId = null;
   /* Документы заказа: {k:"doc", path, name, size} на Диске фотографа либо
      {k:"link", url}. Миниатюр у них не бывает — показываем именем */
   var fDocs = [];
@@ -14553,42 +14570,35 @@
       return decodeURIComponent(u.pathname).replace(/^\/|\/$/g, "").slice(0, 42) || u.hostname;
     } catch (e) { return url.slice(0, 42); }
   }
-  function renderRefs() {
-    var box = $("refGrid");
-    box.innerHTML = fRefs.map(function (r, i) {
-      /* Ссылка со своим `og:image` рисуется картинкой — текстовая карточка
-         остаётся только пока читалка не ответила или не нашла её */
-      if (r.k === "link" && !r.im) {
-        return '<button type="button" class="ref-card link" data-i="' + i + '">'
-          + '<span class="host">' + refHost(r.url) + "</span>"
-          + '<span class="path">' + refTail(r.url) + "</span>"
-          + '<span class="kill" data-kill="' + i + '">✕</span></button>';
-      }
-      return '<button type="button" class="ref-card" data-i="' + i + '">'
-        + refImg(r)
-        + (r.pending ? '<span class="wait">…</span>' : "")
-        + '<span class="kill" data-kill="' + i + '">✕</span></button>';
-    }).join("");
-    box.querySelectorAll(".ref-card").forEach(function (b) {
-      b.addEventListener("click", function (e) {
-        var kill = e.target.closest("[data-kill]");
-        if (kill) { removeRef(+kill.dataset.kill); return; }
-        openRef(fRefs[+b.dataset.i]);
-      });
-    });
+  /* Запись-заготовка для тех, кто спрашивает про съёмку формы: подборке
+     нужны знак и жанр, папке мудборда — ещё дата, место и имя клиента.
+     Собирается на лету из полей, потому что настоящей записи может ещё не
+     быть, а мудборд у новой съёмки должен работать сразу. */
+  function formSessionLike() {
+    return { id: fId, kind: formKind, type: shootType, date: fDate, min: fMin,
+      contact: contactLine(), persons: formPersons(),
+      place: sessionPlace.name, orgId: fOrgId };
   }
-  /* Кадр, лежащий ещё где-то — в наборе жанра, в другой подборке, — из формы
-     только убирается: стереть его байты значило бы выбить картинку из чужой
-     подборки. Свой, никому больше не нужный, уходит совсем. */
-  function removeRef(i) {
-    var r = fRefs[i];
-    if (!r) return;
-    if (!(r.id && shotUsed(r.id))) {
-      if (r.k === "img" && r.path) cloudDelete(r.path);   // с Диска тоже убираем
-      if (r.im) blobDrop(r.im);                          // и байты с устройства
-    }
-    fRefs.splice(i, 1);
-    renderRefs();
+  function formBoard(make) { return boardOfSession(formSessionLike(), !!make); }
+  /* Блок референсов в форме — дверь в подборку этой съёмки, а не свой
+     список. Строка называет число кадров и состояние на устройстве, полоса
+     под ней показывает первые: блок остаётся картинками, а решают всё в
+     мудборде, где для этого есть всё — доски Pinterest, теги, обложка, срок
+     хранения (docs/15_MOODBOARD.md, «Кадр и подборка — разные вещи»). */
+  function renderFormMb() {
+    var b = formBoard(false), list = b ? boardShots(b) : [];
+    var off = boardOfflineLabel(b);
+    $("fMbN").textContent = list.length
+      ? LANG.count("unit.frame", list.length) : LANG.t("mb.formAdd");
+    /* Состояние на устройстве важнее пояснения: смотрят на него накануне,
+       когда решают, доедет ли подборка до площадки без сети. Пояснение
+       стоит, пока состояния нет — у пустой подборки и у одних ссылок */
+    $("fMbSub").textContent = off || LANG.t("mb.formSub");
+    var strip = $("fMbStrip");
+    strip.hidden = !list.length;
+    strip.innerHTML = list.slice(0, 6).map(function (r) {
+      return r.im ? refImg(r) : '<span class="ph"></span>';
+    }).join("");
   }
   /* Картинка открывается во весь экран, ссылка — в браузере.
      Список и позиция в нём — для свайпа между кадрами (пусто у одиночных
@@ -14791,16 +14801,17 @@
     rvX = d * v.width * 1.1; rvApply(false);
     requestAnimationFrame(function () { rvX = 0; rvApply(true); });
   }
-  /* Референсы добавляются в двух местах: в съёмку и в набор жанра.
-     Механика одна, различаются только список, папка на Диске и отрисовка. */
-  var refCtx = { list: null, board: null, render: null, note: "refNote", dir: "refs", tag: null };
-  function useRefCtx(list, render, note, dir, tag) {
-    refCtx = { list: list, board: null, render: render, note: note, dir: dir, tag: tag || null };
-  }
+  /* Референсы добавляются в трёх местах: в съёмку, в набор жанра и в папку
+     мудборда. Механика одна, различаются подборка, папка на Диске и
+     отрисовка. Списком кадры не принимает никто: с 1 сентября 2026 и форма
+     съёмки кладёт их в подборку, а не в себя. */
+  var refCtx = { board: null, render: null, note: "refNote", dir: "refs", tag: null };
   /* Референсы кладутся не в список, а в фонд, и подборка получает ссылку.
-     Формы съёмки это не касается: пока запись не сохранена, её кадры живут
-     в `fRefs` и в фонд не попадают (иначе отменённая правка оставляла бы
-     мусор в библиотеке). */
+     С 1 сентября 2026 это касается и формы съёмки: у неё больше нет своего
+     списка, кадры сразу ложатся в подборку съёмки. Отменённая правка их не
+     откатывает — мудборд отдельное занятие, «Отмена» в форме про поля.
+     Мусора это не оставляет: форму новой съёмки закрыли, не сохранив, и её
+     подборка уходит вместе с ней (`formBack`). */
   function useRefBoard(board, render, note, dir, tag) {
     refCtx = { list: null, board: board, render: render, note: note, dir: dir, tag: tag || null };
   }
@@ -14900,21 +14911,92 @@
   }
 
   function addRefFiles(files) {
+    /* Подборки нет — класть некуда. Дойти сюда так можно только ошибкой в
+       расстановке контекста, но молчаливая порча фонда дороже проверки. */
+    if (!refCtx.board) return;
     uploadToDisk(files, {
-      list: refCtx.list || fRefs,
       board: refCtx.board,
-      render: refCtx.render || renderRefs,
+      render: refCtx.render || renderFormMb,
       note: refCtx.note,
       dir: refCtx.dir || "refs",
       imagesOnly: true, thumbs: true,
       meta: { tags: refCtx.tag ? [refCtx.tag] : [] }
     });
   }
-  $("refPhoto").addEventListener("click", function () {
-    useRefCtx(fRefs, renderRefs, "refNote", "refs", null);
-    $("refFile").click();
-  });
+  /* ---------- Ссылка в подборку: одна дверь на все три места ----------
+     Кнопок «Ссылка» было три — в форме съёмки, в наборе жанра и в папке
+     мудборда, — и только третья знала, что доска Pinterest это список пинов,
+     а не одна обложка. Одна и та же ссылка давала разное, смотря откуда её
+     вставили; это и было главным местом, где логика спорила сама с собой.
+     Теперь дверь одна, и доски умеет любая подборка.
+
+     `board` и `tag` спрашиваются функциями, а не значениями: подборку нельзя
+     заводить до того, как ссылку действительно назвали, — иначе отменённый
+     ввод оставлял бы пустой след. */
+  function addLinkTo(o) {
+    askLink(function (url) {
+      if (!url) return;
+      var board = o.board();
+      if (!board) return;
+      var tag = o.tag ? o.tag() : null;
+      var render = o.render || function () {};
+      /* Обычная ссылка: кадр ложится сразу текстовой карточкой, картинка
+         догоняет его, когда ответит читалка. Он же — запасной путь доски. */
+      function one(u) {
+        var id = shotAdd({ k: "link", url: u, tags: tag ? [tag] : [] });
+        boardPut(board, id);
+        saveAll(); render();
+        fetchOgImage(u, function (shot) {
+          var r = shotById(id);
+          if (!r) return;                 // кадр могли убрать, пока читалка ходила
+          r.im = shot.im; r.w = shot.w; r.h = shot.h;
+          saveAll(); render();
+        });
+      }
+      if (!isPinterestBoardUrl(url)) { one(url); return; }
+      /* Доска — не одна карточка, а целый список пинов; каждый приходит
+         отдельно и асинхронно, поэтому просто кладём его в подборку по
+         готовности, без промежуточной текстовой заглушки. Лазейка может
+         однажды перестать отвечать (docs/15_MOODBOARD.md, «Доски») — тогда
+         откатываемся на старое честное поведение, одну обложку. */
+      fetchOgBoard(url, function (shot, pin) {
+        if (!boardAlive(board)) { blobDrop(shot.im); return; }   // подборку убрали, пока пины ехали
+        /* Ту же доску приносят второй раз чаще, чем кажется: «Скопировать
+           ссылку» в приложении Pinterest выдаёт каждый раз новый одноразовый
+           инвайт, и по адресу двух ссылок не видно, что доска одна (Алексей
+           прислал четыре разных адреса одной доски). Узнаём кадр по пину, а
+           не по ссылке-двери: пин у него один и тот же навсегда. Байты уже
+           скачаны — их и выбрасываем, лишней записи в фонде не заводим. */
+        var twin = boardShots(board).filter(function (r) { return r.url === pin.permalink; })[0];
+        if (twin) { blobDrop(shot.im); return; }
+        var id = shotAdd({ k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h,
+          tags: tag ? [tag] : [] });
+        boardPut(board, id);
+        saveAll(); render();
+      }, function () {
+        if (!boardAlive(board)) return;
+        /* Молчащий отказ и был половиной жалобы: доска ложилась одной
+           картинкой, и понять, доска это была или обычная ссылка, человеку
+           было неоткуда. Говорим вслух той строкой, что стоит у этой двери. */
+        if (o.note && $(o.note)) {
+          $(o.note).hidden = false;
+          $(o.note).textContent = LANG.t("mb.boardOne");
+        }
+        one(url);
+      });
+    });
+  }
   $("refFile").addEventListener("change", function () { addRefFiles(this.files || []); this.value = ""; });
+  /* Дверь из формы в мудборд съёмки. Открывается поверх формы и туда же
+     возвращает: подборка съёмки и есть её референсы, второго места для них
+     больше нет. Описатель несёт заготовку записи — у новой съёмки места в
+     списке ещё нет, а папка ей нужна уже сейчас. */
+  var mbFromForm = false;
+  $("fMbRow").addEventListener("click", function () {
+    var s = formSessionLike();
+    mbFromForm = true;
+    openMbFolder({ kind: "session", s: s, b: boardOfSession(s, true) });
+  });
 
   /* ---------- Двери: буфер обмена и перетаскивание ----------
      На iOS у Share Extension нет пути через веб (Share Target есть только в
@@ -14937,7 +15019,10 @@
       return function () { useRefBoard(boardTpl(shootType, true), renderGenreRefs, "gRefNote", "genre-refs", gRefTag); };
     }
     if ($("formOverlay").classList.contains("open")) {
-      return function () { useRefCtx(fRefs, renderRefs, "refNote", "refs", null); };
+      /* Форма кладёт не в себя, а в подборку съёмки — ту же, что откроется
+         за строкой «Мудборд». Подборка заводится этой самой вставкой:
+         раньше нечего было и заводить, кадр ложился в список формы. */
+      return function () { useRefBoard(formBoard(true), renderFormMb, "refNote", "refs", null); };
     }
     return null;
   }
@@ -14970,20 +15055,6 @@
     if (!files.length) return;
     e.preventDefault();
     setup(); addRefFiles(files);
-  });
-  $("refLink").addEventListener("click", function () {
-    askLink(function (url) {
-      if (!url) return;
-      var rec = { k: "link", url: url };
-      fRefs.push(rec);
-      renderRefs();
-      /* Запись ещё черновик — сохранять нечего, форма сохранит её целиком,
-         когда её вообще сохранят */
-      fetchOgImage(url, function (shot) {
-        rec.im = shot.im; rec.w = shot.w; rec.h = shot.h;
-        renderRefs();
-      });
-    });
   });
   /* ---------- Документы заказа ----------
      Механика та же, что у референсов: файл уезжает на Диск фотографа, в записи
@@ -15267,21 +15338,26 @@
   function mbCountOf(f) {
     return mbBoardsOf(f).reduce(function (n, b) { return n + boardShots(b).length; }, 0);
   }
+  /* Съёмка описателя. Обычно это запись из списка, найденная по месту в нём,
+     но форма новой съёмки открывает свою папку раньше, чем запись туда
+     попадёт, — и несёт заготовку при себе (`f.s`). Спрашивают её все, кто
+     подписывает папку: заголовок, подпись, жанр. */
+  function mbSess(f) { return f.s || sessions[f.si]; }
   function mbBoard(f) {
-    return f.b || (f.kind === "session" ? boardOfSession(sessions[f.si], true) : boardTpl(f.g, true));
+    return f.b || (f.kind === "session" ? boardOfSession(mbSess(f), true) : boardTpl(f.g, true));
   }
   function mbList(f) { return boardShots(mbBoard(f)); }
-  function mbGenre(f) { return f.kind === "session" ? sessions[f.si].type : f.g; }
+  function mbGenre(f) { return f.kind === "session" ? mbSess(f).type : f.g; }
   function mbTitle(f) {
     if (f.kind === "session") {
-      var s = sessions[f.si];
+      var s = mbSess(f);
       return clientName(s) || genreName(s.type);
     }
     return genreName(f.g);
   }
   function mbSub(f) {
     if (f.kind === "session") {
-      var s = sessions[f.si];
+      var s = mbSess(f);
       return genreName(s.type) + " · " + dMon(s.date) + " " + s.date.getFullYear()
         + (s.place ? " · " + shortPlace(s.place) : "");
     }
@@ -15296,7 +15372,7 @@
      подборки живут вокруг ближайших съёмок, а не в архиве. */
   function mbSubTile(f) {
     if (f.kind === "session") {
-      var s = sessions[f.si];
+      var s = mbSess(f);
       return dMonShort(s.date) + " · " + genreName(s.type).toLowerCase();
     }
     if (f.shelf) {
@@ -17085,6 +17161,9 @@
        следом (тот же boardPrune, что и у обычного опустевания). */
     if (mbOpen) { boardPrune(mbBoard(mbOpen)); saveAll(); }
     renderMbGallery(); renderMbCount(); renderMbStrip();   // счётчики папки могли поменяться
+    /* Пришли из формы — вернулись в неё: строка «Мудборд» под нами всё это
+       время показывала прежнее число */
+    if (mbFromForm) { mbFromForm = false; renderFormMb(); }
   });
   /* Фото кладётся на устройство сразу и без Диска (`uploadToDisk`, «Устройство
      первым, облако сверху»); подключённый Диск получает копию следом. Ссылки
@@ -17097,63 +17176,11 @@
   $("mbAddLink").addEventListener("click", function () {
     if (!mbOpen) return;
     var openedIn = mbOpen;
-    askLink(function (url) {
-      if (!url || !mbOpen) return;
-      var board = mbBoard(openedIn);
-      if (isPinterestBoardUrl(url)) {
-        /* Доска — не одна карточка, а целый список пинов; каждый приходит
-           отдельно и асинхронно, поэтому просто кладём его в подборку по
-           готовности, без промежуточной текстовой заглушки. Лазейка может
-           однажды перестать отвечать (docs/15_MOODBOARD.md, «Доски») — тогда
-           откатываемся на старое честное поведение, одну обложку. */
-        fetchOgBoard(url, function (shot, pin) {
-          if (!boardAlive(board)) { blobDrop(shot.im); return; }   // подборку убрали, пока пины ехали
-          /* Ту же доску приносят второй раз чаще, чем кажется: «Скопировать
-             ссылку» в приложении Pinterest выдаёт каждый раз новый одноразовый
-             инвайт, и по адресу двух ссылок не видно, что доска одна (Алексей
-             прислал четыре разных адреса одной доски). Узнаём кадр по пину, а
-             не по ссылке-двери: пин у него один и тот же навсегда. Байты уже
-             скачаны — их и выбрасываем, лишней записи в фонде не заводим. */
-          var twin = boardShots(board).filter(function (r) { return r.url === pin.permalink; })[0];
-          if (twin) { blobDrop(shot.im); return; }
-          var id = shotAdd({ k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tags: mbTag ? [mbTag] : [] });
-          boardPut(board, id);
-          saveAll();
-          if (mbOpen === openedIn) renderMbFolder();
-        }, function () {
-          if (!boardAlive(board)) return;
-          /* Молчащий отказ и был половиной жалобы: доска ложилась одной
-             картинкой, и понять, доска это была или обычная ссылка,
-             человеку было неоткуда. Говорим вслух той же строкой, что и
-             остальные объяснения папки. */
-          if (mbOpen === openedIn && $("mbNote")) {
-            $("mbNote").hidden = false;
-            $("mbNote").textContent = LANG.t("mb.boardOne");
-          }
-          var id = shotAdd({ k: "link", url: url, tags: mbTag ? [mbTag] : [] });
-          boardPut(board, id);
-          saveAll();
-          if (mbOpen === openedIn) renderMbFolder();
-          fetchOgImage(url, function (shot) {
-            var r = shotById(id);
-            if (!r) return;
-            r.im = shot.im; r.w = shot.w; r.h = shot.h;
-            saveAll();
-            if (mbOpen === openedIn) renderMbFolder();
-          });
-        });
-        return;
-      }
-      var id = shotAdd({ k: "link", url: url, tags: mbTag ? [mbTag] : [] });
-      boardPut(board, id);
-      saveAll(); renderMbFolder();
-      fetchOgImage(url, function (shot) {
-        var r = shotById(id);
-        if (!r) return;                 // кадр могли убрать, пока читалка ходила
-        r.im = shot.im; r.w = shot.w; r.h = shot.h;
-        saveAll();
-        if (mbOpen === openedIn) renderMbFolder();    // могли уже выйти из папки
-      });
+    addLinkTo({
+      board: function () { return mbOpen ? mbBoard(openedIn) : null; },
+      tag: function () { return mbTag; },
+      note: "mbNote",
+      render: function () { if (mbOpen === openedIn) renderMbFolder(); }
     });
   });
   /* Меню дискеты: срок хранения на устройстве. Пункт «до конца съёмки» —
@@ -19147,10 +19174,6 @@
      с собой — стражник молчал ровно там, где был нужен. */
   function boardAlive(b) { return !!b && boards.indexOf(b) >= 0; }
   function sessionShots(s) { return boardShots(boardOfSession(s, false)); }
-  /* Форма отдаёт свои кадры обратно: то, что в ней осталось, ложится в фонд
-     и в подборку съёмки, а убранное из формы уходит из подборки — и из
-     фонда, если больше нигде не лежит. Порядок в подборке — тот, что на
-     экране формы: его там и переставляют. */
   /* Съёмки не стало окончательно — её подборке держаться не за что. Кадры,
      лежащие ещё где-то, остаются в фонде: подборка их не держала, а
      называла. В корзину это не входит: оттуда съёмку возвращают, и вернуться
@@ -19162,22 +19185,15 @@
     ids.forEach(function (id) { if (!shotUsed(id)) shotDrop(id); });
   }
   function dropSessionBoard(rec) { dropBoardWithShots(boardOfSession(rec, false)); }
-  function syncFormShots(rec, list) {
-    var b = boardOfSession(rec, true), was = b.items.slice(), now = [];
-    (list || []).forEach(function (r) {
-      if (!r || (r.k !== "link" && !r.path && !r.im)) return;
-      var id = shotAdd({ id: r.id || r.im || null, k: r.k, im: r.im || null,
-        w: r.w || null, h: r.h || null, path: r.path || null, url: r.url || null,
-        tags: r.tags ? r.tags.slice() : [] });
-      var have = shotById(id);
-      /* Кадр мог поменяться в форме — путь на Диске дошёл позже загрузки */
-      if (have) { have.path = r.path || have.path; have.im = r.im || have.im;
-        have.w = r.w || have.w; have.h = r.h || have.h; }
-      if (now.indexOf(id) < 0) now.push(id);
-    });
-    b.items = now;
-    was.forEach(function (id) { if (now.indexOf(id) < 0 && !shotUsed(id)) shotDrop(id); });
-    boardPrune(b);   // пустая подборка не заводится
+  /* Жанр подборки — жанр съёмки, и его в форме меняют: подборка заводится
+     раньше, чем этот выбор сделан окончательно. Сверяем при сохранении —
+     иначе «Свадьба», переделанная в «Портрет», уносила бы в мудборд старый
+     жанр, а по нему считается всё жанровое: папка на Диске, подсказки
+     тегов, соседи в ленте. */
+  function syncBoardGenre(rec) {
+    var b = boardOfSession(rec, false);
+    if (b && b.genre !== rec.type) b.genre = rec.type;
+    if (b) boardPrune(b);   // ни кадра не положили — подборке не за что держаться
   }
   function genreShots(g) { return boardShots(boardTpl(g, false)); }
   /* Список кадров подборки жанра — заводится по первому обращению, как
@@ -19931,7 +19947,7 @@
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
     $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
-    renderPay(); renderRefs();
+    renderPay(); renderFormMb();
     $("refNote").hidden = true;
     /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
        а прогноз — про то, каким будет свет. Показываем то, что тяжелее */
@@ -21534,7 +21550,11 @@
       currency: fCurrency,
       guests: fGuests || 0, trip: fTrip, tripPlace: fTrip ? sessionPlace.name : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
-      docs: fDocs.slice(), gear: fGear.slice(), refs: fRefs.slice(),
+      docs: fDocs.slice(), gear: fGear.slice(),
+      /* Кадры в черновике больше не лежат: они уже в подборке, и черновику
+         довольно помнить её знак. Заодно это чинит старую неровность —
+         превью в черновике занимали место в `localStorage` вторым слоем. */
+      sid: fId,
       route: hasRoute(shootType) ? routeFromEditor() : []
     };
   }
@@ -21553,7 +21573,11 @@
     if (strs.some(function (v) { return (v || "").trim(); })) return true;
     if (Array.isArray(o.persons) && o.persons.some(function (p) { return (p.n || "").trim() || (p.tel || "").trim(); })) return true;
     if (+o.guests > 0 || +o.prepay > 0 || +o.rate > 0) return true;
-    if ((o.docs || []).length || (o.refs || []).length || (o.gear || []).length) return true;
+    if ((o.docs || []).length || (o.gear || []).length) return true;
+    /* Набранный мудборд — тоже набранное руками: человек мог не написать ни
+       строчки, а собрать двадцать кадров, и потерять их закрытием формы
+       было бы худшей потерей из возможных здесь */
+    if (o.sid && boardShots(boardOfSession({ id: o.sid }, false)).length) return true;
     if (o.trip || (o.wish || []).length) return true;
     return false;
   }
@@ -21628,12 +21652,11 @@
         })
       : [];
     fGear = Array.isArray(s.gear) ? s.gear.filter(function (n) { return typeof n === "string"; }) : [];
-    /* Черновик несёт кадры при себе (`refs`), сохранённая съёмка — ссылками
-       через подборку. Форма работает с копиями: отменённая правка не должна
-       трогать ни фонд, ни подборку. */
-    fRefs = (Array.isArray(s.refs) ? s.refs : sessionShots(s)).map(function (r) {
-      return { id: r.id || null, k: r.k, path: r.path, im: r.im, w: r.w, h: r.h, url: r.url, tags: r.tags || [] };
-    });
+    /* Кадры форма не переносит в себя вовсе: и запись, и черновик знают
+       свою подборку знаком — у записи это `id`, у черновика `sid`. Знака
+       нет только у совсем старого черновика, заведённого до этой правки, —
+       ему выдаём новый, кадры в нём и так не сохранились бы. */
+    fId = s.id || s.sid || newId();
     fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
     payFolded = true;
   }
@@ -21674,7 +21697,7 @@
       /* Место съёмки — населённый пункт, а не область: раньше сюда попадало
          уточнение, и новая съёмка открывалась с «Московской областью» */
       sessionPlace = { name: geoCity || "", lat: LAT, lon: LON, city: true };
-      fRefs = [];
+      fId = newId();
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
 
       /* Черновик поднимаем поверх только что собранной пустой формы — если
@@ -21818,18 +21841,14 @@
     useRefBoard(boardTpl(shootType, true), renderGenreRefs, "gRefNote", "genre-refs", gRefTag);
     $("refFile").click();
   });
+  /* Набор жанра ходит той же дверью, что и папка мудборда, — и с этой
+     правки умеет доски целиком, а не одну обложку */
   $("gRefLink").addEventListener("click", function () {
-    askLink(function (url) {
-      if (!url) return;
-      var id = shotAdd({ k: "link", url: url, tags: gRefTag ? [gRefTag] : [] });
-      boardPut(boardTpl(shootType, true), id);
-      saveAll(); renderGenreRefs();
-      fetchOgImage(url, function (shot) {
-        var r = shotById(id);
-        if (!r) return;                 // кадр могли убрать, пока читалка ходила
-        r.im = shot.im; r.w = shot.w; r.h = shot.h;
-        saveAll(); renderGenreRefs();
-      });
+    addLinkTo({
+      board: function () { return boardTpl(shootType, true); },
+      tag: function () { return gRefTag; },
+      note: "gRefNote",
+      render: renderGenreRefs
     });
   });
 
@@ -22265,6 +22284,16 @@
        быстрее чем за 600 мс после последней буквы, и тогда набранное
        осталось бы только в памяти, которую сейчас же выгрузит закрытие */
     draftSaveNow();
+    /* Форму новой съёмки закрыли, не сохранив: её подборка держится за знак,
+       которого в списке съёмок нет, — в мудборде такой не видно вовсе, и
+       осталась бы она невидимым следом с кадрами внутри. Черновик этот знак
+       помнит (`sid`), и тогда подборка ждёт вместе с ним; черновика нет —
+       сносим. Кадры, лежащие ещё где-то, остаются: подборка их называла, а
+       не держала. */
+    if (editIdx === null && fId && !draftLoad()) {
+      dropSessionBoard({ id: fId });
+      saveAll();
+    }
     closeRows(); $("formOverlay").classList.remove("open");
   });
   /* Любая правка новой (не редактируемой) формы откладывает черновик —
@@ -22275,6 +22304,11 @@
   $("formOverlay").addEventListener("input", scheduleDraftSave);
   $("formOverlay").addEventListener("change", scheduleDraftSave);
   $("fDraftReset").addEventListener("click", function () {
+    /* Черновик отвергнут целиком — вместе с кадрами, которые в нём набрали.
+       Иначе его подборка осталась бы висеть на знаке, который больше никто
+       не назовёт: в мудборде такой не видно, и убрать её было бы нечем. */
+    var gone = draftLoad();
+    if (gone && gone.sid) { dropSessionBoard({ id: gone.sid }); saveAll(); }
     draftClear();
     $("draftNote").hidden = true;
     openForm(fDate, fAuto ? null : fMin, null, fAuto);   // тот же день, форма с нуля
@@ -22311,8 +22345,10 @@
     var rec = {
       kind: formKind,
       /* Знак у правки сохраняется прежний: запись та же, и ссылка опросника,
-         ушедшая клиенту, должна и дальше её находить */
-      id: (editIdx !== null && sessions[editIdx] && sessions[editIdx].id) || newId(),
+         ушедшая клиенту, должна и дальше её находить. У новой он тоже не
+         рождается здесь: форма получила его при открытии, и подборка съёмки
+         уже висит на нём — выдать второй значило бы оторвать её. */
+      id: fId || newId(),
       date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
       contact: contactLine(), clientTel: $("fClientTel").value.trim(),
       notes: $("fNotes").value.trim(),
@@ -22358,7 +22394,7 @@
       prevRec && prevRec.telLog);
     if (telGone.length) rec.telLog = telGone;
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
-    syncFormShots(rec, fRefs);
+    syncBoardGenre(rec);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
     /* Настоящая запись легла в список — черновику, который её и держал,
