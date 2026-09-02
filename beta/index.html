@@ -1530,6 +1530,13 @@
      бывает почасовым, а «студия» иногда бесплатная (docs: тумблер, а не
      каталог типов). Минуты открываются только вместе с тумблером — нечего
      показывать поле, которое нечем наполнить. */
+  .rent-in { display: flex; align-items: center; gap: 6px; }
+  .rent-in .rn-k { font-size: 14px; color: var(--ink-3); }
+  .rent-in .rn-t {
+    width: 62px; padding: 6px 8px; text-align: center;
+    background: var(--surface); border: 0; border-radius: 9px; corner-shape: squircle;
+    color: var(--ink); font-size: 15px; font-variant-numeric: tabular-nums;
+  }
   .spot-hourly { display: flex; align-items: center; justify-content: space-between;
     padding: 10px 2px 2px; margin-top: 4px; border-top: 1px solid var(--hair); }
   .spot-hourly .sh-lbl { font-size: 14px; color: var(--ink-3); }
@@ -6803,8 +6810,16 @@
     <div class="say warn" id="cdClash" hidden><span class="s-ic" data-ic="warn"></span><span id="cdClashT"></span></div>
 
     <!-- Студийный час — тихо, пока не подошёл: за 10 минут и ближе, не раньше.
-         Живёт, только пока текущая точка маршрута ссылается на почасовое место. -->
+         Живёт, только пока у съёмки есть студия и идёт оплаченное время. -->
     <div class="say" id="cdStudio" hidden><span class="s-ic" id="cdStudioIc"></span><span id="cdStudioT"></span></div>
+    <!-- Звонок администратору. Появляется во время аренды, до и после исчезает:
+         действия живут по фазе аренды, а не панелью на весь день (Алексей,
+         30 августа 2026). Знак и приём те же, что у звонка клиенту — новой
+         формы для того же действия продукт не заводит. -->
+    <a class="ev-tel" id="cdStudioTel" href="tel:" hidden>
+      <span id="cdStudioTelN">—</span>
+      <span data-ic="phone"></span>
+    </a>
 
     <div class="say" id="cdSay" hidden><span class="s-ic" id="cdSayIc"></span><span id="cdSayT"></span></div>
 
@@ -7089,6 +7104,19 @@
         <span><span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords"></span></span>
         <span class="rv act" data-i18n="form.change">Изменить</span>
       </button>
+      <!-- Аренда есть только у студии: её всегда бронируют на конкретное время.
+           Своих границ у неё раньше не было вовсе — таймер брал конец у
+           следующей точки маршрута и на свадьбе ошибался на час
+           (docs: ROADMAP, «Студия — своя сущность, и она живёт во времени»). -->
+      <div class="row sep" id="fRentRow" hidden>
+        <span class="rl" data-i18n="form.rent">Аренда</span>
+        <span class="rv rent-in">
+          <span class="rn-k" data-i18n="form.rentFrom">с</span>
+          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentFrom" placeholder="--:--"/>
+          <span class="rn-k" data-i18n="form.rentTo">до</span>
+          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentTo" placeholder="--:--"/>
+        </span>
+      </div>
     </div>
 
     <!-- Заметки, оборудование и плейлист — не про клиента: они про саму съёмку
@@ -7940,6 +7968,11 @@
     </button>
     <!-- Сохранённые точки идут выше поиска: вернуться на своё место нужно
          часто, а искать новое — редко -->
+    <!-- Студии идут первыми: место для прогулки выбирают на карте, а студию —
+         из своих, по имени. Список показывается только в листе съёмки: у места
+         приложения студии нет, ему нужны координаты, а не арендодатель. -->
+    <div class="sec-label" id="studioLabel" style="padding-left:0;" data-i18n="loc.studios" hidden>Студии</div>
+    <div class="spot-list" id="studioList" hidden></div>
     <div class="sec-label" id="spotLabel" style="padding-left:0;" data-i18n="loc.myPlaces">Мои места</div>
     <div class="spot-list" id="spotList"></div>
     <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
@@ -7962,8 +7995,21 @@
       <!-- Раньше сохранить место можно было только закладкой на карте, а имя
            и адрес — вторым заходом в настройках. Теперь то же самое одним
            шагом: не отдельная сущность, а свойство этой самой точки. -->
-      <div class="row sep"><span class="rl" data-i18n="loc.saveSpot">Сохранить в моих местах</span>
+      <div class="row sep" id="locSaveRow"><span class="rl" data-i18n="loc.saveSpot">Сохранить в моих местах</span>
         <span class="rv"><span class="toggle" id="locSaveSpot"></span></span>
+      </div>
+      <!-- «Это студия» вместо прежнего тумблера «Почасовая аренда» у места.
+           Тумблер стоял не там: почасовой бывает и банкетный зал, а студийный
+           час, виджет и продление — функции стороны, которая отвечает. Студия
+           сохраняется всегда: сущность без списка не живёт, отдельный тумблер
+           «сохранить» ей не нужен (docs: DECISIONS, «Студия — сущность»). -->
+      <div class="row sep"><span class="rl" data-i18n="loc.isStudio">Это студия</span>
+        <span class="rv"><span class="toggle" id="locIsStudio"></span></span>
+      </div>
+      <input class="sep" type="tel" id="locStudioTel" placeholder="Телефон администратора" data-i18n-ph="loc.studioTel" hidden/>
+      <div class="spot-mins sep" id="locStudioMinRow" hidden>
+        <span class="sm-lbl" data-i18n="loc.studioMins">Минут в оплаченном часе</span>
+        <input type="number" inputmode="numeric" min="1" max="60" id="locStudioMin" value="55"/>
       </div>
     </div>
     <!-- Координаты — запасной путь, поэтому парой, а не в разные концы строки -->
@@ -9399,7 +9445,7 @@
      выбранный на ноутбуке час назад. Поэтому отметка на ключ, и ставится
      только тем ключам, которые правда изменились. Значения при этом не
      переворачиваются в объекты — хранилище переписывать не нужно. */
-  var SET_SKIP = { sessions: 1, trashed: 1, blocks: 1, orgs: 1, spots: 1, graves: 1, setMt: 1, dev: 1,
+  var SET_SKIP = { sessions: 1, trashed: 1, blocks: 1, orgs: 1, spots: 1, studios: 1, graves: 1, setMt: 1, dev: 1,
     shots: 1, boards: 1 };
   function stampSettings(data, now) {
     for (var k in data) {
@@ -9432,7 +9478,7 @@
         drumSlot: drumSlot,
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
-        mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
+        mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, studios: studios, theme: themePref,
         pro: proMode, manualEnd: manualEnd, icsLayer: icsLayer,
         /* Практика пишется, только когда её выбрали: пока вопрос не задан,
            в записи её нет, и первый запуск остаётся первым */
@@ -11107,6 +11153,21 @@
      на пустом месте. Список один на приложение: и закладка в шапке карты, и
      «Мои точки съёмки» в настройках, и лист «Где снимаем» смотрят сюда же. */
   var spots = (saved && saved.spots) || [];
+  /* Студия — отдельная сущность, а не место с тумблером: у неё есть кому
+     ответить. Отсюда телефон администратора, длина рабочего часа и место под
+     `tomcohId` — адрес в каталоге TOMCOH_OS, откуда карточка приедет сама,
+     когда каталог появится. Парк, лофт, кафе, ресторан и банкетный зал
+     остаются адресными местами и живут в `spots`
+     (docs: DECISIONS, «Студия — сущность, а не почасовое место»). */
+  var studios = (saved && saved.studios) || [];
+  function newStudioId() {
+    return "st" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+  function studioById(id) {
+    if (!id) return null;
+    for (var i = 0; i < studios.length; i++) if (studios[i].id === id) return studios[i];
+    return null;
+  }
   function newSpotId() {
     return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
@@ -19179,6 +19240,10 @@
   /* Место съёмки живёт в самой съёмке: имя, координаты и «в городе» для засветки.
      По умолчанию — текущее место приложения, дальше правится вручную. */
   var sessionPlace = { name: "", town: "", addr: "", lat: LAT, lon: LON, city: true };
+  /* Студия у съёмки и её аренда. Аренда живёт в съёмке, а не в студии: студия
+     вечная, аренда — событие во времени, со своим началом и концом. Пусто —
+     значит место адресное, и ни строки аренды, ни студийного часа нет. */
+  var sessionStudioId = null, fRentFrom = null, fRentTo = null;
   /* Город рядом = засветка. Считаем по данным геокодера: он знает про населённый пункт */
   /* `manual` — координаты набраны руками и имени им не давали. Тогда числа и
      есть ответ, и подставлять вместо них ближайший посёлок нельзя: человек
@@ -19245,7 +19310,41 @@
     /* Пока город набирают, поле не перебиваем: ответ геокодера может прийти
        посреди слова, и курсор уедет вместе с ним */
     if (document.activeElement !== $("fCity")) $("fCity").value = sessionPlace.town || "";
+    renderRentRow();
   }
+  /* Аренда появляется вместе со студией и исчезает вместе с ней. Часы по
+     умолчанию — часы съёмки: чаще всего они и совпадают, а спорить с этим
+     фотограф будет ровно тогда, когда студия снята с запасом. */
+  function renderRentRow() {
+    var on = !!studioById(sessionStudioId);
+    $("fRentRow").hidden = !on;
+    if (!on) { fRentFrom = fRentTo = null; return; }
+    if (fRentFrom == null) fRentFrom = fMin;
+    if (fRentTo == null) fRentTo = fMin + fDur;
+    if (document.activeElement !== $("fRentFrom")) $("fRentFrom").value = fmt(fRentFrom);
+    if (document.activeElement !== $("fRentTo")) $("fRentTo").value = fmt(fRentTo);
+  }
+  /* Время набирается цифрами и складывается само — тот же приём, что у точек
+     маршрута: «1000» → «10:00», «9» → 09:00. Второй раз его не изобретаем. */
+  ["fRentFrom", "fRentTo"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      var d = this.value.replace(/\D/g, "").slice(0, 4);
+      if (d.length > 2) d = d.slice(0, 2) + ":" + d.slice(2);
+      this.value = d;
+    });
+    $(id).addEventListener("blur", function () {
+      var d = this.value.replace(/\D/g, ""), h, m;
+      if (!d) { this.value = fmt(id === "fRentFrom" ? fMin : fMin + fDur); }
+      else {
+        if (d.length <= 2) { h = +d; m = 0; }
+        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
+        else { h = +d.slice(0, 2); m = +d.slice(2); }
+        this.value = (h > 23 || m > 59) ? fmt(id === "fRentFrom" ? fMin : fMin + fDur) : fmt(h * 60 + m);
+      }
+      var v = parseHM(this.value);
+      if (id === "fRentFrom") fRentFrom = v; else fRentTo = v;
+    });
+  });
   /* Город набирают руками, когда съёмка в другом городе, а точка ещё не
      выбрана: геокодеру неоткуда взять ответ, а планировать уже надо.
      Набранный руками город геокодер больше не перебивает — тот же приём, что
@@ -21632,21 +21731,44 @@
     }
   }
   /* ---------- Студийный час ----------
-     Тихо, пока не подошёл: банкетный зал тоже бывает почасовым, а «студия»
-     иногда бесплатная — функция читает тумблер на месте, а не имя точки.
-     Буфер выхода не повторяется на каждый час брони — только в самом конце
-     окна (следующая точка маршрута или конец съёмки), поэтому многочасовая
-     студийная сессия предупреждает один раз, а не после каждого часа. */
+     Считается по аренде студии, а не по точке маршрута. Прежняя редакция брала
+     конец окна у следующей точки — и на свадьбе, где студия оплачена
+     14:00–16:00, а ресторан в 17:00, дедлайн выхода уезжал на час позже
+     оплаченного времени. Хуже того, до самого частого студийного случая —
+     портрета, предметки, теста — она не доходила вовсе: маршрута там нет,
+     а значит нет и точки, с которой читался тумблер.
+
+     Теперь у аренды свои границы, и таймер работает у любого жанра. Тихо,
+     пока не подошёл: буфер выхода срабатывает один раз, в конце оплаченного
+     времени, а не после каждого часа многочасовой сессии.
+     (docs: ROADMAP, «Студия — своя сущность, и она живёт во времени») */
+  function rentWindow(s) {
+    var st = studioById(s.studioId);
+    if (!st) return null;
+    var dur = s.dur || 90;
+    return { st: st,
+             from: s.rentFrom != null ? s.rentFrom : s.min,
+             to: s.rentTo != null ? s.rentTo : (s.end != null ? s.end : s.min + dur) };
+  }
+  /* Телефон студии живёт по фазе аренды: пришёл — есть кому позвонить, ушёл —
+     строка исчезла. Это не новая функция, а `cdEvTel` с другим адресатом:
+     работает офлайн, канала и сервера не требует. */
+  function renderStudioTel(s, nowMin2) {
+    var el = $("cdStudioTel");
+    var rw = nowMin2 === null ? null : rentWindow(s);
+    var tel = rw && rw.st.tel ? telE164(rw.st.tel) || rw.st.tel : "";
+    var on = !!(rw && tel && nowMin2 >= rw.from && nowMin2 <= rw.to);
+    el.hidden = !on;
+    if (!on) return;
+    $("cdStudioTelN").textContent = telE164(rw.st.tel) ? formatTel(telE164(rw.st.tel)) : rw.st.tel;
+    el.href = "tel:" + (telE164(rw.st.tel) || rw.st.tel.replace(/[^\d+]/g, ""));
+  }
   function renderStudioTimer(s, route, phase, cur, nowMin2) {
+    renderStudioTel(s, nowMin2);
     var el = $("cdStudio");
-    if (phase !== "during" || cur < 0 || nowMin2 === null) { el.hidden = true; return; }
-    var pt = route[cur];
-    var sp = pt.placeId ? spotById(pt.placeId) : null;
-    if (!sp || !sp.hourly) { el.hidden = true; return; }
-    var dur = s.dur || 90, endMin = s.end != null ? s.end : s.min + dur;
-    var nx = route[cur + 1];
-    var windowEnd = nx ? nx.t : endMin;
-    var deadline = windowEnd - (60 - (sp.studioMinutes || 55));
+    var rw = nowMin2 === null ? null : rentWindow(s);
+    if (!rw || nowMin2 < rw.from) { el.hidden = true; return; }
+    var deadline = rw.to - (60 - (rw.st.hourMin || 55));
     var left = deadline - nowMin2;
     /* Дальше десяти минут молчим — уведомление существует для того, чего
        не видно самому, а не как счётчик с самого начала часа (04_ANTI_GOALS).
@@ -22458,6 +22580,7 @@
       person: m.person || "", phone: m.phone || "", orgId: m.orgId || null,
       place: m.place || "", placeTown: m.placeTown || "", placeAddr: m.placeAddr || "",
       placeLat: m.placeLat, placeLon: m.placeLon, placeCity: m.placeCity,
+      studioId: m.studioId || null, rentFrom: m.rentFrom, rentTo: m.rentTo,
       /* Отправленный опросник переезжает вместе с остальным: иначе на карточке
          съёмки кнопка появилась бы снова и клиенту ушёл бы второй */
       questSent: m.questSent || null,
@@ -22507,6 +22630,7 @@
       persons: formPersons(),
       place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
       placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
+      studioId: sessionStudioId, rentFrom: fRentFrom, rentTo: fRentTo,
       wish: wishes.slice(),
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"), deliveredAt: fDeliveredAt,
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
@@ -22589,6 +22713,9 @@
        места остаётся именем места, пока фотограф не откроет лист и не назовёт
        точку сам. Гадать, где кончается город и начинается улица, дороже, чем
        показать запись как есть. */
+    sessionStudioId = studioById(s.studioId) ? s.studioId : null;
+    fRentFrom = s.rentFrom != null ? s.rentFrom : null;
+    fRentTo = s.rentTo != null ? s.rentTo : null;
     sessionPlace = (s.placeLat != null)
       ? { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
           lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
@@ -22674,6 +22801,7 @@
          раньше сюда попадало уточнение, и форма открывалась с «Московской
          областью». */
       sessionPlace = { name: "", town: geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
+      sessionStudioId = null; fRentFrom = null; fRentTo = null;
       fId = newId();
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
 
@@ -23374,6 +23502,11 @@
       persons: formPersons(),
       place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
       placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
+      /* Аренда пишется только у студии: у адресного места её нет, и нули в
+         записи означали бы бронь, которой не было */
+      studioId: sessionStudioId || null,
+      rentFrom: sessionStudioId ? fRentFrom : null,
+      rentTo: sessionStudioId ? fRentTo : null,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       deliveredAt: $("fDone").classList.contains("on") ? fDeliveredAt : null,
@@ -26219,8 +26352,16 @@
       $("locAddress").value = base.addr || "";
       $("locSaveSpot").classList.remove("on");
       $("locTrip").classList.toggle("on", fTrip);
+      /* Студия съёмки открывается уже выбранной: лист показывает то, что в
+         съёмке стоит, а не пустые поля поверх заполненной записи */
+      var st0 = studioById(sessionStudioId);
+      locStudioId = st0 ? st0.id : null;
+      $("locStudioTel").value = st0 ? (st0.tel || "") : "";
+      $("locStudioMin").value = st0 ? (st0.hourMin || 55) : 55;
+      setStudioMode(!!st0);
     }
     $("locDetectLbl").textContent = LANG.t("loc.detect");
+    renderStudios();
     renderSpots();
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
     // Первый тап по месту на «Сегодня» — сразу спрашиваем разрешение на геоданные
@@ -26741,6 +26882,78 @@
     btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
   })();
 
+  /* Студия в листе выбирается так же, как сохранённая точка: тапом. Разница
+     в том, что она приносит с собой не только координаты — телефон
+     администратора и длину рабочего часа тоже, потому что без них она не
+     студия, а просто адрес. */
+  var locStudioId = null;
+  function fillStudioFields(st) {
+    $("locLat").value = (+st.lat).toFixed(4);
+    $("locLon").value = (+st.lon).toFixed(4);
+    $("locName").value = st.name || "";
+    $("locAddress").value = st.address || "";
+    $("locStudioTel").value = st.tel || "";
+    $("locStudioMin").value = st.hourMin || 55;
+    locPickName = st.name || "";
+    locStudioId = st.id;
+    setStudioMode(true);
+    $("locErr").textContent = "";
+  }
+  function setStudioMode(on) {
+    $("locIsStudio").classList.toggle("on", !!on);
+    $("locStudioTel").hidden = !on;
+    $("locStudioMinRow").hidden = !on;
+    /* Студия сохраняется всегда — сущность без списка не живёт. Тумблер
+       «сохранить в моих местах» ей не нужен и только путал бы: он про точки. */
+    $("locSaveRow").hidden = !!on;
+  }
+  $("locIsStudio").addEventListener("click", function () {
+    var on = !this.classList.contains("on");
+    setStudioMode(on);
+    if (!on) locStudioId = null;
+  });
+  function renderStudios() {
+    var box = $("studioList"), lab = $("studioLabel");
+    var show = locTarget === "session";
+    lab.hidden = !show; box.hidden = !show;
+    if (!show) return;
+    box.innerHTML = "";
+    if (!studios.length) {
+      var em = document.createElement("div");
+      em.className = "spot-empty";
+      em.textContent = LANG.t("loc.noStudios");
+      box.appendChild(em);
+      return;
+    }
+    studios.forEach(function (st) {
+      var row = document.createElement("div"); row.className = "spot-row";
+      var go = document.createElement("button"); go.className = "spot-go"; go.type = "button";
+      var nm = document.createElement("span"); nm.className = "spot-name";
+      nm.textContent = st.name || coordText(st.lat, st.lon);
+      var co = document.createElement("span"); co.className = "spot-coord";
+      co.textContent = LANG.t("loc.studioMins") + ": " + (st.hourMin || 55);
+      var ad = document.createElement("span"); ad.className = "spot-address";
+      ad.textContent = st.address || "";
+      go.appendChild(nm); go.appendChild(co); go.appendChild(ad);
+      go.addEventListener("click", function () { fillStudioFields(st); });
+      row.appendChild(go);
+      var del = document.createElement("button");
+      del.className = "spot-del"; del.type = "button";
+      del.setAttribute("aria-label", LANG.t("loc.delAria"));
+      del.innerHTML = IC.svg("trash");
+      del.addEventListener("click", function () {
+        var i = studios.indexOf(st);
+        if (i >= 0) studios.splice(i, 1);
+        /* Съёмки, где студия уже стояла, её не теряют: снимок имени и адреса
+           лежит в самой записи, и прошлое не переписывается задним числом.
+           Пропадает только студийный час — отвечать за него больше некому. */
+        if (locStudioId === st.id) { locStudioId = null; setStudioMode(false); }
+        saveAll(); renderStudios();
+      });
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
   function renderSpots() {
     var box = $("spotList"); if (!box) return;
     box.innerHTML = "";
@@ -26812,40 +27025,11 @@
       });
       box2.appendChild(nameIn); box2.appendChild(addrIn);
 
-      /* Почасовая аренда — своя строка, не тип места: подходит и студии, и
-         банкетному залу, которые снимают на час. Минуты — реальная длина
-         рабочего часа: студийный обычно 55, но у каждой студии по-своему. */
-      var hRow = document.createElement("div"); hRow.className = "spot-hourly";
-      var hLbl = document.createElement("span"); hLbl.className = "sh-lbl";
-      hLbl.textContent = LANG.t("loc.hourly");
-      var hToggle = document.createElement("span"); hToggle.className = "toggle";
-      hToggle.classList.toggle("on", !!sp.hourly);
-      hRow.appendChild(hLbl); hRow.appendChild(hToggle);
-      box2.appendChild(hRow);
-
-      var mRow = document.createElement("div"); mRow.className = "spot-mins";
-      mRow.hidden = !sp.hourly;
-      var mLbl = document.createElement("span"); mLbl.className = "sm-lbl";
-      mLbl.textContent = LANG.t("loc.hourlyMins");
-      var mIn = document.createElement("input");
-      mIn.type = "number"; mIn.inputMode = "numeric"; mIn.min = "1"; mIn.max = "60";
-      mIn.value = sp.studioMinutes || 55;
-      mRow.appendChild(mLbl); mRow.appendChild(mIn);
-      box2.appendChild(mRow);
-
-      hToggle.addEventListener("click", function () {
-        sp.hourly = !sp.hourly;
-        hToggle.classList.toggle("on", sp.hourly);
-        mRow.hidden = !sp.hourly;
-        if (sp.hourly && !sp.studioMinutes) { sp.studioMinutes = 55; mIn.value = 55; }
-        saveAll();
-      });
-      mIn.addEventListener("input", function () {
-        var v = Math.round(+mIn.value);
-        sp.studioMinutes = (v > 0 && v <= 60) ? v : 55;
-        saveAll();
-      });
-
+      /* Тумблера «Почасовая аренда» здесь больше нет. Он стоял не на своём
+         месте: почасовым бывает и банкетный зал, а студийный час, продление и
+         виджет — функции стороны, которая отвечает. Место снова адресное, а
+         студия живёт своей сущностью (docs: DECISIONS, «Студия — сущность,
+         а не почасовое место»). */
       box.appendChild(box2);
       edit.addEventListener("click", function () {
         box2.hidden = !box2.hidden;
@@ -26963,6 +27147,26 @@
       var addr = ($("locAddress").value || "").trim();
       /* Руками набранные координаты считаем ответом только если имени к ним не
          дали: назвал место — значит числа ему не подпись */
+      /* Студия заводится тем же «Готово», что и место: отдельного экрана у неё
+         нет — фотограф выбирает место и говорит, что это студия. Совпадение
+         координат обновляет её, а не плодит вторую такую же рядом. */
+      if ($("locIsStudio").classList.contains("on")) {
+        var mins = Math.round(+$("locStudioMin").value);
+        var st = studioById(locStudioId);
+        if (!st) for (var qi = 0; qi < studios.length; qi++) if (sameSpot(studios[qi], la, lo)) { st = studios[qi]; break; }
+        if (!st) { st = { id: newStudioId(), tomcohId: null }; studios.unshift(st); }
+        st.name = placeName || st.name || coordText(la, lo);
+        st.address = addr || st.address || "";
+        st.tel = ($("locStudioTel").value || "").trim();
+        st.hourMin = (mins > 0 && mins <= 60) ? mins : 55;
+        st.lat = +la.toFixed(5); st.lon = +lo.toFixed(5);
+        sessionStudioId = st.id;
+        if (!placeName) placeName = st.name;      // студия называет себя сама
+        saveAll();
+      } else {
+        sessionStudioId = null;
+        fRentFrom = fRentTo = null;
+      }
       setSessionPlace(la, lo, placeName, locCoordsTyped && !placeName, addr);
       /* Раньше сохранить место можно было только закладкой на карте — здесь,
          одним тумблером, то же самое сразу с именем и адресом, без второго
