@@ -13029,6 +13029,13 @@
     var nom = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&accept-language=ru&lat=" + la + "&lon=" + lo;
     var bdc = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + la + "&longitude=" + lo + "&localityLanguage=ru";
     askGeo(nom, geoFromNominatim)
+      /* Пустой ответ — тоже отказ. Nominatim на zoom=12 отвечает по Томску
+         одной областью, без города: запрос удался, имени нет. Прежняя цепочка
+         считала отказом только сбой сети, второй источник не спрашивала — и
+         шапка навсегда садилась на координаты там, где BigDataCloud город
+         знает («Городской округ город Томск» → «Томск»). Замер: 2 сентября
+         2026, 56.489 N · 84.952 E. */
+      .then(function (g) { if (!g.city) throw new Error("no city"); return g; })
       .catch(function () { return askGeo(bdc, geoFromBDC); })
       .then(function (g) {
         /* Место успело смениться — этот ответ уже не про него. Раньше он просто
@@ -19177,11 +19184,12 @@
      есть ответ, и подставлять вместо них ближайший посёлок нельзя: человек
      назвал место так, как хотел */
   function setSessionPlace(lat, lon, name, manual, addr) {
-    /* Город обнуляется вместе с точкой: он принадлежит новым координатам, а не
-       прежним. Пока геокодер не ответил, честнее не показывать города вовсе,
-       чем подписать студию в Томске городом, где снимали в прошлый раз. */
+    /* Город не гаснет ни на мгновение. Прежняя редакция обнуляла его вместе с
+       точкой и ждала геокодера — поле мигало пустотой, а без сети оставалось
+       пустым насовсем. Город приложение знает с запуска, менять его на «ничего»
+       не за чем: ответ геокодера только уточнит, если город другой. */
     sessionPlace = { name: name || "",
-                     town: sessionPlace.townTyped ? sessionPlace.town : "",
+                     town: sessionPlace.town || "",
                      townTyped: !!sessionPlace.townTyped,
                      addr: addr != null ? addr : "",
                      lat: lat, lon: lon, city: sessionPlace.city, manual: !!manual };
@@ -19200,6 +19208,7 @@
     var nomU = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&accept-language=ru&lat=" + lat + "&lon=" + lon;
     var bdcU = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=ru";
     askGeo(nomU, geoFromNominatim)
+      .then(function (g) { if (!g.city) throw new Error("no city"); return g; })
       .catch(function () { return askGeo(bdcU, geoFromBDC); })
       .then(function (g) {
         if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;   // место успело смениться
@@ -19244,6 +19253,26 @@
   $("fCity").addEventListener("input", function () {
     sessionPlace.town = this.value.trim();
     sessionPlace.townTyped = true;
+  });
+  /* От города зависит свет и погода — значит набранный город обязан двигать
+     координаты, иначе поле говорит «Новосибирск», а солнце считается в Лобне.
+     Двигаем только пока конкретной точки нет: у выбранной студии свои
+     координаты, и они точнее города. Не нашли город — ничего не двигаем и
+     ничего не обещаем: имя остаётся, свет остаётся прежним. */
+  $("fCity").addEventListener("change", function () {
+    var q = this.value.trim();
+    if (!q || sessionPlace.name || q === sessionPlace.townAt) return;
+    sessionPlace.townAt = q;                     // за один и тот же город не спрашиваем дважды
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ru&q="
+          + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var h = (j || [])[0];
+        if (!h || sessionPlace.town !== q || sessionPlace.name) return;
+        sessionPlace.lat = +h.lat; sessionPlace.lon = +h.lon;
+        renderSessionPlace();
+        refreshForm();                           // окно света пересчиталось на новый город
+      }).catch(function () {});
   });
 
   /* Жанры: пользователь оставляет только свои */
@@ -20767,6 +20796,17 @@
 
   function refreshForm() {
     var keep = new Date(selDate);
+    /* Окно света считаем по месту съёмки, а не по месту, где лежит телефон.
+       Фотограф из Лобни назначает съёмку в Новосибирске — закат у неё
+       новосибирский, и подпись формы обязана говорить его, а не свой.
+       Карточка так считает давно (`cardSun`); форма считала по глобальным
+       координатам и расходилась с ней ровно на выезде. Погода осталась по
+       месту приложения: прогноз запрашивается на него одним разом, и
+       переносить его сюда — отдельная работа, а не строчка. */
+    var kLat = LAT, kLon = LON, kTz = TZ;
+    if (sessionPlace.lat != null) {
+      LAT = sessionPlace.lat; LON = sessionPlace.lon; TZ = tzFor(sessionPlace.lon);
+    }
     computeSun(fDate);
     var w = dayWindow(fDate);
     /* Дата у обеих капсул. Коротко — «8 авг»: рядом с временем длинная форма
@@ -20799,6 +20839,7 @@
         : fMin + fDur === snapMin(w.b) || fMin + fDur === Math.round(w.b)
           ? LANG.t("form.subLongerThanLight", { tail: '<span class="t">' + esc(LANG.t("form.goldenAtEnd")) + "</span>" })
           : LANG.t("form.subWindow", { range: '<span class="t">' + esc(range(w.a, w.b)) + "</span>" });
+    LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(keep);
 
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
@@ -22549,9 +22590,9 @@
        точку сам. Гадать, где кончается город и начинается улица, дороже, чем
        показать запись как есть. */
     sessionPlace = (s.placeLat != null)
-      ? { name: s.place || "", town: s.placeTown || "", addr: s.placeAddr || "",
+      ? { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
           lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
-      : { name: s.place || "", town: s.placeTown || "", addr: s.placeAddr || "",
+      : { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
           lat: LAT, lon: LON, city: true };   // старые записи знали только имя
     $("fContact").value = s.contact || "";
     $("fClientTel").value = s.clientTel || "";
