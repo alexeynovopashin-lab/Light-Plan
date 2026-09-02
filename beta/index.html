@@ -7025,21 +7025,25 @@
       </div>
     </div>
 
-    <!-- Место — своя группа, а не половина строки «Место и клиент». Съёмок
-         «просто в городе» не бывает: у места есть город и есть конкретная
-         точка с адресом, и делить одну строку им было нечем
+    <!-- Место и адрес — своя группа, а не половина строки «Место и клиент».
+         Съёмок «просто в городе» не бывает: у места два уровня, город и
+         конкретная точка, и делить одну строку им было нечем. Город стоит
+         строкой, а не подписью под точкой: подпись читается как уточнение к
+         имени, а это отдельный уровень адреса, и заполняется он сам
          (docs: DECISIONS, «Место съёмки: город и точка делили одну строку») -->
-    <div class="g-label" data-i18n="card.place">Место</div>
+    <div class="g-label" data-i18n="form.placeAddr">Место и адрес</div>
     <div class="group">
-      <button class="row" id="fPlace">
+      <input type="text" id="fCity" placeholder="Город" data-i18n-ph="form.city"/>
+      <button class="row sep" id="fPlace">
         <span><span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords"></span></span>
         <span class="rv act" data-i18n="form.change">Изменить</span>
       </button>
     </div>
 
-    <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
+    <!-- Группы может не быть вовсе: у стрит-фотографа клиента нет, и пустой
+         заголовок над пустой рамкой — обещание поля, которого не будет -->
     <div class="g-label" id="fWhoLabel" data-i18n="who.people">Клиент</div>
-    <div class="group">
+    <div class="group" id="fWhoGroup">
       <!-- Имя и телефон разведены: одно поле заставляло выбирать, что важнее,
            а нужны оба — по имени узнают карточку, по телефону звонят.
            Телефон причёсывается на лету, как у остальных номеров -->
@@ -7069,7 +7073,13 @@
           <button type="button" id="fGuestsPlus" aria-label="Больше" data-i18n-aria="form.more">+</button>
         </span>
       </div>
-      <textarea class="sep" id="fNotes" placeholder="Оборудование, договорённости, заметки" data-i18n-ph="form.notesPh"></textarea>
+    </div>
+
+    <!-- Заметки, оборудование и плейлист — не про клиента: они про саму съёмку
+         и оставались в группе клиента только потому, что группа была одна -->
+    <div class="g-label" data-i18n="card.notes">Заметки</div>
+    <div class="group">
+      <textarea id="fNotes" placeholder="Оборудование, договорённости, заметки" data-i18n-ph="form.notesPh"></textarea>
       <!-- Список техники ведёт сам фотограф — каталога не навязываем. Один
            общий список хранится в настройках, а что взято на эту съёмку —
            в записи (docs: ROADMAP, «Список оборудования») -->
@@ -19124,7 +19134,10 @@
     /* Город обнуляется вместе с точкой: он принадлежит новым координатам, а не
        прежним. Пока геокодер не ответил, честнее не показывать города вовсе,
        чем подписать студию в Томске городом, где снимали в прошлый раз. */
-    sessionPlace = { name: name || "", town: "", addr: addr != null ? addr : "",
+    sessionPlace = { name: name || "",
+                     town: sessionPlace.townTyped ? sessionPlace.town : "",
+                     townTyped: !!sessionPlace.townTyped,
+                     addr: addr != null ? addr : "",
                      lat: lat, lon: lon, city: sessionPlace.city, manual: !!manual };
     renderSessionPlace();
     /* Город и признак засветки уточняем обратным геокодированием — теми же
@@ -19145,7 +19158,7 @@
       .then(function (g) {
         if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;   // место успело смениться
         sessionPlace.city = !!g.city;                    // засветка бывает там, где есть посёлок
-        sessionPlace.town = g.city || "";
+        if (!sessionPlace.townTyped) sessionPlace.town = g.city || "";
         renderSessionPlace();
       }).catch(function () {});
   }
@@ -19165,16 +19178,27 @@
     var shown = sessionPlace.name
       || (sessionPlace.manual ? coordText(sessionPlace.lat, sessionPlace.lon) : "");
     $("fPlaceName").textContent = shown || LANG.t("loc.noPlace");
-    /* Подпись — два уровня адреса: город и улица. «В городе» ушло: город назван
-       по имени, и повторять его признаком незачем. «За городом» осталось —
-       это не подпись места, а вход в световую модель: от него зависит
-       засветка при съёмке звёзд, и сказать это больше негде. */
+    /* Город стоит своей строкой, поэтому подпись под точкой — про саму точку:
+       улица и дом. «В городе» ушло совсем: город назван по имени, и повторять
+       его признаком незачем. «За городом» осталось — это не адрес, а вход в
+       световую модель: от него зависит засветка при съёмке звёзд, и сказать
+       это больше негде. */
     var bits = [];
-    if (sessionPlace.town) bits.push(sessionPlace.town);
-    else if (sessionPlace.city === false) bits.push(LANG.t("loc.outCity"));
     if (sessionPlace.addr) bits.push(sessionPlace.addr);
+    if (sessionPlace.city === false) bits.push(LANG.t("loc.outCity"));
     $("fPlaceCoords").textContent = bits.join(" · ");
+    /* Пока город набирают, поле не перебиваем: ответ геокодера может прийти
+       посреди слова, и курсор уедет вместе с ним */
+    if (document.activeElement !== $("fCity")) $("fCity").value = sessionPlace.town || "";
   }
+  /* Город набирают руками, когда съёмка в другом городе, а точка ещё не
+     выбрана: геокодеру неоткуда взять ответ, а планировать уже надо.
+     Набранный руками город геокодер больше не перебивает — тот же приём, что
+     у имени места в листе (`locNameTyped`): человек назвал, приложение не спорит. */
+  $("fCity").addEventListener("input", function () {
+    sessionPlace.town = this.value.trim();
+    sessionPlace.townTyped = true;
+  });
 
   /* Жанры: пользователь оставляет только свои */
   var ALL_GENRES = ["portrait","wedding","party","lovestory","family","landscape","architecture","street","report","product","ad"];
@@ -20085,6 +20109,9 @@
     { els: ["fDelvLabel", "fDelvGroup"], on: function (sp) { return sp.delivery && !meetMode(); } },
     /* Таймлайн: у события всегда, у остальных доступен и молчит */
     { els: ["fRouteLabel", "fRouteGroup"], on: function (sp) { return (sp.route || sp.routeOpt) && !meetMode(); } },
+    /* Клиента нет — нет и группы: у пейзажа с архитектурой заказчика не
+       спрашивают, а заголовок над пустой рамкой обещает поле, которого нет */
+    { els: ["fWhoLabel", "fWhoGroup"], on: function (sp) { return !!sp.client; } },
     /* Клиент строкой — пока он человек. У заказа вместо неё организация */
     { els: ["fContact", "fClientTel"], on: function (sp, gr) { return sp.client && !gr.order && !personsOf(shootType).length; } },
     /* Пара: два имени и два телефона вместо одной строки */
@@ -20102,6 +20129,21 @@
     { els: ["fModels"], on: function (sp, gr) { return !!(gr.order && sp.models); } }
   ];
 
+  /* Разделитель рисуется поверху строки, и у первой видимой в группе он
+     превращается в лишнюю черту под скруглённым краем. В группе клиента состав
+     меняется жанром — «первая видимая» это не `:first-child`, и CSS такого не
+     умеет. Убираем черту только у первой; кому она положена по разметке,
+     тот её и получает обратно. */
+  function trimGroupSeps(g) {
+    var seen = false;
+    Array.prototype.forEach.call(g.children, function (el) {
+      if (el.dataset.sep === undefined) el.dataset.sep = el.classList.contains("sep") ? "1" : "0";
+      if (el.hidden) return;
+      el.classList.toggle("sep", el.dataset.sep === "1" && seen);
+      seen = true;
+    });
+  }
+
   function applyGenreShape() {
     var sp = genreSpec(shootType), gr = groupSpec(shootType);
     var shown = {};
@@ -20109,6 +20151,7 @@
       var on = !!f.on(sp, gr);
       f.els.forEach(function (id) { $(id).hidden = !on; shown[id] = on; });
     });
+    trimGroupSeps($("fWhoGroup"));
 
     /* Дальше — то, что описанием не выражается: подписи, сброс значений и
        перерисовки. Их немного, и каждая объяснена */
@@ -20121,12 +20164,9 @@
     if (pp[0]) { $("fP1Name").placeholder = LANG.t("form.namePh", { role: LANG.t(pp[0]).toLowerCase() }); $("fP1Tel").placeholder = LANG.t("form.phone"); }
     if (pp[1]) { $("fP2Name").placeholder = LANG.t("form.namePh", { role: LANG.t(pp[1]).toLowerCase() }); $("fP2Tel").placeholder = LANG.t("form.phone"); }
     $("fOrgLabel").textContent = LANG.t("orgRole." + groupOf(shootType));
-    /* Место уехало в свою группу — заголовок называет только того, кого снимают.
-       Без клиента в группе остаются заметки и оборудование: называть её
-       «Местом» было неправдой и до разделения */
-    $("fWhoLabel").textContent = sp.client
-      ? LANG.t("who." + groupOf(shootType))
-      : LANG.t("card.notes");
+    /* Место и заметки уехали в свои группы — заголовок называет только того,
+       кого снимают, и больше ничего в него не входит */
+    $("fWhoLabel").textContent = LANG.t("who." + groupOf(shootType));
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
     if (!shown.fPrepayRow) { fPrepay = 0; $("fPrepay").value = ""; }
 
