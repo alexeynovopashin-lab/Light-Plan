@@ -1375,6 +1375,27 @@
   }
   .card-done:active { opacity: 0.6; }
 
+  /* Музыка — та же мягкая пилюля, что у корзины, и по той же причине: обе
+     появляются, только когда нужны, и ни одна ничего не спрашивает. Форму
+     мы у корзины и берём — заводить третий вид пилюли в ряду из трёх кнопок
+     не за что. Отличает музыку латунь знака: действие уводит наружу, как
+     номер телефона в шапке, и цвет там уже значит ровно это.
+     Ширину держим в узде: имя плейлиста придумывает фотограф, и «Сборы,
+     что-то спокойное» вытолкнуло бы «Удалить» на второй этаж. */
+  .card-music {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 14px; border: none; border-radius: 999px;
+    background: var(--press); color: var(--ink-3); text-decoration: none;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    max-width: 45vw; overflow: hidden;
+  }
+  .card-music[hidden] { display: none; }
+  .card-music:active { opacity: 0.6; }
+  .card-music .ic { display: flex; flex-shrink: 0; }
+  .card-music .ic svg { width: 17px; height: 17px; fill: none; stroke: var(--brass);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .card-music .n { overflow: hidden; text-overflow: ellipsis; }
+
   /* ---------- Корзина ----------
      Карточка уходит в корзину джинном: уменьшается и стягивается к значку,
      который на время полёта выезжает снизу. Это не украшение — движение
@@ -1425,6 +1446,29 @@
     font-family: inherit; font-size: 13px; color: var(--brass-deep); cursor: pointer;
   }
   .bin-empty { padding: 16px 0 4px; font-size: 14px; color: var(--ink-5); }
+  /* Строка разбора .ics: та же анатомия, что у корзины (ic/tx/t1/t2), плюс
+     свой кружок-галочка вместо кнопки — тут не восстанавливают, а выбирают.
+     Вся строка кликабельна: искать кружок пальцем не нужно */
+  .ics-sec { font-size: 12px; color: var(--ink-5); text-transform: uppercase;
+    letter-spacing: 0.04em; margin: 18px 0 6px; }
+  .ics-sec:first-child { margin-top: 4px; }
+  .ics-row { display: flex; align-items: center; gap: 12px; padding: 12px 0;
+    border-bottom: 1px solid var(--hair-2); cursor: pointer; }
+  .ics-row .chk { width: 22px; height: 22px; border-radius: 999px; flex-shrink: 0;
+    border: 1.5px solid var(--ink-5); display: flex; align-items: center; justify-content: center; }
+  .ics-row .chk svg { width: 13px; height: 13px; stroke: var(--bg); stroke-width: 2.6;
+    fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+  .ics-row.on .chk { border-color: var(--brass); background: var(--brass); }
+  .ics-row.on .chk svg { opacity: 1; }
+  .ics-row .ic { display: flex; flex-shrink: 0; }
+  .ics-row .ic svg { width: 18px; height: 18px; fill: none; stroke: var(--brass);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .ics-row .tx { flex: 1; min-width: 0; }
+  .ics-row .t1 { display: block; font-size: 15px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ics-row .t2 { display: block; font-size: 12px; color: var(--ink-5); margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ics-row.off .ic, .ics-row.off .t1, .ics-row.off .t2 { opacity: 0.4; }
   @media (prefers-reduced-motion: reduce) {
     .bin-target, .card-sheet.to-bin { transition: none; }
     .bin-target.gulp { animation: none; }
@@ -4026,6 +4070,10 @@
      лист, только когда настройки свернут. Та же ступень, что у листов формы */
   #binScrim { z-index: 84; }
   #binSheet { z-index: 86; }
+  /* Кнопка импорта живёт в том же оверлее «Данные и облако», что и корзина
+     кнопкой в «Хранилище» — та же ступень по той же причине */
+  #icsScrim { z-index: 84; }
+  #icsSheet { z-index: 86; }
   /* Спрос строки и лист кадра, вызванный из просмотрщика, ложатся поверх
      него самого (`.ref-view` — 95): иначе лист уезжает под картинку */
   #askScrim { z-index: 96; }
@@ -4255,7 +4303,6 @@
   .ev-tel[hidden] { display: none; }
   .ev-tel:active { opacity: 0.6; }
   .ev-tel svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; }
-
   /* Общая плитка: знак слева, содержимое справа. Ни ярлыков, ни пустот */
   .ev-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 9px; }
   .ev-grid[hidden] { display: none; }
@@ -5097,6 +5144,16 @@
   .ip .wheel { height: 102px; padding: 34px 0; }
   .ip .wheel.narrow { flex: 0 0 66px; }
   .ip .wheel[data-w="date"] .w-item { justify-content: center; padding-right: 0; }
+  /* Барабан имён, а не чисел. Строка перестаёт быть флексом и становится
+     обычной: только так работает многоточие — имя плейлиста придумывает
+     фотограф, и оно бывает длиннее окна. Высота строки задаётся вручную,
+     потому что выключку по вертикали флекс держал сам. */
+  .ip .wheel[data-w="pl"] .w-item {
+    display: block; line-height: 34px; padding: 0 16px; font-size: 17px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Имя в капсуле тоже не должно выталкивать подпись строки за край */
+  #fMusicVal { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Поля во всю строку. Капсулы (значение справа от подписи) сюда не входят
      явно: это правило специфичнее их собственного и гасило бы им фон и отступы.
@@ -5357,6 +5414,36 @@
   .pack-item .pk-x:active { color: var(--terra); }
   .pack-empty { padding: 0 15px 12px; font-size: 12px; color: var(--ink-6); }
   .kit-name { flex: 1 1 auto; font-size: 14px; color: var(--ink); }
+  /* Список плейлистов: имя, адрес, крестик. Анатомия взята у редактора
+     пакетов (`.pack-item`) — там уже решено, как выглядит строка списка,
+     который правят прямо на месте. Разошлись только отступы: пакеты живут
+     в листе с полями по 15, а этот список стоит в колонке настроек, и
+     выпадать из неё краем ему нельзя. */
+  .pl-item { display: flex; gap: 6px; align-items: center; padding: 10px 24px 0; }
+  .pl-item input {
+    background: var(--sheet); border: none; border-radius: 10px; corner-shape: squircle;
+    padding: 12px 12px; color: var(--ink); font-family: inherit; font-size: 14px;
+    outline: none; -webkit-appearance: none; appearance: none; min-width: 0;
+  }
+  .pl-item input::placeholder { color: var(--ink-8); }
+  /* Имени хватает трети: «Сборы» коротко, а место нужнее адресу — по нему
+     видно, что ссылка вставилась целиком, а не оборвалась на полпути */
+  .pl-item .pl-n { flex: 0 0 34%; }
+  .pl-item .pl-u { flex: 1 1 auto; }
+  /* Мишень в 44 точки, а знак прежний. У пакетов крестик 26 на 26 и мимо
+     него попадают — но там он стоит в листе, где строка одна и промах
+     некуда деть. Здесь список длиннее, а плюс к тому же главное действие
+     раздела: в него целятся чаще всего. Растёт коробка, не глиф. */
+  .pl-item .pl-x, .pl-item .pl-add {
+    flex: 0 0 30px; height: 44px; border: none; border-radius: 8px;
+    background: none; cursor: pointer; font-size: 15px; line-height: 1;
+    font-family: inherit; padding: 0;
+  }
+  .pl-item .pl-x { color: var(--ink-6); }
+  .pl-item .pl-x:active { color: var(--terra); }
+  .pl-item .pl-add { color: var(--brass); }
+  .pl-item .pl-add:disabled { color: var(--ink-8); cursor: default; }
+  .pl-empty { padding: 10px 24px 0; font-size: 12px; color: var(--ink-6); }
   .kit-empty { padding: 0 15px 10px; font-size: 12px; color: var(--ink-6); }
   /* Знак всегда на белом, в любой теме: читалка ищет чёрное на белом */
   .qr-card {
@@ -6254,6 +6341,41 @@
     </div>
     <p class="seg-note" id="travelNote">Если между съёмками в разных местах остаётся меньше 40 минут, приложение предупредит. Запрета нет: решает фотограф.</p>
 
+    <!-- Музыка на съёмке (ROADMAP, «Плейлист съёмки»). Две настройки, а не
+         одна, потому что это два разных вопроса: чем слушать вообще и что
+         слушать на конкретной съёмке.
+         Плеер по умолчанию — настройка фотографа, а не съёмки: пользуются
+         одним. Он отвечает за кнопку, у которой нет плейлиста: клиент
+         подключился к колонке сам, а приложение всё равно нужно открыть.
+         Адреса только https: universal link открывает приложение, если оно
+         установлено, и сайт, если нет, — откат не нужно писать -->
+    <div class="sec-label" data-i18n="set.music">Музыка</div>
+    <div class="seg" id="musicSeg">
+      <button class="active" data-music="off" data-i18n="set.musicOff">Выкл</button>
+      <button data-music="yandex">Яндекс</button>
+      <button data-music="spotify">Spotify</button>
+      <button data-music="apple">Apple Music</button>
+    </div>
+    <p class="seg-note" id="musicNote">Кнопки музыки в карточке нет. Она появится у съёмки, к которой привязан плейлист.</p>
+
+    <!-- Плейлисты живут здесь, а не в съёмке: их готовит фотограф заранее и
+         одними и теми же пользуется весь сезон (Алексей, 2 сентября 2026:
+         «невесты/клиенты не присылают плейлисты»). Ссылку диктуют один раз,
+         съёмка из готового списка только выбирает.
+         Имя вводится руками. Взять его из названия плейлиста нечем: наша
+         читалка (og-reader) умеет доставать со страницы только картинку и
+         текста не возвращает вовсе. Пустое имя не отвергаем — подставляем
+         сервис по самому адресу, это честный ответ без сети. -->
+    <div class="sec-label" data-i18n="set.playlists">Плейлисты</div>
+    <div id="plList"></div>
+    <div class="pl-item">
+      <input class="pl-n" type="text" id="plNewName" placeholder="Имя" data-i18n-ph="set.plName"/>
+      <input class="pl-u" type="url" id="plNewUrl" placeholder="Ссылка" data-i18n-ph="set.plUrl"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <button type="button" class="pl-add" id="plAdd" aria-label="Добавить плейлист" data-i18n-aria="set.plAdd">＋</button>
+    </div>
+    <p class="seg-note" id="plNote">—</p>
+
     <!-- Завершение съёмки. По умолчанию съёмка кончается сама, ровно по
          записанным рамкам: от них считается стоимость работы, и расходиться
          с ними приложение не должно. Кнопка нужна не всем — только тем, у
@@ -6340,6 +6462,25 @@
     </button>
     <input type="file" id="backupFile" accept="application/json,.json" hidden>
     <p class="seg-note" id="backupNote" data-i18n="set.backupNote">Копия — обычный файл. Положите его в Яндекс.Диск, iCloud или отправьте себе — из него всё восстановится.</p>
+
+    <!-- Импорт чужих календарей: ROADMAP, «Импорт старых календарей».
+         Своё событие переносится не автоматически — что перенести, что нет,
+         а что спорно, фотограф решает в отдельном листе после разбора файла -->
+    <div class="sec-label" data-i18n="set.icsImport">Импорт старых календарей</div>
+    <button class="data-btn ghost-btn" id="icsLoad">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5v-11M8 13l4-4 4 4M4.5 4.5h15"/></svg>
+      <span data-i18n="set.icsImportBtn">Импортировать из .ics</span>
+    </button>
+    <input type="file" id="icsFile" accept=".ics,text/calendar" hidden>
+    <p class="seg-note" id="icsNote" data-i18n="set.icsImportNote">Файл выгрузки из Google Calendar, iCloud или другого календаря — если умеете его получить. Приложение найдёт похожее на съёмки и предложит решить по каждой; перенесённое ляжет событиями, а не съёмками.</p>
+    <!-- Слой чужих событий гасится целиком, как календарь-подписка. Одна
+         галочка отменяет любой ввоз, поэтому ошибиться при импорте не страшно -->
+    <div class="item"><span class="k" data-i18n="set.icsLayer">Показывать события из календаря</span><span class="toggle" id="icsLayerToggle"></span></div>
+    <p class="seg-note" data-i18n="set.icsLayerNote">События из чужого календаря занимают день и молчат: ни оплаты, ни сроков сдачи у них нет. Съёмкой такое событие становится в своей карточке — кнопкой «Назначить съёмку».</p>
+    <button class="data-btn ghost-btn" id="icsDrop" hidden>
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9 7V4.5h6V7M7 7l1 13h8l1-13"/></svg>
+      <span data-i18n="set.icsDrop">Убрать импортированные события</span>
+    </button>
 
     <!-- Автокопия в облако фотографа. Права — только на папку приложения -->
     <!-- Облако одно, поставщиков три. Копия и файлы съёмок живут вместе:
@@ -6768,6 +6909,15 @@
       <button class="card-bin" id="cdBin" hidden aria-label="Корзина" data-i18n-aria="card.bin">
         <span class="ic" data-ic="trash"></span><span class="n" id="cdBinN">0</span>
       </button>
+      <!-- Музыка. Стоит рядом с корзиной, потому что живёт по её правилу:
+           появляется, только когда нужна, и молчит всё остальное время
+           (Алексей, 2 сентября 2026: «это тихая функция, как корзина»).
+           Окно у неё короче, чем у съёмки: от начала до «конец минус пять
+           минут» — на сборах кнопка уже мешает, а не помогает. -->
+      <a class="card-music" id="cdMusic" target="_blank" rel="noopener" hidden
+         aria-label="Включить музыку" data-i18n-aria="card.musicAria">
+        <span class="ic" data-ic="music"></span><span class="n" id="cdMusicN">—</span>
+      </a>
       <div class="card-fin" id="cdFinRow" hidden>
         <button type="button" class="card-done" id="cdDayDone" data-i18n="day.finish">Завершить</button>
       </div>
@@ -6905,6 +7055,27 @@
         <span data-i18n="form.kit">Оборудование</span>
         <span class="rv"><span id="fKitSummary">—</span></span>
       </button>
+      <!-- Плейлист съёмки. Ссылки здесь нет: список общий и живёт в
+           настройках («Съёмки» → «Плейлисты»). Здесь только выбор — тумблер
+           отвечает «нужна ли на этой съёмке музыка», барабан — «какая».
+           Строки не существует, пока список пуст: выбирать не из чего, а
+           пустая строка — обещание работы, которой нет. Тот же довод, по
+           которому прячется корзина. -->
+      <div class="row sep" id="fMusicRow" hidden>
+        <span class="rl" data-i18n="form.playlist">Плейлист</span>
+        <span class="rv">
+          <span class="caps">
+            <button type="button" class="rv-v" id="fMusicVal" hidden>—</button>
+            <span class="toggle" id="fMusicToggle" role="switch"
+                  aria-label="Плейлист" data-i18n-aria="form.playlist"></span>
+          </span>
+        </span>
+      </div>
+      <div class="inline" id="fMusicPick">
+        <div class="ip"><div class="pick-band"></div>
+          <div class="wheel" data-w="pl" id="fwPL"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
@@ -7605,6 +7776,20 @@
     <div class="sheet-sub" data-i18n="bin.sub">Удалённые съёмки лежат здесь, пока их не вернут или не сотрут насовсем. Клиент возвращается чаще, чем кажется.</div>
     <div id="binList"></div>
     <button type="button" class="ghost" id="binClear" hidden style="margin-top:14px;" data-i18n="bin.clear">Очистить корзину</button>
+  </div>
+
+  <!-- Импорт .ics: лист разбора, ROADMAP «Импорт старых календарей».
+       Список делится на «похоже на съёмку» (отмечено само) и «не уверены»
+       (решает фотограф); то, что не похоже на съёмку вовсе, в список не
+       попадает — парсер отсеивает ещё до показа -->
+  <div class="scrim" id="icsScrim"></div>
+  <div class="sheet" id="icsSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="ics.title">Импорт календаря</div>
+    <div class="sheet-sub" data-i18n="ics.sub">Отмечены события, где угадан жанр съёмки. Остальные — на ваше решение: отметьте нужные.</div>
+    <p class="seg-note" id="icsStat" hidden></p>
+    <div id="icsList"></div>
+    <button type="button" class="sheet-done" id="icsAdd" hidden data-i18n="ics.add">Добавить</button>
   </div>
   <!-- ============ ПЕРВЫЙ ЗАПУСК ============
        Единственный вопрос, который нельзя вывести ни из чего: по каким
@@ -9198,7 +9383,7 @@
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, theme: themePref,
-        pro: proMode, manualEnd: manualEnd,
+        pro: proMode, manualEnd: manualEnd, icsLayer: icsLayer,
         /* Практика пишется, только когда её выбрали: пока вопрос не задан,
            в записи её нет, и первый запуск остаётся первым */
         practice: practiceAsked ? practice : undefined,
@@ -9206,7 +9391,8 @@
           var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
           return { rec: r, at: t.at, del: t.del };
         }),
-        travelMin: travelMin, tempUnit: tempUnit, currency: currency, clock: clockPref, dayFold: !dayPanelOpen,
+        travelMin: travelMin, musicApp: musicApp, playlists: playlists,
+        tempUnit: tempUnit, currency: currency, clock: clockPref, dayFold: !dayPanelOpen,
         mbStripFold: !mbStripOpen, mbSeen: mbSeen, mbSeeded: mbSeeded,
         telCountry: telCountry,
         blocks: blocks.map(function (b) {
@@ -10696,9 +10882,99 @@
      первым в настройках, включался — и слетал при следующем запуске. Настройка,
      которую надо ставить заново каждый раз, читается как сломанная. */
   var proMode = !!(saved && saved.pro);
+  /* Слой чужих событий виден по умолчанию: ввозили их затем, чтобы видеть.
+     Гасится целиком одной галочкой — как календарь-подписка в любом
+     календарном приложении; она же отменяет неудачный ввоз, не разбирая
+     его по одной записи */
+  var icsLayer = !(saved && saved.icsLayer === false);
   /* Порог дороги между площадками. Сорок минут остаются умолчанием — они
      записаны в решении о наложениях, — но перестают быть законом природы */
   var travelMin = (saved && +saved.travelMin) || 40;
+  /* Музыкальный сервис фотографа. Умолчание — «выкл»: приложение не знает,
+     чем он пользуется, и навязывать Spotify там, где стоит Яндекс, значит
+     открыть чужой сайт. Плейлист съёмки сервис называет собой, своим
+     адресом, и работает независимо от этой настройки: она отвечает только
+     за кнопку без плейлиста (ROADMAP, «Плейлист съёмки») */
+  var musicApp = (saved && saved.musicApp) || "off";
+  /* Библиотека плейлистов. Общая на приложение, как список оборудования, и
+     ровно по той же причине: её ведёт фотограф, а съёмка из неё выбирает.
+     Съёмка помнит выбор ИМЕНЕМ, не номером, — тоже как оборудование: правка
+     списка не должна портить старые записи (DECISIONS, «Плейлистов много»).
+     Десять — потолок: барабан длиннее десяти перестаёт быть выбором и
+     становится поиском, а искать среди своих же плейлистов незачем. */
+  var PL_MAX = 10;
+  var playlists = (saved && Array.isArray(saved.playlists))
+    ? saved.playlists.filter(function (o) {
+        return o && typeof o.n === "string" && typeof o.u === "string" && o.n && o.u;
+      }).slice(0, PL_MAX)
+    : [];
+  /* Адреса сервисов — только `https`, ни одной схемы вроде `spotify:` или
+     `yandexmusic://`. Схема в установленном PWA молчит, когда приложения нет:
+     ничего не открывается, и сказать об этом нечем — узнать, сработала ли
+     она, из веба нельзя. Universal link решает это сам: стоит приложение —
+     откроется оно, не стоит — тот же адрес откроется сайтом. Отката писать
+     не нужно, он встроен в сам адрес.
+
+     `host` служит и обратно: по домену ссылки узнаётся её сервис, и плейлист
+     Spotify откроется Spotify даже у того, кто в настройках выбрал Яндекс. */
+  var MUSIC = {
+    yandex:  { n: "Яндекс Музыка", host: /(^|\.)music\.yandex\.(ru|com|by|kz|uz)$/i, url: "https://music.yandex.ru" },
+    spotify: { n: "Spotify",       host: /(^|\.)spotify\.com$/i,                     url: "https://open.spotify.com" },
+    apple:   { n: "Apple Music",   host: /(^|\.)music\.apple\.com$/i,                url: "https://music.apple.com" }
+  };
+  /* Какому сервису принадлежит ссылка. Не узнали — не беда: ссылку всё равно
+     открываем, просто называем её нейтрально. Фотограф вправе положить туда
+     плейлист сервиса, которого мы не знаем, и запрещать это не за что */
+  function musicKindOf(url) {
+    var h = "";
+    try { h = new URL(url).hostname; } catch (e) { return null; }
+    for (var k in MUSIC) if (MUSIC[k].host.test(h)) return k;
+    return null;
+  }
+  /* Плейлист по имени. Не нашли — значит, его убрали из библиотеки уже
+     после того, как съёмку записали. Это не ошибка и не повод чинить
+     запись: съёмка просто остаётся без своей музыки, ровно как остаётся
+     без отметки оборудование, вычеркнутое из общего списка */
+  function playlistOf(name) {
+    for (var i = 0; i < playlists.length; i++) if (playlists[i].n === name) return playlists[i];
+    return null;
+  }
+  /* Что откроет кнопка у этой съёмки: свой плейлист, если он выбран, иначе
+     сам плеер из настроек. Ни того ни другого — кнопки нет вовсе.
+     Плеер тут не подмена плейлиста, а свой случай: колонку клиент подключил
+     сам, а приложение фотографу всё равно надо открыть. */
+  function musicHref(s) {
+    var pl = s && s.playlist ? playlistOf(s.playlist) : null;
+    if (pl) return pl.u;
+    return MUSIC[musicApp] ? MUSIC[musicApp].url : "";
+  }
+  /* Чем кнопка подписана. Имя плейлиста говорит больше названия сервиса:
+     «Сборы» отвечает на вопрос «что заиграет», а «Spotify» — только на
+     вопрос «где». Плейлиста нет — остаётся сервис, это всё, что известно */
+  function musicName(s) {
+    var pl = s && s.playlist ? playlistOf(s.playlist) : null;
+    if (pl) return pl.n;
+    return MUSIC[musicApp] ? MUSIC[musicApp].n : "";
+  }
+  /* Окно кнопки: от начала съёмки до «конец минус пять минут» (Алексей,
+     2 сентября 2026). Пять минут — не запас на неточность, а сборы: в них
+     кнопка уже мешает, и убрать её должно приложение, а не фотограф.
+     Конец берём записанный. У съёмки, которую завершают вручную и которая
+     идёт сверх плана, кнопка пропадёт по записанному концу — другого конца
+     приложение не знает, а гадать о нём хуже, чем закончить по плану.
+     Встреча музыки не получает: это разговор, а не работа под музыку. */
+  var MUSIC_TAIL = 5;
+  function musicEndOf(s) {
+    if (s.doneAt != null) return s.doneAt;
+    return s.end != null ? s.end : s.min + (s.dur || 90);
+  }
+  function musicOpen(s) {
+    if (!s || notWork(s)) return false;
+    var now = new Date();
+    if (!sameDay(s.date, now)) return false;
+    var m = now.getHours() * 60 + now.getMinutes();
+    return m >= s.min && m < musicEndOf(s) - MUSIC_TAIL;
+  }
   // Градусы: Цельсий или Фаренгейт. Модель считает в Цельсии всегда
   var tempUnit = (saved && saved.tempUnit === "f") ? "f" : "c";
   // Часы: сама функция `is12` объявлена выше, у `fmt` — здесь только выбор
@@ -11086,7 +11362,7 @@
     return codes.map(function (c) { return { code: c, sum: by[c] }; });
   }
   function sessionIncome(s) {
-    if (isMeet(s)) return 0;      // встреча — разговор, а не работа
+    if (notWork(s)) return 0;     // встреча — разговор, событие — чужая запись; работа не они
     if (!s || !s.pay) return 0;
     var mech = PAY[s.pay] ? PAY[s.pay].m : s.pay;   // s.pay — ключ способа, из него механика
     var r = +s.rate || 0;
@@ -11143,7 +11419,7 @@
   }
   var GREY = [107, 101, 91];
   function deliveryState(s) {
-    if (isMeet(s)) return { rank: 0, c: GREY, breath: false, label: "" };
+    if (notWork(s)) return { rank: 0, c: GREY, breath: false, label: "" };
     var now = Date.now(), shot = s.date.getTime(), r;
     if (s.delivered)   r = { rank: 0, c: GREY, breath: false, label: LANG.t("delv.done") };
     else if (shot > now) r = { rank: 1, c: urgencyCalm(), breath: false, label: LANG.t("delv.ahead") };
@@ -11189,7 +11465,7 @@
   function dayMark(d) {
     var best = null;
     sessions.forEach(function (s) {
-      if (!onDay(s, d) || isMeet(s)) return;
+      if (!onDay(s, d) || notWork(s)) return;
       var st = deliveryState(s);
       if (!best || st.rank > best.rank) best = st;
     });
@@ -13008,7 +13284,7 @@
       var q = qualityOf(d);
       var mk = inMonth ? dayMark(d) : null;
       var lit = mk && mk.fill;
-      var shoots = sessions.filter(function (x) { return onDay(x, d); })
+      var shoots = sessions.filter(function (x) { return onDay(x, d) && shownRec(x); })
         .sort(function (x, y) { return x.min - y.min; });
       if (shoots.length && inMonth) monthHasShoots = true;
 
@@ -13018,8 +13294,8 @@
          должен читаться занятым. Но цвета света у неё нет — у выходного не
          бывает золотого часа, и красить его качеством неба было бы враньём */
       var items = shoots.map(function (x) {
-        return isMeet(x)
-          ? { t: LANG.t("plan.meet"), c: null }
+        return notWork(x)
+          ? { t: LANG.t(isMeet(x) ? "plan.meet" : "plan.event"), c: null }
           : { t: shortGenre(x.type), c: QUAL[qualityOf(x.date)].dot || "#A8B49B" };
       }).concat((inMonth ? blocksOn(d) : []).map(function (b) {
         return { t: blockLabel(b), c: null };
@@ -13107,7 +13383,7 @@
     for (var i = 0; i < 7; i++) {
       var d = addDays(start, i);
       var shoots = sessions.map(function (x, k) { return { s: x, i: k }; })
-        .filter(function (p) { return onDay(p.s, d); })
+        .filter(function (p) { return onDay(p.s, d) && shownRec(p.s); })
         .sort(function (a, b) {
           var aw = hasRoute(a.s.type) ? 0 : 1, bw = hasRoute(b.s.type) ? 0 : 1;
           return aw - bw || a.s.min - b.s.min;
@@ -13140,14 +13416,18 @@
           /* Встреча — не съёмка: у неё нет ни сдачи материала, ни света, и
              открывает она другой разговор. В ленте дня это уже видно формой
              точки, здесь — знаком и словом */
-          var meet = isMeet(p.s);
-          return '<button type="button" class="wk-card' + (meet ? " meet" : "") + '" data-i="' + p.i + '">'
+          /* Событие носит тот же приглушённый вид, что и встреча: обе записи
+             не работа. Различает их знак — у встречи люди, у события знак
+             календаря, как в любом календарном приложении у чужой подписки */
+          var meet = isMeet(p.s), soft = notWork(p.s);
+          return '<button type="button" class="wk-card' + (soft ? " meet" : "") + '" data-i="' + p.i + '">'
             /* Скобки обязательны: `+` связывает крепче тернарника, и без них
                условием становится вся склеенная строка — она истинна всегда,
                а начало разметки и закрывающий тег просто исчезают */
-            + '<span class="wk-ic">' + (meet ? IC.svg("guests") : IC.genreSvg(p.s.type)) + "</span>"
+            + '<span class="wk-ic">' + (soft ? IC.svg(meet ? "guests" : "view_month") : IC.genreSvg(p.s.type)) + "</span>"
             + '<span class="wk-body"><span class="wk-t">'
             + (meet ? esc(LANG.t("week.meetWith", { genre: shortGenre(p.s.type).toLowerCase() }))
+                : soft ? esc(LANG.t("plan.event")) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : "")
                     : esc(spec.ev || genreName(p.s.type)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
             + "</span>"
             + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
@@ -13382,7 +13662,7 @@
        у остальной статистики года (isMeet) */
     var counts = {};
     sessions.forEach(function (s) {
-      if (isMeet(s) || s.date.getFullYear() !== y || s.date.getMonth() !== m) return;
+      if (notWork(s) || s.date.getFullYear() !== y || s.date.getMonth() !== m) return;
       var d = s.date.getDate();
       counts[d] = (counts[d] || 0) + 1;
     });
@@ -13536,7 +13816,7 @@
     });
     // Год одной строкой: сколько съёмок и когда ближайшая впереди
     /* Год считает съёмки: встречи в «столько-то съёмок» и в прибыль не идут */
-    var all = sessions.filter(function (s) { return s.date.getFullYear() === yearShown && !isMeet(s); });
+    var all = sessions.filter(function (s) { return s.date.getFullYear() === yearShown && !notWork(s); });
     var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     var ahead = all.filter(function (s) { return s.date >= midnight; })   // сегодняшняя — ещё впереди
       .sort(function (a, b) { return a.date - b.date; })[0];
@@ -13720,7 +14000,7 @@
     var now = new Date(), soon = new Date(now.getTime() + OVERLOAD_WINDOW_DAYS * 86400000);
     var overdue = 0, upcoming = 0;
     sessions.forEach(function (s) {
-      if (isMeet(s)) return;
+      if (notWork(s)) return;
       if (!s.delivered) {
         var dl = deadlineDate(s);
         if (dl && dl < now) overdue++;
@@ -13808,10 +14088,10 @@
         var dd = addDays(wkStart, di);
         /* Знаки дня: до трёх, дальше счётчик. Больше трёх в клетку шириной в
            палец не влезает, а счёт сообщает не меньше */
-        var marks = sessions.filter(function (x) { return onDay(x, dd); });
+        var marks = sessions.filter(function (x) { return onDay(x, dd) && shownRec(x); });
         var mk = marks.slice(0, 3).map(function (x) {
-          return '<span class="' + (isMeet(x) ? "meet" : "") + '">'
-            + (isMeet(x) ? IC.svg("guests") : IC.genreSvg(x.type)) + "</span>";
+          return '<span class="' + (notWork(x) ? "meet" : "") + '">'
+            + (notWork(x) ? IC.svg(isMeet(x) ? "guests" : "view_month") : IC.genreSvg(x.type)) + "</span>";
         }).join("");
         if (marks.length > 3) mk += '<span class="dd-more">+' + (marks.length - 3) + "</span>";
         if (!marks.length && blocksOn(dd).length) mk = '<span class="meet">' + IC.svg("lock") + "</span>";
@@ -13887,8 +14167,8 @@
     var box = $("dpSessions"), items = [];
     sessions.forEach(function (s, i) {
       var part = partOfDay(s, calSel);
-      if (!part) return;
-      items.push({ kind: isMeet(s) ? "meet" : "shoot", a: part.a, b: part.b,
+      if (!part || !shownRec(s)) return;
+      items.push({ kind: isMeet(s) ? "meet" : isEvent(s) ? "event" : "shoot", a: part.a, b: part.b,
         tail: part.tail, cut: part.cut, s: s, i: i });
     });
     blocksOn(calSel).forEach(function (b) {
@@ -13924,17 +14204,19 @@
             + '<span class="pr-time">' + esc(when) + "</span>"
             + '<span class="pr-who">' + esc(blockLabel(b)) + "</span></button>";
         }
-        var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet";
-        var nm = clientName(s3) || (meet3 ? LANG.t("day.meet") : genreName(s3.type));
+        var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet", ev3 = it.kind === "event";
+        var nm = clientName(s3) || (meet3 ? LANG.t("day.meet") : ev3 ? LANG.t("day.event") : genreName(s3.type));
         /* Знак жанра обязателен: пока имя клиента не вписано, жанр говорит
            сама подпись строки, но стоит вписать «Марина и Сергей» — и свадьбу
            от лавстори уже не отличить (замечание с телефона). Знак отвечает
-           на этот вопрос независимо от того, чем названа строка */
+           на этот вопрос независимо от того, чем названа строка.
+           У события знак календаря: жанр под ним только угадан, и рисовать
+           кольца там, где мы не уверены даже в свадьбе, значило бы соврать */
         return '<button type="button" class="plan-row" data-i="' + it.i + '">'
-          + '<span class="pr-ic">' + (meet3 ? IC.svg("partner") : IC.genreSvg(s3.type)) + "</span>"
+          + '<span class="pr-ic">' + (meet3 ? IC.svg("partner") : ev3 ? IC.svg("view_month") : IC.genreSvg(s3.type)) + "</span>"
           + '<span class="pr-time">' + fmt(it.a) + " – " + fmt(it.b) + "</span>"
           + '<span class="pr-who">' + esc(nm) + "</span>"
-          + (meet3 ? '<span class="pr-due">' + esc(LANG.t("plan.meet").toLowerCase()) + "</span>"
+          + (meet3 || ev3 ? '<span class="pr-due">' + esc(LANG.t(meet3 ? "plan.meet" : "plan.event").toLowerCase()) + "</span>"
              : ds3.rank >= 2 ? '<span class="pr-due" style="color:' + ds3.color + '">' + ds3.label + "</span>" : "")
           + "</button>";
       }).join("");
@@ -13973,10 +14255,11 @@
          дне, а не теснота. Заодно час снова стоит ровно час: два отнятых
          пикселя срезали вторую строку у часовой съёмки. */
       var top = topOf(it.a), hgt = Math.max(34, topOf(it.b) - top);
-      var meet = it.kind === "meet", busy = it.kind === "busy";
+      var meet = it.kind === "meet", ev = it.kind === "event", busy = it.kind === "busy";
+      var soft = meet || ev;   // не работа: приглушённый вид у обоих
       var s2 = it.s, b = it.blk;
       var name = busy ? blockLabel(b)
-        : (clientName(s2) || (meet ? LANG.t("day.meet") : genreName(s2.type)));
+        : (clientName(s2) || (meet ? LANG.t("day.meet") : ev ? LANG.t("day.event") : genreName(s2.type)));
       /* Подпись говорит про съёмку, а не про кусок, попавший в эти сутки.
          Хвост ночной съёмки в своих сутках начинается в полночь — писать
          «00:00 – 03:10» значило бы сказать, что съёмка началась в полночь.
@@ -13985,6 +14268,7 @@
       var realEnd = s2 && (s2.end != null ? s2.end : s2.min + (s2.dur || 90));
       var sub = busy ? (b.allDay ? LANG.t("day.allDay") : range(it.a, it.b))
         : (meet ? LANG.t("day.meetLower", { genre: shortGenre(s2.type).toLowerCase() })
+            : ev ? LANG.t("day.eventLower", { genre: shortGenre(s2.type).toLowerCase() })
                 : it.tail
                   ? LANG.t("day.fromDate", { date: dMonShort(s2.date) })
                     + LANG.t("day.tillTime", { t: fmt(realEnd) })
@@ -13996,12 +14280,13 @@
          строки просят двадцать девять. Подпись обрезалась ровно посередине
          буквы. Места при этом полно — справа, и туда она и уходит. */
       var tight = hgt < HOUR_H;
-      layer += '<div class="dl-ev' + (meet ? " meet" : "") + (busy ? " busy" : "")
+      layer += '<div class="dl-ev' + (soft ? " meet" : "") + (busy ? " busy" : "")
         + (tight ? " tight" : "") + '"'
         + ' style="top:' + top.toFixed(1) + "px;height:" + hgt.toFixed(1) + 'px"'
         + (busy ? ' data-b="' + b.id + '"' : ' data-i="' + it.i + '"') + ">"
-        + '<span class="dl-ic' + (meet ? " meet" : busy ? " busy" : "") + '">'
-        + (busy ? IC.svg(blockKind(b.k).ic) : meet ? IC.svg("guests") : IC.genreSvg(s2.type))
+        + '<span class="dl-ic' + (soft ? " meet" : busy ? " busy" : "") + '">'
+        + (busy ? IC.svg(blockKind(b.k).ic)
+            : soft ? IC.svg(meet ? "guests" : "view_month") : IC.genreSvg(s2.type))
         + "</span>"
         + '<span class="dl-ev-b"><span class="dl-title">' + esc(name) + "</span>"
         + '<span class="dl-sub">' + esc(sub) + "</span>"
@@ -14162,12 +14447,15 @@
     else if (!items.length) load = LANG.t("day.freeDay");
     else {
       var meets = items.filter(function (x) { return x.kind === "meet"; }).length;
-      var shoots = shootCount - meets;
+      var evs = items.filter(function (x) { return x.kind === "event"; }).length;
+      var shoots = shootCount - meets - evs;
       var parts = [];
       if (shoots) parts.push(LANG.count("unit.shoot", shoots));
       /* Встреча названа отдельно: она занимает время, но это не съёмка —
-         сложить их значило бы соврать о загрузке дня */
+         сложить их значило бы соврать о загрузке дня. Событие из чужого
+         календаря — тем более: про него мы знаем только то, что день занят */
       if (meets) parts.push(LANG.count("unit.meet", meets));
+      if (evs) parts.push(LANG.count("unit.event", evs));
       if (blocked) parts.push(LANG.t("day.blockedTime"));
       if (busyMin) parts.push(LANG.t("day.busyFor", { dur: durLabel(busyMin) }));
       load = parts.join(" · ");
@@ -14319,6 +14607,283 @@
     $("binSheet").classList.remove("open"); $("binScrim").classList.remove("open");
   }
 
+  /* ---------- Импорт старых календарей (.ics) ----------
+     ROADMAP, «Импорт старых календарей». Свой парсер без библиотек: формат
+     построчный, а тащить целую библиотеку ради десятка полей незачем.
+     Жанр угадывается по ключевым словам в названии, заметке и месте; то,
+     что вовсе не похоже на съёмку, в список не попадает — фотограф решает
+     только по-настоящему спорное, а не разбирает каждый день рождения тёщи.
+
+     Файл — дверь для того, кто уже решил перейти: выгрузку календаря ищет
+     тот, кто знает, зачем она. Обычный путь другой — чтение календаря
+     устройства в нативной оболочке (docs/14_CALENDAR_MIRROR.md, тот же
+     EventKit, которым зеркалятся съёмки, и то же одно разрешение). Разбор
+     у обоих источников общий: меняется только то, откуда приходят события,
+     поэтому всё ниже переживёт переезд в натив. */
+  var ICS_GENRE_HINTS = {
+    wedding: ["свадьб", "свадеб", "жених", "невест", "загс", "роспис"],
+    party: ["праздник", "юбиле", "день рождения", "др"],
+    portrait: ["портрет", "фотосет"],
+    lovestory: ["лавстори", "love story"],
+    family: ["семейн", "семья"],
+    landscape: ["пейзаж"],
+    architecture: ["архитектур", "интерьер"],
+    street: ["стрит"],
+    report: ["репортаж"],
+    product: ["предметк", "предмет"],
+    ad: ["реклам"]
+  };
+  var ICS_GENERIC_HINTS = ["фотосъём", "фотосъем", "фотосесси", "съёмк", "съемк", "photoshoot", "photo shoot"];
+  /* Подсказка стоит словом, а не куском чужого слова. Слева граница нужна
+     всегда, справа — только у коротких: наши подсказки это корни («свадьб»,
+     «фотосъём»), хвост слова у них любой. Без правого края «др» цеплялось бы
+     к «друзьям», а без левого — «предмет» к «беспредметному» */
+  function icsSep(c) { return !c || /[\s.,;:!?()«»"'\/\\[\]{}#@&+*—–\-]/.test(c); }
+  function icsAt(low, hint, whole) {
+    if (!hint) return -1;
+    var i = low.indexOf(hint);
+    while (i !== -1) {
+      if (icsSep(low.charAt(i - 1))
+          && (!(whole || hint.length <= 3) || icsSep(low.charAt(i + hint.length)))) return i;
+      i = low.indexOf(hint, i + 1);
+    }
+    return -1;
+  }
+  function icsHas(low, hint, whole) { return icsAt(low, hint, whole) !== -1; }
+  /* Три исхода, и доверие у них разное. Свой словарь синонимов выбран руками:
+     его совпадение отмечает событие само. Имя жанра из словаря языка — слово
+     обычное («Семья», «Street»), и ищется оно в том числе по адресу: «221B
+     Baker Street» превращал визит к стоматологу в стрит-съёмку, причём с
+     готовой галочкой. Поэтому имя жанра и общее слово о фотографии отправляют
+     событие в «Не уверены», а «Похоже на съёмку» остаётся за курированным
+     словарём — там, где мы за слово отвечаем. */
+  function icsClassify(text) {
+    var low = text.toLowerCase(), best = null;
+    for (var g in GENRE) {
+      var hints = ICS_GENRE_HINTS[g] || [];
+      for (var i = 0; i < hints.length; i++) {
+        var at = icsAt(low, hints[i]);
+        /* Спор решает порядок слов в названии, а не порядок ключей в GENRE и
+           не длина подсказки: главное фотограф пишет первым, и «Свадебный
+           портрет Ани» — свадьба, а «Портретная съёмка» — портрет. Прежде
+           побеждал первый ключ объекта, то есть портрет всегда */
+        if (at !== -1 && (!best || at < best.at || (at === best.at && hints[i].length > best.len)))
+          best = { type: g, at: at, len: hints[i].length };
+      }
+    }
+    /* Жанр, выключенный у фотографа, сам не отмечается: спорить галочкой
+       с его же настройкой приложение не вправе */
+    if (best) return { bucket: genresOn[best.type] ? "match" : "maybe", type: best.type };
+    for (var g2 in GENRE) {
+      if (icsHas(low, genreName(g2).toLowerCase(), true)) return { bucket: "maybe", type: g2 };
+    }
+    for (var j = 0; j < ICS_GENERIC_HINTS.length; j++) {
+      if (icsHas(low, ICS_GENERIC_HINTS[j])) return { bucket: "maybe", type: "portrait" };
+    }
+    return null;
+  }
+  /* Многострочные значения ICS складываются переносом с ведущим пробелом
+     (RFC 5545 folding) — склеиваем прежде разбора строк */
+  function icsUnfold(text) {
+    var out = [];
+    text.replace(/\r\n/g, "\n").split("\n").forEach(function (line) {
+      if (/^[ \t]/.test(line) && out.length) out[out.length - 1] += line.slice(1);
+      else out.push(line);
+    });
+    return out;
+  }
+  function icsUnescape(v) {
+    return v.replace(/\\n/gi, " ").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
+  }
+  function icsParseDate(v) {
+    var m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?/.exec(v);
+    if (!m) return null;
+    if (!m[4]) return { date: new Date(+m[1], +m[2] - 1, +m[3]), allDay: true };
+    if (m[7]) return { date: new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])), allDay: false };
+    /* TZID своей зоны у события мы не считаем — берём как местное время.
+       Погрешность на границе часовых поясов фотографа заботит меньше, чем
+       сложность второго календарного движка ради поля, которое почти
+       всегда совпадает с его собственным поясом */
+    return { date: new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]), allDay: false };
+  }
+  /* Значение даты может прийти с хвостом параметра: экспортёр не взял зону в
+     кавычки, и двоеточие внутри неё осталось разделителем. Дата в такой
+     строке всё равно последняя — пробуем ещё раз от последнего двоеточия */
+  function icsDateVal(v) {
+    var d = icsParseDate(v);
+    if (!d && v.indexOf(":") !== -1) d = icsParseDate(v.slice(v.lastIndexOf(":") + 1));
+    return d;
+  }
+  /* `DURATION:PT4H` вместо `DTEND` пишет часть календарей. Без разбора
+     четырёхчасовой репортаж ложился полуторачасовым — молча и правдоподобно */
+  function icsParseDur(v) {
+    var t = String(v).trim();
+    var m = /^(-)?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/i.exec(t);
+    if (!m || !/\d/.test(t)) return null;
+    var min = (+m[2] || 0) * 10080 + (+m[3] || 0) * 1440 + (+m[4] || 0) * 60
+      + (+m[5] || 0) + Math.round((+m[6] || 0) / 60);
+    return m[1] ? -min : min;
+  }
+  /* Имя свойства, параметры и значение. Двоеточие внутри кавычек —
+     не разделитель: Exchange пишет `DTSTART;TZID="(GMT+03:00) Москва":…`,
+     и разрез по первому двоеточию рвал дату пополам. Событие без даты
+     отсеивалось молча, и файл из Outlook импортировался пустым */
+  function icsProp(line) {
+    var q = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line.charAt(i);
+      if (c === '"') q = !q;
+      else if (c === ":" && !q)
+        return { name: line.slice(0, i).split(";")[0].toUpperCase(), val: line.slice(i + 1) };
+    }
+    return null;
+  }
+  function parseICS(text) {
+    var lines = icsUnfold(text), events = [], cur = null, deep = 0;
+    lines.forEach(function (line) {
+      if (/^BEGIN:VEVENT/i.test(line)) { cur = {}; deep = 0; return; }
+      if (/^END:VEVENT/i.test(line)) { if (cur) events.push(cur); cur = null; deep = 0; return; }
+      if (!cur) return;
+      /* У события бывают свои вложенные блоки, прежде всего напоминание
+         (`VALARM`) со своими SUMMARY и DESCRIPTION. Без этого счётчика
+         будильник затирал поля события: заметкой в карточку ложилось «This is
+         an event reminder», а у почтового напоминания и название своё — тогда
+         свадьба переставала быть похожей на съёмку и не доходила до списка
+         вовсе. Напоминание стоит у большинства съёмок, так что случай не
+         редкий, а обычный */
+      if (/^BEGIN:/i.test(line)) { deep++; return; }
+      if (/^END:/i.test(line)) { if (deep) deep--; return; }
+      if (deep) return;
+      var p = icsProp(line);
+      if (!p) return;
+      if (p.name === "SUMMARY") cur.summary = icsUnescape(p.val).trim();
+      else if (p.name === "DESCRIPTION") cur.description = icsUnescape(p.val).trim();
+      else if (p.name === "LOCATION") cur.location = icsUnescape(p.val).trim();
+      else if (p.name === "UID") cur.uid = p.val.trim();
+      else if (p.name === "STATUS") cur.status = p.val.trim().toUpperCase();
+      else if (p.name === "RECURRENCE-ID") cur.rid = p.val.trim();
+      else if (p.name === "DTSTART") cur.start = icsDateVal(p.val);
+      else if (p.name === "DTEND") cur.end = icsDateVal(p.val);
+      else if (p.name === "DURATION") cur.dur = icsParseDur(p.val);
+    });
+    return events;
+  }
+  function icsToSlot(ev) {
+    var d = ev.start.date, dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (ev.start.allDay) return { date: dateOnly, min: 600, dur: 120, allDay: true };
+    var min = d.getHours() * 60 + d.getMinutes(), dur = 90;
+    if (ev.end && !ev.end.allDay && ev.end.date) {
+      var diff = Math.round((ev.end.date - d) / 60000);
+      if (diff > 0) dur = diff;
+    } else if (ev.dur > 0) dur = ev.dur;
+    /* Длину не режем сутками: запись длиннее дня приложение умеет — она
+       принадлежит каждому своему дню. Прежний потолок в 1440 минут делал из
+       трёхдневной свадьбы ровно сутки, и подпись «14:00–14:00» читалась
+       нулём. Потолок оставлен только против мусора в файле */
+    return { date: dateOnly, min: min, dur: Math.min(dur, 30 * 1440), allDay: false };
+  }
+  /* Ключ повторного импорта: `UID` события, а у правленого вхождения повтора
+     ещё и `RECURRENCE-ID` — по RFC личность вхождения это они вдвоём, и без
+     второго два разных вхождения считались одной записью. Нет `UID` — дата
+     плюс название */
+  function icsSigOf(ev) {
+    if (ev.uid) return "u:" + ev.uid + (ev.rid ? "#" + ev.rid : "");
+    var d = ev.start.date;
+    return "s:" + d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate()
+      + "|" + (ev.summary || "").trim().toLowerCase();
+  }
+  var icsRows = [], icsChecked = [];
+  function buildIcsRows(text) {
+    var raw = parseICS(text), known = {}, seen = {};
+    sessions.forEach(function (s) { if (s.icsSig) known[s.icsSig] = true; });
+    var rows = [], dup = 0, skip = 0;
+    raw.forEach(function (ev) {
+      if (!ev.summary || !ev.start) { skip++; return; }
+      if (ev.status === "CANCELLED") { skip++; return; }   // отменённого в календаре уже нет
+      var cls = icsClassify([ev.summary, ev.description, ev.location].filter(Boolean).join(" "));
+      if (!cls) { skip++; return; }
+      var sig = icsSigOf(ev);
+      /* Дубли считаем и против уже добавленного, и внутри самого файла:
+         вхождения одного повтора приходят под одним ключом */
+      if (known[sig] || seen[sig]) { dup++; return; }
+      seen[sig] = true;
+      var slot = icsToSlot(ev);
+      rows.push({ sig: sig, summary: ev.summary, location: ev.location || "", notes: ev.description || "",
+        date: slot.date, min: slot.min, dur: slot.dur, allDay: slot.allDay, bucket: cls.bucket, type: cls.type });
+    });
+    rows.sort(function (a, b) { return a.date - b.date || a.min - b.min; });
+    return { rows: rows, dup: dup, skip: skip, total: raw.length };
+  }
+  /* Подпись говорит то, что получится, а не то, что было в файле. У события
+     на весь день время подставное — молчать об этом нельзя: в листе стояло
+     «весь день», а в календарь ложилось «10:00–12:00». Событие длиннее суток
+     называет, на сколько дней уходит: время конца по модулю суток совпало бы
+     с началом, и трёхдневная свадьба выглядела бы нулевой */
+  function icsTimeLabel(r) {
+    if (r.allDay) return dMonShort(r.date) + " · " + LANG.t("day.allDay")
+      + " · " + fmt(r.min) + "–" + fmt(r.min + r.dur);
+    var days = Math.floor((r.min + r.dur) / 1440);
+    return dMonShort(r.date) + " · " + fmt(r.min) + "–" + fmt(r.min + r.dur)
+      + (days > 0 ? " · " + (days === 1 ? LANG.t("blk.nextDay")
+          : LANG.t("when.inDays", { n: LANG.count("unit.day", days) })) : "");
+  }
+  function renderIcs() {
+    var host = $("icsList");
+    if (!icsRows.length) {
+      host.innerHTML = '<div class="bin-empty">' + esc(LANG.t("ics.empty")) + "</div>";
+      $("icsAdd").hidden = true;
+      return;
+    }
+    var groups = [{ key: "match", label: LANG.t("ics.secMatch") }, { key: "maybe", label: LANG.t("ics.secMaybe") }];
+    var html = "";
+    groups.forEach(function (g) {
+      var idxs = [];
+      icsRows.forEach(function (r, i) { if (r.bucket === g.key) idxs.push(i); });
+      if (!idxs.length) return;
+      /* Счётчик в заголовке: групп две, а строк бывает под сотню — сколько
+         их в каждой, видно раньше, чем начнёшь прокручивать */
+      html += '<div class="ics-sec">' + esc(g.label) + " · " + idxs.length + "</div>" + idxs.map(function (i) {
+        var r = icsRows[i];
+        return '<div class="ics-row ' + (icsChecked[i] ? "on" : "off") + '" data-i="' + i + '">'
+          + '<span class="chk"><svg viewBox="0 0 24 24"><polyline points="5 13 10 18 19 7"/></svg></span>'
+          + '<span class="ic">' + IC.genreSvg(r.type) + "</span>"
+          + '<span class="tx"><span class="t1">' + esc(r.summary) + "</span>"
+          + '<span class="t2">' + esc(icsTimeLabel(r)) + (r.location ? " · " + esc(r.location) : "") + "</span></span></div>";
+      }).join("");
+    });
+    host.innerHTML = html;
+    host.querySelectorAll(".ics-row").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var i = +el.dataset.i;
+        icsChecked[i] = !icsChecked[i];
+        el.classList.toggle("on", icsChecked[i]); el.classList.toggle("off", !icsChecked[i]);
+        renderIcsAddBtn();
+      });
+    });
+    renderIcsAddBtn();
+  }
+  function renderIcsAddBtn() {
+    var n = icsChecked.filter(Boolean).length;
+    $("icsAdd").hidden = false;
+    $("icsAdd").disabled = !n;
+    $("icsAdd").textContent = LANG.t("ics.add", { n: LANG.count("unit.event", n) });
+  }
+  /* Разбор отчитывается числами. Прежде под списком говорилось только про
+     дубли — а молчание про две тысячи пропущенных событий пугает ровно так
+     же, как молчание про исчезнувшую половину файла */
+  function openIcs(res) {
+    var line = LANG.t("ics.stat", { n: res.total, m: icsRows.filter(function (r) { return r.bucket === "match"; }).length,
+      u: icsRows.filter(function (r) { return r.bucket === "maybe"; }).length, s: res.skip });
+    if (res.dup) line += " · " + LANG.t("ics.already", { n: LANG.count("unit.event", res.dup) });
+    $("icsStat").textContent = line;
+    $("icsStat").hidden = false;
+    renderIcs();
+    $("icsSheet").classList.add("open"); $("icsScrim").classList.add("open");
+  }
+  function closeIcs() {
+    $("icsSheet").classList.remove("open"); $("icsScrim").classList.remove("open");
+  }
+
   function renderSessions() {
     var list = $("sessionList");
     list.innerHTML = "";
@@ -14330,6 +14895,7 @@
     }
     // сортируем, но помним исходный индекс — по нему открываем запись на правку
     sessions.map(function (s, i) { return { s: s, i: i }; })
+      .filter(function (p) { return shownRec(p.s); })
       .sort(function (a, b) { return a.s.date - b.s.date || a.s.min - b.s.min; })
       .forEach(function (p) {
         var s = p.s;
@@ -14337,8 +14903,11 @@
         c.className = "session";
         c.innerHTML =
           '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + monShortOfDate(s.date) + "</div></div>" +
-          '<div class="s-body"><div class="s-title">' + genreName(s.type) + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
-          '<div class="s-sub">' + s.place + (function (w) {
+          /* Событие называет себя событием: жанр у него угадан, а не назначен,
+             и строка «Свадьбы · Свадьба Ани» выдавала бы догадку за съёмку */
+          '<div class="s-body"><div class="s-title">' + (isEvent(s) ? esc(LANG.t("plan.event")) : genreName(s.type))
+          + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
+          '<div class="s-sub">' + esc(s.place) + (function (w) {
             var list = Array.isArray(w) ? w : (w && w !== "any" ? [w] : []);
             return list.length
               ? LANG.t("sess.expect", { list: list.map(wishName).join(", ").toLowerCase() }) : "";
@@ -14565,6 +15134,12 @@
   /* Что из общего списка оборудования (equipment) берём на эту съёмку —
      имена, не индексы: список могут поправить, пока запись лежит нетронутой */
   var fGear = [];
+  /* Имя плейлиста из общей библиотеки — не адрес: адрес живёт в настройках
+     и правится там же. Имя, а не номер, по той же причине, что и у
+     оборудования: список могут поправить, пока запись лежит нетронутой.
+     Пустая строка значит «нет»: в записи такого поля тогда не появляется
+     вовсе (ROADMAP, «Плейлист съёмки») */
+  var fPlaylist = "";
   var fDelvChoice = "auto";     // "auto" | число дней | null
   /* Момент, когда отметили «сдано» — не сам факт, а когда он случился. Без
      метки времени статистика опозданий взять неоткуда: галочка одна и та же
@@ -18274,6 +18849,7 @@
   /* ---------- Барабаны внутри формы ---------- */
   var fwSDate = $("fwSDate"), fwEDate = $("fwEDate");   // теперь сетки, не барабаны
   var fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
+  var fwPL = $("fwPL");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
   [fwSH, fwEH].forEach(function (el2) { fill(el2, HOURS); });
   /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
@@ -18435,6 +19011,13 @@
 
   attachWheel(fwSH, onStartWheel); attachWheel(fwSM, onStartWheel);
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
+  attachWheel(fwPL, onPlWheel);
+  function onPlWheel() {
+    if (openRow !== "fMusic" || !playlists.length) return;
+    var pl = playlists[clamp(wheelIndex(fwPL), 0, playlists.length - 1)];
+    if (!pl || pl.n === fPlaylist) return;
+    fPlaylist = pl.n; renderMusicRow(); scheduleDraftSave();
+  }
   function onStartWheel() {
     if (openRow !== "fStart") return;
     fAuto = false; fLight = false;      // покрутили руками — время больше не от солнца
@@ -18451,10 +19034,12 @@
      Барабанов стало четыре: у начала и у конца своя дата и своё время */
   var ROWS = [
     ["fStartDate", "fStartDatePick"], ["fStart", "fStartPick"],
-    ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"]
+    ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"],
+    ["fMusic", "fMusicPick"]
   ];
   // Подсветку носит капсула, а не строка: в строке их теперь две
-  var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal" };
+  var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal",
+              fMusic: "fMusicVal" };
   var openRow = null;
   function closeRows() {
     ROWS.forEach(function (r) { $(CAP[r[0]]).classList.remove("open"); $(r[1]).classList.remove("open"); });
@@ -18492,6 +19077,11 @@
     if (id === "fEnd") {
       var e = endMinOfDay();
       syncWheel(fwEH, Math.floor(e / 60)); syncMinWheel(fwEM, e % 60);
+    }
+    if (id === "fMusic") {
+      var at = 0;
+      for (var pi = 0; pi < playlists.length; pi++) if (playlists[pi].n === fPlaylist) { at = pi; break; }
+      syncWheel(fwPL, at);
     }
   }
   // Нажимается капсула, а не строка целиком
@@ -19423,6 +20013,21 @@
      не назначено. Поэтому режим встречи выражен теми же правилами формы. */
   var formKind = "shoot";
   function isMeet(s2) { return !!(s2 && s2.kind === "meet"); }
+  /* Событие из чужого календаря — третий род записи рядом со съёмкой и
+     встречей. Критерий, где чему жить, в приложении уже записан (см. `blocks`:
+     «у выходного нет ни клиента, ни жанра, ни сдачи материала»). У события
+     жанр и название есть — значит это не занятость; оплаты и сдачи нет —
+     значит не съёмка; а назначал его не фотограф — значит и не встреча.
+     Отсюда два предиката: `notWork` спрашивают там, где важно «не работа»
+     (деньги, сроки, статистика года, маршрут), `isMeet` — там, где важно
+     именно «встреча» (слова и знаки). См. DECISIONS, «События из чужого
+     календаря». */
+  function isEvent(s2) { return !!(s2 && s2.kind === "event"); }
+  function notWork(s2) { return isMeet(s2) || isEvent(s2); }
+  /* Слой чужих событий выключается целиком, как календарь-подписка в любом
+     календарном приложении: одна галочка отменяет любой ввоз и возвращает
+     календарь к своим записям. Спрашивают её там, где записи показывают */
+  function shownRec(s2) { return icsLayer || !isEvent(s2); }
   function meetMode() { return formKind === "meet"; }
 
   var FORM_FIELDS = [
@@ -19936,7 +20541,7 @@
       }
     });
     sessions.forEach(function (s, i) {
-      if (i === skipIdx || !sameDay(s.date, day)) return;
+      if (i === skipIdx || !sameDay(s.date, day) || !shownRec(s)) return;
       var sEnd = shootEnd(s), name = clientName(s) || genreName(s.type);
       var when = range(s.min, sEnd);
       /* Пересечение времени — тяжелее всего: быть в двух местах разом нельзя */
@@ -20313,7 +20918,7 @@
     if (!s) return;
     ordMode = on;
     $("cdOrderFoot").hidden = !on;
-    $("cardEdit").hidden = on;
+    $("cardEdit").hidden = on || isEvent(s);
     $("cardOrder").classList.toggle("ok", on);
     if (on) foldBlocks(s);
     else unfoldBlocks(function () { renderEventCard(s); });
@@ -20487,7 +21092,7 @@
     /* У встречи точек дня нет по определению: план съёмочного дня появляется
        вместе со съёмкой, а не на разговоре о ней. Иначе свадебный пресет
        подсовывал встрече ЗАГС и прогулку */
-    var route = isMeet(s) ? [] : routeOf(s);
+    var route = notWork(s) ? [] : routeOf(s);
     var phase = eventPhase(s);
     var sun = cardSun(s);
     var light = phase === "after" ? null : lightCase(s, route, sun);
@@ -20630,7 +21235,7 @@
   }
   function renderEvHead(s, phase) {
     $("cdEvHead").hidden = false;
-    $("cdEvHead").classList.toggle("is-meet", isMeet(s));
+    $("cdEvHead").classList.toggle("is-meet", notWork(s));
     var spec = genreSpec(s.type), gr = groupSpec(s.type);
     $("cdEvSign").innerHTML = IC.genreSvg(s.type, null, 24);
     setDeleteLabel(s);
@@ -20662,6 +21267,9 @@
     /* Встреча называет себя встречей и говорит, о чём она: «Встреча · свадьба».
        Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
     if (isMeet(s)) bits.push(LANG.t("card.meetAbout", { genre: shortGenre(s.type).toLowerCase() }));
+    /* Событие называет себя событием и говорит, на что похоже: жанр у него
+       угадан, а не назначен, и выдавать догадку за съёмку карточка не вправе */
+    else if (isEvent(s)) bits.push(LANG.t("card.eventAbout", { genre: shortGenre(s.type).toLowerCase() }));
     else if (name) bits.push(evName(s.type));
     bits.push(dMon(s.date));
     bits.push(range(s.min, end));
@@ -20675,6 +21283,15 @@
       $("cdEvTelN").textContent = tel;
       $("cdEvTel").href = "tel:" + tel.replace(/[^\d+]/g, "");
     }
+  }
+  /* Кнопка музыки. Живёт внизу карточки, в одном ряду с корзиной, и только
+     внутри своего окна — от начала съёмки до «конец минус пять минут».
+     Перерисовывается ещё и тактом (`startStudioTick`): окно кончается само,
+     пока карточка открыта, и кнопка обязана исчезнуть без перезахода. */
+  function renderCardMusic(s) {
+    var mus = musicOpen(s) ? musicHref(s) : "";
+    $("cdMusic").hidden = !mus;
+    if (mus) { $("cdMusic").href = mus; $("cdMusicN").textContent = musicName(s); }
   }
   /* Знак жанра в шапке: свадьба и лавстори рисуются крупным знаком события,
      остальные берут свою пиктограмму из библиотеки */
@@ -20702,7 +21319,8 @@
     $("cdDayDot").style.display = phase === "during" ? "" : "none";
     /* Кнопка живёт только там, где ей есть что сделать: включённая настройка,
        идущая съёмка, сегодняшний день. Встречу не завершают — она не работа. */
-    $("cdFinRow").hidden = !(manualEnd && phase === "during" && today && !isMeet(s));
+    $("cdFinRow").hidden = !(manualEnd && phase === "during" && today && !notWork(s));
+    renderCardMusic(s);
 
     var dur = s.dur || 90, endMin = s.end != null ? s.end : s.min + dur;
     if (!route.length) {
@@ -20725,7 +21343,7 @@
           ? LANG.t("day.leftUntil", { left: "<b>" + esc(durLabel(left)) + "</b>", t: esc(fmt(endMin)) })
           : LANG.t("day.overBy", { over: "<b>" + esc(durLabel(-left)) + "</b>", t: esc(fmt(endMin)) });
       } else if (phase === "after") {
-        $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : "day.shootDone");
+        $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : isEvent(s) ? "day.eventDone" : "day.shootDone");
         $("cdDayLeft").textContent = range(s.min, endMin) + " · " + durLabel(dur);
       } else {
         $("cdDayNow").textContent = range(s.min, endMin);
@@ -20747,7 +21365,7 @@
       $("cdDayLeft").textContent = durLabel(route[route.length - 1].t - route[0].t)
         + " · " + LANG.count("unit.point", route.length);
     } else {
-      $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : "day.shootDone");
+      $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : isEvent(s) ? "day.eventDone" : "day.shootDone");
       $("cdDayLeft").textContent = range(route[0].t, route[route.length - 1].t);
     }
 
@@ -20817,10 +21435,11 @@
       if (cardIdx === null) { stopStudioTick(); return; }
       var s = sessions[cardIdx];
       if (!s) { stopStudioTick(); return; }
-      var route = isMeet(s) ? [] : routeOf(s);
+      var route = notWork(s) ? [] : routeOf(s);
       var phase = eventPhase(s);
       var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
       renderStudioTimer(s, route, phase, curIndex(route, nowMin2), nowMin2);
+      renderCardMusic(s);
     }, 20000);
   }
   function stopStudioTick() {
@@ -20932,7 +21551,7 @@
       : "";
 
     var delvHtml = "";
-    if (spec.delivery !== false && !isMeet(s)) {
+    if (spec.delivery !== false && !notWork(s)) {
       var ds = deliveryState(s), dd = deadlineDate(s);
       delvHtml = '<div class="pane wide"><div class="pane-row" data-act="toggleDelv" style="cursor:pointer">'
         + '<span class="badge">' + PANE_IC.clock + "</span>"
@@ -21334,12 +21953,12 @@
 
     /* Встреча — та же карточка, но заголовком «Встреча»: жанр уходит в
        подзаголовок, потому что он тут предмет разговора, а не вид работы */
-    var meet = isMeet(s);
+    var meet = isMeet(s), soft = notWork(s);
     /* Заголовок брал `s.type` напрямую — это работало, пока жанр был русским
        словом. После разделения кода и имени он показывал бы «wedding»:
        перевод вскрывает такие места сразу, потому что имя видно на экране. */
-    $("cardTitle").textContent = meet ? LANG.t("plan.meet") : genreName(s.type);
-    $("cardSub").textContent = meet
+    $("cardTitle").textContent = soft ? LANG.t(meet ? "plan.meet" : "plan.event") : genreName(s.type);
+    $("cardSub").textContent = soft
       ? (s.contact ? s.contact + " · " + shortGenre(s.type).toLowerCase()
                    : LANG.t("card.meetTopic", { genre: shortGenre(s.type).toLowerCase() }))
       : (s.contact || LANG.t("card.noClient"));
@@ -21364,9 +21983,16 @@
     }
 
     /* Эволюция: кнопка есть, пока съёмка из встречи не назначена */
-    $("cdGrow").hidden = !meet || !!s.grewOn;
-    $("cdGrown").hidden = !(meet && s.grewOn);
-    if (meet && s.grewOn) {
+    /* Событие достраивается тем же путём, что и встреча: «Назначить съёмку»
+       переносит имя, место и жанр в настоящую запись, а само остаётся в
+       календаре. Формой событие не правится вовсе — у него два действия,
+       назначить и убрать: править чужую запись значило бы спорить с
+       источником, а всё остальное правится уже в съёмке (DECISIONS) */
+    $("cdGrow").hidden = !soft || !!s.grewOn;
+    $("cdGrown").hidden = !(soft && s.grewOn);
+    $("cardEdit").hidden = isEvent(s);
+    if (!$("cdGrow").hidden) $("cdGrow").querySelector(".gb-s").textContent = LANG.t(meet ? "card.growS" : "card.growSEv");
+    if (soft && s.grewOn) {
       var g = new Date(s.grewOn);
       $("cdGrown").textContent = LANG.t("card.grownOn", { d: dMon(g) });
     }
@@ -21634,7 +22260,7 @@
       currency: fCurrency,
       guests: fGuests || 0, trip: fTrip, tripPlace: fTrip ? sessionPlace.name : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
-      docs: fDocs.slice(), gear: fGear.slice(),
+      docs: fDocs.slice(), gear: fGear.slice(), playlist: fPlaylist,
       /* Кадры в черновике больше не лежат: они уже в подборке, и черновику
          довольно помнить её знак. Заодно это чинит старую неровность —
          превью в черновике занимали место в `localStorage` вторым слоем. */
@@ -21736,6 +22362,7 @@
         })
       : [];
     fGear = Array.isArray(s.gear) ? s.gear.filter(function (n) { return typeof n === "string"; }) : [];
+    fPlaylist = typeof s.playlist === "string" ? s.playlist : "";
     /* Кадры форма не переносит в себя вовсе: и запись, и черновик знают
        свою подборку знаком — у записи это `id`, у черновика `sid`. Знака
        нет только у совсем старого черновика, заведённого до этой правки, —
@@ -21750,7 +22377,7 @@
     var draftRestored = false;
     if (editIdx !== null) {
       var s = sessions[editIdx];
-      formKind = isMeet(s) ? "meet" : "shoot";   // род берётся у записи, а не у кнопки
+      formKind = notWork(s) ? "meet" : "shoot";   // род берётся у записи, а не у кнопки
       fAuto = false;                     // время сохранённой съёмки принадлежит фотографу
       fillFormFrom(s);
     } else {
@@ -21772,7 +22399,7 @@
       fOrgId = null; $("fPerson").value = ""; $("fPhone").value = "";
       $("fP1Name").value = ""; $("fP1Tel").value = "";
       $("fP2Name").value = ""; $("fP2Tel").value = "";
-      fPrepay = 0; fGuests = 0; fDocs = []; fGear = [];
+      fPrepay = 0; fGuests = 0; fDocs = []; fGear = []; fPlaylist = "";
       fCurrency = currency;
       $("fPrepay").value = "";
       fTrip = false;
@@ -21801,6 +22428,7 @@
     fDocKind = null;
     renderDocKinds(); renderDocs();
     renderKitSummary();
+    refreshMusicRow();
     $("fDoneRow").style.display = editIdx !== null ? "flex" : "none";
     renderSessionPlace();
     $("formTitle").textContent = meetMode()
@@ -22008,6 +22636,46 @@
       ? LANG.t("kit.count", { n: kitCheckedCount(), m: equipment.length })
       : LANG.t("kit.empty");
   }
+
+  /* ---------- Плейлист съёмки ----------
+     Съёмка хранит имя из общей библиотеки, а не адрес: адрес живёт в одном
+     месте — в настройках, — и правится там же (DECISIONS, «Плейлистов много
+     и они общие»). Пустое имя значит «музыки на этой съёмке нет»: тумблер и
+     выбор — одно и то же поле, потому что выключенный плейлист и есть
+     невыбранный. Отдельного «помню, какой был выключен» нет намеренно: в
+     списке из десяти строк вернуть выбор — одно движение барабана. */
+  function renderMusicRow() {
+    var has = playlists.length > 0;
+    $("fMusicRow").hidden = !has;
+    if (!has) { $("fMusicPick").classList.remove("open"); return; }
+    var on = !!playlistOf(fPlaylist);
+    $("fMusicToggle").classList.toggle("on", on);
+    $("fMusicToggle").setAttribute("aria-checked", on ? "true" : "false");
+    $("fMusicVal").hidden = !on;
+    if (on) $("fMusicVal").textContent = fPlaylist;
+  }
+  /* Полное обновление: библиотеку правят в настройках, и открытая форма
+     обязана узнать об этом, включая случай «выбранный плейлист удалили» */
+  function refreshMusicRow() {
+    if (fPlaylist && !playlistOf(fPlaylist)) fPlaylist = "";
+    if (playlists.length) fill(fwPL, playlists.map(function (pl) { return esc(pl.n); }));
+    if (openRow === "fMusic" && !playlists.length) closeRows();
+    renderMusicRow();
+  }
+  /* Тумблер включает музыку первым плейлистом списка, а не спрашивает,
+     каким. Спросить — значит поставить выбор перед ответом «да»: чаще всего
+     плейлист один, и лишний барабан там нечего крутить. Не тот — капсула
+     рядом открывает барабан. */
+  $("fMusicToggle").addEventListener("click", function () {
+    if (!playlists.length) return;
+    if (playlistOf(fPlaylist)) {
+      fPlaylist = "";
+      if (openRow === "fMusic") closeRows();
+    } else {
+      fPlaylist = playlists[0].n;
+    }
+    renderMusicRow(); scheduleDraftSave();
+  });
   function renderKitList() {
     var host = $("kitList");
     host.innerHTML = equipment.length ? equipment.map(function (name, i) {
@@ -22233,7 +22901,7 @@
       var next = byId(m.grewToId);
       if (next < 0) {
         for (var i = 0; i < sessions.length; i++) {
-          if (!isMeet(sessions[i]) && sessions[i].fromMeetOn === m.date.toISOString()) { next = i; break; }
+          if (!notWork(sessions[i]) && sessions[i].fromMeetOn === m.date.toISOString()) { next = i; break; }
         }
       }
       if (next >= 0) idx = next;
@@ -22454,6 +23122,9 @@
           return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url, kind: r.kind || null };
         }),
       gear: fGear.slice(),
+      /* Пустой плейлист не пишем строкой: пустое поле в записи — то же
+         пустое поле, и карточка на него не смотрит (docs/12_CARD_ARCHITECTURE.md) */
+      playlist: fPlaylist || undefined,
       /* Когда опросник отправлен. Правка карточки этого не отменяет —
          отправленного не вернуть */
       questSent: (editIdx !== null && sessions[editIdx] && sessions[editIdx].questSent) || null,
@@ -23472,6 +24143,79 @@
     this.value = "";
   });
 
+  $("icsScrim").addEventListener("click", closeIcs);
+  $("icsLayerToggle").classList.toggle("on", icsLayer);
+  $("icsLayerToggle").addEventListener("click", function () {
+    this.classList.toggle("on");
+    icsLayer = this.classList.contains("on");
+    saveAll(); renderSessions(); renderCal(); renderDayPanel();
+  });
+  /* Сколько чужих событий лежит в календаре — знает только эта кнопка, и
+     она же их убирает. Через корзину такое не проводим: двести записей,
+     ввезённых разом, завалили бы её и вытеснили оттуда всё, что фотограф
+     удалял руками и мог захотеть вернуть */
+  function renderIcsDrop() {
+    var n = sessions.filter(isEvent).length;
+    $("icsDrop").hidden = !n;
+    if (n) $("icsDrop").querySelector("span").textContent = LANG.t("set.icsDrop", { n: LANG.count("unit.event", n) });
+  }
+  $("icsDrop").addEventListener("click", function () {
+    var n = sessions.filter(isEvent).length;
+    if (!n) return;
+    askYes(LANG.t("set.icsDropAsk"), LANG.t("set.icsDropSub", { n: LANG.count("unit.event", n) }),
+      LANG.t("set.icsDropOk"), function () {
+        sessions = sessions.filter(function (s) { return !isEvent(s); });
+        saveAll(); renderIcsDrop();
+        renderSessions(); renderCal(); renderDayPanel(); renderMbStrip();
+        notify(LANG.t("pick.done"), LANG.t("set.icsDropped", { n: LANG.count("unit.event", n) }));
+      });
+  });
+  $("icsLoad").addEventListener("click", function () { $("icsFile").click(); });
+  $("icsFile").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    this.value = "";
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var text = String(rd.result || "");
+      if (!/BEGIN:VCALENDAR/i.test(text)) { $("icsNote").textContent = LANG.t("set.errUnreadable"); return; }
+      $("icsNote").textContent = LANG.t("set.icsImportNote");
+      var res = buildIcsRows(text);
+      icsRows = res.rows;
+      icsChecked = icsRows.map(function (r) { return r.bucket === "match"; });
+      openIcs(res);
+    };
+    // Нечитаемый файл должен сказать об этом: молчание кнопки объяснить нечем
+    rd.onerror = function () { $("icsNote").textContent = LANG.t("set.errUnreadable"); };
+    rd.readAsText(f);
+  });
+  $("icsAdd").addEventListener("click", function () {
+    var n = 0, at = Date.now();
+    icsRows.forEach(function (r, i) {
+      if (!icsChecked[i]) return;
+      /* Событие, а не встреча. Встречу фотограф назначает сам, и подмешивать
+         к ней чужой календарь значило бы заставить проверять руками каждую
+         ввезённую строку — то есть ровно ту работу, ради отмены которой
+         импорт и заводился. Событие живёт фоном: занимает день, молчит, в
+         деньгах и сроках не участвует, а съёмкой становится по «Назначить
+         съёмку», когда фотограф до него дошёл (DECISIONS).
+         Координат не пишем: место — строка из чужого файла, а не найденная
+         точка. Ветка «старые записи знали только имя» в форме это умеет, и
+         солнце всё равно считается по городу — но карточка больше не выдаёт
+         адрес за найденный. */
+      sessions.push({ id: newId(), kind: "event", type: r.type,
+        date: r.date, min: r.min, end: r.min + r.dur, dur: r.dur,
+        contact: r.summary, notes: r.notes, place: r.location,
+        icsSig: r.sig, icsAt: at });
+      n++;
+    });
+    closeIcs();
+    if (!n) return;
+    saveAll(); renderIcsDrop();
+    renderSessions(); renderCal(); renderDayPanel(); renderMbStrip();
+    notify(LANG.t("pick.done"), LANG.t("ics.added", { n: LANG.count("unit.event", n) }));
+  });
+
   /* Порог дороги. Перерисовывать экраны не нужно: он живёт в проверке
      наложений, а она считается заново при каждом открытии формы и дня */
   function renderTravelSeg() {
@@ -23486,6 +24230,103 @@
     });
   });
   renderTravelSeg();
+
+  /* Плеер по умолчанию. Открытую карточку перерисовываем: кнопка в её
+     подвале держится как раз на этой настройке у съёмки без плейлиста, и
+     настройка, не доходящая до экрана, выглядит как несработавшая */
+  function renderMusicSeg() {
+    document.querySelectorAll("#musicSeg button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.music === musicApp);
+    });
+    $("musicNote").textContent = LANG.t(musicApp === "off" ? "set.musicNoteOff" : "set.musicNote");
+  }
+  document.querySelectorAll("#musicSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      musicApp = b.dataset.music; renderMusicSeg(); saveAll();
+      if (cardIdx !== null) openCard(cardIdx, true);
+    });
+  });
+  renderMusicSeg();
+
+  /* ---------- Библиотека плейлистов ----------
+     Строки правятся прямо на месте, как пакеты: переименовать плейлист —
+     это одно движение, а не отдельный лист с полем и кнопкой «Готово».
+     Переименование тащит за собой съёмки, которые на это имя ссылались.
+     У пакетов и оборудования такого нет, и там это сойдёт: пакет
+     переписывают в цену, а не в ссылку. Здесь же имя — единственная нить
+     между съёмкой и адресом, и рвать её молча значило бы отнимать музыку
+     у съёмки за то, что в имени поправили опечатку. */
+  function renamePlaylist(was, now2) {
+    if (!was || was === now2) return;
+    sessions.forEach(function (s2) { if (s2.playlist === was) s2.playlist = now2; });
+    trashed.forEach(function (t) { if (t.rec && t.rec.playlist === was) t.rec.playlist = now2; });
+  }
+  function renderPlaylists() {
+    var host = $("plList");
+    host.innerHTML = playlists.length ? playlists.map(function (pl, i) {
+      return '<div class="pl-item" data-i="' + i + '">'
+        + '<input class="pl-n" type="text" value="' + esc(pl.n).replace(/"/g, "&quot;") + '"/>'
+        + '<input class="pl-u" type="url" value="' + esc(pl.u).replace(/"/g, "&quot;") + '"'
+        + ' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>'
+        + '<button type="button" class="pl-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
+        + "</div>";
+    }).join("") : '<div class="pl-empty">' + esc(LANG.t("set.plEmpty")) + "</div>";
+    host.querySelectorAll(".pl-item").forEach(function (row) {
+      var i = +row.dataset.i, pl = playlists[i];
+      row.querySelector(".pl-n").addEventListener("input", function () {
+        var v = this.value.trim();
+        if (!v) return;                       // пустое имя не пишем: по нему съёмку не найти
+        renamePlaylist(pl.n, v); pl.n = v; saveAll(); refreshMusicRow();
+      });
+      row.querySelector(".pl-u").addEventListener("input", function () {
+        pl.u = normUrl(this.value); saveAll();
+      });
+      row.querySelector(".pl-x").addEventListener("click", function () {
+        playlists.splice(i, 1); saveAll(); renderPlaylists(); refreshMusicRow();
+        if (cardIdx !== null) openCard(cardIdx, true);
+      });
+    });
+    $("plAdd").disabled = playlists.length >= PL_MAX;
+    $("plNote").textContent = LANG.t(playlists.length >= PL_MAX ? "set.plFull" : "set.plNote");
+  }
+  /* Адрес без схемы — обычный способ его продиктовать, дописываем сами.
+     Тот же приём, что у `askUrl`: там он живёт внутри листа, здесь поле
+     своё, и лист не при чём */
+  function normUrl(v) {
+    v = (v || "").trim();
+    if (!v) return "";
+    return /^https?:\/\//i.test(v) ? v : "https://" + v;
+  }
+  /* Имя необязательно. Пустое поле не повод отказывать: сервис виден по
+     самому адресу, и «Spotify» — честное имя, пока фотограф не дал своё.
+     Второй такой же получает номер: два безымянных плейлиста одного
+     сервиса иначе слились бы в одну строку барабана */
+  function autoPlName(url) {
+    var k = musicKindOf(url);
+    var base = k ? MUSIC[k].n : (function () {
+      try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return LANG.t("form.playlist"); }
+    })();
+    var n = base, i = 2;
+    while (playlistOf(n)) { n = base + " " + i; i++; }
+    return n;
+  }
+  $("plAdd").addEventListener("click", function () {
+    if (playlists.length >= PL_MAX) return;
+    var u = normUrl($("plNewUrl").value);
+    if (!u) return $("plNewUrl").focus();
+    var n = $("plNewName").value.trim() || autoPlName(u);
+    while (playlistOf(n)) n = n + " ·";         // тёзок в списке не держим: выбирают по имени
+    playlists.push({ n: n, u: u });
+    saveAll(); renderPlaylists(); refreshMusicRow();
+    $("plNewName").value = ""; $("plNewUrl").value = ""; $("plNewName").focus();
+  });
+  $("plNewUrl").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); $("plAdd").click(); }
+  });
+  $("plNewName").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); $("plNewUrl").focus(); }
+  });
+  renderPlaylists();
 
   /* Градусы. Здесь экраны перерисовать надо: температура уже нарисована
      числом на «Сегодня», в неделе, в дне и в карточке */
@@ -23675,12 +24516,18 @@
     if ($("startPractice") && $("startSheet").classList.contains("open")) renderStartSheet();
     if (typeof updateNowTick === "function" && $("nowTick")) updateNowTick();
     if ($("travelNote")) renderTravelSeg();
+    /* Заметки музыки собираются в коде — обе. У сегмента она вдобавок
+       разная для «выкл» и для выбранного плеера, а у списка меняется на
+       потолке в десять; из разметки такое не переводится */
+    if ($("musicNote")) renderMusicSeg();
+    if ($("plNote")) renderPlaylists();
     if ($("unitNote")) renderUnitSeg();
     if ($("delvNote")) renderDelvSettings();
     if ($("stepNote")) renderStepSeg();
     if ($("ribbonNote")) renderRibbonSeg();
     if ($("syncNote")) renderSyncNote();
     if ($("storeCount")) renderStorageInfo();
+    if ($("icsDrop")) renderIcsDrop();
     if ($("cloudSeg")) renderCloudInfo();
     if ($("spotCount")) renderSpotMark();
     if ($("appIdV")) renderProfile();
@@ -24616,6 +25463,7 @@
     var box = $("searchResults");
     if (!qs) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">' + esc(LANG.t("search.startTyping")) + "</div>"; return; }
     var hits = sessions.map(function (s, i) { return { s: s, i: i }; }).filter(function (p) {
+      if (!shownRec(p.s)) return false;
       /* Ищут словом, а не кодом: «свадьба» должна находить съёмку, у которой
          внутри лежит `wedding` */
       return ((p.s.contact || "") + " " + genreName(p.s.type) + " " + p.s.place).toLowerCase().indexOf(qs) > -1;
