@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Стол предупреждений — Light Plan</title>
+<style>
+/* ============================================================
+   СТОЛ ПРЕДУПРЕЖДЕНИЙ — песочница, а не приложение.
+   Токены и правила формы скопированы из beta/index.html, чтобы
+   макеты врали как можно меньше. Код приложения не трогается:
+   здесь только вид блока предупреждения в четырёх вариантах.
+   ============================================================ */
+
+/* ---------- токены приложения (копия из беты) ---------- */
+:root, .t-dark {
+  --surface: #0F0E0C; --sheet: #17150F; --warn-bg: #191510;
+  --field: #1C1A16; --field-press: #262218; --press-warm: #221D14;
+  --hairline: #1C1913; --bar: rgba(15,14,12,0.72);
+  --overlay-3: rgba(44,41,36,0.68); --glass-shine: rgba(255,255,255,0.30);
+  --ink: #EFEAE0; --ink-2: #C9C2B6; --ink-3: #A8A093; --ink-4: #8A8478;
+  --ink-5: #6B6559; --ink-6: #635E54; --ink-7: #55504A; --ink-8: #4A453E;
+  --brass: #E2A44C; --brass-soft: #D9AC6B; --brass-deep: #C9853F;
+  --warn-ink: #D9C2A0; --terra: #C9663D; --bad-ink: #D9A08A; --bad-bg: #1D1512;
+  /* стол под макетами — не приложение, нейтральный тон мастерской */
+  --desk: #1A1917; --desk-2: #232220; --desk-ink: #B6B1A8; --desk-ink-2: #7C776F;
+  --desk-line: rgba(255,255,255,0.09); --desk-cast: rgba(0,0,0,0.5);
+}
+:root[data-theme="light"], .t-light {
+  --surface: #FAF8F3; --sheet: #FFFFFF; --warn-bg: #FBF1DE;
+  --field: #EAE5DB; --field-press: #DCD6C9; --press-warm: #F6ECD8;
+  --hairline: #E2DCD1; --bar: rgba(250,248,243,0.78);
+  --overlay-3: rgba(214,208,195,0.74); --glass-shine: rgba(255,255,255,0.95);
+  --ink: #17150F; --ink-2: #3A352E; --ink-3: #55504A; --ink-4: #6B6559;
+  --ink-5: #857E70; --ink-6: #8C8578; --ink-7: #9A9385; --ink-8: #ADA697;
+  --brass: #A9721F; --brass-soft: #9B6A22; --brass-deep: #8A5A18;
+  --warn-ink: #7A5A22; --terra: #A84E27; --bad-ink: #8A3F22; --bad-bg: #FBE7DC;
+  --desk: #E4E0D8; --desk-2: #EFECE5; --desk-ink: #45403A; --desk-ink-2: #7C776F;
+  --desk-line: rgba(0,0,0,0.10); --desk-cast: rgba(23,21,15,0.13);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--desk); color: var(--desk-ink); min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- планка стола ---------- */
+.deskbar {
+  position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap;
+  align-items: center; gap: 18px; padding: 14px 22px;
+  background: color-mix(in srgb, var(--desk) 88%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--desk-line);
+}
+.deskbar h1 { font-size: 15px; font-weight: 650; letter-spacing: -0.2px; color: var(--desk-ink); }
+.deskbar .hint { font-size: 12px; color: var(--desk-ink-2); }
+.deskbar .sp { flex: 1; }
+.seg { display: flex; gap: 2px; padding: 2px; background: var(--desk-2); border: 1px solid var(--desk-line); border-radius: 9px; }
+.seg button {
+  border: none; background: none; font-family: inherit; font-size: 12px; cursor: pointer;
+  color: var(--desk-ink-2); padding: 5px 11px; border-radius: 7px;
+}
+.seg button.on { background: var(--desk); color: var(--desk-ink); box-shadow: 0 1px 2px var(--desk-cast); }
+.lab { font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--desk-ink-2); }
+
+/* ---------- сам стол ---------- */
+.table {
+  display: flex; align-items: flex-start; gap: 34px;
+  padding: 28px 22px 90px; overflow-x: auto;
+}
+.board { flex: 0 0 auto; width: 390px; }
+.board.out { opacity: 0.32; filter: grayscale(0.85); }
+.cap { display: flex; align-items: baseline; gap: 8px; margin: 0 4px 4px; }
+.cap .n {
+  font-size: 11px; font-weight: 700; color: var(--desk-ink-2);
+  border: 1px solid var(--desk-line); border-radius: 6px; padding: 1px 6px;
+}
+.cap h2 { font-size: 15px; font-weight: 600; color: var(--desk-ink); letter-spacing: -0.2px; }
+.cap .keep {
+  font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600;
+  color: #7C9CC4; border: 1px solid rgba(124,156,196,0.45); border-radius: 5px; padding: 1px 5px;
+}
+.cap .pass {
+  font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600;
+  color: #C9853F; border: 1px solid rgba(201,133,63,0.45); border-radius: 5px; padding: 1px 5px;
+}
+.board.out .cap h2 { text-decoration: line-through; }
+.cap-note { margin: 0 4px 12px; font-size: 12px; line-height: 1.45; color: var(--desk-ink-2); }
+
+/* Телефон: ширина и отступы формы взяты из приложения (.overlay padding 0 24px) */
+.phone {
+  width: 390px; background: var(--surface); border-radius: 30px; overflow: hidden;
+  padding: 0 24px 26px; box-shadow: 0 18px 44px var(--desk-cast);
+  border: 1px solid var(--desk-line);
+}
+
+/* ---------- вердикт и заметка ---------- */
+.verdict { display: flex; gap: 8px; align-items: center; margin: 12px 2px 0; }
+.verdict button {
+  font-family: inherit; font-size: 12px; cursor: pointer; padding: 6px 12px;
+  border-radius: 8px; border: 1px solid var(--desk-line); background: var(--desk-2); color: var(--desk-ink-2);
+}
+.board.out .verdict button.kill { background: var(--desk-ink); color: var(--desk); border-color: transparent; }
+.verdict input {
+  flex: 1; min-width: 0; font-family: inherit; font-size: 12px; padding: 6px 10px;
+  border-radius: 8px; border: 1px solid var(--desk-line); background: var(--desk-2); color: var(--desk-ink);
+  outline: none;
+}
+.verdict input::placeholder { color: var(--desk-ink-2); }
+details.code { margin: 8px 2px 0; }
+details.code summary { font-size: 11px; color: var(--desk-ink-2); cursor: pointer; letter-spacing: 0.4px; }
+details.code pre {
+  margin-top: 6px; padding: 10px 12px; background: var(--desk-2); border: 1px solid var(--desk-line);
+  border-radius: 9px; font-size: 11px; line-height: 1.55; color: var(--desk-ink-2);
+  white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ============================================================
+   РАЗМЕТКА ФОРМЫ — копия правил приложения
+   ============================================================ */
+.form-bar { display: flex; justify-content: space-between; align-items: center; padding: 34px 0 8px; }
+.round {
+  width: 40px; height: 40px; border-radius: 50%; border: none; padding: 0;
+  background: var(--overlay-3); color: var(--ink-3);
+  box-shadow: inset 0 1px 0 var(--glass-shine);
+  display: flex; align-items: center; justify-content: center;
+}
+.round svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.round.ok { background: var(--ink); color: var(--surface); }
+.form-title { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; margin-top: 10px; color: var(--ink); }
+.form-sub { color: var(--ink-4); font-size: 14px; margin-top: 6px; line-height: 1.4; }
+.g-label {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--ink-7); font-weight: 600; margin: 30px 4px 9px;
+}
+.g-label .gear svg { width: 17px; height: 17px; stroke: var(--ink-6); fill: none; stroke-width: 1.5; }
+.group { background: var(--sheet); border-radius: 14px; corner-shape: squircle; overflow: hidden; }
+.group .sep { box-shadow: inset 0 1px 0 var(--surface); }
+.g-chips { padding: 13px 15px 15px; }
+.tool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tool {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  border-radius: 12px; corner-shape: squircle; padding: 11px 2px 9px;
+  font-size: 10px; color: var(--ink-5); letter-spacing: 0.2px; text-align: center;
+}
+.tool svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tool.active { color: var(--brass); background: var(--press-warm); }
+.row {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  width: 100%; padding: 14px 15px; min-height: 52px; font-size: 16px; color: var(--ink);
+}
+.row .rl { color: var(--ink); }
+.row .rv { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; color: var(--ink-3); }
+.caps { display: flex; align-items: center; gap: 6px; }
+.caps .rv-v { min-width: 72px; text-align: center; }
+.row .rv-v {
+  display: inline-block; padding: 5px 10px; border-radius: 9px; corner-shape: squircle;
+  background: var(--field); color: var(--ink); font-variant-numeric: tabular-nums; font-size: 16px;
+}
+.row .sub { display: block; font-size: 11px; color: var(--ink-6); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.fld { display: block; width: 100%; font-size: 16px; color: var(--ink-8); padding: 15px; }
+
+/* ============================================================
+   ВАРИАНТЫ ПРЕДУПРЕЖДЕНИЯ — здесь и идёт разговор
+   ============================================================ */
+
+/* 0. Сейчас: тонированная плашка с брасовой полосой слева */
+.v-now .warn {
+  margin-top: 10px; padding: 12px 14px; background: var(--warn-bg);
+  border-radius: 12px; corner-shape: squircle;
+  border-left: 2px solid var(--brass-deep); font-size: 13px; line-height: 1.5;
+}
+.v-now .warn b { color: var(--brass); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-now .warn i { font-style: normal; color: var(--ink-4); }
+.v-now .warn .ic { display: none; }
+
+/* 1. Строка-примечание: знак вместо плашки, вес как у подзаголовка */
+.v-line .warn {
+  margin-top: 12px; padding-left: 23px; position: relative;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-line .warn .ic { position: absolute; left: 0; top: 1px; }
+.v-line .warn .ic svg { width: 15px; height: 15px; fill: none; stroke: var(--brass-deep); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.v-line .warn b { color: var(--ink-2); font-weight: 500; }
+.v-line .warn b::after { content: " — "; color: var(--ink-6); font-weight: 400; }
+.v-line .warn i { font-style: normal; }
+
+/* 2. У поля времени: шапка чистая, примечание под секцией «Время» */
+.v-field .warn {
+  margin: 9px 4px 0; padding-left: 23px; position: relative;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-field .warn .ic { position: absolute; left: 0; top: 1px; }
+.v-field .warn .ic svg { width: 15px; height: 15px; fill: none; stroke: var(--brass-deep); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.v-field .warn b { color: var(--ink-2); font-weight: 500; }
+.v-field .warn b::after { content: " — "; color: var(--ink-6); font-weight: 400; }
+.v-field .warn i { font-style: normal; }
+.v-field .hot { box-shadow: inset 0 0 0 1px var(--brass-deep); color: var(--brass); }
+
+/* 3. Плашка без цвета: подложка как у всех секций, сигнал — один знак */
+.v-plain .warn {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 10px;
+  padding: 12px 14px; background: var(--sheet); border-radius: 14px; corner-shape: squircle;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-plain .warn .ic { flex: 0 0 auto; margin-top: 1px; }
+.v-plain .warn .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.v-plain .warn b { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-plain .warn i { font-style: normal; }
+
+
+/* 4. Обводка-волосок: заливки нет вовсе, есть контур. Подложка та же, что
+      у экрана, — стопка секций не рвётся, но блок обведён */
+.v-hair .warn {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 10px;
+  padding: 12px 14px; background: none;
+  border: 1px solid color-mix(in srgb, var(--brass-deep) 45%, transparent);
+  border-radius: 14px; corner-shape: squircle;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-hair .warn .ic { flex: 0 0 auto; margin-top: 1px; }
+.v-hair .warn .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass-deep); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.v-hair .warn b { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-hair .warn i { font-style: normal; }
+
+/* 5. Пунктир: тот же контур, но линия прерывистая — «не окончательно» */
+.v-dash .warn {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 10px;
+  padding: 12px 14px; background: none;
+  border: 1px dashed color-mix(in srgb, var(--brass-deep) 55%, transparent);
+  border-radius: 14px; corner-shape: squircle;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-dash .warn .ic { flex: 0 0 auto; margin-top: 1px; }
+.v-dash .warn .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass-deep); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.v-dash .warn b { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-dash .warn i { font-style: normal; }
+
+/* 6. Градиентная обводка цветами неба. Стопы взяты из модели заката
+      (SKY_STOPS в index.html): горизонт → средние облака → перистые.
+      Контур рисует псевдоэлемент с вырезанной серединой: border-image
+      не дружит с corner-shape */
+.v-grad .warn {
+  position: relative; display: flex; gap: 10px; align-items: flex-start;
+  margin-top: 10px; padding: 12px 14px; background: var(--sheet);
+  border-radius: 14px; corner-shape: squircle;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-grad .warn::before {
+  content: ""; position: absolute; inset: 0; padding: 1px; pointer-events: none;
+  border-radius: inherit; corner-shape: squircle;
+  background: linear-gradient(115deg, #F7C476, #E2744A 42%, rgba(214,124,148,0.55) 66%, rgba(214,124,148,0) 88%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.v-grad .warn .ic { flex: 0 0 auto; margin-top: 1px; }
+.v-grad .warn .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.v-grad .warn b { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-grad .warn i { font-style: normal; }
+
+/* 7. Зарево: света от плашки, а не заливки. Свет идёт снизу слева, как
+      зарево над горизонтом, и выходит за край мягкой тенью того же тона */
+.v-glow .warn {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 10px;
+  padding: 13px 14px; border-radius: 14px; corner-shape: squircle;
+  background: radial-gradient(135% 95% at 0% 100%, rgba(226,164,76,0.16), rgba(226,164,76,0) 62%), var(--sheet);
+  box-shadow: 0 8px 26px -12px rgba(226,164,76,0.55);
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+/* На светлом свечение не читается: светлое поверх светлого не поднять.
+   Тот же приём, что записан про купол, — глубина вместо света */
+:root[data-theme="light"] .v-glow .warn, .v-glow.t-light .warn {
+  background: radial-gradient(135% 95% at 0% 100%, rgba(169,114,31,0.15), rgba(169,114,31,0) 62%), var(--sheet);
+  box-shadow: 0 8px 20px -14px rgba(23,21,15,0.55);
+}
+/* Плитка с навязанной тёмной темой на светлой странице — свет возвращается */
+.v-glow.t-dark .warn {
+  background: radial-gradient(135% 95% at 0% 100%, rgba(226,164,76,0.16), rgba(226,164,76,0) 62%), var(--sheet);
+  box-shadow: 0 8px 26px -12px rgba(226,164,76,0.55);
+}
+.v-glow .warn .ic { flex: 0 0 auto; margin-top: 1px; }
+.v-glow .warn .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.v-glow .warn b { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-glow .warn i { font-style: normal; }
+
+/* 8. Гаснущая полоса: наследник нулевого. Плашки нет, полоса осталась,
+      но не брусок во всю высоту, а свет, который гаснет книзу — как дуга
+      купола, яркая у краёв и прозрачная в середине */
+.v-soft .warn {
+  position: relative; margin-top: 12px; padding: 1px 0 1px 16px;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-soft .warn::before {
+  content: ""; position: absolute; left: 0; top: 2px; bottom: 3px; width: 2px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--brass), color-mix(in srgb, var(--brass) 8%, transparent));
+}
+.v-soft .warn .ic { display: none; }
+.v-soft .warn b { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-soft .warn i { font-style: normal; }
+
+/* 9. Кромка зари: плашка обычная, а сигнал — тонкая полоса зари по верхней
+      кромке. Цвет живёт на границе, а не заливает блок */
+.v-dawn .warn {
+  position: relative; display: flex; gap: 10px; align-items: flex-start;
+  margin-top: 10px; padding: 13px 14px; overflow: hidden;
+  background: var(--sheet); border-radius: 14px; corner-shape: squircle;
+  font-size: 13px; line-height: 1.5; color: var(--ink-4);
+}
+.v-dawn .warn::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, #F7C476, #E2744A 38%, rgba(226,116,74,0) 82%);
+}
+.v-dawn .warn .ic { flex: 0 0 auto; margin-top: 1px; }
+.v-dawn .warn .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.v-dawn .warn b { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 2px; }
+.v-dawn .warn i { font-style: normal; }
+
+.v-plain .warn .tx, .v-hair .warn .tx, .v-dash .warn .tx,
+.v-grad .warn .tx, .v-glow .warn .tx, .v-dawn .warn .tx { min-width: 0; }
+.v-now .warn .tx, .v-soft .warn .tx { display: block; }
+
+/* Вторая степень: у приложения кроме предупреждения есть тревога (`.say.bad`,
+   терракота). Приём обязан тянуть обе, иначе это находка, а не система */
+.v-grad .warn.bad::before {
+  background: linear-gradient(115deg, #E2744A, #A84E27 45%, rgba(168,78,39,0) 88%);
+}
+.v-grad .warn.bad .ic svg { stroke: var(--terra); }
+.v-glow .warn.bad,
+.v-glow.t-dark .warn.bad {
+  background: radial-gradient(135% 95% at 0% 100%, rgba(201,102,61,0.20), rgba(201,102,61,0) 62%), var(--sheet);
+  box-shadow: 0 8px 26px -12px rgba(201,102,61,0.6);
+}
+:root[data-theme="light"] .v-glow .warn.bad, .v-glow.t-light .warn.bad {
+  background: radial-gradient(135% 95% at 0% 100%, rgba(168,78,39,0.15), rgba(168,78,39,0) 62%), var(--sheet);
+  box-shadow: 0 8px 20px -14px rgba(23,21,15,0.55);
+}
+.v-glow .warn.bad .ic svg { stroke: var(--terra); }
+
+/* Подпись темы над плиткой финала */
+.sub-cap { margin: 0 4px 8px; font-size: 11px; letter-spacing: 0.9px; text-transform: uppercase; color: var(--desk-ink-2); }
+
+.warn[hidden] { display: none; }
+</style>
+</head>
+<body>
+
+<header class="deskbar">
+  <h1>Стол предупреждений</h1>
+  <span class="hint">форма «Новая съёмка», один и тот же текст в четырёх видах</span>
+  <span class="sp"></span>
+  <span class="lab">Отбор</span>
+  <div class="seg" id="segMode">
+    <button data-mode="final" class="on">Финал</button>
+    <button data-mode="all">Все</button>
+  </div>
+  <span class="lab">Степень</span>
+  <div class="seg" id="segSev">
+    <button data-sev="warn" class="on">Предупреждение</button>
+    <button data-sev="bad">Тревога</button>
+  </div>
+  <span class="lab">Случай</span>
+  <div class="seg" id="segCase"></div>
+  <span class="lab">Тема</span>
+  <div class="seg" id="segTheme">
+    <button data-theme="dark" class="on">Тёмная</button>
+    <button data-theme="light">Светлая</button>
+  </div>
+  <span class="lab">Масштаб</span>
+  <div class="seg" id="segZoom">
+    <button data-z="0.7">70%</button>
+    <button data-z="0.85">85%</button>
+    <button data-z="1" class="on">100%</button>
+  </div>
+</header>
+
+<main class="table" id="table"></main>
+
+<script src="icons.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* Случаи взяты из приложения дословно (lang.js): короткий клэш, несколько
+     наложений разом и длинный текст про замысел — блок один и тот же, а вес
+     сообщения разный, и вариант обязан держать все три. */
+  var CASES = [
+    { id: "one",  name: "Один конфликт",
+      t: "Время пересекается",
+      m: "В этот день уже есть «Проверка города», 12:00 – 13:00." },
+    { id: "many", name: "Несколько",
+      t: "Время пересекается",
+      m: "В этот день уже есть «Проверка города», 12:00 – 13:00. И ещё 2." },
+    { id: "long", name: "Длинный текст",
+      t: "Луна засветит Млечный Путь",
+      m: "Диск освещён на 78% и стоит над горизонтом почти всю тёмную часть ночи. Путь не проявится — ищите ночь ближе к новолунию." }
+  ];
+
+  /* Варианты 1 (строка-примечание) и 2 (у поля времени) отсеяны 2 сентября:
+     плашка держит форму лучше голой строки. Кандидаты — 0 и 3, остальные
+     выросли из вопроса «чем ещё можно показать предупреждение». */
+  var VARIANTS = [
+    { id: "now", n: "0", cls: "v-now", at: "top", name: "Сейчас", pass: 1,
+      note: "Тонированная плашка, полоса слева. Прошла отбор: держит и короткий клэш, и длинное объяснение.",
+      css: ".wish-warn {\n  padding: 12px 14px; background: var(--warn-bg);\n  border-radius: 12px; corner-shape: squircle;\n  border-left: 2px solid var(--brass-deep);\n}\n.wish-warn b { color: var(--brass); font-weight: 600; }" },
+
+    { id: "plain", n: "3", cls: "v-plain", at: "top", name: "Плашка без цвета", pass: 1,
+      note: "Подложка как у всех секций, сигнал — одна пиктограмма. Прошла отбор; в светлой теме лист почти сливается с фоном.",
+      css: ".wish-warn {\n  display: flex; gap: 10px; padding: 12px 14px;\n  background: var(--sheet); border-radius: 14px;\n  corner-shape: squircle;   /* без border-left */\n}\n.wish-warn .ic svg { stroke: var(--brass); }" },
+
+    { id: "hair", n: "4", cls: "v-hair", at: "top", name: "Обводка-волосок",
+      note: "Заливки нет вовсе — только контур в 1px. Подложка та же, что у экрана: стопка секций не рвётся. Риск: обведённый прямоугольник похож на поле ввода.",
+      css: ".wish-warn {\n  background: none;\n  border: 1px solid color-mix(in srgb,\n    var(--brass-deep) 45%, transparent);\n  border-radius: 14px; corner-shape: squircle;\n}" },
+
+    { id: "dash", n: "5", cls: "v-dash", at: "top", name: "Пунктир",
+      note: "Тот же контур, но линия прерывистая. Пунктир в интерфейсах читается как «черновик, незаполнено» — проверяем, не врёт ли он про смысл.",
+      css: ".wish-warn {\n  background: none;\n  border: 1px dashed color-mix(in srgb,\n    var(--brass-deep) 55%, transparent);\n}" },
+
+    { id: "grad", n: "6", cls: "v-grad", at: "top", name: "Градиентная обводка", fin: 1, take: 1,
+      note: "ПРИНЯТ как вид уведомлений. Контур цветами неба из модели заката: горизонт → средние облака → перистые. Гаснет к правому краю, чтобы рамка не замыкалась в кольцо. Тянет вторую степень: та же обводка терракотой.",
+      css: "/* стопы из SKY_STOPS, index.html */\n.wish-warn::before {\n  position: absolute; inset: 0; padding: 1px;\n  border-radius: inherit;\n  background: linear-gradient(115deg,\n    #F7C476, #E2744A 42%,\n    rgba(214,124,148,0) 88%);\n  mask: linear-gradient(#000 0 0) content-box,\n        linear-gradient(#000 0 0);\n  mask-composite: exclude;\n}" },
+
+    { id: "glow", n: "7", cls: "v-glow", at: "top", name: "Зарево", fin: 1, keep: 1,
+      note: "В ЗАПАС — не для уведомлений, но приём жив. Свет вместо заливки: зарево снизу слева и мягкая тень того же тона наружу. Работает там, где темнота своя: карточка на закате, купол, ночные экраны. На светлом свечение не поднять — там оно подменено глубиной.",
+      css: ".wish-warn {\n  background: radial-gradient(135% 95% at 0% 100%,\n    rgba(226,164,76,0.16), transparent 62%),\n    var(--sheet);\n  box-shadow: 0 8px 26px -12px\n    rgba(226,164,76,0.55);\n}" },
+
+    { id: "soft", n: "8", cls: "v-soft", at: "top", name: "Гаснущая полоса",
+      note: "Наследник нулевого: плашку убрали, полосу оставили — но она не брусок, а свет, гаснущий книзу. Как дуга купола: ярко у краёв, прозрачно в середине.",
+      css: ".wish-warn { padding-left: 16px; }\n.wish-warn::before {\n  position: absolute; left: 0; top: 2px; bottom: 3px;\n  width: 2px; border-radius: 2px;\n  background: linear-gradient(180deg, var(--brass),\n    color-mix(in srgb, var(--brass) 8%, transparent));\n}" },
+
+    { id: "dawn", n: "9", cls: "v-dawn", at: "top", name: "Кромка зари",
+      note: "Плашка обычная, цвет живёт только на верхней кромке — полоса зари в 2px. Сигнал на границе, а не в заливке.",
+      css: ".wish-warn { overflow: hidden;\n  background: var(--sheet); }\n.wish-warn::before {\n  position: absolute; left: 0; right: 0; top: 0;\n  height: 2px;\n  background: linear-gradient(90deg, #F7C476,\n    #E2744A 38%, rgba(226,116,74,0) 82%);\n}" }
+  ];
+
+  var GENRES = [
+    ["portrait", "Портрет", 1], ["wedding", "Свадьбы"], ["party", "Праздник"], ["lovestory", "Лавстори"],
+    ["family", "Семья"], ["landscape", "Пейзаж"], ["architecture", "Архитектура"], ["street", "Стрит"],
+    ["report", "Репортаж"], ["product", "Предметка"], ["ad", "Реклама"]
+  ];
+
+  var STORE = "warnlab-v1";
+  var state = { case: "one", theme: "dark", z: 1, mode: "final", sev: "warn", verdict: {} };
+  try { var s = JSON.parse(localStorage.getItem(STORE) || "{}"); if (s.verdict) state.verdict = s.verdict; } catch (e) {}
+  function save() { try { localStorage.setItem(STORE, JSON.stringify({ verdict: state.verdict })); } catch (e) {} }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function warnHTML(c) {
+    return '<div class="warn' + (state.sev === "bad" ? " bad" : "") + '"><span class="ic">' + ICONS.svg("warn") + "</span>"
+      + '<span class="tx"><b>' + esc(c.t) + "</b><i>" + esc(c.m) + "</i></span></div>";
+  }
+
+  function genresHTML() {
+    return GENRES.map(function (g) {
+      return '<div class="tool' + (g[2] ? " active" : "") + '">'
+        + ICONS.genreSvg(g[0]) + "<span>" + g[1] + "</span></div>";
+    }).join("");
+  }
+
+  /* Форма-контекст. Отличается между макетами ровно одним: где стоит блок
+     предупреждения. Всё остальное — общая копия приложения, иначе сравнение
+     врёт: блок судят не сам по себе, а в стопке секций. */
+  function formHTML(v, c, theme) {
+    var top  = v.at === "top"  ? warnHTML(c) : "";
+    var time = v.at === "time" ? warnHTML(c) : "";
+    var hot  = v.at === "time" ? " hot" : "";
+    return '<div class="phone ' + v.cls + (theme ? " t-" + theme : "") + '">'
+      + '<div class="form-bar">'
+      +   '<div class="round"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>'
+      +   '<div class="round ok"><svg viewBox="0 0 24 24" fill="none"><polyline points="5 12.5 10 17.5 19 6.5"/></svg></div>'
+      + "</div>"
+      + '<h2 class="form-title">Новая съёмка</h2>'
+      + '<p class="form-sub">В этот день окна света нет — время на ваше усмотрение</p>'
+      + top
+      + '<div class="g-label"><span>Жанр</span><span class="gear">' + ICONS.svg("gear") + "</span></div>"
+      + '<div class="group"><div class="g-chips"><div class="tool-grid">' + genresHTML() + "</div></div></div>"
+      + '<div class="g-label">Клиент</div>'
+      + '<div class="group">'
+      +   '<div class="fld">Имя клиента</div><div class="fld sep">Телефон</div>'
+      + "</div>"
+      + '<div class="g-label">Время</div>'
+      + '<div class="group">'
+      +   '<div class="row"><span class="rl">Начало</span><span class="rv">'
+      +     '<span class="caps"><span class="rv-v">8 авг</span><span class="rv-v' + hot + '">12:30</span></span>'
+      +     '<span class="sub">снимаем без окна света</span></span></div>'
+      +   '<div class="row sep"><span class="rl">Конец</span><span class="rv">'
+      +     '<span class="caps"><span class="rv-v">8 авг</span><span class="rv-v' + hot + '">14:00</span></span>'
+      +     '<span class="sub">1 ч 30 мин</span></span></div>'
+      + "</div>"
+      + time
+      + "</div>";
+  }
+
+  function boardHTML(v, c, theme) {
+    var vd = state.verdict[v.id] || {};
+    var sub = theme ? '<p class="sub-cap">' + (theme === "dark" ? "Тёмная тема" : "Светлая тема") + "</p>" : "";
+    return '<section class="board' + (vd.out ? " out" : "") + '" data-v="' + v.id + '">'
+      + '<div class="cap"><span class="n">' + v.n + "</span><h2>" + esc(v.name) + "</h2>"
+      + (v.take ? '<span class="pass">принят</span>' : "")
+      + (v.keep ? '<span class="keep">в запас</span>' : "") + "</div>"
+      + (theme ? sub : '<p class="cap-note">' + esc(v.note) + "</p>")
+      + formHTML(v, c, theme)
+      + (theme === "light" || !theme
+          ? '<div class="verdict">'
+            + '<button class="kill">' + (vd.out ? "Вернуть" : "Отсеять") + "</button>"
+            + '<input placeholder="заметка к варианту" value="' + esc(vd.note || "") + '"/>'
+            + "</div>"
+            + '<details class="code"><summary>CSS</summary><pre>' + esc(v.css) + "</pre></details>"
+          : "")
+      + "</section>";
+  }
+
+  function render() {
+    var c = CASES.filter(function (x) { return x.id === state.case; })[0];
+    var html;
+    if (state.mode === "final") {
+      /* Финал судят в обеих темах разом: у зарева именно здесь слабое место —
+         светлое поверх светлого не поднять, и там свет подменён глубиной */
+      html = VARIANTS.filter(function (v) { return v.fin; }).map(function (v) {
+        return boardHTML(v, c, "dark") + boardHTML(v, c, "light");
+      }).join("");
+    } else {
+      html = VARIANTS.map(function (v) { return boardHTML(v, c); }).join("");
+    }
+    document.getElementById("table").innerHTML = html;
+  }
+
+  /* ---------- управление ---------- */
+  var segCase = document.getElementById("segCase");
+  segCase.innerHTML = CASES.map(function (c, i) {
+    return '<button data-case="' + c.id + '"' + (i === 0 ? ' class="on"' : "") + ">" + c.name + "</button>";
+  }).join("");
+
+  function pick(seg, btn) {
+    Array.prototype.forEach.call(seg.children, function (b) { b.classList.toggle("on", b === btn); });
+  }
+
+  segCase.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    state.case = b.dataset.case; pick(segCase, b); render();
+  });
+  var segTheme = document.getElementById("segTheme");
+  segTheme.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    state.theme = b.dataset.theme; pick(segTheme, b);
+    document.documentElement.setAttribute("data-theme", state.theme);
+  });
+  var segZoom = document.getElementById("segZoom");
+  segZoom.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    state.z = parseFloat(b.dataset.z); pick(segZoom, b);
+    document.getElementById("table").style.zoom = state.z;
+  });
+
+  var segMode = document.getElementById("segMode");
+  segMode.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    state.mode = b.dataset.mode; pick(segMode, b); render();
+  });
+  var segSev = document.getElementById("segSev");
+  segSev.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    state.sev = b.dataset.sev; pick(segSev, b); render();
+  });
+
+  var table = document.getElementById("table");
+  table.addEventListener("click", function (e) {
+    var b = e.target.closest("button.kill"); if (!b) return;
+    var id = b.closest(".board").dataset.v;
+    var vd = state.verdict[id] || (state.verdict[id] = {});
+    vd.out = !vd.out; save(); render();
+  });
+  table.addEventListener("input", function (e) {
+    var i = e.target.closest(".verdict input"); if (!i) return;
+    var id = i.closest(".board").dataset.v;
+    var vd = state.verdict[id] || (state.verdict[id] = {});
+    vd.note = i.value; save();
+  });
+
+  document.documentElement.setAttribute("data-theme", "dark");
+  render();
+})();
+</script>
+</body>
+</html>

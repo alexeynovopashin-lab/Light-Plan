@@ -4672,10 +4672,37 @@
   .say .s-ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; }
   .say b { color: var(--brass); font-weight: 400; }
-  .say.bad { background: var(--bad-bg); color: var(--bad-ink); }
+  /* ОБВОДКА ЗАРИ — общий вид предупреждений (стол макетов, 2 сентября 2026).
+     Сигнал живёт на границе, а не в заливке: плашка остаётся такой же, как
+     все листы вокруг (`--sheet`, внутри карточки `--sheet-3`), а по контуру
+     идёт линия в 1px цветами модели заката — горизонт, средние облака,
+     перистые (те же стопы, что у неба, `SKY_STOPS`). К правому краю линия
+     гаснет, чтобы рамка не замкнулась в кольцо и не читалась как окно.
+     Тонированная подложка с полосой слева, которая была здесь раньше,
+     выпадала из стопки секций: предупреждение по весу спорило с заголовком
+     экрана, хотя запрета не несёт — сохранить даём всегда.
+     Контур рисует псевдоэлемент с вырезанной серединой: `border-image`
+     не дружит с `corner-shape`, а настоящий `border` съел бы отступы внутри.
+     Правило общее для обоих мест — реплики в карточке и предупреждения
+     в форме (`.wish-warn` ниже), иначе они снова разойдутся на два вида. */
+  .say.warn, .say.bad, .wish-warn { position: relative; }
+  .say.warn::before, .say.bad::before, .wish-warn::before {
+    content: ""; position: absolute; inset: 0; padding: 1px; pointer-events: none;
+    border-radius: inherit; corner-shape: squircle;
+    background: linear-gradient(115deg, #F7C476, #E2744A 42%,
+      rgba(214,124,148,0.55) 66%, rgba(214,124,148,0) 88%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+  /* Тревога — тот же приём другим концом палитры: закат уходит в терракоту.
+     Степени различаются цветом линии и знака, а не наличием плашки */
+  .say.bad::before {
+    background: linear-gradient(115deg, #E2744A, #A84E27 45%, rgba(168,78,39,0) 88%);
+  }
   .say.bad .s-ic svg { stroke: var(--terra); }
-  /* Наложение — предупреждение, а не тревога: тон спокойный, полоса слева */
-  .say.warn { background: var(--warn-bg); color: var(--warn-ink); border-left: 2px solid var(--brass-deep); }
+  .say.bad b { color: var(--ink); }
   .say.warn .s-ic svg { stroke: var(--brass-deep); }
   .say.warn b { color: var(--ink); }
 
@@ -5642,15 +5669,22 @@
   /* Реквизиты — это дюжина строк с цифрами: поле сразу под их рост */
   #oReq { min-height: 190px; font-size: 15px; }
 
-  /* Прогноз против замысла — предупреждаем спокойно, без красного */
+  /* Прогноз против замысла и наложения в дне — предупреждаем спокойно, без
+     красного. Вид общий с репликами карточки: обводка зари (см. `.say.warn`),
+     плашка как у всех секций, сигнал — контур и знак. Отступ слева держит
+     место под знак: он вынесен из потока, чтобы заголовок и текст стояли
+     одной колонкой, а не тремя ячейками флекса */
   .wish-warn {
-    display: none; margin-top: 10px; padding: 12px 14px;
-    background: var(--warn-bg); border-radius: 12px; corner-shape: squircle;
-    border-left: 2px solid var(--brass-deep); font-size: 13px; line-height: 1.5;
+    display: none; margin-top: 10px; padding: 12px 14px 12px 40px;
+    background: var(--sheet); border-radius: 14px; corner-shape: squircle;
+    font-size: 13px; line-height: 1.5;
   }
   .wish-warn.show { display: block; }
-  .wish-warn b { color: var(--brass); font-weight: 600; display: block; margin-bottom: 2px; }
-  .wish-warn span { color: var(--ink-4); }
+  .wish-warn .ic { position: absolute; left: 14px; top: 13px; display: flex; }
+  .wish-warn .ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass-deep);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .wish-warn b { color: var(--ink); font-weight: 600; display: block; margin-bottom: 2px; }
+  .wish-warn span:not(.ic) { color: var(--ink-4); }
 
   /* Уведомление iOS */
   .notif {
@@ -6993,7 +7027,7 @@
          «а можно ли вообще?», и узнавать о нём, докрутив до референсов,
          поздно: время к тому моменту уже выбрано. Запрета по-прежнему нет —
          предупреждаем, но сохранить даём всегда. -->
-    <div class="wish-warn" id="wishWarn"><b id="wwTitle"></b><span id="wwText"></span></div>
+    <div class="wish-warn" id="wishWarn"><span class="ic" data-ic="warn"></span><b id="wwTitle"></b><span id="wwText"></span></div>
 
     <!-- Съёмка: что и когда. Барабаны раскрываются под своей строкой,
          так форма остаётся на виду и не теряется контекст. -->
