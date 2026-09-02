@@ -2877,8 +2877,19 @@
   }
   .plan-row:active { opacity: 0.6; }
   .pr-time { color: var(--brass); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .pr-who { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pr-due { margin-left: auto; font-size: 12px; white-space: nowrap; }
+  /* Имя забирает всё свободное место строки, а не остаток от соседей: за ним
+     в список и смотрят, и обрезаться оно должно последним */
+  .pr-who { flex: 1; min-width: 0; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pr-due { margin-left: auto; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* Просрочка — числом на подложке, как в клетке месяца. Отличать «осталось
+     три дня» от «просрочено на три» одним оттенком нельзя: оттенок шкалы
+     срочности и так меняется каждый день, и на её тёплом конце разница
+     пропадает. Подложка — не цвет, а второй признак */
+  .pr-due.over { padding: 2px 6px; margin-right: -2px; border-radius: 6px; corner-shape: squircle; }
+  /* Длительность предстоящей съёмки. Тише имени и времени: это ответ на
+     третий вопрос, а не на первый — сколько это займёт, когда до него дойдёт */
+  .pr-dur { margin-left: auto; font-size: 12px; white-space: nowrap;
+    font-variant-numeric: tabular-nums; color: var(--ink-4); }
   .plan-empty { color: var(--ink-7); font-size: 14px; padding: 6px 0 2px; }
   /* Съёмка под календарём — карточка, а не голая строка. Голой она весила
      меньше кнопок под собой (16px/400 против 15.5px/600 в рамке), и экран
@@ -11468,11 +11479,18 @@
       else {
         var p = (now - shot) / (dd.getTime() - shot);
         var left = Math.ceil((dd.getTime() - now) / 86400000);
+        /* Тот же срок в двух видах. `label` — фразой, для мест, где строка
+           стоит одна и должна объяснить себя. `short` — голым отсчётом дней,
+           для списка съёмок: там «сдать за» отнимало у имени клиента место,
+           а имя и есть то, ради чего в список смотрят. Слова убраны, число
+           осталось; просрочку от остатка отличает не оттенок, а подложка —
+           тот же приём, что в клетке месяца. */
+        var cnt = LANG.count("unit.dayShort", p >= 1 ? Math.abs(left) : left);
         r = p >= 1
-          ? { rank: 3, c: theme === "light" ? [138,63,34] : [201,102,61], breath: true,
-              label: LANG.t("delv.overdue", { days: LANG.count("unit.dayShort", Math.abs(left)) }) }
-          : { rank: 2, c: urgencyRGB(p), breath: false,
-              label: LANG.t("delv.dueIn", { days: LANG.count("unit.dayShort", left) }) };
+          ? { rank: 3, c: theme === "light" ? [138,63,34] : [201,102,61], breath: true, short: cnt,
+              label: LANG.t("delv.overdue", { days: cnt }) }
+          : { rank: 2, c: urgencyRGB(p), breath: false, short: cnt,
+              label: LANG.t("delv.dueIn", { days: cnt }) };
       }
     }
     r.color = rgb(r.c);
@@ -14253,12 +14271,33 @@
            на этот вопрос независимо от того, чем названа строка.
            У события знак календаря: жанр под ним только угадан, и рисовать
            кольца там, где мы не уверены даже в свадьбе, значило бы соврать */
+        /* У съёмки в списке два вида, и делит их фаза, а не срок сдачи.
+           Раньше вид был один: знак, «12:00 – 13:00», имя и «сдать за 7 дн.».
+           Две границы отрезка и фраза о сдаче съедали строку так, что имени
+           доставалось на три буквы с многоточием — читалось только время
+           (Алексей, 2 сентября 2026). При этом и время, и срок нужны не
+           одновременно.
+
+           Предстоит — вопрос «когда и надолго ли»: начало и длительность.
+           Конец отрезка не назван: он есть сумма двух названных чисел, а
+           места просит столько же, сколько имя.
+           Прошла — вопрос «сколько у меня осталось»: времени начала больше
+           нет, вместо него имя занимает всю строку, а справа стоит отсчёт
+           дней до сдачи. Границей служит `eventPhase`, та же, что у карточки:
+           идущая съёмка остаётся «предстоит» — сдавать нечего, пока снимают.
+           Встречу и чужое событие правка не трогает: сдачи у них нет, и
+           отрезок — единственное, что о них известно. */
+        var past3 = !meet3 && !ev3 && eventPhase(s3) === "after";
         return '<button type="button" class="plan-row" data-i="' + it.i + '">'
           + '<span class="pr-ic">' + (meet3 ? IC.svg("partner") : ev3 ? IC.svg("view_month") : IC.genreSvg(s3.type)) + "</span>"
-          + '<span class="pr-time">' + fmt(it.a) + " – " + fmt(it.b) + "</span>"
+          + (past3 ? "" : '<span class="pr-time">' + fmt(it.a) + (meet3 || ev3 ? " – " + fmt(it.b) : "") + "</span>")
           + '<span class="pr-who">' + esc(nm) + "</span>"
-          + (meet3 || ev3 ? '<span class="pr-due">' + esc(LANG.t(meet3 ? "plan.meet" : "plan.event").toLowerCase()) + "</span>"
-             : ds3.rank >= 2 ? '<span class="pr-due" style="color:' + ds3.color + '">' + ds3.label + "</span>" : "")
+          + (meet3 || ev3
+             ? '<span class="pr-due">' + esc(LANG.t(meet3 ? "plan.meet" : "plan.event").toLowerCase()) + "</span>"
+             : past3
+               ? (ds3.short ? '<span class="pr-due' + (ds3.rank >= 3 ? " over" : "") + '" style="color:' + ds3.color
+                   + (ds3.fill ? ";background:" + ds3.fill : "") + '">' + esc(ds3.short) + "</span>" : "")
+               : '<span class="pr-dur">' + esc(durShort(Math.max(0, it.b - it.a))) + "</span>")
           + "</button>";
       }).join("");
     } else {
