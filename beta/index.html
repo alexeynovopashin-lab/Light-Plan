@@ -4589,7 +4589,7 @@
   .peek {
     /* Кнопка центрирует содержимое по вертикали — строка уезжала под лист */
     position: absolute; left: 50%; height: 74px; border: none; padding: 4px 16px 0;
-    display: flex; align-items: flex-start;
+    display: flex; flex-direction: column; align-items: flex-start;
     cursor: pointer; background: var(--sheet); border-radius: 22px; corner-shape: squircle; text-align: left;
     /* Пружина: карточки не приезжают, а отскакивают на место */
     transition: transform 0.42s cubic-bezier(0.34, 1.42, 0.5, 1);
@@ -4622,8 +4622,16 @@
     width: 14px; height: 14px; fill: none; stroke: var(--brass); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
   }
-  .peek-in b { font-weight: 600; color: var(--ink-3); }
-  .peek-in span { font-variant-numeric: tabular-nums; margin-left: auto; }
+  .peek-in b { font-weight: 600; color: var(--ink-3);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .peek-in span { font-variant-numeric: tabular-nums; margin-left: auto; flex-shrink: 0; }
+  /* Вторая строка края: живёт под кромкой и открывается вместе с оттянутым
+     листом. Место и заметка — одной строкой, длинное подрезается: край
+     называет съёмку, а не пересказывает её */
+  .peek-sub {
+    margin-top: 7px; width: 100%; font-size: 11.5px; color: var(--ink-7);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+  }
   /* Имя .sheet уже занято нижними листами настроек — у карточки своё */
   .card-sheet {
     position: relative; z-index: 1;
@@ -5177,10 +5185,16 @@
      строка выглядит сломанной. Фон у autofill нельзя перекрыть обычным
      `background` — WebKit рисует его поверх; лечится тенью во всю высоту поля.
      Цвет текста задаётся отдельным свойством по той же причине. */
+  /* Красить надо в фон группы, а не в `--surface`: поле лежит на `--sheet`,
+     и заливка на ступень темнее превращала автозаполненную строку в чёрный
+     провал между обычными. На телефоне это читалось как «подложка то есть,
+     то нет» — она и была то есть, то нет: признак autofill живёт до правки
+     значения руками, поэтому телефон из контактов темнел, а имя, набранное
+     пальцами, оставалось светлым. Обе темы: в светлой была та же ступень. */
   .group input:-webkit-autofill,
   .group input:-webkit-autofill:hover,
   .group input:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+    -webkit-box-shadow: 0 0 0 1000px var(--sheet) inset;
     -webkit-text-fill-color: var(--ink);
     caret-color: var(--ink);
     transition: background-color 9999s ease-out 0s;
@@ -20112,11 +20126,42 @@
          `insertReplacementText`, то пустое значение */
       var pasted = digits - lastLen > 1
         || (e && /paste|replacement|autofill/i.test(e.inputType || ""));
+      /* Автозаполнение контакта на iOS отдаёт номер не разом, а по цифре, и
+         скачок длины его не ловит: номер, записанный в контакте через «+7»,
+         приезжает местными десятью цифрами — код страны iOS снимает сам,
+         зная свой регион. Оттого из одного контакта номер вставлялся целым
+         («8 923 …» — восьмёрка пришла цифрой), а из другого приходил без
+         ведущей части и не звонился по ссылке.
+         Поэтому дописываем ведущую часть не по способу ввода, а по длине:
+         номер дорос ровно до местной — значит это местный номер без неё
+         (`telNsnOk` внутри `formatTel` ждёт точной длины, недобранный номер
+         не трогается). Только на росте: на стирании то же правило вернуло бы
+         цифру назад, и номер стало бы не стереть — одиннадцатая цифра
+         отрастала бы снова на каждом нажатии.
+         И только без плюса: под плюсом стоит международный номер, а он по
+         дороге проходит через местную длину — испанский «+34612345678» на
+         десятой цифре выглядит как местный и получал бы наш код страны,
+         становясь «+7 346 123-45-678». Замер поймал это сразу; правило
+         вставки под плюсом трогать не нужно — там номер приходит целым. */
+      if (digits > lastLen && !/^\s*\+/.test(this.value)) pasted = true;
       var end = this.selectionStart === this.value.length;
       this.value = formatTel(this.value, pasted);
       lastLen = this.value.replace(/\D/g, "").length;
       if (end) this.selectionStart = this.selectionEnd = this.value.length;
       if (telAfter[id]) telAfter[id](this.value);
+    });
+    /* Номер, набранный с середины — «9618878078», — на письме читается, а
+       позвонить по нему нельзя: без ведущей цифры набор уходит в никуда.
+       Дописываем её, когда человек ушёл из поля: во время набора это значило
+       бы дёргать строку под пальцем, а `telNsnOk` внутри `formatTel` ждёт
+       ровно местной длины — недобранный номер не трогается.
+       Тот же флаг, что у вставки: правило одно, повод разный. */
+    el.addEventListener("blur", function () {
+      if (/^\s*\+/.test(this.value)) return;   // под плюсом номер уже полный
+      var full = formatTel(this.value, true);
+      if (full === this.value) return;
+      this.value = full;
+      if (telAfter[id]) telAfter[id](full);
     });
   });
 
@@ -21145,17 +21190,30 @@
        с родителем и края оказываются под шапкой */
     if (!others.length) { wrap.style.paddingTop = ""; return; }
 
-    // Каждый следующий край уже и выше предыдущего. На крае — знак, жанр и время
+    /* Каждый следующий край уже и выше предыдущего. Видимая полоса — 22 pt,
+       под ней прячется вторая строка: она открывается, когда лист оттянут.
+       Раньше край называл жанр, и в этом не было пользы ровно там, где
+       стопка и нужна: день с двумя портретами показывал два «Портрета», то
+       есть повторял одно слово вместо того, чтобы различать съёмки.
+       Поэтому крупно — имя клиента (жанр и так назван знаком слева), а
+       оттянутый край добавляет место и заметку: именно там живёт то, чем
+       похожие съёмки различаются («у обеих собака», «студия оплачена»).
+       Смысл жеста — узнать про соседнюю съёмку, не уходя из этой. */
     $("cdPeeks").innerHTML = others.map(function (p, k) {
-      /* Полоса в 22 pt: жанр и время читаются, не потянув стопку */
       var inset = 10 + k * 10, top = (others.length - 1 - k) * 22;
-      var spec = genreSpec(p.s.type);
       var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
+      var name = clientName(p.s) || evName(p.s.type);
+      /* Заметка бывает в несколько строк — на край берём первую: остальное
+         откроется в самой карточке, куда край и ведёт по нажатию */
+      var note = String(p.s.notes || "").split("\n")[0].trim();
+      var sub = [p.s.place, note].filter(Boolean).join(" · ");
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
         + '<span class="peek-in">' + IC.genreSvg(p.s.type)
-        + "<b>" + esc(spec.ev || genreName(p.s.type)) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
-        + "</span></span></button>";
+        + "<b>" + esc(name) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
+        + "</span></span>"
+        + (sub ? '<span class="peek-sub">' + esc(sub) + "</span>" : "")
+        + "</button>";
     }).join("");
     wrap.style.paddingTop = (others.length * 22) + "px";
     $("cdPeeks").querySelectorAll(".peek").forEach(function (b) {
@@ -21170,12 +21228,19 @@
   (function () {
     var sheet = $("cdSheet"), peeks = $("cdPeeks"), overlay = $("cardOverlay");
     var y0 = null, on = false;
-    var MAX = 66;                       // ровно на высоту края: дальше только дыра
+    /* Числа сходятся с высотой края (74) и шагом стопки (22), а не подобраны
+       на глаз: ближний край виден на 22, значит лист должен уехать ровно на
+       52 — тогда край открыт целиком и ни пикселя дальше. Прежние 66 давали
+       под ним пустую полосу в 14 пунктов: карточка уезжала дальше, чем есть
+       что показывать, и жест выглядел незаконченным.
+       Дальний край поднимается на тот же шаг 22 — на сколько он глубже в
+       стопке, — и открывается целиком тоже: 44 + 52 − 22 = 74. */
+    var MAX = 52, STEP = 22;
 
     function spread(p) {
       sheet.style.transform = "translateY(" + (MAX * p) + "px)";
       peeks.querySelectorAll(".peek").forEach(function (b) {
-        b.style.transform = "translateY(" + (-(+b.dataset.k) * 26 * p) + "px)";
+        b.style.transform = "translateY(" + (-(+b.dataset.k) * STEP * p) + "px)";
       });
     }
     function release() {
@@ -21277,11 +21342,18 @@
       + (phase === "after" ? afterWord(s.date) : (when ? " · " + when : ""));
     $("cdEvWhen").classList.toggle("past", phase === "after");
 
-    var tel = firstPhone(s);
+    /* Номер показываем и набираем только целым. Записан он как придётся —
+       «961 887-80-78» без ведущей цифры набирается лишь из своей области, и
+       ссылка «позвонить» с таким номером не звонит. `telE164` достраивает
+       код страны по той же лестнице, что и ключ контакта, а `formatTel`
+       возвращает его человеку разрядами: «+7 961 887-80-78».
+       Чиним показом, а не правкой записей: номера уже введены, и старые
+       съёмки должны начать звонить сами, без перезахода в форму. */
+    var tel = firstPhone(s), telFmt = telE164(tel);
     $("cdEvTel").hidden = !tel;
     if (tel) {
-      $("cdEvTelN").textContent = tel;
-      $("cdEvTel").href = "tel:" + tel.replace(/[^\d+]/g, "");
+      $("cdEvTelN").textContent = telFmt ? formatTel(telFmt) : tel;
+      $("cdEvTel").href = "tel:" + (telFmt || tel.replace(/[^\d+]/g, ""));
     }
   }
   /* Кнопка музыки. Живёт внизу карточки, в одном ряду с корзиной, и только
@@ -21918,6 +21990,10 @@
     var ps = Array.isArray(s.persons) ? s.persons : [];
     for (var i = 0; i < ps.length; i++) if (ps[i].tel) return ps[i].tel;
     if (s.phone) return s.phone;                    // своё поле — с появления организаций
+    /* Клиент без организации пишет телефон своим полем — `clientTel`. Оно
+       появилось вместе с парами и организациями, а сюда не попало: у портрета
+       телефон был записан, а карточка звонить не предлагала */
+    if (s.clientTel) return s.clientTel;
     var org = orgById(s.orgId);
     if (org && org.phone) return org.phone;         // не задан у съёмки — берём у организации
     var m = /(\+?\d[\d\-\s()]{8,}\d)/.exec((s.contact || "") + " " + (s.notes || ""));
@@ -26042,6 +26118,8 @@
       var digits = telDigits(this.value).length;
       var pasted = digits - lastLen > 1
         || (e && /paste|replacement|autofill/i.test(e.inputType || ""));
+      // то же правило, что в форме съёмки, и с той же оговоркой про плюс
+      if (digits > lastLen && !/^\s*\+/.test(this.value)) pasted = true;
       var end = this.selectionStart === this.value.length;
       this.value = formatTel(this.value, pasted);
       lastLen = telDigits(this.value).length;
