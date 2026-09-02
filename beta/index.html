@@ -6971,7 +6971,7 @@
 
     <!-- Съёмка: что и когда. Барабаны раскрываются под своей строкой,
          так форма остаётся на виду и не теряется контекст. -->
-    <div class="g-label"><span data-i18n="form.shoot">Съёмка</span>
+    <div class="g-label"><span data-i18n="form.genre">Жанр</span>
       <button class="gear" id="fGear" aria-label="Мои жанры" data-i18n-aria="form.myGenres">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3.2"/>
@@ -6981,12 +6981,52 @@
     </div>
     <div class="group">
       <div class="g-chips"><div class="chips" id="fType"></div></div>
+    </div>
 
+    <!-- Группы может не быть вовсе: у стрит-фотографа клиента нет, и пустой
+         заголовок над пустой рамкой — обещание поля, которого не будет -->
+    <div class="g-label" id="fWhoLabel" data-i18n="who.people">Клиент</div>
+    <div class="group" id="fWhoGroup">
+      <!-- Имя и телефон разведены: одно поле заставляло выбирать, что важнее,
+           а нужны оба — по имени узнают карточку, по телефону звонят.
+           Телефон причёсывается на лету, как у остальных номеров -->
+      <input class="sep" type="text" id="fContact" placeholder="Имя клиента" data-i18n-ph="form.clientName"/>
+      <input class="sep" type="tel" id="fClientTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
+      <!-- У события снимают двоих, и у каждого своё имя и свой телефон:
+           звонить приходится то невесте, то жениху. Подписи ставит жанр -->
+      <input class="sep" type="text" id="fP1Name" placeholder="Имя невесты" hidden/>
+      <input class="sep pair-end" type="tel"  id="fP1Tel"  placeholder="Телефон" hidden/>
+      <input class="sep" type="text" id="fP2Name" placeholder="Имя жениха" hidden/>
+      <input class="sep pair-end" type="tel"  id="fP2Tel"  placeholder="Телефон" hidden/>
+      <!-- У заказа платит юрлицо, у события есть организатор: выбираем из
+           общего списка. Разбор строки «Ромашка · Пётр» был временным -->
+      <button class="row sep" id="fOrgRow" hidden><span id="fOrgLabel" data-i18n="orgRole.client">Заказчик</span>
+        <span class="rv"><span id="fOrgName" data-i18n="form.pick">выбрать</span></span>
+      </button>
+      <input class="sep" type="text" id="fPerson" placeholder="Контактное лицо" data-i18n-ph="form.person" hidden/>
+      <input class="sep" type="tel" id="fPhone" placeholder="Телефон" data-i18n-ph="form.phone" hidden/>
+      <!-- Гости — мерка людей, а не порядок точек дня: из таймлайна строка переехала
+           сюда, к паре и организатору. По умолчанию ноль: свадьбы бывают без гостей -->
+      <div class="pay-row" id="fGuestsRow" hidden>
+        <span class="k" data-i18n="pane.guests">Гостей</span>
+        <span class="stepper">
+          <button type="button" id="fGuestsMinus" aria-label="Меньше" data-i18n-aria="form.less">−</button>
+          <input class="step-in" type="text" inputmode="numeric" id="fGuestsVal"
+                 aria-label="Сколько гостей" data-i18n-aria="form.guestsAria" placeholder="—"/>
+          <button type="button" id="fGuestsPlus" aria-label="Больше" data-i18n-aria="form.more">+</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- Время отделено от жанра: между ними встал клиент. Съёмку называют
+         жанром и именем, а «когда» — следующий вопрос, не первый -->
+    <div class="g-label" data-i18n="form.time">Время</div>
+    <div class="group">
       <!-- Дата стоит у начала и у конца: мероприятие начинается 8 августа и
            заканчивается 9-го. Отдельной строки «Дата» больше нет — она означала
            бы, что съёмка живёт внутри одних суток, а банкет её переживает.
            Строки перестали быть кнопками: внутри теперь по две своих кнопки -->
-      <div class="row sep" id="fStart"><span class="rl" data-i18n="form.start">Начало</span>
+      <div class="row" id="fStart"><span class="rl" data-i18n="form.start">Начало</span>
         <span class="rv">
           <span class="caps">
             <button type="button" class="rv-v" id="fStartDate">—</button>
@@ -7040,41 +7080,6 @@
       </button>
     </div>
 
-    <!-- Группы может не быть вовсе: у стрит-фотографа клиента нет, и пустой
-         заголовок над пустой рамкой — обещание поля, которого не будет -->
-    <div class="g-label" id="fWhoLabel" data-i18n="who.people">Клиент</div>
-    <div class="group" id="fWhoGroup">
-      <!-- Имя и телефон разведены: одно поле заставляло выбирать, что важнее,
-           а нужны оба — по имени узнают карточку, по телефону звонят.
-           Телефон причёсывается на лету, как у остальных номеров -->
-      <input class="sep" type="text" id="fContact" placeholder="Имя клиента" data-i18n-ph="form.clientName"/>
-      <input class="sep" type="tel" id="fClientTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
-      <!-- У события снимают двоих, и у каждого своё имя и свой телефон:
-           звонить приходится то невесте, то жениху. Подписи ставит жанр -->
-      <input class="sep" type="text" id="fP1Name" placeholder="Имя невесты" hidden/>
-      <input class="sep pair-end" type="tel"  id="fP1Tel"  placeholder="Телефон" hidden/>
-      <input class="sep" type="text" id="fP2Name" placeholder="Имя жениха" hidden/>
-      <input class="sep pair-end" type="tel"  id="fP2Tel"  placeholder="Телефон" hidden/>
-      <!-- У заказа платит юрлицо, у события есть организатор: выбираем из
-           общего списка. Разбор строки «Ромашка · Пётр» был временным -->
-      <button class="row sep" id="fOrgRow" hidden><span id="fOrgLabel" data-i18n="orgRole.client">Заказчик</span>
-        <span class="rv"><span id="fOrgName" data-i18n="form.pick">выбрать</span></span>
-      </button>
-      <input class="sep" type="text" id="fPerson" placeholder="Контактное лицо" data-i18n-ph="form.person" hidden/>
-      <input class="sep" type="tel" id="fPhone" placeholder="Телефон" data-i18n-ph="form.phone" hidden/>
-      <!-- Гости — мерка людей, а не порядок точек дня: из таймлайна строка переехала
-           сюда, к паре и организатору. По умолчанию ноль: свадьбы бывают без гостей -->
-      <div class="pay-row" id="fGuestsRow" hidden>
-        <span class="k" data-i18n="pane.guests">Гостей</span>
-        <span class="stepper">
-          <button type="button" id="fGuestsMinus" aria-label="Меньше" data-i18n-aria="form.less">−</button>
-          <input class="step-in" type="text" inputmode="numeric" id="fGuestsVal"
-                 aria-label="Сколько гостей" data-i18n-aria="form.guestsAria" placeholder="—"/>
-          <button type="button" id="fGuestsPlus" aria-label="Больше" data-i18n-aria="form.more">+</button>
-        </span>
-      </div>
-    </div>
-
     <!-- Заметки, оборудование и плейлист — не про клиента: они про саму съёмку
          и оставались в группе клиента только потому, что группа была одна -->
     <div class="g-label" data-i18n="card.notes">Заметки</div>
@@ -7110,6 +7115,40 @@
       </div>
     </div>
 
+    <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
+         ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
+    <div class="g-label" id="fRouteLabel" data-i18n="form.timeline" hidden>Таймлайн дня</div>
+    <div class="group" id="fRouteGroup" hidden>
+      <div id="fRouteList"></div>
+      <button type="button" class="rt-add" id="fRouteAdd" data-i18n="form.addScene">+ Сцена</button>
+    </div>
+
+    <!-- Заказ: то, чего нет в частной съёмке. Появляется у группы заказчика,
+         модели — поправкой жанра (docs/12_CARD_ARCHITECTURE.md) -->
+    <div class="g-label" id="fOrderLabel" data-i18n="form.order" hidden>Заказ</div>
+    <div class="group" id="fOrderGroup" hidden>
+      <textarea id="fBrief" placeholder="Техническое задание: что снять, в каком виде сдать" data-i18n-ph="form.briefPh"></textarea>
+      <textarea class="sep" id="fModels" placeholder="Модели: имя и телефон, по одной в строке" data-i18n-ph="form.modelsPh" hidden></textarea>
+      <!-- Вид документа выбирается до добавления, как папка у референсов:
+           он же фильтр списка, он же метка для новых файлов -->
+      <div class="rf-tags wrap sep" id="docKinds"></div>
+      <div class="ref-grid" id="docGrid"></div>
+      <div class="ref-add sep">
+        <button type="button" class="ref-btn" id="docFileBtn"><span data-ic="doc"></span><span data-i18n="doc.fileBtn">Файл</span></button>
+        <button type="button" class="ref-btn" id="docLink">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
+          <span data-i18n="ref.link">Ссылка</span>
+        </button>
+      </div>
+      <input type="file" id="docFile" multiple hidden>
+      <div class="ref-note" id="docNote" hidden></div>
+    </div>
+
+    <div class="g-label" id="fWishLabel" data-i18n="form.wish">Нужна погода</div>
+    <div class="group" id="fWishGroup">
+      <div class="g-chips"><div class="chips" id="fWish"></div></div>
+    </div>
+
     <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
     <!-- Шестерёнка повторяет ту, что у «Съёмки»: коллега, впервые увидевшая
          приложение, не догадалась, что цену и пакеты настраивают через «＋ свой».
@@ -7132,10 +7171,6 @@
         <div class="g-chips sep">
           <div class="chips" id="fPayType"></div>
           <div class="chips" id="fPackChips" hidden style="margin-top:8px;"></div>
-          <!-- Валюта — свойство сделки, не языка: живёт рядом со способом
-               оплаты, а не в настройках. Меняется редко, поэтому не тянет
-               отдельный g-label — тот же visual weight, что у пакетов -->
-          <div class="chips" id="fCurChips" style="margin-top:8px;"></div>
         </div>
         <div class="pay-row sep">
           <span class="k" id="fRateLabel">—</span>
@@ -7175,40 +7210,6 @@
         <div class="f-hint" id="fDelvHint">—</div>
       </div>
       <div class="row sep" id="fDoneRow"><span class="rl" data-i18n="form.delivered">Материал сдан</span><span class="toggle" id="fDone"></span></div>
-    </div>
-
-    <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
-         ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
-    <div class="g-label" id="fRouteLabel" data-i18n="form.timeline" hidden>Таймлайн дня</div>
-    <div class="group" id="fRouteGroup" hidden>
-      <div id="fRouteList"></div>
-      <button type="button" class="rt-add" id="fRouteAdd" data-i18n="form.addScene">+ Сцена</button>
-    </div>
-
-    <!-- Заказ: то, чего нет в частной съёмке. Появляется у группы заказчика,
-         модели — поправкой жанра (docs/12_CARD_ARCHITECTURE.md) -->
-    <div class="g-label" id="fOrderLabel" data-i18n="form.order" hidden>Заказ</div>
-    <div class="group" id="fOrderGroup" hidden>
-      <textarea id="fBrief" placeholder="Техническое задание: что снять, в каком виде сдать" data-i18n-ph="form.briefPh"></textarea>
-      <textarea class="sep" id="fModels" placeholder="Модели: имя и телефон, по одной в строке" data-i18n-ph="form.modelsPh" hidden></textarea>
-      <!-- Вид документа выбирается до добавления, как папка у референсов:
-           он же фильтр списка, он же метка для новых файлов -->
-      <div class="rf-tags wrap sep" id="docKinds"></div>
-      <div class="ref-grid" id="docGrid"></div>
-      <div class="ref-add sep">
-        <button type="button" class="ref-btn" id="docFileBtn"><span data-ic="doc"></span><span data-i18n="doc.fileBtn">Файл</span></button>
-        <button type="button" class="ref-btn" id="docLink">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>
-          <span data-i18n="ref.link">Ссылка</span>
-        </button>
-      </div>
-      <input type="file" id="docFile" multiple hidden>
-      <div class="ref-note" id="docNote" hidden></div>
-    </div>
-
-    <div class="g-label" id="fWishLabel" data-i18n="form.wish">Нужна погода</div>
-    <div class="group" id="fWishGroup">
-      <div class="g-chips"><div class="chips" id="fWish"></div></div>
     </div>
 
     <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
@@ -7992,7 +7993,13 @@
 
     <div class="g-label" style="margin: 22px 4px 9px;" data-i18n="pane.fee">Гонорар</div>
     <div class="group">
-      <div class="pay-row">
+      <!-- Валюта — свойство сделки, а не языка, и остаётся у съёмки. Но в
+           блоке оплаты шесть чипсов лежали скопом рядом со способом и
+           пакетами, а меняют валюту редко: место ей — за шестерёнкой, где
+           уже стоят ставка и пакеты. Шестерёнка эта та же самая, что над
+           «Оплатой», и открывается только из формы съёмки. -->
+      <div class="g-chips" style="padding-bottom:0;"><div class="chips" id="fCurChips"></div></div>
+      <div class="pay-row sep">
         <span class="k" id="gRateLabel">Стоимость часа по умолчанию, ₽</span>
         <input class="pay-in" type="text" inputmode="numeric" id="gRate" placeholder="0"/>
       </div>
