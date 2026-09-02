@@ -7025,13 +7025,21 @@
       </div>
     </div>
 
-    <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
-    <div class="g-label" id="fWhoLabel" data-i18n="form.placeClient">Место и клиент</div>
+    <!-- Место — своя группа, а не половина строки «Место и клиент». Съёмок
+         «просто в городе» не бывает: у места есть город и есть конкретная
+         точка с адресом, и делить одну строку им было нечем
+         (docs: DECISIONS, «Место съёмки: город и точка делили одну строку») -->
+    <div class="g-label" data-i18n="card.place">Место</div>
     <div class="group">
       <button class="row" id="fPlace">
-        <span><span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords">56.021 N · 37.482 E</span></span>
+        <span><span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords"></span></span>
         <span class="rv act" data-i18n="form.change">Изменить</span>
       </button>
+    </div>
+
+    <!-- Блока может не быть вовсе: стрит-фотографу нечего сдавать -->
+    <div class="g-label" id="fWhoLabel" data-i18n="who.people">Клиент</div>
+    <div class="group">
       <!-- Имя и телефон разведены: одно поле заставляло выбирать, что важнее,
            а нужны оба — по имени узнают карточку, по телефону звонят.
            Телефон причёсывается на лету, как у остальных номеров -->
@@ -12923,14 +12931,16 @@
         saveAll();
       }
     }
-    /* Форма съёмки могла открыться раньше, чем ответил геокодер: место осталось
-       безымянным, и раньше на его месте навсегда повисали координаты. Ответ
-       пришёл — имя дозревает, ровно как у закладки выше. Трогаем только то,
-       что подставили сами: чужое имя и набранные руками числа не наши, и
-       переименовывать их нельзя. */
-    if (geoCity && !geoStale && sessionPlace && !sessionPlace.name && !sessionPlace.manual
+    /* Форма съёмки могла открыться раньше, чем ответил геокодер: город остался
+       неизвестным. Ответ пришёл — город дозревает, ровно как имя у закладки
+       выше. Трогаем только то, что подставили сами: набранные руками числа не
+       наши, и подписывать их городом нельзя. Дозревает именно город, а не имя
+       места: точку называет фотограф, и подставлять вместо неё населённый
+       пункт — та самая подмена, из-за которой город занимал единственную
+       строку (docs: DECISIONS, «Место съёмки: город и точка делили одну строку»). */
+    if (geoCity && !geoStale && sessionPlace && !sessionPlace.town && !sessionPlace.manual
         && sessionPlace.lat === LAT && sessionPlace.lon === LON) {
-      sessionPlace.name = geoCity;
+      sessionPlace.town = geoCity;
       renderSessionPlace();
     }
     renderSpotMark();   // на новом месте закладка может быть уже поставлена
@@ -14921,7 +14931,7 @@
              и строка «Свадьбы · Свадьба Ани» выдавала бы догадку за съёмку */
           '<div class="s-body"><div class="s-title">' + (isEvent(s) ? esc(LANG.t("plan.event")) : genreName(s.type))
           + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
-          '<div class="s-sub">' + esc(s.place) + (function (w) {
+          '<div class="s-sub">' + esc(placeText(s)) + (function (w) {
             var list = Array.isArray(w) ? w : (w && w !== "any" ? [w] : []);
             return list.length
               ? LANG.t("sess.expect", { list: list.map(wishName).join(", ").toLowerCase() }) : "";
@@ -16005,7 +16015,7 @@
     if (f.kind === "session") {
       var s = mbSess(f);
       return genreName(s.type) + " · " + dMon(s.date) + " " + s.date.getFullYear()
-        + (s.place ? " · " + shortPlace(s.place) : "");
+        + (placeText(s) ? " · " + shortPlace(placeText(s)) : "");
     }
     /* Подпись папки — её имя (макет 30 августа 2026): жанр уже стоит
        заголовком, повторять его словом «жанровая подборка» незачем.
@@ -19105,21 +19115,37 @@
 
   /* Место съёмки живёт в самой съёмке: имя, координаты и «в городе» для засветки.
      По умолчанию — текущее место приложения, дальше правится вручную. */
-  var sessionPlace = { name: "", lat: LAT, lon: LON, city: true };
+  var sessionPlace = { name: "", town: "", addr: "", lat: LAT, lon: LON, city: true };
   /* Город рядом = засветка. Считаем по данным геокодера: он знает про населённый пункт */
   /* `manual` — координаты набраны руками и имени им не давали. Тогда числа и
      есть ответ, и подставлять вместо них ближайший посёлок нельзя: человек
      назвал место так, как хотел */
-  function setSessionPlace(lat, lon, name, manual) {
-    sessionPlace = { name: name || "", lat: lat, lon: lon, city: sessionPlace.city, manual: !!manual };
+  function setSessionPlace(lat, lon, name, manual, addr) {
+    /* Город обнуляется вместе с точкой: он принадлежит новым координатам, а не
+       прежним. Пока геокодер не ответил, честнее не показывать города вовсе,
+       чем подписать студию в Томске городом, где снимали в прошлый раз. */
+    sessionPlace = { name: name || "", town: "", addr: addr != null ? addr : "",
+                     lat: lat, lon: lon, city: sessionPlace.city, manual: !!manual };
     renderSessionPlace();
-    // Имя и признак города уточняем обратным геокодированием
-    fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=ru")
-      .then(function (r) { return r.json(); }).then(function (j) {
-        if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;
-        var st2 = settlement(j);
-        sessionPlace.city = !!st2;                       // засветка бывает там, где есть посёлок
-        if (!sessionPlace.name && !sessionPlace.manual) sessionPlace.name = st2;
+    /* Город и признак засветки уточняем обратным геокодированием — теми же
+       двумя источниками, что и имя места приложения. Один источник тут больше
+       не годится: BigDataCloud однажды уже перестал отвечать с российских
+       адресов, и это сломало имя разом в бете и в корне (см. «Имя места: два
+       источника, а не один»). Раньше от ответа зависело имя, которое фотограф
+       всё равно набирал руками; теперь — город, а его руками не набирают.
+
+       Раньше населённый пункт садился в имя места, когда фотограф ничего не
+       назвал, — и город занимал единственную строку, а конкретной точке сесть
+       было некуда. Теперь у города свой уровень, а имя остаётся пустым, пока
+       точку не назвали: это и есть вопрос, на который поле обязано отвечать. */
+    var nomU = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&accept-language=ru&lat=" + lat + "&lon=" + lon;
+    var bdcU = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=ru";
+    askGeo(nomU, geoFromNominatim)
+      .catch(function () { return askGeo(bdcU, geoFromBDC); })
+      .then(function (g) {
+        if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;   // место успело смениться
+        sessionPlace.city = !!g.city;                    // засветка бывает там, где есть посёлок
+        sessionPlace.town = g.city || "";
         renderSessionPlace();
       }).catch(function () {});
   }
@@ -19139,9 +19165,15 @@
     var shown = sessionPlace.name
       || (sessionPlace.manual ? coordText(sessionPlace.lat, sessionPlace.lon) : "");
     $("fPlaceName").textContent = shown || LANG.t("loc.noPlace");
-    $("fPlaceCoords").textContent = shown
-      ? LANG.t(sessionPlace.city ? "loc.inCity" : "loc.outCity")
-      : "";
+    /* Подпись — два уровня адреса: город и улица. «В городе» ушло: город назван
+       по имени, и повторять его признаком незачем. «За городом» осталось —
+       это не подпись места, а вход в световую модель: от него зависит
+       засветка при съёмке звёзд, и сказать это больше негде. */
+    var bits = [];
+    if (sessionPlace.town) bits.push(sessionPlace.town);
+    else if (sessionPlace.city === false) bits.push(LANG.t("loc.outCity"));
+    if (sessionPlace.addr) bits.push(sessionPlace.addr);
+    $("fPlaceCoords").textContent = bits.join(" · ");
   }
 
   /* Жанры: пользователь оставляет только свои */
@@ -20089,9 +20121,12 @@
     if (pp[0]) { $("fP1Name").placeholder = LANG.t("form.namePh", { role: LANG.t(pp[0]).toLowerCase() }); $("fP1Tel").placeholder = LANG.t("form.phone"); }
     if (pp[1]) { $("fP2Name").placeholder = LANG.t("form.namePh", { role: LANG.t(pp[1]).toLowerCase() }); $("fP2Tel").placeholder = LANG.t("form.phone"); }
     $("fOrgLabel").textContent = LANG.t("orgRole." + groupOf(shootType));
+    /* Место уехало в свою группу — заголовок называет только того, кого снимают.
+       Без клиента в группе остаются заметки и оборудование: называть её
+       «Местом» было неправдой и до разделения */
     $("fWhoLabel").textContent = sp.client
-      ? LANG.t("form.placeAnd", { who: LANG.t("who." + groupOf(shootType)).toLowerCase() })
-      : LANG.t("card.place");
+      ? LANG.t("who." + groupOf(shootType))
+      : LANG.t("card.notes");
     if (!sp.delivery) { fDelvChoice = null; $("fDone").classList.remove("on"); }
     if (!shown.fPrepayRow) { fPrepay = 0; $("fPrepay").value = ""; }
 
@@ -20528,9 +20563,11 @@
      ============================================================ */
   // Порог на дорогу между разными местами — из настроек (`travelMin`)
   function shootEnd(s) { return s.end != null ? s.end : s.min + (s.dur || 90); }
-  /* Имя места без уточнений: «Лобня, Московская область» и «Лобня» — одно место */
+  /* Имя места без уточнений: «Лобня, Московская область» и «Лобня» — одно место.
+     Точки нет — сравниваем города: две съёмки в одном городе ближе друг к другу,
+     чем в разных, и дорогу между ними считать всё равно надо. */
   function placeKey(s) {
-    return String(s.place || "").split(",")[0].trim().toLowerCase();
+    return String(placeText(s)).split(",")[0].trim().toLowerCase();
   }
   /* ---------- Честная дорога между точками дня ----------
      Знаем координаты обеих точек — говорим настоящее время в пути, а не порог
@@ -20685,7 +20722,7 @@
     $("refNote").hidden = true;
     /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
        а прогноз — про то, каким будет свет. Показываем то, что тяжелее */
-    var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name }),
+    var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town }),
       editIdx, wishes, sessionPlace.lat, sessionPlace.lon)[0];
     var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
@@ -21206,7 +21243,7 @@
       /* Заметка бывает в несколько строк — на край берём первую: остальное
          откроется в самой карточке, куда край и ведёт по нажатию */
       var note = String(p.s.notes || "").split("\n")[0].trim();
-      var sub = [p.s.place, note].filter(Boolean).join(" · ");
+      var sub = [placeText(p.s), note].filter(Boolean).join(" · ");
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
         + '<span class="peek-in">' + IC.genreSvg(p.s.type)
@@ -21554,13 +21591,14 @@
 
     /* Место и погода — один блок: булавка сама говорит, что можно нажать,
        а правая половина пустовала. Кнопка «На карте» была лишней */
-    if (s.place && phase !== "after") {
+    if (placeText(s) && phase !== "after") {
       var q = qualityOf(s.date), wx = dayWeather(s.date);
       var sub = firstScenePlace(route);
+      var pTitle = shortPlace(placeText(s));
       top.push('<button type="button" class="pane wide" data-act="map"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.pin + "</span>"
-        + '<span class="pn-body"><span class="pn-t">' + esc(shortPlace(s.place)) + "</span>"
-        + (sub && sub !== shortPlace(s.place) ? '<span class="pn-s">' + esc(sub) + "</span>" : "")
+        + '<span class="pn-body"><span class="pn-t">' + esc(pTitle) + "</span>"
+        + (sub && sub !== pTitle ? '<span class="pn-s">' + esc(sub) + "</span>" : "")
         + "</span>"
         + '<span class="pn-wx">' + wxSign(q)
         + '<span><span class="pn-t" style="font-size:19px">' + tempOut(wx.tempBase, s.min) + "°</span>"
@@ -22000,6 +22038,11 @@
     return m ? m[1].trim() : "";
   }
   function shortPlace(p) { return String(p).split(",")[0]; }
+  /* Место одной строкой для экранов, где уровня всего один: список, неделя,
+     край карточки. Точка названа — она и есть ответ; не названа — говорим
+     город, потому что это всё, что о месте известно. Пусто только тогда,
+     когда неизвестно и это. */
+  function placeText(s) { return s.place || s.placeTown || ""; }
   /* Имя без телефона: фотограф пишет клиента одной строкой, а в шапке
      нужны только имена — номер уезжает в строку вызова */
   function clientName(s) {
@@ -22076,8 +22119,13 @@
     $("cdDate").textContent = wdShort(s.date) + " · " + dMon(s.date);
     $("cdTime").textContent = range(s.min, end);
     $("cdDur").textContent = durLabel(dur);
-    $("cdPlaceLine").hidden = !s.place;
-    $("cdPlace").textContent = s.place || "";
+    /* Строка места в карточке говорит адрес целиком: точка, город, улица.
+       Ради этого адрес и доезжает до записи — иначе он лежал бы в закладке,
+       где фотографу его не видно в момент выезда. */
+    var pLine = [placeText(s), s.place && s.placeTown ? s.placeTown : "", s.placeAddr || ""]
+      .filter(Boolean).join(", ");
+    $("cdPlaceLine").hidden = !pLine;
+    $("cdPlace").textContent = pLine;
 
     // Свет на время съёмки: характер, тени, небо
     $("cdLight").textContent = sun.st.label + " · " + sun.st.light;
@@ -22281,7 +22329,8 @@
       type: m.type, contact: m.contact || "", notes: m.notes || "",
       persons: (m.persons || []).slice(),
       person: m.person || "", phone: m.phone || "", orgId: m.orgId || null,
-      place: m.place || "", placeLat: m.placeLat, placeLon: m.placeLon, placeCity: m.placeCity,
+      place: m.place || "", placeTown: m.placeTown || "", placeAddr: m.placeAddr || "",
+      placeLat: m.placeLat, placeLon: m.placeLon, placeCity: m.placeCity,
       /* Отправленный опросник переезжает вместе с остальным: иначе на карточке
          съёмки кнопка появилась бы снова и клиенту ушёл бы второй */
       questSent: m.questSent || null,
@@ -22329,12 +22378,16 @@
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
       persons: formPersons(),
-      place: sessionPlace.name, placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
+      place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
+      placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       wish: wishes.slice(),
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"), deliveredAt: fDeliveredAt,
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
       currency: fCurrency,
-      guests: fGuests || 0, trip: fTrip, tripPlace: fTrip ? sessionPlace.name : "",
+      /* Выезд — про город, а не про точку: «Новосибирск» отвечает на вопрос
+         «куда едем», «Студия Пятница» — нет. Пока города нет, годится имя */
+      guests: fGuests || 0, trip: fTrip,
+      tripPlace: fTrip ? (sessionPlace.town || sessionPlace.name) : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
       docs: fDocs.slice(), gear: fGear.slice(), playlist: fPlaylist,
       /* Кадры в черновике больше не лежат: они уже в подборке, и черновику
@@ -22404,9 +22457,16 @@
     fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
     $("fDone").classList.toggle("on", !!s.delivered);
     fDeliveredAt = s.deliveredAt || null;
+    /* У старых записей города и адреса нет: там всё, что знали о месте, лежало
+       одной строкой. Достраивать её разбором не пытаемся — «Томск» в имени
+       места остаётся именем места, пока фотограф не откроет лист и не назовёт
+       точку сам. Гадать, где кончается город и начинается улица, дороже, чем
+       показать запись как есть. */
     sessionPlace = (s.placeLat != null)
-      ? { name: s.place || "", lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
-      : { name: s.place || "", lat: LAT, lon: LON, city: true };   // старые записи знали только имя
+      ? { name: s.place || "", town: s.placeTown || "", addr: s.placeAddr || "",
+          lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
+      : { name: s.place || "", town: s.placeTown || "", addr: s.placeAddr || "",
+          lat: LAT, lon: LON, city: true };   // старые записи знали только имя
     $("fContact").value = s.contact || "";
     $("fClientTel").value = s.clientTel || "";
     $("fNotes").value = s.notes || "";
@@ -22481,9 +22541,12 @@
       fTrip = false;
       $("fBrief").value = ""; $("fModels").value = "";
       // Новая съёмка начинается там, где сейчас смотрим свет
-      /* Место съёмки — населённый пункт, а не область: раньше сюда попадало
-         уточнение, и новая съёмка открывалась с «Московской областью» */
-      sessionPlace = { name: geoCity || "", lat: LAT, lon: LON, city: true };
+      /* Новая съёмка начинается в городе, где стоит фотограф, — но только
+         городом: конкретную точку он называет сам, и подставлять вместо неё
+         населённый пункт нечестно. Город — населённый пункт, а не область:
+         раньше сюда попадало уточнение, и форма открывалась с «Московской
+         областью». */
+      sessionPlace = { name: "", town: geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
       fId = newId();
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
 
@@ -23182,7 +23245,8 @@
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
       persons: formPersons(),
-      place: sessionPlace.name, placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
+      place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
+      placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       deliveredAt: $("fDone").classList.contains("on") ? fDeliveredAt : null,
@@ -23191,7 +23255,7 @@
       /* Пустое поле не пишется значением: гости нулём и выезд ложью — те же
          пустые поля, и в карточке их быть не должно */
       guests: fGuests || 0,
-      trip: fTrip, tripPlace: fTrip ? sessionPlace.name : "",
+      trip: fTrip, tripPlace: fTrip ? (sessionPlace.town || sessionPlace.name) : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
       docs: fDocs.filter(function (r) { return r.k === "link" || r.path; })
         .map(function (r) {
@@ -25542,7 +25606,11 @@
       if (!shownRec(p.s)) return false;
       /* Ищут словом, а не кодом: «свадьба» должна находить съёмку, у которой
          внутри лежит `wedding` */
-      return ((p.s.contact || "") + " " + genreName(p.s.type) + " " + p.s.place).toLowerCase().indexOf(qs) > -1;
+      /* Ищут и по городу: раньше он лежал в имени места и находился заодно,
+         теперь у него своё поле — и без него поиск по «Томск» перестал бы
+         находить съёмки, которые находил вчера */
+      return ((p.s.contact || "") + " " + genreName(p.s.type) + " "
+        + (p.s.place || "") + " " + (p.s.placeTown || "")).toLowerCase().indexOf(qs) > -1;
     }).sort(function (a, b) { return b.s.date - a.s.date; });
     if (!hits.length) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">' + esc(LANG.t("search.nothing")) + "</div>"; return; }
     box.innerHTML = hits.map(function (p) {
@@ -26021,7 +26089,7 @@
     locCoordsTyped = false;
     if (isSession) {
       $("locName").value = base.name || "";
-      $("locAddress").value = "";
+      $("locAddress").value = base.addr || "";
       $("locSaveSpot").classList.remove("on");
       $("locTrip").classList.toggle("on", fTrip);
     }
@@ -26576,6 +26644,8 @@
           $("locLat").value = (+sp.lat).toFixed(4);
           $("locLon").value = (+sp.lon).toFixed(4);
           locPickName = sp.name;
+          /* Точка знает свой адрес — незачем набирать его второй раз руками */
+          if (sp.address) $("locAddress").value = sp.address;
           $("locErr").textContent = "";
           return;
         }
@@ -26760,15 +26830,18 @@
     if (locTarget === "session") {
       fTrip = $("locTrip").classList.contains("on");
       var placeName = ($("locName").value || "").trim() || locPickName;
+      /* Адрес принадлежит съёмке, а не только закладке. Раньше он записывался
+         лишь при включённом тумблере «сохранить место» — выключен, и набранный
+         адрес выбрасывался: съёмке он не доставался вообще. */
+      var addr = ($("locAddress").value || "").trim();
       /* Руками набранные координаты считаем ответом только если имени к ним не
          дали: назвал место — значит числа ему не подпись */
-      setSessionPlace(la, lo, placeName, locCoordsTyped && !placeName);
+      setSessionPlace(la, lo, placeName, locCoordsTyped && !placeName, addr);
       /* Раньше сохранить место можно было только закладкой на карте — здесь,
          одним тумблером, то же самое сразу с именем и адресом, без второго
          захода в настройки. Совпадение координат обновляет существующую
          точку, а не плодит дубль рядом. */
       if ($("locSaveSpot").classList.contains("on")) {
-        var addr = ($("locAddress").value || "").trim();
         var idx = -1;
         for (var si = 0; si < spots.length; si++) if (sameSpot(spots[si], la, lo)) { idx = si; break; }
         if (idx >= 0) {
