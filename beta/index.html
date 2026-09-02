@@ -879,7 +879,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=44"></script>
+<script src="lang.js?v=45"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -1318,10 +1318,20 @@
   .spot-fan button.del .ic svg { stroke: var(--bad-ink); }
   /* Подвал карточки: корзина слева, удаление справа. Строка, а не две кнопки
      подряд, потому что это разные роли — одна уносит, вторая возвращает */
+  /* Перенос — страховка на случай, когда в строке оказываются все трое:
+     корзина, «Завершить» и «Удалить». По-русски они помещаются в ширину
+     телефона, но перевод длиннее её переберёт, и без переноса ломалась бы
+     надпись последней кнопки — пилюля вставала в два этажа. Переносится
+     тогда она целиком, своей строкой и по-прежнему справа.
+     Без `justify-content: space-between`: правый край держит собственный
+     `margin-left: auto` у «Удалить», и держит в любой строке. `space-between`
+     же при переносе разносил по краям оставшуюся пару — корзина уходила
+     влево, «Завершить» вправо, хотя обе левые. */
   .card-acts {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; margin: 22px 0 4px;
+    display: flex; align-items: center;
+    flex-wrap: wrap; gap: 12px; margin: 22px 0 4px;
   }
+  .card-acts > * { white-space: nowrap; }
   .card-bin {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 10px 14px; border: none; border-radius: 999px;
@@ -1349,16 +1359,17 @@
   .card-del:active { opacity: 0.6; }
   .card-del[hidden] { display: none; }
 
-  /* Завершение — своей строкой над удалением и с другого края. Обводка вместо
-     заливки и зелёный вместо красного: съёмка завершается сама, а это ручной
-     дубликат для тех, кто считает переработку, — предложение, а не приговор
-     записи. Отступ снизу больше собственного, чтобы «Удалить» не читалось
-     второй кнопкой той же пары. */
-  .card-fin { display: flex; margin: 22px 0 0; }
+  /* Завершение — в той же строке, слева. Обводка вместо заливки и зелёный
+     вместо красного: съёмка завершается сама, а это ручной дубликат для тех,
+     кто считает переработку, — предложение, а не приговор записи. */
+  .card-fin { display: flex; }
   .card-fin[hidden] { display: none; }
-  .card-fin + .card-acts { margin-top: 14px; }
+  /* Обводка съедает по точке сверху и снизу: при равном внутреннем отступе
+     кнопка выходила на две точки выше соседней, и «один уровень» держался
+     только выключкой по центру. Отнимаем эти точки у отступа — пилюли
+     становятся одного роста, и ряд ровен сам по себе. */
   .card-done {
-    padding: 10px 16px; border: 1px solid var(--green); border-radius: 999px;
+    padding: 9px 15px; border: 1px solid var(--green); border-radius: 999px;
     background: none; color: var(--green);
     font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
   }
@@ -4617,7 +4628,21 @@
   .rf-tag.on .n { color: rgba(23,21,15,0.6); }
   /* В настройках папок немного, и они должны быть видны все сразу */
   .rf-tags.wrap { flex-wrap: wrap; overflow: visible; padding: 12px 13px 6px; }
+  /* `grid-auto-rows: min-content` — не украшение, без него сетка складывалась
+     каскадом: кадры налезали друг на друга, показывая от соседа одну макушку
+     (жалоба Алексея со снимка, 1 сентября 2026).
+     Ряду `auto` высоту диктует содержимое, а диктовать тут некому. Ячейка
+     обрезает себя (`overflow: hidden` — иначе не будет ни скругления, ни
+     `cover`), а обрезающий себя элемент из расчёта высоты ряда выпадает:
+     его содержимое прокручивается, значит ничего не обещает наружу. Своё
+     `aspect-ratio` он в этом расчёте тоже не предъявляет. Ряды выходили по
+     21 точке при ячейке в 147 — отсюда наезд. `min-content` считает ту же
+     ячейку уже по известной ширине колонки, и пропорция наконец слышна.
+     Мерить приходится обеими руками: свою роль играет и то, что прокрутка
+     живёт на самой сетке — стоит унести `overflow` отсюда, и ряды
+     выпрямляются сами. Но полноэкранному списку прокрутка нужна здесь. */
   .rf-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: min-content;
     gap: 6px; padding: 0 16px 30px; align-content: start; scrollbar-width: none; }
   .rf-grid::-webkit-scrollbar { display: none; }
   .rf-cell { aspect-ratio: 3/4; border-radius: 10px; corner-shape: squircle; overflow: hidden; border: none;
@@ -6731,18 +6756,22 @@
     <!-- Завершение вручную: появляется только при включённой настройке и только
          пока съёмка идёт. Стояло в плитке дня, у строки «идёт съёмка», — место
          не принято: плитка дня сводка, а не пульт, она говорит, а не
-         спрашивает. Здесь кнопка своей строкой, отдельно от «Удалить»: разные
-         стороны, разный способ (обводка против заливки), разный цвет и полтора
-         десятка пикселей между — два действия не должны читаться однородными,
-         одно завершает работу, другое стирает запись. -->
-    <div class="card-fin" id="cdFinRow" hidden>
-      <button type="button" class="card-done" id="cdDayDone" data-i18n="day.finish">Завершить</button>
-    </div>
+         спрашивает.
+         Стояло и своей строкой над «Удалить» — тоже не принято: строк было
+         две, а в каждой по одной кнопке, и разошлись они по разным краям.
+         Глаз читал не два этажа, а один кривой ряд (жалоба Алексея со снимка,
+         1 сентября 2026). Теперь ряд и есть ряд: обе кнопки на одном уровне,
+         развести их хватает способа (обводка против заливки) и цвета
+         (зелёный против терракоты) — на два действия этого различия
+         достаточно, и оно не требует ступеньки. -->
     <div class="card-acts">
       <button class="card-bin" id="cdBin" hidden aria-label="Корзина" data-i18n-aria="card.bin">
         <span class="ic" data-ic="trash"></span><span class="n" id="cdBinN">0</span>
       </button>
-      <button class="card-del" id="cdDelete" data-i18n="card.delShoot">Удалить съёмку</button>
+      <div class="card-fin" id="cdFinRow" hidden>
+        <button type="button" class="card-done" id="cdDayDone" data-i18n="day.finish">Завершить</button>
+      </div>
+      <button class="card-del" id="cdDelete" data-i18n="card.delShoot">Удалить</button>
     </div>
   </div>
 
@@ -6995,7 +7024,7 @@
       <div class="ref-note" id="refNote" hidden></div>
     </div>
 
-    <button class="danger" id="fDelete" data-i18n="card.delShoot" hidden>Удалить съёмку</button>
+    <button class="danger" id="fDelete" data-i18n="card.delShoot" hidden>Удалить</button>
   </div>
 
   <!-- ============ ГОД ============ -->
