@@ -1530,12 +1530,18 @@
      бывает почасовым, а «студия» иногда бесплатная (docs: тумблер, а не
      каталог типов). Минуты открываются только вместе с тумблером — нечего
      показывать поле, которое нечем наполнить. */
-  .rent-in { display: flex; align-items: center; gap: 6px; }
-  .rent-in .rn-k { font-size: 14px; color: var(--ink-3); }
+  /* Правая часть строки по умолчанию стоит столбиком (`.row .rv`), и промежуток
+     разъезжался на четыре этажа. Перебиваем той же силой селектора, а не
+     `!important`: строка одна такая, и правило рядом с остальными строками. */
+  .row .rv.rent-in { flex-direction: row; align-items: center; gap: 7px; }
+  .rent-in .rn-d { color: var(--ink-3); font-size: 15px; }
+  /* Подложка и радиус — от `.pay-in`: это то же самое поле для числа, только
+     короче. Заводить ему свой вид значило бы завести второй язык для одной вещи. */
   .rent-in .rn-t {
     width: 62px; padding: 6px 8px; text-align: center;
-    background: var(--surface); border: 0; border-radius: 9px; corner-shape: squircle;
-    color: var(--ink); font-size: 15px; font-variant-numeric: tabular-nums;
+    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle;
+    color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
+    -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
   }
   .spot-hourly { display: flex; align-items: center; justify-content: space-between;
     padding: 10px 2px 2px; margin-top: 4px; border-top: 1px solid var(--hair); }
@@ -5290,7 +5296,7 @@
      :not() селектор становился (0,4,1) и перебивал правило [hidden] ниже:
      скрытые текстовые поля вылезали наружу, а tel оставались скрытыми,
      потому что их селектор не менялся. Пятый раз эта грабля. */
-  .group input[type="text"]:not(:where(.pay-in, .step-in)),
+  .group input[type="text"]:not(:where(.pay-in, .step-in, .rn-t)),
   .group input[type="tel"], .group textarea {
     display: block; width: 100%; background: none; border: none;
     color: var(--ink); font-family: inherit; font-size: 16px;
@@ -7230,6 +7236,14 @@
            (docs: ROADMAP, «Студия — своя сущность, и она живёт во времени»). -->
       <!-- Зал появляется, только когда студия его назвала: у студии без залов
            строка была бы выбором из ничего -->
+      <!-- Выбранный зал сворачивается в строку. В студии бывает и десять залов:
+           развёрнутые чипсы — четыре ряда, и блок места перевешивает всё
+           остальное. Разворот нужен ровно в момент выбора, а после — нет.
+           Тот же приём, что у свёрнутой оплаты (`fPayFold`). -->
+      <button type="button" class="row sep" id="fHallPick" hidden>
+        <span class="rl" data-i18n="form.hall">Зал</span>
+        <span class="rv"><span id="fHallVal">—</span></span>
+      </button>
       <div class="g-chips sep" id="fHallRow" hidden>
         <div class="chips" id="fHallChips"></div>
       </div>
@@ -7242,11 +7256,15 @@
       </button>
       <div class="row sep" id="fRentRow" hidden>
         <span class="rl" data-i18n="form.rent">Аренда</span>
+        <!-- «12:00 – 13:00» вместо «с … до …»: промежуток так и показывается
+             во всём приложении (`range`), а слова повторяли бы заголовок строки
+             и разгоняли её на четыре этажа -->
         <span class="rv rent-in">
-          <span class="rn-k" data-i18n="form.rentFrom">с</span>
-          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentFrom" placeholder="--:--"/>
-          <span class="rn-k" data-i18n="form.rentTo">до</span>
-          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentTo" placeholder="--:--"/>
+          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentFrom"
+                 placeholder="--:--" aria-label="с" data-i18n-aria="form.rentFrom"/>
+          <span class="rn-d">–</span>
+          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentTo"
+                 placeholder="--:--" aria-label="до" data-i18n-aria="form.rentTo"/>
         </span>
       </div>
     </div>
@@ -19581,12 +19599,22 @@
   /* Зал — подчинённая единица студии, и живёт он в съёмке, а не в аренде:
      аренда отвечает «когда», зал — «где внутри». Список приходит с карточкой
      студии; студия без залов строки не показывает — выбирать не из чего. */
+  var fHallOpen = false;
+  function hallName(halls, id) {
+    for (var i = 0; i < halls.length; i++) if (halls[i].id === id) return halls[i].name || id;
+    return "";
+  }
   function renderHallRow() {
     var st = studioById(sessionStudioId);
     var halls = (st && Array.isArray(st.halls)) ? st.halls : [];
-    $("fHallRow").hidden = !halls.length;
-    if (!halls.length) { fHallId = null; return; }
+    if (!halls.length) { fHallId = null; fHallOpen = false; $("fHallRow").hidden = true; $("fHallPick").hidden = true; return; }
     if (fHallId && !halls.some(function (h) { return h.id === fHallId; })) fHallId = null;
+    /* Зал не выбран — показываем чипсы: выбирать вслепую не из чего.
+       Выбран — сворачиваем в строку, пока по ней не нажмут. */
+    var open = fHallOpen || !fHallId;
+    $("fHallPick").hidden = open;
+    $("fHallRow").hidden = !open;
+    $("fHallVal").textContent = hallName(halls, fHallId);
     $("fHallChips").innerHTML = halls.map(function (h) {
       return '<button type="button" class="chip' + (fHallId === h.id ? " active" : "")
         + '" data-hall="' + esc(h.id) + '">' + esc(h.name || h.id) + "</button>";
@@ -19596,6 +19624,7 @@
         /* Повторный тап снимает выбор: зал бывает и неизвестен заранее, а
            навязанный первый зал врал бы увереннее, чем пустота */
         fHallId = (fHallId === ch.dataset.hall) ? null : ch.dataset.hall;
+        fHallOpen = !fHallId;          // выбрали — сворачиваем, сняли — оставляем открытым
         renderHallRow();
       });
     });
@@ -19653,6 +19682,7 @@
       $("fLinkVal").textContent = LANG.t("form.linkOff");
     });
   });
+  $("fHallPick").addEventListener("click", function () { fHallOpen = true; renderHallRow(); });
   function renderRentRow() {
     renderHallRow();
     renderLinkRow();
@@ -23125,6 +23155,7 @@
        показать запись как есть. */
     sessionStudioId = studioById(s.studioId) ? s.studioId : null;
     fHallId = s.hallId || null;
+    fHallOpen = false;                 // открытая запись показывает выбор, а не список
     fBookingRef = s.bookingRef || null;
     fRentReq = s.rentReq || null;
     fRentFrom = s.rentFrom != null ? s.rentFrom : null;
