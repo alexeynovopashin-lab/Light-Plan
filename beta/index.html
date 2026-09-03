@@ -2458,30 +2458,20 @@
   .icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.7; }
   .icon-btn#planSearch { color: var(--ink); }
 
-  /* Спойлер сводки дня */
-  /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
-  .day-toggle[hidden] { display: none; }
-  .day-toggle {
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; margin-top: 6px; padding: 7px 0;
-    background: none; border: none; border-top: 1px solid rgba(226,164,76,0.35);
-    color: var(--ink-3); cursor: pointer; font-family: inherit;
-  }
-  /* Ручка сводки дня — единственный орган на своей полосе, и её искали глазами:
-     тринадцать пикселей самым бледным тоном на пустой строке видно хуже, чем
-     ничего. Кегль вдвое, тон контрастнее, полоса выше — в неё ещё и попадать */
-  .day-toggle .chev { transition: transform 0.35s ease; font-size: 20px; line-height: 1; }
-  .day-toggle.open .chev { transform: rotate(180deg); }
-  /* паддинг внутри, иначе свёрнутая панель всё равно занимает место */
+  /* Спойлер сводки дня.
+     Отдельной полосы-ручки над панелью больше нет: она стоила 34px (своя
+     линия, паддинг 7+7, знак 20 и отступ 6) — и стоила их всегда, даже когда
+     сводка раскрыта и ручка ничего не сообщает. Ручкой стал шеврон внутри
+     самой панели, справа: орган переехал в то, чем управляет (Алексей,
+     3 сентября 2026). Свёрнутая панель ужимается до него же — знак остаётся
+     на экране, иначе разворачивать было бы нечем. */
   /* Сводка дня — свой контейнер с обводкой. Экран держит две вещи разного
      рода: что за день по свету и погоде, и как он расписан по часам. Пока
      сводка лежала на общем фоне, она читалась началом ленты, хотя лентой не
      является. Рамка эту границу и проводит.
-     Паддинг внутри обёртки, а не у самой панели: у свёрнутой `max-height: 0`
-     всё равно оставляет высоту паддинга (грабли из DECISIONS). */
-  .day-panel { max-height: 0; overflow: hidden; flex-shrink: 0; margin: 0 20px;
-    transition: max-height 0.45s cubic-bezier(0.25,1,0.4,1); }
-  .day-panel.open { max-height: 420px; }
+     Схлопывания в ноль у обёртки больше нет: сворачивается сама плашка, и
+     ужимается она не в пустоту, а в свой шеврон — он и остаётся видимым. */
+  .day-panel { flex-shrink: 0; margin: 0 20px; }
   /* Приборная панель дня — одна строка показаний вместо двух карточек.
      Поле 4px, а не 24: обёртка `.day-panel` уже отступает на 20px от края, и
      свои 24 складывались с ними в 44 — строка вставала на 40px уже карточки
@@ -2491,16 +2481,39 @@
      замер в разметке). Поэтому `white-space: nowrap` без переносов —
      показание, сорвавшееся на второй ряд, ломает саму идею панели, и лучше
      узнать об этом переполнением, чем получить два этажа втихую. */
+  /* Плашка держит два органа с разными делами: показания ведут на «Свет»,
+     шеврон справа сворачивает саму плашку. Поэтому рамка и скругление здесь,
+     на общей обёртке, а нажатия — у каждой кнопки своё: подсветка идёт по
+     той половине, куда ткнули пальцем, и сама говорит, что их две.
+     `overflow: hidden` — чтобы подсветка не вылезала за скруглённые углы. */
   .dp-bar {
-    border: none; background: none; font-family: inherit; text-align: left;
-    width: calc(100% - 8px); margin: 0 4px; cursor: pointer;
-    border-radius: 16px; corner-shape: squircle;
+    width: calc(100% - 8px); margin: 0 4px;
+    border-radius: 16px; corner-shape: squircle; overflow: hidden;
     box-shadow: inset 0 0 0 1px var(--hairline);
-    padding: 9px 12px; display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: stretch;
+    transition: box-shadow 0.3s ease;
+  }
+  .dp-bar-main {
+    flex: 1 1 auto; min-width: 0; overflow: hidden;
+    border: none; background: none; font-family: inherit; text-align: left;
+    cursor: pointer; padding: 9px 0 9px 12px;
+    display: flex; align-items: center; gap: 8px;
     font-size: 13px; font-weight: 600; color: var(--ink-2);
     font-variant-numeric: tabular-nums; white-space: nowrap;
+    transition: max-width 0.45s cubic-bezier(0.25,1,0.4,1), opacity 0.25s ease,
+      padding 0.45s cubic-bezier(0.25,1,0.4,1);
+    max-width: 100%;
   }
-  .dp-bar:active { background: var(--press); }
+  .dp-bar-main:active { background: var(--press); }
+  /* Свёрнутая плашка — это её же шеврон и ничего больше: показания уезжают
+     вправо под собственный знак. Плашка при этом ужимается по содержимому и
+     прижимается к правому краю, туда, где знак и стоял, — строка не пустеет
+     полосой во всю ширину.
+     Рамка остаётся: без неё знак висит на пустом месте сам по себе, и его
+     ищут глазами — та самая беда, из-за которой прежней ручке добавляли
+     кегль и тон. С рамкой это свёрнутая плашка, а не потерянный значок. */
+  .dp-bar.shut { width: fit-content; margin-left: auto; }
+  .dp-bar.shut .dp-bar-main { max-width: 0; opacity: 0; padding: 0; }
   /* По базовой линии, а не по центру строки. У рассвета и заката линия
      горизонта проходит на 16.5 из 24 высоты, то есть под ней 31.25% пустоты.
      При центровании по строке эта пустота уравнивалась с текстом, и рисунок
@@ -2556,12 +2569,23 @@
   /* Черта делит панель на свет и погоду: слева то, чем управляет солнце,
      справа то, чем небо. Без неё пять показаний читались одним списком */
   .dp-b-sep { width: 1px; height: 12px; background: var(--hairline); }
-  /* Знак справа не про переход — панель и так кликабельна целиком, вести
-     некуда ещё. Это тот же спойлерный «▾», что раскрывает «Подробно» на
-     экране «Свет»: сам он не крутится (панель не разворачивается на месте),
-     но по начертанию — тот самый знак, а не выдуманная стрелка перехода
-     (Алексей, 3 сентября 2026) */
-  .dp-b-chev { margin-left: auto; font-size: 17px; line-height: 1; color: var(--ink-3); }
+  /* Знак справа не про переход, а про сворачивание — тот же спойлерный «▾»,
+     что раскрывает «Подробно» на экране «Свет», и крутится он так же
+     (Алексей, 3 сентября 2026). Своя кнопка, а не значок внутри чужой: у
+     показаний своё дело — экран «Свет», — и палец не должен выбирать между
+     ними наугад. Поле 12px по бокам добирает цель до 40px по ширине при
+     знаке в 17: меньше — и в неё промахиваются. */
+  .dp-b-chev {
+    flex: 0 0 auto; border: none; background: none; cursor: pointer;
+    padding: 9px 12px; font-family: inherit;
+    font-size: 17px; line-height: 1; color: var(--ink-3);
+    transition: transform 0.35s ease;
+  }
+  .dp-b-chev:active { background: var(--press); }
+  /* Раскрытая панель показывает «▴», свёрнутая — «▾»: знак смотрит туда,
+     куда поедет содержимое, как у «Подробно» и у полосы мудборда */
+  .dp-b-chev { transform: rotate(180deg); }
+  .dp-bar.shut .dp-b-chev { transform: none; }
   /* Загрузка дня — заголовок списка съёмок (`.sec-label`, тот же капс, что у
      заголовков секций в форме и настройках). Свой отступ сверху вместо 30px
      наследуемых: между приборной панелью и списком не нужен разрыв величиной
@@ -2581,8 +2605,9 @@
      подборки. */
   .mb-strip { flex: 0 0 auto; margin: 22px 24px 0; }
   .mb-strip[hidden], .mb-lbl[hidden], .mb-tiles[hidden] { display: none; }
-  /* Своя ручка сворачивания — тот же язык, что у сводки дня (`.day-toggle`):
-     кто убрал плитки с глаз, должен находить ту же ручку на том же месте */
+  /* Своя ручка сворачивания — тот же язык, что у сводки дня (`.dp-b-chev`):
+     шеврон справа в своей же полосе, кто убрал плитки с глаз, должен
+     находить ту же ручку на том же месте */
   /* Ручка теперь и сводка сразу: веер из обложек + счёт подборок и кадров,
      чтобы состояние мудборда читалось не открывая его (макет «Moodboard
      Shoots») */
@@ -6117,7 +6142,6 @@
     <div class="day-sticky" id="daySticky">
     <div class="day-dates" id="dayDates" hidden></div>
 
-    <button class="day-toggle" id="dayToggle"><span class="chev">▾</span></button>
     <div class="day-panel" id="dayPanel">
      <!-- Приборная панель дня: одна строка знаков вместо двух карточек света
           и погоды. Карточки занимали 96px высоты ради шести значений, и
@@ -6133,14 +6157,16 @@
           заката ушло в цвет самого времени заката, а минимум и максимум
           температуры сняты совсем: приборная панель показывает показание,
           а не сводку. Подробности обоих — на экране «Свет» по клику. -->
-     <button class="dp-bar" id="seeLight">
+     <div class="dp-bar" id="dpBar">
+      <button class="dp-bar-main" id="seeLight">
        <span class="dp-b"><span id="dpRiseIc"></span><span id="dpRise">—</span></span>
        <span class="dp-b dp-b-set" id="dpSetItem"><span id="dpSetIc"></span><span id="dpSet">—</span></span>
        <span class="dp-b" id="dpGold"><span id="dpGoldIc"></span><span id="dpGoldVal">—</span></span>
        <span class="dp-b-sep"></span>
        <span class="dp-b dp-b-wx"><span id="dpIcon"></span><span id="dpTemp">—</span></span>
-       <span class="dp-b-chev">▾</span>
-     </button>
+      </button>
+      <button class="dp-b-chev" id="dayToggle">▾</button>
+     </div>
     </div>
     <!-- Закреплённое кончается здесь: дальше едет лента. Тег закрывался сам,
          на `</section>`, и в липкий блок попадало всё до конца экрана —
@@ -6156,7 +6182,7 @@
          зажатый статус „день свободен“»). Заголовком у неё появилась роль:
          она называет то, что под ней, и в занятый день перестаёт быть
          дублем строки съёмки — становится её шапкой.
-         Снаружи `.day-panel`, а не внутри: панель сворачивается стрелкой,
+         Снаружи `.day-panel`, а не внутри: панель сворачивается шевроном,
          и заголовок уезжал бы, оставляя список без имени. -->
     <div class="sec-label day-sec" id="dpLoad">—</div>
     <div class="day-line" id="dpSessions"></div>
@@ -13430,6 +13456,17 @@
     return v === k ? genreName(t) : v;
   }
 
+  /* Состояние сводки в одном месте: класс на плашке и подпись её шеврона.
+     Прежде оно ставилось двумя строками в двух местах — при перерисовке и по
+     нажатию, — и подпись знака отставала от самого знака. Слова берём готовые:
+     «Свернуть» и «Подробно» уже переведены на все четыре языка. */
+  function setDayPanel(open) {
+    $("dpBar").classList.toggle("shut", !open);
+    var chev = $("dayToggle");
+    chev.setAttribute("aria-expanded", open ? "true" : "false");
+    chev.setAttribute("aria-label", LANG.t(open ? "today.hide" : "today.details"));
+  }
+
   function renderCal() {
     if (window.ICONS) paintIcons(document);      // знаки видов в шапке
     /* Кнопка вида и галочка в веере ставятся здесь же — при первом показе
@@ -13446,14 +13483,13 @@
        весь экран отвечает на один вопрос — что за день */
     /* В неделе нижний блок не нужен: строки дней уже показывают всё,
        что он повторял бы списком */
-    ["dayToggle", "dayPanel", "dpSessions", "dayStates"].forEach(function (id) {
+    ["dayPanel", "dpSessions", "dayStates"].forEach(function (id) {
       $(id).hidden = week;
     });
     /* Виджет сворачивается во всех видах, включая день: свет и погода нужны
        не каждую минуту, а место на экране нужно всегда. Раньше в дне он был
        раскрыт принудительно и шеврон прятался */
-    $("dayPanel").classList.toggle("open", dayPanelOpen);
-    $("dayToggle").classList.toggle("open", dayPanelOpen);
+    setDayPanel(dayPanelOpen);
     /* Возврат «↺ сегодня» в дне вернулся. Он был убран по доводу «в ленте дат
        видно, где сегодня: число светится латунью, выбранный день залит», и
        довод верен — но отвечает не на тот вопрос. Видно, где сегодня, только
@@ -26038,8 +26074,7 @@
   });
   $("dayToggle").addEventListener("click", function () {
     dayPanelOpen = !dayPanelOpen;
-    this.classList.toggle("open", dayPanelOpen);
-    $("dayPanel").classList.toggle("open", dayPanelOpen);
+    setDayPanel(dayPanelOpen);
     saveAll();
   });
   $("mbStripToggle").addEventListener("click", function () {
