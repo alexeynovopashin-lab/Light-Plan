@@ -19610,10 +19610,15 @@
   function hallLabels() {
     return [LANG.t("form.hallNone")].concat(hallList.map(function (h) { return h.name || h.id; }));
   }
+  /* Капсула и барабан говорят разное намеренно. В барабане нулевая позиция —
+     значение («не выбран»), в ряду таких же значений. В капсуле значения нет,
+     и вместо него стоит приглашение нажать — тем же приёмом, что у строки
+     организации («выбрать»). */
+  function hallCap(i) { return i > 0 ? hallLabels()[i] : LANG.t("form.hallPick"); }
   function onHallWheel() {
     var i = wheelIndex(fwHall);
     fHallId = (i > 0 && hallList[i - 1]) ? hallList[i - 1].id : null;
-    $("fHallVal").textContent = hallLabels()[i] || "";
+    $("fHallVal").textContent = hallCap(i);
   }
   attachWheel(fwHall, onHallWheel);
   function renderHallRow() {
@@ -19635,7 +19640,7 @@
     var idx = 0;
     for (var i = 0; i < halls.length; i++) if (halls[i].id === fHallId) idx = i + 1;
     syncWheel(fwHall, idx);
-    $("fHallVal").textContent = labels[idx];
+    $("fHallVal").textContent = hallCap(idx);
   }
   /* Строка связи живёт, только пока у студии есть ключ: без него спрашивать
      некого, и предлагать действие, которое заведомо не сработает, — обман. */
