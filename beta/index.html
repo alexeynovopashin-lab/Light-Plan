@@ -6933,6 +6933,13 @@
       <span id="cdStudioTelN">—</span>
       <span data-ic="phone"></span>
     </a>
+    <!-- «Продлить» стоит отдельно от баннера выхода намеренно: все три его
+         состояния про то, что пора уходить, а продление — намерение остаться.
+         Живёт по фазе аренды, как и звонок (Алексей, 30 августа 2026). -->
+    <button type="button" class="ev-tel" id="cdExtend" hidden>
+      <span id="cdExtendN" data-i18n="card.extend">Продлить на час</span>
+      <span data-ic="clock"></span>
+    </button>
 
     <div class="say" id="cdSay" hidden><span class="s-ic" id="cdSayIc"></span><span id="cdSayT"></span></div>
 
@@ -7226,6 +7233,13 @@
       <div class="g-chips sep" id="fHallRow" hidden>
         <div class="chips" id="fHallChips"></div>
       </div>
+      <!-- Связь с бронью — по явному нажатию, а не фоном при каждом открытии
+           карточки: наружу уезжает набор телефонов, и делать это молча нельзя
+           (docs: DECISIONS, «Связь со студией опознаётся по совпадению номеров») -->
+      <button type="button" class="row sep" id="fLinkRow" hidden>
+        <span class="rl" data-i18n="form.link">Связать с бронью</span>
+        <span class="rv act" id="fLinkVal" data-i18n="form.linkAsk">связать</span>
+      </button>
       <div class="row sep" id="fRentRow" hidden>
         <span class="rl" data-i18n="form.rent">Аренда</span>
         <span class="rv rent-in">
@@ -19490,6 +19504,9 @@
      вечная, аренда — событие во времени, со своим началом и концом. Пусто —
      значит место адресное, и ни строки аренды, ни студийного часа нет. */
   var sessionStudioId = null, fRentFrom = null, fRentTo = null, fHallId = null;
+  /* Ссылка на бронь в системе студии и заявка на продление. Пусто — связи нет,
+     и студия остаётся напоминалкой: таймер и звонок работают без неё. */
+  var fBookingRef = null, fRentReq = null;
   /* Город рядом = засветка. Считаем по данным геокодера: он знает про населённый пункт */
   /* `manual` — координаты набраны руками и имени им не давали. Тогда числа и
      есть ответ, и подставлять вместо них ближайший посёлок нельзя: человек
@@ -19583,8 +19600,62 @@
       });
     });
   }
+  /* Строка связи живёт, только пока у студии есть ключ: без него спрашивать
+     некого, и предлагать действие, которое заведомо не сработает, — обман. */
+  function renderLinkRow() {
+    var st = studioById(sessionStudioId);
+    var on = !!(st && st.key);
+    $("fLinkRow").hidden = !on;
+    if (!on) return;
+    $("fLinkVal").textContent = LANG.t(fBookingRef ? "form.linked" : "form.linkAsk");
+  }
+  /* Наружу уезжают все номера, какие приложение знает про эту съёмку: чей
+     номер попал в бронь, заранее неизвестно — бронировать мог и фотограф, и
+     клиент, и модель. Совпадение любого даёт связь. */
+  function shootPhones() {
+    var out = [me.phone, $("fClientTel").value, $("fPhone").value];
+    formPersons().forEach(function (pp) { out.push(pp.tel); });
+    var seen = {}, res = [];
+    out.forEach(function (v) {
+      var d = telFull(v);
+      if (d && !seen[d]) { seen[d] = 1; res.push(d); }
+    });
+    return res;
+  }
+  $("fLinkRow").addEventListener("click", function () {
+    var st = studioById(sessionStudioId);
+    if (!st || !st.key) return;
+    var phones = shootPhones();
+    if (!phones.length) { $("fLinkVal").textContent = LANG.t("form.linkNone"); return; }
+    $("fLinkVal").textContent = LANG.t("form.linking");
+    fetch(studioApi(st) + "/booking/match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Studio-Key": st.key },
+      body: JSON.stringify({
+        studioId: st.tomcohId || null,
+        /* Дата местная, а не UTC: `toISOString` в вечерние часы отдал бы
+           завтрашний день. Тот же приём, что у ключа воздуха (`airKeyOf`). */
+        date: airKeyOf(fDate),
+        from: fmt(fRentFrom != null ? fRentFrom : fMin),
+        to: fmt(fRentTo != null ? fRentTo : fMin + fDur),
+        phones: phones
+      })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.match) { fBookingRef = null; $("fLinkVal").textContent = LANG.t("form.linkNone"); return; }
+      /* Бронь — источник правды о времени и зале: её завели в студии, а в
+         форме часы могли поставить на глаз */
+      fBookingRef = j.bookingRef;
+      if (j.hallId) fHallId = j.hallId;
+      if (j.start) fRentFrom = parseHM(j.start);
+      if (j.end) fRentTo = parseHM(j.end);
+      renderSessionPlace();
+    }).catch(function () {
+      $("fLinkVal").textContent = LANG.t("form.linkOff");
+    });
+  });
   function renderRentRow() {
     renderHallRow();
+    renderLinkRow();
     var on = !!studioById(sessionStudioId);
     $("fRentRow").hidden = !on;
     if (!on) { fRentFrom = fRentTo = null; return; }
@@ -22032,8 +22103,65 @@
     $("cdStudioTelN").textContent = telE164(rw.st.tel) ? formatTel(telE164(rw.st.tel)) : rw.st.tel;
     el.href = "tel:" + (telE164(rw.st.tel) || rw.st.tel.replace(/[^\d+]/g, ""));
   }
+  /* Продление: одно нажатие — один запрос. Ответ приходит не сразу, поэтому
+     кнопка сама становится своим состоянием («запрошено»), а такт карточки
+     опрашивает статус. Молчание до конца оплаченного времени считается
+     отказом — так решено в ТЗ, и `expired` приходит с той стороны. */
+  function renderStudioExtend(s, nowMin2) {
+    var el = $("cdExtend");
+    var rw = nowMin2 === null ? null : rentWindow(s);
+    var on = !!(rw && s.bookingRef && rw.st.key && nowMin2 >= rw.from && nowMin2 <= rw.to);
+    el.hidden = !on;
+    if (!on) return;
+    var req = s.rentReq;
+    $("cdExtendN").textContent = !req ? LANG.t("card.extend")
+      : req.status === "confirmed" ? LANG.t("card.extendOk", { t: req.newEnd || "" })
+      : (req.status === "declined" || req.status === "expired") ? LANG.t("card.extendNo")
+      : LANG.t("card.extend") + " · " + LANG.t("card.extendAsked");
+    el.disabled = !!(req && req.status === "requested");
+  }
+  $("cdExtend").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    var s = sessions[cardIdx], rw = rentWindow(s);
+    if (!rw || !s.bookingRef || !rw.st.key || (s.rentReq && s.rentReq.status === "requested")) return;
+    fetch(studioApi(rw.st) + "/rent/extend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Studio-Key": rw.st.key },
+      body: JSON.stringify({ bookingRef: s.bookingRef, minutes: 60,
+                             requestedAt: new Date().toISOString() })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.id) return;
+      s.rentReq = { id: j.id, status: j.status || "requested", newEnd: null };
+      saveAll(); renderStudioExtend(s, nowMinOf(s));
+    }).catch(function () {});
+  });
+  function nowMinOf(s) {
+    var n = new Date();
+    return sameDay(s.date, n) ? n.getHours() * 60 + n.getMinutes() : null;
+  }
+  /* Ответ студии приходит человеком, а не сразу — спрашиваем тактом карточки.
+     Подтвердили — конец аренды переезжает на новый, и таймер выхода считает
+     уже от него: иначе баннер продолжал бы гнать к прежнему часу. */
+  function pollRentReq(s) {
+    var rw = rentWindow(s);
+    if (!rw || !rw.st.key || !s.rentReq || s.rentReq.status !== "requested") return;
+    fetch(studioApi(rw.st) + "/rent/status?id=" + encodeURIComponent(s.rentReq.id),
+          { headers: { "X-Studio-Key": rw.st.key } })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (!j || !j.status || j.status === s.rentReq.status) return;
+        s.rentReq.status = j.status;
+        s.rentReq.newEnd = j.newEnd || null;
+        if (j.status === "confirmed" && j.newEnd) {
+          var v = parseHM(j.newEnd);
+          if (v !== null) s.rentTo = v;
+        }
+        saveAll();
+        if (cardIdx !== null && sessions[cardIdx] === s) openCard(cardIdx, true);   // не сбрасывая прокрутку
+      }).catch(function () {});
+  }
   function renderStudioTimer(s, route, phase, cur, nowMin2) {
     renderStudioTel(s, nowMin2);
+    renderStudioExtend(s, nowMin2);
     var el = $("cdStudio");
     var rw = nowMin2 === null ? null : rentWindow(s);
     if (!rw || nowMin2 < rw.from) { el.hidden = true; return; }
@@ -22066,6 +22194,7 @@
       var phase = eventPhase(s);
       var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
       renderStudioTimer(s, route, phase, curIndex(route, nowMin2), nowMin2);
+      pollRentReq(s);
       renderCardMusic(s);
     }, 20000);
   }
@@ -22911,6 +23040,7 @@
       place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
       placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       studioId: sessionStudioId, hallId: fHallId, rentFrom: fRentFrom, rentTo: fRentTo,
+      bookingRef: fBookingRef, rentReq: fRentReq,
       wish: wishes.slice(),
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"), deliveredAt: fDeliveredAt,
       pay: fPay, rate: fRate, units: fUnits, expense: fExpense, prepay: fPrepay,
@@ -22995,6 +23125,8 @@
        показать запись как есть. */
     sessionStudioId = studioById(s.studioId) ? s.studioId : null;
     fHallId = s.hallId || null;
+    fBookingRef = s.bookingRef || null;
+    fRentReq = s.rentReq || null;
     fRentFrom = s.rentFrom != null ? s.rentFrom : null;
     fRentTo = s.rentTo != null ? s.rentTo : null;
     sessionPlace = (s.placeLat != null)
@@ -23083,6 +23215,7 @@
          областью». */
       sessionPlace = { name: "", town: geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
       sessionStudioId = null; fRentFrom = null; fRentTo = null; fHallId = null;
+      fBookingRef = null; fRentReq = null;
       fId = newId();
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
 
@@ -23789,6 +23922,8 @@
       hallId: sessionStudioId ? fHallId : null,
       rentFrom: sessionStudioId ? fRentFrom : null,
       rentTo: sessionStudioId ? fRentTo : null,
+      bookingRef: sessionStudioId ? fBookingRef : null,
+      rentReq: sessionStudioId ? fRentReq : null,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       deliveredAt: $("fDone").classList.contains("on") ? fDeliveredAt : null,
