@@ -7236,16 +7236,20 @@
            (docs: ROADMAP, «Студия — своя сущность, и она живёт во времени»). -->
       <!-- Зал появляется, только когда студия его назвала: у студии без залов
            строка была бы выбором из ничего -->
-      <!-- Выбранный зал сворачивается в строку. В студии бывает и десять залов:
-           развёрнутые чипсы — четыре ряда, и блок места перевешивает всё
-           остальное. Разворот нужен ровно в момент выбора, а после — нет.
-           Тот же приём, что у свёрнутой оплаты (`fPayFold`). -->
-      <button type="button" class="row sep" id="fHallPick" hidden>
+      <!-- Зал барабаном, а не чипсами: чипсы годились на три зала, но студии
+           бывают и на двадцать пять — облако разрасталось на весь экран.
+           Барабан — тот же, что у времени и плейлиста: одна строка в покое,
+           список по нажатию, длина списка ему безразлична. -->
+      <div class="row sep" id="fHall" hidden>
         <span class="rl" data-i18n="form.hall">Зал</span>
-        <span class="rv"><span id="fHallVal">—</span></span>
-      </button>
-      <div class="g-chips sep" id="fHallRow" hidden>
-        <div class="chips" id="fHallChips"></div>
+        <span class="rv"><span class="caps">
+          <button type="button" class="rv-v" id="fHallVal">—</button>
+        </span></span>
+      </div>
+      <div class="inline" id="fHallPick">
+        <div class="ip"><div class="pick-band"></div>
+          <div class="wheel" data-w="hall" id="fwHall"></div>
+        </div>
       </div>
       <!-- Связь с бронью — по явному нажатию, а не фоном при каждом открытии
            карточки: наружу уезжает набор телефонов, и делать это молча нельзя
@@ -19461,11 +19465,12 @@
   var ROWS = [
     ["fStartDate", "fStartDatePick"], ["fStart", "fStartPick"],
     ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"],
-    ["fMusic", "fMusicPick"]
+    ["fMusic", "fMusicPick"],
+    ["fHall", "fHallPick"]
   ];
   // Подсветку носит капсула, а не строка: в строке их теперь две
   var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal",
-              fMusic: "fMusicVal" };
+              fMusic: "fMusicVal", fHall: "fHallVal" };
   var openRow = null;
   function closeRows() {
     ROWS.forEach(function (r) { $(CAP[r[0]]).classList.remove("open"); $(r[1]).classList.remove("open"); });
@@ -19599,35 +19604,38 @@
   /* Зал — подчинённая единица студии, и живёт он в съёмке, а не в аренде:
      аренда отвечает «когда», зал — «где внутри». Список приходит с карточкой
      студии; студия без залов строки не показывает — выбирать не из чего. */
-  var fHallOpen = false;
-  function hallName(halls, id) {
-    for (var i = 0; i < halls.length; i++) if (halls[i].id === id) return halls[i].name || id;
-    return "";
+  /* Первым в барабане стоит «не выбран»: зал бывает неизвестен заранее, а
+     навязанный первый врал бы увереннее, чем пустота. */
+  var fwHall = $("fwHall"), hallList = [], hallLabelsKey = "";
+  function hallLabels() {
+    return [LANG.t("form.hallNone")].concat(hallList.map(function (h) { return h.name || h.id; }));
   }
+  function onHallWheel() {
+    var i = wheelIndex(fwHall);
+    fHallId = (i > 0 && hallList[i - 1]) ? hallList[i - 1].id : null;
+    $("fHallVal").textContent = hallLabels()[i] || "";
+  }
+  attachWheel(fwHall, onHallWheel);
   function renderHallRow() {
     var st = studioById(sessionStudioId);
     var halls = (st && Array.isArray(st.halls)) ? st.halls : [];
-    if (!halls.length) { fHallId = null; fHallOpen = false; $("fHallRow").hidden = true; $("fHallPick").hidden = true; return; }
+    $("fHall").hidden = !halls.length;
+    if (!halls.length) { fHallId = null; hallList = []; hallLabelsKey = ""; return; }
     if (fHallId && !halls.some(function (h) { return h.id === fHallId; })) fHallId = null;
-    /* Зал не выбран — показываем чипсы: выбирать вслепую не из чего.
-       Выбран — сворачиваем в строку, пока по ней не нажмут. */
-    var open = fHallOpen || !fHallId;
-    $("fHallPick").hidden = open;
-    $("fHallRow").hidden = !open;
-    $("fHallVal").textContent = hallName(halls, fHallId);
-    $("fHallChips").innerHTML = halls.map(function (h) {
-      return '<button type="button" class="chip' + (fHallId === h.id ? " active" : "")
-        + '" data-hall="' + esc(h.id) + '">' + esc(h.name || h.id) + "</button>";
-    }).join("");
-    $("fHallChips").querySelectorAll(".chip").forEach(function (ch) {
-      ch.addEventListener("click", function () {
-        /* Повторный тап снимает выбор: зал бывает и неизвестен заранее, а
-           навязанный первый зал врал бы увереннее, чем пустота */
-        fHallId = (fHallId === ch.dataset.hall) ? null : ch.dataset.hall;
-        fHallOpen = !fHallId;          // выбрали — сворачиваем, сняли — оставляем открытым
-        renderHallRow();
-      });
-    });
+    hallList = halls;
+    var labels = hallLabels();
+    /* Барабан перезаполняем, только когда список правда сменился: `fill`
+       пересобирает разметку, и делать это на каждой перерисовке формы значило
+       бы дёргать колесо под пальцем */
+    var key = labels.join("\u0000");
+    if (key !== hallLabelsKey) {
+      fill(fwHall, labels.map(function (t) { return esc(t); }));
+      hallLabelsKey = key;
+    }
+    var idx = 0;
+    for (var i = 0; i < halls.length; i++) if (halls[i].id === fHallId) idx = i + 1;
+    syncWheel(fwHall, idx);
+    $("fHallVal").textContent = labels[idx];
   }
   /* Строка связи живёт, только пока у студии есть ключ: без него спрашивать
      некого, и предлагать действие, которое заведомо не сработает, — обман. */
@@ -19682,7 +19690,6 @@
       $("fLinkVal").textContent = LANG.t("form.linkOff");
     });
   });
-  $("fHallPick").addEventListener("click", function () { fHallOpen = true; renderHallRow(); });
   function renderRentRow() {
     renderHallRow();
     renderLinkRow();
@@ -23155,7 +23162,6 @@
        показать запись как есть. */
     sessionStudioId = studioById(s.studioId) ? s.studioId : null;
     fHallId = s.hallId || null;
-    fHallOpen = false;                 // открытая запись показывает выбор, а не список
     fBookingRef = s.bookingRef || null;
     fRentReq = s.rentReq || null;
     fRentFrom = s.rentFrom != null ? s.rentFrom : null;
