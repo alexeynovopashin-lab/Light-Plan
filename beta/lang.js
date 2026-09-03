@@ -998,6 +998,7 @@
 
     /* ---- Срок сдачи: короткие подписи чипсов ---- */
     "delv.byGenre":   "по жанру",
+    "delv.byGenreShort": "жанр",
     "delv.d3":        "3 дн",
     "delv.w1":        "нед",
     "delv.w2":        "2 нед",
@@ -2523,6 +2524,7 @@
     "payUnit.item":   "Items",
 
     "delv.byGenre":   "by genre",
+    "delv.byGenreShort": "genre",
     "delv.d3":        "3 d",
     "delv.w1":        "1 wk",
     "delv.w2":        "2 wk",
@@ -3942,6 +3944,7 @@
     "payUnit.object": "Locaciones",
     "payUnit.item": "Piezas",
     "delv.byGenre": "por género",
+    "delv.byGenreShort": "género",
     "delv.d3": "3 d",
     "delv.w1": "1 sem",
     "delv.w2": "2 sem",
@@ -5255,6 +5258,7 @@
     "payUnit.object": "地点",
     "payUnit.item": "项目",
     "delv.byGenre": "按类型",
+    "delv.byGenreShort": "类型",
     "delv.d3": "3天",
     "delv.w1": "1周",
     "delv.w2": "2周",

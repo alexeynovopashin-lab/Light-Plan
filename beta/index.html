@@ -15578,7 +15578,9 @@
   /* Крайние деления шкалы — состояния, середина — ручной срок */
   /* Подписи чипсов срока — короткие, из словаря: «нед» и «wk» набираются
      по-разному, и обрезать длинное слово нельзя — оно рассыплется */
-  var DELV_OPTS = [["auto", "delv.byGenre"], [3, "delv.d3"], [7, "delv.w1"], [14, "delv.w2"],
+  /* Третьим полем — подпись для шкалы, когда полная не влезает между рисок:
+     на шкале «жанр», а в подсказке под ней остаётся полное «по жанру» */
+  var DELV_OPTS = [["auto", "delv.byGenre", "delv.byGenreShort"], [3, "delv.d3"], [7, "delv.w1"], [14, "delv.w2"],
                    [30, "delv.m1"], [90, "delv.m3"], [null, "delv.never"]];
   /* Шкала строилась один раз при загрузке — со сменой языка подписи на ней
      оставались прежними. Теперь это функция, и её зовёт `relangUI` */
@@ -15587,7 +15589,7 @@
     for (var i = 0; i < DELV_OPTS.length; i++) {
       var x = (i / (DELV_OPTS.length - 1) * 100).toFixed(2) + "%";
       ticks += '<i style="left:' + x + '"></i>';
-      labels += '<span style="left:' + x + '">' + esc(LANG.t(DELV_OPTS[i][1])) + "</span>";
+      labels += '<span style="left:' + x + '">' + esc(LANG.t(DELV_OPTS[i][2] || DELV_OPTS[i][1])) + "</span>";
     }
     $("fDelvTicks").innerHTML = ticks;
     $("fDelvLabels").innerHTML = labels;
