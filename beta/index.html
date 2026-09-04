@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=46"></script>
+<script src="lang.js?v=47"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -5364,6 +5364,10 @@
      текст справа читался как подпись — было непонятно, что сюда можно нажать.
      Подсказка под значением остаётся снаружи капсулы: она не поле, а пояснение */
   .row .rv { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  /* Оба вида строки аренды переключаются `hidden`, а `display` выше сильнее
+     браузерного — тот же каскад уже подводил и строку «Заказчик», и поля
+     формы (DECISIONS: «display сильнее браузерного [hidden]») */
+  .row .rv[hidden] { display: none; }
   /* ---------- Строка места: три пути и крестик ----------
      Пути стоят раздельными кнопками. Прежде это была строка слов через
      косые — «Место / Фотостудия / Геопозиция», — и она читалась подписью:
@@ -5406,6 +5410,7 @@
   .fp-x svg { width: 15px; height: 15px; fill: none; stroke: var(--sheet);
     stroke-width: 2.4; stroke-linecap: round; }
   .fp-x:active { opacity: 0.55; }
+  .fp-x[hidden] { display: none; }
 
   /* Дата и время — две отдельные капсулы в одной строке: мероприятие может
      начаться восьмого и кончиться девятого, и обе даты нужно видеть и править */
@@ -7577,18 +7582,34 @@
         <span class="rl" data-i18n="form.link">Связать с бронью</span>
         <span class="rv act" id="fLinkVal" data-i18n="form.linkAsk">связать</span>
       </button>
+      <!-- Строка о двух видах, и вид выбирает жанр. Там, где студия — весь
+           день съёмки (портрет, предметка, тест), аренда не спрашивается
+           второй раз: она сообщает время съёмки и едет за ним. Там, где
+           студия лишь этап дня (свадьба, событие), у неё свои часы, и поля
+           стоят как стояли (docs: DECISIONS, «Аренда спрашивается только
+           там, где она отдельный вопрос»). -->
       <div class="row sep" id="fRentRow" hidden>
-        <span class="rl" data-i18n="form.rent">Аренда</span>
+        <span class="rl"><span data-i18n="form.rent">Аренда</span><span class="sub2" id="fRentNote"></span></span>
+        <!-- Связано: капсула, как у зала и у времени. У Apple всё, что можно
+             изменить, обведено рамкой — тап по ней и размыкает связь -->
+        <span class="rv" id="fRentSameWrap"><span class="caps">
+          <button type="button" class="rv-v" id="fRentSame">—</button>
+        </span></span>
         <!-- «12:00 – 13:00» вместо «с … до …»: промежуток так и показывается
              во всём приложении (`range`), а слова повторяли бы заголовок строки
              и разгоняли её на четыре этажа -->
-        <span class="rv rent-in">
+        <span class="rv rent-in" id="fRentOwn" hidden>
           <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentFrom"
                  placeholder="--:--" aria-label="с" data-i18n-aria="form.rentFrom"/>
           <span class="rn-d">–</span>
           <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentTo"
                  placeholder="--:--" aria-label="до" data-i18n-aria="form.rentTo"/>
         </span>
+        <!-- Тот же крестик, что снимает место: «убрать своё время» и «убрать
+             место» — одно действие с разными предметами, и знак у них один -->
+        <button type="button" class="fp-x" id="fRentBack" hidden aria-label="Вернуть время съёмки" data-i18n-aria="form.rentBack">
+          <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
+        </button>
       </div>
     </div>
 
@@ -20185,6 +20206,15 @@
      вечная, аренда — событие во времени, со своим началом и концом. Пусто —
      значит место адресное, и ни строки аренды, ни студийного часа нет. */
   var sessionStudioId = null, fRentFrom = null, fRentTo = null, fHallId = null;
+  /* Связана ли аренда со временем съёмки. Разлад, который назвал Алексей
+     4 сентября 2026: «свадьба — это место, где студия лишь промежуточная
+     точка, но если это часовая съёмка портрета, то время фотосессии и время
+     в студии — это одно и то же время, и задаём один и тот же вопрос дважды».
+     Признак есть у жанра и без нас — тот же, что решает, бывает ли у съёмки
+     маршрут (`hasRoute`): маршрут значит день из этапов, и студия в нём этап.
+     Связано — значит `fRentFrom/fRentTo` пустые, а модель уже умеет читать
+     это как «как съёмка» (`rentWindow`). */
+  var fRentLinked = true;
   /* Ссылка на бронь в системе студии и заявка на продление. Пусто — связи нет,
      и студия остаётся напоминалкой: таймер и звонок работают без неё. */
   var fBookingRef = null, fRentReq = null;
@@ -20469,14 +20499,51 @@
   function renderRentRow() {
     renderHallRow();
     renderLinkRow();
+    renderRent();
+  }
+  /* Отдельно от зала и связи с бронью: строка аренды едет за барабанами
+     времени, и звать ради неё перезаполнение колеса залов на каждый щелчок
+     незачем. Поэтому `refreshForm` зовёт только эту половину. */
+  function renderRent() {
     var on = !!studioById(sessionStudioId);
     $("fRentRow").hidden = !on;
-    if (!on) { fRentFrom = fRentTo = null; return; }
-    if (fRentFrom == null) fRentFrom = fMin;
-    if (fRentTo == null) fRentTo = fMin + fDur;
+    if (!on) { fRentFrom = fRentTo = null; fRentLinked = true; return; }
+    /* У жанра с маршрутом связь не держится вовсе: студия там — этап дня, и
+       её часы приходится называть. Числа при размыкании берутся от съёмки —
+       это не ответ, а то, от чего его правят. */
+    if (hasRoute(shootType) && fRentLinked) fRentLinked = false;
+    if (fRentLinked) fRentFrom = fRentTo = null;
+    else {
+      if (fRentFrom == null) fRentFrom = fMin;
+      if (fRentTo == null) fRentTo = fMin + fDur;
+    }
+    $("fRentSameWrap").hidden = !fRentLinked;
+    $("fRentOwn").hidden = fRentLinked;
+    $("fRentBack").hidden = fRentLinked;
+    /* Подпись говорит, чем эта аренда является, а не как устроена строка:
+       «как съёмка» — факт о часе в студии, ровно как «день уходит на дорогу»
+       у выезда (правило: подписи не про интерфейс) */
+    $("fRentNote").textContent = fRentLinked ? LANG.t("form.rentSame") : "";
+    if (fRentLinked) { $("fRentSame").textContent = range(fMin, fMin + fDur); return; }
     if (document.activeElement !== $("fRentFrom")) $("fRentFrom").value = fmt(fRentFrom);
     if (document.activeElement !== $("fRentTo")) $("fRentTo").value = fmt(fRentTo);
   }
+  /* Тап по капсуле размыкает связь: дальше часы студии — свой ответ. Курсор
+     сразу в первом поле, иначе размыкание стоило бы двух нажатий. */
+  $("fRentSame").addEventListener("click", function () {
+    fRentLinked = false;
+    fRentFrom = fMin; fRentTo = fMin + fDur;
+    renderRent();
+    $("fRentFrom").focus(); $("fRentFrom").select();
+    scheduleDraftSave();
+  });
+  /* Крестик возвращает связь. У жанра с маршрутом его нет смысла нажимать —
+     связь там не держится, — но строка и не показывает его: `renderRent`
+     размыкает такой жанр раньше, чем дело доходит до кнопки. */
+  $("fRentBack").addEventListener("click", function () {
+    fRentLinked = true; fRentFrom = fRentTo = null;
+    renderRent(); scheduleDraftSave();
+  });
   /* Время набирается цифрами и складывается само — тот же приём, что у точек
      маршрута: «1000» → «10:00», «9» → 09:00. Второй раз его не изобретаем. */
   ["fRentFrom", "fRentTo"].forEach(function (id) {
@@ -22157,6 +22224,11 @@
     LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(keep);
 
+    /* Связанная аренда — не отдельное число, а то же время съёмки: крутят
+       барабан — едет и она. Раньше строка заполнялась один раз, при выборе
+       студии, и дальше врала: съёмка 18:31–20:31, аренда 18:00–19:00 (замер
+       по снимку Алексея, 4 сентября 2026) */
+    renderRent();
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
     $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
@@ -24022,6 +24094,10 @@
     fRentReq = s.rentReq || null;
     fRentFrom = s.rentFrom != null ? s.rentFrom : null;
     fRentTo = s.rentTo != null ? s.rentTo : null;
+    /* Записи, где часы аренды проставлены, открываются со своими часами —
+       это ответ фотографа, и стирать его связью нельзя. Пустые читаются так
+       же, как их читает модель: «как съёмка». */
+    fRentLinked = (fRentFrom == null && fRentTo == null);
     sessionPlace = (s.placeLat != null)
       ? { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
           lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
@@ -24118,6 +24194,7 @@
          поведение, город из-под ног (docs: DECISIONS, «Родной город»). */
       sessionPlace = { name: "", town: myCity() || geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
       sessionStudioId = null; fRentFrom = null; fRentTo = null; fHallId = null;
+      fRentLinked = true;
       fBookingRef = null; fRentReq = null;
       fId = newId();
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
@@ -24824,7 +24901,7 @@
     sessionPlace = { name: "", town: sessionPlace.town || "", townTyped: !!sessionPlace.townTyped,
                      addr: "", lat: LAT, lon: LON, city: sessionPlace.city };
     sessionStudioId = null; fHallId = null;
-    fRentFrom = fRentTo = null; fBookingRef = null; fRentReq = null;
+    fRentFrom = fRentTo = null; fRentLinked = true; fBookingRef = null; fRentReq = null;
     renderSessionPlace(); renderHallRow(); renderLinkRow();
   });
   /* Кого снимаем — парой или строкой, смотря по жанру */
@@ -29073,7 +29150,7 @@
         /* Ушли с пути студии на адрес или координаты — значит съёмка больше
            не в студии: аренда и зал уходят вместе с ней */
         sessionStudioId = null;
-        fRentFrom = fRentTo = null;
+        fRentFrom = fRentTo = null; fRentLinked = true;
         placeName = ($("locName").value || "").trim() || locPickName;
         /* Адрес принадлежит съёмке, а не только закладке. Раньше он писался
            лишь при включённом тумблере «сохранить место» — выключен, и
