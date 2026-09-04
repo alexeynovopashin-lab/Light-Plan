@@ -879,7 +879,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=45"></script>
+<script src="lang.js?v=46"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2165,6 +2165,54 @@
     z-index: 440; pointer-events: none;
     background: #05070C; opacity: 0; transition: opacity 0.18s linear;
   }
+  /* ---------- Отметки сохранённых точек ----------
+     Точка, сохранённая закладкой, до сих пор существовала только списком:
+     на холсте от неё не оставалось следа, и разложить маршрут глазами было
+     нечем (замер 4 сентября 2026: пять точек в Каппадокии, три из них в
+     250–790 м от центра при кадре 2,7 × 2,5 км на z=14 — на карте ни одной).
+     Слой лежит над ночной вуалью (440) и под прибором света (450): город
+     ночью темнеет, свои точки — нет; прибор остаётся главным чтением.
+     Геометрия — та же, что у карты под ним, иначе проекция не совпала бы
+     с пикселями холста. */
+  #mapSpots {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: var(--rotor-d, 150%); height: var(--rotor-d, 150%);
+    z-index: 445; pointer-events: none;
+  }
+  /* Якорь нулевого размера: `translate` ставит его в спроецированный пиксель,
+     а знак и подпись висят от него отступами. Так на каждом кадре карты
+     меняется только `transform` — раскладку это не трогает. */
+  .spot-mark { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+  /* Остриё булавки приходится на (12, 21) холста 24 × 24 — при 18 пикселях
+     это 9 вправо и 15,75 вниз от левого верхнего угла знака. Отсюда сдвиг:
+     координата точки должна оказаться под остриём, а не под серединой знака. */
+  .spot-mark svg {
+    position: absolute; left: -9px; top: -15.75px; width: 18px; height: 18px;
+    fill: var(--brass); stroke: var(--canvas); stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  /* Подпись — то, ради чего точку и называют: без неё пять булавок в Гёреме
+     неразличимы так же, как были неразличимы пять строк списка. Плашка та
+     же, что у атрибуции карты (`.map-credit`): приём для текста поверх
+     тайлов в приложении уже принят, второй заводить незачем. */
+  .spot-mark .sm-name {
+    position: absolute; left: 8px; top: -14px; max-width: 132px;
+    padding: 1px 5px; border-radius: 6px; corner-shape: squircle;
+    background: var(--bar-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.2px; color: var(--ink-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Точка, на которой стоит булавка, себя не подписывает: её имя уже стоит
+     в шапке крупно, а знак под белой головкой наблюдателя только грязнил бы
+     центр кадра. Остаётся тонкое кольцо — «эта точка сохранена». */
+  .spot-mark.here svg { display: none; }
+  .spot-mark.here .sm-name { display: none; }
+  .spot-mark.here::after {
+    content: ""; position: absolute; left: -11px; top: -11px;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1.4px solid var(--brass); opacity: 0.55;
+  }
+
   /* Слой света поверх тайлов — компас не перехватывает жесты карты */
   #mapLight { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 450; }
   /* Точка съёмки — в центре кадра; карта ездит под ней */
@@ -2248,6 +2296,54 @@
     background: var(--bar-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     font-size: 9px; letter-spacing: 0.2px; color: var(--ink-7); pointer-events: none;
   }
+
+  /* ---------- Полоса именования точки ----------
+     Ответ на «нажал на флажок — и что?». Заливка знака говорила только
+     «что-то произошло»; полоса говорит, что именно: вот поле для имени, вот
+     координаты того, что записалось. Стоит поверх кадра, а не строкой над
+     ним, — вставленная в поток строка двигала бы карту при каждом сохранении.
+     Плашка плотнее, чем у меток (`--bar`, не `--bar-2`): в поле набирают
+     текст, и просвечивающие улицы под буквами тут не к месту. */
+  .spot-name-bar {
+    position: absolute; left: 10px; right: 10px; top: 10px; z-index: 490;
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 7px 7px 11px;
+    border-radius: 14px; corner-shape: squircle;
+    background: var(--bar); border: 1px solid var(--ink-10);
+    backdrop-filter: blur(14px) saturate(1.6); -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  }
+  /* `display: flex` сильнее собственного `hidden` у браузера — в этом файле
+     так у каждого скрываемого блока, и правило пишется рядом с ним */
+  .spot-name-bar[hidden] { display: none; }
+  .spot-name-bar .snb-ic { display: inline-flex; flex-shrink: 0; }
+  .spot-name-bar .snb-ic svg {
+    width: 17px; height: 17px; fill: none; stroke: var(--brass);
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .snb-fields { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  #spotNameIn {
+    width: 100%; background: none; border: none; outline: none; padding: 0;
+    font-family: inherit; font-size: 15px; color: var(--ink);
+  }
+  #spotNameIn::placeholder { color: var(--ink-5); }
+  /* Координаты — доказательство, а не украшение: они называют то самое место,
+     что было под булавкой в момент тапа. Моноширинные цифры, чтобы строка не
+     дёргалась, пока геокодер дописывает имя выше. */
+  .snb-coord {
+    font-size: 10px; letter-spacing: 0.3px; color: var(--ink-4);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .snb-ok {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: none;
+    background: var(--brass); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .snb-ok svg {
+    width: 17px; height: 17px; fill: none; stroke: var(--surface);
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .snb-ok:active { background: var(--brass-deep); }
 
   /* ---------- Календарь ---------- */
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
@@ -6001,6 +6097,13 @@
              достаётся заодно: звёздам нужен тёмный фон, и ночью он появляется
              сам, без отдельного режима. -->
         <div id="mapNight" aria-hidden="true"></div>
+        <!-- Отметки сохранённых точек. Лежат над ночной вуалью и под прибором:
+             город ночью темнеет, а свои точки — нет, они и есть то, ради чего
+             карту открыли; прибор света остаётся главным чтением и проходит
+             поверх. Тело знака — та же булавка места (`pin`), что в шапке и в
+             настройках, а не ещё один кружок: кружки на этой карте уже заняты
+             солнцем и луной, и отличать точку от светила надо формой. -->
+        <div id="mapSpots" aria-hidden="true"></div>
         <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
         <div class="map-pin"><i></i></div>
       </div>
@@ -6008,6 +6111,22 @@
            на самом холсте. Стоит снаружи ротора — со сноской, которая ездит
            вместе с картой на живом компасе, читать было бы нечего. -->
       <div class="map-credit">© CARTO · © OpenStreetMap</div>
+      <!-- Именование сразу после сохранения. Прежде тап по закладке отвечал
+           одной заливкой знака, и человек оставался с двумя вопросами: что
+           именно записалось и как это назвать. Полоса отвечает на оба разом —
+           поле имени и под ним координаты сохранённого. Числа тут не украшение:
+           закладка сохраняет место под булавкой, а не место, где стоит телефон,
+           и словами это доказать нельзя — только показать (Алексей, 4 сентября
+           2026: «это координаты нового места или того где я стою?»). -->
+      <div class="spot-name-bar" id="spotNameBar" hidden>
+        <span class="snb-ic" data-ic="pin"></span>
+        <span class="snb-fields">
+          <input type="text" id="spotNameIn" autocomplete="off" autocapitalize="sentences" spellcheck="false"
+                 placeholder="Как назвать точку?" data-i18n-ph="map.nameSpot"/>
+          <span class="snb-coord" id="spotNameCoord">—</span>
+        </span>
+        <button class="snb-ok" id="spotNameOk" data-ic="check" aria-label="Готово" data-i18n-aria="map.nameDone"></button>
+      </div>
       <!-- Слои — не переключатель темы карты, а выбор, что на ней светится:
            солнце и луна включены по умолчанию (так компас работал и раньше),
            Млечный Путь — по запросу, это нишевый слой для тех, кто его ищет -->
@@ -11376,6 +11495,7 @@
   }
   function renderSpotMark() {
     var on = spotHere() >= 0;
+    buildSpotMarks();          // список изменился — знаки на холсте следом
     $("mapSave").classList.toggle("on", on);
     $("mapSave").setAttribute("aria-label", LANG.t(on ? "map.dropPoint" : "map.savePoint"));
     if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' <span class="go-chev">\u203a</span>';
@@ -13402,6 +13522,51 @@
       rainTiles = true;
     });
   }
+  /* ---------- Отметки сохранённых точек на холсте ----------
+     Список точек рисуется дважды разными способами, и это не дублирование:
+     разметка знаков перестраивается только когда меняется сам список, а на
+     каждом кадре карты двигается один `transform`. Перестраивать DOM на
+     `move` было бы честнее по коду и хуже по существу — событие сыплется
+     десятками в секунду, пока карту тащат пальцем.
+
+     Проекция берётся у самой карты (`lmap.project`), а не считается своей
+     арифметикой: слой и холст — одна коробка (`--rotor-d`), и пиксели у них
+     общие. Живой компас крутит их вместе, поэтому поворот тут не при чём. */
+  var spotMarks = [];
+  function buildSpotMarks() {
+    var box = $("mapSpots"); if (!box) return;
+    box.innerHTML = ""; spotMarks = [];
+    spots.forEach(function (sp) {
+      if (sp.lat == null || sp.lon == null) return;
+      var el = document.createElement("div");
+      el.className = "spot-mark";
+      el.innerHTML = '<svg viewBox="0 0 24 24">' + window.ICONS.body("pin") + "</svg>"
+        + '<span class="sm-name"></span>';
+      el.querySelector(".sm-name").textContent = sp.name || coordText(sp.lat, sp.lon);
+      box.appendChild(el);
+      spotMarks.push({ sp: sp, el: el });
+    });
+    placeSpotMarks();
+  }
+  function placeSpotMarks() {
+    if (!lmap || !spotMarks.length) return;
+    var box = $("mapSpots"); if (!box) return;
+    var w = box.offsetWidth, h = box.offsetHeight;
+    spotMarks.forEach(function (m) {
+      var p;
+      try { p = lmap.project([m.sp.lon, m.sp.lat]); } catch (e) { return; }
+      /* За кадром знак не рисуем вовсе: на другом материке проекция даёт
+         десятки тысяч пикселей, и браузер держал бы их все впустую */
+      if (p.x < -140 || p.y < -80 || p.x > w + 140 || p.y > h + 80) {
+        m.el.style.display = "none"; return;
+      }
+      m.el.style.display = "";
+      m.el.style.transform = "translate(" + p.x.toFixed(1) + "px," + p.y.toFixed(1) + "px)";
+      /* Точка под булавкой опознаётся тем же допуском в ~60 м, что и закладка:
+         иначе знак и головка наблюдателя спорили бы за один пиксель */
+      m.el.classList.toggle("here", sameSpot(m.sp, LAT, LON));
+    });
+  }
   function initMap() {
     if (lmap || typeof maplibregl === "undefined" || typeof MAPSTYLE === "undefined") return;
     lmap = new maplibregl.Map({
@@ -13423,6 +13588,10 @@
     /* Плитка приходит одна на всю колонку зумов, и проявлять её незачем:
        затухание только растягивало бы подмену масштаба. */
     lmap.on("load", function () { if (mapLayers.rain) setMapRain(true); });
+    /* Отметки едут вместе с холстом: событие идёт на каждом кадре жеста,
+       и обработчик поэтому двигает только `transform` уже готовых знаков */
+    lmap.on("move", placeSpotMarks);
+    buildSpotMarks();
     /* Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место */
     lmap.on("moveend", function () {
       if (mapQuiet) return;
@@ -13455,6 +13624,7 @@
     mapQuiet = true;
     lmap.resize();
     lmap.jumpTo({ center: [LON, LAT], zoom: lmap.getZoom() });
+    placeSpotMarks();
     setTimeout(function () { mapQuiet = false; }, 300);
   }
 
@@ -27219,6 +27389,51 @@
       });
     });
   }
+  /* ---------- Имя точке, сразу и на месте ----------
+     Тап по закладке отвечал одной заливкой знака, и Алексей 4 сентября 2026
+     назвал цену этой немоты: «нажал на флажок и что? он просто окрасился, я
+     хочу подписать точку». Второй вопрос был хуже первого — подпись пустого
+     списка обещала сохранять «место, где стоите», и по заливке нельзя было
+     понять, записалось место под булавкой или место телефона.
+
+     Поэтому полоса показывает и то и другое разом: поле имени и координаты
+     сохранённого. Имя необязательно — не назвали, останется город от
+     геокодера, как было; но спрашивают его теперь до того, как точка уедет
+     в список, а не карандашом во второй заход. */
+  var snbSpotId = null;
+  function openSpotName(sp) {
+    var bar = $("spotNameBar"); if (!bar || !sp) return;
+    snbSpotId = sp.id;
+    bar.hidden = false;
+    $("spotNameCoord").textContent = coordText(sp.lat, sp.lon);
+    var inp = $("spotNameIn");
+    inp.value = "";
+    /* Фокус ставится прямо в обработчике тапа: перенеси его в таймер — и iOS
+       откажется поднимать клавиатуру, жест к тому времени уже не «живой» */
+    inp.focus();
+  }
+  /* Уходит фокус — имя записано. Отдельной кнопки «отмена» тут нет и не
+     нужно: точка уже сохранена тапом по закладке, полоса лишь называет её,
+     а несохранённого состояния, которое можно потерять, не существует. */
+  function commitSpotName() {
+    var bar = $("spotNameBar"); if (!bar || bar.hidden) return;
+    var v = ($("spotNameIn").value || "").trim();
+    var sp = spotById(snbSpotId);
+    bar.hidden = true; snbSpotId = null;
+    if (!sp || !v) return;
+    sp.name = v;
+    sp.named = true;              // названо рукой — геокодеру больше не перебивать
+    saveAll(); renderSpotMark(); renderSpots();
+  }
+  $("spotNameIn").addEventListener("blur", commitSpotName);
+  /* Ввод записывает сам, а не через потерю фокуса. Разница видна там, где
+     `blur()` ничего не отправляет — в неактивном окне (замер 4 сентября 2026:
+     `document.hasFocus()` ложно, событие не пришло, полоса осталась висеть).
+     Клавиатуру всё равно убираем, но уже после записи. */
+  $("spotNameIn").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); commitSpotName(); this.blur(); }
+  });
+  $("spotNameOk").addEventListener("click", commitSpotName);
   $("mapSave").addEventListener("click", function () {
     var i = spotHere();
     if (i >= 0) { unlinkSpot(spots[i].id); bury(spots[i].id); spots.splice(i, 1); saveNote(LANG.t("loc.spotRemoved")); }
@@ -27226,7 +27441,13 @@
       spots.unshift({ id: newSpotId(), name: geoCity || coordText(LAT, LON), sub: geoSub || "",
                       named: !!geoCity,          // именем служат координаты — дождёмся геокодера
                       lat: +LAT.toFixed(5), lon: +LON.toFixed(5) });
-      saveNote(LANG.t("loc.spotSaved"));
+      /* Мимолётной подписи «точка сохранена» здесь больше нет: полоса имени
+         говорит то же самое и точнее — она называет координаты и не гаснет
+         через две секунды. Две вести об одном событии спорили бы за угол
+         экрана, и обе читались бы хуже. */
+      saveAll(); renderSpotMark(); renderSpots();
+      openSpotName(spots[0]);
+      return;
     }
     saveAll(); renderSpotMark(); renderSpots();
   });
@@ -27551,6 +27772,7 @@
       nameIn.addEventListener("input", function () {
         sp.name = nameIn.value.trim(); nm.textContent = sp.name || coordText(sp.lat, sp.lon);
         saveAll();
+        buildSpotMarks();        // подпись на холсте — та же строка, что в списке
       });
       addrIn.addEventListener("input", function () {
         sp.address = addrIn.value.trim(); ad.textContent = sp.address; saveAll();
