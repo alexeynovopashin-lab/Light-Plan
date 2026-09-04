@@ -20253,6 +20253,18 @@
         if (sessionPlace.lat !== lat || sessionPlace.lon !== lon) return;   // место успело смениться
         sessionPlace.city = !!g.city;                    // засветка бывает там, где есть посёлок
         if (!sessionPlace.townTyped) sessionPlace.town = g.city || "";
+        /* Координаты — правда, город — подпись к ним. Студия могла получить
+           чужой город в наследство от формы (так томская «Томсон» оказалась
+           в Лобне, замер 4 сентября 2026) — и тогда её собственная точка
+           говорит ей, где она стоит. Правим молча: это не выбор фотографа,
+           а починка ошибки, которую он не делал. */
+        var stFix = studioById(sessionStudioId);
+        if (g.city && stFix && stFix.lat != null
+            && Math.abs(stFix.lat - lat) < 0.0005 && Math.abs(stFix.lon - lon) < 0.0005
+            && stFix.town !== g.city) {
+          stFix.town = g.city;
+          saveAll();
+        }
         renderSessionPlace();
       }).catch(function () {});
   }
@@ -22139,14 +22151,18 @@
         if (offHere && mins != null && mins > FAR_MIN) return;
         if (mins != null && gap < mins) {
           out.push({ w: 2, t: LANG.t("clash.tripShortT"),
+            /* Длительностью, а не числом минут: «2900 минут» человек не
+               читает, а «48 ч 20 мин» читает сразу. Тот же `durLabel`, что
+               держит длительность съёмки, — второго языка для времени в
+               приложении нет */
             m: LANG.t("clash.tripShortM", { name: name, when: when,
-              need: LANG.count("unit.min", mins), have: LANG.count("unit.min", gap) }) });
+              need: durLabel(mins), have: durLabel(gap) }) });
           return;
         }
         if (mins == null && gap < travelMin) {
           out.push({ w: 2, t: LANG.t("clash.tripTightT"),
             m: LANG.t("clash.tripTightM", { name: name, when: when,
-              gap: LANG.count("unit.min", gap) }) });
+              gap: durLabel(gap) }) });
           return;
         }
       }
@@ -29133,8 +29149,18 @@
         st.tel = (studioDraft.tel || "").trim();
         st.key = (studioDraft.key || "").trim();
         st.tomcohId = studioDraft.tomcohId || null;
-        /* Город студии — то, чем список отделяет томские от московских */
-        st.town = studioDraft.town || sessionPlace.town || myCity() || st.town || "";
+        /* Город студии — то, чем список отделяет томские от московских.
+           В наследство от формы он годится, только пока речь об одном
+           городе: студия в Томске, а форма показывает Лобню — и город
+           достаётся ей чужой, вместе со всеми последствиями (выезд не
+           опознан, дорога считается по земле, «ехать 2900 минут»).
+           Дальше шестидесяти километров наследовать нечего: пусть город
+           придёт от собственных координат студии. */
+        var farFromForm = sessionPlace.lat != null
+          && kmBetween(sessionPlace.lat, sessionPlace.lon, la, lo) > 60;
+        st.town = studioDraft.town
+          || (farFromForm ? "" : (sessionPlace.town || myCity()))
+          || st.town || "";
         locPickTown = st.town;
         /* Пустые строки залов выбрасываем: «＋ зал» нажимают и передумывают,
            а безымянный зал в барабане съёмки — пустая позиция без значения */
@@ -29159,8 +29185,17 @@
       }
       /* Город места сильнее города, стоявшего в форме: место названо
          позже и точнее. Отмечаем его как названный, чтобы обратный геокодер
-         не переписал его обратно на посёлок по соседству. */
-      if (locPickTown) { sessionPlace.town = locPickTown; sessionPlace.townTyped = true; }
+         не переписал его обратно на посёлок по соседству.
+
+         Кроме пути студии. Там город приходит из её записи, а запись могла
+         получить его от формы — и «названным» оказывался не ответ человека,
+         а чужая подпись, которую после этого нечем было исправить: геокодер
+         молчал, потому что его просили молчать. У студии есть свои
+         координаты, и по ним ответ точен — пусть отвечает. */
+      if (locPickTown) {
+        sessionPlace.town = locPickTown;
+        if (locWay !== "studio") sessionPlace.townTyped = true;
+      }
       /* Руками набранные координаты считаем ответом только если имени к ним
          не дали: назвал место — значит числа ему не подпись */
       setSessionPlace(la, lo, placeName, locCoordsTyped && !placeName, addr);
