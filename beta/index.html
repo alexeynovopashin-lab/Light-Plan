@@ -454,6 +454,18 @@
       + '<path d="M2 13.6l2-3.4 2 3.4M18 13.6l2-3.4 2 3.4"/>'
       + '<path d="M7 4.2v9.6c0 3-1.4 5.2-3.6 6.6h17.2c-2.2-1.4-3.6-3.6-3.6-6.6V4.2"/>',
     /* Студийная вспышка: софтбокс на стойке, вид спереди */
+    /* Фотостудия — камера на треноге и прожектор на стойке. `softbox` рядом
+       рядом остаётся: он про жанр съёмки, а этот про место, где снимают. Оба
+       предмета стоят на ногах — студия не прибор, а комната, где их двое.
+       Рисунок Алексея: из трёх набросков он собрал один, добавил прожектору
+       лучи (без них рефлектор читался флагом) и поменял ему опору на такую
+       же треногу, как у камеры. */
+    studio: '<rect x="1" y="8.6" width="9.4" height="6" rx="1.7"/>'
+      + '<circle cx="5.7" cy="11.6" r="1.6"/><circle cx="5.7" cy="11.6" r="0.5"/>'
+      + '<path d="M5.7 14.6v1.8M2.6 21L5.7 16.4 8.8 21"/>'
+      + '<path d="M13.4 4l6.8-2.2v7.4l-6.8-2.2z"/>'
+      + '<path d="M16.8 9.2v7.8M14.6 21l2.2-4 2.2 4"/>'
+      + '<path d="M21.2 2.8l2-1.2M21.6 5.6h1.8M21.2 8.4l2 1.2"/>',
     softbox: '<rect x="9.6" y="4" width="11.4" height="9.6" rx="1.6"/>'
       + '<path d="M9.6 8.8h11.4M15.3 4v9.6"/>'
       + '<path d="M9.6 8.8H7.2M7.2 8.8v8"/>'
@@ -4287,6 +4299,70 @@
   #blkSheet { z-index: 86; }
 
   /* Лист выбора места */
+  /* ---------- Развилка листа: три пути ----------
+     Строка пути — родня строке настроек: знак, название, подпись и шеврон.
+     Язык не новый, потому что и действие не новое — «здесь откроется ещё
+     экран». Знаки взяты из библиотеки приложения: дома для адреса, зал для
+     студии, маршрут для координат — ни одной формы не придумано заново
+     (docs: DECISIONS, «Три пути к месту»). */
+  .loc-way-list { display: flex; flex-direction: column; margin-top: 16px; }
+  .loc-way {
+    display: flex; align-items: center; gap: 13px; width: 100%;
+    padding: 15px 2px; background: none; border: none; cursor: pointer;
+    font-family: inherit; text-align: left; color: var(--ink);
+    box-shadow: inset 0 -1px 0 var(--hair-2);
+  }
+  .loc-way:active { opacity: 0.6; }
+  .loc-way[hidden] { display: none; }
+  .lw-ic { display: flex; flex-shrink: 0; }
+  .lw-ic svg { width: 19px; height: 19px; fill: none; stroke: var(--ink-4);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .lw-tx { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .lw-t { font-size: 16px; }
+  .lw-s { font-size: 12px; color: var(--ink-5); }
+  .loc-way .go-chev { color: var(--ink-6); font-size: 22px; line-height: 1; flex-shrink: 0; }
+  /* Возврат к развилке. Тот же вид, что у «назад» в разделах настроек:
+     выход со второго экрана выглядит одинаково, где бы он ни стоял */
+  .loc-back {
+    background: none; border: none; color: var(--ink-4); cursor: pointer;
+    font-family: inherit; font-size: 14px; padding: 0 0 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .loc-back[hidden] { display: none; }
+  .loc-back svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; }
+  /* «Новая студия» — приглашение, а не действие первой руки: тон латунный,
+     как у всех «＋» приложения, вес обычный */
+  .loc-add {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    padding: 13px 2px; margin-top: 2px; background: none; border: none; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 600; color: var(--brass); text-align: left;
+  }
+  .loc-add:active { opacity: 0.6; }
+  .la-ic { display: flex; }
+  .la-ic svg { width: 17px; height: 17px; fill: none; stroke: currentColor;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  /* Залы студии: заголовок с «＋», строки — как у пакетов. Список свой у
+     каждой студии, и заводится он руками: карточка из шлюза приезжает не ко
+     всем, а зал в съёмке нужен всем (docs: DECISIONS, «Студия без шлюза») */
+  .hall-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px 9px; }
+  .hall-head .k { font-size: 15px; color: var(--ink); }
+  .hall-row { display: flex; gap: 6px; align-items: center; padding: 0 15px 10px; }
+  .hall-row input {
+    flex: 1; min-width: 0; background: var(--sheet); border: none; border-radius: 10px;
+    corner-shape: squircle; padding: 10px; color: var(--ink); font-family: inherit;
+    font-size: 14px; outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .hall-row input::placeholder { color: var(--ink-8); }
+  .hall-row .hall-del { width: 32px; height: 32px; flex-shrink: 0; background: none; border: none;
+    cursor: pointer; color: var(--ink-6); display: flex; align-items: center; justify-content: center; }
+  .hall-row .hall-del svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
+  .hall-row .hall-del:active { color: var(--terra); }
+  .hall-empty { font-size: 12px; color: var(--ink-6); padding: 0 15px 12px; }
+  /* Подсказка городов в настройках и знакомстве. Список тот же, что у поиска
+     мест, но живёт среди строк настроек — им и отступ */
+  .city-hits { padding: 0 24px; }
+  .city-hits:empty { display: none; }
   .loc-detect {
     display: flex; align-items: center; justify-content: center; gap: 9px;
     width: 100%; margin-top: 18px; padding: 14px;
@@ -5288,6 +5364,49 @@
      текст справа читался как подпись — было непонятно, что сюда можно нажать.
      Подсказка под значением остаётся снаружи капсулы: она не поле, а пояснение */
   .row .rv { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  /* ---------- Строка места: три пути и крестик ----------
+     Пути стоят раздельными кнопками. Прежде это была строка слов через
+     косые — «Место / Фотостудия / Геопозиция», — и она читалась подписью:
+     что каждое слово нажимается, приходилось угадывать. Форма взята готовая,
+     у кнопок набора референсов: три равные доли, своя подложка, знак слева.
+     Слова разной длины, поэтому доли равные, а не по содержимому: ряд из
+     кнопок в 60, 110 и 95 пикселей выглядел бы случайным. */
+  .place-ways { flex-wrap: nowrap; }
+  /* Знак над подписью, а не слева от неё: «Фотостудия» и «Геопозиция» рядом
+     со знаком в треть строки не помещались и обрезались многоточием
+     (замерено: 94 пикселя на кнопку, из них знак съедал 22). Столбиком слово
+     получает всю ширину доли. Компоновка не выдумана — так же устроены
+     кнопки инструментов (`.tool`), знак над словом. */
+  /* Подложка светлее группы, а не вровень с ней. `ref-btn` красится в
+     `--sheet`, и на группе того же цвета кнопки пропадали: оставались одни
+     зазоры между ними (замерено — обе поверхности #17150F). Берём подложку
+     чипсов: в приложении она и означает «нажимается». */
+  .place-ways .pw { flex-direction: column; gap: 5px; padding: 10px 4px;
+    font-size: 12px; min-width: 0; background: var(--press); }
+  .place-ways .pw span:not(.pw-ic) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 100%; }
+  .pw-ic { display: flex; flex-shrink: 0; }
+  .pw-ic svg { width: 17px; height: 17px; fill: none; stroke: currentColor;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .place-ways .pw:active { color: var(--brass); background: var(--press-warm); }
+  /* Выбранное место занимает строку целиком, крестик стоит с краю */
+  .fp-go {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;
+    background: none; border: none; padding: 0; text-align: left;
+    font-family: inherit; font-size: 16px; color: var(--ink); cursor: pointer;
+  }
+  .fp-go:active { opacity: 0.6; }
+  /* Крестик снимает выбор, а не удаляет запись, — поэтому нейтральный кружок
+     iOS, а не красный знак корзины: у сброса поля свой, более тихий голос */
+  .fp-x {
+    width: 22px; height: 22px; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
+    border-radius: 50%; background: var(--ink-8);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fp-x svg { width: 15px; height: 15px; fill: none; stroke: var(--sheet);
+    stroke-width: 2.4; stroke-linecap: round; }
+  .fp-x:active { opacity: 0.55; }
+
   /* Дата и время — две отдельные капсулы в одной строке: мероприятие может
      начаться восьмого и кончиться девятого, и обе даты нужно видеть и править */
   .caps { display: flex; align-items: center; gap: 6px; }
@@ -5312,6 +5431,11 @@
     font-variant-numeric: tabular-nums;
   }
   .row .rv .sub { max-width: 190px; }
+  /* Метка чужого пояса. Тон подписи, а не значения: она уточняет время, а не
+     спорит с ним. Появляется только там, где время места расходится с
+     часами телефона (docs: DECISIONS, «Модель времени»). */
+  .tz-tag { color: var(--brass-soft); letter-spacing: 0.3px; font-variant-numeric: tabular-nums; }
+  .tz-tag[hidden] { display: none; }
   .row .rv.act { font-size: 14px; }   /* подсказка о действии не спорит с содержимым строки */
   .row.open > .rv { color: var(--brass); }
 
@@ -6488,6 +6612,17 @@
     <!-- Профиль стоит первым и до сих пор его не было вовсе: приложение знало
          клиентов, организации и съёмки, но не знало, чьё оно само. Планировщику
          одиночке этого хватало, узлу Event OS — уже нет (DECISIONS, «ID») -->
+    <!-- Город стоит перед номером, потому что он первее по смыслу: съёмка
+         всегда где-то происходит, а номер нужен только там, где приложение
+         разговаривает с чужими системами. Отсюда же приложение узнаёт, что
+         съёмка в другом городе — выезд: раньше это говорил тумблер, то есть
+         фотограф сообщал приложению то, что оно могло знать само
+         (docs: DECISIONS, «Родной город фотографа»). -->
+    <div class="sec-label" data-i18n="set.myCity">Мой город</div>
+    <input class="set-in" type="text" id="myCity" placeholder="Город"
+           data-i18n-ph="start.cityPh" autocomplete="off"/>
+    <div class="loc-results city-hits" id="myCityHits"></div>
+    <p class="seg-note" data-i18n="set.myCityNote">Город, где вы живёте или сейчас находитесь. В нём заводятся новые съёмки, съёмка в другом городе считается выездом.</p>
     <div class="sec-label" data-i18n="set.myPhone">Мой телефон</div>
     <input class="set-in" type="tel" id="myTel" placeholder="Телефон"/>
     <!-- Вопрос на месте вместо настройки. Страну номеров держали отдельным
@@ -7126,7 +7261,7 @@
     <div class="group" id="cdWhenGroup">
       <div class="row"><span class="rl" data-i18n="card.date">Дата</span><span class="rv" id="cdDate">—</span></div>
       <div class="row sep"><span class="rl" data-i18n="card.time">Время</span>
-        <span class="rv"><span id="cdTime">—</span><span class="sub" id="cdDur">—</span></span>
+        <span class="rv"><span id="cdTime">—</span><span class="sub" id="cdDur">—</span><span class="sub tz-tag" id="cdTz" hidden></span></span>
       </div>
       <div class="row sep" id="cdPlaceLine"><span class="rl" data-i18n="card.place">Место</span><span class="rv" id="cdPlace">—</span></div>
     </div>
@@ -7304,6 +7439,7 @@
             <button type="button" class="rv-v" id="fStartVal">—</button>
           </span>
           <span class="sub" id="fWhenHint">—</span>
+          <span class="sub tz-tag" id="fTzTag" hidden></span>
         </span>
       </div>
       <div class="inline datepick" id="fStartDatePick">
@@ -7345,10 +7481,74 @@
     <div class="g-label" data-i18n="form.placeAddr">Место и адрес</div>
     <div class="group">
       <input type="text" id="fCity" placeholder="Город" data-i18n-ph="form.city"/>
-      <button class="row sep" id="fPlace">
-        <span><span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords"></span></span>
-        <span class="rv act" data-i18n="form.change">Изменить</span>
+      <!-- Выезд считается сам: приложение знает родной город фотографа и
+           видит, что съёмка в другом. Тумблер остался, но сменил роль — он
+           больше не спрашивает то, что известно, а даёт поправить редкий
+           случай: область в трёх часах езды формально тот же город, а
+           выездом ощущается сильнее соседней улицы. Тронули руками —
+           приложение отступает и держит ответ человека
+           (docs: DECISIONS, «Родной город фотографа»). -->
+      <!-- Строки нет, пока город тот же: вопрос «выезд ли это» возникает
+           только когда съёмка не дома, а в родном городе он был бы строкой
+           без предмета. Подпись «город не ваш» тоже снята — она объясняла
+           то, что уже сказано двумя строками выше, самим названием города
+           (решение Алексея). -->
+      <div class="row sep" id="fTripRow" hidden>
+        <!-- Подпись говорит последствие, а не название: выезд — это не метка
+             на записи, а занятый день. Из этого растёт предупреждение о
+             второй съёмке в тот же день (docs: DECISIONS, «Выезд занимает
+             день»). -->
+        <span class="rl"><span data-i18n="pane.trip">Выезд</span><span class="sub2" id="fTripNote" data-i18n="form.tripNote">день уходит на дорогу</span></span>
+        <span class="rv"><span class="toggle" id="fTripToggle" role="switch"
+              aria-label="Выезд" data-i18n-aria="pane.trip"></span></span>
+      </div>
+      <!-- Пока места нет, строка не сообщает о его отсутствии, а предлагает
+           три пути словами. «Место не выбрано · Изменить» отвечало на вопрос,
+           которого никто не задавал, и прятало выбор за вторым нажатием:
+           сперва открой лист, потом ищи в нём развилку. Теперь каждое слово
+           открывает лист сразу на своём пути — жест один
+           (docs: DECISIONS, «Три пути к месту», поправка). -->
+      <!-- Три раздельные кнопки, а не строка слов через косые: слова читались
+           подписью, и то, что каждое нажимается, приходилось угадывать. Форма
+           не новая — та же, что у «Фото · Ссылка» в наборе референсов
+           (`ref-add`/`ref-btn`): три равные кнопки в ряд. Знаки те же, что
+           стоят на путях в самом листе, — кнопка и экран, куда она ведёт,
+           называются одинаково (решение Алексея). -->
+      <!-- Дорога отмечается тем же механизмом, что и выходной: занятость уже
+           умеет «Дорогу» и «Перелёт», и заводить второй такой же незачем.
+           Календарь расписания сам не знает — съёмка 10-го в Москве, а летят
+           5-го, и знает об этом только фотограф (решение Алексея). -->
+      <button type="button" class="row sep" id="fRoadRow" hidden>
+        <span class="rl"><span data-i18n="form.road">Время в пути</span><span class="sub2" id="fRoadNote"></span></span>
+        <span class="rv act" id="fRoadVal" data-i18n="form.roadAdd">отметить</span>
       </button>
+      <div class="ref-add place-ways sep" id="fPlaceWays">
+        <button type="button" class="ref-btn pw" data-way="addr">
+          <span class="pw-ic" data-ic="city"></span>
+          <span data-i18n="loc.wayAddr">Место</span>
+        </button>
+        <button type="button" class="ref-btn pw" data-way="studio">
+          <span class="pw-ic" data-ic="studio"></span>
+          <span data-i18n="loc.wayStudio">Фотостудия</span>
+        </button>
+        <button type="button" class="ref-btn pw" data-way="geo">
+          <span class="pw-ic" data-ic="route"></span>
+          <span data-i18n="loc.wayGeo">Геопозиция</span>
+        </button>
+      </div>
+      <!-- Выбранное место занимает ту же строку: имя (у студии — вместе с
+           залом), адрес под ним и крестик сброса справа. Крестик, а не
+           «Изменить»: место меняют, войдя в него, а вот убрать его прежде
+           было нечем вовсе — приходилось выбирать другое поверх. Знак взят
+           у iOS, где им чистят поле, и говорит ровно это. -->
+      <div class="row sep" id="fPlace" hidden>
+        <button type="button" class="fp-go" id="fPlaceGo">
+          <span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords"></span>
+        </button>
+        <button type="button" class="fp-x" id="fPlaceClear" aria-label="Убрать место" data-i18n-aria="form.placeClear">
+          <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
+        </button>
+      </div>
       <!-- Аренда есть только у студии: её всегда бронируют на конкретное время.
            Своих границ у неё раньше не было вовсе — таймер брал конец у
            следующей точки маршрута и на свадьбе ошибался на час
@@ -8050,7 +8250,12 @@
         <span class="rv"><span class="toggle on" id="blkAllDay"></span></span>
       </div>
 
-      <div class="row sep" id="blkFromRow"><span class="rl" data-i18n="blk.from">С</span>
+      <!-- Перелёт живёт в двух поясах сразу: вылет 9:00 в Томске и прилёт
+           9:00 в Москве — для календаря телепорт, а на деле четыре часа.
+           Поэтому у концов дороги свои метки поясов, а длительность считается
+           по моментам, а не вычитанием часов (docs: DECISIONS, «Модель
+           времени», шаг про перелёт). -->
+      <div class="row sep" id="blkFromRow"><span class="rl"><span data-i18n="blk.from">С</span><span class="sub2 tz-tag" id="blkTzFrom" hidden></span></span>
         <span class="rv">
           <span class="caps">
             <button type="button" class="rv-v" id="blkFromDate">—</button>
@@ -8068,7 +8273,7 @@
         </div>
       </div>
 
-      <div class="row sep" id="blkToRow"><span class="rl" data-i18n="blk.to">По</span>
+      <div class="row sep" id="blkToRow"><span class="rl"><span id="blkToLabel" data-i18n="blk.to">По</span><span class="sub2 tz-tag" id="blkTzTo" hidden></span></span>
         <span class="rv">
           <span class="caps">
             <button type="button" class="rv-v" id="blkToDate">—</button>
@@ -8137,19 +8342,31 @@
     <button type="button" class="sheet-done" id="icsAdd" hidden data-i18n="ics.add">Добавить</button>
   </div>
   <!-- ============ ПЕРВЫЙ ЗАПУСК ============
-       Единственный вопрос, который нельзя вывести ни из чего: по каким
-       правилам фотограф оформляет дела. Язык подсказкой не служит — русский
-       в Штатах работает по американским правилам, — поэтому ответ
-       подставляется по часовому поясу: пояс это география, а юрисдикция и
-       есть география. Ничего не блокируем: ответ можно поменять в настройках,
-       а закрытие шторки означает согласие с подставленным. -->
+       Первое, чего приложение о человеке не знает и вывести ниоткуда не
+       может, — где он живёт. Не «где сейчас телефон»: фотограф может
+       зимовать в Бангкоке, а работать из Барселоны, и родным городом он
+       назовёт тот, откуда ездит на съёмки. Из этого ответа дальше растёт
+       многое: город новой съёмки, признак выезда и правила оформления дел.
+
+       Вопрос про бумаги отсюда убран. Он спрашивал то, что уже сказано
+       городом: юрисдикция — это география, а город и есть география,
+       названная точнее часового пояса. Практика по-прежнему меняется в
+       настройках — но спрашивать о ней отдельным экраном больше не за чем
+       (docs: DECISIONS, «Родной город фотографа»).
+
+       Номер стоит вторым и необязателен: без него приложение работает
+       целиком, он нужен только там, где о фотографе спрашивают снаружи. -->
   <div class="scrim" id="startScrim"></div>
   <div class="sheet" id="startSheet">
     <div class="grip"></div>
-    <div class="sheet-title" data-i18n="start.title">Как вы оформляете дела</div>
-    <div class="sheet-sub" data-i18n="start.sub">От этого зависят бумаги и цепочка сделки — договор, счёт, предоплата. Язык интерфейса на это не влияет: его можно менять когда угодно.</div>
-    <div class="chips" id="startPractice" style="padding: 14px 0 0;"></div>
-    <p class="seg-note" id="startNote" style="padding-left:0;"></p>
+    <div class="sheet-title" data-i18n="start.title">Откуда вы работаете</div>
+    <div class="sheet-sub" data-i18n="start.sub">Город, где вы живёте или сейчас находитесь, и номер телефона. Новые съёмки заводятся в этом городе, а поездку в другой приложение узнаёт само. Оба ответа меняются в настройках.</div>
+    <div class="group" style="margin-top:18px;">
+      <input type="text" id="startCity" placeholder="Город" data-i18n-ph="start.cityPh" autocomplete="off"/>
+      <input class="sep" type="tel" id="startTel" placeholder="Телефон" data-i18n-ph="start.telPh"/>
+    </div>
+    <div class="loc-results city-hits" id="startCityHits"></div>
+    <p class="seg-note" id="startNote" style="padding-left:0;" data-i18n="start.note">Номер — ваш адрес снаружи: по нему организатор события свяжет ваши съёмки со своим планом. Можно оставить пустым и вписать позже.</p>
     <button class="sheet-done" id="startDone" data-i18n="pick.done">Готово</button>
   </div>
 
@@ -8246,76 +8463,141 @@
     <button data-scope="day"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_day"></span><span data-i18n="plan.viewDay">Один день</span></button>
   </div>
 
+  <!-- ============ ГДЕ СНИМАЕМ ============
+       Лист вываливал разом всё, что умеет: геолокацию, студии, свои точки,
+       поиск, имя с адресом, четыре студийных поля и пару координат. Для
+       фотографа National Geographic это приборная панель — ему нужны числа,
+       и он их находил. Для портретистки, снимающей в трёх студиях города,
+       это экран чужой профессии: она ищет строку «Томсон, зал Эдисон», а
+       видит широту и «минут в оплаченном часе».
+
+       Поэтому на входе три слова, и каждое проваливается на свою глубину:
+       адрес — улица и дом, студия — своя, с залом и телефоном, координаты —
+       числа для мест, у которых адреса нет. Кто пришёл за одним, второго и
+       третьего не видит (docs: DECISIONS, «Три пути к месту»). -->
   <div class="scrim" id="locScrim"></div>
   <div class="sheet" id="locSheet">
     <div class="grip"></div>
-    <div class="sheet-title" id="locTitle" data-i18n="loc.title">Где снимаем</div>
-    <div class="sheet-sub" data-i18n="loc.sub">Найти по названию, определить по геолокации или ввести координаты</div>
-    <button class="loc-detect" id="locDetect">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-      <span id="locDetectLbl" data-i18n="loc.detect">Определить моё место</span>
+    <!-- Возврат к трём путям. Лист стал глубиной в два экрана, и со второго
+         обязан быть выход, не закрывающий лист целиком -->
+    <button class="loc-back" id="locBack" hidden>
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span data-i18n="loc.back">Где снимаем</span>
     </button>
-    <!-- Сохранённые точки идут выше поиска: вернуться на своё место нужно
-         часто, а искать новое — редко -->
-    <!-- Студии идут первыми: место для прогулки выбирают на карте, а студию —
-         из своих, по имени. Список показывается только в листе съёмки: у места
-         приложения студии нет, ему нужны координаты, а не арендодатель. -->
-    <div class="sec-label" id="studioLabel" style="padding-left:0;" data-i18n="loc.studios" hidden>Студии</div>
-    <div class="spot-list" id="studioList" hidden></div>
-    <div class="sec-label" id="spotLabel" style="padding-left:0;" data-i18n="loc.myPlaces">Мои места</div>
-    <div class="spot-list" id="spotList"></div>
-    <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
-    <div class="loc-search">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-      <input id="locQuery" type="text" placeholder="Лагерный сад, Томск" data-i18n-ph="loc.queryPh" autocomplete="off"/>
+    <div class="sheet-title" id="locTitle" data-i18n="loc.title">Где снимаем</div>
+    <div class="sheet-sub" id="locSub" data-i18n="loc.sub">Три пути к одному месту: адрес, своя студия или координаты</div>
+
+    <!-- ===== Развилка ===== -->
+    <!-- Геолокации на развилке нет: «определить моё место» — это ответ
+         координатами, и место ему внутри своего пути. На развилке кнопка
+         спорила с тремя путями, будучи четвёртым, и отвечала мимо вопроса
+         «каким путём» (решение Алексея). -->
+    <div id="locWays">
+      <!-- Фотостудия стоит первой: это самый частый ответ у тех, кто снимает
+           в городе, и самый длинный путь, если промахнуться мимо него.
+           Координаты — последними: они нужны там, где первых двух не бывает -->
+      <div class="loc-way-list">
+        <button type="button" class="loc-way" data-way="studio" id="locWayStudioBtn">
+          <span class="lw-ic" data-ic="studio"></span>
+          <span class="lw-tx"><span class="lw-t" data-i18n="loc.wayStudio">Фотостудия</span>
+            <span class="lw-s" data-i18n="loc.wayStudioSub">зал, адрес и телефон</span></span>
+          <span class="go-chev">›</span>
+        </button>
+        <button type="button" class="loc-way" data-way="addr">
+          <span class="lw-ic" data-ic="city"></span>
+          <span class="lw-tx"><span class="lw-t" data-i18n="loc.wayAddr">Место</span>
+            <span class="lw-s" data-i18n="loc.wayAddrSub">улица и дом, поиск по названию</span></span>
+          <span class="go-chev">›</span>
+        </button>
+        <button type="button" class="loc-way" data-way="geo">
+          <span class="lw-ic" data-ic="route"></span>
+          <span class="lw-tx"><span class="lw-t" data-i18n="loc.wayGeo">Геопозиция</span>
+            <span class="lw-s" data-i18n="loc.wayGeoSub">там, где адресов нет</span></span>
+          <span class="go-chev">›</span>
+        </button>
+      </div>
     </div>
-    <div class="loc-results" id="locResults"></div>
-    <!-- Название спрашиваем прямым текстом, не населённым пунктом: геокодер
-         предлагает город, но место может быть и своим — «Студия Маяк», а не
-         только «Томск». Тот же набор полей и та же лексика, что в редакторе
-         сохранённых мест (docs: DECISIONS, «места как сущность») — иначе одно
-         и то же слово называлось бы по-разному в двух формах приложения. -->
+
+    <!-- ===== Путь первый: адрес ===== -->
+    <div id="wayAddr" hidden>
+      <!-- Поиск по названию: человек думает «Лагерный сад», а не «56.45, 84.94» -->
+      <div class="loc-search">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+        <input id="locQuery" type="text" placeholder="Лагерный сад, Томск" data-i18n-ph="loc.queryPh" autocomplete="off"/>
+      </div>
+      <div class="loc-results" id="locResults"></div>
+      <!-- Недавние места — та самая память, которой iOS отвечает на вопрос
+           «куда мы обычно ездим»: список берётся из прошлых съёмок, а не из
+           того, что человек догадался сохранить закладкой. Память адресная:
+           здесь только места, студии живут своим списком на своём пути
+           (решение Алексея, «недавние места» iOS). -->
+      <div class="sec-label" id="recentLabel" style="padding-left:0;" data-i18n="loc.recent" hidden>Недавние</div>
+      <div class="spot-list" id="recentList" hidden></div>
+      <!-- Места другого города — отдельной секцией и ниже. Прятать их совсем
+           нельзя: город в форме меняют и до, и после выбора места, а стирать
+           из памяти то, что было, — значит терять её. -->
+      <div class="sec-label" id="recentOtherLabel" style="padding-left:0;" data-i18n="loc.otherCities" hidden>В других городах</div>
+      <div class="spot-list" id="recentOtherList" hidden></div>
+      <div class="sec-label" id="spotLabel" style="padding-left:0;" data-i18n="loc.myPlaces">Мои места</div>
+      <div class="spot-list" id="spotList"></div>
+    </div>
+
+    <!-- ===== Путь третий: координаты ===== -->
+    <div id="wayGeo" hidden>
+      <button class="loc-detect" id="locHere" style="margin-top:14px;">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        <span id="locHereLbl" data-i18n="loc.here">Подставить моё место</span>
+      </button>
+      <div class="loc-fields">
+        <label><span data-i18n="loc.lat">Широта</span><input id="locLat" type="text" inputmode="decimal" placeholder="56.021"/></label>
+        <label><span data-i18n="loc.lon">Долгота</span><input id="locLon" type="text" inputmode="decimal" placeholder="37.482"/></label>
+      </div>
+      <p class="seg-note" style="padding-left:0;" data-i18n="loc.geoNote">Широта и долгота — для мест, у которых адреса нет: горы, степь, вода.</p>
+    </div>
+
+    <!-- Имя и сохранение — общие для адреса и координат: место называют
+         одинаково, каким бы путём до него ни дошли. Поле адреса на пути
+         координат прячется: там адресов и нет, ради этого путь и заведён. -->
     <div class="group" id="locPlaceGroup" hidden style="margin-top:12px;">
       <input class="sep" type="text" id="locName" placeholder="Имя места" data-i18n-ph="loc.namePh"/>
       <input class="sep" type="text" id="locAddress" placeholder="Адрес — улица, дом" data-i18n-ph="loc.addrPh"/>
-      <div class="row sep"><span class="rl" data-i18n="loc.trip">Выезд в другой город</span>
-        <span class="rv"><span class="toggle" id="locTrip"></span></span>
-      </div>
-      <!-- Раньше сохранить место можно было только закладкой на карте, а имя
-           и адрес — вторым заходом в настройках. Теперь то же самое одним
-           шагом: не отдельная сущность, а свойство этой самой точки. -->
       <div class="row sep" id="locSaveRow"><span class="rl" data-i18n="loc.saveSpot">Сохранить в моих местах</span>
         <span class="rv"><span class="toggle" id="locSaveSpot"></span></span>
       </div>
-      <!-- «Это студия» вместо прежнего тумблера «Почасовая аренда» у места.
-           Тумблер стоял не там: почасовой бывает и банкетный зал, а студийный
-           час, виджет и продление — функции стороны, которая отвечает. Студия
-           сохраняется всегда: сущность без списка не живёт, отдельный тумблер
-           «сохранить» ей не нужен (docs: DECISIONS, «Студия — сущность»). -->
-      <div class="row sep"><span class="rl" data-i18n="loc.isStudio">Это студия</span>
-        <span class="rv"><span class="toggle" id="locIsStudio"></span></span>
-      </div>
-      <input class="sep" type="tel" id="locStudioTel" placeholder="Телефон администратора" data-i18n-ph="loc.studioTel" hidden/>
-      <div class="spot-mins sep" id="locStudioMinRow" hidden>
-        <span class="sm-lbl" data-i18n="loc.studioMins">Минут в оплаченном часе</span>
-        <input type="number" inputmode="numeric" min="1" max="60" id="locStudioMin" value="55"/>
-      </div>
-      <!-- Ключ выдаёт сама студия, и в код он не зашивается: Light Plan —
-           статика, спрятать в ней нельзя ничего. Нет ключа — студия остаётся
-           напоминалкой: таймер и звонок работают, связи нет
-           (docs: DECISIONS, «Связь со студией опознаётся по совпадению номеров»). -->
-      <input class="sep" type="text" id="locStudioKey" placeholder="Ключ студии"
-             data-i18n-ph="loc.studioKey" autocomplete="off" hidden/>
-      <button type="button" class="row sep" id="locStudioLoad" hidden>
-        <span class="rl" data-i18n="loc.studioLoad">Загрузить карточку студии</span>
-        <span class="rv act" id="locStudioLoadV"></span>
+    </div>
+
+    <!-- ===== Путь второй: студия ===== -->
+    <div id="wayStudio" hidden>
+      <div class="sec-label" id="studioLabel" style="padding-left:0;" data-i18n="loc.studios">Студии</div>
+      <div class="spot-list" id="studioList"></div>
+      <div class="sec-label" id="studioOtherLabel" style="padding-left:0;" data-i18n="loc.otherCities" hidden>В других городах</div>
+      <div class="spot-list" id="studioOtherList" hidden></div>
+      <button type="button" class="loc-add" id="studioNew">
+        <span class="la-ic" data-ic="plus"></span><span data-i18n="loc.studioNew">Новая студия</span>
       </button>
+      <!-- Карточка студии. Ключа и «минут в оплаченном часе» на виду больше
+           нет: первое просили у того, у кого его нет и быть не должно, второе
+           спрашивало чужую бухгалтерию словами, которых в разговоре не
+           бывает. Час теперь считается студийным всегда (55 минут), а код
+           лежит за строкой «Подключить бронирование» — для тех, у кого он
+           есть (docs: DECISIONS, «Студия без шлюза»). -->
+      <div class="group" id="locStudioCard" hidden style="margin-top:14px;">
+        <input class="sep" type="text" id="locStudioName" placeholder="Название студии" data-i18n-ph="loc.studioNamePh"/>
+        <input class="sep" type="text" id="locStudioAddr" placeholder="Адрес — улица, дом" data-i18n-ph="loc.addrPh"/>
+        <!-- Порядок полей — порядок разговора о студии: как называется, где
+             стоит, по какому номеру звонить, какие залы. Номер идёт третьим и
+             необязателен: студия заводится и без него, но именно номер даёт
+             ей ID — тот же, которым считается участник (решение Алексея). -->
+        <input class="sep" type="tel" id="locStudioTel" placeholder="Телефон студии" data-i18n-ph="loc.studioTel"/>
+        <div class="hall-head sep">
+          <span class="k" data-i18n="loc.halls">Залы</span>
+          <button type="button" class="pack-add" id="hallAdd" data-i18n="loc.hallAdd">＋ зал</button>
+        </div>
+        <div id="hallList"></div>
+      </div>
+      <p class="seg-note" id="locStudioNote" style="padding-left:0;" data-i18n="loc.studioTelNote">Рабочий номер студии, а не того, кто сегодня на смене: смены меняются, номер стойки — нет. По номеру студия и опознаётся — заводить её можно и без него.</p>
     </div>
-    <!-- Координаты — запасной путь, поэтому парой, а не в разные концы строки -->
-    <div class="loc-fields">
-      <label><span data-i18n="loc.lat">Широта</span><input id="locLat" type="text" inputmode="decimal" placeholder="56.021"/></label>
-      <label><span data-i18n="loc.lon">Долгота</span><input id="locLon" type="text" inputmode="decimal" placeholder="37.482"/></label>
-    </div>
+
     <div class="loc-err" id="locErr"></div>
     <button class="sheet-done" id="locDone" data-i18n="pick.done">Готово</button>
   </div>
@@ -9776,6 +10058,9 @@
         cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
         drumSlot: drumSlot,
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
+        /* Зоны мест: раз узнанная зона переживает офлайн и следующий запуск.
+           Кэш маленький — пара строк на город, где фотограф уже снимал */
+        zones: zoneCache,
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, studios: studios, theme: themePref,
         pro: proMode, manualEnd: manualEnd, icsLayer: icsLayer,
@@ -11196,6 +11481,10 @@
      менять правила задним числом нечестно. Спросим только новичка. */
   if (!practice && saved && ((saved.sessions || []).length || (saved.orgs || []).length)) practice = "ru";
   var practiceAsked = !!practice;
+  /* Выбрал ли практику сам человек. Город назначает её только новичку: если
+     фотограф однажды поправил правила руками, справочник стран ему не
+     начальник — Барселона не сделает испанцем того, кто ведёт дела по-русски. */
+  var practicePicked = practiceAsked;
   if (!practice) practice = guessPractice() || "ru";
   function practiceSpec() { return PRACTICE[practice] || PRACTICE.ru; }
   /* Слово для предоплаты принадлежит практике, а не говору. В волне 5 оно
@@ -11203,6 +11492,19 @@
      весь этот пункт: у американца ретейнер не возвращается, а депозит
      возвращается, и по-русски это различие тоже есть. */
   function prepayWord() { return LANG.t("prepayW." + practice); }
+  /* Своего места ещё нет — берём родной город из профиля: свет и карта
+     открываются там, где человек живёт, а не там, куда указал провайдер.
+     Стоит перед восстановлением: сохранённое место сильнее — оно и есть
+     ответ фотографа на тот же вопрос (решение Алексея). */
+  /* Читаем прямо из записи, а не из `me`: `var me` объявлена ниже, и здесь
+     она ещё `undefined` — та самая грабля, о которой предупреждает
+     комментарий у самого объявления */
+  var savedMe = (saved && saved.me) || {};
+  if (savedMe.cityLat != null && savedMe.cityLon != null
+      && !(saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon))) {
+    LAT = +savedMe.cityLat; LON = +savedMe.cityLon;
+    TZ = Math.max(-12, Math.min(14, HOME_TZ + Math.round((LON - HOME_LON) / 15)));
+  }
   // Восстанавливаем место до первого расчёта света
   if (saved && saved.loc && isFinite(saved.loc.lat) && isFinite(saved.loc.lon)) {
     LAT = saved.loc.lat; LON = saved.loc.lon;
@@ -13244,7 +13546,141 @@
   function applyMapStyle() {
     if (lmap) lmap.setStyle(mapStyleNow(), { diff: true });
   }
+  /* ============================================================
+     МОДЕЛЬ ВРЕМЕНИ
+     ============================================================
+     Приложение живёт в трёх разных временах, и путать их нельзя.
+
+     1. **Настенное время** — то, о чём договорились с клиентом: «10 сентября,
+        18:00». Хранится как есть: дата плюс минуты от полуночи. Это правда
+        договорённости, и она не должна ехать оттого, что фотограф улетел в
+        другой пояс. Поэтому хранение в UTC отвергнуто.
+     2. **Зона места** — `Asia/Tomsk`. Свойство места, а не приложения:
+        съёмка в Москве считается по московскому времени, даже когда телефон
+        в Томске.
+     3. **Момент** — абсолютная точка на оси, из первых двух. Нужен всюду,
+        где что-то сравнивается: накладки, дорога, «успеет ли», «сейчас».
+
+     Правило показа: всегда настенное время места. Правило сравнения: всегда
+     момент. Смешение этих двух правил и было ошибкой: 10:00 в Томске и 12:00
+     в Москве приложение видело как два часа зазора, хотя между ними шесть.
+
+     Зону даёт Open-Meteo (`timezone=auto` возвращает имя IANA для координат),
+     кэш лежит в записи и переживает офлайн. Смещение считает `Intl` — база
+     IANA уже внутри браузера, и она знает и летнее время, и получасовые
+     пояса. Прежняя оценка по долготе остаётся запасной: она ошибалась на час
+     в Томске (+6 вместо +7), на час в Барселоне летом и не выражала ни
+     +5:30 Дели, ни +5:45 Катманду (замерено). */
   function tzFor(lon) { return Math.max(-12, Math.min(14, HOME_TZ + Math.round((lon - HOME_LON) / 15))); }
+  /* Зоны кэшируются по округлённым координатам: полградуса — это меньше
+     любого часового пояса, а запросов на порядок меньше */
+  var zoneCache = (saved && saved.zones) || {};
+  var zoneWait = {};
+  function zoneKey(lat, lon) {
+    return (Math.round(lat * 2) / 2).toFixed(1) + "," + (Math.round(lon * 2) / 2).toFixed(1);
+  }
+  function zoneOf(lat, lon, onReady) {
+    if (lat == null || lon == null || !isFinite(lat) || !isFinite(lon)) return null;
+    var k = zoneKey(lat, lon);
+    if (zoneCache[k]) return zoneCache[k];
+    if (!zoneWait[k] && typeof fetch !== "undefined") {
+      zoneWait[k] = true;
+      fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
+            + "&timezone=auto&forecast_days=1&daily=sunrise")
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.timezone && j.timezone !== "GMT") { zoneCache[k] = j.timezone; saveAll(); }
+        })
+        .catch(function () {})
+        .then(function () {
+          delete zoneWait[k];
+          if (onReady) onReady(); else zonesRefresh();
+        });
+    }
+    return null;
+  }
+  /* Смещение зоны на конкретную дату. Именно на дату: в марте и в июле у
+     Барселоны оно разное, и «просто прибавить час летом» — не правило, а
+     совпадение для части стран. */
+  function offsetAt(zone, date) {
+    if (!zone) return null;
+    try {
+      var parts = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" })
+        .formatToParts(date || new Date());
+      var v = "";
+      for (var i = 0; i < parts.length; i++) if (parts[i].type === "timeZoneName") v = parts[i].value;
+      if (/^GMT$/.test(v)) return 0;
+      var m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(v);
+      if (!m) return null;
+      return (m[1] === "-" ? -1 : 1) * (+m[2] + (+(m[3] || 0)) / 60);
+    } catch (e) { return null; }
+  }
+  /* Пояс места: настоящий, если зона известна; оценка по долготе, пока нет.
+     Запасной путь не убран намеренно — без сети приложение обязано считать
+     свет, а «не знаю пояса» означало бы пустой экран вместо часа неточности. */
+  function tzAt(lat, lon, date, onReady) {
+    var z = zoneOf(lat, lon, onReady);
+    var off = z ? offsetAt(z, date) : null;
+    return off != null ? off : tzFor(lon);
+  }
+  /* «Сейчас» глазами места съёмки. Фотограф в Томске смотрит карточку
+     московской съёмки: её фазы — «до», «идёт», «после» — и таймер аренды
+     обязаны считаться по московским часам, иначе баннер «пора выходить»
+     придёт на четыре часа мимо. */
+  function nowAt(lat, lon) {
+    var now = new Date();
+    if (lat == null || lon == null) return now;
+    var there = tzAt(lat, lon, now), here = offsetAt(deviceZone(), now);
+    if (there == null || here == null) return now;
+    return new Date(now.getTime() + (there - here) * 3600000);
+  }
+  /* Пояс телефона — тот, в котором человек читает экран. Сравниваем с ним,
+     а не с родным городом: метка отвечает на вопрос «это чужое время?», и
+     чужим оно становится ровно тогда, когда часы на экране показывают не то,
+     что часы места съёмки. */
+  function deviceZone() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { return ""; }
+  }
+  function tzText(off) {
+    if (off == null) return "";
+    var sign = off < 0 ? "-" : "+";
+    var a = Math.abs(off), h = Math.floor(a), m = Math.round((a - h) * 60);
+    return "UTC" + sign + h + (m ? ":" + (m < 10 ? "0" : "") + m : "");
+  }
+  /* Метка ставится только тогда, когда время места и время телефона
+     расходятся. В своём городе она была бы шумом: там и так всё «по вашим». */
+  function tzTag(lat, lon, date) {
+    if (lat == null || lon == null) return "";
+    var d = date || new Date();
+    var here = offsetAt(deviceZone(), d);
+    var there = tzAt(lat, lon, d);
+    if (here == null || there == null) return "";
+    return Math.abs(here - there) < 0.01 ? "" : tzText(there);
+  }
+  /* Момент — миллисекунды UTC для настенного времени в зоне места.
+     `min` может выходить за сутки (съёмка до утра) — это учтено сложением. */
+  function momentOf(date, min, lat, lon) {
+    if (!date) return null;
+    var d = new Date(date);
+    var base = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) + (min || 0) * 60000;
+    /* Точки нет — считаем по поясу приложения: так вело себя всё приложение
+       до появления зон, и для съёмки без места это по-прежнему верно */
+    var off = (lat != null && lon != null && isFinite(lat) && isFinite(lon)) ? tzAt(lat, lon, d) : TZ;
+    return base - off * 3600000;
+  }
+  /* Зона съёмки — по её точке; нет точки, значит она там же, где приложение */
+  function sessionTz(s, date) {
+    return s && s.placeLat != null ? tzAt(s.placeLat, s.placeLon, date || s.date) : TZ;
+  }
+  /* Ответ о зоне приходит позже, чем нарисован экран: перерисовываем то, что
+     открыто, — тем же приёмом, что у дороги (`clashesRefresh`) */
+  function zonesRefresh() {
+    try {
+      if ($("formOverlay") && $("formOverlay").classList.contains("open")) refreshForm();
+      if (typeof cardIdx !== "undefined" && cardIdx !== null && sessions[cardIdx]) openCard(cardIdx, true);
+      if (typeof applyDate === "function" && typeof viewMin !== "undefined") applyDate(viewMin);
+    } catch (e) {}
+  }
   function coordText(lat, lon) {
     return Math.abs(lat).toFixed(3) + " " + (lat >= 0 ? "N" : "S")
       + " · " + Math.abs(lon).toFixed(3) + " " + (lon >= 0 ? "E" : "W");
@@ -13424,7 +13860,7 @@
   function scheduleGeoName() { clearTimeout(geoTimer); geoTimer = setTimeout(function () { fetchGeoName(); }, 900); }
 
   function setLocation(lat, lon) {
-    LAT = lat; LON = lon; TZ = tzFor(lon);
+    LAT = lat; LON = lon; TZ = tzAt(lat, lon, new Date());
     geoStale = true;               // имя прежнего места держится, пока не придёт новое
     applyGeoNames();
     saveAll();                     // место переживает перезапуск
@@ -19805,6 +20241,22 @@
   function renderSessionPlace() {
     var shown = sessionPlace.name
       || (sessionPlace.manual ? coordText(sessionPlace.lat, sessionPlace.lon) : "");
+    /* Место выбрано — строка называет его; не выбрано — на её месте стоят
+       три пути. Двух строк сразу не бывает: это один и тот же вопрос в двух
+       состояниях, до ответа и после (docs: DECISIONS, «Три пути к месту») */
+    var has = !!shown;
+    $("fPlace").hidden = !has;
+    $("fPlaceWays").hidden = has;
+    /* Зал — часть имени места, а не отдельная строка под ним: на площадке
+       сверяют «Томсон, зал Эдисон» одной фразой, как её и произносят.
+       Барабан выбора зала при этом остаётся: он отвечает «какой», а строка —
+       «где мы» (решение Алексея). */
+    var st = studioById(sessionStudioId);
+    var hall = null;
+    if (st && fHallId) {
+      (st.halls || []).forEach(function (h) { if (h.id === fHallId) hall = h; });
+    }
+    if (hall && hall.name) shown = LANG.t("form.placeHall", { place: shown, hall: hall.name });
     $("fPlaceName").textContent = shown || LANG.t("loc.noPlace");
     /* Город стоит своей строкой, поэтому подпись под точкой — про саму точку:
        улица и дом. «В городе» ушло совсем: город назван по имени, и повторять
@@ -19818,7 +20270,102 @@
     /* Пока город набирают, поле не перебиваем: ответ геокодера может прийти
        посреди слова, и курсор уедет вместе с ним */
     if (document.activeElement !== $("fCity")) $("fCity").value = sessionPlace.town || "";
+    renderTripRow();
     renderRentRow();
+    var tag = $("fTzTag");
+    if (tag) {
+      var t = tzTag(sessionPlace.lat, sessionPlace.lon, fDate);
+      tag.textContent = t;
+      tag.hidden = !t;
+    }
+  }
+  /* Выезд ли это. Отвечает пара «город съёмки — родной город»: не знаем
+     одного из двух, отвечать нечем, и молчание честнее догадки. Сравниваем
+     по смыслу, а не по знакам: «Санкт-Петербург» и «санкт петербург» —
+     один город, и различать их регистром было бы придиркой к набору. */
+  function tripAuto() {
+    var home = cityNorm(myCity()), town = cityNorm(sessionPlace.town);
+    if (!home || !town) return false;
+    return home !== town;
+  }
+  /* Строка появляется вместе с чужим городом и уходит вместе с ним. Один
+     случай держит её на экране и в родном городе: выезд отметили руками —
+     значит человек с приложением не согласился, и отобрать у него тумблер
+     было бы способом настоять на своём. */
+  function renderTripRow() {
+    if (!fTripManual) fTrip = tripAuto();
+    var t = $("fTripToggle"); if (!t) return;
+    t.classList.toggle("on", !!fTrip);
+    $("fTripRow").hidden = !tripAuto() && !fTrip;
+    /* Подпись отвечает за оба состояния, а не за название строки: включён —
+       день уходит на дорогу, выключен — фотограф успевает, и приложение про
+       этот день молчит. Пока подпись была одна, польза второго положения не
+       читалась вовсе (решение Алексея).
+
+       Ключ пишем и в `data-i18n`: смена языка перебирает разметку по этому
+       атрибуту, и без него подпись осталась бы на прежнем языке. */
+    var note = $("fTripNote");
+    if (note) {
+      var key = fTrip ? "form.tripNote" : "form.tripNoteOff";
+      note.dataset.i18n = key;
+      note.textContent = LANG.t(key);
+    }
+    renderRoadRow();
+  }
+  /* ---------- Время в пути ----------
+     Выезд включён — значит дорогу надо не «учесть» словом, а занять в
+     календаре: приложение не знает, когда фотограф летит. Съёмка в Москве
+     десятого, а рейс пятого — это знает только он, и сказать об этом можно
+     ровно там, где уже отмечают выходные (`BLOCK_KINDS`: «Дорога»,
+     «Перелёт»). Строка ведёт в тот же лист, а не заводит второй такой же. */
+  function kmBetween(aLat, aLon, bLat, bLon) {
+    var R = 6371, rad = Math.PI / 180;
+    var dLat = (bLat - aLat) * rad, dLon = (bLon - aLon) * rad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+      + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  /* Далеко — значит летят. Порог грубый и таким и задуман: семьсот
+     километров машиной это не «доехать к съёмке», а отдельная поездка. */
+  function farFlight() {
+    if (me.cityLat == null || sessionPlace.lat == null) return false;
+    return kmBetween(me.cityLat, me.cityLon, sessionPlace.lat, sessionPlace.lon) > 700;
+  }
+  /* Дорога этой поездки — блоки «Дорога» и «Перелёт» рядом с днём съёмки.
+     Связи «блок ↔ съёмка» нет намеренно: один перелёт обслуживает и съёмку,
+     и всё остальное, что человек делает в этом городе. Окно в три дня — то,
+     в пределах чего дорога читается как дорога к этой съёмке. */
+  function roadBlocksNear(day) {
+    if (!day) return [];
+    var t = new Date(day); t.setHours(0, 0, 0, 0);
+    return blocks.filter(function (b) {
+      if (b.k !== "road" && b.k !== "flight") return false;
+      var d = new Date(b.from); d.setHours(0, 0, 0, 0);
+      var days = b.allDay ? (b.days || 1) : 1;
+      var last = new Date(d); last.setDate(last.getDate() + days - 1);
+      return (t - d) / 86400000 <= 3 && (d - t) / 86400000 <= 3
+        || (t >= d && t <= last);
+    }).sort(function (a, b2) { return new Date(a.from) - new Date(b2.from); });
+  }
+  function renderRoadRow() {
+    var row = $("fRoadRow"); if (!row) return;
+    row.hidden = !fTrip;
+    if (!fTrip) return;
+    var near = roadBlocksNear(fDate);
+    var val = $("fRoadVal"), note = $("fRoadNote");
+    if (near.length) {
+      val.removeAttribute("data-i18n");
+      val.textContent = near.map(function (b) {
+        return dMonShortYear(new Date(b.from)) + " · " + LANG.t("blkKind." + b.k);
+      }).join(" · ");
+      note.dataset.i18n = "form.roadNoteOn";
+      note.textContent = LANG.t("form.roadNoteOn");
+    } else {
+      val.dataset.i18n = "form.roadAdd";
+      val.textContent = LANG.t("form.roadAdd");
+      note.dataset.i18n = "form.roadNoteOff";
+      note.textContent = LANG.t("form.roadNoteOff");
+    }
   }
   /* Аренда появляется вместе со студией и исчезает вместе с ней. Часы по
      умолчанию — часы съёмки: чаще всего они и совпадают, а спорить с этим
@@ -19841,6 +20388,8 @@
     var i = wheelIndex(fwHall);
     fHallId = (i > 0 && hallList[i - 1]) ? hallList[i - 1].id : null;
     $("fHallVal").textContent = hallCap(i);
+    /* Зал стоит в имени места — значит меняется вместе с барабаном */
+    renderSessionPlace();
   }
   attachWheel(fwHall, onHallWheel);
   function renderHallRow() {
@@ -19956,14 +20505,28 @@
   $("fCity").addEventListener("input", function () {
     sessionPlace.town = this.value.trim();
     sessionPlace.townTyped = true;
+    /* Переписали город — ответ про выезд обязан догнать его тут же, а не
+       после закрытия формы: это ровно то, ради чего родной город и заведён */
+    renderTripRow();
   });
   /* От города зависит свет и погода — значит набранный город обязан двигать
      координаты, иначе поле говорит «Новосибирск», а солнце считается в Лобне.
      Двигаем только пока конкретной точки нет: у выбранной студии свои
      координаты, и они точнее города. Не нашли город — ничего не двигаем и
      ничего не обещаем: имя остаётся, свет остаётся прежним. */
+  /* Поднимаем букву, когда набор кончился, а не под пальцем: правка посреди
+     слова уводила бы курсор */
+  $("fCity").addEventListener("blur", function () {
+    var v = cityCap(this.value);
+    if (v === this.value.trim()) return;
+    this.value = v;
+    sessionPlace.town = v;
+    renderTripRow();
+  });
   $("fCity").addEventListener("change", function () {
-    var q = this.value.trim();
+    var q = cityCap(this.value);
+    this.value = q;
+    sessionPlace.town = q;
     if (!q || sessionPlace.name || q === sessionPlace.townAt) return;
     sessionPlace.townAt = q;                     // за один и тот же город не спрашиваем дважды
     fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ru&q="
@@ -21037,11 +21600,26 @@
     openOrgs();
   });
 
-  /* Выезд живёт в листе «Место съёмки»: он про место, и спрашивать про него
-     отдельной строкой формы значило бы разложить один вопрос по двум экранам */
-  var fTrip = false;
+  /* Выезд вернулся из листа места в форму — и перестал быть вопросом.
+     Раньше тумблер стоял в листе «Место съёмки» и спрашивал у фотографа то,
+     что приложение могло вывести само: город съёмки известен, родной город
+     записан в профиле, и несовпадение — это и есть выезд. Строка теперь
+     показывает вычисленное, а тумблер оставлен поправкой на редкий случай:
+     деревня в трёх часах езды формально того же города выездом всё-таки
+     является (docs: DECISIONS, «Родной город фотографа»). */
+  var fTrip = false, fTripManual = false;
   /* Имя места ввели руками — поиск его больше не перебивает */
   var locNameTyped = false;
+  $("fTripToggle").addEventListener("click", function () {
+    fTrip = !this.classList.contains("on");
+    fTripManual = true;
+    renderTripRow();
+    /* Включили руками — сразу спрашиваем про дорогу: включение и есть слова
+       «учитывать время на дорогу», а учитывать её приложение умеет только
+       занятостью. Ничего не создаём молча: открывается тот же лист, закрыть
+       его можно ничего не заполнив. Дорога уже отмечена — не переспрашиваем. */
+    if (fTrip && !roadBlocksNear(fDate).length) openRoadSheet();
+  });
   var GUESTS_MAX = 2000;
   /* Ноль в поле — это не ответ, а пустая клетка. «Нет» отвечает: гостей не
      будет. Пока в поле не пишут руками, показываем слово */
@@ -21423,7 +22001,16 @@
     return undefined;   // ответа ещё нет — вызывающий сам решает, что сказать тем временем
   }
   /* Съёмка, с которой сравниваем: та, что сейчас в форме, либо сохранённая */
-  function clashesFor(day, min, end, place, skipIdx, wants, fromLat, fromLon) {
+  /* `trip` — эта съёмка с выездом. Выезд не украшение записи: он говорит,
+     что день уходит на дорогу целиком, и это единственное, ради чего он в
+     форме есть (решение Алексея: «дать выезду последствия»). */
+  /* Дальняя дорога, которую фотограф взял на себя. Выключенный руками
+     выезд — это ответ «успею», и повторять вопрос числами нельзя: ровно
+     здесь приложение отвечало «ехать 2866 минут, а в запасе 211» — сорок
+     восемь часов за рулём вместо признания, что человек летит. Ближние
+     дороги считаются по-прежнему: выезд про день, а не про пару точек. */
+  var FAR_MIN = 180;
+  function clashesFor(day, min, end, place, skipIdx, wants, fromLat, fromLon, trip, tripOff) {
     var out = [];
     /* Занятое время спорит со съёмкой наравне с другой съёмкой — ради этого
        занятость и заводилась. Но запрета по-прежнему нет: выходной можно и
@@ -21440,12 +22027,20 @@
           m: LANG.t("clash.timeBusyM", { name: name, when: range(b.min, bEnd) }) });
       }
     });
+    /* Сравниваем моменты, а не настенные минуты. Пока сравнение шло по
+       минутам, съёмка 10:00 в Томске и 12:00 в Москве выглядели двумя часами
+       зазора — на самом деле между ними шесть, и приложение обещало время,
+       которого нет (docs: DECISIONS, «Модель времени»). */
+    var myFrom = momentOf(day, min, fromLat, fromLon);
+    var myTo = momentOf(day, end, fromLat, fromLon);
     sessions.forEach(function (s, i) {
       if (i === skipIdx || !sameDay(s.date, day) || !shownRec(s)) return;
       var sEnd = shootEnd(s), name = clientName(s) || genreName(s.type);
       var when = range(s.min, sEnd);
+      var oFrom = momentOf(s.date, s.min, s.placeLat, s.placeLon);
+      var oTo = momentOf(s.date, sEnd, s.placeLat, s.placeLon);
       /* Пересечение времени — тяжелее всего: быть в двух местах разом нельзя */
-      if (min < sEnd && s.min < end) {
+      if (myFrom < oTo && oFrom < myTo) {
         out.push({ w: 3, t: LANG.t("clash.overlapT"),
           m: LANG.t("clash.overlapM", { name: name, when: when }) });
         return;
@@ -21455,11 +22050,26 @@
          минут, в пригороде и полутора часов бывает мало.
          Знаем координаты обеих точек — порог уступает честному ответу: не
          «меньше сорока», а «нужно пятнадцать, а есть только десять». */
-      var gap = min >= sEnd ? min - sEnd : s.min - end;
+      var gap = Math.round((myFrom >= oTo ? myFrom - oTo : oFrom - myTo) / 60000);
       var otherPlace = placeKey(s);
+      /* Выезд забирает день целиком, и считать дорогу тут больше нечего:
+         между Томском и Москвой OSRM отвечает честными пятьюдесятью часами,
+         но фраза «нужно 3000 минут» не про то — туда летят, а не едут.
+         Поэтому выезд отвечает сам, до всякой дороги, и весом наравне с
+         пересечением времени: успеть нельзя, а не «впритык». */
+      if ((trip || s.trip) && otherPlace && place && otherPlace !== place) {
+        out.push({ w: 3, t: LANG.t("clash.tripDayT"),
+          m: LANG.t("clash.tripDayM", { name: name, when: when,
+            place: [placeText(s), s.place && s.placeTown ? s.placeTown : ""].filter(Boolean).join(", ") }) });
+        return;
+      }
       if (otherPlace && place && otherPlace !== place) {
         var haveCoords = fromLat != null && fromLon != null && s.placeLat != null && s.placeLon != null;
         var mins = haveCoords ? travelMinutes(fromLat, fromLon, s.placeLat, s.placeLon, clashesRefresh) : undefined;
+        /* Кто-то из двоих снял отметку выезда руками — значит про дальнюю
+           дорогу уже сказано, и второй раз её не считаем */
+        var offHere = tripOff || (s.tripManual && !s.trip);
+        if (offHere && mins != null && mins > FAR_MIN) return;
         if (mins != null && gap < mins) {
           out.push({ w: 2, t: LANG.t("clash.tripShortT"),
             m: LANG.t("clash.tripShortM", { name: name, when: when,
@@ -21488,7 +22098,8 @@
     var s = sessions[idx];
     if (!s) return [];
     return clashesFor(s.date, s.min, shootEnd(s), placeKey(s), idx,
-      Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []), s.placeLat, s.placeLon);
+      Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []), s.placeLat, s.placeLon,
+      !!s.trip, !!(s.tripManual && !s.trip));
   }
   /* Ответ OSRM пришёл позже, чем нарисовалось предупреждение: перерисовываем
      ровно то, что сейчас открыто, — форму или карточку, — а не всё приложение */
@@ -21508,7 +22119,8 @@
        переносить его сюда — отдельная работа, а не строчка. */
     var kLat = LAT, kLon = LON, kTz = TZ;
     if (sessionPlace.lat != null) {
-      LAT = sessionPlace.lat; LON = sessionPlace.lon; TZ = tzFor(sessionPlace.lon);
+      LAT = sessionPlace.lat; LON = sessionPlace.lon;
+      TZ = tzAt(sessionPlace.lat, sessionPlace.lon, fDate);
     }
     computeSun(fDate);
     var w = dayWindow(fDate);
@@ -21553,7 +22165,7 @@
     /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
        а прогноз — про то, каким будет свет. Показываем то, что тяжелее */
     var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town }),
-      editIdx, wishes, sessionPlace.lat, sessionPlace.lon)[0];
+      editIdx, wishes, sessionPlace.lat, sessionPlace.lon, fTrip, fTripManual && !fTrip)[0];
     var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
@@ -21569,7 +22181,7 @@
      смотрит приложение: у выездной съёмки свой горизонт и своё время света. */
   function cardSun(s) {
     var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate), out = {};
-    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzFor(s.placeLon); }
+    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzAt(s.placeLat, s.placeLon, s.date); }
     computeSun(s.date);
     out.st = stateAt(s.min);
     out.shadow = shadowWord(s.min);
@@ -21625,7 +22237,7 @@
      а не для места, где сейчас стоит маркер на карте */
   function routeLight(s, route) {
     var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate);
-    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzFor(s.placeLon); }
+    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzAt(s.placeLat, s.placeLon, s.date); }
     computeSun(s.date);
     var out = route.map(function (r) { return stateAt(r.t); });
     LAT = kLat; LON = kLon; TZ = kTz;
@@ -21675,7 +22287,10 @@
      окончания (почасовая работа, переработка) — включает, и тогда фаза
      держится, пока не нажмут, а `doneAt` хранит нажатое время. */
   function eventPhase(s) {
-    var now = new Date();
+    /* Фаза считается по часам места съёмки, а не телефона: в поездке они
+       расходятся, и карточка иначе объявляла бы съёмку прошедшей, пока она
+       идёт (docs: DECISIONS, «Модель времени») */
+    var now = nowAt(s.placeLat, s.placeLon);
     if (!sameDay(s.date, now)) return s.date > now ? "before" : "after";
     var m = now.getHours() * 60 + now.getMinutes();
     var to = s.end != null ? s.end : s.min + (s.dur || 90);
@@ -22400,7 +23015,7 @@
     }).catch(function () {});
   });
   function nowMinOf(s) {
-    var n = new Date();
+    var n = nowAt(s.placeLat, s.placeLon);
     return sameDay(s.date, n) ? n.getHours() * 60 + n.getMinutes() : null;
   }
   /* Ответ студии приходит человеком, а не сразу — спрашиваем тактом карточки.
@@ -22429,7 +23044,13 @@
     var el = $("cdStudio");
     var rw = nowMin2 === null ? null : rentWindow(s);
     if (!rw || nowMin2 < rw.from) { el.hidden = true; return; }
-    var deadline = rw.to - (60 - (rw.st.hourMin || 55));
+    /* Студийный час — 55 минут, и это больше не спрашивается. Поле «Минут в
+       оплаченном часе» стояло в карточке студии и произносило вслух чужую
+       бухгалтерию: фотограф читал его как вопрос о том, чего не знает. Где
+       час полный, предупреждение просто придёт на пять минут раньше конца —
+       цена ошибки в эту сторону пять минут, в другую — опоздание из зала.
+       Старые карточки со своим числом его сохраняют (docs: DECISIONS). */
+    var deadline = rw.to - (60 - (rw.st.hourMin || STUDIO_HOUR_MIN));
     var left = deadline - nowMin2;
     /* Дальше десяти минут молчим — уведомление существует для того, чего
        не видно самому, а не как счётчик с самого начала часа (04_ANTI_GOALS).
@@ -22619,7 +23240,7 @@
 
     var mapBtn = $("cdPanes").querySelector('[data-act="map"]');
     if (mapBtn) mapBtn.addEventListener("click", function () {
-      if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzFor(LON); }
+      if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzAt(s.placeLat, s.placeLon, s.date); }
       closeCard(); go("s-map");
       if (typeof syncMap === "function") syncMap();
     });
@@ -23029,6 +23650,14 @@
 
     $("cdDate").textContent = wdShort(s.date) + " · " + dMon(s.date);
     $("cdTime").textContent = range(s.min, end);
+    /* Время карточки — местное время съёмки. Когда оно расходится с часами
+       телефона, рядом стоит пояс: иначе «18:00» читается как своё */
+    var cdTz = $("cdTz");
+    if (cdTz) {
+      var tzt = tzTag(s.placeLat, s.placeLon, s.date);
+      cdTz.textContent = tzt;
+      cdTz.hidden = !tzt;
+    }
     $("cdDur").textContent = durLabel(dur);
     /* Строка места в карточке говорит адрес целиком: точка, город, улица.
        Ради этого адрес и доезжает до записи — иначе он лежал бы в закладке,
@@ -23311,7 +23940,7 @@
       currency: fCurrency,
       /* Выезд — про город, а не про точку: «Новосибирск» отвечает на вопрос
          «куда едем», «Студия Пятница» — нет. Пока города нет, годится имя */
-      guests: fGuests || 0, trip: fTrip,
+      guests: fGuests || 0, trip: fTrip, tripManual: fTripManual,
       tripPlace: fTrip ? (sessionPlace.town || sessionPlace.name) : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
       docs: fDocs.slice(), gear: fGear.slice(), playlist: fPlaylist,
@@ -23419,6 +24048,10 @@
     fPrepay = +s.prepay || 0; fGuests = +s.guests || 0;
     $("fPrepay").value = fPrepay || "";
     fTrip = !!s.trip;
+    /* Старые записи про ручную поправку не знают, но их «выезд» ставился
+       руками — другого способа тогда не было. Считаем его ручным, иначе
+       пересчёт по нынешнему родному городу отменил бы отметку задним числом */
+    fTripManual = s.tripManual != null ? !!s.tripManual : !!s.trip;
     $("fBrief").value = s.brief || "";
     $("fModels").value = s.models || "";
     fDocs = Array.isArray(s.docs)
@@ -23469,7 +24102,7 @@
       fPrepay = 0; fGuests = 0; fDocs = []; fGear = []; fPlaylist = "";
       fCurrency = currency;
       $("fPrepay").value = "";
-      fTrip = false;
+      fTrip = false; fTripManual = false;
       $("fBrief").value = ""; $("fModels").value = "";
       // Новая съёмка начинается там, где сейчас смотрим свет
       /* Новая съёмка начинается в городе, где стоит фотограф, — но только
@@ -23477,7 +24110,13 @@
          населённый пункт нечестно. Город — населённый пункт, а не область:
          раньше сюда попадало уточнение, и форма открывалась с «Московской
          областью». */
-      sessionPlace = { name: "", town: geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
+      /* Город новой съёмки — родной город фотографа, а не тот, где сейчас
+         лежит телефон. Так чаще всего и есть; а кто уехал снимать в другой
+         город, тот и без нас знает, что оказался в другом городе, — ему
+         поправить одно поле, а не всем остальным каждый раз стирать
+         подсказку геолокации. Города в профиле нет — остаётся прежнее
+         поведение, город из-под ног (docs: DECISIONS, «Родной город»). */
+      sessionPlace = { name: "", town: myCity() || geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
       sessionStudioId = null; fRentFrom = null; fRentTo = null; fHallId = null;
       fBookingRef = null; fRentReq = null;
       fId = newId();
@@ -24138,8 +24777,55 @@
     openForm(fDate, fAuto ? null : fMin, null, fAuto);   // тот же день, форма с нуля
     $("savedNote").textContent = LANG.t("form.draftGone");
   });
-  $("fPlace").addEventListener("click", function () {
-    openLocSheet("session");
+  /* Открываем лист занятости поверх формы: она остаётся под ним и ждёт.
+     Заготовка — то, что форма уже знает: перелёт или дорога (по расстоянию
+     от родного города), день съёмки и город в заметке. Час вылета приложение
+     не знает и не выдумывает: у перелёта своя длительность по умолчанию,
+     дальше правит человек. */
+  function openRoadSheet() {
+    var near = roadBlocksNear(fDate);
+    if (near.length) { openBlockSheet(near[0]); return; }
+    var flight = farFlight();
+    var mins = null;
+    if (!flight && me.cityLat != null && sessionPlace.lat != null) {
+      mins = travelMinutes(me.cityLat, me.cityLon, sessionPlace.lat, sessionPlace.lon, null);
+    }
+    /* Концы дороги: откуда — родной город (или место, где стоит телефон),
+       куда — место съёмки. Их пояса и делают перелёт четырёхчасовым, а не
+       мгновенным (docs: DECISIONS, «Модель времени»). */
+    var fromLat = me.cityLat != null ? me.cityLat : LAT;
+    var fromLon = me.cityLat != null ? me.cityLon : LON;
+    var tzFrom = tzAt(fromLat, fromLon, fDate);
+    var tzTo = sessionPlace.lat != null ? tzAt(sessionPlace.lat, sessionPlace.lon, fDate) : tzFrom;
+    openBlockSheet(null, null, fDate, {
+      k: flight ? "flight" : "road",
+      note: sessionPlace.town || "",
+      allDay: false,
+      min: 540,                                   // утро: чаще всего едут и летят с утра
+      /* Длительность — реальное время в пути, а не разница настенных часов:
+         разницу поясов лист прибавит сам, когда будет показывать прилёт */
+      dur: flight ? 240 : (mins || 120),
+      tzFrom: tzFrom, tzTo: tzTo
+    });
+  }
+  $("fRoadRow").addEventListener("click", openRoadSheet);
+  $("fPlaceGo").addEventListener("click", function () {
+    /* Правка идёт тем же путём, каким место выбрали: студию правят карточкой
+       студии, адрес — поиском. Путь виден по самой записи */
+    openLocSheet("session", sessionStudioId ? "studio" : (sessionPlace.manual ? "geo" : "addr"));
+  });
+  document.querySelectorAll("#fPlaceWays .pw").forEach(function (b) {
+    b.addEventListener("click", function () { openLocSheet("session", b.dataset.way); });
+  });
+  /* Крестик снимает место целиком: имя, адрес, студию, зал и аренду. Аренда
+     уходит вместе со студией не из аккуратности — без студии её некому
+     держать, и час без хозяина считался бы от пустоты */
+  $("fPlaceClear").addEventListener("click", function () {
+    sessionPlace = { name: "", town: sessionPlace.town || "", townTyped: !!sessionPlace.townTyped,
+                     addr: "", lat: LAT, lon: LON, city: sessionPlace.city };
+    sessionStudioId = null; fHallId = null;
+    fRentFrom = fRentTo = null; fBookingRef = null; fRentReq = null;
+    renderSessionPlace(); renderHallRow(); renderLinkRow();
   });
   /* Кого снимаем — парой или строкой, смотря по жанру */
   function formPersons() {
@@ -24196,7 +24882,7 @@
       /* Пустое поле не пишется значением: гости нулём и выезд ложью — те же
          пустые поля, и в карточке их быть не должно */
       guests: fGuests || 0,
-      trip: fTrip, tripPlace: fTrip ? (sessionPlace.town || sessionPlace.name) : "",
+      trip: fTrip, tripManual: fTripManual, tripPlace: fTrip ? (sessionPlace.town || sessionPlace.name) : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
       docs: fDocs.filter(function (r) { return r.k === "link" || r.path; })
         .map(function (r) {
@@ -25594,7 +26280,7 @@
     if ($("fDelvLabels")) buildDelvDial();
     if ($("practiceChips")) renderPracticeChips();
     if ($("ccAsk")) { telPlaceholder(); renderCcAsk(); }
-    if ($("startPractice") && $("startSheet").classList.contains("open")) renderStartSheet();
+    if ($("startSheet") && $("startSheet").classList.contains("open")) renderStartSheet();
     if (typeof updateNowTick === "function" && $("nowTick")) updateNowTick();
     if ($("travelNote")) renderTravelSeg();
     /* Заметки музыки собираются в коде — обе. У сегмента она вдобавок
@@ -25654,18 +26340,140 @@
   function renderPracticeChips() {
     if (!$("practiceChips")) return;
     practiceChips("practiceChips", practice, function (k) {
-      practice = k; practiceAsked = true; saveAll();
+      practice = k; practiceAsked = true; practicePicked = true; saveAll();
       renderPracticeChips();
       renderDocKinds(); renderDelv();
       if (cardIdx !== null && $("cardOverlay").classList.contains("open")) openCard(cardIdx, true);
     });
     $("practiceNote").textContent = LANG.t("practice.note." + practice);
   }
-  function renderStartSheet() {
-    practiceChips("startPractice", practice, function (k) {
-      practice = k; renderStartSheet();
+  /* ---------- Родной город фотографа ----------
+     Город спрашивается один раз и живёт в профиле. Он отвечает сразу на три
+     вопроса, которые раньше задавались порознь или не задавались вовсе:
+     в каком городе заводить новую съёмку, считать ли съёмку выездом и по
+     каким правилам оформлять дела. Последнее прежде спрашивалось отдельным
+     экраном про бумаги — вопрос снят: юрисдикция это география, а город
+     точнее часового пояса (docs: DECISIONS, «Родной город фотографа»).
+
+     Хранится в `me` рядом с номером: это профиль владельца, а не настройка
+     карты. Координаты и код страны запоминаются вместе с именем — имя нужно
+     человеку, координаты подставляют место новой съёмке, код страны выбирает
+     практику. Не ответил геокодер — остаётся набранное имя: город, названный
+     руками, работает и без справочника, просто выезд считается по совпадению
+     строк, а практика остаётся догадкой по поясу. */
+  /* Город — имя собственное, и набранный второпях «томск» остаётся именем
+     города, а не опечаткой пользователя. Поднимаем первую букву и не трогаем
+     остальное: «Ростов-на-Дону» и «Нижний Новгород» знают о себе больше, чем
+     любое правило, которое мы могли бы написать. */
+  function cityCap(v) {
+    v = (v || "").trim();
+    return v ? v.charAt(0).toLocaleUpperCase("ru") + v.slice(1) : "";
+  }
+  function cityNorm(v) {
+    return (v || "").toLowerCase().replace(/ё/g, "е").replace(/[^\wа-я\u0400-\u04ff]+/g, " ").trim();
+  }
+  function myCity() { return (me.city || "").trim(); }
+  /* Практика по стране города. Страны СНГ ведут дела российским порядком не
+     потому, что это одна страна, а потому что цепочка сделки и набор бумаг
+     там совпадают. Не знаем страну — не спорим с прежним ответом. */
+  var CC_PRACTICE = {
+    ru: "ru", by: "ru", kz: "ru", ua: "ru", uz: "ru", kg: "ru", am: "ru",
+    az: "ru", ge: "ru", md: "ru", tj: "ru", tm: "ru",
+    us: "us", ca: "us", gb: "uk", ie: "eu"
+  };
+  var CC_EU = ["at","be","bg","hr","cy","cz","dk","ee","fi","fr","de","gr","hu","is",
+               "it","lv","li","lt","lu","mt","nl","no","pl","pt","ro","sk","si","es","se","ch"];
+  function practiceFromCC(cc) {
+    cc = (cc || "").toLowerCase();
+    if (!cc) return "";
+    if (CC_PRACTICE[cc]) return CC_PRACTICE[cc];
+    return CC_EU.indexOf(cc) >= 0 ? "eu" : "";
+  }
+  /* Подсказка городов — тот же Nominatim, что и поиск места, но с
+     `featuretype=settlement`: спрашивают город, а не кофейню с таким именем.
+     Ответ отдаёт и страну — по ней встаёт практика. */
+  var cityHintTimer = null, cityHintSeq = 0;
+  function cityHints(inEl, boxEl, onPick) {
+    if (!inEl || !boxEl) return;
+    function close() { boxEl.innerHTML = ""; }
+    inEl.addEventListener("input", function () {
+      var q = this.value.trim();
+      onPick({ name: q });            // набранное руками — уже ответ, справочник только уточняет
+      clearTimeout(cityHintTimer);
+      if (q.length < 3) { close(); return; }
+      cityHintTimer = setTimeout(function () {
+        var seq = ++cityHintSeq;
+        fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&featuretype=settlement&addressdetails=1&limit=5&accept-language="
+              + encodeURIComponent(LANG.code || "ru") + "&q=" + encodeURIComponent(q))
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (seq !== cityHintSeq) return;
+            var list = (j || []).map(function (x) {
+              var a = x.address || {};
+              var parts = (x.display_name || "").split(",").map(function (t) { return t.trim(); });
+              return { name: x.name || parts[0] || q,
+                       area: [a.state, a.country].filter(Boolean).join(", ") || parts.slice(-2).join(", "),
+                       cc: (a.country_code || "").toLowerCase(),
+                       lat: +x.lat, lon: +x.lon };
+            });
+            if (!list.length) { close(); return; }
+            boxEl.innerHTML = list.map(function (h, i) {
+              return '<button class="loc-hit" data-i="' + i + '"><span class="n">' + esc(h.name)
+                + '</span><span class="a">' + esc(h.area) + "</span></button>";
+            }).join("");
+            boxEl.querySelectorAll(".loc-hit").forEach(function (b) {
+              b.addEventListener("click", function () {
+                var h = list[+b.dataset.i];
+                inEl.value = h.name;
+                close();
+                onPick(h);
+              });
+            });
+          }).catch(close);
+      }, 450);
     });
-    $("startNote").textContent = LANG.t("practice.note." + practice);
+    inEl.addEventListener("blur", function () { setTimeout(close, 180); });
+  }
+  /* Ответ города записывается целиком: имя, координаты, страна. Практику
+     страна меняет только пока фотограф не выбрал её сам — свой выбор
+     справочником не перебивают. */
+  function takeCity(h) {
+    me.city = cityCap(h.name);
+    if (h.lat != null && h.lon != null) {
+      me.cityLat = +h.lat; me.cityLon = +h.lon;
+      /* Названный город — это и есть ответ на вопрос «где я»: свет и карта
+         едут туда же. Раньше оба экрана держались за последнее место, куда
+         занесло геолокацию, и Томск в профиле соседствовал с Гёреме в шапке.
+         Переезд только по выбранной подсказке: набранное руками имя
+         координат не несёт, а двигать свет наугад нельзя (решение Алексея). */
+      if (typeof gotoLocation === "function") {
+        gotoLocation(+h.lat, +h.lon);
+        /* Имя мы уже знаем — его только что выбрали в списке. Спрашивать
+           обратный геокодер, как называется точка, координаты которой он же
+           и выдал, значит ставить в шапку числа на всё время ответа, а без
+           сети — навсегда (замерено: «56.489 N · 84.952 E» вместо «Томск»). */
+        geoCity = me.city; geoSub = ""; geoStale = false;
+        applyGeoNames();
+      }
+    }
+    if (h.cc) {
+      me.cityCC = h.cc;
+      var pr = practiceFromCC(h.cc);
+      if (pr && !practicePicked) { practice = pr; renderPracticeChips(); renderDocKinds(); renderDelv(); }
+    }
+    saveAll();
+    renderProfile();
+  }
+  cityHints($("myCity"), $("myCityHits"), takeCity);
+  cityHints($("startCity"), $("startCityHits"), takeCity);
+
+  /* ---------- Знакомство: город и номер ----------
+     Оба поля правятся на месте и сохраняются по мере набора: «Готово»
+     закрывает лист, а не подтверждает ответ — незаполненное поле не повод
+     держать человека на пороге. */
+  function renderStartSheet() {
+    $("startCity").value = myCity();
+    $("startTel").value = myPhone();
   }
   function openStartSheet() {
     renderStartSheet();
@@ -25673,12 +26481,39 @@
     $("startSheet").classList.add("open");
   }
   function closeStartSheet() {
+    /* Знакомство пройдено — второй раз не спрашиваем, даже если оба поля
+       остались пустыми: молчание тоже ответ. Практика с этого момента
+       считается выбранной: город её назвал, а не догадка о поясе. */
+    me.met = true;
     practiceAsked = true;
     saveAll();
     $("startScrim").classList.remove("show");
     $("startSheet").classList.remove("open");
     renderPracticeChips();
+    renderProfile();
   }
+  /* Номер причёсывается тем же правилом, что и в профиле, вместе с оговоркой
+     про вставку: автозаполнение iOS отдаёт номер посимвольно и без «+7», и
+     без счёта цифр формат разъезжается на первом же таком вводе
+     (docs: DECISIONS, «Автозаполнение отдаёт номер по цифре») */
+  (function () {
+    var el = $("startTel"), lastLen = 0;
+    el.addEventListener("input", function (e) {
+      var digits = telDigits(this.value).length;
+      var pasted = digits - lastLen > 1
+        || (e && /paste|replacement|autofill/i.test(e.inputType || ""));
+      if (digits > lastLen && !/^\s*\+/.test(this.value)) pasted = true;
+      var end = this.selectionStart === this.value.length;
+      this.value = formatTel(this.value, pasted);
+      lastLen = telDigits(this.value).length;
+      if (end) this.selectionStart = this.selectionEnd = this.value.length;
+      me.phone = this.value.trim();
+      if (telCcFollow()) telPlaceholder();
+      saveAll();
+      if ($("myTel")) $("myTel").value = me.phone;
+      renderProfile();
+    });
+  })();
   $("startDone").addEventListener("click", closeStartSheet);
   $("startScrim").addEventListener("click", closeStartSheet);
 
@@ -25861,7 +26696,7 @@
     /* Возвращаем туда, откуда начинали: тур уводил по вкладкам, и бросать
        человека в настройках после знакомства со светом незачем */
     if (document.body.dataset.tab !== "s-today") go("s-today");
-    if (!practiceAsked) setTimeout(openStartSheet, 600);
+    if (!me.met) setTimeout(openStartSheet, 600);
   }
 
   /* Ползунок ведёт сам тур: иначе не показать, что от времени меняется всё
@@ -26742,6 +27577,12 @@
   var blk = null, blkEditId = null, blkRow = null;
 
   function blkEnd() { return blk.min + blk.dur; }
+  /* На сколько минут пояс прилёта отличается от пояса вылета. Ноль — если
+     дорога внутри одного пояса или пояса неизвестны */
+  function blkShift() {
+    if (!blk || blk.tzFrom == null || blk.tzTo == null) return 0;
+    return Math.round((blk.tzFrom - blk.tzTo) * 60);
+  }
   function blkEndDate() {
     var d = new Date(blk.from);
     d.setDate(d.getDate() + (blk.allDay ? blockDays(blk) - 1 : Math.floor(blkEnd() / 1440)));
@@ -26772,8 +27613,19 @@
     $("blkToDate").textContent = shortDate(blkEndDate());
     if (!blk.allDay) {
       $("blkFromTime").textContent = fmt(blk.min);
-      $("blkToTime").textContent = fmt(blkEnd());
+      /* На экране — местное время прилёта, а не «вылет плюс длительность»:
+         человек читает то, что написано в билете */
+      $("blkToTime").textContent = fmt(blkEnd() - blkShift());
     }
+    /* Метки поясов появляются только у дороги с разными концами */
+    var shiftOn = !blk.allDay && blkShift() !== 0;
+    $("blkTzFrom").hidden = !shiftOn;
+    $("blkTzTo").hidden = !shiftOn;
+    if (shiftOn) {
+      $("blkTzFrom").textContent = tzText(blk.tzFrom);
+      $("blkTzTo").textContent = tzText(blk.tzTo);
+    }
+    $("blkToLabel").textContent = LANG.t(shiftOn ? "blk.arrive" : "blk.to");
     $("blkSpan").textContent = blk.allDay
       ? (blockDays(blk) > 1 ? LANG.count("unit.day", blockDays(blk)) : LANG.t("blk.oneDay"))
       : durLabel(blk.dur) + (Math.floor(blkEnd() / 1440) > 0 ? " · " + LANG.t("blk.nextDay") : "");
@@ -26833,7 +27685,11 @@
   }
   function onBlkTo() {
     if (blkOpen !== "blkToTime") return;
-    var d = wheelIndex(bwTH) * 60 + wheelMin(bwTM) - blk.min;
+    /* Разница поясов входит в длительность: «вылет 9:00 — прилёт 9:00» при
+       четырёх часах между Томском и Москвой это четыре часа в пути, а не
+       ноль. Без этой поправки перелёт выглядел телепортом. */
+    var shift = blkShift();
+    var d = wheelIndex(bwTH) * 60 + wheelMin(bwTM) - blk.min + shift;
     while (d < 15) d += 1440;                 // конец раньше начала — значит за полночь
     blk.dur = Math.min(d, 2880);
     renderBlk();
@@ -26850,12 +27706,20 @@
 
   /* `at` приходит из ленты дня: занятость завели тапом по конкретному часу,
      и день целиком тут не при чём — заняли два часа на дорогу, а не сутки */
-  function openBlockSheet(b, at, day) {
+  /* `pre` — заготовка от того, кто открыл лист. Форма съёмки знает про
+     поездку больше, чем календарь: вид дороги, город и день съёмки. Лист от
+     этого не меняется — просто открывается заполненным, и человеку остаётся
+     поправить час вылета (docs: DECISIONS, «Выезд ведёт в занятость»). */
+  function openBlockSheet(b, at, day, pre) {
     blkEditId = b ? b.id : null;
     blk = b ? { k: b.k, note: b.note || "", from: new Date(b.from), allDay: !!b.allDay,
-                days: b.days || 1, min: b.min || 600, dur: b.dur || 120 }
-            : { k: "off", note: "", from: new Date(day || calSel), allDay: at == null,
-                days: 1, min: at == null ? 600 : at, dur: 120 };
+                days: b.days || 1, min: b.min || 600, dur: b.dur || 120,
+                tzFrom: b.tzFrom != null ? b.tzFrom : null, tzTo: b.tzTo != null ? b.tzTo : null }
+            : { k: (pre && pre.k) || "off", note: (pre && pre.note) || "",
+                from: new Date(day || calSel), allDay: pre ? !!pre.allDay : at == null,
+                days: 1, min: at == null ? ((pre && pre.min) || 600) : at,
+                dur: (pre && pre.dur) || 120,
+                tzFrom: pre ? pre.tzFrom : null, tzTo: pre ? pre.tzTo : null };
     blkCloseRows(); renderBlk();
     $("blkSheet").classList.add("open"); $("blkScrim").classList.add("open");
   }
@@ -26881,10 +27745,16 @@
     var rec = { id: blkEditId || newBlockId(), k: blk.k, note: (blk.note || "").trim(),
                 from: new Date(blk.from), allDay: blk.allDay,
                 days: blk.allDay ? blockDays(blk) : 1,
-                min: blk.allDay ? null : blk.min, dur: blk.allDay ? null : blk.dur };
+                min: blk.allDay ? null : blk.min, dur: blk.allDay ? null : blk.dur,
+                /* Пояса — снимок на момент записи, как адрес студии: правила
+                   перехода на летнее время меняются, а запись остаётся */
+                tzFrom: blk.allDay ? null : blk.tzFrom, tzTo: blk.allDay ? null : blk.tzTo };
     if (blkEditId) blocks = blocks.map(function (b) { return b.id === blkEditId ? rec : b; });
     else blocks.push(rec);
     saveAll(); closeBlockSheet(); renderCal(); renderDayPanel();
+    /* Форма могла ждать под листом: дорогу отмечали из неё, и строка обязана
+       показать отмеченное сразу, а не после переоткрытия карточки */
+    if ($("formOverlay").classList.contains("open")) { renderRoadRow(); refreshForm(); }
   });
 
   /* Настройки сдачи материала */
@@ -27031,50 +27901,103 @@
   /* Лист «Где снимаем». Два режима: место приложения (с «Сегодня» и карты)
      и место съёмки (из карточки) — тогда результат уходит в форму, а не в свет. */
   var locTarget = "app", locPickName = "";
+  /* Какой путь открыт: пусто — развилка, дальше "addr", "studio" или "geo".
+     Путь — это не вкладка: сюда входят, а не переключаются между. Поэтому
+     наверху «назад», а не полоса из трёх кнопок: полоса требует выбирать
+     заново каждый раз, когда смотришь на экран (docs: DECISIONS, «Три пути») */
+  var locWay = "";
+  /* Город выбранного места. Место приносит свой город с собой: выбрал
+     московскую студию — значит съёмка московская, и поле города обязано это
+     сказать само. Прежде город оставался прежним, и «Томсон» оказывался в
+     Москве — а с ним и выезд, и свет, и предупреждения о накладках. */
+  var locPickTown = "";
   /* Набраны ли координаты руками. Отличить это от подставленных нельзя иначе:
      и «моё местоположение», и точка из закладок, и результат поиска кладут
      значения в те же поля — но программно, а событие `input` бывает только от
      руки. Тот же приём, что у `locNameTyped` строкой выше */
   var locCoordsTyped = false;
-  function openLocSheet(mode) {
+  /* Студия места приложения не касается: свету нужны координаты, а не
+     арендодатель. Поэтому путь «Студия» в режиме карты не показывается вовсе,
+     а не показывается пустым. */
+  function setWay(way) {
+    locWay = way || "";
+    var open = !!locWay;
+    $("locWays").hidden = open;
+    $("locBack").hidden = !open;
+    $("wayAddr").hidden = locWay !== "addr";
+    $("wayGeo").hidden = locWay !== "geo";
+    $("wayStudio").hidden = locWay !== "studio";
+    /* Имя и сохранение принадлежат обоим адресным путям. На пути координат
+       строка адреса прячется: там адресов нет — ради этого путь и заведён */
+    $("locPlaceGroup").hidden = !(locWay === "addr" || locWay === "geo");
+    $("locAddress").hidden = locWay !== "addr";
+    var titles = { addr: "loc.wayAddr", studio: "loc.wayStudio", geo: "loc.wayGeo" };
+    var subs = { addr: "loc.wayAddrSub", studio: "loc.wayStudioSub", geo: "loc.wayGeoSub" };
+    $("locTitle").textContent = open ? LANG.t(titles[locWay])
+      : LANG.t(locTarget === "session" ? "loc.titleShoot" : "loc.title");
+    $("locSub").textContent = open ? LANG.t(subs[locWay]) : LANG.t("loc.sub");
+    /* «Готово» на развилке обещало бы, что выбор уже сделан. Пока путь не
+       выбран, соглашаться не с чем */
+    $("locDone").hidden = !open;
+    $("locErr").textContent = "";
+    /* Подпись про телефон объясняет поле карточки — значит и живёт ровно
+       столько, сколько карточка: без этого она висела под списком студий,
+       толкуя то, чего на экране нет */
+    if (locWay === "studio") { renderStudios(); renderStudioCard(); }
+    if (locWay === "addr") { renderRecent(); renderSpots(); }
+    $("locSheet").scrollTop = 0;
+  }
+  /* `way` — путь, с которого лист открывается. Его называет тот, кто
+     открыл: слово «Фотостудия» в форме обещает карточку студии, и показать
+     вместо неё развилку значило бы переспросить уже сказанное. */
+  function openLocSheet(mode, way) {
     locTarget = mode === "session" ? "session" : "app";
     var isSession = locTarget === "session";
-    $("locTitle").textContent = LANG.t(isSession ? "loc.titleShoot" : "loc.title");
-    var base = isSession ? sessionPlace : { lat: LAT, lon: LON, name: "" };
+    var base = isSession ? sessionPlace : { lat: LAT, lon: LON, name: "", addr: "" };
     $("locLat").value = (+base.lat).toFixed(4);
     $("locLon").value = (+base.lon).toFixed(4);
     $("locQuery").value = ""; $("locResults").innerHTML = "";
     locPickName = isSession ? (base.name || "") : "";
-    $("locErr").textContent = "";
-    $("locPlaceGroup").hidden = !isSession;      // выезд и название — про съёмку
+    locPickTown = "";
+    $("locName").value = isSession ? (base.name || "") : "";
+    $("locAddress").value = isSession ? (base.addr || "") : "";
+    $("locSaveSpot").classList.remove("on");
     locNameTyped = false;                 // новое открытие листа — новая история
     locCoordsTyped = false;
-    if (isSession) {
-      $("locName").value = base.name || "";
-      $("locAddress").value = base.addr || "";
-      $("locSaveSpot").classList.remove("on");
-      $("locTrip").classList.toggle("on", fTrip);
-      /* Студия съёмки открывается уже выбранной: лист показывает то, что в
-         съёмке стоит, а не пустые поля поверх заполненной записи */
-      var st0 = studioById(sessionStudioId);
-      locStudioId = st0 ? st0.id : null;
-      $("locStudioTel").value = st0 ? (st0.tel || "") : "";
-      $("locStudioMin").value = st0 ? (st0.hourMin || 55) : 55;
-      $("locStudioKey").value = st0 ? (st0.key || "") : "";
-      locCard = st0 ? { halls: st0.halls || [], tomcohId: st0.tomcohId || null } : null;
-      setStudioMode(!!st0);
+    $("locWayStudioBtn").hidden = !isSession;
+    /* Студия съёмки открывается уже выбранной, и лист сразу встаёт на её
+       путь: показывать развилку тому, кто уже снимает в студии, значит
+       спрашивать заново то, что в записи есть */
+    var st0 = isSession ? studioById(sessionStudioId) : null;
+    studioDraft = null;
+    setWay(way || (st0 ? "studio" : ""));
+    /* На путь студии входят с уже выбранной студией, если она в съёмке есть;
+       пустой список студий сразу открывает карточку новой — упереться в
+       строку «студий пока нет» на первом же заходе незачем */
+    if (locWay === "studio") {
+      if (st0) openStudioCard(st0);
+      else if (!studios.length) newStudioCard();
     }
-    $("locDetectLbl").textContent = LANG.t("loc.detect");
-    renderStudios();
-    renderSpots();
+    $("locHereLbl").textContent = LANG.t("loc.here");
     $("locSheet").classList.add("open"); $("locScrim").classList.add("open");
-    // Первый тап по месту на «Сегодня» — сразу спрашиваем разрешение на геоданные
+    /* Первый тап по месту на «Сегодня» по-прежнему сразу просит геоданные —
+       но теперь заодно уводит на путь координат: кнопка живёт там, и
+       спрашивать разрешение, не показав, кто спрашивает, нечестно */
     if (!isSession && navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: "geolocation" }).then(function (p) {
-        if (p.state === "prompt") $("locDetect").click();
+        if (p.state === "prompt") { setWay("geo"); $("locHere").click(); }
       }).catch(function () {});
     }
   }
+  document.querySelectorAll(".loc-way").forEach(function (b) {
+    b.addEventListener("click", function () {
+      setWay(b.dataset.way);
+      /* Пустой список студий — не тупик: карточка новой открывается сразу,
+         иначе первый заход упирался бы в строку «студий пока нет» */
+      if (b.dataset.way === "studio" && !studios.length) newStudioCard();
+    });
+  });
+  $("locBack").addEventListener("click", function () { setWay(""); });
   function closeLocSheet() { $("locSheet").classList.remove("open"); $("locScrim").classList.remove("open"); }
   $("todayLoc").addEventListener("click", function () { openLocSheet("app"); });
   $("mapLoc").addEventListener("click", function () { openLocSheet("app"); });
@@ -27127,7 +28050,11 @@
       var el = $(id); if (!el) return;
       el.innerHTML = esc(String(v)) + chev;
     }
-    put("setNavProfileV", myPhone() || LANG.t("set.appIdNone"));
+    /* Строка корня отвечает тем, что в разделе главное. Раньше это был
+       номер; теперь первым идёт город — без него не считается ни выезд, ни
+       место новой съёмки, и пустота тут заметнее пустого номера */
+    put("setNavProfileV", [myCity(), myPhone()].filter(Boolean).join(" · ")
+        || LANG.t("set.myCityNone"));
     /* Только тема: режим переехал на первый экран и виден там сам собой,
        а строка обязана отчитываться о том, что внутри неё */
     put("setNavViewV", LANG.t(themePref === "light" ? "set.themeLight"
@@ -27288,6 +28215,9 @@
   $("telScrim").addEventListener("click", telCancel);
   function renderProfile() {
     var id = myId();
+    /* Город правится тут же, поэтому под пальцем поле не перебиваем — тот же
+       приём, что у города в форме съёмки */
+    if ($("myCity") && document.activeElement !== $("myCity")) $("myCity").value = myCity();
     /* Пока номера нет, строка не молчит прочерком, а говорит, чего не хватает:
        ID — не настройка на любителя, без него узел Event OS безымянный */
     /* Пустая строка ID теперь бывает по двум разным причинам, и сказать
@@ -27637,125 +28567,278 @@
     btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
   })();
 
-  /* Студия в листе выбирается так же, как сохранённая точка: тапом. Разница
-     в том, что она приносит с собой не только координаты — телефон
-     администратора и длину рабочего часа тоже, потому что без них она не
-     студия, а просто адрес. */
-  var locStudioId = null;
+  /* ---------- Студия: своя сущность, а не тумблер у места ----------
+     Прежде студия заводилась переключателем «Это студия» поверх адресной
+     формы, и следом появлялись четыре поля, каждое из которых спрашивало
+     не то. «Телефон администратора» просил номер человека, который завтра
+     будет другой; «Минут в оплаченном часе» вслух произносило чужую
+     бухгалтерию; «Ключ студии» требовал того, чего у фотографа нет и не
+     должно быть. Теперь студия — отдельный путь со своей карточкой, поля
+     спрашивают ровно то, что фотограф знает: название, адрес, залы и
+     рабочий номер (docs: DECISIONS, «Студия без шлюза»).
+
+     Студийный час — 55 минут для всех и без вопроса. Где час полный,
+     предупреждение просто придёт на пять минут раньше конца: ошибка в эту
+     сторону стоит пяти минут, ошибка в другую — опоздания из зала. */
+  var STUDIO_HOUR_MIN = 55;
+  /* Что правится в карточке прямо сейчас. Пока «Готово» не нажато, студия
+     живёт черновиком: список студий не должен меняться под пальцем от того,
+     что кто-то открыл карточку посмотреть. */
+  var studioDraft = null;
   /* Адрес шлюза студии. Пока каталога нет, студия ровно одна, и держать под
      неё поле в интерфейсе значило бы просить фотографа набирать URL руками.
      Лежит на самой студии (`apiBase`), а не в коде намертво: появится вторая —
      достаточно будет её записать, а не переписывать функцию. */
   var STUDIO_API_DEFAULT = "https://tomson-auth.alexeynovopashin.workers.dev";
   function studioApi(st) { return (st && st.apiBase) || STUDIO_API_DEFAULT; }
-  /* Карточка приезжает снимком: имя, адрес, координаты, телефон, длина часа,
-     залы. Дальше съёмка живёт локально — сторона окон за час не переедет, а
-     связи на съёмке может не быть вовсе (docs: ROADMAP, поправка 2 к разбору
-     «Студия в каталоге»). */
-  function loadStudioCard() {
-    var key = ($("locStudioKey").value || "").trim();
-    if (!key) return;
-    var lbl = $("locStudioLoadV");
-    lbl.textContent = LANG.t("loc.studioLoading");
-    fetch(studioApi(studioById(locStudioId)) + "/studio", { headers: { "X-Studio-Key": key } })
-      .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
-      .then(function (j) {
-        if (!j || !j.name) throw new Error("empty");
-        $("locName").value = j.name;
-        locPickName = j.name;
-        if (j.address) $("locAddress").value = j.address;
-        if (j.tel) $("locStudioTel").value = j.tel;
-        if (j.hourMin) $("locStudioMin").value = j.hourMin;
-        if (j.lat != null && j.lon != null) {
-          $("locLat").value = (+j.lat).toFixed(4);
-          $("locLon").value = (+j.lon).toFixed(4);
-          locCoordsTyped = false;          // числа пришли от студии, а не из-под пальца
-        }
-        locCard = { halls: Array.isArray(j.halls) ? j.halls : [], tomcohId: j.id || null };
-        lbl.textContent = "";
-        $("locErr").textContent = "";
-        saveNote(LANG.t("loc.studioOk", { name: j.name }));
-      })
-      .catch(function () {
-        lbl.textContent = "";
-        /* Ошибку говорим строкой листа, а не молчанием: карточку всегда можно
-           заполнить руками, и студия останется напоминалкой */
-        $("locErr").textContent = LANG.t("loc.studioBad");
-      });
+  /* Новая студия начинается там, где стоит фотограф: координаты уточнит
+     адрес, а до тех пор пусть будут хоть какие-то — свет считается от них */
+  function newStudioCard() {
+    /* Город новой студии — город съёмки, в которой её заводят: снимают в
+       Москве — значит и студия московская, даже если фотограф из Томска */
+    studioDraft = { id: null, name: "", addr: "", tel: "", key: "", halls: [],
+                    tomcohId: null, town: sessionPlace.town || myCity(), lat: LAT, lon: LON };
+    renderStudioCard();
+    $("locStudioName").focus();
   }
-  var locCard = null;                      // что приехало из студии в этот заход
-  $("locStudioLoad").addEventListener("click", loadStudioCard);
-  function fillStudioFields(st) {
-    $("locLat").value = (+st.lat).toFixed(4);
-    $("locLon").value = (+st.lon).toFixed(4);
-    $("locName").value = st.name || "";
-    $("locAddress").value = st.address || "";
-    $("locStudioTel").value = st.tel || "";
-    $("locStudioMin").value = st.hourMin || 55;
-    $("locStudioKey").value = st.key || "";
-    locCard = { halls: st.halls || [], tomcohId: st.tomcohId || null };
-    locPickName = st.name || "";
-    locStudioId = st.id;
-    setStudioMode(true);
-    $("locErr").textContent = "";
+  function openStudioCard(st) {
+    studioDraft = { id: st.id, name: st.name || "", addr: st.address || "",
+                    tel: st.tel || "", key: st.key || "", halls: (st.halls || []).slice(),
+                    tomcohId: st.tomcohId || null, town: st.town || "",
+                    lat: st.lat != null ? st.lat : LAT, lon: st.lon != null ? st.lon : LON };
+    renderStudioCard();
   }
-  function setStudioMode(on) {
-    $("locIsStudio").classList.toggle("on", !!on);
-    $("locStudioTel").hidden = !on;
-    $("locStudioMinRow").hidden = !on;
-    $("locStudioKey").hidden = !on;
-    $("locStudioLoad").hidden = !on;
-    if (!on) $("locStudioLoadV").textContent = "";
-    /* Студия сохраняется всегда — сущность без списка не живёт. Тумблер
-       «сохранить в моих местах» ей не нужен и только путал бы: он про точки. */
-    $("locSaveRow").hidden = !!on;
+  function renderStudioCard() {
+    var on = !!studioDraft;
+    $("locStudioCard").hidden = !on;
+    $("locStudioNote").hidden = !on;
+    if (!on) return;
+    if (document.activeElement !== $("locStudioName")) $("locStudioName").value = studioDraft.name;
+    if (document.activeElement !== $("locStudioAddr")) $("locStudioAddr").value = studioDraft.addr;
+    if (document.activeElement !== $("locStudioTel")) $("locStudioTel").value = studioDraft.tel;
+    renderHalls();
   }
-  $("locIsStudio").addEventListener("click", function () {
-    var on = !this.classList.contains("on");
-    setStudioMode(on);
-    if (!on) locStudioId = null;
-  });
-  function renderStudios() {
-    var box = $("studioList"), lab = $("studioLabel");
-    var show = locTarget === "session";
-    lab.hidden = !show; box.hidden = !show;
-    if (!show) return;
+  /* Залы заводятся руками. Раньше список приезжал только из шлюза, и «зал
+     Эдисон» без интеграции набрать было негде — при том что в съёмке зал
+     спрашивается у всех (docs: DECISIONS, «Студия без шлюза»). */
+  function renderHalls() {
+    var box = $("hallList"); if (!box || !studioDraft) return;
     box.innerHTML = "";
-    if (!studios.length) {
+    if (!studioDraft.halls.length) {
       var em = document.createElement("div");
-      em.className = "spot-empty";
-      em.textContent = LANG.t("loc.noStudios");
+      em.className = "hall-empty";
+      em.textContent = LANG.t("loc.hallsNote");
       box.appendChild(em);
       return;
     }
-    studios.forEach(function (st) {
-      var row = document.createElement("div"); row.className = "spot-row";
-      var go = document.createElement("button"); go.className = "spot-go"; go.type = "button";
-      var nm = document.createElement("span"); nm.className = "spot-name";
-      nm.textContent = st.name || coordText(st.lat, st.lon);
-      var co = document.createElement("span"); co.className = "spot-coord";
-      co.textContent = LANG.t("loc.studioMins") + ": " + (st.hourMin || 55);
-      var ad = document.createElement("span"); ad.className = "spot-address";
-      ad.textContent = st.address || "";
-      go.appendChild(nm); go.appendChild(co); go.appendChild(ad);
-      go.addEventListener("click", function () { fillStudioFields(st); });
-      row.appendChild(go);
+    studioDraft.halls.forEach(function (h, i) {
+      var row = document.createElement("div"); row.className = "hall-row";
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.placeholder = LANG.t("loc.hallNewPh"); inp.value = h.name || "";
+      inp.addEventListener("input", function () { studioDraft.halls[i].name = inp.value; });
       var del = document.createElement("button");
-      del.className = "spot-del"; del.type = "button";
-      del.setAttribute("aria-label", LANG.t("loc.delAria"));
-      del.innerHTML = IC.svg("trash");
-      del.addEventListener("click", function () {
-        var i = studios.indexOf(st);
-        if (i >= 0) studios.splice(i, 1);
-        /* Съёмки, где студия уже стояла, её не теряют: снимок имени и адреса
-           лежит в самой записи, и прошлое не переписывается задним числом.
-           Пропадает только студийный час — отвечать за него больше некому. */
-        if (locStudioId === st.id) { locStudioId = null; setStudioMode(false); }
-        saveAll(); renderStudios();
-      });
-      row.appendChild(del);
+      del.type = "button"; del.className = "hall-del";
+      del.setAttribute("aria-label", LANG.t("loc.hallDel"));
+      del.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      del.addEventListener("click", function () { studioDraft.halls.splice(i, 1); renderHalls(); });
+      row.appendChild(inp); row.appendChild(del);
       box.appendChild(row);
     });
+  }
+  $("hallAdd").addEventListener("click", function () {
+    if (!studioDraft) return;
+    studioDraft.halls.push({ id: "h" + Date.now().toString(36), name: "" });
+    renderHalls();
+    var last = $("hallList").querySelectorAll("input");
+    if (last.length) last[last.length - 1].focus();
+  });
+  ["locStudioName", "locStudioAddr", "locStudioTel"].forEach(function (id) {
+    var key = { locStudioName: "name", locStudioAddr: "addr", locStudioTel: "tel" }[id];
+    $(id).addEventListener("input", function () {
+      if (studioDraft) studioDraft[key] = this.value;
+    });
+  });
+  /* Координаты студии не спрашиваем числами — их знает адрес. Спрашиваем
+     геокодер, когда адрес дописан: свет и погода считаются от точки, а
+     набирать широту ради студии на Красноармейской никто не должен. */
+  $("locStudioAddr").addEventListener("change", function () {
+    var q = this.value.trim();
+    if (!q || !studioDraft) return;
+    /* Ищем адрес в городе съёмки, а не в родном: «Красноармейская, 101а»
+       есть и в Томске, и в Москве, и промах на тысячу километров стоил бы
+       неверного света и неверной дороги */
+    var full = [q, sessionPlace.town || myCity()].filter(Boolean).join(", ");
+    if (full === studioDraft.addrAt) return;
+    studioDraft.addrAt = full;
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&accept-language="
+          + encodeURIComponent(LANG.code || "ru") + "&q=" + encodeURIComponent(full))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var h = (j || [])[0];
+        if (!h || !studioDraft || studioDraft.addrAt !== full) return;
+        studioDraft.lat = +h.lat; studioDraft.lon = +h.lon;
+        /* Город студии знает сам адрес — точнее, чем город формы: филиал на
+           окраине может числиться за соседним посёлком, и это его правда */
+        var a = h.address || {};
+        var town = cleanPlace(a.city || a.town || a.village || a.municipality || "");
+        if (town) studioDraft.town = town;
+      }).catch(function () {});
+  });
+  /* Кода студии в карточке нет вовсе, и это не упрощение вида, а решение:
+     ключа у фотографа нет и быть не должно — «откуда у меня ключи от
+     студии». Студию опознаёт её собственный номер той же функцией, которой
+     считается ID участника (docs: DECISIONS, «Ключ матча — та же функция,
+     что и ID участника»). Ключ доступа к шлюзу, если он у студии заведён,
+     приезжает с её стороны и лежит в записи — руками его не набирают
+     (решение Алексея). */
+  /* Студии разложены по городам той же меркой, что и места: в Томске
+     фотограф снимает в «Томсоне», в Москве — в «Маяке», и общий список из
+     обоих городов заставлял бы вычитывать нужные строки глазами. Город
+     студии — её собственный: его приносит геокодер адреса, а если сети не
+     было, то город съёмки, в которой её завели. */
+  function studioRow(box, st) {
+    var halls = (st.halls || []).map(function (h) { return h.name; }).filter(Boolean);
+    var sub = halls.join(" · ");
+    var town = sheetCity();
+    /* В чужом городе строка называет город, а не залы: здесь важнее «где»,
+       чем «в каком зале» */
+    if (st.town && town && !sameCity(st.town, town)) sub = st.town;
+    var row = spotRow(box, { name: st.name, address: st.address, lat: st.lat, lon: st.lon },
+      sub, function () { openStudioCard(st); $("locSheet").scrollTop = 0; });
+    var del = document.createElement("button");
+    del.className = "spot-del"; del.type = "button";
+    del.setAttribute("aria-label", LANG.t("loc.delAria"));
+    del.innerHTML = IC.svg("trash");
+    /* Студию, которой в списке нет, убирать неоткуда: она живёт в записи
+       съёмки, а прошлое задним числом не переписывается */
+    del.hidden = !!st.lost;
+    del.addEventListener("click", function () {
+      var i = studios.indexOf(st);
+      if (i >= 0) studios.splice(i, 1);
+      if (studioDraft && studioDraft.id === st.id) { studioDraft = null; renderStudioCard(); }
+      saveAll(); renderStudios();
+    });
+    row.appendChild(del);
+  }
+  function renderStudios() {
+    var box = $("studioList"), lab = $("studioLabel");
+    var box2 = $("studioOtherList"), lab2 = $("studioOtherLabel");
+    box.innerHTML = ""; box2.innerHTML = "";
+    /* Список студий — тоже память: сперва заведённые, следом те, что остались
+       только в съёмках. Выбранная из вторых заводится обратно сама, когда
+       съёмку сохранят: карточка у неё уже есть, просто лежала в записи */
+    var all = studios.concat(lostStudios());
+    var split = splitByCity(all, function (st) { return st.town; });
+    split.here.forEach(function (st) { studioRow(box, st); });
+    split.other.forEach(function (st) { studioRow(box2, st); });
+    lab.hidden = !split.here.length;
+    lab2.hidden = box2.hidden = !split.other.length;
+  }
+  $("studioNew").addEventListener("click", newStudioCard);
+  /* ---------- Память мест ----------
+     Список недавних читается из самих съёмок: где снимали, туда и поедут
+     снова. Сохранять место закладкой для этого больше не нужно — закладка
+     осталась для избранного, а память ведётся сама.
+
+     Память адресная, и это её главное свойство: путь «Место» показывает
+     только места, путь «Фотостудия» — только студии. Смешанный список
+     заставлял бы вычитывать из десяти строк те три, что относятся к вопросу
+     (решение Алексея, по образцу «недавних» в iOS). */
+  function byDateDesc(a, b) { return b.date - a.date; }
+  /* Город, в котором лист ищет. Для съёмки это её собственный город — тот,
+     что стоит в форме, а не родной: фотограф на выезде выбирает московскую
+     студию, и томские ему сейчас не помощники. Пусто — берём родной. */
+  function sheetCity() {
+    return locTarget === "session" ? (sessionPlace.town || myCity()) : (geoCity || myCity());
+  }
+  function sameCity(a, b) {
+    a = cityNorm(a); b = cityNorm(b);
+    return !!a && !!b && a === b;
+  }
+  /* Разложить список на «здесь» и «в других городах». Город неизвестен —
+     строка остаётся здесь: старые записи города не знали, и прятать их за
+     незаполненное поле значило бы потерять их молча. */
+  function splitByCity(list, townOf) {
+    var town = sheetCity(), here = [], other = [];
+    list.forEach(function (it) {
+      var t = townOf(it);
+      if (town && t && !sameCity(t, town)) other.push(it); else here.push(it);
+    });
+    return { here: here, other: other };
+  }
+  function recentSpots(limit) {
+    var out = [], seen = {};
+    sessions.slice().sort(byDateDesc).forEach(function (s) {
+      if (s.studioId) return;                       // студия — не место, у неё свой путь
+      var nm = (s.place || "").trim();
+      if (!nm || s.placeLat == null || s.placeLon == null) return;
+      var k = cityNorm(nm) + "|" + cityNorm(s.placeAddr || "");
+      if (seen[k]) return;
+      seen[k] = 1;
+      /* Уже в закладках — значит стоит ниже, в «Моих местах»: одна и та же
+         точка дважды на экране читается как две разные */
+      for (var i = 0; i < spots.length; i++) if (sameSpot(spots[i], s.placeLat, s.placeLon)) return;
+      out.push({ name: nm, address: s.placeAddr || "", town: s.placeTown || "",
+                 lat: s.placeLat, lon: s.placeLon });
+    });
+    return out.slice(0, limit || 6);
+  }
+  /* Студии, которые есть в съёмках, но которых нет в списке: карточку могли
+     убрать, а съёмка помнит имя, адрес и координаты. Такая студия остаётся
+     в недавних — «была» важнее, чем «числится» */
+  function lostStudios() {
+    var out = [], seen = {};
+    sessions.slice().sort(byDateDesc).forEach(function (s) {
+      if (!s.studioId || seen[s.studioId] || studioById(s.studioId)) return;
+      seen[s.studioId] = 1;
+      out.push({ id: s.studioId, name: (s.place || "").trim(), address: s.placeAddr || "",
+                 tel: "", key: "", halls: [], town: s.placeTown || "",
+                 lat: s.placeLat, lon: s.placeLon, lost: true });
+    });
+    return out;
+  }
+  /* Строка списка — одна на все три списка: имя, подпись, адрес. Раньше
+     каждый рисовал свою, и они разъезжались подписями */
+  function spotRow(box, item, sub, onGo) {
+    var row = document.createElement("div"); row.className = "spot-row";
+    var go = document.createElement("button"); go.className = "spot-go"; go.type = "button";
+    var nm = document.createElement("span"); nm.className = "spot-name";
+    nm.textContent = item.name || coordText(item.lat, item.lon);
+    var co = document.createElement("span"); co.className = "spot-coord";
+    co.textContent = sub || "";
+    var ad = document.createElement("span"); ad.className = "spot-address";
+    ad.textContent = item.address || "";
+    go.appendChild(nm); go.appendChild(co); go.appendChild(ad);
+    go.addEventListener("click", onGo);
+    row.appendChild(go);
+    box.appendChild(row);
+    return row;
+  }
+  function renderRecent() {
+    var box = $("recentList"), lab = $("recentLabel");
+    var box2 = $("recentOtherList"), lab2 = $("recentOtherLabel");
+    if (!box) return;
+    box.innerHTML = ""; box2.innerHTML = "";
+    var all = locTarget === "session" ? recentSpots(12) : [];
+    var split = splitByCity(all, function (r) { return r.town; });
+    function fill(target, list) {
+      list.forEach(function (r) {
+        spotRow(target, r, r.town && !sameCity(r.town, sheetCity()) ? r.town : "", function () {
+          $("locLat").value = (+r.lat).toFixed(4);
+          $("locLon").value = (+r.lon).toFixed(4);
+          locPickName = r.name;
+          locPickTown = r.town || "";
+          $("locName").value = r.name;
+          if (r.address) $("locAddress").value = r.address;
+          locNameTyped = true;
+          $("locErr").textContent = "";
+        });
+      });
+    }
+    fill(box, split.here.slice(0, 6));
+    fill(box2, split.other.slice(0, 4));
+    lab.hidden = box.hidden = !split.here.length;
+    lab2.hidden = box2.hidden = !split.other.length;
   }
   function renderSpots() {
     var box = $("spotList"); if (!box) return;
@@ -27843,7 +28926,6 @@
     });
   }
   $("locScrim").addEventListener("click", closeLocSheet);
-  $("locTrip").addEventListener("click", function () { this.classList.toggle("on"); });
   $("locSaveSpot").addEventListener("click", function () { this.classList.toggle("on"); });
   // Написали имя руками — поиск его больше не перебивает
   $("locName").addEventListener("input", function () { locNameTyped = true; });
@@ -27862,26 +28944,34 @@
   /* Имя, введённое руками, геокодер больше не перебивает: человек назвал
      место так, как ему удобно, и «уточнять» это до района незачем */
   $("locName").addEventListener("input", function () { locPickName = this.value.trim(); });
-  $("locDetect").addEventListener("click", function () {
-    if (locTarget === "session") {          // для съёмки геолокация только заполняет поля
+  /* Геолокация ведёт себя по-разному в двух режимах, и это не прихоть:
+     месту приложения она отвечает на весь вопрос целиком — можно закрывать
+     лист, — а съёмке только подставляет координаты, потому что съёмке нужно
+     ещё имя и адрес. Кнопок теперь две (на развилке и на пути координат), а
+     поведение одно. */
+  function detectIntoSheet(lblId) {
+    var lbl = $(lblId), was = lbl.textContent;
+    if (locTarget === "session") {
       if (!navigator.geolocation) { $("locErr").textContent = LANG.t("loc.errNoGeo"); return; }
-      $("locDetectLbl").textContent = LANG.t("loc.detecting");
+      lbl.textContent = LANG.t("loc.detecting");
       navigator.geolocation.getCurrentPosition(function (p) {
         $("locLat").value = p.coords.latitude.toFixed(4);
         $("locLon").value = p.coords.longitude.toFixed(4);
-        locPickName = ""; $("locDetectLbl").textContent = LANG.t("loc.detect");
+        locPickName = ""; lbl.textContent = was;
       }, function () {
         $("locErr").textContent = LANG.t("loc.errNotFound");
-        $("locDetectLbl").textContent = LANG.t("loc.detect");
+        lbl.textContent = was;
       }, { enableHighAccuracy: true, timeout: 8000 });
       return;
     }
-    $("locDetectLbl").textContent = LANG.t("loc.detecting");
+    lbl.textContent = LANG.t("loc.detecting");
     detectLocation(function () {
       $("locLat").value = LAT.toFixed(4); $("locLon").value = LON.toFixed(4);
+      lbl.textContent = was;
       closeLocSheet();
-    }, function (m) { $("locErr").textContent = m; $("locDetectLbl").textContent = LANG.t("loc.detect"); });
-  });
+    }, function (m) { $("locErr").textContent = m; lbl.textContent = was; });
+  }
+  $("locHere").addEventListener("click", function () { detectIntoSheet("locHereLbl"); });
 
   /* Поиск места по названию: человек думает «Лагерный сад», а не координатами.
      Nominatim (OpenStreetMap): без ключа, с CORS. Пауза, чтобы не долбить сервис. */
@@ -27937,48 +29027,70 @@
     locSearchTimer = setTimeout(function () { searchPlace(q); }, 450);
   });
 
+  /* «Готово» собирает ответ по тому пути, которым шли. Пути отвечают разным:
+     адрес — именем, улицей и точкой на карте; студия — своей карточкой,
+     которая заодно и сохраняется; координаты — числами. Общее у всех одно:
+     съёмка получает место, а место приложения — новую точку. */
   $("locDone").addEventListener("click", function () {
     var la = parseFloat(($("locLat").value || "").replace(",", "."));
     var lo = parseFloat(($("locLon").value || "").replace(",", "."));
+    var placeName = "", addr = "", savedAsSpot = false;
+    if (locWay === "studio") {
+      if (!studioDraft) { $("locErr").textContent = LANG.t("loc.studioNone"); return; }
+      /* Координаты студии — её собственные: их принёс адрес, шлюз или место,
+         где стоял фотограф, когда заводил карточку. Числа полей тут ни при
+         чём, полей этих на пути студии и нет. */
+      la = studioDraft.lat; lo = studioDraft.lon;
+    }
     if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = LANG.t("loc.errLat"); return; }
     if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = LANG.t("loc.errLon"); return; }
     if (locTarget === "session") {
-      fTrip = $("locTrip").classList.contains("on");
-      var placeName = ($("locName").value || "").trim() || locPickName;
-      /* Адрес принадлежит съёмке, а не только закладке. Раньше он записывался
-         лишь при включённом тумблере «сохранить место» — выключен, и набранный
-         адрес выбрасывался: съёмке он не доставался вообще. */
-      var addr = ($("locAddress").value || "").trim();
-      /* Руками набранные координаты считаем ответом только если имени к ним не
-         дали: назвал место — значит числа ему не подпись */
-      /* Студия заводится тем же «Готово», что и место: отдельного экрана у неё
-         нет — фотограф выбирает место и говорит, что это студия. Совпадение
-         координат обновляет её, а не плодит вторую такую же рядом. */
-      if ($("locIsStudio").classList.contains("on")) {
-        var mins = Math.round(+$("locStudioMin").value);
-        var st = studioById(locStudioId);
-        if (!st) for (var qi = 0; qi < studios.length; qi++) if (sameSpot(studios[qi], la, lo)) { st = studios[qi]; break; }
-        if (!st) { st = { id: newStudioId(), tomcohId: null }; studios.unshift(st); }
-        st.name = placeName || st.name || coordText(la, lo);
-        st.address = addr || st.address || "";
-        st.tel = ($("locStudioTel").value || "").trim();
-        st.key = ($("locStudioKey").value || "").trim();
-        st.hourMin = (mins > 0 && mins <= 60) ? mins : 55;
-        if (locCard) { st.halls = locCard.halls; st.tomcohId = locCard.tomcohId; }
-        st.lat = +la.toFixed(5); st.lon = +lo.toFixed(5);
+      if (locWay === "studio") {
+        /* Студия сохраняется всегда: сущность без списка не живёт, и второй
+           раз её заводить руками фотограф не должен. Прежняя правится на
+           месте, новая встаёт первой — по ней и будут выбирать. */
+        var st = studioById(studioDraft.id);
+        if (!st) { st = { id: newStudioId() }; studios.unshift(st); }
+        st.name = (studioDraft.name || "").trim() || st.name || coordText(la, lo);
+        st.address = (studioDraft.addr || "").trim();
+        st.tel = (studioDraft.tel || "").trim();
+        st.key = (studioDraft.key || "").trim();
+        st.tomcohId = studioDraft.tomcohId || null;
+        /* Город студии — то, чем список отделяет томские от московских */
+        st.town = studioDraft.town || sessionPlace.town || myCity() || st.town || "";
+        locPickTown = st.town;
+        /* Пустые строки залов выбрасываем: «＋ зал» нажимают и передумывают,
+           а безымянный зал в барабане съёмки — пустая позиция без значения */
+        st.halls = studioDraft.halls.filter(function (h) { return (h.name || "").trim(); })
+          .map(function (h) { return { id: h.id, name: h.name.trim() }; });
+        st.lat = +(+la).toFixed(5); st.lon = +(+lo).toFixed(5);
         sessionStudioId = st.id;
-        if (!placeName) placeName = st.name;      // студия называет себя сама
+        studioDraft.id = st.id;
+        placeName = st.name;                      // студия называет себя сама
+        addr = st.address;
         saveAll();
       } else {
+        /* Ушли с пути студии на адрес или координаты — значит съёмка больше
+           не в студии: аренда и зал уходят вместе с ней */
         sessionStudioId = null;
         fRentFrom = fRentTo = null;
+        placeName = ($("locName").value || "").trim() || locPickName;
+        /* Адрес принадлежит съёмке, а не только закладке. Раньше он писался
+           лишь при включённом тумблере «сохранить место» — выключен, и
+           набранный адрес выбрасывался: съёмке он не доставался вообще. */
+        addr = locWay === "addr" ? ($("locAddress").value || "").trim() : "";
       }
+      /* Город места сильнее города, стоявшего в форме: место названо
+         позже и точнее. Отмечаем его как названный, чтобы обратный геокодер
+         не переписал его обратно на посёлок по соседству. */
+      if (locPickTown) { sessionPlace.town = locPickTown; sessionPlace.townTyped = true; }
+      /* Руками набранные координаты считаем ответом только если имени к ним
+         не дали: назвал место — значит числа ему не подпись */
       setSessionPlace(la, lo, placeName, locCoordsTyped && !placeName, addr);
-      /* Раньше сохранить место можно было только закладкой на карте — здесь,
-         одним тумблером, то же самое сразу с именем и адресом, без второго
-         захода в настройки. Совпадение координат обновляет существующую
-         точку, а не плодит дубль рядом. */
-      if ($("locSaveSpot").classList.contains("on")) {
+      /* Сохранение в свои места — только на адресных путях: студия ведёт
+         свой список и в чужом не нуждается */
+      savedAsSpot = locWay !== "studio" && $("locSaveSpot").classList.contains("on");
+      if (savedAsSpot) {
         var idx = -1;
         for (var si = 0; si < spots.length; si++) if (sameSpot(spots[si], la, lo)) { idx = si; break; }
         if (idx >= 0) {
@@ -27986,7 +29098,7 @@
           if (addr) spots[idx].address = addr;
         } else {
           spots.unshift({ id: newSpotId(), name: placeName || coordText(la, lo), address: addr,
-            lat: +la.toFixed(5), lon: +lo.toFixed(5) });
+            lat: +(+la).toFixed(5), lon: +(+lo).toFixed(5) });
         }
         saveAll(); renderSpotMark(); renderSpots();
       }
@@ -27994,14 +29106,19 @@
       gotoLocation(la, lo);
     }
     closeLocSheet();
+    /* Место сменилось — форма обязана пересчитать то, что от него зависит:
+       свет считается по точке, а предупреждение о накладке — по месту и
+       выезду. Без этого шага строка предупреждения отвечала про прежнее
+       место: выбрал студию, а форма всё ещё сравнивала с городом (замерено —
+       «Катя, Маяк» показывалось на съёмку в том же самом «Маяке»). */
+    if ($("formOverlay").classList.contains("open")) refreshForm();
     /* Отклик обязателен: лист закрывался молча, и правка места выглядела так
        же, как отказ от неё. Тот же способ, что у закладки на карте — короткая
        подпись вместо тишины. Правило записано после истории с закладкой:
        у необратимого на вид действия отклик виден с расстояния вытянутой руки */
-    var savedAsSpot = locTarget === "session" && $("locSaveSpot").classList.contains("on");
-    var shownName = ($("locName").value || "").trim() || locPickName;
-    saveNote(shownName
-      ? LANG.t("loc.saved", { name: shownName }) + (savedAsSpot ? " · " + LANG.t("loc.inMyPlaces") : "")
+    saveNote(placeName
+      ? LANG.t(locWay === "studio" ? "loc.studioPick" : "loc.saved", { name: placeName })
+        + (savedAsSpot ? " · " + LANG.t("loc.inMyPlaces") : "")
       : LANG.t("loc.savedPlain"));
   });
 
@@ -28141,8 +29258,8 @@
      потом спрашивают о правилах. На самом первом запуске экран знакомства
      идёт первым, а этот вопрос он сам зовёт себе вслед при закрытии —
      иначе оба листа встанут друг на друга. */
-  if (!saved && !practiceAsked) { /* закроется знакомством, см. closeTour */ }
-  else if (!practiceAsked) setTimeout(openStartSheet, 600);
+  if (!saved && !me.met) { /* закроется знакомством, см. closeTour */ }
+  else if (!me.met) setTimeout(openStartSheet, 600);
   measureDockSoon();
   window.addEventListener("resize", measureDock);
   window.addEventListener("orientationchange", measureDockSoon);
@@ -28151,6 +29268,11 @@
        область, а значит и то, сколько места занимает док */
     visualViewport.addEventListener("resize", measureDock);
   }
+  /* Пояс места приложения — по настоящей зоне, а не по долготе. Спрашивается
+     здесь, а не при восстановлении места: там `zoneCache` ещё не объявлен
+     (`var` поднимает имя, но не значение), и обращение к нему падало бы.
+     Пока ответа нет, работает прежняя оценка — экран не ждёт сети. */
+  TZ = tzAt(LAT, LON, new Date());
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
   fetchAir();       // воздух приходит вторым и только поправляет закат
   askPersistence(); renderStorageInfo();   // просим у браузера не стирать наши записи
