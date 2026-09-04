@@ -13567,6 +13567,46 @@
       m.el.classList.toggle("here", sameSpot(m.sp, LAT, LON));
     });
   }
+  /* ---------- Тап по отметке ----------
+     Слой отметок сквозной (`pointer-events: none`), и это не оплошность: под
+     ним карта, которую водят пальцем. Перехвати знак касание — на каждой
+     булавке появилась бы мёртвая зона, где холст не тянется, а у подписи в
+     132 пикселя зона вышла бы величиной с ползунок.
+
+     Поэтому попадание считаем сами, по клику самой карты. Так движок и
+     остаётся хозяином жеста: `click` он выдаёт только когда палец не поехал
+     (`clickTolerance`), то есть перетаскивание, начатое с булавки, остаётся
+     перетаскиванием и никуда не проваливается. Приём родственный солнцу и
+     луне на слое света — там прицел шире диска, потому что 4,5 пикселя
+     пальцем не берутся; тут та же мысль, только прицел считается, а не
+     нарисован.
+
+     Меряем экранные прямоугольники самих элементов, а не расстояние до
+     координаты: у подписи своя ширина, и она часть знака — целить в
+     булавку в 18 пикселей, когда рядом лежит имя, незачем. Под живым
+     компасом прямоугольник повёрнутого элемента чуть шире самого элемента —
+     промах в пользу человека, а не против него. */
+  function spotAtPoint(cx, cy) {
+    var best = null, bestD = Infinity;
+    spotMarks.forEach(function (m) {
+      if (m.el.style.display === "none") return;
+      if (m.el.classList.contains("here")) return;   // тут уже стоим, ехать некуда
+      var hit = false, dx = 0, dy = 0;
+      [[m.el.querySelector("svg"), 6], [m.el.querySelector(".sm-name"), 4]].forEach(function (pair) {
+        var el = pair[0], pad = pair[1];
+        if (!el || hit) return;
+        var r = el.getBoundingClientRect();
+        if (!r.width) return;
+        if (cx >= r.left - pad && cx <= r.right + pad && cy >= r.top - pad && cy <= r.bottom + pad) {
+          hit = true; dx = cx - (r.left + r.width / 2); dy = cy - (r.top + r.height / 2);
+        }
+      });
+      if (!hit) return;
+      var d = dx * dx + dy * dy;
+      if (d < bestD) { bestD = d; best = m.sp; }      // две булавки внахлёст — берём ближнюю
+    });
+    return best;
+  }
   function initMap() {
     if (lmap || typeof maplibregl === "undefined" || typeof MAPSTYLE === "undefined") return;
     lmap = new maplibregl.Map({
@@ -13592,6 +13632,16 @@
        и обработчик поэтому двигает только `transform` уже готовых знаков */
     lmap.on("move", placeSpotMarks);
     buildSpotMarks();
+    /* Тап по отметке — переезд на неё: ровно то же, что тап по строке в
+       «Моих местах», только не выходя из карты. Свет, погода и весь прибор
+       пересчитываются на новую точку, а имя её называет подпись в углу —
+       шапка к этому времени показывает город от геокодера, не имя точки. */
+    lmap.on("click", function (e) {
+      var oe = e && e.originalEvent; if (!oe) return;
+      var sp = spotAtPoint(oe.clientX, oe.clientY); if (!sp) return;
+      gotoLocation(sp.lat, sp.lon);
+      saveNote(LANG.t("loc.saved", { name: sp.name || coordText(sp.lat, sp.lon) }));
+    });
     /* Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место */
     lmap.on("moveend", function () {
       if (mapQuiet) return;
