@@ -368,6 +368,7 @@
     "map.routeSaveHere": "Сохранить это место",
     "map.routeAdd":    "Добавить точку",
     "map.routeDrop":   "Убрать из маршрута",
+    "map.delSpot":     "Удалить точку",
     "map.routeMake":   "Сделать съёмкой",
     "map.routeClear":  "Очистить",
 
@@ -2033,6 +2034,7 @@
     "map.routeSaveHere": "Save this spot",
     "map.routeAdd":    "Add a stop",
     "map.routeDrop":   "Remove from route",
+    "map.delSpot":     "Delete this spot",
     "map.routeMake":   "Make it a shoot",
     "map.routeClear":  "Clear",
 

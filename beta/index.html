@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=54"></script>
+<script src="lang.js?v=55"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -2448,6 +2448,17 @@
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
   }
   .snb-ok:active { background: var(--brass-deep); }
+  .snb-del {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; border: none;
+    background: var(--bad-bg); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .snb-del svg {
+    width: 15px; height: 15px; fill: none; stroke: var(--bad-ink);
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .snb-del:active { background: var(--terra-2); }
+  .snb-del:active svg { stroke: var(--surface); }
 
   /* ---------- Полоса черновика маршрута ----------
      Стоит под кадром, а не в нём: низ кадра занят «слоями» и «моим местом»,
@@ -6587,6 +6598,12 @@
                  placeholder="Как назвать точку?" data-i18n-ph="map.nameSpot"/>
           <span class="snb-coord" id="spotNameCoord">—</span>
         </span>
+        <!-- Удаление точки. Живёт здесь, а не отдельной формой: полоса и так
+             уже говорит «вот эта точка, вот её имя, вот её координаты» — это
+             единственное место на карте, где точка названа целиком, и второго
+             такого заводить незачем. Терракота, а не золото: стирающее
+             действие в приложении никогда не берёт цвет главного. -->
+        <button class="snb-del" id="spotNameDel" data-ic="trash" aria-label="Удалить точку" data-i18n-aria="map.delSpot"></button>
         <button class="snb-ok" id="spotNameOk" data-ic="check" aria-label="Готово" data-i18n-aria="map.nameDone"></button>
       </div>
       <!-- Слои — не переключатель темы карты, а выбор, что на ней светится:
@@ -14983,6 +15000,9 @@
        шапка к этому времени показывает город от геокодера, не имя точки. */
     lmap.on("click", function (e) {
       var oe = e && e.originalEvent; if (!oe) return;
+      /* Удержание уже отработало — тап того же пальца отдавать карте нельзя,
+         иначе следом за полосой правки карта уедет на точку */
+      if (spotHoldFired) { spotHoldFired = false; return; }
       var sp = spotAtPoint(oe.clientX, oe.clientY, routeMode); if (!sp) return;
       /* В режиме набора тап значит другое: точка ложится в черновик, а карта
          остаётся на месте. Уехать на точку посреди набора — потерять кадр, в
@@ -15013,6 +15033,38 @@
     });
     applyGeoNames();
   }
+  /* ---------- Удержание на булавке — правка точки ----------
+     Тап по булавке уже занят и отдавать его нельзя: в обычном виде он увозит
+     карту на точку, в наборе — кладёт её в черновик. Свободно удержание, и
+     срок берём тот же, что у закладки в шапке (450 мс): жест в приложении уже
+     принят, и второй длительности заводить незачем.
+
+     Ловим на кадре, а не на самой отметке: слой отметок жестов не берёт вовсе
+     (`pointer-events: none`), попадание считает `spotAtPoint` по прямоугольникам
+     знаков — тем же способом, что и тап. Палец поехал больше чем на восемь
+     пикселей — это перетаскивание карты, а не удержание. */
+  var spotHoldFired = false;
+  (function spotHold() {
+    var frame = document.querySelector(".map-frame"); if (!frame) return;
+    var timer = null, sx = 0, sy = 0;
+    function stop() { clearTimeout(timer); timer = null; }
+    frame.addEventListener("pointerdown", function (e) {
+      spotHoldFired = false; sx = e.clientX; sy = e.clientY;
+      var sp = spotAtPoint(sx, sy, true); if (!sp) return;
+      timer = setTimeout(function () {
+        spotHoldFired = true;
+        openSpotName(sp, true);
+      }, 450);
+    });
+    frame.addEventListener("pointermove", function (e) {
+      if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) stop();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+      frame.addEventListener(t, stop);
+    });
+    // Долгое нажатие на iOS зовёт своё меню выделения — оно тут лишнее
+    frame.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  })();
   /* Экран карты показывается — движок должен пересчитать размер и встать на место */
   function showMap() {
     /* Кадр невидим при загрузке (boot зовёт renderMap() до первого показа
@@ -29970,16 +30022,22 @@
      геокодера, как было; но спрашивают его теперь до того, как точка уедет
      в список, а не карандашом во второй заход. */
   var snbSpotId = null;
-  function openSpotName(sp) {
+  /* `edit` — полоса вызвана не сохранением, а правкой уже живущей точки
+     (удержание на булавке). Разница одна: поле показывает нынешнее имя, а не
+     стоит пустым. Пустым оно стоит при сохранении не по лени — там имени ещё
+     нет, а подставленный город от геокодера пришлось бы стирать перед тем,
+     как набрать своё. */
+  function openSpotName(sp, edit) {
     var bar = $("spotNameBar"); if (!bar || !sp) return;
     snbSpotId = sp.id;
     bar.hidden = false;
     $("spotNameCoord").textContent = coordText(sp.lat, sp.lon);
     var inp = $("spotNameIn");
-    inp.value = "";
+    inp.value = edit ? (sp.name || "") : "";
     /* Фокус ставится прямо в обработчике тапа: перенеси его в таймер — и iOS
        откажется поднимать клавиатуру, жест к тому времени уже не «живой» */
     inp.focus();
+    if (edit) inp.select();
   }
   /* Уходит фокус — имя записано. Отдельной кнопки «отмена» тут нет и не
      нужно: точка уже сохранена тапом по закладке, полоса лишь называет её,
@@ -29995,6 +30053,27 @@
     saveAll(); renderSpotMark(); renderSpots();
   }
   $("spotNameIn").addEventListener("blur", commitSpotName);
+  /* Удаление ловится на `pointerdown` с отменой умолчания, а не на клике.
+     Клик сюда не доходит: палец, покинувший поле, сначала роняет фокус,
+     `commitSpotName` прячет полосу — и кликать становится не по чему.
+     Отменённое умолчание оставляет фокус на месте, и порядок перестаёт
+     решать. У галочки этой беды нет: там потеря фокуса делает ровно то же,
+     что сделал бы клик. */
+  $("spotNameDel").addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    var sp = spotById(snbSpotId); if (!sp) return;
+    var i = spots.indexOf(sp); if (i < 0) return;
+    $("spotNameBar").hidden = true; snbSpotId = null;
+    $("spotNameIn").blur();
+    unlinkSpot(sp.id); bury(sp.id); spots.splice(i, 1);
+    /* Из черновика точка уходит вместе с собой: `routeSpots` мёртвую ссылку и
+       так пропускает, но номера на оставшихся булавках пересчитать надо, а
+       список маршрута иначе показал бы дыру в нумерации. */
+    var r = mapRoute.indexOf(sp.id); if (r >= 0) mapRoute.splice(r, 1);
+    saveAll(); renderSpotMark(); renderSpots();
+    paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
+    saveNote(LANG.t("loc.spotRemoved"));
+  });
   /* Ввод записывает сам, а не через потерю фокуса. Разница видна там, где
      `blur()` ничего не отправляет — в неактивном окне (замер 4 сентября 2026:
      `document.hasFocus()` ложно, событие не пришло, полоса осталась висеть).
