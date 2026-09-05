@@ -931,6 +931,7 @@
        слова нашей стороны: кнопка отправки и разбор ответов. */
     "quest.title":       "Опросник клиенту",
     "quest.rowSub":      "ссылка или знак для камеры",
+    "quest.off":         "Убрать опросник",
     "quest.sentOn":      "Опросник отправлен · {d}",
     "quest.againSub":    "показать ещё раз или отправить заново",
     "quest.clash":       "Не сходится с опросом:",
@@ -2505,6 +2506,7 @@
 
     "quest.title":       "Client questionnaire",
     "quest.rowSub":      "a link, or a code to scan",
+    "quest.off":         "Remove the questionnaire",
     "quest.sentOn":      "Questionnaire sent · {d}",
     "quest.againSub":    "show it again or send it anew",
     "quest.clash":       "Does not match the questionnaire:",
@@ -3966,6 +3968,7 @@
     "kit.count": "{n} de {m}",
     "quest.title": "Cuestionario para el cliente",
     "quest.rowSub": "un enlace, o un código para escanear",
+    "quest.off": "Quitar el cuestionario",
     "quest.sentOn": "Cuestionario enviado · {d}",
     "quest.againSub": "mostrarlo otra vez o enviarlo de nuevo",
     "quest.clash": "No coincide con el cuestionario:",
@@ -5311,6 +5314,7 @@
     "kit.count": "{n}/{m}",
     "quest.title": "客户问卷",
     "quest.rowSub": "链接或二维码",
+    "quest.off": "移除问卷",
     "quest.sentOn": "问卷已发送 · {d}",
     "quest.againSub": "再次显示或重新发送",
     "quest.clash": "与问卷不符：",

@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=49"></script>
+<script src="lang.js?v=50"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -4701,8 +4701,13 @@
   .lane-dot { position: absolute; left: 50%; top: 50%; z-index: 2; width: 8px; height: 8px;
     margin: -4px 0 0 -4px; border-radius: 50%; background: var(--ink-8); }
   .lane-t { font-size: 11px; color: var(--ink-3); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  /* Подпись обрезается раньше края колонки, а не по краю: во всю ширину две
+     соседние читались одним словом — «ПрогулкаФотост…» (замечено Алексеем).
+     Зазор нужен именно подписи, а не колонке: `gap` у дорожки разорвал бы
+     рельс между точками, а он идёт сквозь неё непрерывной линией. */
   .lane-n { font-size: 9.5px; color: var(--ink-7); margin-top: 2px; letter-spacing: -0.2px;
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   .lane-p.past .lane-ic svg { stroke: var(--brass); }
   .lane-p.past .lane-dot { background: var(--brass); }
   .lane-p.past .lane-rail::before, .lane-p.past .lane-rail::after { background: var(--brass); }
@@ -5153,11 +5158,14 @@
   /* Строка опросника. Пока не отправлен — говорит латунью, как всякое
      предложение действия; после отправки гаснет до обычной строки сведений,
      но остаётся кнопкой: отправить заново иногда нужно */
+  .quest-wrap { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+  .quest-wrap[hidden] { display: none; }
   .quest-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-    width: 100%; margin: 0 0 12px; padding: 13px 15px; background: var(--sheet-3);
+    flex: 1; min-width: 0; padding: 13px 15px; background: var(--sheet-3);
     border: none; border-radius: 14px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; text-align: left; }
   .quest-row[hidden] { display: none; }
+
   .quest-row .qr-t { font-size: 15px; font-weight: 600; color: var(--brass); }
   .quest-row .qr-s { font-size: 12px; color: var(--ink-4); }
   .quest-row.sent .qr-t { font-weight: 500; color: var(--ink-3); }
@@ -7204,10 +7212,20 @@
          просит, а встреча по деталям просит — решает фотограф, не мы.
          После отправки строка не исчезает, а стихает: окно отправки можно
          закрыть, не отправив, да и ссылку у клиента иногда теряют. -->
-    <button class="quest-row" id="cdQuest" hidden>
-      <span class="qr-t" id="cdQuestT">Опросник</span>
-      <span class="qr-s" id="cdQuestS">—</span>
-    </button>
+    <!-- Крестик рядом: опросник — предложение, а от предложения должно быть
+         чем отказаться. Свадьба бывает и без него: пару расспросили голосом,
+         на встрече или в переписке, — и тогда строка неделю висит укором за
+         несделанное. Знак тот же, каким снимают место и своё время аренды. -->
+    <div class="quest-wrap" id="cdQuestWrap" hidden>
+      <button class="quest-row" id="cdQuest">
+        <span class="qr-t" id="cdQuestT">Опросник</span>
+        <span class="qr-s" id="cdQuestS">—</span>
+      </button>
+      <button type="button" class="fp-x" id="cdQuestOff" aria-label="Убрать опросник" data-i18n-aria="quest.off">
+        <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
+      </button>
+    </div>
+
 
     <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
     <div id="cdEventBlocks">
@@ -24036,8 +24054,12 @@
        спрашивать нечего, а во время неё карточка занята другим.
        У выросшей встречи строки нет — опросник переехал в съёмку. */
     var qPhase = eventPhase(s);
-    var qShow = s.type === "wedding" && (meet ? !s.grewOn : (qPhase === "before"));
-    $("cdQuest").hidden = !qShow;
+    /* Отказ фотографа сильнее любого из этих условий: снял строку — значит
+       этой паре опросник не нужен, и напоминать о нём нечем */
+    var qShow = s.type === "wedding" && !s.questOff
+      && (meet ? !s.grewOn : (qPhase === "before"));
+    $("cdQuestWrap").hidden = !qShow;
+
     if (qShow) {
       var sent = s.questSent ? new Date(s.questSent) : null;
       $("cdQuest").classList.toggle("sent", !!sent);
@@ -25117,6 +25139,18 @@
     openQuest();
     markQuestSent();          // знак показан — считаем отданным
   });
+  /* Отказ живёт в записи, а не в настройках: опросник не нужен этой паре, а
+     не свадьбам вообще. Возврата у строки нет — как у снятого места, где
+     ответ дают заново; если понадобится вернуть, это отдельный разговор */
+  $("cdQuestOff").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    var s = sessions[cardIdx];
+    if (!s) return;
+    s.questOff = true;
+    saveAll();
+    openCard(cardIdx, true);            // не сбрасывая прокрутку
+  });
+
   /* Завершение записывает время нажатия, а не подставляет конец по записи:
      смысл кнопки именно в том, что факт разошёлся с планом. Дальше `doneAt`
      читает `eventPhase`, и съёмка уходит в «после» тем же путём, что по
