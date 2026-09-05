@@ -354,8 +354,14 @@
     "map.layers":      "Слои карты",
     "map.liveCompass": "Живой компас",
     "map.myPlace":     "Моё место",
+    /* Черновик маршрута на карте: набирается тапами по своим точкам */
+    "map.route":       "Маршрут",
+    "map.routeHint":   "Отмечайте точки по порядку",
+    "map.routeMake":   "Сделать съёмкой",
+    "map.routeClear":  "Очистить",
 
     "layer.sun":  "Солнце",
+
     "layer.moon": "Луна",
     "layer.mw":   "Млечный Путь",
 
@@ -2002,6 +2008,11 @@
     "map.layers":      "Map layers",
     "map.liveCompass": "Live compass",
     "map.myPlace":     "My location",
+    "map.route":       "Route",
+    "map.routeHint":   "Tap your points in order",
+    "map.routeMake":   "Make it a shoot",
+    "map.routeClear":  "Clear",
+
 
     "layer.sun":  "Sun",
     "layer.moon": "Moon",

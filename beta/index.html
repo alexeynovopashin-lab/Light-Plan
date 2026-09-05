@@ -891,7 +891,8 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=52"></script>
+<script src="lang.js?v=53"></script>
+
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -2199,6 +2200,29 @@
     width: var(--rotor-d, 150%); height: var(--rotor-d, 150%);
     z-index: 445; pointer-events: none;
   }
+  /* ---------- Линия маршрута ----------
+     Своим слоем под знаками, а не внутри `#mapSpots`: линия проходит через
+     булавки, и рисовать её поверх значило бы перечеркнуть каждую. Геометрия
+     та же самая — проекция общая, иначе линия и знаки разошлись бы на первом
+     же кадре жеста.
+
+     Пунктир, а не сплошная: линия соединяет точки по прямой, дороги под ней
+     нет. Сплошная обещала бы проложенный путь — обещание, которого прямая не
+     держит. Штрихи крупные и линия втрое толще приборных: холст уже расчерчен
+     золотым — дуга светила, лучи, часовые засечки, — и точечный пунктир в
+     нём терялся бы среди чужих линий (замер 5 сентября 2026: четыре точки в
+     Томске, линию не отличить от траектории солнца). */
+  #mapPath {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: var(--rotor-d, 150%); height: var(--rotor-d, 150%);
+    z-index: 444; pointer-events: none; overflow: visible;
+  }
+  #mapPath path {
+    fill: none; stroke: var(--brass); stroke-width: 3.4; opacity: 0.8;
+    stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 9 7;
+  }
+
+
   /* Якорь нулевого размера: `translate` ставит его в спроецированный пиксель,
      а знак и подпись висят от него отступами. Так на каждом кадре карты
      меняется только `transform` — раскладку это не трогает. */
@@ -2232,6 +2256,13 @@
     width: 22px; height: 22px; border-radius: 50%;
     border: 1.4px solid var(--brass); opacity: 0.55;
   }
+  /* Пока набирают маршрут, точка под наблюдателем снова становится обычной
+     точкой: её кладут в черновик наравне со всеми, а целиться в кольцо
+     диаметром 22 пикселя, где имя спрятано, нечем. */
+  #mapSpots.routing .spot-mark.here svg { display: block; }
+  #mapSpots.routing .spot-mark.here .sm-name { display: block; }
+  #mapSpots.routing .spot-mark.here::after { display: none; }
+
 
   /* Слой света поверх тайлов — компас не перехватывает жесты карты */
   #mapLight { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 450; }
@@ -2276,6 +2307,10 @@
   .map-layers-btn.on { color: var(--brass); }
   /* Живой компас — та же кнопка-кружок, включённая тем же приёмом, что и слои */
   .map-heading-btn.on { color: var(--brass); }
+  /* Набор маршрута — включённое состояние тем же приёмом, что у слоёв: пока
+     кнопка горит, тап по точке кладёт её в черновик, а не увозит карту */
+  .map-route-btn.on { color: var(--brass); }
+
   .map-heading-btn.on svg { animation: heading-pulse 1.6s ease-in-out infinite; }
   @keyframes heading-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   /* Позицию задаёт скрипт от самой кнопки; здесь только слой поверх скрима */
@@ -2364,6 +2399,68 @@
     stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
   }
   .snb-ok:active { background: var(--brass-deep); }
+
+  /* ---------- Полоса черновика маршрута ----------
+     Стоит под кадром, а не в нём: низ кадра занят «слоями» и «моим местом»,
+     и полоса поверх закрыла бы обе кнопки разом. Набор маршрута — состояние
+     всего экрана, а не значок в углу карты: холст при нём остаётся виден
+     целиком, полоса просто отодвигает свод вниз.
+
+     Вид — тот же, что у полосы именования точки (`.spot-name-bar`): плашка
+     со знаком слева и содержимым справа. Приём для «карта что-то у вас
+     спрашивает» в приложении уже принят, второй заводить незачем. */
+  .route-bar {
+    margin: 12px 16px 0; display: flex; flex-direction: column; gap: 9px;
+    padding: 10px 10px 10px 13px;
+    border-radius: 16px; corner-shape: squircle;
+    background: var(--bar); border: 1px solid var(--ink-10);
+  }
+  .route-bar[hidden] { display: none; }
+  .rb-top { display: flex; align-items: center; gap: 10px; }
+  .rb-ic { display: inline-flex; flex-shrink: 0; }
+  .rb-ic svg {
+    width: 17px; height: 17px; fill: none; stroke: var(--brass);
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .rb-body { flex: 1 1 auto; min-width: 0; }
+  .rb-sum { font-size: 14px; font-weight: 600; color: var(--ink); }
+  /* Километры и минуты моноширинными: числа пересчитываются на каждом тапе,
+     и строка не должна дёргаться под пальцем */
+  .rb-sub {
+    font-size: 11px; color: var(--ink-4); font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .rb-clear {
+    flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; border: none;
+    background: var(--ink-10); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .rb-clear svg {
+    width: 16px; height: 16px; fill: none; stroke: var(--ink-4);
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .rb-clear:active { background: var(--ink-9); }
+
+  .rb-make {
+    width: 100%; padding: 10px; border: none; cursor: pointer;
+    border-radius: 12px; corner-shape: squircle;
+    background: var(--brass); color: var(--surface);
+    font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.2px;
+  }
+  .rb-make:active { background: var(--brass-deep); }
+  .rb-make:disabled { background: var(--ink-10); color: var(--ink-5); }
+
+  /* Порядковый номер на булавке. Маршрут читается только по номерам: пять
+     точек в Гёреме соединены линией, но какая из них первая — линия не
+     говорит, она одинаковая с обоих концов. */
+  .spot-mark .sm-no {
+    position: absolute; left: -18px; top: -20px;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: var(--brass); color: var(--surface);
+    font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
 
   /* ---------- Календарь ---------- */
   /* Возврат к сегодняшнему. Та же метка, что у ползунка времени:
@@ -6336,7 +6433,11 @@
              поверх. Тело знака — та же булавка места (`pin`), что в шапке и в
              настройках, а не ещё один кружок: кружки на этой карте уже заняты
              солнцем и луной, и отличать точку от светила надо формой. -->
+        <!-- Линия маршрута. Под знаками: она проходит через булавки, и поверх
+             перечёркивала бы каждую. -->
+        <svg id="mapPath" aria-hidden="true"></svg>
         <div id="mapSpots" aria-hidden="true"></div>
+
         <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
         <div class="map-pin"><i></i></div>
       </div>
@@ -6375,7 +6476,26 @@
       <button class="map-here" id="mapHere" aria-label="Моё место" data-i18n-aria="map.myPlace">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
+      <!-- Маршрут. Включённый режим меняет одно: тап по своей точке кладёт её
+           в черновик, а не увозит карту на неё. Знак — тот же `route`, что у
+           маршрута дня в карточке: действие одно, знак один. -->
+      <button class="map-here map-route-btn" id="mapRouteBtn" aria-label="Маршрут" data-i18n-aria="map.route" data-ic="route" style="top:12px;bottom:auto;"></button>
     </div>
+    <!-- Черновик маршрута. Показывается только во включённом режиме: пустая
+         полоса под картой у того, кто маршрутов не строит, была бы платой за
+         чужую задачу. -->
+    <div class="route-bar" id="mapRouteBar" hidden>
+      <div class="rb-top">
+        <span class="rb-ic" data-ic="route"></span>
+        <div class="rb-body">
+          <div class="rb-sum" id="rbSum">—</div>
+          <div class="rb-sub" id="rbSub">—</div>
+        </div>
+        <button class="rb-clear" id="rbClear" data-ic="trash" aria-label="Очистить" data-i18n-aria="map.routeClear"></button>
+      </div>
+      <button class="rb-make" id="rbMake" data-i18n="map.routeMake">Сделать съёмкой</button>
+    </div>
+
     <!-- Меню стоит рядом со скримом, а не внутри кадра карты. В кадре у него
          `isolation: isolate` (он держит слои карты), и всё внутри заперто в
          своём контексте наложения: скрим, объявленный снаружи и позже, ложился
@@ -10249,6 +10369,8 @@
         zones: zoneCache,
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, studios: studios, theme: themePref,
+        mapRoute: mapRoute,
+
         pro: proMode, manualEnd: manualEnd, icsLayer: icsLayer,
         /* Практика пишется, только когда её выбрали: пока вопрос не задан,
            в записи её нет, и первый запуск остаётся первым */
@@ -11972,6 +12094,29 @@
     for (var i = 0; i < spots.length; i++) if (spots[i].id === id) return spots[i];
     return null;
   }
+  /* ---------- Черновик маршрута ----------
+     Маршрут набирают на карте раньше, чем появляется съёмка: сценарий Алексея
+     4 сентября 2026 — «готовлюсь к фотосъёмке в Каппадокии, сам нахожусь в
+     Томске, мне надо точно продумать маршрут и отметить точки». Ни даты, ни
+     клиента в этот момент ещё нет, и заводить пустую запись ради порядка
+     точек — просить план прежде замысла.
+
+     Поэтому черновик — свой список, а не точки дня какой-то съёмки: ссылки на
+     «Мои места» по порядку, без времён. Часы появляются позже, когда черновик
+     одним действием переезжает в новую съёмку — там у точек есть день, и час
+     есть чем назвать. Черновик один на приложение, как и сам список мест: два
+     сразу некому различать. */
+  var mapRoute = (saved && saved.mapRoute) || [];
+  var routeMode = false;
+  function routeSpots() {
+    var out = [];
+    mapRoute.forEach(function (id) {
+      var sp = spotById(id);
+      if (sp && sp.lat != null) out.push(sp);   // место могли удалить — черновик это переживает
+    });
+    return out;
+  }
+
   /* Две точки считаем одной, если они ближе примерно 60 метров: карта ездит
      под пальцем, и попасть в ту же тысячную долю градуса невозможно */
   function sameSpot(a, lat, lon) {
@@ -14166,15 +14311,130 @@
       var el = document.createElement("div");
       el.className = "spot-mark";
       el.innerHTML = '<svg viewBox="0 0 24 24">' + window.ICONS.body("pin") + "</svg>"
-        + '<span class="sm-name"></span>';
+        + '<span class="sm-name"></span><span class="sm-no" hidden></span>';
       el.querySelector(".sm-name").textContent = sp.name || coordText(sp.lat, sp.lon);
       box.appendChild(el);
       spotMarks.push({ sp: sp, el: el });
     });
     placeSpotMarks();
+    paintRouteNos();
+  }
+  /* Номера черновика ставятся при правке списка, а не на кадре карты: порядок
+     меняется тапом, а `move` сыплется десятками в секунду и искать в списке
+     каждую булавку на каждом кадре незачем. */
+  function paintRouteNos() {
+    spotMarks.forEach(function (m) {
+      var no = m.el.querySelector(".sm-no"); if (!no) return;
+      var i = mapRoute.indexOf(m.sp.id);
+      no.hidden = i < 0;
+      if (i >= 0) no.textContent = String(i + 1);
+    });
+  }
+  /* ---------- Набор маршрута ----------
+     Включённый режим меняет одно: тап по своей точке кладёт её в черновик, а
+     не увозит карту на неё. Второй тап по той же точке — снимает её: своей
+     корзины у точки нет, весь список и так на виду — это номера на булавках.
+
+     Порядок — порядок тапов. Переставлять номера перетаскиванием по карте
+     было бы честнее для правки середины и дороже во всём остальном; пока
+     ошибку исправляют, сняв точку и поставив заново (ROADMAP). */
+  function setRouteMode(on) {
+    routeMode = !!on;
+    $("mapRouteBtn").classList.toggle("on", routeMode);
+    $("mapSpots").classList.toggle("routing", routeMode);
+    $("mapRouteBar").hidden = !routeMode;
+    paintRouteNos();
+    if (routeMode) renderRouteBar();
+  }
+  function routeToggle(sp) {
+    var i = mapRoute.indexOf(sp.id);
+    if (i >= 0) mapRoute.splice(i, 1); else mapRoute.push(sp.id);
+    saveAll();
+    paintRouteNos(); placeRoutePath(); renderRouteBar();
+  }
+  /* Итог черновика: сколько точек, сколько между ними километров и сколько
+     займёт дорога. Километры — по прямой (`kmBetween`), минуты спрашиваются у
+     OSRM тем же `travelMinutes`, что считает переезды между точками дня.
+     Ответ приходит не сразу, и до него строка показывает одни километры:
+     поставить минуты, которых ещё не привезли, значило бы назвать число, за
+     которым ничего нет. */
+  function renderRouteBar() {
+    var bar = $("mapRouteBar"); if (!bar || bar.hidden) return;
+    var pts = routeSpots(), i, km = 0, min = 0, wait = false, t;
+    for (i = 1; i < pts.length; i++) {
+      km += kmBetween(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon);
+      t = travelMinutes(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon, renderRouteBar);
+      if (t === undefined) wait = true; else if (t != null) min += t;
+    }
+    $("rbSum").textContent = pts.length
+      ? LANG.count("unit.point", pts.length)
+      : LANG.t("map.routeHint");
+    $("rbSub").textContent = pts.length < 2 ? ""
+      : LANG.t("pro.distKm", { n: km < 10 ? num(km, 1) : num(Math.round(km)) })
+
+        + (wait || !min ? "" : " · " + durLabel(min));
+    $("rbMake").disabled = !pts.length;
+  }
+  /* Жанр, у которого бывают точки дня. Черновик — это их порядок, и класть
+     его в жанр без маршрута некуда. Берём выбранный, если маршрут у него
+     есть, иначе первый включённый из тех, у кого есть. Выключенные не
+     включаем: настройки фотографа приложение за него не меняет — тот же
+     довод, что у свадьбы в разборе визитки. */
+  function routeGenre() {
+    if (hasRoute(shootType)) return shootType;
+    for (var k in GENRE) if (genresOn[k] && hasRoute(k)) return k;
+    return null;
+  }
+  /* Черновик становится съёмкой. Часы не подставляем ни одной точке: время
+     дня знает фотограф, а карта знает только порядок. Точки уезжают ссылками
+     на «Мои места» — имя и координаты у них живые, и переименованное место
+     переименуется и в съёмке.
+
+     Сам черновик остаётся: он рабочий стол, а не заготовка одноразового
+     применения. Тот же маршрут ставят и на субботу, и на воскресенье, а
+     убирают его кнопкой, когда он больше не нужен. */
+  function makeRouteShoot() {
+    var pts = routeSpots(); if (!pts.length) return;
+    var g = routeGenre(); if (!g) return;
+    shootType = g;
+    setRouteMode(false);
+    openForm(selDate, Math.round(SUN.goldB || viewMin), null, true);
+    fRoute = pts.map(function (sp) {
+      return { t: "", n: "", p: sp.name || "", placeId: sp.id,
+               studioId: null, hallId: null };
+    });
+    renderRouteEditor();
+  }
+  $("mapRouteBtn").addEventListener("click", function () { setRouteMode(!routeMode); });
+  $("rbClear").addEventListener("click", function () {
+    mapRoute = []; saveAll();
+    paintRouteNos(); placeRoutePath(); renderRouteBar();
+  });
+  $("rbMake").addEventListener("click", makeRouteShoot);
+
+
+  /* Линия черновика. Тем же приёмом, что и знаки: элемент один, на кадре
+     меняется только `d` — событие `move` сыплется десятками в секунду, пока
+     карту тащат пальцем, и пересобирать разметку было бы расточительно. */
+  var routePathEl = null;
+  function placeRoutePath() {
+    var svg = $("mapPath"); if (!svg) return;
+    var pts = routeSpots(), d = "", i, p;
+    if (!lmap || pts.length < 2) { if (routePathEl) routePathEl.setAttribute("d", ""); return; }
+    for (i = 0; i < pts.length; i++) {
+      try { p = lmap.project([pts[i].lon, pts[i].lat]); } catch (e) { return; }
+      d += (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1);
+    }
+    if (!routePathEl) {
+      routePathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      svg.appendChild(routePathEl);
+    }
+    routePathEl.setAttribute("d", d);
   }
   function placeSpotMarks() {
+    placeRoutePath();
     if (!lmap || !spotMarks.length) return;
+
     var box = $("mapSpots"); if (!box) return;
     var w = box.offsetWidth, h = box.offsetHeight;
     spotMarks.forEach(function (m) {
@@ -14211,11 +14471,15 @@
      булавку в 18 пикселей, когда рядом лежит имя, незачем. Под живым
      компасом прямоугольник повёрнутого элемента чуть шире самого элемента —
      промах в пользу человека, а не против него. */
-  function spotAtPoint(cx, cy) {
+  function spotAtPoint(cx, cy, all) {
     var best = null, bestD = Infinity;
     spotMarks.forEach(function (m) {
       if (m.el.style.display === "none") return;
-      if (m.el.classList.contains("here")) return;   // тут уже стоим, ехать некуда
+      /* Тут уже стоим, ехать некуда — но это довод про переезд, а не про
+         набор маршрута: в черновик точка под наблюдателем кладётся наравне со
+         всеми, и знак ей на время набора возвращают (`#mapSpots.routing`). */
+      if (!all && m.el.classList.contains("here")) return;
+
       var hit = false, dx = 0, dy = 0;
       [[m.el.querySelector("svg"), 6], [m.el.querySelector(".sm-name"), 4]].forEach(function (pair) {
         var el = pair[0], pad = pair[1];
@@ -14263,8 +14527,13 @@
        шапка к этому времени показывает город от геокодера, не имя точки. */
     lmap.on("click", function (e) {
       var oe = e && e.originalEvent; if (!oe) return;
-      var sp = spotAtPoint(oe.clientX, oe.clientY); if (!sp) return;
+      var sp = spotAtPoint(oe.clientX, oe.clientY, routeMode); if (!sp) return;
+      /* В режиме набора тап значит другое: точка ложится в черновик, а карта
+         остаётся на месте. Уехать на точку посреди набора — потерять кадр, в
+         котором и виден весь маршрут. */
+      if (routeMode) { routeToggle(sp); return; }
       gotoLocation(sp.lat, sp.lon);
+
       saveNote(LANG.t("loc.saved", { name: sp.name || coordText(sp.lat, sp.lon) }));
     });
     /* Карта ездит под неподвижной точкой съёмки — центр и есть выбранное место */
