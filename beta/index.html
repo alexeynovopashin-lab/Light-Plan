@@ -1522,6 +1522,18 @@
      район, адрес знает фотограф. Пустая строка не занимает места вовсе. */
   .spot-address { font-size: 12px; color: var(--ink-4); }
   .spot-address:empty { display: none; }
+  /* Колонка отметки в списке студий: список выбирает студию съёмки, и
+     выбранная видна, не открывая карточку. Ширину держим и у невыбранных —
+     иначе имена прыгали бы по левому краю от одного тапа к другому. */
+  .studio-mark { width: 17px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; color: var(--brass); }
+  .studio-mark svg { width: 15px; height: 15px; fill: none; stroke: currentColor;
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .spot-row.sel .spot-name { color: var(--brass); }
+  /* Слот под строкой: пустой, пока эту студию не правят. Пустой он и по
+     высоте — иначе список стоял бы с прорехами через строку. */
+  .studio-slot:empty { display: none; }
+  .studio-slot { padding-bottom: 6px; }
   .spot-edit, .spot-del { width: 36px; height: 36px; flex-shrink: 0; background: none; border: none;
     display: inline-flex; align-items: center; justify-content: center; color: var(--ink-6); cursor: pointer; }
   .spot-edit svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -4385,6 +4397,10 @@
     display: flex; align-items: center; gap: 10px; margin-top: 10px;
     background: var(--sheet); border-radius: 12px; corner-shape: squircle; padding: 0 14px;
   }
+  /* `display: flex` сильнее браузерного `[hidden]` — тот же каскад, что уже
+     ловил поля формы, строки карточки и капсулы времени. Поиск студий
+     прячется по счёту списка, и без этой строки он висел бы всегда */
+  .loc-search[hidden] { display: none; }
   .loc-search svg { width: 17px; height: 17px; stroke: var(--ink-6); fill: none; stroke-width: 1.8; flex-shrink: 0; }
   .loc-search input {
     flex: 1; min-width: 0; background: none; border: none; padding: 14px 0;
@@ -8648,12 +8664,25 @@
       </div>
     </div>
 
-    <!-- ===== Путь второй: студия ===== -->
+    <!-- ===== Путь второй: студия =====
+         Список — главное на этом пути, а карточка студии — второе действие,
+         которое человек начинает сам. Прежде карточка стояла раскрытой всегда
+         и спорила со списком: два места, где можно набрать имя студии, и
+         непонятно, куда жать (Алексей, 5 сентября). Теперь как у «Моих мест»:
+         строка выбирает студию, карандаш раскрывает её карточку прямо под
+         строкой, «Новая студия» — под собой. -->
     <div id="wayStudio" hidden>
+      <!-- Поиск появляется, когда студий столько, что глазами их уже не
+           вычитывают. Форма та же, что у поиска места выше по листу -->
+      <div class="loc-search" id="studioFind" hidden>
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+        <input id="studioQuery" type="text" placeholder="Название, адрес или зал" data-i18n-ph="loc.studioFindPh" autocomplete="off"/>
+      </div>
       <div class="sec-label" id="studioLabel" style="padding-left:0;" data-i18n="loc.studios">Студии</div>
       <div class="spot-list" id="studioList"></div>
       <div class="sec-label" id="studioOtherLabel" style="padding-left:0;" data-i18n="loc.otherCities" hidden>В других городах</div>
       <div class="spot-list" id="studioOtherList" hidden></div>
+      <div class="spot-empty" id="studioNone" hidden data-i18n="loc.studioNoHit">Ничего не нашлось</div>
       <button type="button" class="loc-add" id="studioNew">
         <span class="la-ic" data-ic="plus"></span><span data-i18n="loc.studioNew">Новая студия</span>
       </button>
@@ -8663,7 +8692,11 @@
            бывает. Час теперь считается студийным всегда (55 минут), а код
            лежит за строкой «Подключить бронирование» — для тех, у кого он
            есть (docs: DECISIONS, «Студия без шлюза»). -->
-      <div class="group" id="locStudioCard" hidden style="margin-top:14px;">
+      <!-- Карточка и её пояснение переезжают вместе: пояснение объясняет поле
+           телефона, и оставлять его внизу листа, пока карточка раскрыта под
+           строкой в середине, значило бы разорвать вопрос и ответ -->
+      <div id="studioCardWrap" hidden>
+      <div class="group" id="locStudioCard" style="margin-top:14px;">
         <input class="sep" type="text" id="locStudioName" placeholder="Название студии" data-i18n-ph="loc.studioNamePh"/>
         <input class="sep" type="text" id="locStudioAddr" placeholder="Адрес — улица, дом" data-i18n-ph="loc.addrPh"/>
         <!-- Порядок полей — порядок разговора о студии: как называется, где
@@ -8678,6 +8711,7 @@
         <div id="hallList"></div>
       </div>
       <p class="seg-note" id="locStudioNote" style="padding-left:0;" data-i18n="loc.studioTelNote">Рабочий номер студии, а не того, кто сегодня на смене: смены меняются, номер стойки — нет. По номеру студия и опознаётся — заводить её можно и без него.</p>
+      </div>
     </div>
 
     <div class="loc-err" id="locErr"></div>
@@ -28273,13 +28307,13 @@
        путь: показывать развилку тому, кто уже снимает в студии, значит
        спрашивать заново то, что в записи есть */
     var st0 = isSession ? studioById(sessionStudioId) : null;
-    studioDraft = null;
+    studioDraft = null; studioEdit = null;
     setWay(way || (st0 ? "studio" : ""));
     /* На путь студии входят с уже выбранной студией, если она в съёмке есть;
        пустой список студий сразу открывает карточку новой — упереться в
        строку «студий пока нет» на первом же заходе незачем */
     if (locWay === "studio") {
-      if (st0) openStudioCard(st0);
+      if (st0) pickStudio(st0);
       else if (!studios.length) newStudioCard();
     }
     $("locHereLbl").textContent = LANG.t("loc.here");
@@ -28897,25 +28931,57 @@
   function studioApi(st) { return (st && st.apiBase) || STUDIO_API_DEFAULT; }
   /* Новая студия начинается там, где стоит фотограф: координаты уточнит
      адрес, а до тех пор пусть будут хоть какие-то — свет считается от них */
+  /* Чья карточка раскрыта: id студии, «new» у заводимой или ничего. Отдельно
+     от `studioDraft`, потому что выбранная студия и правимая — разные вещи.
+     Прежде это было одно: тап по строке открывал карточку, и «выбрать» с
+     «править» слились в один жест — оттого и не было понятно, куда нажимать
+     (Алексей, 5 сентября). */
+  var studioEdit = null;
+  function studioDraftOf(st) {
+    return { id: st.id, name: st.name || "", addr: st.address || "",
+             tel: st.tel || "", key: st.key || "", halls: (st.halls || []).slice(),
+             tomcohId: st.tomcohId || null, town: st.town || "",
+             lat: st.lat != null ? st.lat : LAT, lon: st.lon != null ? st.lon : LON };
+  }
   function newStudioCard() {
     /* Город новой студии — город съёмки, в которой её заводят: снимают в
        Москве — значит и студия московская, даже если фотограф из Томска */
     studioDraft = { id: null, name: "", addr: "", tel: "", key: "", halls: [],
                     tomcohId: null, town: sessionPlace.town || myCity(), lat: LAT, lon: LON };
-    renderStudioCard();
+    studioEdit = "new";
+    renderStudios(); renderStudioCard();
     $("locStudioName").focus();
   }
-  function openStudioCard(st) {
-    studioDraft = { id: st.id, name: st.name || "", addr: st.address || "",
-                    tel: st.tel || "", key: st.key || "", halls: (st.halls || []).slice(),
-                    tomcohId: st.tomcohId || null, town: st.town || "",
-                    lat: st.lat != null ? st.lat : LAT, lon: st.lon != null ? st.lon : LON };
-    renderStudioCard();
+  /* Тап по строке выбирает студию для съёмки — и только. Карточка не
+     раскрывается: выбрать студию из десятка и поправить у неё телефон —
+     разные дела, и второе спрашивают карандашом. */
+  function pickStudio(st) {
+    studioDraft = studioDraftOf(st);
+    studioEdit = null;
+    renderStudios(); renderStudioCard();
+  }
+  /* Карандаш раскрывает карточку под самой строкой — как правка места в
+     «Моих местах». Второй тап закрывает: знак работает в обе стороны. */
+  function toggleStudioEdit(st) {
+    if (studioEdit === st.id) studioEdit = null;
+    else { studioDraft = studioDraftOf(st); studioEdit = st.id; }
+    renderStudios(); renderStudioCard();
+  }
+  /* Карточка живёт в одном экземпляре и переезжает: под строку правимой
+     студии или под кнопку «Новая студия». Второй такой же формы в листе не
+     заводим — обработчики полей, геокодер адреса и залы у неё одни. */
+  function parkStudioCard() {
+    var btn = $("studioNew");
+    btn.parentNode.insertBefore($("studioCardWrap"), btn.nextSibling);
+  }
+  function placeStudioCard() {
+    if (!studioEdit || studioEdit === "new") return;
+    var slot = $("wayStudio").querySelector('.studio-slot[data-st="' + studioEdit + '"]');
+    if (slot) slot.appendChild($("studioCardWrap"));
   }
   function renderStudioCard() {
-    var on = !!studioDraft;
-    $("locStudioCard").hidden = !on;
-    $("locStudioNote").hidden = !on;
+    var on = !!studioDraft && !!studioEdit;
+    $("studioCardWrap").hidden = !on;
     if (!on) return;
     if (document.activeElement !== $("locStudioName")) $("locStudioName").value = studioDraft.name;
     if (document.activeElement !== $("locStudioAddr")) $("locStudioAddr").value = studioDraft.addr;
@@ -29020,23 +29086,56 @@
        чем «в каком зале» */
     if (st.town && town && !sameCity(st.town, town)) sub = st.town;
     var row = spotRow(box, { name: st.name, address: st.address, lat: st.lat, lon: st.lon },
-      sub, function () { openStudioCard(st); $("locSheet").scrollTop = 0; });
+      sub, function () { pickStudio(st); });
+    /* Колонка отметки слева: список стал списком выбора, и выбранное в нём
+       обязано быть видно, не открывая карточку. Место колонка держит всегда —
+       иначе строки прыгали бы по левому краю при каждом выборе. */
+    var mark = document.createElement("span");
+    mark.className = "studio-mark";
+    var picked = !!studioDraft && studioDraft.id === st.id;
+    if (picked) { mark.innerHTML = IC.svg("check"); row.classList.add("sel"); }
+    row.insertBefore(mark, row.firstChild);
+    var edit = document.createElement("button");
+    edit.className = "spot-edit"; edit.type = "button";
+    edit.setAttribute("aria-label", LANG.t("loc.editAria"));
+    /* Тот же карандаш, что правит место в «Моих местах»: одно действие —
+       один знак, второй формы для него не рисуем */
+    edit.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/></svg>';
+    edit.classList.toggle("on", studioEdit === st.id);
+    edit.addEventListener("click", function () { toggleStudioEdit(st); });
     var del = document.createElement("button");
     del.className = "spot-del"; del.type = "button";
     del.setAttribute("aria-label", LANG.t("loc.delAria"));
     del.innerHTML = IC.svg("trash");
     /* Студию, которой в списке нет, убирать неоткуда: она живёт в записи
-       съёмки, а прошлое задним числом не переписывается */
-    del.hidden = !!st.lost;
+       съёмки, а прошлое задним числом не переписывается. Править её карточку
+       тоже нечем — правка пишется в список, которого у неё нет. */
+    del.hidden = edit.hidden = !!st.lost;
     del.addEventListener("click", function () {
       var i = studios.indexOf(st);
       if (i >= 0) studios.splice(i, 1);
-      if (studioDraft && studioDraft.id === st.id) { studioDraft = null; renderStudioCard(); }
-      saveAll(); renderStudios();
+      if (studioDraft && studioDraft.id === st.id) { studioDraft = null; studioEdit = null; }
+      saveAll(); renderStudios(); renderStudioCard();
     });
-    row.appendChild(del);
+    row.appendChild(edit); row.appendChild(del);
+    /* Пустое место под строкой: сюда переезжает карточка, когда эту студию
+       правят. Слот у каждой строки свой, карточка на весь лист одна. */
+    var slot = document.createElement("div");
+    slot.className = "studio-slot"; slot.dataset.st = st.id;
+    box.appendChild(slot);
+  }
+  /* Поиск показывается не всегда: пока студий три, строка над списком —
+     лишний вопрос. Порог взят по высоте экрана: семь строк списка уже не
+     помещаются целиком, и глазами их вычитывают. */
+  var STUDIO_FIND_FROM = 6;
+  function studioHit(st, q) {
+    var halls = (st.halls || []).map(function (h) { return h.name || ""; }).join(" ");
+    return [st.name, st.address, st.town, halls].join(" ").toLowerCase().indexOf(q) >= 0;
   }
   function renderStudios() {
+    /* Карточку домой прежде, чем стирать списки: она живёт в слоте одной из
+       строк, и `innerHTML = ""` унёс бы её вместе с полями и обработчиками */
+    parkStudioCard();
     var box = $("studioList"), lab = $("studioLabel");
     var box2 = $("studioOtherList"), lab2 = $("studioOtherLabel");
     box.innerHTML = ""; box2.innerHTML = "";
@@ -29044,12 +29143,20 @@
        только в съёмках. Выбранная из вторых заводится обратно сама, когда
        съёмку сохранят: карточка у неё уже есть, просто лежала в записи */
     var all = studios.concat(lostStudios());
-    var split = splitByCity(all, function (st) { return st.town; });
+    var many = all.length > STUDIO_FIND_FROM;
+    $("studioFind").hidden = !many;
+    if (!many) $("studioQuery").value = "";
+    var q = $("studioQuery").value.trim().toLowerCase();
+    var hit = q ? all.filter(function (st) { return studioHit(st, q); }) : all;
+    var split = splitByCity(hit, function (st) { return st.town; });
     split.here.forEach(function (st) { studioRow(box, st); });
     split.other.forEach(function (st) { studioRow(box2, st); });
     lab.hidden = !split.here.length;
     lab2.hidden = box2.hidden = !split.other.length;
+    $("studioNone").hidden = !(q && !hit.length);
+    placeStudioCard();
   }
+  $("studioQuery").addEventListener("input", function () { renderStudios(); });
   $("studioNew").addEventListener("click", newStudioCard);
   /* ---------- Память мест ----------
      Список недавних читается из самих съёмок: где снимали, туда и поедут
