@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=50"></script>
+<script src="lang.js?v=52"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -4829,7 +4829,20 @@
   }
   .ord-cap .badge { width: 32px; height: 32px; border-radius: 10px; corner-shape: squircle; }
   .ord-cap .badge svg { width: 17px; height: 17px; }
-  .ord-n { flex: 1; font-size: 15.5px; color: var(--ink); }
+  .ord-n { flex: 1; font-size: 15.5px; color: var(--ink); min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Тумблер тот же, что во всех строках приложения, только меньше: рядом с
+     ручкой перетаскивания полноразмерный съедал имя блока. Уменьшены только
+     размеры — форма, цвет и ход остаются теми же, иначе это был бы уже другой
+     знак (правило: переиспользовать принятые знаки) */
+  .ord-cap .toggle { width: 40px; height: 24px; }
+  .ord-cap .toggle::after { width: 20px; height: 20px; }
+  .ord-cap .toggle.on::after { transform: translateX(16px); }
+  /* Выключенный блок стоит в списке приглушённым: убрать его совсем значило бы
+     отнять способ вернуть. Гаснет имя и знак, тумблер остаётся в полную силу —
+     он единственное, чем блок возвращают */
+  #cdEventBlocks.ord > .ord-off .badge, #cdEventBlocks.ord > .ord-off .ord-n { opacity: 0.4; }
+
   /* Ручка — цель для пальца, а не значок: 44 pt по обеим сторонам */
   .ord-grip {
     display: flex; align-items: center; justify-content: center;
@@ -5158,12 +5171,28 @@
   /* Строка опросника. Пока не отправлен — говорит латунью, как всякое
      предложение действия; после отправки гаснет до обычной строки сведений,
      но остаётся кнопкой: отправить заново иногда нужно */
-  .quest-wrap { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+  /* Плашка теперь у обёртки, а не у кнопки: крестик стоит внутри неё, справа,
+     как у строки места и у своего времени аренды. Снаружи он читался отдельным
+     предметом рядом с блоком, а не его частью (замечено Алексеем). Кнопкой
+     остаётся сама строка — вложить кнопку в кнопку нельзя, поэтому фон и углы
+     переехали на обёртку, а строка стала прозрачной. */
+  .quest-wrap { display: flex; align-items: center; gap: 4px; margin: 0 0 12px;
+    padding-right: 12px; background: var(--sheet-3); border-radius: 14px;
+    corner-shape: squircle; }
   .quest-wrap[hidden] { display: none; }
+
+  /* Снятый опросник в настройке карточки гаснет, как и выключенный блок:
+     тумблер рядом остаётся в полную силу — он единственное, чем его вернуть */
+  .quest-wrap.ord-off .quest-row { opacity: 0.4; }
+  .quest-wrap .toggle { width: 40px; height: 24px; }
+  .quest-wrap .toggle::after { width: 20px; height: 20px; }
+  .quest-wrap .toggle.on::after { transform: translateX(16px); }
+
   .quest-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-    flex: 1; min-width: 0; padding: 13px 15px; background: var(--sheet-3);
+    flex: 1; min-width: 0; padding: 13px 15px; background: none;
     border: none; border-radius: 14px; corner-shape: squircle; cursor: pointer;
     font-family: inherit; text-align: left; }
+
   .quest-row[hidden] { display: none; }
 
   .quest-row .qr-t { font-size: 15px; font-weight: 600; color: var(--brass); }
@@ -5351,8 +5380,13 @@
      Полупрозрачность была половиной ответа: содержимое сквозь неё видно, но
      читается как вторая надпись поверх первой. Стекло доводит приём до конца —
      под кнопкой видно, что там что-то есть, но читать это не тянет. */
+  /* `display: flex` сильнее браузерного `[hidden]` — правило, набитое в этом
+     файле уже не раз. Кнопка шапки прячется в настройке карточки, и без этой
+     строки она оставалась на экране приглушённым знаком */
+  .round[hidden] { display: none; }
   .round {
     width: 40px; height: 40px; border-radius: 50%; border: none; padding: 0;
+
     background: var(--overlay-3); color: var(--ink-3); cursor: pointer;
     backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5);
     box-shadow: inset 0 1px 0 var(--glass-shine);
@@ -7224,6 +7258,10 @@
       <button type="button" class="fp-x" id="cdQuestOff" aria-label="Убрать опросник" data-i18n-aria="quest.off">
         <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
       </button>
+      <!-- В настройке карточки крестик уступает место тумблеру: там строку и
+           показывают ради того, чтобы вернуть снятое -->
+      <span class="toggle" id="cdQuestTog" role="switch" hidden
+            aria-label="Показывать в карточке" data-i18n-aria="card.blockShow"></span>
     </div>
 
 
@@ -10189,7 +10227,7 @@
         /* Фонд кадров и подборки — списки записей со знаком и отметкой
            правки, сливаются как съёмки (docs/15_MOODBOARD.md) */
         shots: shots, boards: boards,
-        cardOrder: cardOrder, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
+        cardOrder: cardOrder, cardOff: cardOff, sync: syncTarget, orgs: orgs, timeStep: timeStep, ribbonMode: ribbonMode,
         drumSlot: drumSlot,
         defaultRate: defaultRate, packs: genrePacks, equipment: equipment, loc: { lat: LAT, lon: LON },
         /* Зоны мест: раз узнанная зона переживает офлайн и следующий запуск.
@@ -22809,6 +22847,28 @@
   var AFTER_FIRST = ["deal", "docs", "money", "delivery"];
 
   var cardOrder = (saved && saved.cardOrder) || {};
+  /* Выключенные блоки — отдельной осью от порядка: это разные вопросы, «где
+     стоит» и «показывать ли вообще». Списком ключей на группу жанров, как и
+     порядок: у свадьбы своя карточка, у заказа своя, и гасить блок сразу
+     везде значило бы решать за обе */
+  var cardOff = (saved && saved.cardOff) || {};
+  function blockOff(type, k) {
+    var o = cardOff[groupOf(type)];
+    return !!(o && o.indexOf(k) >= 0);
+  }
+  /* Гасим после того, как карточка расставила блоки по данным: сначала она
+     решает, чему быть, потом фотограф — чему из этого показываться. Признак
+     остаётся на узле (`data-off`), потому что скрытых причин две — блока нет
+     в этой съёмке или он выключен, — а вернуть можно только вторые */
+  function applyOff(type) {
+    CARD_BLOCKS.forEach(function (b) {
+      var el = $(b.el);
+      if (!el) return;
+      var off = blockOff(type, b.k);
+      el.dataset.off = off ? "1" : "";
+      if (off) el.hidden = true;
+    });
+  }
   function orderFor(type) {
     var base = GROUP_ORDER[groupOf(type)] || DEFAULT_ORDER;
     var o = cardOrder[groupOf(type)];
@@ -22872,13 +22932,51 @@
      Блоки сворачиваются в заголовки, заголовки таскаются пальцем.
      Порядок сохраняется на группу жанров, «Вернуть наш порядок» — сброс. */
   var ordMode = false;
+  /* Бывает ли у этой записи опросник вообще. Пока он один — свадебный, и
+     показывать его на портрете значило бы дать ссылку не на то. У встречи —
+     всегда, пока она не отработана; у съёмки — только до неё */
+  function questFits(s) {
+    return s.type === "wedding"
+      && (isMeet(s) ? !s.grewOn : (eventPhase(s) === "before"));
+  }
+  /* Опросник в настройке карточки: строка стоит на месте, но говорит другое.
+     Крестик снимает — это действие, тумблер показывает состояние и возвращает.
+     Отказавшийся видит свою строку погашенной и знает, чем её вернуть */
+  function questTune(on, s) {
+    var wrap = $("cdQuestWrap"), tog = $("cdQuestTog"), x = $("cdQuestOff");
+    if (!wrap || !tog || !x) return;
+    var fits = questFits(s);
+    x.hidden = on;
+    tog.hidden = !on;
+    if (on) {
+      wrap.hidden = !fits;
+      wrap.classList.toggle("ord-off", !!s.questOff);
+      tog.classList.toggle("on", !s.questOff);
+    } else {
+      wrap.classList.remove("ord-off");
+      /* Видимость пересчитываем здесь же, а не ждём следующего разбора
+         карточки: выйдя из настройки, человек смотрит на строку, которую
+         только что снял, — и она должна исчезнуть тогда же */
+      wrap.hidden = !(fits && !s.questOff);
+    }
+
+  }
   function setOrderMode(on) {
     var s = sessions[cardIdx];
     if (!s) return;
     ordMode = on;
+    questTune(on, s);
     $("cdOrderFoot").hidden = !on;
+
     $("cardEdit").hidden = on || isEvent(s);
+    /* Действиям над самой записью в настройке карточки не место: «добавить
+       съёмку» и «удалить» отвечают на другой вопрос, а удаление ещё и
+       необратимо — палец, ведущий блок, не должен встречать его на пути
+       (замечено Алексеем) */
+    $("cardAdd").hidden = on;
+    $("cdDelete").hidden = on;
     $("cardOrder").classList.toggle("ok", on);
+
     if (on) foldBlocks(s);
     else unfoldBlocks(function () { renderEventCard(s); });
   }
@@ -22902,18 +23000,29 @@
     var host = $("cdEventBlocks");
     CARD_BLOCKS.forEach(function (b) {
       var el = $(b.el);
-      if (!el || el.hidden) return;
+      if (!el) return;
+      /* Выключенный блок в настройке показывается — иначе его нечем вернуть.
+         Блок, которого в этой съёмке нет, по-прежнему не показывается: у него
+         и переставлять нечего */
+      var off = el.dataset.off === "1";
+      if (el.hidden && !off) return;
+      if (off) el.hidden = false;
+      el.classList.toggle("ord-off", off);
       el.dataset.k = b.k;
       var cap = document.createElement("div");
       cap.className = "ord-cap";
       cap.innerHTML = '<span class="badge">' + IC.svg(b.ic) + "</span>"
         + '<span class="ord-n">' + esc(blockName(b.k)) + "</span>"
+        + '<span class="toggle' + (off ? "" : " on") + '" role="switch" aria-label="'
+        + esc(LANG.t("card.blockShow")) + '"></span>'
         + '<span class="ord-grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">'
         + '<path d="M4 9h16M4 15h16"/></svg></span>';
       el.insertBefore(cap, el.firstChild);
       el.style.height = el.offsetHeight + "px";   // точка отсчёта перехода
       dragBlock(el, host, s);
+      offSwitch(el, b.k, s);
     });
+
     host.classList.add("ord");
     /* Снимаем заданную высоту следующим кадром: инлайн сильнее правила, и пока
        он стоит, блок не поедет. Снятый — отдаёт высоту классу, и переход идёт
@@ -22960,9 +23069,32 @@
       var cap = el.querySelector(":scope > .ord-cap");
       if (cap) cap.remove();
       el.classList.remove("drag");
+      el.classList.remove("ord-off");
       el.style.height = "";
     });
   }
+  /* Выключатель блока. Живёт в настройках карточки, а не в записи: «мне не
+     нужен этот блок» — привычка фотографа, а не свойство этой свадьбы. Клик
+     не уходит выше: строка целиком ничего не делает, но и спорить с ней
+     незачем */
+  function offSwitch(row, k, s) {
+    var tog = row.querySelector(":scope > .ord-cap > .toggle");
+    if (!tog) return;
+    tog.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var g = groupOf(s.type);
+      var list = cardOff[g] || (cardOff[g] = []);
+      var i = list.indexOf(k), off;
+      if (i >= 0) { list.splice(i, 1); off = false; }
+      else { list.push(k); off = true; }
+      if (!list.length) delete cardOff[g];
+      saveAll();
+      row.dataset.off = off ? "1" : "";
+      row.classList.toggle("ord-off", off);
+      tog.classList.toggle("on", !off);
+    });
+  }
+
   /* Перетаскивание пальцем: строка едет за пальцем, соседи расступаются.
      HTML5 drag-and-drop на телефоне не работает вовсе — только указатели. */
   /* Тянут за ручку, а не за строку. Раньше жест ловила вся строка, и вместе с
@@ -23032,17 +23164,45 @@
   }
   $("cardOrder").addEventListener("click", function () { setOrderMode(!ordMode); });
   $("cdOrderDone").addEventListener("click", function () { setOrderMode(false); });
+  /* Тумблер опросника: та же ось, что у блоков, только хранится в записи —
+     опросник не нужен этой паре, а не свадьбам вообще */
+  $("cdQuestTog").addEventListener("click", function () {
+    if (cardIdx === null) return;
+    var s = sessions[cardIdx];
+    if (!s) return;
+    s.questOff = !s.questOff;
+    saveAll();
+    questTune(true, s);
+  });
   $("cdOrderReset").addEventListener("click", function () {
     var s = sessions[cardIdx];
     if (!s) return;
+    /* «По умолчанию» возвращает карточку целиком: и порядок, и погашенные
+       блоки, и снятый опросник. Половинчатый сброс оставлял бы человека с
+       вопросом, почему блок не вернулся вместе с остальными */
     delete cardOrder[groupOf(s.type)];
+    delete cardOff[groupOf(s.type)];
+    s.questOff = false;
     saveAll();
-    /* Сброс перекладывает сами блоки: сворачиваем, ставим их по умолчанию и
-       сворачиваем снова — иначе на экране остался бы прежний порядок */
-    unfoldBlocks();
-    applyOrder(s.type, eventPhase(s));
-    foldBlocks(s);
+    questTune(true, s);
+
+    /* Сброс перекладывает сами блоки: разворачиваем, ставим их по умолчанию и
+       сворачиваем снова — иначе на экране остался бы прежний порядок.
+       Всё это внутри колбэка: разворот заканчивается через 280 мс и в конце
+       сносит шапки (`cleanCaps`). Пока сворачивание шло сразу следом, оно
+       успевало поставить шапки первым, а отложенная уборка их снимала — и
+       список оставался рядом пустых плашек (замечено Алексеем). */
+    unfoldBlocks(function () {
+      applyOrder(s.type, eventPhase(s));
+      /* Признак «выключен» живёт на самом узле, и снять его должен тот, кто
+         знает настройки: без этого сброшенный блок оставался бы погашенным до
+         следующего разбора карточки */
+      applyOff(s.type);
+      foldBlocks(s);
+    });
+
   });
+
 
   function renderEventCard(s) {
     paintIcons($("cardOverlay"));
@@ -23079,6 +23239,7 @@
     renderOrderBlocks(s);
     renderStack(s);
     applyOrder(s.type, phase);
+    applyOff(s.type);
   }
 
   /* ---------- Стопка карточек дня ----------
@@ -24053,14 +24214,16 @@
        чтобы обо всём расспросить. У съёмки — только до неё: после съёмки
        спрашивать нечего, а во время неё карточка занята другим.
        У выросшей встречи строки нет — опросник переехал в съёмку. */
-    var qPhase = eventPhase(s);
     /* Отказ фотографа сильнее любого из этих условий: снял строку — значит
-       этой паре опросник не нужен, и напоминать о нём нечем */
-    var qShow = s.type === "wedding" && !s.questOff
-      && (meet ? !s.grewOn : (qPhase === "before"));
+       этой паре опросник не нужен, и напоминать о нём нечем. Само же условие
+       вынесено: настройка карточки спрашивает его без отказа — там строку
+       показывают как раз ради того, чтобы вернуть */
+    var qFits = questFits(s), qShow = qFits && !s.questOff;
     $("cdQuestWrap").hidden = !qShow;
-
-    if (qShow) {
+    /* Слова ставим по «бывает ли он вообще», а не по «показан ли»: снятую
+       строку показывает настройка карточки, и безымянной — «Опросник · —» —
+       она там выглядела заготовкой, а не тем, что человек снял */
+    if (qFits) {
       var sent = s.questSent ? new Date(s.questSent) : null;
       $("cdQuest").classList.toggle("sent", !!sent);
       $("cdQuestT").textContent = sent
