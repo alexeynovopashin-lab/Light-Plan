@@ -1547,14 +1547,10 @@
      `!important`: строка одна такая, и правило рядом с остальными строками. */
   .row .rv.rent-in { flex-direction: row; align-items: center; gap: 7px; }
   .rent-in .rn-d { color: var(--ink-3); font-size: 15px; }
-  /* Подложка и радиус — от `.pay-in`: это то же самое поле для числа, только
-     короче. Заводить ему свой вид значило бы завести второй язык для одной вещи. */
-  .rent-in .rn-t {
-    width: 62px; padding: 6px 8px; text-align: center;
-    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle;
-    color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
-    -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
-  }
+  /* Часы аренды — капсулы `.rv-v`, те же, что у начала и конца съёмки: свой
+     вид полю с временем завёл бы второй язык для одной вещи. Ширину держим
+     ровной, чтобы «09:00» и «12:30» не дёргали тире между ними. */
+  .rent-in .rv-v { min-width: 68px; text-align: center; }
   .spot-hourly { display: flex; align-items: center; justify-content: space-between;
     padding: 10px 2px 2px; margin-top: 4px; border-top: 1px solid var(--hair); }
   .spot-hourly .sh-lbl { font-size: 14px; color: var(--ink-3); }
@@ -5544,7 +5540,7 @@
      :not() селектор становился (0,4,1) и перебивал правило [hidden] ниже:
      скрытые текстовые поля вылезали наружу, а tel оставались скрытыми,
      потому что их селектор не менялся. Пятый раз эта грабля. */
-  .group input[type="text"]:not(:where(.pay-in, .step-in, .rn-t)),
+  .group input[type="text"]:not(:where(.pay-in, .step-in)),
   .group input[type="tel"], .group textarea {
     display: block; width: 100%; background: none; border: none;
     color: var(--ink); font-family: inherit; font-size: 16px;
@@ -7639,18 +7635,35 @@
         <!-- «12:00 – 13:00» вместо «с … до …»: промежуток так и показывается
              во всём приложении (`range`), а слова повторяли бы заголовок строки
              и разгоняли её на четыре этажа -->
+        <!-- Часы аренды набирались цифрами, как номер на телефоне. Время во
+             всём приложении выбирают барабаном — и начало съёмки, и конец, и
+             концы занятого дня; клавиатура здесь была единственным местом,
+             где его печатают (Алексей, 5 сентября). Капсулы те же, что у
+             начала и конца: тап открывает своё колесо под строкой -->
         <span class="rv rent-in" id="fRentOwn" hidden>
-          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentFrom"
-                 placeholder="--:--" aria-label="с" data-i18n-aria="form.rentFrom"/>
+          <button type="button" class="rv-v" id="fRentFromVal"
+                  aria-label="с" data-i18n-aria="form.rentFrom">—</button>
           <span class="rn-d">–</span>
-          <input class="rn-t" type="text" inputmode="numeric" maxlength="5" id="fRentTo"
-                 placeholder="--:--" aria-label="до" data-i18n-aria="form.rentTo"/>
+          <button type="button" class="rv-v" id="fRentToVal"
+                  aria-label="до" data-i18n-aria="form.rentTo">—</button>
         </span>
         <!-- Тот же крестик, что снимает место: «убрать своё время» и «убрать
              место» — одно действие с разными предметами, и знак у них один -->
         <button type="button" class="fp-x" id="fRentBack" hidden aria-label="Вернуть время съёмки" data-i18n-aria="form.rentBack">
           <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
         </button>
+      </div>
+      <div class="inline" id="fRentFromPick">
+        <div class="ip time"><div class="pick-band"></div>
+          <div class="wheel narrow" data-w="hour" id="fwRFH"></div>
+          <div class="wheel narrow" data-w="min" id="fwRFM"></div>
+        </div>
+      </div>
+      <div class="inline" id="fRentToPick">
+        <div class="ip time"><div class="pick-band"></div>
+          <div class="wheel narrow" data-w="hour" id="fwRTH"></div>
+          <div class="wheel narrow" data-w="min" id="fwRTM"></div>
+        </div>
       </div>
       <!-- Точки маршрута живут в той же группе, что и первая точка: это один
            список, а не второй блок рядом. Прежде их было два — «Место и адрес»
@@ -20006,9 +20019,13 @@
   /* ---------- Барабаны внутри формы ---------- */
   var fwSDate = $("fwSDate"), fwEDate = $("fwEDate");   // теперь сетки, не барабаны
   var fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
+  /* Часы аренды — свои барабаны, а не чужие: строка аренды живёт в группе
+     места, а начало и конец съёмки — в группе времени, и колесо под строкой
+     раскрывается там, где на него нажали */
+  var fwRFH = $("fwRFH"), fwRFM = $("fwRFM"), fwRTH = $("fwRTH"), fwRTM = $("fwRTM");
   var fwPL = $("fwPL");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
-  [fwSH, fwEH].forEach(function (el2) { fill(el2, HOURS); });
+  [fwSH, fwEH, fwRFH, fwRTH].forEach(function (el2) { fill(el2, HOURS); });
   /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
      уметь показать и 30, и 38, если 38 пришли от золотого часа */
   function fillMins(el2, cur) {
@@ -20024,6 +20041,7 @@
     syncWheel(el2, el2._vals.indexOf(m));
   }
   fillMins(fwSM, null); fillMins(fwEM, null);
+  fillMins(fwRFM, null); fillMins(fwRTM, null);
 
   /* Программная установка не должна выглядеть как выбор пользователя.
      Барабан раскрывается анимацией высоты, и снап по дороге уводит позицию —
@@ -20168,7 +20186,18 @@
 
   attachWheel(fwSH, onStartWheel); attachWheel(fwSM, onStartWheel);
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
+  attachWheel(fwRFH, onRentWheel); attachWheel(fwRFM, onRentWheel);
+  attachWheel(fwRTH, onRentWheel); attachWheel(fwRTM, onRentWheel);
   attachWheel(fwPL, onPlWheel);
+  /* Один обработчик на оба конца аренды: колесо говорит, какой конец крутят,
+     а `openRow` — что крутят именно его. Время студии стоит само по себе и
+     ничего не двигает следом: длительность съёмки от него не зависит */
+  function onRentWheel() {
+    if (openRow === "fRentFrom") fRentFrom = wheelIndex(fwRFH) * 60 + wheelMin(fwRFM);
+    else if (openRow === "fRentTo") fRentTo = wheelIndex(fwRTH) * 60 + wheelMin(fwRTM);
+    else return;
+    renderRent(); scheduleDraftSave();
+  }
   function onPlWheel() {
     if (openRow !== "fMusic" || !playlists.length) return;
     var pl = playlists[clamp(wheelIndex(fwPL), 0, playlists.length - 1)];
@@ -20193,11 +20222,13 @@
     ["fStartDate", "fStartDatePick"], ["fStart", "fStartPick"],
     ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"],
     ["fMusic", "fMusicPick"],
-    ["fHall", "fHallPick"]
+    ["fHall", "fHallPick"],
+    ["fRentFrom", "fRentFromPick"],   ["fRentTo", "fRentToPick"]
   ];
   // Подсветку носит капсула, а не строка: в строке их теперь две
   var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal",
-              fMusic: "fMusicVal", fHall: "fHallVal" };
+              fMusic: "fMusicVal", fHall: "fHallVal",
+              fRentFrom: "fRentFromVal", fRentTo: "fRentToVal" };
   var openRow = null;
   function closeRows() {
     ROWS.forEach(function (r) { $(CAP[r[0]]).classList.remove("open"); $(r[1]).classList.remove("open"); });
@@ -20235,6 +20266,14 @@
     if (id === "fEnd") {
       var e = endMinOfDay();
       syncWheel(fwEH, Math.floor(e / 60)); syncMinWheel(fwEM, e % 60);
+    }
+    if (id === "fRentFrom") {
+      var rf = ((fRentFrom % 1440) + 1440) % 1440;
+      syncWheel(fwRFH, Math.floor(rf / 60)); syncMinWheel(fwRFM, rf % 60);
+    }
+    if (id === "fRentTo") {
+      var rt = ((fRentTo % 1440) + 1440) % 1440;
+      syncWheel(fwRTH, Math.floor(rt / 60)); syncMinWheel(fwRTM, rt % 60);
     }
     if (id === "fMusic") {
       var at = 0;
@@ -20569,12 +20608,12 @@
   function renderRent() {
     var on = !!studioById(sessionStudioId);
     $("fRentRow").hidden = !on;
-    if (!on) { fRentFrom = fRentTo = null; fRentLinked = true; return; }
+    if (!on) { closeRentRows(); fRentFrom = fRentTo = null; fRentLinked = true; return; }
     /* У жанра с маршрутом связь не держится вовсе: студия там — этап дня, и
        её часы приходится называть. Числа при размыкании берутся от съёмки —
        это не ответ, а то, от чего его правят. */
     if (hasRoute(shootType) && fRentLinked) fRentLinked = false;
-    if (fRentLinked) fRentFrom = fRentTo = null;
+    if (fRentLinked) { closeRentRows(); fRentFrom = fRentTo = null; }
     else {
       if (fRentFrom == null) fRentFrom = fMin;
       if (fRentTo == null) fRentTo = fMin + fDur;
@@ -20587,8 +20626,14 @@
        у выезда (правило: подписи не про интерфейс) */
     $("fRentNote").textContent = fRentLinked ? LANG.t("form.rentSame") : "";
     if (fRentLinked) { $("fRentSame").textContent = range(fMin, fMin + fDur); return; }
-    if (document.activeElement !== $("fRentFrom")) $("fRentFrom").value = fmt(fRentFrom);
-    if (document.activeElement !== $("fRentTo")) $("fRentTo").value = fmt(fRentTo);
+    $("fRentFromVal").textContent = fmt(fRentFrom);
+    $("fRentToVal").textContent = fmt(fRentTo);
+  }
+  /* Колесо не остаётся раскрытым под исчезнувшей строкой: студию убрали или
+     аренду вернули к времени съёмки — крутить больше нечего. Барабаны времени
+     этого не знали, потому что их строки не прячутся никогда. */
+  function closeRentRows() {
+    if (openRow === "fRentFrom" || openRow === "fRentTo") closeRows();
   }
   /* Тап по капсуле размыкает связь: дальше часы студии — свой ответ. Курсор
      сразу в первом поле, иначе размыкание стоило бы двух нажатий. */
@@ -20596,7 +20641,7 @@
     fRentLinked = false;
     fRentFrom = fMin; fRentTo = fMin + fDur;
     renderRent();
-    $("fRentFrom").focus(); $("fRentFrom").select();
+    toggleRow("fRentFrom");
     scheduleDraftSave();
   });
   /* Крестик возвращает связь. У жанра с маршрутом его нет смысла нажимать —
@@ -20604,29 +20649,11 @@
      размыкает такой жанр раньше, чем дело доходит до кнопки. */
   $("fRentBack").addEventListener("click", function () {
     fRentLinked = true; fRentFrom = fRentTo = null;
-    renderRent(); scheduleDraftSave();
+    closeRentRows(); renderRent(); scheduleDraftSave();
   });
-  /* Время набирается цифрами и складывается само — тот же приём, что у точек
-     маршрута: «1000» → «10:00», «9» → 09:00. Второй раз его не изобретаем. */
-  ["fRentFrom", "fRentTo"].forEach(function (id) {
-    $(id).addEventListener("input", function () {
-      var d = this.value.replace(/\D/g, "").slice(0, 4);
-      if (d.length > 2) d = d.slice(0, 2) + ":" + d.slice(2);
-      this.value = d;
-    });
-    $(id).addEventListener("blur", function () {
-      var d = this.value.replace(/\D/g, ""), h, m;
-      if (!d) { this.value = fmt(id === "fRentFrom" ? fMin : fMin + fDur); }
-      else {
-        if (d.length <= 2) { h = +d; m = 0; }
-        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
-        else { h = +d.slice(0, 2); m = +d.slice(2); }
-        this.value = (h > 23 || m > 59) ? fmt(id === "fRentFrom" ? fMin : fMin + fDur) : fmt(h * 60 + m);
-      }
-      var v = parseHM(this.value);
-      if (id === "fRentFrom") fRentFrom = v; else fRentTo = v;
-    });
-  });
+  /* Разбора набранных цифр здесь больше нет. Он складывал «1000» в «10:00» и
+     чинил на выходе описки вроде «25:70» — работа, которой у барабана не
+     бывает: колесо показывает только существующие часы и минуты шага. */
   /* Город набирают руками, когда съёмка в другом городе, а точка ещё не
      выбрана: геокодеру неоткуда взять ответ, а планировать уже надо.
      Набранный руками город геокодер больше не перебивает — тот же приём, что
@@ -21663,7 +21690,7 @@
      клавиши, и ей нужен результат, а не то, что было набрано (см. «Номер
      организации»). Объявлено выше по файлу — там же, где единственный, кто
      сюда подписывается. */
-  ["fP1Tel", "fP2Tel", "fPhone", "oPhone", "fClientTel"].forEach(function (id) {
+  ["fP1Tel", "fP2Tel", "fPhone", "oPhone", "fClientTel", "locStudioTel"].forEach(function (id) {
     var el = $(id);
     if (!el) return;
     var lastLen = 0;
@@ -28929,12 +28956,24 @@
     var last = $("hallList").querySelectorAll("input");
     if (last.length) last[last.length - 1].focus();
   });
-  ["locStudioName", "locStudioAddr", "locStudioTel"].forEach(function (id) {
-    var key = { locStudioName: "name", locStudioAddr: "addr", locStudioTel: "tel" }[id];
+  ["locStudioName", "locStudioAddr"].forEach(function (id) {
+    var key = { locStudioName: "name", locStudioAddr: "addr" }[id];
     $(id).addEventListener("input", function () {
       if (studioDraft) studioDraft[key] = this.value;
     });
   });
+  /* Номер студии причёсывается тем же, чем номера клиента и организации, и
+     записывается тем же способом — через `telAfter`, а не своим `input`.
+     Своим было нельзя: автозаполнение контакта на iOS отдаёт номер по цифре
+     и снимает код своей страны, и в черновик уезжало «9618878078» — без
+     плюса и без восьмёрки, как оно и приехало из контактов (Алексей,
+     5 сентября). Причёсыватель дописывает ведущую часть по длине, а
+     `telAfter` отдаёт результат, а не набранное (docs: DECISIONS, «Номер
+     организации»). Номер студии этого ждёт вдвойне: по совпадению номеров
+     съёмка опознаёт бронь. */
+  telAfter.locStudioTel = function (v) {
+    if (studioDraft) studioDraft.tel = v;
+  };
   /* Координаты студии не спрашиваем числами — их знает адрес. Спрашиваем
      геокодер, когда адрес дописан: свет и погода считаются от точки, а
      набирать широту ради студии на Красноармейской никто не должен. */
