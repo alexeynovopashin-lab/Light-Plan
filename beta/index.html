@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=48"></script>
+<script src="lang.js?v=49"></script>
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
      файлом, потому что это данные, а не код страницы — и потому что грузить
@@ -5026,6 +5026,14 @@
 
   .rt-place { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; }
   .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
+  /* Адрес точки говорит тем же голосом, что подпись под местом съёмки
+     (`.sub2`): уровень адреса один, и звучать он должен одинаково в обеих
+     строках. Отступ слева равен внутреннему полю ввода — адрес встаёт под
+     первой буквой имени, а не под краем строки */
+  .rt-addr { flex: 1 0 100%; font-size: 11px; color: var(--ink-6);
+    padding: 0 0 2px 12px; margin-top: -3px;
+    font-variant-numeric: tabular-nums; }
+
   .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
     background: var(--surface); border: none; border-radius: 9px; corner-shape: squircle; color: var(--ink-4); cursor: pointer; }
@@ -7483,9 +7491,14 @@
          строкой, а не подписью под точкой: подпись читается как уточнение к
          имени, а это отдельный уровень адреса, и заполняется он сам
          (docs: DECISIONS, «Место съёмки: город и точка делили одну строку») -->
-    <div class="g-label" data-i18n="form.placeAddr">Место и адрес</div>
-    <div class="group">
+    <!-- Заголовок меняется со счётом точек: одна — «Место и адрес», больше —
+         «Маршрут дня». Не переключателем: число точек не настройка, а факт,
+         и спрашивать про него — то же самое, что спрашивать город у студии,
+         у которой есть координаты (docs: DECISIONS, «Маршрут — это счёт точек»). -->
+    <div class="g-label" id="fPlaceLabel" data-i18n="form.placeAddr">Место и адрес</div>
+    <div class="group" id="fPlaceGroup">
       <input type="text" id="fCity" placeholder="Город" data-i18n-ph="form.city"/>
+
       <!-- Выезд считается сам: приложение знает родной город фотографа и
            видит, что съёмка в другом. Тумблер остался, но сменил роль — он
            больше не спрашивает то, что известно, а даёт поправить редкий
@@ -7611,9 +7624,21 @@
           <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
         </button>
       </div>
+      <!-- Точки маршрута живут в той же группе, что и первая точка: это один
+           список, а не второй блок рядом. Прежде их было два — «Место и адрес»
+           и «Таймлайн дня», — и свадьба заполняла место дважды, хотя место у
+           неё одно на точку. Строки идут в порядке фотографа, а не по времени:
+           время у точки необязательно (маршрутный лист составляют, ещё не
+           решив, где и сколько), и сортировать список по пустому полю нечем.
+           Порядок по времени остался там, где он и нужен, — при чтении дня
+           (`routeOf`), и таймлайн карточки получает ровно то же, что получал
+           (docs: DECISIONS, «Маршрут — это счёт точек»). -->
+      <div id="fRouteList"></div>
+      <button type="button" class="rt-add" id="fRouteAdd" data-i18n="form.addStop">+ Точка</button>
     </div>
 
-    <!-- Заметки, оборудование и плейлист — не про клиента: они про саму съёмку
+    <!-- Заметки, оборудование и плейлист
+ — не про клиента: они про саму съёмку
          и оставались в группе клиента только потому, что группа была одна -->
     <div class="g-label" data-i18n="card.notes">Заметки</div>
     <div class="group">
@@ -7650,13 +7675,8 @@
 
     <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
          ничего не говорят. Виден только у свадеб (см. applyGenreShape) -->
-    <div class="g-label" id="fRouteLabel" data-i18n="form.timeline" hidden>Таймлайн дня</div>
-    <div class="group" id="fRouteGroup" hidden>
-      <div id="fRouteList"></div>
-      <button type="button" class="rt-add" id="fRouteAdd" data-i18n="form.addScene">+ Сцена</button>
-    </div>
-
-    <!-- Заказ: то, чего нет в частной съёмке. Появляется у группы заказчика,
+    <!-- Заказ:
+ то, чего нет в частной съёмке. Появляется у группы заказчика,
          модели — поправкой жанра (docs/12_CARD_ARCHITECTURE.md) -->
     <div class="g-label" id="fOrderLabel" data-i18n="form.order" hidden>Заказ</div>
     <div class="group" id="fOrderGroup" hidden>
@@ -20314,7 +20334,9 @@
     if (document.activeElement !== $("fCity")) $("fCity").value = sessionPlace.town || "";
     renderTripRow();
     renderRentRow();
+    renderRouteHead();
     var tag = $("fTzTag");
+
     if (tag) {
       var t = tzTag(sessionPlace.lat, sessionPlace.lon, fDate);
       tag.textContent = t;
@@ -21527,8 +21549,10 @@
     { els: ["fRefsLabel", "fRefsGroup"], on: function () { return !meetMode(); } },
     /* Сдача материала — там, где есть кому сдавать */
     { els: ["fDelvLabel", "fDelvGroup"], on: function (sp) { return sp.delivery && !meetMode(); } },
-    /* Таймлайн: у события всегда, у остальных доступен и молчит */
-    { els: ["fRouteLabel", "fRouteGroup"], on: function (sp) { return (sp.route || sp.routeOpt) && !meetMode(); } },
+    /* Точек дня в этой таблице больше нет: они переехали в группу места и
+       показываются не по жанру, а по тому, есть ли они. Жанр решает лишь,
+       засевать ли их словами дня (`seedRoute`) */
+
     /* Клиента нет — нет и группы: у пейзажа с архитектурой заказчика не
        спрашивают, а заголовок над пустой рамкой обещает поле, которого нет */
     { els: ["fWhoLabel", "fWhoGroup"], on: function (sp) { return !!sp.client; } },
@@ -21596,7 +21620,8 @@
     }
     /* Перерисовываем всегда, а не только при засеве: подсказки точек идут от
        жанра, и пустой список иначе остаётся с чужими словами */
-    if (shown.fRouteGroup) renderRouteEditor();
+    renderRouteEditor();
+
     renderFormOrg(); renderGuests();
   }
   /* ---------- Заказчик в форме ----------
@@ -21731,14 +21756,23 @@
   function renderRouteEditor() {
     var host = $("fRouteList"), hints = sceneHints(shootType);
     host.innerHTML = fRoute.map(function (r, i) {
+      /* Адрес показывается только у точки, привязанной к сохранённому месту:
+         набранная руками строка — это подпись, а не адрес, и придумывать ей
+         второй уровень нечем. Адрес, а если его нет — подпись места: у точки
+         в поле дома нет, а «12 км от Томска» отвечает на тот же вопрос */
+      var sp = stopPlace(r), addr = sp ? (sp.addr || sp.sub) : "";
       return '<div class="rt-row" data-i="' + i + '">'
+
         + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
         + '<input class="rt-in-n" type="text" placeholder="' + esc(hints[i % hints.length]) + '" value="' + esc(r.n || "") + '"/>'
         + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
         + '<div class="rt-place">'
         + '<input class="rt-in-p" type="text" placeholder="' + esc(LANG.t("form.scenePlacePh")) + '" value="' + esc(r.p || "") + '"/>'
         + '<button type="button" class="rt-pick" aria-label="' + esc(LANG.t("form.pickSpotAria")) + '" data-ic="pin"></button>'
-        + '</div></div>';
+        + '</div>'
+        + (addr ? '<div class="rt-addr">' + esc(addr) + '</div>' : '')
+        + '</div>';
+
     }).join("") || '<div class="rt-empty">'
       + esc(LANG.t("form.scenesHint", { list: hints.slice(0, 4).join(", ").toLowerCase() })) + "</div>";
     paintIcons(host);
@@ -21772,6 +21806,12 @@
       row.querySelector(".rt-in-p").addEventListener("input", function () {
         r.p = this.value; r.placeId = null; fRouteSeeded = false;
         row.querySelector(".rt-pick").classList.remove("on");
+        /* Ссылки не стало — не стало и адреса: он был свойством места, а не
+           этой строки. Убираем на месте, а не перерисовкой: перерисовка
+           отняла бы курсор посреди слова */
+        var ad = row.querySelector(".rt-addr");
+        if (ad) ad.remove();
+
       });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRouteSeeded = false;
@@ -21785,12 +21825,41 @@
       pick.addEventListener("click", function () {
         openSpotFan(pick, function (sp) {
           r.p = sp.name; r.placeId = sp.id; fRouteSeeded = false;
-          row.querySelector(".rt-in-p").value = sp.name;
-          pick.classList.add("on");
+          /* Строку рисуем заново: вместе с именем у точки появляется адрес,
+             а он стоит отдельной строкой под полем */
+          renderRouteEditor();
         });
       });
     });
+    renderRouteHead();
   }
+  /* Заголовок группы и кнопка «＋». Считаются отдельно от места и отдельно от
+     точек, потому что зависят от обоих: первая точка живёт в `sessionPlace`,
+     остальные в `fRoute`, а вид у блока один. Одна точка — «Место и адрес»,
+     больше одной — «Маршрут дня»: заголовок идёт за числом точек, и спросить
+     его отдельным переключателем значило бы спросить то, что и так видно
+     (docs: DECISIONS, «Маршрут — это счёт точек»).
+
+     Кнопка ждёт первой точки: «＋» над пустым местом предлагал бы вторую
+     точку прежде первой. Как только место названо — маршрут можно строить. */
+  function renderRouteHead() {
+    var lab = $("fPlaceLabel"), add = $("fRouteAdd"), list = $("fRouteList");
+    if (!lab || !add || !list) return;
+    var has = !!(sessionPlace.name || sessionPlace.manual);
+    var n = (fRoute || []).length;               // место рисуется и до того, как список ожил
+    /* Слово «Маршрут дня» в приложении уже принято — им названа группа точек
+       в карточке (`card.route`). Заводить второе такое же ради формы значило
+       бы держать одну строку в двух ключах и переводить её дважды */
+    var key = ((has ? 1 : 0) + n) > 1 ? "card.route" : "form.placeAddr";
+
+    lab.setAttribute("data-i18n", key);          // переводчик перечитает ключ, а не текст
+    lab.textContent = LANG.t(key);
+    var off = meetMode();                        // у встречи дня ещё нет: маршрут ей не задают
+    add.hidden = off || (!has && !n);
+    list.hidden = off || !n;
+
+  }
+
   /* Подсказки в пустых строках идут по ходу дня, а не повторяют одно слово.
      И идут от жанра: «ЗАГС» в съёмке фасадов — такой же мусор, как папка
      «Невеста» в предметке (docs/12_CARD_ARCHITECTURE.md) */
@@ -21832,12 +21901,19 @@
     var last = $("fRouteList").querySelector(".rt-row:last-child .rt-in-t");
     if (last) last.focus();
   });
-  /* Черновик → запись: время в минуты, порядок по времени */
+  /* Черновик → запись. Точка уезжает, если сказала хоть что-то: время с
+     именем — это сцена дня, место — это пункт маршрута. Прежде уезжали только
+     первые, и точка «Лагерный сад» без назначенного часа пропадала при
+     сохранении молча. Порядок остаётся авторским: сортировать список по
+     времени, которого у половины точек может не быть, нечем. По часам он
+     выстроится при чтении — `routeOf` делает это ровно так же, как делала,
+     и таймлайн карточки получает прежний массив
+     (docs: DECISIONS, «Маршрут — это счёт точек»). */
   function routeFromEditor() {
     return fRoute.map(function (r) { return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim(), placeId: r.placeId || null }; })
-      .filter(function (r) { return r.t !== null && r.n; })
-      .sort(function (a, b) { return a.t - b.t; });
+      .filter(function (r) { return (r.t !== null && r.n) || r.placeId || r.p; });
   }
+
 
   /* Смена жанра в форме подставляет его обычные значения */
   function applyGenrePreset() {
@@ -22353,11 +22429,47 @@
     if (days > 1 && days <= 7) return LANG.t("when.inDays", { n: LANG.count("unit.day", days) });
     return "";
   }
+  /* К точкам дня два разных вопроса, и отвечают на них две разные функции.
+     «Что во сколько» — `routeOf`: точки со временем и именем, по часам. Ею
+     живут таймлайн карточки, свет по этапам и студийный таймер, и она не
+     изменилась ни на знак: точка без времени в неё просто не попадает, как не
+     попадала и раньше. «Где по порядку» — `stopsOf`: точки с координатами в
+     том порядке, в каком их составил фотограф. Один список, два прочтения —
+     потому что маршрутный лист и расписание дня это и есть одно и то же,
+     рассмотренное с разных сторон (docs: DECISIONS, «Маршрут — это счёт точек»). */
   function routeOf(s) {
     return (Array.isArray(s.route) ? s.route : [])
       .filter(function (r) { return r && r.t != null && r.n; })
       .sort(function (a, b) { return a.t - b.t; });
   }
+  /* Место точки маршрута. Своих координат точка не хранит и не должна: место
+     живёт в «Моих местах» одной записью, а точка на неё ссылается (`placeId`).
+     Так почасовая аренда читается с живого места, а не с замороженной строки,
+     и переименование места не оставляет в маршруте старого имени. Ссылки нет —
+     значит строку набрали руками, и координат у неё взяться неоткуда. */
+  function stopPlace(r) {
+    var sp = r && spotById(r.placeId);
+    if (!sp || sp.lat == null) return null;
+    return { name: sp.name || (r.p || ""), addr: sp.address || "",
+             lat: sp.lat, lon: sp.lon, sub: sp.sub || "" };
+  }
+  /* Все точки съёмки, у которых есть координаты: место съёмки первым, за ним
+     точки маршрута в порядке списка. Принимает место и точки, а не запись:
+     форма держит их черновиками (`sessionPlace`, `fRoute`), а запись — полями,
+     и функция одна на оба случая. */
+  function stopsOf(place, route) {
+    var out = [];
+    if (place && place.lat != null && (place.name || place.addr || place.manual)) {
+      out.push({ name: place.name || "", addr: place.addr || "",
+                 lat: place.lat, lon: place.lon, sub: "" });
+    }
+    (Array.isArray(route) ? route : []).forEach(function (r) {
+      var p = stopPlace(r);
+      if (p) out.push(p);
+    });
+    return out;
+  }
+
   /* Свет на каждом этапе — одним проходом: солнце считается для места съёмки,
      а не для места, где сейчас стоит маркер на карте */
   function routeLight(s, route) {
@@ -24073,7 +24185,7 @@
          довольно помнить её знак. Заодно это чинит старую неровность —
          превью в черновике занимали место в `localStorage` вторым слоем. */
       sid: fId,
-      route: hasRoute(shootType) ? routeFromEditor() : []
+      route: routeFromEditor()
     };
   }
   /* «Хотя бы одно поле заполнено» (Алексей, 24 августа 2026) — форма,
@@ -24197,7 +24309,14 @@
        нет только у совсем старого черновика, заведённого до этой правки, —
        ему выдаём новый, кадры в нём и так не сохранились бы. */
     fId = s.id || s.sid || newId();
-    fRoute = routeOf(s).map(function (r) { return { t: fmt(r.t), n: r.n, p: r.p || "", placeId: r.placeId || null }; });
+    /* Редактор читает список как он записан, а не через `routeOf`: та отбирает
+       точки со временем и ставит их по часам — это правильный ответ карточке
+       и неправильный форме. Точка без назначенного часа пропала бы при первой
+       же правке, а порядок фотографа подменился бы порядком часов */
+    fRoute = (Array.isArray(s.route) ? s.route : []).map(function (r) {
+      return { t: r.t == null ? "" : fmt(r.t), n: r.n || "", p: r.p || "", placeId: r.placeId || null };
+    });
+
     payFolded = true;
   }
   function openForm(d, startMin, idx, fromLight, kind) {
@@ -25033,7 +25152,7 @@
       fromMeetId: (editIdx !== null && sessions[editIdx] && sessions[editIdx].fromMeetId) || undefined,
       grewOn: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewOn) || undefined,
       grewToId: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewToId) || undefined,
-      route: hasRoute(shootType) ? routeFromEditor() : [],
+      route: routeFromEditor(),
       synced: syncTarget === "off" ? null : syncTarget
     };
     /* Номер, пропавший из карточки при этой правке, уходит в её архив, а не в
