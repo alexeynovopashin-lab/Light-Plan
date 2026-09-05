@@ -13842,7 +13842,10 @@
   }
   /* Зона съёмки — по её точке; нет точки, значит она там же, где приложение */
   function sessionTz(s, date) {
-    return s && s.placeLat != null ? tzAt(s.placeLat, s.placeLon, date || s.date) : TZ;
+    if (!s) return TZ;
+    var at = shootAt(s);
+    return at.lat != null ? tzAt(at.lat, at.lon, date || s.date) : TZ;
+
   }
   /* Ответ о зоне приходит позже, чем нарисован экран: перерисовываем то, что
      открыто, — тем же приёмом, что у дороги (`clashesRefresh`) */
@@ -22604,7 +22607,9 @@
      смотрит приложение: у выездной съёмки свой горизонт и своё время света. */
   function cardSun(s) {
     var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate), out = {};
-    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzAt(s.placeLat, s.placeLon, s.date); }
+    var at = shootAt(s);
+    if (at.lat != null) { LAT = at.lat; LON = at.lon; TZ = tzAt(at.lat, at.lon, s.date); }
+
     computeSun(s.date);
     out.st = stateAt(s.min);
     out.shadow = shadowWord(s.min);
@@ -22617,9 +22622,11 @@
      прогноз тянется одной точкой. Если точки разъехались — говорим об этом,
      а не выдаём чужую облачность за здешнюю. */
   function placeFar(s) {
-    if (s.placeLat == null) return false;
-    return Math.abs(s.placeLat - LAT) > 0.35 || Math.abs(s.placeLon - LON) > 0.6;
+    var at = shootAt(s);
+    if (at.lat == null) return false;
+    return Math.abs(at.lat - LAT) > 0.35 || Math.abs(at.lon - LON) > 0.6;
   }
+
 
   /* ---------- Маршрут дня ----------
      Свадьба — не полтора часа, а день из этапов, и у каждого этапа свой свет.
@@ -22677,13 +22684,14 @@
       /* Имя берём со строки: в ней уже собрано «Томсон, зал Эдисон», и зал —
          такая же часть имени, как у места съёмки */
       return { name: (r.p || "") || st.name, addr: st.address || "",
-               lat: st.lat, lon: st.lon, sub: "" };
+               lat: st.lat, lon: st.lon, sub: "", studio: true };
     }
 
     var sp = r && spotById(r.placeId);
     if (!sp || sp.lat == null) return null;
     return { name: sp.name || (r.p || ""), addr: sp.address || "",
-             lat: sp.lat, lon: sp.lon, sub: sp.sub || "" };
+             lat: sp.lat, lon: sp.lon, sub: sp.sub || "", studio: false };
+
   }
 
   /* Все точки съёмки, у которых есть координаты: место съёмки первым, за ним
@@ -22694,7 +22702,7 @@
     var out = [];
     if (place && place.lat != null && (place.name || place.addr || place.manual)) {
       out.push({ name: place.name || "", addr: place.addr || "",
-                 lat: place.lat, lon: place.lon, sub: "" });
+                 lat: place.lat, lon: place.lon, sub: "", studio: !!place.studio });
     }
     (Array.isArray(route) ? route : []).forEach(function (r) {
       var p = stopPlace(r);
@@ -22703,17 +22711,51 @@
     return out;
   }
 
-  /* Свет на каждом этапе — одним проходом: солнце считается для места съёмки,
-     а не для места, где сейчас стоит маркер на карте */
+  /* Те же точки, но у записи, а не у формы: место съёмки записано полями. */
+  function recStops(s) {
+    return stopsOf({ name: s.place || "", addr: s.placeAddr || "",
+                     lat: s.placeLat, lon: s.placeLon,
+                     studio: !!s.studioId, manual: s.placeLat != null },
+                   s.route);
+  }
+
+  /* Место, у которого спрашивают солнце, погоду и часовой пояс. Когда точек
+     несколько, отвечает та, где съёмка идёт под открытым небом: в студии свой
+     свет и своя погода, и закат ей ничего не говорит. Берём первую такую по
+     порядку дня. Если день весь прошёл в залах — первую попавшуюся: пояс нужен
+     и там, чтобы часы карточки не съехали. */
+  function shootAt(s) {
+    var st = recStops(s), i;
+    for (i = 0; i < st.length; i++) if (!st[i].studio) return st[i];
+    if (st.length) return st[0];
+    return s.placeLat != null ? { lat: s.placeLat, lon: s.placeLon } : { lat: null, lon: null };
+  }
+
+
+  /* Свет на каждом этапе — по координатам самого этапа, а не одной точки на
+     весь день: маршрут уезжает за десятки километров, и закат там свой. Точка
+     без координат отвечает якорем дня. Солнце пересчитывается только когда
+     место действительно сменилось — обычно день стоит в одном городе, и проход
+     обходится одним счётом. */
   function routeLight(s, route) {
     var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate);
-    if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzAt(s.placeLat, s.placeLon, s.date); }
+    var at = shootAt(s);
+    if (at.lat != null) { LAT = at.lat; LON = at.lon; TZ = tzAt(at.lat, at.lon, s.date); }
     computeSun(s.date);
-    var out = route.map(function (r) { return stateAt(r.t); });
+    var aLat = LAT, aLon = LON;
+    var out = route.map(function (r) {
+      var p = stopPlace(r), la = p ? p.lat : aLat, lo = p ? p.lon : aLon;
+      if (la !== LAT || lo !== LON) {
+        LAT = la; LON = lo; TZ = tzAt(la, lo, s.date);
+        computeSun(s.date);
+      }
+      return stateAt(r.t);
+    });
     LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(kDate);
     return out;
   }
+
   /* Карточка события целиком: шапка, навигатор, сцены, плитки.
      Всё, что ниже (Когда, Свет и погода), для события прячется: его вопросы
      закрыты сценами, а подробная астрономия свадебному дню не нужна. */
@@ -22760,8 +22802,10 @@
     /* Фаза считается по часам места съёмки, а не телефона: в поездке они
        расходятся, и карточка иначе объявляла бы съёмку прошедшей, пока она
        идёт (docs: DECISIONS, «Модель времени») */
-    var now = nowAt(s.placeLat, s.placeLon);
+    var at = shootAt(s);
+    var now = nowAt(at.lat, at.lon);
     if (!sameDay(s.date, now)) return s.date > now ? "before" : "after";
+
     var m = now.getHours() * 60 + now.getMinutes();
     var to = s.end != null ? s.end : s.min + (s.dur || 90);
     if (m < s.min) return "before";
@@ -23608,7 +23652,9 @@
     }).catch(function () {});
   });
   function nowMinOf(s) {
-    var n = nowAt(s.placeLat, s.placeLon);
+    var at = shootAt(s);
+    var n = nowAt(at.lat, at.lon);
+
     return sameDay(s.date, n) ? n.getHours() * 60 + n.getMinutes() : null;
   }
   /* Ответ студии приходит человеком, а не сразу — спрашиваем тактом карточки.
@@ -23833,8 +23879,10 @@
 
     var mapBtn = $("cdPanes").querySelector('[data-act="map"]');
     if (mapBtn) mapBtn.addEventListener("click", function () {
-      if (s.placeLat != null) { LAT = s.placeLat; LON = s.placeLon; TZ = tzAt(s.placeLat, s.placeLon, s.date); }
+      var atMap = shootAt(s);
+      if (atMap.lat != null) { LAT = atMap.lat; LON = atMap.lon; TZ = tzAt(atMap.lat, atMap.lon, s.date); }
       closeCard(); go("s-map");
+
       if (typeof syncMap === "function") syncMap();
     });
   }
@@ -24253,7 +24301,9 @@
        телефона, рядом стоит пояс: иначе «18:00» читается как своё */
     var cdTz = $("cdTz");
     if (cdTz) {
-      var tzt = tzTag(s.placeLat, s.placeLon, s.date);
+      var atTz = shootAt(s);
+      var tzt = tzTag(atTz.lat, atTz.lon, s.date);
+
       cdTz.textContent = tzt;
       cdTz.hidden = !tzt;
     }
