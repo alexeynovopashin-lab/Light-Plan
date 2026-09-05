@@ -2206,21 +2206,27 @@
      та же самая — проекция общая, иначе линия и знаки разошлись бы на первом
      же кадре жеста.
 
-     Пунктир, а не сплошная: линия соединяет точки по прямой, дороги под ней
-     нет. Сплошная обещала бы проложенный путь — обещание, которого прямая не
-     держит. Штрихи крупные и линия втрое толще приборных: холст уже расчерчен
-     золотым — дуга светила, лучи, часовые засечки, — и точечный пунктир в
-     нём терялся бы среди чужих линий (замер 5 сентября 2026: четыре точки в
-     Томске, линию не отличить от траектории солнца). */
+     Дорога рисуется в два слоя, как её рисуют карты: широкая полупрозрачная
+     подложка и узкая яркая жила поверх. Один этот приём отличает её от всего
+     остального на холсте — тот уже расчерчен золотым (дуга светила, лучи,
+     часовые засечки), и одиночная линия любой толщины там терялась среди
+     чужих (замер 5 сентября 2026: четыре точки в Томске, линию было не
+     отличить от траектории солнца).
+
+     Штрих остаётся за прямой: пока маршрутизатор не ответил, точки соединены
+     по воздуху, и линия говорит это сама — тонкая, полупрозрачная, рваная.
+     Приехала дорога — становится сплошной. */
   #mapPath {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: var(--rotor-d, 150%); height: var(--rotor-d, 150%);
     z-index: 444; pointer-events: none; overflow: visible;
   }
-  #mapPath path {
-    fill: none; stroke: var(--brass); stroke-width: 3.4; opacity: 0.8;
-    stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 9 7;
-  }
+  #mapPath path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  #mapPath .rp-halo { stroke: var(--brass); stroke-width: 7.5; opacity: 0.2; }
+  #mapPath .rp-line { stroke: var(--brass); stroke-width: 2.8; opacity: 0.95; }
+  #mapPath.raw .rp-halo { display: none; }
+  #mapPath.raw .rp-line { stroke-width: 2.2; opacity: 0.45; stroke-dasharray: 6 6; }
+
 
 
   /* Якорь нулевого размера: `translate` ставит его в спроецированный пиксель,
@@ -14352,29 +14358,26 @@
     saveAll();
     paintRouteNos(); placeRoutePath(); renderRouteBar();
   }
-  /* Итог черновика: сколько точек, сколько между ними километров и сколько
-     займёт дорога. Километры — по прямой (`kmBetween`), минуты спрашиваются у
-     OSRM тем же `travelMinutes`, что считает переезды между точками дня.
-     Ответ приходит не сразу, и до него строка показывает одни километры:
-     поставить минуты, которых ещё не привезли, значило бы назвать число, за
-     которым ничего нет. */
+  /* Итог черновика: сколько точек и сколько займёт дорога между ними. Оба
+     числа приходят от маршрутизатора и говорят об одном пути: километры
+     считаны по улицам, а не по прямой, и стоят рядом с временем той же
+     дороги. Пока ответ не пришёл, строка молчит — назвать длину прямой за
+     минуту до того, как приедет длина дороги, значит поставить число, которое
+     тут же сменится другим. */
+
   function renderRouteBar() {
     var bar = $("mapRouteBar"); if (!bar || bar.hidden) return;
-    var pts = routeSpots(), i, km = 0, min = 0, wait = false, t;
-    for (i = 1; i < pts.length; i++) {
-      km += kmBetween(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon);
-      t = travelMinutes(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon, renderRouteBar);
-      if (t === undefined) wait = true; else if (t != null) min += t;
-    }
+    var pts = routeSpots();
+    var road = roadOf(pts, function () { placeRoutePath(); renderRouteBar(); });
     $("rbSum").textContent = pts.length
       ? LANG.count("unit.point", pts.length)
       : LANG.t("map.routeHint");
-    $("rbSub").textContent = pts.length < 2 ? ""
-      : LANG.t("pro.distKm", { n: km < 10 ? num(km, 1) : num(Math.round(km)) })
-
-        + (wait || !min ? "" : " · " + durLabel(min));
+    $("rbSub").textContent = (pts.length < 2 || !road) ? ""
+      : LANG.t("pro.distKm", { n: road.km < 10 ? num(road.km, 1) : num(Math.round(road.km)) })
+        + " · " + durLabel(road.min);
     $("rbMake").disabled = !pts.length;
   }
+
   /* Жанр, у которого бывают точки дня. Черновик — это их порядок, и класть
      его в жанр без маршрута некуда. Берём выбранный, если маршрут у него
      есть, иначе первый включённый из тех, у кого есть. Выключенные не
@@ -14416,21 +14419,95 @@
   /* Линия черновика. Тем же приёмом, что и знаки: элемент один, на кадре
      меняется только `d` — событие `move` сыплется десятками в секунду, пока
      карту тащат пальцем, и пересобирать разметку было бы расточительно. */
-  var routePathEl = null;
+  /* ---------- Дорога между точками ----------
+     Прямая линия между булавками не несла пользы: в городе она проходит сквозь
+     кварталы, а рядом с ней стояли минуты, посчитанные по улицам, — два
+     показания разной природы в одной строке (Алексей, 5 сентября 2026: «такой
+     абстрактный маршрут не несёт особой пользы»). Поэтому линию рисует сам
+     маршрутизатор.
+
+     Один запрос на всю цепочку, а не по одному на переезд: OSRM возвращает
+     разом геометрию улиц, длину дороги и время, и это дешевле попарного
+     опроса — замер 5 сентября 2026: четыре точки Каппадокии, 34,4 км, ответ
+     17 КБ. Оттуда же берутся километры для полосы, и `kmBetween` по прямой из
+     неё ушёл совсем.
+
+     Сервер тот же, что уже считает переезды между точками дня, — новой
+     зависимости здесь не появилось. Автомобильный профиль единственный:
+     демо-сервер OSRM имя профиля игнорирует и на `foot` отвечает байт в байт
+     тем же, что на `driving` (проверено). Пеший маршрут умеет Valhalla на
+     FOSSGIS — отдельным заходом, вместе с переключателем на карте. */
+  var roadCache = {}, roadFly = {}, roadPend = "", roadWait = null;
+  function roadKey(pts) {
+    return pts.map(function (p) {
+      return (+p.lon).toFixed(5) + "," + (+p.lat).toFixed(5);
+    }).join(";");
+  }
+  function roadFetch(key, onReady) {
+    roadFly[key] = true;
+    fetch("https://router.project-osrm.org/route/v1/driving/" + key
+          + "?overview=full&geometries=geojson")
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var r = j && j.routes && j.routes[0];
+        roadCache[key] = (r && r.geometry && r.geometry.coordinates)
+          ? { line: r.geometry.coordinates, km: r.distance / 1000,
+              min: Math.round(r.duration / 60) }
+          : null;
+      })
+      .catch(function () {
+        roadCache[key] = null;   // сеть не ответила — не спрашиваем снова в этом сеансе
+      })
+      .then(function () { delete roadFly[key]; if (onReady) onReady(); });
+  }
+  /* Порядок точек правят тапами, и три тапа подряд — это три разные цепочки.
+     Ждём, пока рука остановится: демо-сервер общий, и долбить его промежуточными
+     маршрутами, которых никто не увидит, незачем. Ключ при этом сверяется, а не
+     таймер — иначе кадры жеста карты (`move` сыплется десятками в секунду)
+     откладывали бы запрос бесконечно, пока карту тащат пальцем. */
+  function roadOf(pts, onReady) {
+    if (pts.length < 2) return null;
+    var key = roadKey(pts);
+    if (key in roadCache) return roadCache[key];
+    if (roadFly[key]) return undefined;
+    if (roadPend !== key) {
+      roadPend = key;
+      clearTimeout(roadWait);
+      roadWait = setTimeout(function () { roadFetch(key, onReady); }, 400);
+    }
+    return undefined;
+  }
+  var routePathEl = null, routeHaloEl = null;
   function placeRoutePath() {
     var svg = $("mapPath"); if (!svg) return;
     var pts = routeSpots(), d = "", i, p;
-    if (!lmap || pts.length < 2) { if (routePathEl) routePathEl.setAttribute("d", ""); return; }
-    for (i = 0; i < pts.length; i++) {
-      try { p = lmap.project([pts[i].lon, pts[i].lat]); } catch (e) { return; }
+    if (!routePathEl) {
+      var ns = "http://www.w3.org/2000/svg";
+      routeHaloEl = document.createElementNS(ns, "path");
+      routeHaloEl.setAttribute("class", "rp-halo");
+      routePathEl = document.createElementNS(ns, "path");
+      routePathEl.setAttribute("class", "rp-line");
+      svg.appendChild(routeHaloEl); svg.appendChild(routePathEl);
+    }
+    if (!lmap || pts.length < 2) { setRouteD(""); return; }
+    /* Пока дорога едет, точки всё же соединены — но прямой и штрихом: линия
+       сама говорит, что это ещё не путь, а связь. Пустой холст на её месте
+       был бы хуже — набранного маршрута не видно вовсе. */
+    var road = roadOf(pts, function () { placeRoutePath(); renderRouteBar(); });
+    var line = (road && road.line) || pts.map(function (q) { return [q.lon, q.lat]; });
+    svg.classList.toggle("raw", !(road && road.line));
+    for (i = 0; i < line.length; i++) {
+      try { p = lmap.project(line[i]); } catch (e) { return; }
       d += (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1);
     }
-    if (!routePathEl) {
-      routePathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      svg.appendChild(routePathEl);
-    }
-    routePathEl.setAttribute("d", d);
+    setRouteD(d);
   }
+  function setRouteD(d) {
+    if (!routePathEl) return;
+    routePathEl.setAttribute("d", d);
+    routeHaloEl.setAttribute("d", d);
+  }
+
   function placeSpotMarks() {
     placeRoutePath();
     if (!lmap || !spotMarks.length) return;
