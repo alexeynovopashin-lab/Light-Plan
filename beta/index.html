@@ -21901,7 +21901,9 @@
       /* Ручная правка текста рвёт ссылку на место: строка теперь говорит
          что-то своё, и таймер студийного часа не должен идти за ней вслепую */
       row.querySelector(".rt-in-p").addEventListener("input", function () {
-        r.p = this.value; r.placeId = null; r.studioId = null; fRouteSeeded = false;
+        r.p = this.value; r.placeId = null; r.studioId = null; r.hallId = null;
+        fRouteSeeded = false;
+
         row.querySelector(".rt-pick").classList.remove("on");
 
         /* Ссылки не стало — не стало и адреса: он был свойством места, а не
@@ -21929,14 +21931,32 @@
       pick.classList.toggle("on", !!(r.placeId || r.studioId));
 
       pick.addEventListener("click", function () {
-        openSpotFan(pick, function (sp) {
-          r.p = sp.name; r.placeId = sp.id; r.studioId = null; fRouteSeeded = false;
+        /* У точки со студией веер спрашивает зал, а не место: место у неё уже
+           названо, а какой из залов — вопрос открытый, и в свадебном дне он
+           решающий («в первом зале с гостями, во втором только пара»). Место
+           у такой точки меняют набором поверх строки: он рвёт ссылку и
+           возвращает точку в общий вид. */
+        var stR = studioById(r.studioId);
+        if (stR && (stR.halls || []).length) {
+          openSpotFan(pick, function (h) {
+            r.hallId = h.id; fRouteSeeded = false;
+            /* Зал входит в имя точки, как он входит в имя места съёмки: на
+               площадке говорят «Томсон, зал Эдисон» одной фразой */
+            r.p = LANG.t("form.placeHall", { place: stR.name, hall: h.name });
+            renderRouteEditor();
+          }, stR.halls);
 
+          return;
+        }
+        openSpotFan(pick, function (sp) {
+          r.p = sp.name; r.placeId = sp.id; r.studioId = null; r.hallId = null;
+          fRouteSeeded = false;
           /* Строку рисуем заново: вместе с именем у точки появляется адрес,
              а он стоит отдельной строкой под полем */
           renderRouteEditor();
         });
       });
+
     });
     renderRouteHead();
   }
@@ -22054,7 +22074,8 @@
   function routeFromEditor() {
     return fRoute.map(function (r) {
       return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim(),
-               placeId: r.placeId || null, studioId: r.studioId || null };
+               placeId: r.placeId || null, studioId: r.studioId || null,
+               hallId: r.hallId || null };
     }).filter(function (r) { return (r.t !== null && r.n) || r.placeId || r.studioId || r.p; });
 
   }
@@ -22597,9 +22618,12 @@
        обычный этап дня, а не второе место съёмки */
     var st = r && studioById(r.studioId);
     if (st && st.lat != null) {
-      return { name: st.name || (r.p || ""), addr: st.address || "",
+      /* Имя берём со строки: в ней уже собрано «Томсон, зал Эдисон», и зал —
+         такая же часть имени, как у места съёмки */
+      return { name: (r.p || "") || st.name, addr: st.address || "",
                lat: st.lat, lon: st.lon, sub: "" };
     }
+
     var sp = r && spotById(r.placeId);
     if (!sp || sp.lat == null) return null;
     return { name: sp.name || (r.p || ""), addr: sp.address || "",
@@ -24468,7 +24492,8 @@
        же правке, а порядок фотографа подменился бы порядком часов */
     fRoute = (Array.isArray(s.route) ? s.route : []).map(function (r) {
       return { t: r.t == null ? "" : fmt(r.t), n: r.n || "", p: r.p || "",
-               placeId: r.placeId || null, studioId: r.studioId || null };
+               placeId: r.placeId || null, studioId: r.studioId || null,
+               hallId: r.hallId || null };
     });
     waysStop = null;                         // форма открылась заново: ряд ни за кем не числится
 
@@ -28385,12 +28410,17 @@
     locPickName = (isSession || locTarget === "stop") ? (base.name || "") : "";
 
     locPickTown = "";
-    $("locName").value = isSession ? (base.name || "") : "";
-    $("locAddress").value = isSession ? (base.addr || "") : "";
+    var forStop = locTarget === "stop";
+    $("locName").value = (isSession || forStop) ? (base.name || "") : "";
+    $("locAddress").value = (isSession || forStop) ? (base.addr || "") : "";
     $("locSaveSpot").classList.remove("on");
+    /* Точке маршрута тумблер не задают: её место сохраняется всегда — иначе
+       координатам негде жить, а точка умеет только ссылаться на них. Выключенный
+       тумблер обещал бы выбор, которого нет */
+    $("locSaveRow").hidden = forStop;
     locNameTyped = false;                 // новое открытие листа — новая история
     locCoordsTyped = false;
-    $("locWayStudioBtn").hidden = !isSession;
+    $("locWayStudioBtn").hidden = locTarget === "app";
     /* Студия съёмки открывается уже выбранной, и лист сразу встаёт на её
        путь: показывать развилку тому, кто уже снимает в студии, значит
        спрашивать заново то, что в записи есть */
@@ -28863,18 +28893,23 @@
      маршрута и пункт настроек. Выбор отдаётся обработчику, а сам веер не знает,
      кто его позвал, — поэтому одна разметка обслуживает и переезд по карте,
      и заполнение поля в форме. */
-  function openSpotFan(anchor, onPick) {
+  /* Список необязателен: по умолчанию веер показывает «Мои места», но той же
+     формой выбирают и зал студии — список короткий, ответ один, и заводить ради
+     него второй вид меню незачем (правило: переиспользовать принятые знаки) */
+  function openSpotFan(anchor, onPick, list) {
     var fan = $("spotFan"), scrim = $("spotScrim"), dev = document.querySelector(".device");
+    var items = list || spots;
     fan.innerHTML = "";
-    if (!spots.length) {
+    if (!items.length) {
       var em = document.createElement("div");
       em.className = "fan-empty";
       em.textContent = LANG.t("loc.emptyMap");
       fan.appendChild(em);
     } else {
-      spots.forEach(function (sp) {
+      items.forEach(function (sp) {
         var b = document.createElement("button"); b.type = "button";
-        if (sameSpot(sp, LAT, LON)) b.className = "on";      // где стоим сейчас
+        if (!list && sameSpot(sp, LAT, LON)) b.className = "on";   // где стоим сейчас
+
         b.innerHTML = '<span class="ic" data-ic="pin"></span>'
           + '<span class="tx"><span class="t1"></span><span class="t2"></span></span>';
         b.querySelector(".t1").textContent = sp.name;
@@ -29600,7 +29635,7 @@
       if (locWay === "studio") {
         if (!studioDraft) { $("locErr").textContent = LANG.t("loc.studioNone"); return; }
         var stS = studioFromDraft(la, lo);
-        r.studioId = stS.id; r.placeId = null;
+        r.studioId = stS.id; r.placeId = null; r.hallId = null;
         placeName = r.p = stS.name;
       } else {
         placeName = ($("locName").value || "").trim() || locPickName;
