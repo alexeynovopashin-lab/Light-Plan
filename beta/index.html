@@ -7580,20 +7580,6 @@
         <span class="rl"><span data-i18n="form.road">Время в пути</span><span class="sub2" id="fRoadNote"></span></span>
         <span class="rv act" id="fRoadVal" data-i18n="form.roadAdd">отметить</span>
       </button>
-      <div class="ref-add place-ways sep" id="fPlaceWays">
-        <button type="button" class="ref-btn pw" data-way="addr">
-          <span class="pw-ic" data-ic="city"></span>
-          <span data-i18n="loc.wayAddr">Место</span>
-        </button>
-        <button type="button" class="ref-btn pw" data-way="studio">
-          <span class="pw-ic" data-ic="studio"></span>
-          <span data-i18n="loc.wayStudio">Фотостудия</span>
-        </button>
-        <button type="button" class="ref-btn pw" data-way="geo">
-          <span class="pw-ic" data-ic="route"></span>
-          <span data-i18n="loc.wayGeo">Геопозиция</span>
-        </button>
-      </div>
       <!-- Выбранное место занимает ту же строку: имя (у студии — вместе с
            залом), адрес под ним и крестик сброса справа. Крестик, а не
            «Изменить»: место меняют, войдя в него, а вот убрать его прежде
@@ -7691,6 +7677,20 @@
            (`routeOf`), и таймлайн карточки получает ровно то же, что получал
            (docs: DECISIONS, «Маршрут — это счёт точек»). -->
       <div id="fRouteList"></div>
+      <div class="ref-add place-ways sep" id="fPlaceWays">
+        <button type="button" class="ref-btn pw" data-way="addr">
+          <span class="pw-ic" data-ic="city"></span>
+          <span data-i18n="loc.wayAddr">Место</span>
+        </button>
+        <button type="button" class="ref-btn pw" data-way="studio">
+          <span class="pw-ic" data-ic="studio"></span>
+          <span data-i18n="loc.wayStudio">Фотостудия</span>
+        </button>
+        <button type="button" class="ref-btn pw" data-way="geo">
+          <span class="pw-ic" data-ic="route"></span>
+          <span data-i18n="loc.wayGeo">Геопозиция</span>
+        </button>
+      </div>
       <button type="button" class="rt-add" id="fRouteAdd" data-i18n="form.addStop">+ Точка</button>
     </div>
 
@@ -20406,10 +20406,12 @@
       || (sessionPlace.manual ? coordText(sessionPlace.lat, sessionPlace.lon) : "");
     /* Место выбрано — строка называет его; не выбрано — на её месте стоят
        три пути. Двух строк сразу не бывает: это один и тот же вопрос в двух
-       состояниях, до ответа и после (docs: DECISIONS, «Три пути к месту») */
+       состояниях, до ответа и после (docs: DECISIONS, «Три пути к месту»).
+       Показывает ряд теперь `renderRouteHead`: те же три пути обслуживают и
+       следующую точку маршрута, и решать за двоих должен кто-то один */
     var has = !!shown;
     $("fPlace").hidden = !has;
-    $("fPlaceWays").hidden = has;
+
     /* Зал — часть имени места, а не отдельная строка под ним: на площадке
        сверяют «Томсон, зал Эдисон» одной фразой, как её и произносят.
        Барабан выбора зала при этом остаётся: он отвечает «какой», а строка —
@@ -21899,27 +21901,37 @@
       /* Ручная правка текста рвёт ссылку на место: строка теперь говорит
          что-то своё, и таймер студийного часа не должен идти за ней вслепую */
       row.querySelector(".rt-in-p").addEventListener("input", function () {
-        r.p = this.value; r.placeId = null; fRouteSeeded = false;
+        r.p = this.value; r.placeId = null; r.studioId = null; fRouteSeeded = false;
         row.querySelector(".rt-pick").classList.remove("on");
+
         /* Ссылки не стало — не стало и адреса: он был свойством места, а не
            этой строки. Убираем на месте, а не перерисовкой: перерисовка
            отняла бы курсор посреди слова */
         var ad = row.querySelector(".rt-addr");
         if (ad) ad.remove();
+        /* Место набрали руками — ряд путей своё отспрашивал */
+        if (waysStop === +row.dataset.i) { waysStop = null; renderRouteHead(); }
+
 
       });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRouteSeeded = false;
+        /* Точки не стало — ряд путей больше не за кем не числится: номера
+           сдвинулись, и открытый ряд спрашивал бы место у чужой строки */
+        waysStop = null;
         fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
       });
+
       /* Место из сохранённых точек — не просто копия имени, а ссылка (r.placeId):
          почасовая аренда читается с живого места, а не с замороженной строки.
          Веер тот же, что на карте, отличается лишь тем, что делает выбор. */
       var pick = row.querySelector(".rt-pick");
-      pick.classList.toggle("on", !!r.placeId);
+      pick.classList.toggle("on", !!(r.placeId || r.studioId));
+
       pick.addEventListener("click", function () {
         openSpotFan(pick, function (sp) {
-          r.p = sp.name; r.placeId = sp.id; fRouteSeeded = false;
+          r.p = sp.name; r.placeId = sp.id; r.studioId = null; fRouteSeeded = false;
+
           /* Строку рисуем заново: вместе с именем у точки появляется адрес,
              а он стоит отдельной строкой под полем */
           renderRouteEditor();
@@ -21944,7 +21956,11 @@
      быть жанровым свойством: у портрета с пятью точками студия «как съёмка»
      занимала весь день, а у студийной свадьбы без маршрута часы спрашивались
      заново (docs: DECISIONS, «Маршрут — это счёт точек», поправка). */
+  /* Для кого сейчас открыт ряд путей: null — для места съёмки, число — номер
+     точки маршрута. Ряд один на всех, потому что вопрос один: где это. */
+  var waysStop = null;
   function formStops() {
+
     return (sessionPlace.name || sessionPlace.manual ? 1 : 0) + (fRoute || []).length;
   }
   function renderRouteHead() {
@@ -21961,8 +21977,20 @@
     lab.setAttribute("data-i18n", key);          // переводчик перечитает ключ, а не текст
     lab.textContent = LANG.t(key);
     var off = meetMode();                        // у встречи дня ещё нет: маршрут ей не задают
-    add.hidden = off || (!has && !n);
+    /* Ряд путей стоит под списком и всегда относится к следующей точке: пока
+       места нет — к первой, после «＋» — к только что заведённой. Тремя
+       кнопками место задают одинаково, на какой бы точке ни стояли, — этого и
+       ждёшь от «＋», иначе первая точка получает места из «Моих мест», студий
+       и геопозиции, а вторая довольствуется строкой текста
+       (замечено Алексеем: «я думал, что кнопка ＋ будет включать отображение
+       кнопок место, фотостудия, гео таким же образом как первая точка»). */
+    var forStop = waysStop !== null && !!(fRoute || [])[waysStop];
+    $("fPlaceWays").hidden = off || (has && !forStop);
+    /* Пока ряд открыт, «＋» уходит: две кнопки «добавить» подряд спорили бы,
+       какая из них добавляет */
+    add.hidden = off || (!has && !n) || forStop;
     list.hidden = off || !n;
+
     /* Строка аренды считает точки той же мерой, и вторая точка меняет её
        смысл: студия перестала быть всей съёмкой. Перерисовываем отсюда,
        потому что точки добавляют здесь, а не в блоке студии */
@@ -22007,10 +22035,14 @@
   $("fRouteAdd").addEventListener("click", function () {
     if (fRoute.length >= 10) return;          // день из одиннадцати сцен планируют не здесь
     fRoute.push({ t: "", n: "", p: "" });
+    /* Ряд путей открывается сразу под новой строкой: «＋» спрашивает «где
+       следующая точка», и ответ у него тот же, что у первой. Курсор в поле
+       времени больше не ставим — клавиатура закрыла бы собой ровно те три
+       кнопки, ради которых «＋» и нажимали. */
+    waysStop = fRoute.length - 1;
     renderRouteEditor();
-    var last = $("fRouteList").querySelector(".rt-row:last-child .rt-in-t");
-    if (last) last.focus();
   });
+
   /* Черновик → запись. Точка уезжает, если сказала хоть что-то: время с
      именем — это сцена дня, место — это пункт маршрута. Прежде уезжали только
      первые, и точка «Лагерный сад» без назначенного часа пропадала при
@@ -22020,8 +22052,11 @@
      и таймлайн карточки получает прежний массив
      (docs: DECISIONS, «Маршрут — это счёт точек»). */
   function routeFromEditor() {
-    return fRoute.map(function (r) { return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim(), placeId: r.placeId || null }; })
-      .filter(function (r) { return (r.t !== null && r.n) || r.placeId || r.p; });
+    return fRoute.map(function (r) {
+      return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim(),
+               placeId: r.placeId || null, studioId: r.studioId || null };
+    }).filter(function (r) { return (r.t !== null && r.n) || r.placeId || r.studioId || r.p; });
+
   }
 
 
@@ -22558,11 +22593,19 @@
      и переименование места не оставляет в маршруте старого имени. Ссылки нет —
      значит строку набрали руками, и координат у неё взяться неоткуда. */
   function stopPlace(r) {
+    /* Студия — такая же ссылка, только в свой список: в маршруте свадьбы она
+       обычный этап дня, а не второе место съёмки */
+    var st = r && studioById(r.studioId);
+    if (st && st.lat != null) {
+      return { name: st.name || (r.p || ""), addr: st.address || "",
+               lat: st.lat, lon: st.lon, sub: "" };
+    }
     var sp = r && spotById(r.placeId);
     if (!sp || sp.lat == null) return null;
     return { name: sp.name || (r.p || ""), addr: sp.address || "",
              lat: sp.lat, lon: sp.lon, sub: sp.sub || "" };
   }
+
   /* Все точки съёмки, у которых есть координаты: место съёмки первым, за ним
      точки маршрута в порядке списка. Принимает место и точки, а не запись:
      форма держит их черновиками (`sessionPlace`, `fRoute`), а запись — полями,
@@ -24424,8 +24467,11 @@
        и неправильный форме. Точка без назначенного часа пропала бы при первой
        же правке, а порядок фотографа подменился бы порядком часов */
     fRoute = (Array.isArray(s.route) ? s.route : []).map(function (r) {
-      return { t: r.t == null ? "" : fmt(r.t), n: r.n || "", p: r.p || "", placeId: r.placeId || null };
+      return { t: r.t == null ? "" : fmt(r.t), n: r.n || "", p: r.p || "",
+               placeId: r.placeId || null, studioId: r.studioId || null };
     });
+    waysStop = null;                         // форма открылась заново: ряд ни за кем не числится
+
 
     payFolded = true;
   }
@@ -25174,8 +25220,14 @@
     openLocSheet("session", sessionStudioId ? "studio" : (sessionPlace.manual ? "geo" : "addr"));
   });
   document.querySelectorAll("#fPlaceWays .pw").forEach(function (b) {
-    b.addEventListener("click", function () { openLocSheet("session", b.dataset.way); });
+    b.addEventListener("click", function () {
+      /* Кнопки те же, спрашивают то же — разница лишь в том, чьё это место:
+         съёмки или очередной точки маршрута */
+      if (waysStop !== null && fRoute[waysStop]) openLocSheet("stop", b.dataset.way, waysStop);
+      else openLocSheet("session", b.dataset.way);
+    });
   });
+
   /* Крестик снимает место целиком: имя, адрес, студию, зал и аренду. Аренда
      уходит вместе со студией не из аккуратности — без студии её некому
      держать, и час без хозяина считался бы от пустоты */
@@ -28259,7 +28311,8 @@
 
   /* Лист «Где снимаем». Два режима: место приложения (с «Сегодня» и карты)
      и место съёмки (из карточки) — тогда результат уходит в форму, а не в свет. */
-  var locTarget = "app", locPickName = "";
+  var locTarget = "app", locPickName = "", locStopIdx = -1;
+
   /* Какой путь открыт: пусто — развилка, дальше "addr", "studio" или "geo".
      Путь — это не вкладка: сюда входят, а не переключаются между. Поэтому
      наверху «назад», а не полоса из трёх кнопок: полоса требует выбирать
@@ -28293,7 +28346,8 @@
     var titles = { addr: "loc.wayAddr", studio: "loc.wayStudio", geo: "loc.wayGeo" };
     var subs = { addr: "loc.wayAddrSub", studio: "loc.wayStudioSub", geo: "loc.wayGeoSub" };
     $("locTitle").textContent = open ? LANG.t(titles[locWay])
-      : LANG.t(locTarget === "session" ? "loc.titleShoot" : "loc.title");
+      : LANG.t(locTarget === "app" ? "loc.title" : "loc.titleShoot");
+
     $("locSub").textContent = open ? LANG.t(subs[locWay]) : LANG.t("loc.sub");
     /* «Готово» на развилке обещало бы, что выбор уже сделан. Пока путь не
        выбран, соглашаться не с чем */
@@ -28309,14 +28363,27 @@
   /* `way` — путь, с которого лист открывается. Его называет тот, кто
      открыл: слово «Фотостудия» в форме обещает карточку студии, и показать
      вместо неё развилку значило бы переспросить уже сказанное. */
-  function openLocSheet(mode, way) {
-    locTarget = mode === "session" ? "session" : "app";
+  function openLocSheet(mode, way, stopIdx) {
+    locTarget = (mode === "session" || mode === "stop") ? mode : "app";
     var isSession = locTarget === "session";
-    var base = isSession ? sessionPlace : { lat: LAT, lon: LON, name: "", addr: "" };
+    /* Точка маршрута спрашивает место тем же листом, что и съёмка: вопрос
+       один, и второго такого экрана заводить незачем. Отличается только то,
+       куда ляжет ответ (docs: DECISIONS, «Маршрут — это счёт точек»). */
+    locStopIdx = locTarget === "stop" ? stopIdx : -1;
+    var stopRec = locTarget === "stop" ? fRoute[locStopIdx] : null;
+    var stopPl = stopRec ? stopPlace(stopRec) : null;
+    var base = isSession ? sessionPlace
+      : stopRec ? { lat: stopPl ? stopPl.lat : sessionPlace.lat,
+                    lon: stopPl ? stopPl.lon : sessionPlace.lon,
+                    name: stopPl ? stopPl.name : (stopRec.p || ""),
+                    addr: stopPl ? stopPl.addr : "" }
+      : { lat: LAT, lon: LON, name: "", addr: "" };
+
     $("locLat").value = (+base.lat).toFixed(4);
     $("locLon").value = (+base.lon).toFixed(4);
     $("locQuery").value = ""; $("locResults").innerHTML = "";
-    locPickName = isSession ? (base.name || "") : "";
+    locPickName = (isSession || locTarget === "stop") ? (base.name || "") : "";
+
     locPickTown = "";
     $("locName").value = isSession ? (base.name || "") : "";
     $("locAddress").value = isSession ? (base.addr || "") : "";
@@ -29193,7 +29260,7 @@
      что стоит в форме, а не родной: фотограф на выезде выбирает московскую
      студию, и томские ему сейчас не помощники. Пусто — берём родной. */
   function sheetCity() {
-    return locTarget === "session" ? (sessionPlace.town || myCity()) : (geoCity || myCity());
+    return locTarget !== "app" ? (sessionPlace.town || myCity()) : (geoCity || myCity());
   }
   function sameCity(a, b) {
     a = cityNorm(a); b = cityNorm(b);
@@ -29263,7 +29330,7 @@
     var box2 = $("recentOtherList"), lab2 = $("recentOtherLabel");
     if (!box) return;
     box.innerHTML = ""; box2.innerHTML = "";
-    var all = locTarget === "session" ? recentSpots(12) : [];
+    var all = locTarget !== "app" ? recentSpots(12) : [];
     var split = splitByCity(all, function (r) { return r.town; });
     function fill(target, list) {
       list.forEach(function (r) {
@@ -29310,7 +29377,7 @@
       /* Точка из списка ведёт себя как любое другое место: свет, погода и
          карта следуют за ней. Для съёмки — только заполняет поля листа. */
       go.addEventListener("click", function () {
-        if (locTarget === "session") {
+        if (locTarget !== "app") {
           $("locLat").value = (+sp.lat).toFixed(4);
           $("locLon").value = (+sp.lon).toFixed(4);
           locPickName = sp.name;
@@ -29395,7 +29462,7 @@
      поведение одно. */
   function detectIntoSheet(lblId) {
     var lbl = $(lblId), was = lbl.textContent;
-    if (locTarget === "session") {
+    if (locTarget !== "app") {
       if (!navigator.geolocation) { $("locErr").textContent = LANG.t("loc.errNoGeo"); return; }
       lbl.textContent = LANG.t("loc.detecting");
       navigator.geolocation.getCurrentPosition(function (p) {
@@ -29488,11 +29555,11 @@
     }
     if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = LANG.t("loc.errLat"); return; }
     if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = LANG.t("loc.errLon"); return; }
-    if (locTarget === "session") {
-      if (locWay === "studio") {
-        /* Студия сохраняется всегда: сущность без списка не живёт, и второй
-           раз её заводить руками фотограф не должен. Прежняя правится на
-           месте, новая встаёт первой — по ней и будут выбирать. */
+    /* Студия сохраняется всегда: сущность без списка не живёт, и второй раз
+       её заводить руками фотограф не должен. Прежняя правится на месте, новая
+       встаёт первой — по ней и будут выбирать. Отдельной функцией, потому что
+       студию теперь выбирают дважды: местом съёмки и точкой маршрута. */
+    function studioFromDraft(la, lo) {
         var st = studioById(studioDraft.id);
         if (!st) { st = { id: newStudioId() }; studios.unshift(st); }
         st.name = (studioDraft.name || "").trim() || st.name || coordText(la, lo);
@@ -29500,6 +29567,7 @@
         st.tel = (studioDraft.tel || "").trim();
         st.key = (studioDraft.key || "").trim();
         st.tomcohId = studioDraft.tomcohId || null;
+
         /* Город студии — то, чем список отделяет томские от московских.
            В наследство от формы он годится, только пока речь об одном
            городе: студия в Томске, а форма показывает Лобню — и город
@@ -29518,12 +29586,59 @@
         st.halls = studioDraft.halls.filter(function (h) { return (h.name || "").trim(); })
           .map(function (h) { return { id: h.id, name: h.name.trim() }; });
         st.lat = +(+la).toFixed(5); st.lon = +(+lo).toFixed(5);
-        sessionStudioId = st.id;
         studioDraft.id = st.id;
+        saveAll();
+        return st;
+    }
+    /* Место точки маршрута. Кладётся туда же, где живут все места: студия — в
+       список студий, адрес и геопозиция — в «Мои места». Точка хранит ссылку,
+       а не копию: переименовали место — переименовалось и в маршруте, и
+       координаты не приходится держать в записи вторым экземпляром. */
+    if (locTarget === "stop") {
+      var r = fRoute[locStopIdx];
+      if (!r) { closeLocSheet(); return; }
+      if (locWay === "studio") {
+        if (!studioDraft) { $("locErr").textContent = LANG.t("loc.studioNone"); return; }
+        var stS = studioFromDraft(la, lo);
+        r.studioId = stS.id; r.placeId = null;
+        placeName = r.p = stS.name;
+      } else {
+        placeName = ($("locName").value || "").trim() || locPickName;
+        addr = locWay === "addr" ? ($("locAddress").value || "").trim() : "";
+        /* Точку в шестидесяти метрах от уже сохранённой считаем той же самой —
+           тем же правилом, что и закладка на карте: список не должен обрастать
+           двойниками одного крыльца */
+        var sp = null;
+        for (var k = 0; k < spots.length; k++) if (sameSpot(spots[k], la, lo)) { sp = spots[k]; break; }
+        if (!sp) {
+          sp = { id: newSpotId(), name: placeName || coordText(la, lo), address: addr,
+                 lat: +(+la).toFixed(5), lon: +(+lo).toFixed(5) };
+          spots.unshift(sp);
+        } else {
+          if (placeName) sp.name = placeName;
+          if (addr) sp.address = addr;
+        }
+        r.placeId = sp.id; r.studioId = null;
+        placeName = r.p = sp.name;
+      }
+      fRouteSeeded = false;                  // точка названа рукой фотографа
+      waysStop = null;                       // ответ получен, ряд закрывается
+      saveAll(); renderSpotMark(); renderSpots();
+      closeLocSheet();
+      renderRouteEditor();
+      saveNote(LANG.t(locWay === "studio" ? "loc.studioPick" : "loc.saved", { name: placeName }));
+      return;
+    }
+    if (locTarget === "session") {
+      if (locWay === "studio") {
+        if (!studioDraft) { closeLocSheet(); return; }
+
+        var st = studioFromDraft(la, lo);
+        sessionStudioId = st.id;
         placeName = st.name;                      // студия называет себя сама
         addr = st.address;
-        saveAll();
       } else {
+
         /* Ушли с пути студии на адрес или координаты — значит съёмка больше
            не в студии: аренда и зал уходят вместе с ней */
         sessionStudioId = null;
