@@ -9556,22 +9556,48 @@
      процентов под горизонтом не мешают вовсе, тридцать в зените — мешают. */
   function mwWindow(date) {
     var best = { alt: -99, t: null }, from = null, to = null, moonBlocks = false, darkAny = false;
+    /* `from`–`to` — оболочка: первая и последняя годная минута. Строка
+       «Съёмка» показывает именно её, и это правильно для показа — «с 20:39
+       до 3:00» читается, а перечень из трёх отрезков нет.
+       Но внутри оболочки бывают дыры: луна взошла и села, ядро нырнуло под
+       рабочую высоту. `spans` держит настоящие отрезки — они нужны тому,
+       кто по окну считает, а не показывает (`mwSkyAt` усредняет по ним
+       погоду и не должен захватывать часы, которых в окне нет). */
+    var spans = [], open = null, prev = null;
     for (var x = Math.round(MINT); x <= Math.round(MAXT); x += 5) {
       var core = milkyWayAt(date, x);
       if (core.alt > best.alt) { best = { alt: core.alt, t: x }; }
       var dark = elevAt(x) <= -18;
       if (dark) darkAny = true;
-      if (!dark || core.alt < MW_WORK_LO) continue;
-      var mo = moonAt(date, x);
-      var moonLit = mo.alt > 0 && moonPhase(date, x).fraction > 0.4;
-      if (moonLit) { moonBlocks = true; continue; }
-      if (from === null) from = x;
-      to = x;
+      var ok = dark && core.alt >= MW_WORK_LO;
+      if (ok) {
+        var mo = moonAt(date, x);
+        if (mo.alt > 0 && moonPhase(date, x).fraction > 0.4) { moonBlocks = true; ok = false; }
+      }
+      if (ok) {
+        if (from === null) from = x;
+        to = x;
+        if (open === null) open = x;
+        prev = x;
+      } else if (open !== null) {
+        spans.push({ from: open, to: prev });
+        open = null;
+      }
     }
-    return { best: best, from: from, to: to, dark: darkAny, moonBlocks: moonBlocks };
+    if (open !== null) spans.push({ from: open, to: prev });
+    return { best: best, from: from, to: to, spans: spans, dark: darkAny, moonBlocks: moonBlocks };
   }
   function mwDateShort(d) {
     return dMonShort(d);
+  }
+  /* Ближайший час с данными — одна политика на всех, кто читает `byHour`.
+     Терпим дыру в три часа: прогноз почасовой, но приходит с пропусками, а
+     погода за три часа меняется меньше, чем стоит молчание в строке. Раньше
+     эта же лесенка жила внутри `buildWx` и была не видна снаружи — вторая её
+     копия у Млечного Пути терпела час и на том же пропуске отвечала иначе. */
+  function nearHour(bh, hr) {
+    for (var o = 0; o <= 3; o++) { if (bh[hr - o]) return bh[hr - o]; if (bh[hr + o]) return bh[hr + o]; }
+    return null;
   }
   /* Прозрачность неба для Млечного Пути — своя оценка, а не от 7Timer:
      сервис не отдаёт CORS браузеру, только `curl` (разбор в DECISIONS,
@@ -9585,39 +9611,71 @@
      16-суточного горизонта) — возвращаем null, строка в интерфейсе просто
      не появляется, как и с воздухом. */
   function mwSkyAt(date, w) {
-    if (!w.dark || w.from === null) return null;
-    var cSum = 0, humSum = 0, n = 0, aodMax = -1, dustMax = 0;
-    for (var x = w.from; x <= w.to; x += 15) {
-      var dayOff = Math.floor(x / 1440);
-      var dt = new Date(date.getFullYear(), date.getMonth(), date.getDate() + dayOff);
-      var hh = Math.floor((((x % 1440) + 1440) % 1440) / 60);
-      var bh = wxByHour[dkey(dt)];
-      var rec = bh && (bh[hh] || bh[hh - 1] || bh[hh + 1]);
-      if (rec) { cSum += rec.cloud; humSum += rec.hum; n++; }
-      var air = airAt(airKeyOf(dt), hh);
-      if (air && isFinite(air.aod)) { aodMax = Math.max(aodMax, air.aod); dustMax = Math.max(dustMax, air.dust || 0); }
-    }
+    if (!w.dark || !w.spans.length) return null;
+    /* Ключи суток заводим по мере надобности: окно задевает от силы двое
+       суток, а шагов в нём три десятка — незачем собирать дату и строку
+       заново на каждом */
+    var byDay = {};
+    var dayAt = function (off) {
+      if (!byDay[off]) {
+        var dt = new Date(date.getFullYear(), date.getMonth(), date.getDate() + off);
+        byDay[off] = { wx: wxByHour[dkey(dt)], airKey: airKeyOf(dt) };
+      }
+      return byDay[off];
+    };
+    var cSum = 0, humSum = 0, n = 0, aodMax = -1, dustMax = -1;
+    /* По настоящим отрезкам, а не по оболочке `from`–`to`: между ними бывает
+       час, когда луна взошла или ядро просело, и погода того часа к съёмке
+       отношения не имеет */
+    w.spans.forEach(function (sp) {
+      for (var x = sp.from; x <= sp.to; x += 15) {
+        var day = dayAt(Math.floor(x / 1440));
+        var hh = Math.floor((((x % 1440) + 1440) % 1440) / 60);
+        var rec = day.wx ? nearHour(day.wx, hh) : null;
+        /* Пропуск в прогнозе (`cloud_cover: null` на отдельных часах) —
+           это «не знаю», а не «ноль». Сложив его как ноль, прибор считал бы
+           дыру в данных чистым небом и звал ехать: час без числа просто не
+           участвует в среднем */
+        if (rec && isFinite(rec.cloud) && rec.cloud !== null) {
+          cSum += rec.cloud;
+          humSum += isFinite(rec.hum) && rec.hum !== null ? rec.hum : 50;
+          n++;
+        }
+        /* Аэрозоль и пыль независимы: пыльный вынос без AOD — это по-прежнему
+           пыль, и молчать о ней из-за соседнего пустого поля незачем */
+        var air = airAt(day.airKey, hh);
+        if (air) {
+          if (air.aod !== null && isFinite(air.aod)) aodMax = Math.max(aodMax, air.aod);
+          if (air.dust !== null && isFinite(air.dust)) dustMax = Math.max(dustMax, air.dust);
+        }
+      }
+    });
     if (!n) return null;   // погоды на эти часы нет — мок или вне горизонта
     var cloud = cSum / n, hum = humSum / n;
     // Сплошная облачность гасит небо целиком — прямая шкала, без ярусов:
     // ядро не горизонтальный источник, ему всё равно, на какой высоте муть
     var score = 100 - cloud;
     if (hum > 70) score -= (hum - 70) * 0.7;               // дымка от влаги
-    if (aodMax >= 0) {
-      if (aodMax > 0.35) score -= (aodMax - 0.35) * 90;    // дым, пыльный вынос
-      if (dustMax >= 20) score -= 15;
-    }
+    if (aodMax > 0.35) score -= (aodMax - 0.35) * 90;      // дым, пыльный вынос
+    if (dustMax >= 20) score -= 15;
     score = clamp(Math.round(score), 0, 100);
+    var air = aodMax >= 0 || dustMax >= 0
+      ? { aod: aodMax >= 0 ? aodMax : 0, dust: dustMax >= 0 ? dustMax : 0 } : null;
     /* Слово и балл — про разное, и потому считаются порознь. Балл сводит всё
        в одно число, а слово называет вид неба, и рядом с ним стоит процент
        облачности. Одно слово на оба смысла врало: ясная ночь под дымом
        (AOD 0.9) даёт полсотни баллов, и подпись выходила «Местами облачно ·
        0%» — слово спорило с числом в той же строке. Поэтому облака называют
-       облака, а всё остальное, что съело прозрачность, — дымку. */
-    var look = cloud >= 70 ? "poor" : cloud >= 35 ? "good" : score < 75 ? "plain" : "excellent";
-    return { score: score, cat: scoreCat(score), look: look,
-             cloud: Math.round(cloud), hum: Math.round(hum),
-             air: aodMax >= 0 ? { aod: aodMax, dust: dustMax } : null };
+       облака, а всё остальное, что съело прозрачность, — дымку.
+       Решается слово здесь целиком, вместе с поправкой на воздух: раньше
+       `mwSkyAt` называла небо, а рисующий её поправлял, и второй читатель
+       той же оценки получил бы «Прозрачно» под дымом. Порога у воздуха тут
+       своего нет — говорит `airWord` или молчит. */
+    var word = airWord(air);
+    var look = cloud >= 70 ? "poor" : cloud >= 35 ? "good"
+      : score < 75 || word ? "plain" : "excellent";
+    return { score: score, look: look, word: word,
+             cloud: Math.round(cloud), hum: Math.round(hum), air: air };
   }
   function milkyWayAt(date, t) {
     return eqToAltAz(MW_CORE.ra, MW_CORE.dec, toDays(instant(date, t)));
@@ -9890,10 +9948,6 @@
       if (hh >= 5 && hh <= 9 && (h.weather_code[i] === 45 || h.weather_code[i] === 48)) day.fogAM = true;
     }
     var mean = function (a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; };
-    var nearHour = function (bh, hr) {
-      for (var o = 0; o <= 3; o++) { if (bh[hr - o]) return bh[hr - o]; if (bh[hr + o]) return bh[hr + o]; }
-      return null;
-    };
     var out = {};
     wxByHour = {};   // почасовые данные переживают buildWx только тут — нужны окну Млечного Пути
     for (var date in days) {
@@ -13200,11 +13254,12 @@
     return LANG.t("twi.till", { step: step[0], t: fmt(edge % 1440), gap: gapLabel(to - t) });
   }
 
-  function renderMwRows() {
+  /* Окно и оценку неба считает `renderMap` и передаёт сюда: та же пара нужна
+     группе «Подробно», а `mwWindow` — это триста шагов астрономии на вызов */
+  function renderMwRows(w, sky) {
     var on = !!mapLayers.mw;
     ["mwNightRow", "mwGlareRow", "mwSkyRow", "mwVerdictRow"].forEach(function (id) { $(id).hidden = !on; });
     if (!on) return;
-    var w = mwWindow(selDate);
     var peak = w.best.alt;   // высота ядра — теперь только для вердикта ниже, своей строки у неё нет
 
     if (w.dark) {
@@ -13232,18 +13287,13 @@
       $("mwGlare").style.color = mg.level === 2 ? "var(--terra)" : "var(--ink-2)";
     }
 
-    var sky = mwSkyAt(selDate, w);
     var skyRow = $("mwSkyRow");
     skyRow.hidden = !sky;
     if (sky) {
-      /* Если воздуху есть что сказать («дым», «пыль»), небо не называется
-         прозрачным, даже когда облаков нет: «Прозрачно · 0% · дым» — это
-         спор двух половин одной строки. Порог тут не свой, а тот же самый:
-         решает сам `airWord`, заговорил он или промолчал */
-      var word = airWord(sky.air);
-      var look = word && sky.look === "excellent" ? "plain" : sky.look;
-      $("mwSky").textContent = LANG.t("mwSky." + look) + " · " + sky.cloud + "%" + (word ? " · " + word : "");
-      $("mwSky").style.color = sky.cat === "excellent" || sky.cat === "good" ? "var(--ink-2)" : "var(--terra)";
+      $("mwSky").textContent = LANG.t("mwSky." + sky.look) + " · " + sky.cloud + "%"
+        + (sky.word ? " · " + sky.word : "");
+      // Балл красит строку, слово её называет: половина шкалы и есть граница
+      $("mwSky").style.color = sky.score >= 50 ? "var(--ink-2)" : "var(--terra)";
     }
 
     var v, dim = true;
@@ -13848,7 +13898,13 @@
     $("mTwiRow").hidden = !twi || !document.body.classList.contains("pro-mode");
     if (twi) $("mTwi").textContent = twi;
 
-    renderMwRows();
+    /* Окно Млечного Пути и оценка неба — по одному разу на отрисовку: строки
+       под картой и группа в «Подробно» спрашивают одно и то же, а окно стоит
+       трёхсот шагов астрономии */
+    var mwOn = !!mapLayers.mw;
+    var mwW = mwOn ? mwWindow(selDate) : null;
+    var mwSky = mwOn ? mwSkyAt(selDate, mwW) : null;
+    renderMwRows(mwW, mwSky);
 
     var azDir = function (a) { return LANG.t("mpro.azDir", { az: a.toFixed(1), dir: dirOf(a) }); };
     $("mProBody").innerHTML = proHTML([
@@ -13868,7 +13924,7 @@
         ["mpro.lon", Math.abs(LON).toFixed(4) + "° " + (LON >= 0 ? "E" : "W")],
         ["mpro.tz", LANG.t("mpro.tzGuess", { off: (TZ >= 0 ? "+" : "") + TZ })]
       ]]
-    ].concat(mwProGroup()).concat(eclipseProGroup()));
+    ].concat(mwProGroup(mwW, mwSky)).concat(eclipseProGroup()));
   }
   /* Млечный Путь в «Подробно» — только когда слой включён: группа про то, что
      сейчас нарисовано, а не про всё, что приложение умеет посчитать.
@@ -13893,10 +13949,9 @@
       ["mpro.whereSeen", LANG.t(e.where)]
     ]]];
   }
-  function mwProGroup() {
+  function mwProGroup(w, sky) {
     if (!mapLayers.mw) return [];
     var core = milkyWayAt(selDate, viewMin);
-    var w = mwWindow(selDate);
     var mo = moonAt(selDate, viewMin), lit = Math.round(moonPhase(selDate, viewMin).fraction * 100);
     var rows = [
       ["mpro.coreAz", LANG.t("mpro.azDir", { az: core.az.toFixed(1), dir: dirOf(core.az) })],
@@ -13920,7 +13975,6 @@
       ["mpro.window", w.from !== null ? range(w.from, w.to)
         : (!w.dark ? null : w.moonBlocks ? LANG.t("mpro.windowMoon") : null)]
     ];
-    var sky = mwSkyAt(selDate, w);
     if (sky) rows.push(["mpro.skyHum", sky.hum + "%"]);
     return [["stars", "mpro.mw", rows]];
   }
