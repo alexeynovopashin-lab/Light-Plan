@@ -2227,8 +2227,6 @@
   #mapPath.raw .rp-halo { display: none; }
   #mapPath.raw .rp-line { stroke-width: 2.2; opacity: 0.45; stroke-dasharray: 6 6; }
 
-
-
   /* Якорь нулевого размера: `translate` ставит его в спроецированный пиксель,
      а знак и подпись висят от него отступами. Так на каждом кадре карты
      меняется только `transform` — раскладку это не трогает. */
@@ -2255,6 +2253,15 @@
   /* Точка, на которой стоит булавка, себя не подписывает: её имя уже стоит
      в шапке крупно, а знак под белой головкой наблюдателя только грязнил бы
      центр кадра. Остаётся тонкое кольцо — «эта точка сохранена». */
+  /* Место, найденное по адресу, рисуется полым: заливка уходит, остаётся
+     золотой контур. Это не украшение, а разница в доверии — координаты такой
+     точки назвал геокодер, и промах в сотню метров у него обычное дело, тогда
+     как отмеченная пальцем стоит ровно там, где её поставили. Заливкой, а не
+     вторым знаком: булавка тут одна на всех, и заводить второй знак ради
+     оттенка смысла значило бы плодить формы (docs: DECISIONS, «Точка, взятая
+     у геокодера, полая»). Заливка — цветом холста, а не пустотой: сквозь
+     дырку просвечивали бы тайлы, и знак терялся бы на светлых кварталах. */
+  .spot-mark.addr svg { fill: var(--canvas); stroke: var(--brass); stroke-width: 1.8; }
   .spot-mark.here svg { display: none; }
   .spot-mark.here .sm-name { display: none; }
   .spot-mark.here::after {
@@ -2268,7 +2275,6 @@
   #mapSpots.routing .spot-mark.here svg { display: block; }
   #mapSpots.routing .spot-mark.here .sm-name { display: block; }
   #mapSpots.routing .spot-mark.here::after { display: none; }
-
 
   /* Слой света поверх тайлов — компас не перехватывает жесты карты */
   #mapLight { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 450; }
@@ -14443,7 +14449,10 @@
     spots.forEach(function (sp) {
       if (sp.lat == null || sp.lon == null) return;
       var el = document.createElement("div");
-      el.className = "spot-mark";
+      /* Точка, чьи координаты принёс геокодер, помечена сразу при сборке знака:
+         список меняется редко, а перекрашивать булавку на каждом кадре жеста
+         незачем */
+      el.className = "spot-mark" + (sp.pinned ? "" : " addr");
       el.innerHTML = '<svg viewBox="0 0 24 24">' + window.ICONS.body("pin") + "</svg>"
         + '<span class="sm-name"></span><span class="sm-no" hidden></span>';
       el.querySelector(".sm-name").textContent = sp.name || coordText(sp.lat, sp.lon);
@@ -14542,7 +14551,6 @@
     paintRouteNos(); placeRoutePath(); renderRouteBar();
   });
   $("rbMake").addEventListener("click", makeRouteShoot);
-
 
   /* Линия черновика. Тем же приёмом, что и знаки: элемент один, на кадре
      меняется только `d` — событие `move` сыплется десятками в секунду, пока
@@ -29217,6 +29225,14 @@
      значения в те же поля — но программно, а событие `input` бывает только от
      руки. Тот же приём, что у `locNameTyped` строкой выше */
   var locCoordsTyped = false;
+  /* Координаты пришли от геокодера, а не от руки. Различие не про удобство, а
+     про доверие: поиск по адресу ставит точку туда, где, по мнению Nominatim,
+     стоит дом, и промах в сотню метров для него обычное дело. Место, отмеченное
+     пальцем на карте или набранное числами, стоит там, где его поставили. На
+     карте эти два сорта точек выглядят по-разному, чтобы не гадать, какой
+     булавке верить (Алексей, 5 сентября 2026: «поляна в лесу или парке, то есть
+     место без адреса»). */
+  var locFromHit = false;
   /* Студия места приложения не касается: свету нужны координаты, а не
      арендодатель. Поэтому путь «Студия» в режиме карты не показывается вовсе,
      а не показывается пустым. */
@@ -29284,6 +29300,7 @@
     $("locSaveRow").hidden = forStop;
     locNameTyped = false;                 // новое открытие листа — новая история
     locCoordsTyped = false;
+    locFromHit = false;
     $("locWayStudioBtn").hidden = locTarget === "app";
     /* Студия съёмки открывается уже выбранной, и лист сразу встаёт на её
        путь: показывать развилку тому, кто уже снимает в студии, значит
@@ -29740,6 +29757,10 @@
     else {
       spots.unshift({ id: newSpotId(), name: geoCity || coordText(LAT, LON), sub: geoSub || "",
                       named: !!geoCity,          // именем служат координаты — дождёмся геокодера
+                      /* Закладка на карте — самый ручной способ завести место:
+                         координаты под булавкой человек выбрал сам. Полянам в
+                         лесу иначе и не завестись — адреса у них нет */
+                      pinned: true,
                       lat: +LAT.toFixed(5), lon: +LON.toFixed(5) });
       /* Мимолётной подписи «точка сохранена» здесь больше нет: полоса имени
          говорит то же самое и точнее — она называет координаты и не гаснет
@@ -30343,6 +30364,7 @@
   ["locLat", "locLon"].forEach(function (id) {
     $(id).addEventListener("input", function () {
       locCoordsTyped = true;
+      locFromHit = false;              // числа поправили руками — они снова свои
       /* Имя принадлежало прежним координатам и новым не подходит. Без этой
          уборки набранные руками координаты Эльбруса оставались подписаны
          «Лобня» — городом за полторы тысячи километров, потому что имя
@@ -30399,6 +30421,7 @@
         var h = list[+b.dataset.i];
         $("locLat").value = h.lat.toFixed(4);
         $("locLon").value = h.lon.toFixed(4);
+        locFromHit = true;             // координаты назвал геокодер, а не человек
         locPickName = h.name;
         $("locQuery").value = h.name;
         /* Название места подставляется сразу, а не остаётся от прежнего.
@@ -30512,6 +30535,7 @@
         for (var k = 0; k < spots.length; k++) if (sameSpot(spots[k], la, lo)) { sp = spots[k]; break; }
         if (!sp) {
           sp = { id: newSpotId(), name: placeName || coordText(la, lo), address: addr,
+                 pinned: !locFromHit,
                  lat: +(+la).toFixed(5), lon: +(+lo).toFixed(5) };
           spots.unshift(sp);
         } else {
@@ -30576,6 +30600,7 @@
           if (addr) spots[idx].address = addr;
         } else {
           spots.unshift({ id: newSpotId(), name: placeName || coordText(la, lo), address: addr,
+            pinned: !locFromHit,
             lat: +(+la).toFixed(5), lon: +(+lo).toFixed(5) });
         }
         saveAll(); renderSpotMark(); renderSpots();
