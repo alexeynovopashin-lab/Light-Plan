@@ -5588,10 +5588,23 @@
      сама говорит, что это ввод, а капсула во всю ширину стала бы плашкой. */
   .pay-in {
     background: var(--field); border: none; border-radius: 9px; corner-shape: squircle; padding: 6px 10px;
-    text-align: right; flex: 0 1 132px; min-width: 84px;
+    text-align: right; flex: 0 1 auto; width: 132px;
     color: var(--ink); font-family: inherit; font-size: 16px; outline: none;
     -webkit-appearance: none; appearance: none; font-variant-numeric: tabular-nums;
     transition: background 0.18s ease, color 0.18s ease;
+  }
+  /* Поле тянется за числом, а не стоит колодой. Ставка в 132px держала под
+     нулём место на шестизначную сумму: три таких поля подряд читались тяжёлым
+     столбцом справа, хотя внутри стояли нули (Алексей, 5 сентября). Ширину
+     считает браузер по содержимому. Минимум — четыре цифры вместе с отступами
+     (`4ch + 20px`, коробка считается по краю): по одному нулю поле сжалось бы
+     до 40px и стало марочкой, в которую ещё надо попасть пальцем. Правый край
+     на месте — строка прижимает поле вправо, плавает левый. Цифры
+     моноширинные, поэтому ширина растёт ровно на цифру, без рывков. Замерено
+     в симуляторе iOS 26.5: `field-sizing` там есть. Где его нет, остаются
+     прежние 132px — поле не схлопнется. */
+  @supports (field-sizing: content) {
+    .pay-in { field-sizing: content; width: auto; min-width: calc(4ch + 20px); max-width: 100%; }
   }
   .pay-in::placeholder { color: var(--ink-7); }
   .pay-in:focus { background: rgba(226,164,76,0.16); color: var(--brass); }
