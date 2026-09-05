@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=53"></script>
+<script src="lang.js?v=54"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -1502,6 +1502,18 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Уточнения может не быть — пустая строка не должна занимать место */
   .spot-fan .t2:empty, .spot-coord:empty { display: none; }
+  /* Номер набранной точки в веере — тот же кружок, что на булавке и в строке
+     полосы маршрута. Третье место одного знака, а не третий знак. */
+  .spot-fan .fan-no {
+    flex: none; width: 15px; height: 15px; border-radius: 50%;
+    background: var(--brass); color: var(--surface);
+    font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .spot-fan .fan-side {
+    flex: none; font-size: 10px; color: var(--ink-5);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
   .spot-fan .fan-empty { padding: 12px; font-size: 13px; color: var(--ink-4); line-height: 1.45; }
   @media (prefers-reduced-motion: reduce) { .spot-fan { animation: none; } }
   @media (prefers-reduced-motion: reduce) {
@@ -2447,13 +2459,17 @@
      со знаком слева и содержимым справа. Приём для «карта что-то у вас
      спрашивает» в приложении уже принят, второй заводить незачем. */
   .route-bar {
-    margin: 12px 16px 0; display: flex; flex-direction: column; gap: 9px;
-    padding: 10px 10px 10px 13px;
+    margin: 12px 16px 0; display: flex; flex-direction: column; gap: 7px;
+    padding: 8px 8px 9px;
     border-radius: 16px; corner-shape: squircle;
     background: var(--bar); border: 1px solid var(--ink-10);
   }
   .route-bar[hidden] { display: none; }
-  .rb-top { display: flex; align-items: center; gap: 10px; }
+  /* Шапка двухэтажная, пока список пуст: там она называет оба пути набора и
+     этим отвечает на «а что тапать». Появились строки — сжимается в одну
+     строку 11 px и отдаёт высоту им: считать точки и километры глазами всё
+     равно уже незачем, они перечислены ниже поимённо. */
+  .rb-top { display: flex; align-items: center; gap: 9px; padding-left: 5px; min-height: 28px; }
   .rb-ic { display: inline-flex; flex-shrink: 0; }
   .rb-ic svg {
     width: 17px; height: 17px; fill: none; stroke: var(--brass);
@@ -2467,16 +2483,76 @@
     font-size: 11px; color: var(--ink-4); font-variant-numeric: tabular-nums;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .rb-clear {
-    flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; border: none;
+  .rb-sub:empty { display: none; }
+  /* Свёрнутая шапка: то же место, но одной строкой и тем же кеглем, что
+     подпись. Счёт точек из неё не уходит — он говорит, сколько строк не
+     поместилось в окно списка. */
+  .route-bar.filled .rb-sum {
+    font-size: 11px; font-weight: 400; color: var(--ink-4);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .rb-add, .rb-clear {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; border: none;
     background: var(--ink-10); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
   }
+  /* Добавление — единственное созидающее действие в этой шапке, и стоит оно
+     в тёплом гнезде: тот же приём, что у нажатой золотой кнопки в приложении.
+     Корзина рядом остаётся серой — стирающему действию яркости не дают. */
+  .rb-add { background: var(--press-brass); }
+  .rb-add svg { width: 15px; height: 15px; fill: none; stroke: var(--brass); stroke-width: 2; }
+  .rb-add:active { background: var(--brass-dark); }
   .rb-clear svg {
-    width: 16px; height: 16px; fill: none; stroke: var(--ink-4);
+    width: 15px; height: 15px; fill: none; stroke: var(--ink-4);
     stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
   }
   .rb-clear:active { background: var(--ink-9); }
+  .rb-add[hidden], .rb-clear[hidden] { display: none; }
+
+  /* ---------- Список маршрута ----------
+     Окно списка держит четыре строки и девять пикселей пятой: обрезанная
+     строка и есть знак «ниже есть ещё», и стоит он дешевле любой подписи.
+     Потолок здесь не про число строк, а про пол карты: полоса растёт, кадр
+     отдаёт ей высоту, и рост кончается там, где кадр упирается в свой
+     `min-height`. Сворачивания у списка нет — свёрнутый список это снова
+     сводка, ровно та, от которой уходим. */
+  .rb-list { max-height: 121px; overflow-y: auto; scrollbar-width: none; position: relative; }
+  .rb-list::-webkit-scrollbar { display: none; }
+  .rb-list:empty { display: none; }
+  /* Тень внизу окна — знак «ниже есть ещё». Маской, а не плашкой поверх:
+     плашка внутри прокручиваемой коробки едет вместе со строками, а снаружи
+     ей пришлось бы знать про скруглённый угол полосы. Гаснет у самого низа —
+     доехавшему до конца обещать больше нечего. */
+  .rb-list.more { -webkit-mask-image: linear-gradient(#000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(#000 calc(100% - 16px), transparent); }
+  .rb-row { height: 28px; display: flex; align-items: center; }
+  /* Волосяная — сверху каждой строки, кроме первой: разделитель принадлежит
+     промежутку, а не строке, и у верхнего края списка ему делить нечего */
+  .rb-row + .rb-row { box-shadow: inset 0 1px 0 var(--hair); }
+  /* Номер — тот же кружок, что стоит на булавке. Одна вещь названа одним
+     знаком в двух местах, и глаз связывает строку с холстом без подписи. */
+  .rb-no {
+    width: 28px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0; cursor: pointer;
+  }
+  .rb-no i {
+    width: 15px; height: 15px; border-radius: 50%; background: var(--brass);
+    color: var(--surface); font-size: 9.5px; font-weight: 700; line-height: 15px;
+    text-align: center; font-style: normal; font-variant-numeric: tabular-nums;
+  }
+  .rb-nm {
+    flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 6px;
+  }
+  /* Поле крестика шире знака: 34×28 — палец целится в площадь, а не в
+     тринадцать пикселей чернил */
+  .rb-off {
+    width: 34px; height: 28px; flex: none; border: none; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rb-off svg { width: 13px; height: 13px; fill: none; stroke: var(--ink-7); stroke-width: 1.8; stroke-linecap: round; }
+  .rb-off:active svg { stroke: var(--ink-3); }
 
   .rb-make {
     width: 100%; padding: 10px; border: none; cursor: pointer;
@@ -2486,6 +2562,21 @@
   }
   .rb-make:active { background: var(--brass-deep); }
   .rb-make:disabled { background: var(--ink-10); color: var(--ink-5); }
+  .rb-make[hidden], .rb-save[hidden] { display: none; }
+  /* Закладка в зоне большого пальца. Контурная, а не залитая: заливка в этом
+     месте обещает готовый маршрут, а тут ещё нет ни одной точки. Делает она
+     ровно то же, что закладка в шапке, — и потому носит тот же знак. */
+  .rb-save {
+    width: 100%; padding: 10px; cursor: pointer;
+    border-radius: 12px; corner-shape: squircle;
+    background: none; border: 1px solid var(--brass-dark); color: var(--brass);
+    font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .rb-save:active { background: var(--press-brass); }
+  .rb-save-ic { display: inline-flex; }
+  .rb-save-ic svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7;
+    stroke-linecap: round; stroke-linejoin: round; }
 
   /* Порядковый номер на булавке. Маршрут читается только по номерам: пять
      точек в Гёреме соединены линией, но какая из них первая — линия не
@@ -6531,11 +6622,29 @@
         <span class="rb-ic" data-ic="route"></span>
         <div class="rb-body">
           <div class="rb-sum" id="rbSum">—</div>
-          <div class="rb-sub" id="rbSub">—</div>
+          <div class="rb-sub" id="rbSub"></div>
         </div>
+        <!-- Второй путь набора: точка кладётся из списка сохранённых, а не
+             тапом по булавке. Без него маршрут из двух мест в девяти
+             километрах друг от друга набирается только отъездом до масштаба,
+             на котором обе булавки становятся крошками. -->
+        <button class="rb-add" id="rbAdd" aria-label="Добавить точку" data-i18n-aria="map.routeAdd">
+          <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
         <button class="rb-clear" id="rbClear" data-ic="trash" aria-label="Очистить" data-i18n-aria="map.routeClear"></button>
       </div>
+      <!-- Список маршрута. Номера на булавках говорят порядок только у тех
+           точек, что попали в кадр; отъехал — и маршрут пропал из виду.
+           Строка называет точку именем и снимает её крестиком. -->
+      <div class="rb-list" id="rbList"></div>
       <button class="rb-make" id="rbMake" data-i18n="map.routeMake">Сделать съёмкой</button>
+      <!-- Точек не сохранено вовсе: золотой кнопке нечего делать, и её место
+           занимает та же закладка, что стоит в шапке, — но в зоне большого
+           пальца и названная словами. -->
+      <button class="rb-save" id="rbSave" hidden>
+        <span class="rb-save-ic" data-ic="bookmark"></span>
+        <span data-i18n="map.routeSaveHere">Сохранить это место</span>
+      </button>
     </div>
 
     <!-- Меню стоит рядом со скримом, а не внутри кадра карты. В кадре у него
@@ -12281,6 +12390,10 @@
     $("mapSave").classList.toggle("on", on);
     $("mapSave").setAttribute("aria-label", LANG.t(on ? "map.dropPoint" : "map.savePoint"));
     if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' <span class="go-chev">\u203a</span>';
+    /* \u041f\u043e\u043b\u043e\u0441\u0430 \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u0430 \u0441\u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435 \u0442\u043e\u0447\u043a\u0438: \u043e\u0442 \u0438\u0445 \u0447\u0438\u0441\u043b\u0430 \u0437\u0430\u0432\u0438\u0441\u0438\u0442, \u0435\u0441\u0442\u044c \u043b\u0438
+       \u0432 \u043d\u0435\u0439 \uff0b \u0438 \u0447\u0442\u043e \u0441\u0442\u043e\u0438\u0442 \u0432\u043d\u0438\u0437\u0443 \u2014 \u00ab\u0421\u0434\u0435\u043b\u0430\u0442\u044c \u0441\u044a\u0451\u043c\u043a\u043e\u0439\u00bb \u0438\u043b\u0438 \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0430. \u041f\u0435\u0440\u0432\u0430\u044f
+       \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u0430\u044f \u0442\u043e\u0447\u043a\u0430 \u043c\u0435\u043d\u044f\u0435\u0442 \u043f\u043e\u043b\u043e\u0441\u0443, \u0438 \u0443\u0437\u043d\u0430\u0442\u044c \u043e\u0431 \u044d\u0442\u043e\u043c \u0435\u0439 \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435\u043e\u0442\u043a\u0443\u0434\u0430. */
+    if (typeof renderRouteBar === "function") renderRouteBar();
   }
   /* ---------- Кто владелец ----------
      Своих данных у приложения до сих пор не было вовсе: оно знало клиентов,
@@ -14520,22 +14633,53 @@
     /* Док стал ниже на всю полосу барабанов — распорка низа экрана считается
        от измеренного `--dockh`, и без пересчёта кадр остался бы прежним. */
     measureDockSoon();
-    /* Кадр вырос — движок и слой отметок об этом сами не узнают. Свой кадр
-       после дока: `measureDockSoon` встаёт в очередь rAF первым и к этому
-       моменту уже поставил новую высоту. */
+    routeReflow();
+    paintRouteNos();
+    if (routeMode) renderRouteBar();
+  }
+  /* Полоса растёт строками, и ровно на столько же убывает кадр: они делят
+     остаток экрана. Движок карты и слой отметок про это сами не узнают —
+     кадр меняет высоту без события. Свой кадр после дока: `measureDockSoon`
+     встаёт в очередь rAF первым и к этому моменту уже поставил высоту. */
+  function routeReflow() {
     requestAnimationFrame(function () {
+      fitRouteList();
       measureMapRotor();
       if (lmap) lmap.resize();
       placeSpotMarks(); placeRoutePath();
     });
-    paintRouteNos();
-    if (routeMode) renderRouteBar();
   }
+  /* Окно списка — не заданное число, а остаток экрана. Потолок в стилях (121:
+     четыре строки и девять пикселей пятой) верен, пока кадру есть куда
+     отступать; на восьмой строке кадр упирается в свой пол, и лишнее начинает
+     торчать за низ экрана. Замер: восемь строк давали `scrollHeight` 820 при
+     высоте 812 — восемь пикселей, которых больше неоткуда взять.
+     Прокрутка тут не выход: вертикальный жест над картой принадлежит карте, а
+     кроме карты и полосы на экране ничего нет.
+     Поэтому меряем, а не считаем: сняли потолок, спросили экран, вернули
+     потолок за вычетом переполнения. Отдаёт список — он в этом режиме
+     единственный, кто может; кадр к этому времени уже на полу. Схождение с
+     одного захода: убыль списка ровно на столько же освобождает место кадру,
+     а он в пол упёрся и за ней не потянется. */
+  function fitRouteList() {
+    var box = $("rbList"), scr = $("s-map"); if (!box || !scr) return;
+    box.style.maxHeight = "";
+    if (!box.offsetHeight) return;               // список пуст — мерить нечего
+    var over = scr.scrollHeight - scr.clientHeight;
+    if (over > 0) box.style.maxHeight = Math.max(28, box.offsetHeight - over) + "px";
+    routeMoreMark();
+  }
+  /* Тень внизу окна нужна, только пока ниже правда что-то есть */
+  function routeMoreMark() {
+    var box = $("rbList"); if (!box) return;
+    box.classList.toggle("more", box.scrollHeight - box.scrollTop - box.clientHeight > 2);
+  }
+  $("rbList").addEventListener("scroll", routeMoreMark);
   function routeToggle(sp) {
     var i = mapRoute.indexOf(sp.id);
     if (i >= 0) mapRoute.splice(i, 1); else mapRoute.push(sp.id);
     saveAll();
-    paintRouteNos(); placeRoutePath(); renderRouteBar();
+    paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
   }
   /* Итог черновика: сколько точек и сколько займёт дорога между ними. Оба
      числа приходят от маршрутизатора и говорят об одном пути: километры
@@ -14548,13 +14692,53 @@
     var bar = $("mapRouteBar"); if (!bar || bar.hidden) return;
     var pts = routeSpots();
     var road = roadOf(pts, function () { placeRoutePath(); renderRouteBar(); });
-    $("rbSum").textContent = pts.length
-      ? LANG.count("unit.point", pts.length)
-      : LANG.t("map.routeHint");
-    $("rbSub").textContent = (pts.length < 2 || !road) ? ""
+    var dist = (pts.length < 2 || !road) ? ""
       : LANG.t("pro.distKm", { n: road.km < 10 ? num(road.km, 1) : num(Math.round(road.km)) })
         + " · " + durLabel(road.min);
+    bar.classList.toggle("filled", pts.length > 0);
+    if (pts.length) {
+      /* Строк много — шапка сжимается в одну и отдаёт им высоту. Счёт точек
+         остаётся: он единственный говорит, сколько строк не поместилось. */
+      $("rbSum").textContent = LANG.count("unit.point", pts.length) + (dist ? " · " + dist : "");
+      $("rbSub").textContent = "";
+    } else {
+      /* Пусто — шапка называет оба пути набора. Раньше она говорила
+         «Отмечайте точки по порядку», не называя, по чему тапать, и точки за
+         краем кадра при этом не существовали вовсе. */
+      $("rbSum").textContent = spots.length ? LANG.t("map.routeHint") : LANG.t("map.routeNoSpots");
+      $("rbSub").textContent = spots.length ? LANG.t("map.routeFromSaved") : LANG.t("map.routeNoSpotsSub");
+    }
+    /* Корзине нечего стирать, а вееру нечего показывать — обе кнопки уходят,
+       а не гаснут: погашенная кнопка обещает действие, которого нет */
+    $("rbClear").hidden = !pts.length;
+    $("rbAdd").hidden = !spots.length;
+    /* Своих точек нет вовсе — маршрут собирать не из чего, и место золотой
+       кнопки занимает закладка */
+    var bare = !spots.length;
+    $("rbMake").hidden = bare; $("rbSave").hidden = !bare;
     $("rbMake").disabled = !pts.length;
+    renderRouteList(pts);
+  }
+  /* Список пересобирается целиком: строк единицы, а порядок меняется целыми
+     кусками (снятие сдвигает все номера ниже) — точечная правка DOM тут
+     дороже по коду и не быстрее по существу. */
+  function renderRouteList(pts) {
+    var box = $("rbList"); if (!box) return;
+    box.innerHTML = "";
+    pts.forEach(function (sp, i) {
+      var row = document.createElement("div"); row.className = "rb-row";
+      var no = document.createElement("button"); no.className = "rb-no"; no.type = "button";
+      no.dataset.i = i;
+      no.innerHTML = "<i>" + (i + 1) + "</i>";
+      var nm = document.createElement("span"); nm.className = "rb-nm";
+      nm.textContent = sp.name || coordText(sp.lat, sp.lon);
+      var off = document.createElement("button"); off.className = "rb-off"; off.type = "button";
+      off.setAttribute("aria-label", LANG.t("map.routeDrop"));
+      off.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      off.addEventListener("click", function () { routeToggle(sp); });
+      row.appendChild(no); row.appendChild(nm); row.appendChild(off);
+      box.appendChild(row);
+    });
   }
 
   /* Жанр, у которого бывают точки дня. Черновик — это их порядок, и класть
@@ -14590,9 +14774,26 @@
   $("mapRouteBtn").addEventListener("click", function () { setRouteMode(!routeMode); });
   $("rbClear").addEventListener("click", function () {
     mapRoute = []; saveAll();
-    paintRouteNos(); placeRoutePath(); renderRouteBar();
+    paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
   });
   $("rbMake").addEventListener("click", makeRouteShoot);
+  /* Второй путь набора: точка из списка сохранённых. Веер тот же, что у
+     закладки в шапке, — четвёртое место его вызова. Карта при этом не едет:
+     уехать посреди набора значит потерять кадр, в котором виден весь
+     маршрут, — тот же довод, что у тапа по булавке. */
+  $("rbAdd").addEventListener("click", function () {
+    var last = routeSpots().slice(-1)[0] || null;
+    openSpotFan($("rbAdd"), routeToggle, null, function (sp) {
+      var i = mapRoute.indexOf(sp.id);
+      if (i >= 0) return { no: i + 1 };
+      if (!last || sp.id === last.id) return null;
+      var km = kmBetween(last.lat, last.lon, sp.lat, sp.lon);
+      return { side: "+" + LANG.t("pro.distKm", { n: km < 10 ? num(km, 1) : num(Math.round(km)) }) };
+    });
+  });
+  /* Своих точек нет вовсе. Кнопка делает ровно то же, что закладка в шапке, —
+     и зовёт её саму, а не повторяет её работу второй раз. */
+  $("rbSave").addEventListener("click", function () { $("mapSave").click(); });
 
   /* Линия черновика. Тем же приёмом, что и знаки: элемент один, на кадре
      меняется только `d` — событие `move` сыплется десятками в секунду, пока
@@ -29833,7 +30034,11 @@
   /* Список необязателен: по умолчанию веер показывает «Мои места», но той же
      формой выбирают и зал студии — список короткий, ответ один, и заводить ради
      него второй вид меню незачем (правило: переиспользовать принятые знаки) */
-  function openSpotFan(anchor, onPick, list) {
+  /* `deco` — необязательная приписка к строке: возвращает номер точки в
+     маршруте и число справа. Веер про маршрут ничего не знает и знать не
+     должен, а набор — знает; так один список обслуживает и переезд по карте,
+     и заполнение поля формы, и добор маршрута. */
+  function openSpotFan(anchor, onPick, list, deco) {
     var fan = $("spotFan"), scrim = $("spotScrim"), dev = document.querySelector(".device");
     var items = list || spots;
     fan.innerHTML = "";
@@ -29851,6 +30056,22 @@
           + '<span class="tx"><span class="t1"></span><span class="t2"></span></span>';
         b.querySelector(".t1").textContent = sp.name;
         b.querySelector(".t2").textContent = sp.sub || "";   // координаты в списке не нужны
+        var d = deco && deco(sp);
+        if (d && d.no) {
+          /* Уже набранная точка носит в списке тот же номер, что на булавке и
+             в строке полосы, — третье место, где та же вещь названа тем же
+             знаком. Тап по ней снимает: одно действие, одно правило. */
+          var n = document.createElement("span"); n.className = "fan-no";
+          n.textContent = d.no; b.appendChild(n);
+        } else if (d && d.side) {
+          /* Расстояние от последней набранной точки. Выбирая между местами в
+             девяти километрах друг от друга, выбирают по расстоянию, а не по
+             имени: имя не говорит, крюк это или по дороге. По прямой, а не по
+             улицам — здесь нужен порядок величин на весь список сразу, и
+             спрашивать маршрутизатор о каждой строке ради него незачем. */
+          var s = document.createElement("span"); s.className = "fan-side";
+          s.textContent = d.side; b.appendChild(s);
+        }
         b.addEventListener("click", function () { closeSpotFan(); onPick(sp); });
         fan.appendChild(b);
       });
