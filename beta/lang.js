@@ -361,8 +361,8 @@
     "map.myPlace":     "Моё место",
     /* Черновик маршрута на карте: набирается тапами по своим точкам */
     "map.route":       "Маршрут",
-    "map.routeHint":   "Тапайте булавки на карте",
-    "map.routeFromSaved": "или добавьте из сохранённых",
+    "map.routeHint":   "Тап ставит точку в центре кадра",
+    "map.routeFromSaved": "булавку — тапом, ＋ — из списка",
     "map.routeNoSpots": "Своих точек ещё нет",
     "map.routeNoSpotsSub": "Маршрут собирается из них",
     "map.routeSaveHere": "Сохранить это место",
@@ -370,7 +370,7 @@
     "map.routeDrop":   "Убрать из маршрута",
     "map.delSpot":     "Удалить точку",
     "map.routeMake":   "Сделать съёмкой",
-    "map.routeClear":  "Очистить",
+    "map.routeClear":  "Снять все точки",
 
     "layer.sun":  "Солнце",
 
@@ -2027,8 +2027,8 @@
     "map.liveCompass": "Live compass",
     "map.myPlace":     "My location",
     "map.route":       "Route",
-    "map.routeHint":   "Tap the pins on the map",
-    "map.routeFromSaved": "or add from your saved spots",
+    "map.routeHint":   "A tap drops a stop at the centre",
+    "map.routeFromSaved": "a pin by tap, ＋ for the list",
     "map.routeNoSpots": "No saved spots yet",
     "map.routeNoSpotsSub": "A route is built from them",
     "map.routeSaveHere": "Save this spot",
@@ -2036,7 +2036,7 @@
     "map.routeDrop":   "Remove from route",
     "map.delSpot":     "Delete this spot",
     "map.routeMake":   "Make it a shoot",
-    "map.routeClear":  "Clear",
+    "map.routeClear":  "Drop all stops",
 
 
     "layer.sun":  "Sun",
