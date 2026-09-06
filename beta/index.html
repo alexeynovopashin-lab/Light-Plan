@@ -3607,6 +3607,11 @@
   .pt-chev { display: inline-flex; vertical-align: middle; margin-left: 5px; }
   .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
     stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); }
+  /* У «Съёмок» шеврон стоит слева и смотрит влево, а не вниз: кнопка ведёт
+     на весь год целиком, а не разворачивает список под собой — вниз намекал
+     на список, которого тут нет */
+  .plan-title .pt-chev { margin-left: 0; margin-right: 5px; }
+  .plan-title .pt-chev svg { transform: rotate(180deg); }
   /* Действия разрежены: три знака подряд без просвета читались одной кнопкой */
   .plan-acts { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
   .icon-btn {
@@ -6849,8 +6854,8 @@
       <!-- Год из заголовка убран: он и так выбирается на экране года,
            а месяцу нужна ширина, чтобы не обрываться многоточием -->
       <button class="plan-title" id="planTitle">
-        <span id="calMonth">—</span>
         <span class="pt-chev" data-ic="chevron"></span>
+        <span id="calMonth">—</span>
       </button>
       <div class="plan-acts">
         <button class="icon-btn" id="planAdd" aria-label="Новая съёмка" data-i18n-aria="plan.newShoot">
