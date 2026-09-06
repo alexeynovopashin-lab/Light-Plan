@@ -3026,18 +3026,53 @@
     font-family: inherit; text-align: left; cursor: pointer;
     border-radius: 20px; corner-shape: squircle;
     box-shadow: inset 0 0 0 1px var(--hairline);
+    transition: padding 0.45s cubic-bezier(0.25,1,0.4,1), gap 0.45s cubic-bezier(0.25,1,0.4,1),
+      background 0.3s ease, box-shadow 0.3s ease;
   }
   .mb-strip-head:active { background: var(--press); }
   .mb-strip-head-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-  .mb-strip-head-t .ti { font-size: 16px; font-weight: 650; letter-spacing: -0.2px; color: var(--ink); }
+  .mb-strip-head-t .ti { font-size: 16px; font-weight: 650; letter-spacing: -0.2px; color: var(--ink);
+    transition: font-size 0.35s cubic-bezier(0.25,1,0.4,1), color 0.35s ease; }
   .mb-strip-head-t .sub { font-size: 12.5px; color: var(--ink-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mb-strip-head-t .off { font-size: 11px; color: var(--brass-deep); font-variant-numeric: tabular-nums; }
+  .mb-strip-head-t .sub, .mb-strip-head-t .off {
+    max-height: 20px; overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.25,1,0.4,1), opacity 0.25s ease;
+  }
   .mb-strip-head-t .off:empty, .mb-strip-head-t .sub:empty { display: none; }
   /* Тот же шеврон, что раскрывает «Подробно» на экране «Свет»: один знак
      разворота на всё приложение, не свой у каждой секции (Алексей,
      3 сентября 2026) */
   .mb-strip-head .chev { flex: 0 0 auto; transition: transform 0.35s ease; font-size: 17px; color: var(--ink-3); }
   .mb-strip-head.open .chev { transform: rotate(180deg); }
+  /* Раскрытый блок отдаёт место плиткам: от шапки остаётся тонкая полоса —
+     имя и шеврон. Веер и сводка в ней повторяли то, что уже стоит ниже
+     настоящими обложками: три миниатюры над теми же тремя картинками и
+     «6 подборок · 125 кадров» при шести видимых плитках (Алексей, 6 сентября
+     2026: «зачем нам верхний блок, если мы его развернули»). Свёрнутое
+     состояние от этого и становится виджетом: плитки собираются в веер,
+     а не просто исчезают.
+
+     Имя падает с 16 до 13 точек и уходит в `--ink-3`: в полосе это подпись
+     раздела, а не заголовок карточки. Мельче не делаем — под ней стоит
+     капс «СЪЁМКИ» в 10, и два заголовка подряд сравнялись бы. */
+  .mb-strip-head.open {
+    background: none; box-shadow: none; border-radius: 0;
+    padding: 9px 2px 12px; gap: 0;
+  }
+  .mb-strip-head.open:active { background: none; }
+  .mb-strip-head.open .ti { font-size: 13px; color: var(--ink-3); }
+  .mb-strip-head.open .sub, .mb-strip-head.open .off { max-height: 0; opacity: 0; }
+  /* Веер уезжает шириной, а не `display: none`: полоса сжимается одним
+     движением с раскрытием тела, а не мигает. Обрезает внешняя обёртка —
+     ширину листьев внутри задаёт inline-стиль (`mbFanHtml`), и классом его
+     не перебить. */
+  .mb-strip-head > .mb-fan {
+    overflow: hidden;
+    transition: width 0.45s cubic-bezier(0.25,1,0.4,1), height 0.45s cubic-bezier(0.25,1,0.4,1),
+      opacity 0.3s ease;
+  }
+  .mb-strip-head.open > .mb-fan { width: 0; height: 0; opacity: 0; }
   /* Ширина веера — не на глаз, а из его же чисел: последний лист сдвинут на
      46px, сам лист 42px, наклон в 5° добавляет ещё около двух. Меньше — и
      третья обложка наезжает на слово «Мудборд» (поймано на живых фото:
