@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=56"></script>
+<script src="lang.js?v=57"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -2231,6 +2231,9 @@
     width: var(--rotor-d, 150%); height: var(--rotor-d, 150%);
     z-index: 445; pointer-events: none;
   }
+  /* Слой «Мои места» выключен — булавки скрыты целиком, а не по одной:
+     решение о видимости обо всех точках сразу, а не о каждой */
+  #mapSpots.layer-hidden { display: none; }
   /* ---------- Линия маршрута ----------
      Своим слоем под знаками, а не внутри `#mapSpots`: линия проходит через
      булавки, и рисовать её поверх значило бы перечеркнуть каждую. Геометрия
@@ -6750,6 +6753,15 @@
       <button data-layer="sun"><span class="mk" data-ic="check"></span><span class="ic" data-ic="sun_disc"></span><span data-i18n="layer.sun">Солнце</span></button>
       <button data-layer="moon"><span class="mk" data-ic="check"></span><span class="ic" data-ic="moon"></span><span data-i18n="layer.moon">Луна</span></button>
       <button data-layer="mw"><span class="mk" data-ic="check"></span><span class="ic" data-ic="stars"></span><span data-i18n="layer.mw">Млечный Путь</span></button>
+      <!-- Компас — не «живой компас» (тот поворачивает карту по датчику), а
+           сама рамка прибора: кольцо горизонта, деления, буквы сторон света,
+           дуги светил. Выключенный, оставляет голую карту и белую точку
+           наблюдателя в центре — то, ради чего иногда открывают карту без
+           расчёта света вовсе. -->
+      <button data-layer="compass"><span class="mk" data-ic="check"></span><span class="ic" data-ic="compass"></span><span data-i18n="layer.compass">Компас</span></button>
+      <!-- Свои точки — булавки сохранённых мест. Отдельно от компаса: это
+           не про свет, а про то, что человек сам отметил на карте. -->
+      <button data-layer="spots"><span class="mk" data-ic="check"></span><span class="ic" data-ic="pin"></span><span data-i18n="layer.spots">Мои места</span></button>
       <!-- Осадки: радар, а не прогноз. Прогноз говорит «дождь», радар говорит
            «ливень пройдёт мимо через двадцать минут» — на съёмке это разные
            сведения, и переносить нельзя как раз тогда, когда важен второй -->
@@ -12232,6 +12244,10 @@
   var mapLayers = (saved && saved.mapLayers) || { sun: true, moon: true, mw: false, rain: false };
   if (mapLayers.rain === undefined) mapLayers.rain = false;   /* слой заведён позже прежних настроек */
   if (!RAIN_OK) mapLayers.rain = false;   /* включённый прежде слой гаснет вместе с флагом */
+  /* Компас и свои точки были на карте всегда, без вопроса — умолчание true
+     сохраняет это тем, кто уже пользуется картой и о новом пункте меню не знает */
+  if (mapLayers.compass === undefined) mapLayers.compass = true;
+  if (mapLayers.spots === undefined) mapLayers.spots = true;
   /* Астро-режим сохраняется наравне с темой. Он не сохранялся вовсе: стоял
      первым в настройках, включался — и слетал при следующем запуске. Настройка,
      которую надо ставить заново каждый раз, читается как сломанная. */
@@ -13610,6 +13626,15 @@
       v.style.opacity = a.toFixed(3);
     })();
 
+    /* Луна считается тут, до слоя компаса: строка «Луна» под картой читает
+       mArc/mNow ниже по функции независимо от того, рисуется ли сам прибор. */
+    var mArc = moonArc(selDate, t), mNow = moonAt(selDate, t);
+
+    /* Компас выключен — от прибора остаётся голая карта и белая точка в
+       центре (`.map-pin`, вне этого SVG). Свод под картой продолжает
+       считаться и дальше по функции: это не про прибор, а про время и место. */
+    if (mapLayers.compass) {
+
     /* Прибор рисуется до неба, а не после. Раньше деления и буквы стояли в
        конце этой функции, после солнца: координатная рамка ложилась поверх
        неба и резала и дугу, и диск. Порядок теперь такой, каким его называли
@@ -14072,6 +14097,8 @@
         svg.insertBefore(bg, txt);
       });
     })();
+
+    }   /* конец if (mapLayers.compass) */
 
     /* Время выбранного момента — в языке купола, тем же словарём фаз.
        Это ответ на исходную беду: солнце ехало, градусы менялись, а в котором
@@ -29005,6 +29032,7 @@
   function paintMapLayersBtn() {
     $("mapLayersBtn").classList.toggle("on", mapLayers.sun || mapLayers.moon || mapLayers.mw);
     document.body.classList.toggle("mw-sky", !!mapLayers.mw);
+    $("mapSpots").classList.toggle("layer-hidden", !mapLayers.spots);
   }
   function openMapLayers(on) {
     $("mapLayersMenu").hidden = !on;

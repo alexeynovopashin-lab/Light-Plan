@@ -374,8 +374,10 @@
 
     "layer.sun":  "Солнце",
 
-    "layer.moon": "Луна",
-    "layer.mw":   "Млечный Путь",
+    "layer.moon":    "Луна",
+    "layer.mw":      "Млечный Путь",
+    "layer.compass": "Компас",
+    "layer.spots":   "Мои места",
 
     /* Откуда свет и откуда заря — предлог тоже часть строки, в другом языке
        он другой или его нет вовсе */
@@ -2039,9 +2041,11 @@
     "map.routeClear":  "Drop all stops",
 
 
-    "layer.sun":  "Sun",
-    "layer.moon": "Moon",
-    "layer.mw":   "Milky Way",
+    "layer.sun":     "Sun",
+    "layer.moon":    "Moon",
+    "layer.mw":      "Milky Way",
+    "layer.compass": "Compass",
+    "layer.spots":   "My places",
 
     "map.dirFrom":     "from {dir} · {az}°",
     "map.glowFrom":    "glow from {dir} · {az}°",
