@@ -5357,6 +5357,18 @@
   }
   .rt-row .rt-in-t { flex: 0 0 78px; text-align: center; font-variant-numeric: tabular-nums;
     letter-spacing: 0.3px; }
+  /* Было полем ввода — стало капсулой барабана, и вид у неё капсулы, а не
+     поля: пилюля, без сквиркла. Правило проекта, записанное у капсул начала и
+     конца съёмки: значение времени лежит в пилюле, потому что пилюля читается
+     нажимаемым значением, а подпиленный прямоугольник — обводкой поля.
+     Боковой отступ на два пункта больше вертикального: у круглого края текст
+     подходит к дуге ближе, чем к прямой стенке. */
+  .rt-row button.rt-in-t {
+    background: var(--surface); border: none; border-radius: 999px;
+    padding: 10px 13px; color: var(--ink); font-family: inherit; font-size: 15px; cursor: pointer;
+  }
+  .rt-row .rt-in-t.empty { color: var(--ink-8); }
+  .rt-row .rt-in-t.open { background: rgba(226,164,76,0.16); color: var(--brass); }
   .rt-row .rt-in-n { flex: 1; }
   /* Место в строке маршрута: поле и кнопка выбора из сохранённых точек.
      Фотограф ездит по одним и тем же адресам — набирать их заново незачем */
@@ -5380,9 +5392,11 @@
   .rt-rent { flex: 1 0 100%; display: flex; align-items: center; gap: 8px;
     padding: 2px 0 2px 12px; }
   .rt-rent .rt-rl { font-size: 11px; color: var(--ink-6); }
+  /* Пилюля по тому же правилу, что и у времени точки рядом: две капсулы
+     времени в одной строке не могут спорить о форме */
   .rt-rent .rv-v { min-width: 64px; text-align: center; font-size: 13px;
-    padding: 5px 9px; background: var(--field); border: none; border-radius: 9px;
-    corner-shape: squircle; color: var(--ink-2); cursor: pointer;
+    padding: 5px 11px; background: var(--field); border: none; border-radius: 999px;
+    color: var(--ink-2); cursor: pointer;
     font-variant-numeric: tabular-nums; }
   .rt-rent .rv-v.open { background: rgba(226,164,76,0.16); color: var(--brass); }
   .rt-rent .rn-d { color: var(--ink-3); font-size: 13px; }
@@ -8118,6 +8132,16 @@
         <div class="ip time"><div class="pick-band"></div>
           <div class="wheel narrow" data-w="hour" id="fwRTH"></div>
           <div class="wheel narrow" data-w="min" id="fwRTM"></div>
+        </div>
+      </div>
+      <!-- Время самой точки маршрута — тот же барабан, что у аренды и у начала
+           со концом съёмки: набор цифрами был единственным местом в
+           приложении, где время печатают, а не выбирают колесом
+           (Алексей, 6 сентября 2026, после теста маршрута на телефоне). -->
+      <div class="inline" id="fStopTimePick">
+        <div class="ip time"><div class="pick-band"></div>
+          <div class="wheel narrow" data-w="hour" id="fwStH"></div>
+          <div class="wheel narrow" data-w="min" id="fwStM"></div>
         </div>
       </div>
       <!-- Точки маршрута живут в той же группе, что и первая точка: это один
@@ -21203,9 +21227,12 @@
      места, а начало и конец съёмки — в группе времени, и колесо под строкой
      раскрывается там, где на него нажали */
   var fwRFH = $("fwRFH"), fwRFM = $("fwRFM"), fwRTH = $("fwRTH"), fwRTM = $("fwRTM");
+  /* Барабан самой точки маршрута — один на все строки, как и у аренды: под
+     строкой всегда только одно колесо, чьё бы время оно ни крутило */
+  var fwStH = $("fwStH"), fwStM = $("fwStM");
   var fwPL = $("fwPL");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
-  [fwSH, fwEH, fwRFH, fwRTH].forEach(function (el2) { fill(el2, HOURS); });
+  [fwSH, fwEH, fwRFH, fwRTH, fwStH].forEach(function (el2) { fill(el2, HOURS); });
   /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
      уметь показать и 30, и 38, если 38 пришли от золотого часа */
   function fillMins(el2, cur) {
@@ -21222,6 +21249,7 @@
   }
   fillMins(fwSM, null); fillMins(fwEM, null);
   fillMins(fwRFM, null); fillMins(fwRTM, null);
+  fillMins(fwStM, null);
 
   /* Программная установка не должна выглядеть как выбор пользователя.
      Барабан раскрывается анимацией высоты, и снап по дороге уводит позицию —
@@ -21368,7 +21396,28 @@
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
   attachWheel(fwRFH, onRentWheel); attachWheel(fwRFM, onRentWheel);
   attachWheel(fwRTH, onRentWheel); attachWheel(fwRTM, onRentWheel);
+  attachWheel(fwStH, onStopTimeWheel); attachWheel(fwStM, onStopTimeWheel);
   attachWheel(fwPL, onPlWheel);
+  /* Барабан своей точки пишет прямо в неё, строку правим на месте — как и у
+     аренды, перерисовка списка снесла бы раскрытое колесо вместе со строкой */
+  function onStopTimeWheel() {
+    if (openRow !== "fStopTime" || stopTimeRow == null) return;
+    var r = fRoute[stopTimeRow]; if (!r) return;
+    r.t = fmt(wheelIndex(fwStH) * 60 + wheelMin(fwStM));
+    fRouteSeeded = false;
+    paintStopTime(stopTimeRow);
+    scheduleDraftSave();
+  }
+  /* Времени у точки ещё не было — колесо встаёт не на полночь, а вслед за
+     предыдущей названной точкой (плюс обычный шаг), а у первой точки — на
+     начало самой съёмки: пустая клетка не должна раскрываться нулём */
+  function stopTimeSeed(i) {
+    for (var j = i - 1; j >= 0; j--) {
+      var pv = parseHM(fRoute[j].t);
+      if (pv != null) return snapMin(pv + 30);
+    }
+    return fMin;
+  }
   /* Один обработчик на оба конца аренды: колесо говорит, какой конец крутят,
      а `openRow` — что крутят именно его. Время студии стоит само по себе и
      ничего не двигает следом: длительность съёмки от него не зависит */
@@ -21427,7 +21476,8 @@
     ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"],
     ["fMusic", "fMusicPick"],
     ["fHall", "fHallPick"],
-    ["fRentFrom", "fRentFromPick"],   ["fRentTo", "fRentToPick"]
+    ["fRentFrom", "fRentFromPick"],   ["fRentTo", "fRentToPick"],
+    ["fStopTime", "fStopTimePick"]
   ];
   // Подсветку носит капсула, а не строка: в строке их теперь две
   var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal",
@@ -21437,10 +21487,13 @@
   /* Аренда — единственная строка, чья капсула не одна на форму: у каждой
      студийной точки маршрута своя, и подсветку носит та, которую тронули.
      Остальные строки отвечают своим постоянным элементом, как отвечали. */
-  var rentStop = null, capEls = {};
+  var rentStop = null, stopTimeRow = null, capEls = {};
   function capOf(id) { return capEls[id] || $(CAP[id]); }
   function closeRows() {
-    ROWS.forEach(function (r) { capOf(r[0]).classList.remove("open"); $(r[1]).classList.remove("open"); });
+    /* «Своя точка» без выбранной строки не даёт капсулы ни через `capEls`,
+       ни через `CAP` — у неё нет постоянного элемента формы, в отличие от
+       аренды, для которой всегда есть строка съёмки-без-маршрута */
+    ROWS.forEach(function (r) { var c = capOf(r[0]); if (c) c.classList.remove("open"); $(r[1]).classList.remove("open"); });
     openRow = null;
   }
 
@@ -21486,6 +21539,13 @@
       var rt = ((rentVal("to") % 1440) + 1440) % 1440;
       syncWheel(fwRTH, Math.floor(rt / 60)); syncMinWheel(fwRTM, rt % 60);
     }
+    if (id === "fStopTime") {
+      var stR = stopTimeRow != null ? fRoute[stopTimeRow] : null;
+      var stV = stR ? parseHM(stR.t) : null;
+      if (stV == null) stV = stopTimeSeed(stopTimeRow);
+      stV = ((stV % 1440) + 1440) % 1440;
+      syncWheel(fwStH, Math.floor(stV / 60)); syncMinWheel(fwStM, stV % 60);
+    }
 
     if (id === "fMusic") {
       var at = 0;
@@ -21495,7 +21555,13 @@
   }
   // Нажимается капсула, а не строка целиком
   ROWS.forEach(function (r) {
-    $(CAP[r[0]]).addEventListener("click", function () {
+    /* У «своей точки» нет постоянной капсулы формы вовсе — в отличие от
+       аренды, для которой есть строка съёмки-без-маршрута, у времени точки
+       нет одноместного двойника. Открывают её только строки списка, и там
+       клик уже навешен отдельно, в `renderRouteEditor` */
+    var cap = $(CAP[r[0]]);
+    if (!cap) return;
+    cap.addEventListener("click", function () {
       /* Капсула съёмки забирает барабан обратно у точки маршрута: барабан один
          на все часы аренды, и он всегда стоит под тем, чьи часы крутят */
       if ((r[0] === "fRentFrom" || r[0] === "fRentTo") && rentStop != null) {
@@ -23044,6 +23110,21 @@
     p.insertBefore($("fRentFromPick"), home.nextSibling);
     p.insertBefore($("fRentToPick"), $("fRentFromPick").nextSibling);
   }
+  /* Тот же приём, что у аренды: колесо своей точки уезжает под строку, пока её
+     правят, и его надо вернуть на место до `innerHTML`, иначе перерисовка
+     унесёт барабан вместе со строкой, которой он сейчас принадлежит */
+  function parkStopTimeWheel() {
+    var home = $("fRouteList");
+    home.parentNode.insertBefore($("fStopTimePick"), home);
+  }
+  function paintStopTime(i) {
+    var row = $("fRouteList").querySelector('.rt-row[data-i="' + i + '"]');
+    if (!row) return;
+    var r = fRoute[i], b = row.querySelector(".rt-in-t");
+    if (!b) return;
+    b.textContent = r.t || "--:--";
+    b.classList.toggle("empty", !r.t);
+  }
   /* Подпись часов у точки — на месте, без перерисовки списка: перерисовка
      закрыла бы барабан, которым их сейчас и крутят. */
   function paintStopRent(i) {
@@ -23056,9 +23137,10 @@
   function renderRouteEditor() {
     var host = $("fRouteList"), hints = sceneHints(shootType);
     /* Точка, чьи часы крутили, могла уехать или перестать быть студией */
-    if (openRow === "fRentFrom" || openRow === "fRentTo") closeRows();
+    if (openRow === "fRentFrom" || openRow === "fRentTo" || openRow === "fStopTime") closeRows();
     parkRentWheels();
-    rentStop = null; capEls = {};
+    parkStopTimeWheel();
+    rentStop = null; stopTimeRow = null; capEls = {};
 
     host.innerHTML = fRoute.map(function (r, i) {
       /* Адрес показывается только у точки, привязанной к сохранённому месту:
@@ -23068,7 +23150,7 @@
       var sp = stopPlace(r), addr = sp ? (sp.addr || sp.sub) : "";
       return '<div class="rt-row" data-i="' + i + '">'
 
-        + '<input class="rt-in-t" type="text" inputmode="numeric" maxlength="5" placeholder="--:--" value="' + esc(r.t || "") + '"/>'
+        + '<button type="button" class="rt-in-t' + (r.t ? '' : ' empty') + '">' + esc(r.t || "--:--") + '</button>'
         + '<input class="rt-in-n" type="text" placeholder="' + esc(hints[i % hints.length]) + '" value="' + esc(r.n || "") + '"/>'
         + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
         + '<div class="rt-place">'
@@ -23094,26 +23176,34 @@
     paintIcons(host);
     host.querySelectorAll(".rt-row").forEach(function (row) {
       var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
-      /* Время набирается цифрами и складывается в часы на лету: «1000» → «10:00».
-         Раньше это была просто строка, и в записи оставался номер как телефон */
-      t.addEventListener("input", function () {
-        var d = this.value.replace(/\D/g, "").slice(0, 4);
-        if (d.length > 2) d = d.slice(0, 2) + ":" + d.slice(2);
-        this.value = d; r.t = d;
+      /* Время точки — барабан, как и везде в приложении: тап открывает колесо
+         под строкой, а не клавиатуру (Алексей, 6 сентября 2026, тест маршрута
+         на телефоне). Приём и порядок действий — те же, что у аренды точки. */
+      t.addEventListener("click", function () {
+        var i = +row.dataset.i;
+        if (openRow === "fStopTime" && stopTimeRow === i) { closeRows(); return; }
+        closeRows();
+        stopTimeRow = i; capEls.fStopTime = t;
+        row.parentNode.insertBefore($("fStopTimePick"), row.nextSibling);
+        toggleRow("fStopTime");
+        /* Времени ещё не было — колесо встало на подсказанное, и это уже
+           ответ: записываем его, иначе строка осталась бы с прочерком под
+           раскрытым колесом (та же мысль, что у часов аренды) */
+        if (!r.t) {
+          r.t = fmt(stopTimeSeed(i));
+          fRouteSeeded = false;
+          paintStopTime(i);
+          scheduleDraftSave();
+        }
       });
-      /* Неполный набор досчитывается по цифрам: «9» → 09:00, «935» → 09:35,
-         «2130» → 21:30. Что не складывается во время — стирается */
-      t.addEventListener("blur", function () {
-        var d = this.value.replace(/\D/g, ""), h, m;
-        if (!d) { this.value = r.t = ""; return; }
-        if (d.length <= 2) { h = +d; m = 0; }
-        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
-        else { h = +d.slice(0, 2); m = +d.slice(2); }
-        this.value = r.t = (h > 23 || m > 59) ? "" : fmt(h * 60 + m);
+      /* Клавиатура и барабан — два способа ответить, и открытыми сразу оба
+         быть не должны: строку правят либо словом, либо колесом. Курсор в
+         любое поле строки — барабан сворачивается. Перерисовки тут нет
+         (`closeRows` только гасит), и фокус остаётся у поля. */
+      [".rt-in-n", ".rt-in-p"].forEach(function (sel) {
+        var f = row.querySelector(sel); if (!f) return;
+        f.addEventListener("focus", function () { if (openRow) closeRows(); });
       });
-      /* Тронули строку — точки стали фотографа, и при смене жанра мы их
-         больше не выбрасываем */
-      t.addEventListener("input", function () { fRouteSeeded = false; });
       row.querySelector(".rt-in-n").addEventListener("input", function () {
         r.n = this.value; fRouteSeeded = false;
       });
