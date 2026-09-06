@@ -2546,12 +2546,34 @@
   .rb-no {
     width: 28px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center;
     background: none; border: none; padding: 0; cursor: pointer;
+    /* Вертикальный жест по номеру принадлежит переносу, а не прокрутке
+       списка: без этого палец, потянувший строку, увозил бы окно */
+    touch-action: none;
   }
   .rb-no i {
     width: 15px; height: 15px; border-radius: 50%; background: var(--brass);
     color: var(--surface); font-size: 9.5px; font-weight: 700; line-height: 15px;
     text-align: center; font-style: normal; font-variant-numeric: tabular-nums;
+    transition: width 0.12s ease, height 0.12s ease, line-height 0.12s ease, font-size 0.12s ease;
   }
+  /* ---------- Строка в захвате ----------
+     Взяли за номер — строка отрывается от списка: своя подложка, тень под
+     ней и золотой кант по краю. Три признака одного состояния, потому что
+     на 28 пикселях высоты одного мало: подложка сама по себе читается как
+     подсветка наведения, а тень без канта — как соседняя карточка.
+     Кружок растёт 15→22: он и есть рукоять, и под пальцем её должно быть
+     видно из-под самого пальца. */
+  .rb-row.drag {
+    position: absolute; left: 0; right: 0; z-index: 3; height: 34px;
+    border-radius: 10px; corner-shape: squircle;
+    background: var(--peek-2);
+    box-shadow: 0 10px 24px var(--glass-cast), inset 0 0 0 1px rgba(226,164,76,0.35);
+  }
+  .rb-row.drag .rb-no i { width: 22px; height: 22px; line-height: 22px; font-size: 12px; }
+  /* Место, откуда взяли, стоит пустым — иначе список схлопывается под пальцем
+     и глазу не за что зацепиться, чтобы понять, куда строка вернётся */
+  .rb-slot { background: var(--hair-3); border-radius: 6px; }
+  @media (prefers-reduced-motion: reduce) { .rb-no i { transition: none; } }
   .rb-nm {
     flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: var(--ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 6px;
@@ -14686,6 +14708,112 @@
     if (over > 0) box.style.maxHeight = Math.max(28, box.offsetHeight - over) + "px";
     routeMoreMark();
   }
+  /* ---------- Перенос середины маршрута ----------
+     Порядок правился только снятием: номер уходил вторым тапом и вставал
+     заново в конец, то есть середину маршрута нельзя было тронуть, не разобрав
+     хвост. Захват — номер, а не вся строка: строка целиком уже занята именем,
+     которое хочется прочитать, а номер и есть то, что переносят.
+
+     Удержание, а не свайп: жест по строке высотой 28 мелок для прицела, а
+     снятие в этой же строке уже стоит крестиком, и свайп спорил бы с ним.
+     Срок 250 мс, а не 450 как у булавки: там удержание отбирает жест у карты
+     и ошибиться дорого, здесь под пальцем рукоять, которая больше ничего не
+     делает.
+
+     Номера в списке пересчитываются под пальцем, а булавки и линия на карте —
+     только на отпускании: маршрутизатору незачем считать промежуточные
+     порядки, которых никто не заказывал, а линия, перекладывающаяся на каждом
+     кадре жеста, — шум. */
+  var rbDrag = null;
+  function rbHold(no) {
+    var timer = null, sx = 0, sy = 0;
+    function stop() { clearTimeout(timer); timer = null; }
+    no.addEventListener("pointerdown", function (e) {
+      sx = e.clientX; sy = e.clientY;
+      timer = setTimeout(function () {
+        timer = null;
+        try { no.setPointerCapture(e.pointerId); } catch (err) {}
+        rbDragStart(no, e.clientY);
+      }, 250);
+    });
+    no.addEventListener("pointermove", function (e) {
+      if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) stop();
+      if (rbDrag) { e.preventDefault(); rbDragMove(e.clientY); }
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+      no.addEventListener(t, function () { stop(); rbDragEnd(); });
+    });
+    no.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  }
+  function rbDragStart(no, y) {
+    var box = $("rbList"), row = no.parentNode;
+    if (!box || !row || rbDrag) return;
+    var kids = [].slice.call(box.children), from = kids.indexOf(row);
+    if (from < 0) return;
+    var h = row.offsetHeight, top = row.offsetTop;
+    var ph = document.createElement("div"); ph.className = "rb-slot"; ph.style.height = h + "px";
+    box.insertBefore(ph, row);
+    /* Строка уходит в конец разметки: она теперь `absolute`, и место в потоке
+       за ней держит пустой слот. Порядок узлов там больше ничего не решает. */
+    box.appendChild(row);
+    row.classList.add("drag");
+    row.style.top = (top - 3) + "px";        // 34 против 28 — половина разницы вверх
+    /* Маска низа гасила бы поднятую строку у нижнего края окна */
+    box.classList.remove("more");
+    rbDrag = { box: box, el: row, ph: ph, h: h, top: top, y0: y, from: from, to: from };
+    /* Тот же щелчок, что у детентов ползунка: удержание сработало беззвучно,
+       и палец узнавал об этом только глазами — а глаза в этот момент заняты
+       строкой, которую тянут */
+    tickClick();
+  }
+  function rbDragMove(y) {
+    var d = rbDrag; if (!d) return;
+    var dy = y - d.y0;
+    d.el.style.transform = "translateY(" + dy + "px)";
+    /* Окно держит четыре строки, а маршрут бывает длиннее: у краёв список
+       едет сам, иначе до восьмой строки не дотянуться */
+    var r = d.box.getBoundingClientRect();
+    if (y < r.top + 22) d.box.scrollTop -= 6;
+    else if (y > r.bottom - 22) d.box.scrollTop += 6;
+    var n = d.box.children.length - 1;                 // все, кроме самой строки
+    var to = Math.max(0, Math.min(n - 1, Math.round((d.top + dy) / d.h)));
+    if (to === d.to) return;
+    d.to = to;
+    var rest = [].slice.call(d.box.children).filter(function (c) {
+      return c !== d.el && c !== d.ph;
+    });
+    d.box.insertBefore(d.ph, rest[to] || null);
+    rbRenumber();
+  }
+  /* Номера идут по видимому порядку, и место дырки в нём занимает сама
+     поднятая строка: считать её отдельно значило бы разойтись с тем, что
+     человек видит под пальцем */
+  function rbRenumber() {
+    var d = rbDrag; if (!d) return;
+    var n = 0;
+    [].slice.call(d.box.children).forEach(function (c) {
+      if (c === d.el) return;
+      n++;
+      var mark = (c === d.ph) ? d.el.querySelector(".rb-no i") : c.querySelector(".rb-no i");
+      if (mark) mark.textContent = n;
+    });
+  }
+  function rbDragEnd() {
+    var d = rbDrag; if (!d) return;
+    rbDrag = null;
+    d.el.classList.remove("drag");
+    d.el.style.top = ""; d.el.style.transform = "";
+    if (d.ph.parentNode) d.ph.parentNode.removeChild(d.ph);
+    if (d.to !== d.from) {
+      var id = mapRoute.splice(d.from, 1)[0];
+      mapRoute.splice(d.to, 0, id);
+      saveAll();
+    }
+    /* Список пересобирается целиком — разметка после переноса всё равно
+       разошлась с порядком узлов */
+    paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
+  }
+
   /* Тень внизу окна нужна, только пока ниже правда что-то есть */
   function routeMoreMark() {
     var box = $("rbList"); if (!box) return;
@@ -14747,6 +14875,7 @@
       var no = document.createElement("button"); no.className = "rb-no"; no.type = "button";
       no.dataset.i = i;
       no.innerHTML = "<i>" + (i + 1) + "</i>";
+      rbHold(no);
       var nm = document.createElement("span"); nm.className = "rb-nm";
       nm.textContent = sp.name || coordText(sp.lat, sp.lon);
       var off = document.createElement("button"); off.className = "rb-off"; off.type = "button";
