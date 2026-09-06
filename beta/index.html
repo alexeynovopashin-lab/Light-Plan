@@ -5349,22 +5349,22 @@
 
   /* Редактор точек в форме */
   .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
-  /* Линия между точками — светлая, а не тёмная, и это единственное место формы,
-     где принятый `.sep` не работает. Замер 6 сентября 2026: `.sep` красит линию
-     в `--surface` (#0F0E0C), и в «Паре» она читается прекрасно — там поля
-     прозрачные, лежат на фоне группы (#17150F), и тёмная линия единственная
-     тёмная на чистом грунте. У точки поля залиты тем же #0F0E0C, что и линия:
-     чистого грунта нет, и линия тонет среди пятен своего же цвета. Алексей:
-     «точкам нужны разделяющие линии, интерфейс сливается».
-     Светлая линия — не изобретение: тот же список точек на карте (`.rb-row`)
-     разделён `--hair` и по той же причине — там строки тоже лежат на плашках.
-     Первую точку линия отделяет от места съёмки: место — такая же точка дня,
-     первая, и «Лобня» с «ЗАГС» слипались ровно так же, как точки между собой.
-     Линия висит на списке, а он скрыт, пока точек нет, — под пустым местом
-     черты не будет. */
-  .rt-row + .rt-row, #fRouteList { box-shadow: inset 0 1px 0 var(--hair); }
+  /* Разделитель тот же, что во всей форме, — прозрачная щель в плашке, сквозь
+     которую виден фон страницы (`--surface` #0F0E0C под группой #17150F).
+     Своей краски он не заводит.
+     Не читался он здесь по другой причине, и её замерили 6 сентября 2026:
+     поля строки были залиты ровно тем же #0F0E0C, что и фон под щелью. Щель
+     теряется не потому, что тонкая, а потому, что вокруг неё стоят пятна её
+     собственного цвета — в «Паре», где поля прозрачные, та же щель читается
+     прекрасно. Значит краску меняет не линия, а поля: `--field` — тот самый
+     тон, которым форма красит свои поля и капсулы везде, кроме этой строки.
+     Первую точку щель отделяет от места съёмки: место — такая же точка дня,
+     первая, и «Лобня» слипалась с «ЗАГС» так же, как точки между собой. Щель
+     висит на самом списке, а он скрыт, пока точек нет, — под пустым местом
+     черты не появится. */
+  .rt-row + .rt-row, #fRouteList { box-shadow: inset 0 1px 0 var(--surface); }
   .rt-row input {
-    background: var(--surface); border: none; border-radius: 9px; corner-shape: squircle; padding: 10px 11px;
+    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle; padding: 10px 11px;
     color: var(--ink); font-family: inherit; font-size: 15px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
@@ -5377,7 +5377,7 @@
      Боковой отступ на два пункта больше вертикального: у круглого края текст
      подходит к дуге ближе, чем к прямой стенке. */
   .rt-row button.rt-in-t {
-    background: var(--surface); border: none; border-radius: 999px;
+    background: var(--field); border: none; border-radius: 999px;
     padding: 10px 13px; color: var(--ink); font-family: inherit; font-size: 15px; cursor: pointer;
   }
   .rt-row .rt-in-t.empty { color: var(--ink-8); }
@@ -5417,7 +5417,7 @@
   .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
 
     display: inline-flex; align-items: center; justify-content: center;
-    background: var(--surface); border: none; border-radius: 9px; corner-shape: squircle; color: var(--ink-4); cursor: pointer; }
+    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle; color: var(--ink-4); cursor: pointer; }
   .rt-pick svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
     stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .rt-pick:active { color: var(--brass); }
