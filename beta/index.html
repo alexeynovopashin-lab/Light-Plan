@@ -29407,6 +29407,17 @@
   });
 
   /* Поиск по съёмкам: клиент, тип, место */
+  /* Жанр в списке назван так, как назван в настройках, — «Свадьбы», — а
+     спрашивают о нём тем словом, которым говорят: «свадьба». Точное вхождение
+     такой запрос не находило ничего, хотя недописанное «свадьб» находило.
+     Ищем по основе: у запроса отбрасываем хвост из одной-двух букв падежа,
+     если в основе остаётся не меньше пяти букв — короткие имена («Ольга») остаются
+     целыми. Основа короче запроса, поэтому находится всё, что находилось раньше,
+     и вдобавок другие падежи и числа: «свадьбу», «свадьбой». Латиница не тронута. */
+  function searchStem(q) {
+    var m = /^(.*[^аеёиоуыэюяйьъ])[аеёиоуыэюяйьъ]{1,2}$/.exec(q);
+    return m && m[1].length >= 5 ? m[1] : q;
+  }
   function renderSearch() {
     var qs = $("searchInput").value.trim().toLowerCase();
     var box = $("searchResults");
@@ -29419,7 +29430,7 @@
          теперь у него своё поле — и без него поиск по «Томск» перестал бы
          находить съёмки, которые находил вчера */
       return ((p.s.contact || "") + " " + genreName(p.s.type) + " "
-        + (p.s.place || "") + " " + (p.s.placeTown || "")).toLowerCase().indexOf(qs) > -1;
+        + (p.s.place || "") + " " + (p.s.placeTown || "")).toLowerCase().indexOf(searchStem(qs)) > -1;
     }).sort(function (a, b) { return b.s.date - a.s.date; });
     if (!hits.length) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">' + esc(LANG.t("search.nothing")) + "</div>"; return; }
     box.innerHTML = hits.map(function (p) {
