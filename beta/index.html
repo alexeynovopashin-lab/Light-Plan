@@ -1284,19 +1284,27 @@
      Пустой правый угол шапки занимали координаты. Теперь там действие:
      стоишь на точке — оставь её себе. Залитая закладка значит «уже сохранено»,
      повторный тап убирает: одна кнопка на оба состояния, как у любой закладки. */
-  .map-save {
+  .map-save, .map-list {
     width: 44px; height: 44px; flex-shrink: 0; margin: -6px -8px 0 0;
     display: inline-flex; align-items: center; justify-content: center;
     background: none; border: none; color: var(--ink-6); cursor: pointer;
   }
-  .map-save svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
+  .map-save svg, .map-list svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
     stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
     transition: fill 0.18s ease; }
   .map-save.on { color: var(--brass); }
   /* Заливка плотная, а не полупрозрачная: на знаке в 20 пикселей разница в 22%
      не читается, и тап выглядел так, будто ничего не произошло */
   .map-save.on svg { fill: var(--brass); }
-  .map-save:active { color: var(--ink); }
+  .map-save:active, .map-list:active { color: var(--ink); }
+  /* Список стоит не у края, а перед закладкой: отрицательного поля справа ему
+     не полагается, иначе две кнопки налезут друг на друга.
+     `margin-left: auto` — не украшение: шапка разложена `space-between`, и
+     третья кнопка в ней вставала ровно посередине пустоты между городом и
+     закладкой. Автополе забирает весь зазор себе, и обе кнопки съезжаются
+     в правый угол, где им и место. */
+  .map-list { margin-right: 0; margin-left: auto; }
+  .map-list[hidden] { display: none; }
   /* Подпись говорит, что именно случилось. Без неё человек, не заметив отклика,
      жмёт второй раз — и снимает только что поставленную закладку */
   #s-map .header { position: relative; }
@@ -2326,7 +2334,12 @@
      отображение и поведение, чтобы люди не путали функцию». Спрятана, а не
      погашена: погашенная обещает действие, которого в этом режиме нет.
      Программно её всё ещё зовёт `rbSave` — `display: none` кликам не мешает. */
-  body[data-tab="s-map"].routing .map-save { display: none; }
+  body[data-tab="s-map"].routing .map-save,
+  /* Список уходит следом и по той же причине: в наборе точку из сохранённых
+     кладёт ＋ в полосе маршрута, и она кладёт её **в черновик**. Список же
+     увозит карту на место, ничего не набирая, — тот же список, другой глагол.
+     Два глагола под одним знаком на одном экране мы уже разводили вчера. */
+  body[data-tab="s-map"].routing .map-list { display: none; }
   /* Точка съёмки — в центре кадра; карта ездит под ней */
   .map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 460; }
   .map-pin i { display: block; width: 13px; height: 13px; border-radius: 50%;
@@ -6653,6 +6666,13 @@
       <!-- Освободившийся угол берёт сохранение точки: стоишь на месте — оставь
            его себе. Список — общий с «Моими точками съёмки» в настройках -->
       <span class="save-note" id="saveNote" aria-live="polite"></span>
+      <!-- Список своих мест. Раньше его открывало удержание закладки в 450 мс —
+           жест, которого не видно: Алексей 7 сентября 2026 ходил за списком в
+           настройки, не зная, что он тут же. Кнопка говорит то же самое вслух.
+           Знак — булавка: на карте «мои места» и есть булавки, и тем же знаком
+           они названы в меню слоёв. Звезда осталась настройкам, где список —
+           строка среди строк, а не точки на холсте. -->
+      <button class="map-list" id="mapList" aria-label="Мои места" data-i18n-aria="loc.myPlaces" data-ic="pin" hidden></button>
       <button class="map-save" id="mapSave" aria-label="Сохранить точку" data-i18n-aria="map.savePoint" data-ic="bookmark"></button>
     </div>
 
@@ -7339,7 +7359,7 @@
     <div class="sec-label" data-i18n="set.places">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
-    <div class="item" id="spotsRow"><span class="ir"><span class="item-ic" data-ic="star"></span><span class="k" data-i18n="loc.myPlaces">Мои места</span></span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <div class="item" id="spotsRow"><span class="ir"><span class="item-ic" data-ic="pin"></span><span class="k" data-i18n="loc.myPlaces">Мои места</span></span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
   </div>
 
   <div class="overlay pad flush" id="setOvStore">
@@ -12562,6 +12582,11 @@
     buildSpotMarks();          // список изменился — знаки на холсте следом
     $("mapSave").classList.toggle("on", on);
     $("mapSave").setAttribute("aria-label", LANG.t(on ? "map.dropPoint" : "map.savePoint"));
+    /* Кнопка списка появляется с первым сохранённым местом. Пустой список
+       умеет сказать только «пусто», а как завести первое место, отвечает
+       закладка в тех же тридцати пикселях справа. Появление кнопки заодно и
+       учит: сохранил — вот где оно теперь лежит. */
+    if ($("mapList")) $("mapList").hidden = !spots.length;
     if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' <span class="go-chev">\u203a</span>';
     /* \u041f\u043e\u043b\u043e\u0441\u0430 \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u0430 \u0441\u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435 \u0442\u043e\u0447\u043a\u0438: \u043e\u0442 \u0438\u0445 \u0447\u0438\u0441\u043b\u0430 \u0437\u0430\u0432\u0438\u0441\u0438\u0442, \u0435\u0441\u0442\u044c \u043b\u0438
        \u0432 \u043d\u0435\u0439 \uff0b \u0438 \u0447\u0442\u043e \u0441\u0442\u043e\u0438\u0442 \u0432\u043d\u0438\u0437\u0443 \u2014 \u00ab\u0421\u0434\u0435\u043b\u0430\u0442\u044c \u0441\u044a\u0451\u043c\u043a\u043e\u0439\u00bb \u0438\u043b\u0438 \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0430. \u041f\u0435\u0440\u0432\u0430\u044f
@@ -30720,32 +30745,15 @@
   }
   $("spotScrim").addEventListener("click", function () { closeSpotFan(); closeEvFan(); });
 
-  /* Долгое нажатие на закладке открывает список. Короткий тап сохраняет —
-     поэтому после срабатывания долгого жеста клик надо погасить, иначе
-     список откроется и тут же поставится лишняя закладка. */
-  (function saveHold() {
-    var btn = $("mapSave"), timer = null, fired = false, sx = 0, sy = 0;
-    function stop() { clearTimeout(timer); timer = null; }
-    btn.addEventListener("pointerdown", function (e) {
-      fired = false; sx = e.clientX; sy = e.clientY;
-      timer = setTimeout(function () {
-        fired = true;
-        openSpotFan(btn, function (sp) { gotoLocation(sp.lat, sp.lon); });
-      }, 450);
-    });
-    btn.addEventListener("pointermove", function (e) {
-      // Палец поехал — это прокрутка, а не удержание
-      if (timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) stop();
-    });
-    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
-      btn.addEventListener(t, stop);
-    });
-    btn.addEventListener("click", function (e) {
-      if (fired) { e.preventDefault(); e.stopImmediatePropagation(); fired = false; }
-    }, true);
-    // Долгое нажатие на iOS вызывает своё меню выделения — оно тут лишнее
-    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-  })();
+  /* Список открывает своя кнопка, а не удержание закладки. Удержание в 450 мс
+     стояло тут с самого начала и было невидимо: чтобы им воспользоваться, надо
+     сперва узнать, что оно есть. Хуже того, оно гасило клик
+     (`stopImmediatePropagation`) при каждом ложном срабатывании — тот же класс
+     беды, из-за которого 6 сентября 2026 удержание убрали с булавок на холсте.
+     Один глагол — одна кнопка; закладка снова умеет ровно одно: сохранить тут. */
+  $("mapList").addEventListener("click", function () {
+    openSpotFan($("mapList"), function (sp) { gotoLocation(sp.lat, sp.lon); });
+  });
 
   /* ---------- Студия: своя сущность, а не тумблер у места ----------
      Прежде студия заводилась переключателем «Это студия» поверх адресной
