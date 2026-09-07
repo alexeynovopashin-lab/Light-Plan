@@ -4764,7 +4764,7 @@
   #gScrim, #payScrim, #locScrim, #kScrim, #mbNewScrim, #mbAddScrim, #mbItemScrim, #mbCoverScrim { z-index: 84; }
   #gSheet, #paySheet, #locSheet, #kSheet, #mbNewSheet, #mbAddSheet, #mbItemSheet, #mbCoverSheet { z-index: 86; }
   /* Жанр, которому принадлежат пакеты: стоит рядом с заголовком и тише его */
-  .of-genre { color: var(--ink-4); font-weight: 400; }
+  .of-genre { color: var(--ink-4); font-weight: 400; text-transform: none; letter-spacing: 0; }
   /* Лист выбора зовут и поверх других листов (со строки инструментов папки) */
   #pickSheet { z-index: 88; }
   #pickScrim { z-index: 87; }
@@ -6406,6 +6406,7 @@
   #fPaySumm b { color: var(--brass); font-weight: 650; font-variant-numeric: tabular-nums; }
   /* Редактор пакетов: название · часы · цена · убрать */
   .pack-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px 9px; }
+  .pack-head[hidden] { display: none; }   /* display сильнее браузерного [hidden] */
   .pack-head .k { font-size: 15px; color: var(--ink); }
   .pack-add {
     background: none; border: none; cursor: pointer; font-family: inherit;
@@ -9408,6 +9409,22 @@
     <div class="sheet-title" data-i18n="form.myGenres">Мои жанры</div>
     <div class="sheet-sub" data-i18n="gen.sub">Оставьте только то, что снимаете — остальное уйдёт из формы</div>
     <div class="chips" id="gList" style="margin-top:18px;"></div>
+
+    <!-- Что жанр подставляет в новую съёмку. Раньше обе величины жили молча:
+         длительность и срок сдачи запоминались от последней правки формы
+         (`rememberGenre`), а жанровый срок вообще был зашит таблицей — режим
+         «По жанру» в настройках обещал число, которого никто не видел.
+         Блок говорит про жанр, открытый в форме, а не про тот, по которому
+         стукнули: тап по плитке включает и выключает жанр, а не выбирает
+         его, — так же вёл себя набор референсов, стоявший тут прежде. -->
+    <div class="g-label" style="margin: 22px 4px 9px;"><span data-i18n="form.genre">Жанр</span> <span id="gDefGenre" class="of-genre"></span></div>
+    <div class="group">
+      <div class="pack-head"><span class="k" data-i18n="gen.durDflt">Длительность</span></div>
+      <div class="g-chips" style="padding-top:0;"><div class="chips" id="gDurChips"></div></div>
+      <div class="pack-head sep" id="gDelvHead"><span class="k" data-i18n="gen.delvDflt">Срок сдачи</span></div>
+      <div class="g-chips" id="gDelvWrap" style="padding-top:0;"><div class="chips" id="gDelvChips"></div></div>
+      <div class="pack-empty" data-i18n="gen.dfltNote">Подставляется в новую съёмку — уже назначенные не трогаем</div>
+    </div>
     <button class="sheet-done" id="gDone" data-i18n="pick.done">Готово</button>
   </div>
 
@@ -9427,10 +9444,21 @@
            пакетами, а меняют валюту редко: место ей — за шестерёнкой, где
            уже стоят ставка и пакеты. -->
       <div class="g-chips" style="padding-bottom:0;"><div class="chips" id="fCurChips"></div></div>
-      <div class="pay-row sep">
-        <span class="k" id="gRateLabel">Стоимость часа по умолчанию, ₽</span>
+      <!-- Ставка часа — у жанра, как и пакеты: час свадьбы и час портрета
+           стоят разного, а поле было одно на всё приложение. Прежняя общая
+           ставка осталась запасной: жанру, которому своей не назначали,
+           отвечает она, и старые данные не поехали. -->
+      <div class="pay-row sep" id="payRateRow">
+        <span class="k" id="gRateLabel">Стоимость часа, ₽</span>
         <input class="pay-in" type="text" inputmode="numeric" id="gRate" placeholder="0"/>
       </div>
+      <!-- Доля предоплаты: её берут одну и ту же от съёмки к съёмке, а поле
+           в форме набирали руками каждый раз. Доля держит поле, пока в него
+           не вписали своё число. -->
+      <div class="pack-head sep">
+        <span class="k"><span id="payPreLabel">Предоплата</span> <span id="payPreGenre" class="of-genre"></span></span>
+      </div>
+      <div class="g-chips" style="padding-top:0;"><div class="chips" id="payPreChips"></div></div>
       <!-- Пакеты: именованные продукты свадебщика. Название · часы · цена -->
       <div class="pack-head sep">
         <span class="k"><span data-i18n="gen.packs">Пакеты</span> <span id="payGenre" class="of-genre"></span></span>
@@ -13303,7 +13331,7 @@
     if (sp && sp.delivery === false) return null;
     if (delivery.mode === "none") return null;
     if (delivery.mode === "single") return delivery.days;
-    return GENRE_DEADLINE[s.type] != null ? GENRE_DEADLINE[s.type] : 7;
+    return genreDeadline(s.type);
   }
   function deadlineDate(s) {
     var d = resolveDeadlineDays(s);
@@ -18144,6 +18172,9 @@
   /* Предоплата: часть гонорара, полученная заранее. В доход не добавляется —
      она из него вычитается остатком (docs/12_CARD_ARCHITECTURE.md) */
   var fPrepay = 0;
+  /* Предоплату поставила доля жанра, а не человек: пока признак стоит, число
+     пересчитывается вслед за доходом. Первое же касание поля его снимает */
+  var fPrepayAuto = true;
   /* Гости — только у события дня; 0 значит «не указано», а не «нет гостей» */
   var fGuests = 0;
   /* Знак записи, с которой работает форма. Раньше он рождался только при
@@ -21767,7 +21798,7 @@
            Вход в пакеты чистим отдельно: иначе случайно совпавшая сумма
            подсветила бы пакет, которого никто не выбирал. */
         if (nowMech !== wasMech || fPay === "pack" || wasPack) {
-          fRate = nowMech === "hourly" ? (defaultRate || 0) : 0;
+          fRate = nowMech === "hourly" ? (rateOf(shootType) || 0) : 0;
           $("fRate").value = fRate || "";
         }
         renderPay();
@@ -21806,6 +21837,13 @@
     }
     // Итог: доход и прибыль
     var inc = sessionIncome(payProbe()), net = inc - fExpense;
+    /* Доля предоплаты держит поле, пока в него не вписали своё число:
+       пересчитывать набранную руками сумму значило бы спорить с человеком.
+       Доли нет — поле не трогаем вовсе, и всё работает как до этой правки. */
+    if (fPrepayAuto && prepayShare(shootType) > 0 && !$("fPrepayRow").hidden) {
+      fPrepay = Math.round(inc * prepayShare(shootType) / 100);
+      if (document.activeElement !== $("fPrepay")) $("fPrepay").value = fPrepay || "";
+    }
     var hrs = mech === "hourly" ? " · " + durLabel(fDur) : "";
     /* Предоплата не меняет доход — она отвечает на другой вопрос: сколько
        ещё принесут в день съёмки. Поэтому идёт отдельной строкой остатка */
@@ -21831,7 +21869,7 @@
   }
   bindPayInput("fRate", function (v) { fRate = v; });
   bindPayInput("fExpense", function (v) { fExpense = v; });
-  bindPayInput("fPrepay", function (v) { fPrepay = v; });
+  bindPayInput("fPrepay", function (v) { fPrepay = v; fPrepayAuto = false; });
   /* Количество — степпером: в поле пальцем цифры вводить неудобно */
   /* Кнопки — для «на один больше», поле — для «их пятьдесят».
      Предел поднят до 9999: партия предметки бывает и в тысячу кадров */
@@ -23435,6 +23473,34 @@
     genrePrefs[shootType][key] = val;
     saveAll();
   }
+  /* ---------- Что жанр подставляет ----------
+     В `genrePrefs[жанр]` рядом с давно жившими там `pay`, `dur` и `delv`
+     появились три величины, которые правятся руками в шестерёнках: своя
+     ставка часа, доля предоплаты, свой срок сдачи. Пусто — значит «как
+     заведено»: общая ставка, доли нет, срок из жанровой таблицы. Читать их
+     надо только через эти функции: `undefined` и `null` тут значат одно и то
+     же — «своего нет», — и проверять это в каждом месте по-своему значит
+     однажды проверить не так. */
+  function prefOf(g, key) {
+    var p = genrePrefs[g];
+    return p && p[key] !== undefined && p[key] !== null ? p[key] : null;
+  }
+  /* Общая ставка (`defaultRate`) осталась запасной: жанрам, которым своей не
+     назначали, она отвечает как прежде, и старые данные не поехали */
+  function rateOf(g) { var v = prefOf(g, "rate"); return v === null ? defaultRate : v; }
+  function prepayShare(g) { return prefOf(g, "pre") || 0; }
+  function genreDeadline(g) {
+    var v = prefOf(g, "delvDays");
+    if (v !== null) return v;
+    return GENRE_DEADLINE[g] != null ? GENRE_DEADLINE[g] : 7;
+  }
+  /* Длительность — единственная из четырёх, у которой `null` значит не
+     «своего нет», а «по свету»: у пейзажа это и есть заводское значение */
+  function genreDur(g) {
+    var p = genrePrefs[g];
+    if (p && p.dur !== undefined) return p.dur;
+    return genreSpec(g).dur;
+  }
   /* Показываем только то, что этому жанру нужно */
   /* ---------- Состав формы ----------
      Матрица полей (docs/12_CARD_ARCHITECTURE.md) записана здесь данными, а не
@@ -23989,16 +24055,18 @@
     fDelvChoice = sp.delivery ? (pref.delv !== undefined ? pref.delv : "auto") : null;
     /* Встреча длится час, а не восемь: свадебная длительность жанра к разговору
        в кафе отношения не имеет */
-    var dur = meetMode() ? 60 : (pref.dur !== undefined ? pref.dur : sp.dur);
+    var dur = meetMode() ? 60 : genreDur(shootType);
     if (dur === null || dur === undefined) {
       var w = dayWindow(fDate);
       dur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
     }
     fDur = dur;
-    // Оплата: способ из памяти жанра или первый; почасовая ставка — из общей по умолчанию
+    // Оплата: способ из памяти жанра или первый; почасовая ставка — жанровая
     fPay = (pref.pay && sp.pay.indexOf(pref.pay) >= 0) ? pref.pay : sp.pay[0];
-    fRate = PAY[fPay].m === "hourly" ? defaultRate : 0;
+    fRate = PAY[fPay].m === "hourly" ? rateOf(shootType) : 0;
     fUnits = 1; fExpense = 0;
+    /* Доход считается заново — значит и доля предоплаты снова главная */
+    fPrepayAuto = true;
     // Спойлер: если ставка уже настроена и доход считается сам — сворачиваем
     payFolded = sessionIncome(payProbe()) > 0;
     /* Свадьба длиннее светового окна: начинать её на закате бессмысленно.
@@ -26646,7 +26714,9 @@
     fCurrency = sessionCurrency(s);
     /* Новых полей у старой записи нет вовсе — это пустое поле, а не поломка
        (docs/12_CARD_ARCHITECTURE.md, «Совместимость») */
-    fPrepay = +s.prepay || 0; fGuests = +s.guests || 0;
+    /* У записи предоплата уже названа числом — доля жанра ей не указ:
+       пересчитать сохранённое значило бы переписать чужой договор */
+    fPrepay = +s.prepay || 0; fPrepayAuto = false; fGuests = +s.guests || 0;
     $("fPrepay").value = fPrepay || "";
     fTrip = !!s.trip;
     /* Старые записи про ручную поправку не знают, но их «выезд» ставился
@@ -26734,7 +26804,7 @@
       fOrgId = null; $("fPerson").value = ""; $("fPhone").value = "";
       $("fP1Name").value = ""; $("fP1Tel").value = "";
       $("fP2Name").value = ""; $("fP2Tel").value = "";
-      fPrepay = 0; fGuests = 0; fDocs = []; fGear = []; fPlaylist = "";
+      fPrepay = 0; fPrepayAuto = true; fGuests = 0; fDocs = []; fGear = []; fPlaylist = "";
       fCurrency = currency;
       $("fPrepay").value = "";
       fTrip = false; fTripManual = false;
@@ -26827,10 +26897,95 @@
         var on = ALL_GENRES.filter(function (x) { return genresOn[x]; });
         if (genresOn[g] && on.length === 1) return;   // последний жанр не отключаем
         genresOn[g] = genresOn[g] ? 0 : 1;
-        renderGenreList(); renderGenres();
+        renderGenreList(); renderGenres(); renderGenreDefaults();
       });
     });
   }
+  /* ---------- Что подставляет жанр ----------
+     Обе величины и раньше жили у жанра, но молча: длительность запоминалась
+     от последней правки конца съёмки (`rememberGenre("dur")`), а срок сдачи
+     вообще был зашит таблицей — режим «По жанру» в настройках обещал число,
+     которого негде было увидеть. Здесь они названы и правятся.
+     Блок про жанр, открытый в форме: тап по плитке выше включает и выключает
+     жанр, а не выбирает его. */
+  var GEN_DURS = [30, 60, 90, 120, 180, 240, 360, 480, 600];
+  function delvDaysName(d) {
+    if (d === 30) return LANG.t("set.delvMonth");
+    if (d === 90) return LANG.t("set.delv3Months");
+    return LANG.count("unit.dayShort", d);
+  }
+  function renderGenreDefaults() {
+    var g = shootType, sp = genreSpec(g);
+    $("gDefGenre").textContent = "\u00b7 " + genreName(g).toLowerCase();
+
+    /* «По свету» предлагается только там, где оно и есть заводское: у пейзажа
+       длительность считается по окну дня, свадьбе такой выбор ни к чему */
+    var cur = genreDur(g), list = GEN_DURS.slice();
+    if (cur != null && list.indexOf(cur) < 0) list.push(cur);
+    list.sort(function (a, b) { return a - b; });
+    var head = (sp.dur === null || sp.dur === undefined)
+      ? '<button class="chip' + (cur == null ? " active" : "") + '" data-dur="light">'
+        + esc(LANG.t("gen.byLight")) + "</button>"
+      : "";
+    $("gDurChips").innerHTML = head + list.map(function (m) {
+      return '<button class="chip' + (m === cur ? " active" : "") + '" data-dur="' + m + '">'
+        + esc(durLabel(m)) + "</button>";
+    }).join("");
+    $("gDurChips").querySelectorAll(".chip").forEach(function (b) {
+      b.addEventListener("click", function () {
+        rememberGenre("dur", b.dataset.dur === "light" ? null : +b.dataset.dur);
+        renderGenreDefaults();
+      });
+    });
+
+    /* Стриту и пейзажу материал сдавать некому — срока у них нет вовсе */
+    var hasDelv = sp.delivery !== false;
+    $("gDelvHead").hidden = !hasDelv;
+    $("gDelvWrap").hidden = !hasDelv;
+    /* Спрятанный ряд чистим, а не оставляем чужие чипсы под крышкой: однажды
+       его покажут, и он моргнёт сроком прошлого жанра */
+    if (!hasDelv) { $("gDelvChips").innerHTML = ""; return; }
+    var d = genreDeadline(g), days = DELV_DAYS.slice();
+    if (days.indexOf(d) < 0) days.push(d);      // заводские 5 и 10 дней не из этого ряда
+    days.sort(function (a, b) { return a - b; });
+    $("gDelvChips").innerHTML = days.map(function (n) {
+      return '<button class="chip' + (n === d ? " active" : "") + '" data-d="' + n + '">'
+        + esc(delvDaysName(n)) + "</button>";
+    }).join("");
+    $("gDelvChips").querySelectorAll(".chip").forEach(function (b) {
+      b.addEventListener("click", function () {
+        rememberGenre("delvDays", +b.dataset.d);
+        renderGenreDefaults();
+        /* Первое деление ползунка в форме называется «жанр» — и с этой
+           секунды показывает другую дату. Не перерисовать значит соврать */
+        if ($("formOverlay").classList.contains("open")) renderDelv();
+      });
+    });
+  }
+
+  /* Доля предоплаты. Не сумма: сумма у каждой съёмки своя, а доля от съёмки
+     к съёмке одна и та же — её и держат в голове, называя клиенту. */
+  var PRE_SHARES = [0, 10, 20, 30, 50];
+  function renderPrepayChips() {
+    var cur = prepayShare(shootType);
+    $("payPreChips").innerHTML = PRE_SHARES.map(function (n) {
+      return '<button class="chip' + (n === cur ? " active" : "") + '" data-pre="' + n + '">'
+        + esc(n ? n + "%" : LANG.t("gen.preNone")) + "</button>";
+    }).join("");
+    $("payPreChips").querySelectorAll(".chip").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var pct = +b.dataset.pre || 0;
+        /* «Нет» убирает и то, что доля успела поставить. Набранное руками не
+           трогаем: признак к тому времени уже снят первым же касанием поля */
+        if (!pct && fPrepayAuto) { fPrepay = 0; $("fPrepay").value = ""; }
+        rememberGenre("pre", pct || null);
+        if (pct) fPrepayAuto = true;
+        renderPrepayChips();
+        if ($("formOverlay").classList.contains("open")) renderPay();
+      });
+    });
+  }
+
   /* Набор референсов жанра здесь больше не показывается. Он никуда не делся:
      подборка жанра — обычная папка мудборда (`boardTpl`), она открывается в
      мудборде и подставляется в карточку на площадке (`genreShots`). Второй
@@ -26891,6 +27046,7 @@
      каждая шестерёнка открывает настройки своего блока и ничего больше. */
   $("fGear").addEventListener("click", function () {
     renderGenreList();
+    renderGenreDefaults();
     $("gSheet").classList.add("open"); $("gScrim").classList.add("open");
   });
   function closeGenres() {
@@ -26900,11 +27056,26 @@
   $("gScrim").addEventListener("click", closeGenres);
 
   $("fPayGear").addEventListener("click", function () {
-    /* Пакеты принадлежат открытому жанру, и лист называет его: списка жанров
-       рядом больше нет, а «Пакеты» без имени жанра — обещание общего списка */
-    $("payGenre").textContent = "\u00b7 " + genreName(shootType).toLowerCase();
+    /* Ставка, доля и пакеты принадлежат открытому жанру, и лист называет его:
+       списка жанров рядом больше нет, а «Пакеты» без имени жанра — обещание
+       общего списка */
+    var g = shootType, mark = "\u00b7 " + genreName(g).toLowerCase();
+    $("payGenre").textContent = mark;
+    $("payPreGenre").textContent = mark;
+    $("payPreLabel").textContent = capFirst(prepayWord());
+    /* Пейзаж считают сдельно, архитектуру — за объект: строка про час у них
+       не настройка, а вопрос не по адресу */
+    var byHour = genreSpec(g).pay.filter(function (k) { return PAY[k] && PAY[k].m === "hourly"; }).length > 0;
+    $("payRateRow").hidden = !byHour;
+    $("gRateLabel").textContent = LANG.t("gen.rateLbl", { genre: genreName(g).toLowerCase(), sign: currencySign() });
+    /* В поле стоит то самое число, по которому посчитают: своё у жанра, а
+       пока своего нет — общая ставка, доставшаяся от прежней одной на всех.
+       Ставить туда пустоту с подсказкой было бы честно и неудобно разом:
+       общую правили бы вслепую. Первая правка делает ставку жанровой, и
+       общая тихо уходит из виду, оставшись запасной для нетронутых жанров. */
+    $("gRate").value = rateOf(g) || "";
     renderDealCur();
-    $("gRate").value = defaultRate || "";
+    renderPrepayChips();
     renderPackEditor();
     $("paySheet").classList.add("open"); $("payScrim").classList.add("open");
   });
@@ -27318,10 +27489,13 @@
     var idx = questRec ? byId(questRec.id) : -1;
     questApply(a, idx >= 0 ? idx : null);
   });
-  // Ставка по умолчанию: применяется к новым почасовым съёмкам
+  /* Ставка часа — у жанра, открытого в форме. Пустое поле значит «как общая»:
+     оно не ноль, а отсутствие своей ставки, и `rateOf` вернёт `defaultRate` */
   $("gRate").addEventListener("input", function () {
-    defaultRate = parseFloat((this.value || "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
-    saveAll();
+    var raw = (this.value || "").trim();
+    rememberGenre("rate", raw === ""
+      ? null
+      : (parseFloat(raw.replace(/[^\d.,]/g, "").replace(",", ".")) || 0));
   });
 
   /* Уведомление */
@@ -28912,12 +29086,12 @@
      свойство места, а не слова, поэтому ставится на месте. */
   function capFirst(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
   function renderMoneyLabels() {
-    // Поля формы — валюта съёмки; поле жанровой ставки по умолчанию — валюта приложения
-    var formSign = currencySign(fCurrency), homeSign = currencySign();
-    var pre = $("fPrepayLabel"), exp = $("fExpenseLabel"), grate = $("gRateLabel");
+    // Поля формы — валюта съёмки. Подпись жанровой ставки собирает сам лист
+    // при открытии: в ней стоит имя жанра, а сюда заходят и с чужих экранов
+    var formSign = currencySign(fCurrency);
+    var pre = $("fPrepayLabel"), exp = $("fExpenseLabel");
     if (pre) pre.textContent = capFirst(LANG.t("form.prepayLbl", { word: prepayWord(), sign: formSign }));
     if (exp) exp.textContent = LANG.t("form.expenseLbl", { sign: formSign });
-    if (grate) grate.textContent = LANG.t("gen.rateLbl", { sign: homeSign });
   }
 
   /* ---------- Практика: чипсы в настройках и вопрос при первом запуске ----------
