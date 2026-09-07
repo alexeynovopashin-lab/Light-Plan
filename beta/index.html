@@ -13838,14 +13838,16 @@
       if (!el || el.hidden) return false;
       var r = el.getBoundingClientRect();
       if (!r.height) return false;
-      live = Math.max(bot, Math.round(fr.bottom - r.top));
+      /* Без округления: округлённый верх стекла дрожал на полпикселя
+         относительно текста, который едет дробно */
+      live = Math.max(bot, fr.bottom - r.top);
       return true;
     });
     var st = document.documentElement.style;
     st.setProperty("--optic-top", Math.round(top) + "px");
     st.setProperty("--optic-bot", Math.round(bot) + "px");
     st.setProperty("--optic-cy", Math.round(cy) + "px");
-    st.setProperty("--ctl-bot", live + "px");
+    st.setProperty("--ctl-bot", live.toFixed(2) + "px");
     /* Потолок свода. У кадра прежде был пол — 370 px минимальной высоты, — а
        добиралась сводка прокруткой всего экрана. Подложка прокручиваться не
        может (она и есть фон), поэтому пол переносится в новое правило: стекло
@@ -13865,6 +13867,32 @@
       opticPad = pad;
       try { lmap.setPadding({ top: 0, bottom: pad, left: 0, right: 0 }); } catch (e) {}
     }
+  }
+  /* ---------- Стекло идёт за сводом ----------
+     Верх нижнего стекла стоит на `--ctl-bot`, а тот берётся замером. Свод же
+     едет переходом `max-height` в 0.4 с, и одного замера на всё движение мало:
+     текст уезжал по раскладке плавно, а подложка догоняла его прыжком в конце
+     (Алексей, 7 сентября 2026: «сначала уезжают текстовые блоки, потом
+     подложка... текст и подложка рассинхронизированы»).
+
+     Идём по кадрам, пока высота свода меняется. Не переходом с той же
+     длительностью: тот пришлось бы держать одинаковым в двух местах и молча
+     врал бы при любой правке кривой. Замер повторяет раскладку, а не угадывает
+     её конец. Останавливаемся, когда высота устоялась три кадра подряд, —
+     и всё равно с потолком по времени, чтобы петля не пережила экран. */
+  var foldRAF = null;
+  function followMapFold() {
+    var fold = $("mapFold"); if (!fold) return;
+    if (foldRAF) cancelAnimationFrame(foldRAF);
+    var last = -1, still = 0, until = Date.now() + 900;
+    (function step() {
+      var frame = document.querySelector(".map-frame");
+      if (frame) measureMapOptic(frame);
+      var hNow = fold.getBoundingClientRect().height;
+      still = (hNow === last) ? still + 1 : 0;
+      last = hNow;
+      foldRAF = (still < 3 && Date.now() < until) ? requestAnimationFrame(step) : null;
+    })();
   }
   window.addEventListener("resize", measureMapRotor);
   function renderMap() {
@@ -29833,6 +29861,9 @@
     $("mapRead").classList.toggle("shut", shut);
     $("mapRead").setAttribute("aria-expanded", shut ? "false" : "true");
     document.body.classList.toggle("map-shut", shut);
+    /* Стекло низа держится на замере, а свод едет переходом — ведём замер по
+       кадрам, иначе подложка догоняет текст прыжком */
+    followMapFold();
     // Кадр сменил высоту — движок карты об этом сам не узнает
     if (lmap) setTimeout(function () { lmap.resize(); }, 420);
   }
