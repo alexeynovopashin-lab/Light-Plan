@@ -1112,7 +1112,6 @@
        экран минус поля по 16. Высота — она же на 1.25, то есть кадр 4:5.
        Селектор с `.device` нужен по силе, а не по смыслу: правило кадра стоит
        ниже по файлу, и при равной специфичности побеждало бы оно. */
-    .device .map-frame { height: calc((100vw - 32px) * 1.25); }
   }
 
   /* ---------- Экраны ---------- */
@@ -1147,7 +1146,11 @@
     height: calc(var(--tabh, 74px) + 16px);
   }
   /* «Сегодня» и «Карта» освобождают место под закреплённый ползунок */
-  #s-today::after, #s-map::after { height: calc(var(--dockh, 156px) + 8px); }
+  #s-today::after { height: calc(var(--dockh, 156px) + 8px); }
+  /* У карты распорка ровно в док, без восьми пикселей воздуха: свод и барабаны
+     стали одним стеклом, и щель между ними показывала бы полоску карты
+     посреди подложки (замерено: 9 px между низом свода и верхом барабанов). */
+  #s-map::after { height: var(--dockh, 156px); }
   .screen::-webkit-scrollbar { display: none; }
   .screen.active { display: flex; animation: rise 0.45s cubic-bezier(0.25,1,0.4,1); }
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -1284,6 +1287,14 @@
      Пустой правый угол шапки занимали координаты. Теперь там действие:
      стоишь на точке — оставь её себе. Залитая закладка значит «уже сохранено»,
      повторный тап убирает: одна кнопка на оба состояния, как у любой закладки. */
+  /* Шапка карты стоит на стекле: карта под ней доходит до самого верха, и
+     без подложки город с датой ложились бы прямо на кварталы. Стекло то же,
+     что у таб-бара, — приём в приложении принят, второго заводить незачем. */
+  body[data-tab="s-map"] #s-map > .header {
+    background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border-bottom: 1px solid var(--hair);
+  }
   .map-save, .map-list {
     width: 44px; height: 44px; flex-shrink: 0; margin: -6px -8px 0 0;
     display: inline-flex; align-items: center; justify-content: center;
@@ -1658,8 +1669,6 @@
      это то, ради чего экран и существует. Уступает не карта, а рост карты. */
   /* Свёрнутая сводка отдаёт место карте, и тогда высоту задаёт остаток экрана,
      а не пропорция: пропорцию здесь надо снять явно, иначе она спорит с ростом */
-  body.map-shut .map-frame { flex: 1 1 auto; height: auto; aspect-ratio: auto;
-    min-height: 370px; max-height: calc(100dvh - 340px); }
   /* В наборе маршрута уходит и свод света: строка «22:19 астрономическая ночь»
      с её сводкой отвечает на тот же вопрос, что и снятый с холста прибор, —
      «какой здесь свет», — а набирающий маршрут спрашивает «куда и в каком
@@ -1670,8 +1679,6 @@
      возвращает та же кнопка маршрута — выхода без неё тут нет и не нужно. */
   body[data-tab="s-map"].routing .map-read,
   body[data-tab="s-map"].routing .map-fold { display: none; }
-  body[data-tab="s-map"].routing .map-frame { flex: 1 1 auto; height: auto; aspect-ratio: auto;
-    min-height: 370px; max-height: calc(100dvh - 320px); }
   /* Липкую строку времени пробовали и отвергли — в симуляторе она встала
      посреди карты и разрезала её пополам. Причина в природе `sticky`: он
      удерживает элемент в границах контейнера, а не «прижимает к низу экрана»,
@@ -1783,6 +1790,31 @@
     display: flex; flex-direction: column; gap: 8px;
   }
   body[data-tab="s-plan"] .timebar, body[data-tab="s-set"] .timebar { display: none; }
+  /* На карте барабаны, читалка и свод — одно стекло, а не три плашки: они
+     стоят вплотную, и разные подложки читались бы швами. Карта проходит под
+     ними и видна сквозь них — ради этого низ и делали стеклянным. */
+  body[data-tab="s-map"] .timebar {
+    background: var(--bar); border-top: none;
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  }
+  body[data-tab="s-map"] #s-map > .map-read,
+  body[data-tab="s-map"] #s-map > .map-fold {
+    background: var(--bar);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  }
+  /* Читалка сама себе крышка стекла: над ней карта открыта, и край должен
+     быть виден линией, а не обрывом */
+  body[data-tab="s-map"] #s-map > .map-read { border-top: 1px solid var(--hair); }
+  /* Свод не растёт бесконечно: `--fold-max` держит его так, чтобы белая
+     головка оставалась на виду. Прокрутка своя, внутренняя — карта под ним
+     при этом не двигается. */
+  /* `:not(.shut)` — не украшение селектора, а условие: сворачивание свода
+     живёт на `.map-fold.shut { max-height: 0 }`, а этот потолок специфичнее
+     и молча его перебивал — сводка перестала сворачиваться вовсе. */
+  body[data-tab="s-map"] #s-map > .map-fold:not(.shut) {
+    max-height: var(--fold-max, none); overflow-y: auto; scrollbar-width: none;
+  }
+  body[data-tab="s-map"] #s-map > .map-fold::-webkit-scrollbar { display: none; }
   /* Набор маршрута забирает низ экрана себе. Время и дата в этот момент не
      решают ничего: точки маршрута ставят по месту, а не по часу — часы им
      назначают потом, уже в листе съёмки. Сотня пикселей под барабанами стоит
@@ -2195,10 +2227,23 @@
        вышел 408 × 536 (то есть упёрся в потолок), а на стенде 408 × 510.
        Ширина кадра известна точно (экран минус поля), поэтому честнее умножить
        её, чем полагаться на то, как разные движки читают пропорцию. */
-    position: relative; margin: 18px 16px 0;
-    height: 447px; min-height: 340px; max-height: calc(100dvh - 400px);
-    border-radius: 18px; corner-shape: squircle; overflow: hidden; background: var(--canvas);
+    /* Кадр перестал быть кадром: карта — подложка во весь экран, а шапка,
+       свод и барабаны идут поверх неё стеклом (Алексей, 7 сентября 2026:
+       «расширить карту до самого верха, а интерфейс поместить на стеклянные
+       подложки»). Вся прежняя машинерия размера — пропорция 4:5, потолок от
+       `dvh`, рост при свёрнутом своде — снята: расти больше некуда, кадр и
+       так весь экран. Прибор при этом не вырос: он получил свой прямоугольник
+       (`--optic-*`), равный свободному окну между стёклами. */
+    position: absolute; inset: 0; z-index: 0; margin: 0;
+    overflow: hidden; background: var(--canvas);
   }
+  /* Шапка, полоса маршрута, читалка и свод идут поверх подложки. Автополе
+     прижимает низ к доку: полоса маршрута и читалка со сводом друг друга
+     исключают (в наборе маршрута свода нет), поэтому оба могут просить
+     свободное место себе — делить его им не придётся. */
+  #s-map > .header, #s-map > .route-bar,
+  #s-map > .map-read, #s-map > .map-fold { position: relative; z-index: 20; }
+  #s-map > .route-bar, #s-map > .map-read { margin-top: auto; }
   /* Ротор поворачивается вокруг центра кадра — той же точки, где стоит
      наблюдатель (.map-pin). Без transition: угол ставит rAF каждый кадр,
      css-переход между кадрами только запаздывал бы за сглаживанием в JS. */
@@ -2319,7 +2364,23 @@
   #mapSpots.routing .spot-mark.here::after { display: none; }
 
   /* Слой света поверх тайлов — компас не перехватывает жесты карты */
-  #mapLight { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 450; }
+  /* Прибор занимает не весь кадр, а свободное окно между шапкой и нижним
+     стеклом (`--optic-top` / `--optic-bot`, меряет measureMapOptic). Поля по
+     16 с боков — те самые, что были у кадра: без них кольцо упирается буквами
+     сторон света в край экрана. Замерено: при этом прямоугольнике масштаб
+     остаётся прежним (0.958), то есть прибор не изменился ни на пиксель —
+     изменилась только карта под ним. */
+  #mapLight {
+    position: absolute; left: 16px; top: var(--optic-top, 0px);
+    /* Размеры заданы числом, а не парой `left/right` и `top/bottom`: <svg> —
+       замещаемый элемент, и `auto` у него значит «своя пропорция», а не
+       «растянись между краями». Замерено: коробка выходила 343 × 326 вместо
+       343 × 489 и прижималась к верху — центр кольца расходился с белой
+       головкой на 10 px. */
+    width: calc(100% - 32px);
+    height: calc(100% - var(--optic-top, 0px) - var(--optic-bot, 0px));
+    pointer-events: none; z-index: 450;
+  }
   /* В наборе маршрута прибор уходит. Он не мешает пальцу (жестов не берёт), он
      мешает глазу: круг азимутов, дуга светила и его тень лежат ровно там, где
      в этот момент ищут улицы, булавки и номера на них. Прибор отвечает на
@@ -2341,7 +2402,10 @@
      Два глагола под одним знаком на одном экране мы уже разводили вчера. */
   body[data-tab="s-map"].routing .map-list { display: none; }
   /* Точка съёмки — в центре кадра; карта ездит под ней */
-  .map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 460; }
+  /* Головка наблюдателя стоит там же, где центр прибора, — и там же, где
+     карта держит свой центр (`setPadding`). Три вещи в одной точке, иначе
+     «где я стою» разъедется с тем, что видно. */
+  .map-pin { position: absolute; left: 50%; top: var(--optic-cy, 50%); transform: translate(-50%, -50%); pointer-events: none; z-index: 460; }
   .map-pin i { display: block; width: 13px; height: 13px; border-radius: 50%;
     background: var(--knob); box-shadow: 0 0 0 2px var(--pin-ring), 0 0 0 3.5px var(--ink-a40); }
   /* На светлом холсте те же два кольца выворачивались в чёрную обводку: и
@@ -2364,8 +2428,10 @@
                 0 2px 6px var(--glass-cast);
   }
   /* «Моё место» — единственный элемент управления, тихий кружок */
+  /* Кружки стоят по краям свободного окна, а не кадра: кадр теперь весь
+     экран, и «12 пикселей от низа» увело бы их под док. */
   .map-here {
-    position: absolute; right: 12px; bottom: 12px; z-index: 470;
+    position: absolute; right: 12px; bottom: calc(var(--ctl-bot, 0px) + 12px); z-index: 470;
     width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
     /* Под кружками карты — тайлы, самая богатая картинка в приложении,
        и подложка здесь самая лёгкая из всех */
@@ -2420,7 +2486,7 @@
      плашка там ничего не закрывает. Полупрозрачная и мелкая — это сноска,
      а не подпись автора. */
   .map-credit {
-    position: absolute; z-index: 470; top: 8px; right: 8px;
+    position: absolute; z-index: 470; top: calc(var(--optic-top, 0px) + 8px); right: 8px;
     padding: 2px 6px; border-radius: 7px; corner-shape: squircle;
     background: var(--bar-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     font-size: 9px; letter-spacing: 0.2px; color: var(--ink-7); pointer-events: none;
@@ -2434,7 +2500,7 @@
      Плашка плотнее, чем у меток (`--bar`, не `--bar-2`): в поле набирают
      текст, и просвечивающие улицы под буквами тут не к месту. */
   .spot-name-bar {
-    position: absolute; left: 10px; right: 10px; top: 10px; z-index: 490;
+    position: absolute; left: 10px; right: 10px; top: calc(var(--optic-top, 0px) + 10px); z-index: 490;
     display: flex; align-items: center; gap: 9px;
     padding: 7px 7px 7px 11px;
     border-radius: 14px; corner-shape: squircle;
@@ -2499,6 +2565,10 @@
     padding: 8px 8px 9px;
     border-radius: 16px; corner-shape: squircle;
     background: var(--bar); border: 1px solid var(--ink-10);
+    /* Полоса висит над картой, а не над фоном экрана: без размытия она
+       читалась плоской заплатой на кварталах. Стекло то же, что у остального
+       низа карты. */
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
   }
   .route-bar[hidden] { display: none; }
   /* Шапка двухэтажная, пока список пуст: там она называет оба пути набора и
@@ -6736,7 +6806,7 @@
       <!-- Живой компас — по умолчанию выключен: карта смотрит на север, как
            обычная карта. Включённый разворачивает ротор по датчику ориентации,
            «вперёд» на экране становится «куда смотрит телефон» -->
-      <button class="map-here map-heading-btn" id="mapHeadingBtn" aria-label="Живой компас" data-i18n-aria="map.liveCompass" style="left:12px;right:auto;bottom:auto;top:12px;">
+      <button class="map-here map-heading-btn" id="mapHeadingBtn" aria-label="Живой компас" data-i18n-aria="map.liveCompass" style="left:12px;right:auto;bottom:auto;top:calc(var(--optic-top, 0px) + 12px);">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M15 9l-2 5-4 1 2-5z"/></svg>
       </button>
       <button class="map-here" id="mapHere" aria-label="Моё место" data-i18n-aria="map.myPlace">
@@ -6750,7 +6820,7 @@
            пикселях выше, живёт закладка шапки — тусклый контурный знак, — и
            яркий кружок под ней забирал угол себе целиком. Алексей, 5 сентября
            2026: «пропал флажок». Флажок был на месте; пропал он из виду. -->
-      <button class="map-here map-route-btn" id="mapRouteBtn" aria-label="Маршрут" data-i18n-aria="map.route" data-ic="route" style="bottom:54px;"></button>
+      <button class="map-here map-route-btn" id="mapRouteBtn" aria-label="Маршрут" data-i18n-aria="map.route" data-ic="route" style="bottom:calc(var(--ctl-bot, 0px) + 54px);"></button>
     </div>
     <!-- Черновик маршрута. Показывается только во включённом режиме: пустая
          полоса под картой у того, кто маршрутов не строит, была бы платой за
@@ -13671,6 +13741,99 @@
     if (!w || !h) return;
     var d = Math.ceil(Math.sqrt(w * w + h * h));
     document.documentElement.style.setProperty("--rotor-d", d + "px");
+    measureMapOptic(frame);
+  }
+  /* ---------- Свободное окно карты ----------
+     Карта лежит во весь экран, но видно её не всю: сверху шапка, снизу
+     стекло со сводом и барабанами. Прибор, белая головка и центр самой карты
+     должны стоять в середине того, что видно, а не в середине экрана, —
+     иначе «где я стою» уезжает под стекло вместе с половиной кольца.
+
+     Меряем по живым прямоугольникам, а не по числам: высота шапки зависит от
+     safe-area, а низ — от того, свёрнут ли свод и не набирают ли маршрут.
+     Карте её половина сообщается полем (`setPadding`): поле сдвигает камеру,
+     и `getCenter()` начинает возвращать ту точку, что стоит под головкой, —
+     а именно её читает `moveend`, когда записывает место приложения. */
+  var opticPad = -1, opticAgain = false;
+  function measureMapOptic(frame) {
+    var fr = frame.getBoundingClientRect();
+    /* Экран в переходе — кадра ещё нет. Считать нечего, но и бросать нельзя:
+       без повтора окно осталось бы с числами того мгновения, когда карту ещё
+       не открыли (замерено: док насчитан 84 вместо 180, кольцо наехало на
+       читалку). Один повтор на следующем кадре, чтобы не крутиться зря. */
+    if (!fr.height) {
+      if (!opticAgain) {
+        opticAgain = true;
+        requestAnimationFrame(function () { opticAgain = false; measureMapOptic(frame); });
+      }
+      return;
+    }
+    var hdr = document.querySelector("#s-map .header");
+    var top = hdr ? Math.max(0, hdr.getBoundingClientRect().bottom - fr.top) : 0;
+    /* Низ окна считается по доку и читалке, но НЕ по раскрытому своду — и это
+       не упрощение, а условие: свод раскрывают и сворачивают часто, а всякое
+       изменение окна двигает поле карты, то есть саму карту. Считай мы по
+       живому низу — открытие сводки уводило бы карту вбок и `moveend` писал
+       бы новое место приложения. Место менялось бы оттого, что человек
+       заглянул в цифры. Поэтому опора — свёрнутое состояние: свод, когда его
+       раскрывают, наезжает на карту стеклом, ничего не сдвигая.
+       В наборе маршрута читалки нет вовсе (`display: none` даёт нулевую
+       высоту), и окно опирается на один док — барабаны там тоже сняты. */
+    /* Док меряем по самим элементам, а не по `--dockh`: переменную считает
+       `measureDock`, и порядок двух измерений не гарантирован ничем — а
+       ошибка в порядке тут стоит уехавшего центра карты. Скрытые барабаны
+       (набор маршрута) дают нулевую высоту сами. */
+    var tabbar = document.querySelector(".tabbar"), bars = $("timebar"), read = $("mapRead");
+    var tabh = (tabbar && tabbar.offsetHeight) || 0;
+    var dock = tabh + ((bars && bars.offsetHeight) || 0);
+    var bot = dock + ((read && read.offsetHeight) || 0);
+    /* Раз док померен живьём — он же и держит переменную. `measureDock`
+       считает её один раз при запуске, и в астро-режиме она застревала на
+       84 (один таб-бар): барабаны с лентой суток вырастают позже, распорка
+       экрана оставалась короткой, и свод наезжал на барабаны на 141 px. */
+    var st0 = document.documentElement.style;
+    if (parseFloat(st0.getPropertyValue("--dockh")) !== dock) {
+      st0.setProperty("--tabh", tabh + "px");
+      st0.setProperty("--dockh", dock + "px");
+    }
+    var cy = (top + (fr.height - bot)) / 2;
+    /* Второй низ — живой. Центру нельзя двигаться (иначе карта поедет от
+       раскрытой сводки), а кнопкам, наоборот, нельзя стоять на месте: они
+       обязаны уворачиваться от того, что сейчас на экране, — от раскрытого
+       свода и от полосы черновика, которая растёт с каждой точкой маршрута.
+       Поэтому центр считается по свёрнутому низу, а кружки — по живому. */
+    var live = bot;
+    [$("mapRouteBar"), $("mapRead")].some(function (el) {
+      if (!el || el.hidden) return false;
+      var r = el.getBoundingClientRect();
+      if (!r.height) return false;
+      live = Math.max(bot, Math.round(fr.bottom - r.top));
+      return true;
+    });
+    var st = document.documentElement.style;
+    st.setProperty("--optic-top", Math.round(top) + "px");
+    st.setProperty("--optic-bot", Math.round(bot) + "px");
+    st.setProperty("--optic-cy", Math.round(cy) + "px");
+    st.setProperty("--ctl-bot", live + "px");
+    /* Потолок свода. У кадра прежде был пол — 370 px минимальной высоты, — а
+       добиралась сводка прокруткой всего экрана. Подложка прокручиваться не
+       может (она и есть фон), поэтому пол переносится в новое правило: стекло
+       не смеет накрыть точку, на которой стоишь. Замерено в астро-режиме, где
+       и док, и свод самые высокие: без потолка карте оставалась полоска в
+       120 px и белая головка уходила под стекло.
+       Что не поместилось — прокручивается внутри самого свода, а не двигает
+       карту: так до нижних строк по-прежнему можно дойти. */
+    var readH = (read && read.offsetHeight) || 0;
+    var foldMax = Math.max(120, Math.round(fr.height - dock - readH - cy - 20));
+    st.setProperty("--fold-max", foldMax + "px");
+    /* Поле — вдвое больше сдвига: оно отнимается с одной стороны, а центр
+       съезжает на половину отнятого. Ставим только при изменении: каждый
+       вызов двигает камеру, а меряем мы на каждой отрисовке. */
+    var pad = Math.max(0, Math.round((fr.height / 2 - cy) * 2));
+    if (lmap && lmap.setPadding && pad !== opticPad) {
+      opticPad = pad;
+      try { lmap.setPadding({ top: 0, bottom: pad, left: 0, right: 0 }); } catch (e) {}
+    }
   }
   window.addEventListener("resize", measureMapRotor);
   function renderMap() {
@@ -31531,6 +31694,12 @@
     var barh = $("timebar").offsetHeight;
     document.documentElement.style.setProperty("--tabh", tabh + "px");
     document.documentElement.style.setProperty("--dockh", (tabh + barh) + "px");
+    /* Свободное окно карты стоит на доке, и считать его раньше дока нельзя.
+       Замерено: при первом заходе `--dockh` ещё 84 (один таб-бар), окно
+       выходило на 96 px ниже правды и кольцо наезжало на читалку. Пересчёт
+       идёт следом за доком, а не сам по себе. */
+    var frame = document.querySelector(".map-frame");
+    if (frame && typeof measureMapOptic === "function") measureMapOptic(frame);
   }
   /* Мерить сразу после раскладки, а не в её середине */
   function measureDockSoon() {
