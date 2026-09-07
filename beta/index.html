@@ -5536,85 +5536,104 @@
     text-overflow: ellipsis; white-space: nowrap; }
   .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: var(--ink-7); line-height: 1.5; }
 
-  /* Редактор точек в форме */
-  .rt-row { display: flex; align-items: center; gap: 6px; padding: 7px 14px 9px; flex-wrap: wrap; }
-  /* Разделитель тот же, что во всей форме, — прозрачная щель в плашке, сквозь
-     которую виден фон страницы (`--surface` #0F0E0C под группой #17150F).
-     Своей краски он не заводит.
-     Не читался он здесь по другой причине, и её замерили 6 сентября 2026:
-     поля строки были залиты ровно тем же #0F0E0C, что и фон под щелью. Щель
-     теряется не потому, что тонкая, а потому, что вокруг неё стоят пятна её
-     собственного цвета — в «Паре», где поля прозрачные, та же щель читается
-     прекрасно. Значит краску меняет не линия, а поля: `--field` — тот самый
-     тон, которым форма красит свои поля и капсулы везде, кроме этой строки.
-     Первую точку щель отделяет от места съёмки: место — такая же точка дня,
-     первая, и «Лобня» слипалась с «ЗАГС» так же, как точки между собой. Щель
-     висит на самом списке, а он скрыт, пока точек нет, — под пустым местом
-     черты не появится. */
-  .rt-row + .rt-row, #fRouteList { box-shadow: inset 0 1px 0 var(--surface); }
-  .rt-row input {
-    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle; padding: 10px 11px;
-    color: var(--ink); font-family: inherit; font-size: 15px; outline: none;
-    -webkit-appearance: none; appearance: none; min-width: 0;
-  }
-  /* Имя этапа занимает остаток строки: номер и промежуток стоят по краям и
-     ширины не меняют, а «Сборы невесты» бывает длинным */
-  .rt-row .rt-in-n { flex: 1; min-width: 64px; }
-  /* Место в строке маршрута: поле и кнопка выбора из сохранённых точек.
-     Фотограф ездит по одним и тем же адресам — набирать их заново незачем */
-  /* Второй человек отделён воздухом: две пары «имя — телефон» подряд без
-     паузы читались одним списком из четырёх полей */
-  #fP2Name { margin-top: 9px; }
+  /* ---------- Редактор точек в форме: нить дня ----------
+     Раскладка перенесена один в один из демки Алексея («Маршрут дня —
+     redesign», 7 сентября 2026). Точки перестали быть строками таблицы и
+     стали узлами на нити: номер сидит в кружке, кружки соединены линией, а
+     зазор между ними и есть та дорога, которую в маршруте не пишут. Порядок
+     теперь виден фигурой, а не размером цифры.
 
-  .rt-place { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; }
-  .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
-  /* Строка студии — не поле, а капсула барабана: её не набирают, её крутят.
-     Форма та же, что у поля рядом (сквиркл, тот же фон), потому что вопрос
-     один — «где мы»; отличается только тем, что открывает колесо залов.
-     Текст слева, как в поле: это значение, а не кнопка-действие. */
-  .rt-row button.rt-in-p {
-    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle;
-    color: var(--ink); font-family: inherit; text-align: left; cursor: pointer;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
-  }
-  .rt-row button.rt-in-p.open { background: rgba(226,164,76,0.16); color: var(--brass); }
+     Тона взяты из темы, а не из макета: демка собрана на тех же переменных
+     (`--field` #1C1A16, `--rail` #2B2822, `--press` #221F19, `--brass`), и
+     светлая тема получает ту же раскладку без отдельной правки. */
+  .rt-row { display: flex; gap: 11px; padding: 0 14px; }
+  /* Первую ячейку отделяет от города щель — прозрачная прорезь в плашке,
+     сквозь которую виден фон страницы. Между ячейками щели нет: их разделяет
+     нить, и вторая линия рядом с ней спорила бы с первой. */
+  #fRouteList { box-shadow: inset 0 1px 0 var(--surface); }
+  .rt-row:first-child { padding-top: 11px; }
 
-  /* Номер пункта. Порядок в маршруте держался молчанием — строки просто шли
-     сверху вниз, и назвать нужную вслух («на третьей точке») было нечем.
-     Голос тот же, что у подписи: номер не соперничает с именем этапа, он его
-     считает. Ширина фиксированная, чтобы имена начинались по одной линии
-     и на десятой точке строка не поехала. */
-  .rt-no { flex: 0 0 15px; font-size: 12px; color: var(--ink-6);
-    font-variant-numeric: tabular-nums; text-align: right; }
-  /* Промежуток точки: пришли — ушли. Две пилюли и тире между ними — та же
-     форма, что у начала и конца съёмки; время во всём приложении лежит в
-     капсуле, а не в поле. */
-  .rt-span { flex: 0 0 auto; display: flex; align-items: center; gap: 3px; }
-  /* Ширина по содержимому, а не «про запас»: цифры моноширинные, длиннее
-     «09:00» здесь не бывает, а каждый лишний пункт отъедается у имени этапа */
-  .rt-span .rv-v { min-width: 0; text-align: center; font-size: 13.5px;
-    padding: 7px 10px; background: var(--field); border: none; border-radius: 999px;
-    color: var(--ink); cursor: pointer; font-family: inherit;
+  /* Колонка нити. Узел — кружок с номером; линия под ним тянется до
+     следующего узла. Линии нет у последней ячейки и у той, под которой сейчас
+     раскрыт барабан: там нить прерывается, потому что колесо точкой дня не
+     является. `:has` спрашивает ровно это — идёт ли следом такая же ячейка. */
+  .rt-node { flex: 0 0 24px; display: flex; flex-direction: column; align-items: center; }
+  .rt-no { width: 24px; height: 24px; border-radius: 999px; background: var(--field);
+    box-shadow: inset 0 0 0 1px var(--rail); display: flex; align-items: center;
+    justify-content: center; font-size: 12.5px; font-weight: 600; color: var(--ink-3);
+    font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  .rt-thread { flex: 1; width: 1px; background: var(--rail); margin-top: 5px; }
+  .rt-row:not(:has(+ .rt-row)) .rt-thread { display: none; }
+  /* Ячейка, чей барабан сейчас крутят, светится узлом: видно, чья это правка */
+  .rt-row.on .rt-no { background: rgba(226,164,76,0.16); box-shadow: inset 0 0 0 1px var(--press-brass);
+    color: var(--brass); }
+
+  .rt-body { flex: 1; min-width: 0; padding-bottom: 16px; }
+  .rt-line { display: flex; align-items: center; gap: 8px; }
+  /* Имя этапа — крупное и полужирное: в списке дня читают его, а не время.
+     Поле без заливки: рамка вокруг каждой строки превращала список в
+     анкету (демка, 7 сентября 2026). */
+  #fRouteList .rt-in-n { flex: 1; min-width: 0; background: none; border: none; padding: 0;
+    font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink);
+    outline: none; -webkit-appearance: none; appearance: none;
+    text-overflow: ellipsis; }
+  #fRouteList .rt-in-n::placeholder { color: var(--ink-8); font-weight: 600; }
+
+  /* Промежуток — одна пилюля на оба конца: в дне читают «с девяти до
+     одиннадцати» одной величиной, а не двумя числами рядом. Нажимаются
+     половины по отдельности — каждая открывает свой барабан. */
+  .rt-span { flex: 0 0 auto; display: flex; align-items: center; gap: 3px;
+    background: var(--field); border-radius: 999px; padding: 6px 10px; }
+  .rt-span .rv-v { background: none; border: none; padding: 0; cursor: pointer;
+    font-family: inherit; font-size: 13px; color: var(--ink);
     font-variant-numeric: tabular-nums; }
   .rt-span .rv-v.empty { color: var(--ink-8); }
-  .rt-span .rv-v.open { background: rgba(226,164,76,0.16); color: var(--brass); }
-  .rt-span .rn-d { color: var(--ink-3); font-size: 13px; }
+  .rt-span .rv-v.open { color: var(--brass); }
+  .rt-span .rn-d { color: var(--ink-7); font-size: 13px; }
 
-  .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
-
+  /* Место — вторая строка ячейки, голосом подписи. Знак булавки слева и есть
+     кнопка выбора: знак и действие в одном месте, второй кнопке справа взяться
+     неоткуда. Латунь — состояние: точка ссылается на сохранённое место. */
+  .rt-place { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+  .rt-pick { flex: 0 0 auto; width: 24px; height: 24px; margin-left: -5px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
-    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle; color: var(--ink-4); cursor: pointer; }
-  .rt-pick svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
-    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-  .rt-pick:active { color: var(--brass); }
-  /* Латунь — не действие, а состояние: точка ссылается на сохранённое место */
+    background: none; border: none; color: var(--ink-7); cursor: pointer; }
+  .rt-pick svg { width: 13px; height: 13px; fill: none; stroke: currentColor;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .rt-pick:active { color: var(--brass-soft); }
   .rt-pick.on { color: var(--brass); }
-  .rt-row input::placeholder { color: var(--ink-8); }
-  .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: var(--ink-7);
-    font-size: 15px; padding: 6px 2px 6px 4px; cursor: pointer; }
-  .rt-add { width: 100%; padding: 13px 15px; background: none; border: none;
-    box-shadow: inset 0 1px 0 var(--surface); text-align: left;
-    font-family: inherit; font-size: 15px; color: var(--ink-3); cursor: pointer; }
+  #fRouteList .rt-in-p { flex: 1; min-width: 0; background: none; border: none; padding: 0;
+    font-family: inherit; font-size: 13px; color: var(--ink-4); outline: none;
+    -webkit-appearance: none; appearance: none; text-overflow: ellipsis; }
+  #fRouteList .rt-in-p::placeholder { color: var(--ink-9); }
+  /* Строка студии — не поле, а капсула барабана: её не набирают, её крутят.
+     В покое она такая же подпись, как место; раскрытой становится латунной,
+     как всякая капсула под своим колесом. */
+  #fRouteList button.rt-in-p { text-align: left; cursor: pointer; white-space: nowrap;
+    overflow: hidden; }
+  #fRouteList button.rt-in-p.open { color: var(--brass); background: rgba(226,164,76,0.16);
+    border-radius: 9px; corner-shape: squircle; padding: 7px 11px; margin: -7px -11px; }
+
+  #fRouteList .rt-x { flex: 0 0 auto; background: none; border: none; color: var(--ink-9);
+    font-size: 14px; padding: 6px 0 6px 2px; cursor: pointer; }
+
+  /* Барабаны и ряд путей уезжают под свою ячейку и встают в её колонку: они
+     отвечают точке, а не списку, и начинаться должны там же, где её имя */
+  #fRouteList > .inline, #fRouteList > .place-ways { padding-left: 35px; }
+
+  /* «Точка» — последний узел нити: пустой кружок с плюсом на том же месте,
+     где у ячеек стоят их номера. Слово «＋» из подписи ушло — знак уже в
+     кружке, и повторять его текстом незачем (демка, 7 сентября 2026). */
+  /* `display:flex` перебивает общий `[hidden]`, а кнопка обязана исчезать,
+     пока под списком открыт ряд путей: две кнопки «добавить» подряд спорили бы */
+  .rt-add[hidden] { display: none; }
+  .rt-add { width: 100%; display: flex; align-items: center; gap: 11px;
+    padding: 0 14px 14px; background: none; border: none; text-align: left;
+    font-family: inherit; font-size: 14.5px; color: var(--ink-4); cursor: pointer; }
+  .rt-add .rt-no { background: none; color: var(--ink-5); }
+  .rt-add .rt-no svg { width: 12px; height: 12px; fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; }
+  .rt-add:active .rt-no { color: var(--brass); }
   .rt-empty { padding: 14px 15px; font-size: 13px; color: var(--ink-8); }
   /* Подсказка внутри сетки — во всю ширину: колонка ломала её по слову */
   .ref-grid .rt-empty { grid-column: 1 / -1; line-height: 1.5; }
@@ -8339,7 +8358,10 @@
           <span data-i18n="loc.wayGeo">Геопозиция</span>
         </button>
       </div>
-      <button type="button" class="rt-add" id="fRouteAdd" data-i18n="form.addStop">+ Точка</button>
+      <button type="button" class="rt-add" id="fRouteAdd">
+        <span class="rt-no"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span data-i18n="form.addStopShort">Точка</span>
+      </button>
     </div>
 
     <!-- Заметки, оборудование и плейлист
@@ -21984,6 +22006,18 @@
        аренды, для которой всегда есть строка съёмки-без-маршрута */
     ROWS.forEach(function (r) { var c = capOf(r[0]); if (c) c.classList.remove("open"); $(r[1]).classList.remove("open"); });
     openRow = null;
+    markStopRow();
+  }
+  /* Узел ячейки светится, пока крутят её барабан: в списке из шести точек
+     видно, чья это правка, — колесо стоит под строкой, а строка у всех
+     одинаковая (демка «Маршрут дня — redesign», 7 сентября 2026) */
+  function markStopRow() {
+    var host = $("fRouteList"); if (!host) return;
+    var live = (openRow === "fStopTime" || openRow === "fStopEnd") ? stopTimeRow
+      : (openRow === "fHall" ? hallStop : null);
+    host.querySelectorAll(".rt-row").forEach(function (row) {
+      row.classList.toggle("on", live !== null && +row.dataset.i === live);
+    });
   }
 
   function toggleRow(id) {
@@ -23547,29 +23581,34 @@
     stopTimeRow = null; hallStop = null; capEls = {};
     host.innerHTML = fRoute.map(function (r, i) {
       return '<div class="rt-row" data-i="' + i + '">'
-        + '<span class="rt-no">' + (i + 1) + '</span>'
+        /* Узел на нити: номер сидит в кружке, а линия под ним тянется к
+           следующему. Порядок читается фигурой, а не размером цифры */
+        + '<div class="rt-node"><span class="rt-no">' + (i + 1) + '</span>'
+        + '<span class="rt-thread"></span></div>'
+        + '<div class="rt-body">'
+        + '<div class="rt-line">'
         + '<input class="rt-in-n" type="text" placeholder="' + esc(hints[i % hints.length]) + '" value="' + esc(r.n || "") + '"/>'
-        /* Промежуток у каждой точки, а не только у студийной: время на дорогу
-           видно зазором между концом одной ячейки и началом следующей, и
-           отдельной строкой его не пишут — «может, уйдём из студии пораньше,
-           это непредсказуемо» (Алексей, 7 сентября 2026) */
+        /* Промежуток одной пилюлей: время на дорогу видно зазором между
+           концом одной ячейки и началом следующей, и отдельной строкой его не
+           пишут — «может, уйдём из студии пораньше, это непредсказуемо»
+           (Алексей, 7 сентября 2026). Нажимаются половины по отдельности. */
         + '<span class="rt-span">'
         + '<button type="button" class="rv-v rt-t1' + (r.t ? '' : ' empty') + '">' + esc(r.t || "--:--") + '</button>'
         + '<span class="rn-d">–</span>'
         + '<button type="button" class="rv-v rt-t2' + (r.t2 ? '' : ' empty') + '">' + esc(r.t2 || "--:--") + '</button>'
         + '</span>'
         + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
+        + '</div>'
+        /* Знак булавки слева и есть кнопка выбора места: знак и действие в
+           одном месте. Место точки со студией не набирают руками — там стоит
+           капсула барабана залов. */
         + '<div class="rt-place">'
-        /* Место точки со студией не набирают руками: студия называет себя
-           сама, а зал к её имени добавляет барабан. Поэтому у неё вместо поля
-           стоит строка-кнопка — тап открывает колесо залов под ячейкой, тем
-           же приёмом, что у времени. У обычной точки поле остаётся полем:
-           «Лагерный сад» пишут словами. */
+        + '<button type="button" class="rt-pick" aria-label="' + esc(LANG.t("form.pickSpotAria")) + '" data-ic="pin"></button>'
         + (r.studioId
             ? '<button type="button" class="rt-in-p rt-hall" aria-label="'
               + esc(LANG.t("form.pickHallAria")) + '">' + esc(r.p || "") + '</button>'
             : '<input class="rt-in-p" type="text" placeholder="' + esc(LANG.t("form.scenePlacePh")) + '" value="' + esc(r.p || "") + '"/>')
-        + '<button type="button" class="rt-pick" aria-label="' + esc(LANG.t("form.pickSpotAria")) + '" data-ic="pin"></button>'
+        + '</div>'
         + '</div>'
         + '</div>';
     }).join("") || '<div class="rt-empty">'
@@ -23590,6 +23629,7 @@
           stopTimeRow = i; capEls[w[1]] = b;
           row.parentNode.insertBefore($(w[1] + "Pick"), row.nextSibling);
           toggleRow(w[1]);
+          markStopRow();
           /* Времени ещё не было — колесо встало на подсказанное, и это уже
              ответ: записываем его, иначе строка осталась бы с прочерком под
              раскрытым колесом */
@@ -23636,6 +23676,7 @@
         hallStop = i; capEls.fHall = hallBtn;
         row.parentNode.insertBefore($("fHallPick"), row.nextSibling);
         toggleRow("fHall");
+        markStopRow();
       });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRouteSeeded = false;
