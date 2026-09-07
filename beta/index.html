@@ -5243,6 +5243,9 @@
   .wx-h .hh { font-size: 10.5px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
   .wx-h svg { width: 20px; height: 20px; margin: 4px 0; fill: none; stroke: var(--ink-4); stroke-width: 1.4;
     stroke-linecap: round; stroke-linejoin: round; }
+  /* Прогноз точки ещё в пути: место под знак держим пустым, иначе колонка
+     подпрыгнет, когда он приедет */
+  .wx-h .wx-wait { width: 20px; height: 20px; margin: 4px auto; }
   .wx-h .tt { font-size: 11.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
   .wx-h .pp { font-size: 10px; color: var(--ink-7); }
   /* Час до и час после съёмки: те же колонки, ступень второстепенного 0.45 */
@@ -10406,7 +10409,10 @@
       day.precip += h.precipitation[i] || 0;
       day.temps.push(h.temperature_2m[i]);
       day.byHour[hh] = {
-        cloud: h.cloud_cover[i], code: h.weather_code[i],
+        /* Температура часа лежит рядом с облачностью того же часа: панель
+           карточки берёт её прямо отсюда, а не считает синусоидой от
+           суточного среднего — та мазала на 4.7–6.3° */
+        cloud: h.cloud_cover[i], code: h.weather_code[i], temp: h.temperature_2m[i],
         low: has("cloud_cover_low") ? h.cloud_cover_low[i] : h.cloud_cover[i],
         mid: has("cloud_cover_mid") ? h.cloud_cover_mid[i] : 0,
         high: has("cloud_cover_high") ? h.cloud_cover_high[i] : 0,
@@ -10538,6 +10544,135 @@
     }
     return null;
   }
+  /* ---------- Погода точек маршрута ----------
+     Прогноз выше — один на всё приложение: `fetchWeather` спрашивает LAT/LON,
+     то есть место карты, и кладёт ответ в общий `wxReal`. Съёмочному дню
+     этого мало, и замер 7 сентября показал, насколько. День: сборы в отеле на
+     берегу Сочи, дальше церемония, прогулка и банкет в Красной Поляне —
+     сорок километров. Панель рисовала во всех колонках лобненские 12° и 93%
+     облачности (место приложения по умолчанию), тогда как на берегу было 22°
+     и ясно, а в Поляне на закате 14° и 80%. Три слоя вранья разом: чужой
+     город, чужая точка дня и чужой час — температуру колонки считала
+     синусоида от суточного среднего, и она мазала на 4.7–6.3° даже в
+     правильной точке.
+
+     Поэтому у карточки свой кэш, по координатам и дате. Ключ построен как
+     `zoneKey` у поясов, только мельче: три знака после запятой, около ста
+     метров. Координаты приходят из справочника мест, поэтому три этапа в
+     одной Поляне дают один ключ и один вопрос сети.
+
+     Спрашиваем все точки разом: Open-Meteo принимает список координат и
+     отвечает массивом, у каждой точки свой пояс. Замер: шесть точек на один
+     день — 12.6 КБ и 0.45 с против 29 КБ и 0.58 с у нынешнего фонового
+     запроса на двадцать один день. Дальше окна прогноза не спрашиваем вовсе:
+     на дату за краем сервис отвечает не пустотой, а ошибкой 400. */
+  var ptWx = {}, ptWait = {}, ptAirC = {}, ptAirWait = {};
+  var PT_VARS = "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,"
+    + "relative_humidity_2m,temperature_2m,wind_speed_10m,wind_direction_10m,"
+    + "wind_gusts_10m,precipitation,weather_code";
+  function ptKey(lat, lon, d) { return lat.toFixed(3) + "," + lon.toFixed(3) + "|" + dkey(d); }
+  function dayOff(d) {
+    return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate())
+      - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  }
+  /* Окно, на которое сервис отвечает: те же пять дней назад и шестнадцать
+     вперёд, что качает общий прогноз. Дальше — старая выдумка, менять её тут
+     не на что */
+  function ptReach(d) { var o = dayOff(d); return o >= -5 && o <= 15; }
+
+  /* День и часы точки считает та же `buildWx`, что и общий прогноз: категория
+     неба, ярусы облаков, закатный балл — правила одни, и вторая таблица
+     качества означала бы вторую правду. Взамен приходится одолжить у неё
+     глобальные: солнце она считает по LAT/LON (час заката в Поляне свой),
+     часы кладёт в `wxByHour`, дым берёт из `airDay`. Все три возвращаются на
+     место сразу же — тем же приёмом, что в `routeLight`. */
+  function ptBuild(rec, date) {
+    var kLat = LAT, kLon = LON, kTz = TZ, kHours = wxByHour, kAir = airDay;
+    LAT = rec.lat; LON = rec.lon; TZ = tzAt(rec.lat, rec.lon, date);
+    airDay = rec.air || {};
+    var days = buildWx(rec.raw), hours = wxByHour;
+    wxByHour = kHours; airDay = kAir;
+    LAT = kLat; LON = kLon; TZ = kTz;
+    computeSun(selDate);
+    var k = dkey(date);
+    rec.day = days[k] || null;
+    rec.byHour = hours[k] || null;
+    return rec;
+  }
+  function ptAt(p, date) {
+    if (!p || p.lat == null || !isFinite(p.lat)) return null;
+    return ptWx[ptKey(p.lat, p.lon, date)] || null;
+  }
+  function ptOnWay(p, date) {
+    if (!p || p.lat == null || !isFinite(p.lat)) return false;
+    return !!ptWait[ptKey(p.lat, p.lon, date)];
+  }
+  function ptFetch(list, date, done) {
+    if (typeof fetch === "undefined" || !ptReach(date)) return;
+    var want = list.filter(function (p) {
+      var k = ptKey(p.lat, p.lon, date);
+      return !ptWx[k] && !ptWait[k];
+    });
+    if (!want.length) return;
+    want.forEach(function (p) { ptWait[ptKey(p.lat, p.lon, date)] = true; });
+    var day = airKeyOf(date);
+    fetch("https://api.open-meteo.com/v1/forecast?latitude="
+      + want.map(function (p) { return p.lat.toFixed(4); }).join(",")
+      + "&longitude=" + want.map(function (p) { return p.lon.toFixed(4); }).join(",")
+      + "&hourly=" + PT_VARS + "&start_date=" + day + "&end_date=" + day
+      + "&timezone=auto&windspeed_unit=ms")
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        /* Одна координата — объект, несколько — массив: сервис отвечает по
+           числу заданных точек, а не по форме запроса */
+        var arr = Array.isArray(j) ? j : [j];
+        want.forEach(function (p, i) {
+          var k = ptKey(p.lat, p.lon, date), h = arr[i] && arr[i].hourly;
+          delete ptWait[k];
+          /* Пустой ответ тоже запоминается: без записи следующая перерисовка
+             спросила бы то же самое, и карточка ходила бы по кругу */
+          ptWx[k] = (h && h.time)
+            ? ptBuild({ lat: p.lat, lon: p.lon, raw: h, air: ptAirC[k] || null }, date)
+            : { lat: p.lat, lon: p.lon, raw: null, day: null, byHour: null };
+        });
+        if (done) done();
+      })
+      .catch(function () {
+        /* Сеть на съёмке рвётся кусками: ключи освобождаем, следующее
+           открытие карточки спросит снова */
+        want.forEach(function (p) { delete ptWait[ptKey(p.lat, p.lon, date)]; });
+      });
+  }
+  /* Дым — поправка к закатному баллу, и нужен он ровно якорю: балл в карточке
+     один, и он про место съёмки. Горизонт воздуха — около недели против
+     шестнадцати дней у погоды, поэтому дальше он просто не приходит, а балл
+     считается без него, как считался до появления аэрозоля. */
+  function ptAirFetch(p, date, done) {
+    if (typeof fetch === "undefined" || !p || p.lat == null) return;
+    var k = ptKey(p.lat, p.lon, date), o = dayOff(date);
+    if (ptAirC[k] || ptAirWait[k] || o < -5 || o > 5) return;
+    ptAirWait[k] = true;
+    var day = airKeyOf(date);
+    fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + p.lat
+      + "&longitude=" + p.lon + "&hourly=aerosol_optical_depth,dust"
+      + "&start_date=" + day + "&end_date=" + day + "&timezone=auto")
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        delete ptAirWait[k];
+        if (!j.hourly || !j.hourly.time) return;
+        var by = { byHour: {} };
+        for (var i = 0; i < j.hourly.time.length; i++) {
+          by.byHour[+j.hourly.time[i].slice(11, 13)] = {
+            aod: j.hourly.aerosol_optical_depth[i], dust: j.hourly.dust[i] };
+        }
+        var air = {}; air[day] = by;
+        ptAirC[k] = air;
+        /* День уже посчитан без дыма — пересобираем: иначе поправка досталась
+           бы только следующему открытию карточки */
+        if (ptWx[k] && ptWx[k].raw) { ptWx[k].air = air; ptBuild(ptWx[k], date); if (done) done(); }
+      })
+      .catch(function () { delete ptAirWait[k]; });
+  }
   /* ---------- Засветка места: сколько своего света под небом ----------
      Третья причина пустой ночи, и единственная, которую не переждать.
      Темнота приходит сама, луна уходит через неделю, облака сдувает за ночь —
@@ -10659,9 +10794,11 @@
   /* Модель считает в Цельсии всегда — прогноз приходит в нём, и переводить
      внутри значило бы держать две правды. Единицы живут только на выходе.
      Знак градуса общий для обеих шкал, поэтому подписи он не меняет */
-  function tempOut(base, t) {
-    var c = tempAt(base, t);
-    return tempUnit === "f" ? Math.round(c * 9 / 5 + 32) : c;
+  function tempOut(base, t) { return tempShow(tempAt(base, t)); }
+  /* Тот же выход для градуса, который считать не надо: он уже пришёл из
+     прогноза на конкретный час конкретной точки */
+  function tempShow(c) {
+    return tempUnit === "f" ? Math.round(c * 9 / 5 + 32) : Math.round(c);
   }
   function unitLabel() { return tempUnit === "f" ? "°F" : "°C"; }
   function windWord(w) {
@@ -24957,6 +25094,36 @@
   });
 
 
+  /* Места, у которых карточка спрашивает погоду: якорь дня и точки маршрута,
+     ровно те шесть, что помещаются в панель часов. Повторы схлопывает ключ,
+     поэтому три этапа в одном месте стоят одного вопроса сети. */
+  function cardWxPts(s, route) {
+    var seen = {}, out = [];
+    function add(p) {
+      if (!p || p.lat == null || !isFinite(p.lat)) return;
+      var k = ptKey(p.lat, p.lon, s.date);
+      if (seen[k]) return;
+      seen[k] = true; out.push({ lat: p.lat, lon: p.lon });
+    }
+    add(shootAt(s));
+    (route || []).slice(0, 6).forEach(function (r) { add(stopPlace(r)); });
+    return out;
+  }
+  /* Прогноз приходит позже карточки — карточка перерисовывается на приход.
+     Проверяем, что это всё ещё она: пока летит ответ, фотограф успевает
+     закрыть карточку или уйти в соседнюю запись дня */
+  function ensureCardWx(s, route) {
+    var pts = cardWxPts(s, route);
+    if (!pts.length) return;
+    var again = function () {
+      if (cardIdx === null || sessions[cardIdx] !== s) return;
+      if (!$("cardOverlay").classList.contains("open")) return;
+      renderEventCard(s);
+    };
+    ptFetch(pts, s.date, again);
+    ptAirFetch(pts[0], s.date, again);      // дым нужен закатному баллу, то есть якорю
+  }
+
   function renderEventCard(s) {
     paintIcons($("cardOverlay"));
     /* Карточка одна на все жанры: у свадьбы точки дня свои, у остальных —
@@ -24967,6 +25134,7 @@
     var route = notWork(s) ? [] : routeOf(s);
     var phase = eventPhase(s);
     var sun = cardSun(s);
+    if (phase !== "after") ensureCardWx(s, route);
     var light = phase === "after" ? null : lightCase(s, route, sun);
 
     $("cardOrder").hidden = false;
@@ -25495,7 +25663,13 @@
     /* Место и погода — один блок: булавка сама говорит, что можно нажать,
        а правая половина пустовала. Кнопка «На карте» была лишней */
     if (placeText(s) && phase !== "after") {
-      var q = qualityOf(s.date), wx = dayWeather(s.date);
+      /* Погода плитки — про место съёмки: она стоит под его именем, и брать
+         её у города фотографа значило бы подписать чужое небо чужим адресом */
+      var q = qualityOf(s.date), wx = dayWeather(s.date), pAt = shootAt(s);
+      var pRec = ptAt(pAt, s.date), pDay = pRec && pRec.day;
+      var pHour = pRec && pRec.byHour ? nearHour(pRec.byHour, clamp(Math.round(s.min / 60), 0, 23)) : null;
+      var pWait = !pDay && (ptOnWay(pAt, s.date) || (!pRec && ptReach(s.date)));
+      var pQ = pDay ? pDay.q : q;
       var sub = firstScenePlace(route);
       var pTitle = shortPlace(placeText(s));
       top.push('<button type="button" class="pane wide" data-act="map"><div class="pane-row">'
@@ -25503,9 +25677,11 @@
         + '<span class="pn-body"><span class="pn-t">' + esc(pTitle) + "</span>"
         + (sub && sub !== pTitle ? '<span class="pn-s">' + esc(sub) + "</span>" : "")
         + "</span>"
-        + '<span class="pn-wx">' + wxSign(q)
-        + '<span><span class="pn-t" style="font-size:19px">' + tempOut(wx.tempBase, s.min) + "°</span>"
-        + '<span class="pn-s">' + QUAL[q].cond + "</span></span></span>"
+        + '<span class="pn-wx">' + (pWait ? "" : wxSign(pQ))
+        + '<span><span class="pn-t" style="font-size:19px">'
+        + (pWait ? "—" : (pHour && pHour.temp != null ? tempShow(pHour.temp) : tempOut(pDay ? pDay.tempBase : wx.tempBase, s.min)) + "°")
+        + "</span>"
+        + '<span class="pn-s">' + (pWait ? "—" : QUAL[pQ].cond) + "</span></span></span>"
         + "</div></button>");
     }
     // Следующая точка — то, ради чего в телефон и заглядывают
@@ -25638,15 +25814,18 @@
   /* Погода: знак и градус, рядом — часы точек дня. Только словами и знаками */
   function renderWxPane(s, route, phase) {
     if (phase === "after") { $("cdWx").hidden = true; return; }
-    var q = qualityOf(s.date), wx = dayWeather(s.date);
+    var q = qualityOf(s.date), wx = dayWeather(s.date), at = shootAt(s);
     /* Погода по часам: точки дня, если они есть, иначе шаг по два часа
        от начала до конца съёмки. Текущая погода уехала в блок места */
+    /* Вместе с часом колонка несёт своё место: маршрут уезжает за десятки
+       километров, и погода там своя — ровно как свет в `routeLight`. Точка
+       без координат отвечает якорем дня */
     var hours = route.length
-      ? route.map(function (r) { return r.t; })
+      ? route.map(function (r) { return { t: r.t, at: stopPlace(r) || at }; })
       : (function () {
           var end = s.end != null ? s.end : s.min + (s.dur || 90), out = [], t = s.min;
-          while (t <= end) { out.push(t); t += 120; }
-          if (out[out.length - 1] !== end) out.push(end);
+          while (t <= end) { out.push({ t: t, at: at }); t += 120; }
+          if (out[out.length - 1].t !== end) out.push({ t: end, at: at });
           return out;
         })();
     hours = hours.slice(0, 6);
@@ -25658,17 +25837,45 @@
        Добавляем час до и час после — дорога на площадку и дорога домой,
        блекло: это часть дня, но не оплачиваемая. fmt и tempAt считают по
        модулю суток, полночь их не смущает */
-    var cols = hours.map(function (t) { return { t: t, aside: false }; });
+    var cols = hours.map(function (h) { return { t: h.t, at: h.at, aside: false }; });
     if (cols.length < 3) {
-      cols.unshift({ t: cols[0].t - 60, aside: true });
-      cols.push({ t: cols[cols.length - 1].t + 60, aside: true });
+      cols.unshift({ t: cols[0].t - 60, at: cols[0].at, aside: true });
+      cols.push({ t: cols[cols.length - 1].t + 60, at: cols[cols.length - 1].at, aside: true });
     }
     $("cdWx").innerHTML = '<div class="wx-hours wide">' + cols.map(function (c) {
+      var w = wxCol(c, s.date, q, wx);
       return '<div class="wx-h' + (c.aside ? " aside" : "") + '"><div class="hh">' + fmt(c.t) + "</div>"
-        + wxSign(q)
-        + '<div class="tt">' + tempOut(wx.tempBase, c.t) + "°</div>"
-        + '<div class="pp">' + wx.cloud + "%</div></div>";
+        + w.sign
+        + '<div class="tt">' + w.temp + "</div>"
+        + '<div class="pp">' + w.cloud + "</div></div>";
     }).join("") + "</div>";
+  }
+
+  /* Колонка часа: числа своей точки, когда её прогноз доехал. Пока он в пути —
+     прочерк и пустое место под знаком: подставить сюда погоду соседней точки
+     значило бы показать число, за которым ничего нет, а ровно этим панель и
+     врала. За краем прогноза (дальше двух недель) остаётся прежняя выдумка:
+     там менять её не на что. */
+  function wxCol(c, date, q, wx) {
+    var rec = ptAt(c.at, date);
+    var h = rec && rec.byHour ? nearHour(rec.byHour, clamp(Math.round(c.t / 60), 0, 23)) : null;
+    if (h && h.temp != null) {
+      return { sign: wxSignHour(h), temp: tempShow(h.temp) + "°", cloud: Math.round(h.cloud) + "%" };
+    }
+    if (ptOnWay(c.at, date) || (!rec && ptReach(date))) {
+      return { sign: '<div class="wx-wait"></div>', temp: "—", cloud: "—" };
+    }
+    return { sign: wxSign(q), temp: tempOut(wx.tempBase, c.t) + "°", cloud: wx.cloud + "%" };
+  }
+  /* Знак колонки — по её собственному часу и её точке, а не по категории дня.
+     Отдельно от `wxSign` потому, что тот отвечает на вопрос «какой сегодня
+     день», где «пасмурно» рисуется солнцем: в дневной плитке это допустимое
+     упрощение, а в колонке, под которой стоит «80%», — противоречие. */
+  function wxSignHour(h) {
+    var code = h.code || 0;
+    var name = code >= 51 ? "rain" : (code === 45 || code === 48) ? "cloud"
+      : h.cloud >= 55 ? "cloud" : h.cloud >= 25 ? "part" : "clear";
+    return IC.svg(name, "i-wx");
   }
 
   /* Знак погоды: части (солнце, облако, осадки) красит CSS, не разметка */
@@ -26066,13 +26273,23 @@
     $("cdLight").textContent = sun.st.label + " · " + sun.st.light;
     $("cdShadow").textContent = sun.shadow;
 
+    /* Небо и закатный балл — про место съёмки. `wxReal` знает только место
+       приложения: у фотографа из Лобни свадьба в Сочи получала лобненские
+       облака и лобненский балл заката, то есть ответ про другое небо */
     var q = qualityOf(s.date), wx = dayWeather(s.date), real = wxReal[dkey(s.date)];
-    $("cdSky").textContent = QUAL[q].cond + " · " + wx.cloud + "%";
+    var skyAt = shootAt(s), skyRec = ptAt(skyAt, s.date), skyDay = skyRec && skyRec.day;
+    var skyWait = !skyDay && (ptOnWay(skyAt, s.date) || (!skyRec && ptReach(s.date)));
+    if (skyDay) { q = skyDay.q; real = skyDay; }
+    $("cdSky").textContent = skyWait ? "—" : QUAL[q].cond + " · " + (skyDay ? skyDay.cloud : wx.cloud) + "%";
 
     var sc = real ? real.sunset : null;
+    if (skyWait) sc = null;
     if (isFinite(sc) && sc !== null) {
       $("cdSunset").textContent = sunsetShort(sc) + " · " + sc + " / 100";
       $("cdSunset").style.color = sc >= 75 ? "#E2A44C" : sc >= 50 ? "#A8B49B" : sc >= 28 ? "#C0B8AA" : "#7C9CC4";
+    } else if (skyWait) {
+      $("cdSunset").textContent = "—";
+      $("cdSunset").style.color = "#8A8478";
     } else {
       $("cdSunset").textContent = LANG.t(wxLive ? "card.noDataDay" : "card.forecastFake");
       $("cdSunset").style.color = "#8A8478";
