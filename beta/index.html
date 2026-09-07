@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=58"></script>
+<script src="lang.js?v=59"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -7058,6 +7058,10 @@
         <!-- Засветка луной — своя строка, а не примечание к вердикту: это
              самая частая причина пустой ясной ночи, и молчать о ней нельзя -->
         <div class="t-row" id="mwGlareRow" hidden><span class="t-label" data-i18n="map.moonGlare">Луна для звёзд</span><span class="t-value" id="mwGlare">—</span></div>
+        <!-- Засветка места — свет с земли рядом со светом с неба. Своя строка,
+             потому что это единственная из причин, которую нельзя переждать:
+             её лечат не часом, а километрами. Нет данных атласа — нет строки -->
+        <div class="t-row" id="mwGlowRow" hidden><span class="t-label" data-i18n="map.glow">Засветка</span><span class="t-value" id="mwGlow">—</span></div>
         <!-- Прозрачность неба — своя оценка вместо 7Timer (заблокирован CORS,
              см. DECISIONS): облачность, влажность и аэрозоль по окну съёмки.
              Строки нет, если для этих часов нет настоящей погоды -->
@@ -7725,6 +7729,8 @@
         <span class="lg-v"><a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a></span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.backup">Копия данных</span>
         <span class="lg-v" data-i18n="lg.backupV">Яндекс.Диск · только папка приложения</span></div>
+      <div class="lg-row"><span class="lg-k" data-i18n="lg.glow">Засветка неба</span>
+        <span class="lg-v"><a href="https://djlorenz.github.io/astronomy/lp/" target="_blank" rel="noopener">Light Pollution Atlas</a><span data-i18n="lg.glowTail"> · Дэвид Лоренц · по снимкам VIIRS (NOAA)</span></span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.sunMoon">Солнце и луна</span>
         <span class="lg-v" data-i18n="lg.sunMoonV">своя модель по алгоритмам NOAA</span></div>
     </div>
@@ -10564,10 +10570,122 @@
     }
     return null;
   }
+  /* ---------- Засветка места: сколько своего света под небом ----------
+     Третья причина пустой ночи, и единственная, которую не переждать.
+     Темнота приходит сама, луна уходит через неделю, облака сдувает за ночь —
+     а зарево города стоит всегда. Прибор обязан называть его до выезда: это
+     ответ не «когда», а «отсюда ли».
+
+     Источник — атлас световой засветки Дэвида Лоренца (djlorenz.github.io),
+     модель рассеяния по ночным снимкам VIIRS с NOAA. Взят он, а не свой
+     расчёт по населению городов из OSM, и причина замеренная: Overpass отдал
+     первый запрос и отвалился по SSL на втором, а строку, ради которой едут
+     ночью за сто километров, нельзя вешать на сервис, который сегодня есть, а
+     завтра его нет. У атласа хостинг статический (GitHub Pages), CORS открыт,
+     ключа не нужно, лимитов нет.
+
+     Данные лежат бинарными плитками 5°×5° по сетке 1/120° (около 900 м):
+     `binary_tiles/{год}/binary_tile_{tx}_{ty}.dat.gz`. Внутри — 600×600
+     однобайтовых знаковых приращений, первая точка двумя байтами; значение в
+     точке набирается ходом по столбцу и затем по строке. Распаковывает gzip
+     сам браузер (`DecompressionStream`), библиотека не нужна.
+
+     Что означает число: `ratio` — во сколько раз искусственное свечение
+     зенита превышает естественный фон ночного неба. Ноль — небо, каким оно
+     было до электричества; единица — своё зарево сравнялось с природным.
+     `mag/arcsec²` — то же самое на языке астрономов, 22.0 у нетронутого неба.
+
+     Шкалой Бортля это не называется, и не по осторожности: автор атласа
+     просит прямо не путать одно с другим, и он прав. Бортль — про весь купол
+     от горизонта до зенита и меряется глазом; здесь модель яркости в зените.
+
+     Замеры при подключении (2025 год атласа): Паранал в Атакаме 0.009,
+     Кош-Агач на Алтае ниже нуля (шум данных у самого дна шкалы), Териберка
+     0.80, глушь под Тверью 0.59, Гёреме в Каппадокии 11.0, Лобня 35.5,
+     центр Петербурга 156, центр Москвы 166 при 16.4 mag/arcsec². */
+  var GLOW_YEAR = 2025, GLOW_ROW = 600, GLOW_SIZE = GLOW_ROW * GLOW_ROW;
+  var glowTiles = {}, glowKey = "", glowVal = null;
+  /* Плитка распакованная — треть мегабайта, и держать их пачкой незачем:
+     фотограф ездит по одному краю, а соседняя плитка нужна раз в поездку.
+     Две — это своя и соседняя за границей в пяти градусах */
+  function glowKeep(tk) {
+    var keys = Object.keys(glowTiles);
+    while (keys.length > 2) { var k = keys.shift(); if (k !== tk) delete glowTiles[k]; }
+  }
+  function glowIndex(lat, lon) {
+    var lonD = (((lon + 180) % 360) + 360) % 360, latS = lat + 65;
+    var tx = Math.floor(lonD / 5) + 1, ty = Math.floor(latS / 5) + 1;
+    /* Атлас кончается на 75° северной и 65° южной широты. Дальше не «ноль
+       засветки», а «не знаем»: Шпицберген и Антарктида честно молчат */
+    if (ty < 1 || ty > 28) return null;
+    return { tx: tx, ty: ty,
+             ix: Math.round(120 * (lonD - 5 * (tx - 1) + 1 / 240)),
+             iy: Math.round(120 * (latS - 5 * (ty - 1) + 1 / 240)) };
+  }
+  /* Байты знаковые: приращение бывает и вниз. Прочитав их без знака, прибор
+     считал бы тёмное место ярче города */
+  function glowS8(b) { return b > 127 ? b - 256 : b; }
+  function glowRead(raw, ix, iy) {
+    var v = 128 * glowS8(raw[0]) + glowS8(raw[1]), i;
+    for (i = 1; i < iy; i++) v += glowS8(raw[GLOW_ROW * i + 1]);
+    for (i = 1; i < ix; i++) v += glowS8(raw[GLOW_ROW * (iy - 1) + 1 + i]);
+    /* Обратная развёртка сжатия автора атласа. У самого дна шкалы выходит
+       чуть отрицательное — это шум оцифровки, а не «темнее нетронутого неба» */
+    return Math.max(0, (5 / 195) * (Math.exp(0.0195 * v) - 1));
+  }
+  function gunzipBytes(buf) {
+    if (typeof DecompressionStream === "undefined") return Promise.reject(new Error("no gzip"));
+    var st = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(st).arrayBuffer().then(function (a) { return new Uint8Array(a); });
+  }
+  function fetchGlow() {
+    if (typeof fetch === "undefined") return;
+    var key = LAT.toFixed(3) + "," + LON.toFixed(3);
+    if (key === glowKey) return;
+    glowKey = key;
+    var ip = glowIndex(LAT, LON);
+    if (!ip) { glowVal = null; renderMap(); return; }
+    var tk = ip.tx + "_" + ip.ty;
+    var use = function (raw) {
+      if (key !== glowKey) return;          // место успело смениться
+      glowVal = glowRead(raw, ip.ix, ip.iy);
+      renderMap();
+    };
+    if (glowTiles[tk]) { use(glowTiles[tk]); return; }
+    var url = "https://djlorenz.github.io/astronomy/binary_tiles/" + GLOW_YEAR
+      + "/binary_tile_" + ip.tx + "_" + ip.ty + ".dat.gz";
+    fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("http " + r.status);
+      return r.arrayBuffer();
+    }).then(gunzipBytes).then(function (raw) {
+      /* Плитка короче сетки — читать по ней значит взять чужой байт за свой.
+         Лучше промолчать: строки засветки просто не будет */
+      if (raw.length < GLOW_SIZE) throw new Error("short tile");
+      glowTiles[tk] = raw; glowKeep(tk);
+      use(raw);
+    }).catch(function () {
+      if (key === glowKey) { glowVal = null; renderMap(); }
+    });
+  }
+  /* Ступени названы для камеры, а не для глаза, и это разные пороги: глазом
+     Путь пропадает уже под слабым заревом, а матрица вытягивает его и на
+     городской окраине — бледным, шумным, но вытягивает. Прибор для фотографа
+     обязан говорить «поедешь и снимешь», а не «поедешь и увидишь».
+
+     Границы: до единицы своё зарево слабее природного фона неба — Путь идёт
+     через весь купол с пылевыми полосами. До восьми — тянется уверенно, но
+     край теряется в засветке у горизонта. До двадцати семи остаётся ядро,
+     остальное съедает зарево. Дальше пусто: снять нечего. */
+  function glowLevel(r) {
+    return r == null ? null : r < 1 ? "dark" : r < 8 ? "faint" : r < 27 ? "city" : "none";
+  }
+  /* Яркость неба на языке астрономов. 22.0 — нетронутое небо; каждые пять
+     звёздных величин это стократная разница в яркости */
+  function glowMag(r) { return 22 - 5 * Math.log(1 + r) / Math.log(100); }
   /* При таскании карты moveend сыплется часто — не дёргаем сервер на каждый кадр */
   function scheduleWeather() {
     clearTimeout(wxTimer);
-    wxTimer = setTimeout(function () { fetchWeather(); fetchAir(); }, 500);
+    wxTimer = setTimeout(function () { fetchWeather(); fetchAir(); fetchGlow(); }, 500);
   }
   function tempAt(base, t) { return Math.round(base + 5 * Math.sin((t - 600) / 1440 * 2 * Math.PI)); }
   /* Модель считает в Цельсии всегда — прогноз приходит в нём, и переводить
@@ -13791,7 +13909,7 @@
      группе «Подробно», а `mwWindow` — это триста шагов астрономии на вызов */
   function renderMwRows(w, sky) {
     var on = !!mapLayers.mw;
-    ["mwNightRow", "mwGlareRow", "mwSkyRow", "mwVerdictRow"].forEach(function (id) { $(id).hidden = !on; });
+    ["mwNightRow", "mwGlareRow", "mwGlowRow", "mwSkyRow", "mwVerdictRow"].forEach(function (id) { $(id).hidden = !on; });
     if (!on) return;
     var peak = w.best.alt;   // высота ядра — теперь только для вердикта ниже, своей строки у неё нет
 
@@ -13820,6 +13938,18 @@
       $("mwGlare").style.color = mg.level === 2 ? "var(--terra)" : "var(--ink-2)";
     }
 
+    /* Засветка стоит числом рядом со словом по той же причине, что и
+       облачность у неба: слово называет вид, число не даёт ему округлиться до
+       ощущения. Показываем превышение над природным фоном — «×0.6» читается
+       без астрономии («своего света меньше, чем природного»), а mag/arcsec²
+       лежит в «Подробно», где ему и место */
+    var glowRow = $("mwGlowRow"), lvl = glowLevel(glowVal);
+    glowRow.hidden = !lvl;
+    if (lvl) {
+      $("mwGlow").textContent = LANG.t("glow." + lvl) + " · ×" + (glowVal < 10 ? glowVal.toFixed(1) : Math.round(glowVal));
+      $("mwGlow").style.color = lvl === "dark" || lvl === "faint" ? "var(--ink-2)" : "var(--terra)";
+    }
+
     var skyRow = $("mwSkyRow");
     skyRow.hidden = !sky;
     if (sky) {
@@ -13832,6 +13962,11 @@
     var v, dim = true;
     if (!w.dark) v = LANG.t("mw.noDark");
     else if (peak < MW_WORK_LO) v = LANG.t("mw.coreLow", { alt: peak.toFixed(0), need: MW_WORK_LO });
+    /* Засветка называется раньше луны намеренно. Луна уйдёт через неделю, и
+       ждать её — обычная работа; зарево города не уйдёт никогда, и ответ на
+       него другой — ехать. Назвать сначала луну значило бы обещать, что
+       через неделю здесь получится */
+    else if (lvl === "none") v = LANG.t("mw.glowKills");
     else if (mg.level === 2) v = LANG.t("mw.moonWashes");
     else if (w.from === null) v = w.moonBlocks ? LANG.t("mw.moonBlocks") : LANG.t("mw.noWindow");
     else { v = range(w.from, w.to) + (mg.level === 1 ? LANG.t("mw.moonDims") : ""); dim = mg.level === 1; }
@@ -14645,6 +14780,15 @@
         : (!w.dark ? null : w.moonBlocks ? LANG.t("mpro.windowMoon") : null)]
     ];
     if (sky) rows.push(["mpro.skyHum", sky.hum + "%"]);
+    /* В «Подробно» засветка стоит обеими величинами: превышение над природным
+       фоном и яркость неба в звёздных величинах. Вторая — язык астрономов
+       (22.0 у нетронутого неба), и место ей ровно здесь, рядом с азимутами и
+       рабочей высотой, а не в строке для беглого взгляда */
+    if (glowVal != null) {
+      rows.push(["mpro.glow", LANG.t("mpro.glowVal", {
+        ratio: glowVal < 10 ? glowVal.toFixed(2) : Math.round(glowVal),
+        mag: glowMag(glowVal).toFixed(1) })]);
+    }
     return [["stars", "mpro.mw", rows]];
   }
 
@@ -32039,6 +32183,7 @@
   TZ = tzAt(LAT, LON, new Date());
   fetchWeather();   // выдумка сменится настоящим прогнозом, как только придёт ответ
   fetchAir();       // воздух приходит вторым и только поправляет закат
+  fetchGlow();      // засветка места — третьим: она про место, а не про сутки
   askPersistence(); renderStorageInfo();   // просим у браузера не стирать наши записи
   /* Порядок важен: сперва читаем свой ключ, перенос старого молча уступает
      ему (см. `cloudMigrateYa`), и только потом ловим возврат от сервиса —
