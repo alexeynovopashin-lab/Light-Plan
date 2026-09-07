@@ -16660,11 +16660,18 @@
        там речь о свете, которого не будет, а здесь — о времени, которое всё
        равно наступит: день кончается в свой час независимо от прогноза, и
        съёмку на него ставят так же (Алексей, 3 сентября 2026). */
-    {
-      var lm = Math.round(w.t !== null && w.t !== undefined ? w.t : w.a);
-      layer += '<div class="dl-mark light" style="top:' + topOf(lm).toFixed(1) + 'px">'
-        + '<span class="dl-mark-t">' + IC.svg("sun") + esc(w.label) + "</span></div>";
-    }
+    /* Две минуты, а не одна. Раньше лента отмечала только окно дня — вечером
+       закат, туманным утром рассвет, — и в обычный день утренняя граница света
+       на шкале не была отмечена вовсе (Алексей, 7 сентября 2026). Знаки взяты
+       у приборной панели сверху: два одинаковых солнца читались бы как два
+       заката. Минуты берём у `sky` — это расчёт выбранного дня, отданный
+       значением; `SUN` к этому месту уже возвращён к дате экрана «Свет» и в
+       разные дни давал бы одно и то же время. */
+    [[sky.rise, "sunrise", "win.dawn"], [sky.set, "sunset", "win.sunset"]].forEach(function (m) {
+      if (m[0] === null || m[0] === undefined) return;
+      layer += '<div class="dl-mark light" style="top:' + topOf(Math.round(m[0])).toFixed(1) + 'px">'
+        + '<span class="dl-mark-t">' + IC.svg(m[1]) + esc(LANG.t(m[2])) + "</span></div>";
+    });
     if (isToday) {
       layer += '<div class="dl-mark now" style="top:' + topOf(nowMin).toFixed(1) + 'px">'
         + '<span class="dl-mark-h">' + fmt(nowMin) + "</span></div>";
