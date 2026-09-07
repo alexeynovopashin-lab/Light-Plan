@@ -5568,6 +5568,16 @@
 
   .rt-place { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; }
   .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
+  /* Строка студии — не поле, а капсула барабана: её не набирают, её крутят.
+     Форма та же, что у поля рядом (сквиркл, тот же фон), потому что вопрос
+     один — «где мы»; отличается только тем, что открывает колесо залов.
+     Текст слева, как в поле: это значение, а не кнопка-действие. */
+  .rt-row button.rt-in-p {
+    background: var(--field); border: none; border-radius: 9px; corner-shape: squircle;
+    color: var(--ink); font-family: inherit; text-align: left; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  .rt-row button.rt-in-p.open { background: rgba(226,164,76,0.16); color: var(--brass); }
 
   /* Номер пункта. Порядок в маршруте держался молчанием — строки просто шли
      сверху вниз, и назвать нужную вслух («на третьей точке») было нечем.
@@ -8278,6 +8288,17 @@
            администратор студии. У точки просто два часа: когда пришли и
            когда ушли, а полчаса на дорогу читаются зазором до следующей
            ячейки и в маршруте не пишутся (решение Алексея, 7 сентября 2026). -->
+      <!-- Зал выбирают барабаном — тем же, что время и плейлист: одна строка в
+           покое, список по нажатию, и длина списка ему безразлична (студии
+           бывают и на двадцать пять залов). Барабан переезжает под ту ячейку,
+           чей зал крутят, как барабаны времени: под строкой всегда одно
+           колесо. Веер на булавке зал спрашивать не должен — «залы менялись
+           барабаном» (Алексей, 7 сентября 2026). -->
+      <div class="inline" id="fHallPick">
+        <div class="ip"><div class="pick-band"></div>
+          <div class="wheel" data-w="hall" id="fwHall"></div>
+        </div>
+      </div>
       <div class="inline" id="fStopEndPick">
         <div class="ip time"><div class="pick-band"></div>
           <div class="wheel narrow" data-w="hour" id="fwStEH"></div>
@@ -21702,6 +21723,9 @@
      времени, а колесо раскрывается там, где на него нажали */
   var fwStH = $("fwStH"), fwStM = $("fwStM");
   var fwStEH = $("fwStEH"), fwStEM = $("fwStEM");
+  /* Барабан залов — тоже один на весь список: у каждой ячейки своя студия и
+     свой список залов, но колесо под строкой всегда одно */
+  var fwHall = $("fwHall");
   var fwPL = $("fwPL");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
   [fwSH, fwEH, fwStH, fwStEH].forEach(function (el2) { fill(el2, HOURS); });
@@ -21867,6 +21891,7 @@
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
   attachWheel(fwStH, onStopTimeWheel);  attachWheel(fwStM, onStopTimeWheel);
   attachWheel(fwStEH, onStopTimeWheel); attachWheel(fwStEM, onStopTimeWheel);
+  attachWheel(fwHall, onHallWheel);
   attachWheel(fwPL, onPlWheel);
   /* Один обработчик на оба конца промежутка: колесо говорит, какой конец
      крутят, а `openRow` — что крутят именно его. Барабан пишет прямо в точку,
@@ -21899,6 +21924,24 @@
     }
     return fMin;
   }
+  /* Зал крутят — меняется имя точки: на площадке говорят «Люмен, зал Белый»
+     одной фразой, и строка обязана ехать за колесом. Подпись правим на месте,
+     без перерисовки списка: перерисовка снесла бы раскрытый барабан. */
+  function onHallWheel() {
+    if (openRow !== "fHall" || hallStop == null) return;
+    var r = fRoute[hallStop]; if (!r) return;
+    var st = studioById(r.studioId); if (!st) return;
+    var hl = st.halls || [], i = wheelIndex(fwHall);
+    var h = i > 0 ? hl[i - 1] : null;
+    r.hallId = h ? h.id : null;
+    r.p = h ? LANG.t("form.placeHall", { place: st.name, hall: h.name }) : st.name;
+    fRouteSeeded = false;
+    var row = $("fRouteList").querySelector('.rt-row[data-i="' + hallStop + '"]');
+    var btn = row && row.querySelector(".rt-hall");
+    if (btn) btn.textContent = r.p;
+    if (hallStop === 0) syncHeadPlace();
+    scheduleDraftSave();
+  }
   function onPlWheel() {
     if (openRow !== "fMusic" || !playlists.length) return;
     var pl = playlists[clamp(wheelIndex(fwPL), 0, playlists.length - 1)];
@@ -21923,7 +21966,8 @@
     ["fStartDate", "fStartDatePick"], ["fStart", "fStartPick"],
     ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"],
     ["fMusic", "fMusicPick"],
-    ["fStopTime", "fStopTimePick"],   ["fStopEnd", "fStopEndPick"]
+    ["fStopTime", "fStopTimePick"],   ["fStopEnd", "fStopEndPick"],
+    ["fHall", "fHallPick"]
   ];
   // Подсветку носит капсула, а не строка: в строке их теперь две
   var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal",
@@ -21932,7 +21976,7 @@
   /* У промежутка точки капсула не одна на форму: своя в каждой ячейке списка,
      и подсветку носит та, которую тронули. Остальные строки отвечают своим
      постоянным элементом формы, как отвечали. */
-  var stopTimeRow = null, capEls = {};
+  var stopTimeRow = null, hallStop = null, capEls = {};
   function capOf(id) { return capEls[id] || $(CAP[id]); }
   function closeRows() {
     /* «Своя точка» без выбранной строки не даёт капсулы ни через `capEls`,
@@ -21986,6 +22030,18 @@
       syncMinWheel(end2 ? fwStEM : fwStM, stV % 60);
     }
 
+    if (id === "fHall") {
+      var hr = hallStop != null ? fRoute[hallStop] : null;
+      var hst = hr && studioById(hr.studioId);
+      var hl = (hst && hst.halls) ? hst.halls : [];
+      /* Первым в барабане стоит «без зала»: зал бывает неизвестен заранее, а
+         навязанный первый врал бы увереннее, чем пустота */
+      fill(fwHall, [esc(LANG.t("form.hallNone"))]
+        .concat(hl.map(function (h) { return esc(h.name || h.id); })));
+      var at = 0;
+      for (var hi = 0; hi < hl.length; hi++) if (hl[hi].id === hr.hallId) at = hi + 1;
+      syncWheel(fwHall, at);
+    }
     if (id === "fMusic") {
       var at = 0;
       for (var pi = 0; pi < playlists.length; pi++) if (playlists[pi].n === fPlaylist) { at = pi; break; }
@@ -22211,18 +22267,16 @@
   }
   /* Строка связи живёт, только пока у студии есть ключ: без него спрашивать
      некого, и предлагать действие, которое заведомо не сработает, — обман. */
-  /* Кого спрашивать про бронь. Прежде спрашивали студию места съёмки —
-     единственную, какая у съёмки была. Теперь студия стоит ячейкой дня, и на
-     свадьбе она третья: строка связи, привязанная к первой ячейке, у такого
-     дня не появлялась вовсе. Спрашиваем всех, у кого есть ключ
-     (Алексей, 7 сентября 2026). */
+  /* Кого спрашивать про бронь — только студию первой ячейки, то есть студию
+     самой съёмки. Студия, стоящая этапом внутри дня, про бронь не
+     спрашивается вовсе: её выбирают молча, и строка «Связать с бронью» над
+     маршрутом свадьбы оказалась вопросом, которого никто не задавал
+     (Алексей, 7 сентября 2026: «фотостудия подключалась молча, она не просит
+     связать с бронью, не просит ключ»). */
   function linkStops() {
-    var out = [];
-    (fRoute || []).forEach(function (r, i) {
-      var st = studioById(r.studioId);
-      if (st && st.key) out.push({ i: i, st: st });
-    });
-    return out;
+    var head = (fRoute || [])[0];
+    var st = head && studioById(head.studioId);
+    return (st && st.key) ? [{ i: 0, st: st }] : [];
   }
   function renderLinkRow() {
     var on = linkStops().length > 0;
@@ -23459,6 +23513,7 @@
     var home = $("fRouteList"), p = home.parentNode;
     p.insertBefore($("fStopTimePick"), home);
     p.insertBefore($("fStopEndPick"), home);
+    p.insertBefore($("fHallPick"), home);
     /* Ряд путей тоже уезжает под свою ячейку и тоже обязан вернуться: он
        становится ребёнком списка, и `innerHTML` унёс бы его вместе со строкой */
     p.insertBefore($("fPlaceWays"), $("fRouteAdd"));
@@ -23487,9 +23542,9 @@
   function renderRouteEditor() {
     var host = $("fRouteList"), hints = sceneHints(shootType);
     /* Точка, чьи часы крутили, могла уехать */
-    if (openRow === "fStopTime" || openRow === "fStopEnd") closeRows();
+    if (openRow === "fStopTime" || openRow === "fStopEnd" || openRow === "fHall") closeRows();
     parkStopWheels();
-    stopTimeRow = null; capEls = {};
+    stopTimeRow = null; hallStop = null; capEls = {};
     host.innerHTML = fRoute.map(function (r, i) {
       return '<div class="rt-row" data-i="' + i + '">'
         + '<span class="rt-no">' + (i + 1) + '</span>'
@@ -23505,16 +23560,16 @@
         + '</span>'
         + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
         + '<div class="rt-place">'
-        + '<input class="rt-in-p" type="text" placeholder="' + esc(LANG.t("form.scenePlacePh")) + '" value="' + esc(r.p || "") + '"/>'
-        /* Знак говорит, о чём спросит кнопка. У точки со студией она
-           спрашивает зал — и носит знак студии, тот же, что у пути
-           «Фотостудия». Одна булавка на два разных вопроса заставляла
-           угадывать, и зал, ради которого её и нажимают, был не найден
-           (Алексей, 7 сентября 2026: «могу выбрать студию, но не могу
-           выбрать зал»). */
-        + '<button type="button" class="rt-pick" aria-label="'
-        + esc(LANG.t(r.studioId ? "form.pickHallAria" : "form.pickSpotAria"))
-        + '" data-ic="' + (r.studioId ? "studio" : "pin") + '"></button>'
+        /* Место точки со студией не набирают руками: студия называет себя
+           сама, а зал к её имени добавляет барабан. Поэтому у неё вместо поля
+           стоит строка-кнопка — тап открывает колесо залов под ячейкой, тем
+           же приёмом, что у времени. У обычной точки поле остаётся полем:
+           «Лагерный сад» пишут словами. */
+        + (r.studioId
+            ? '<button type="button" class="rt-in-p rt-hall" aria-label="'
+              + esc(LANG.t("form.pickHallAria")) + '">' + esc(r.p || "") + '</button>'
+            : '<input class="rt-in-p" type="text" placeholder="' + esc(LANG.t("form.scenePlacePh")) + '" value="' + esc(r.p || "") + '"/>')
+        + '<button type="button" class="rt-pick" aria-label="' + esc(LANG.t("form.pickSpotAria")) + '" data-ic="pin"></button>'
         + '</div>'
         + '</div>';
     }).join("") || '<div class="rt-empty">'
@@ -23559,7 +23614,8 @@
       });
       /* Ручная правка текста рвёт ссылку на место: строка теперь говорит
          что-то своё, и таймер студийного часа не должен идти за ней вслепую */
-      row.querySelector(".rt-in-p").addEventListener("input", function () {
+      var placeIn = row.querySelector("input.rt-in-p");
+      if (placeIn) placeIn.addEventListener("input", function () {
         r.p = this.value; r.placeId = null; r.studioId = null; r.hallId = null;
         fRouteSeeded = false;
         row.querySelector(".rt-pick").classList.remove("on");
@@ -23568,6 +23624,18 @@
         /* Первая ячейка — место всей съёмки: свет и погода считаются по её
            координатам, и ссылки на них больше нет */
         if (+row.dataset.i === 0) syncHeadPlace();
+      });
+      /* Зал крутят барабаном, как время: колесо переезжает под ячейку и
+         начинает писать в неё. Барабан один на весь список — раскрытым бывает
+         всегда одно колесо, чей бы вопрос оно ни задавало. */
+      var hallBtn = row.querySelector(".rt-hall");
+      if (hallBtn) hallBtn.addEventListener("click", function () {
+        var i = +row.dataset.i;
+        if (openRow === "fHall" && hallStop === i) { closeRows(); return; }
+        closeRows();
+        hallStop = i; capEls.fHall = hallBtn;
+        row.parentNode.insertBefore($("fHallPick"), row.nextSibling);
+        toggleRow("fHall");
       });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRouteSeeded = false;
@@ -23586,42 +23654,11 @@
       pick.classList.toggle("on", !!(r.placeId || r.studioId));
 
       pick.addEventListener("click", function () {
-        /* У точки со студией веер спрашивает зал, а не место: место у неё уже
-           названо, а какой из залов — вопрос открытый, и в свадебном дне он
-           решающий («в первом зале с гостями, во втором только пара»). Зал
-           спрашивается здесь и только здесь: своей строки над списком у него
-           больше нет. Место у такой точки меняют набором поверх строки: он
-           рвёт ссылку и возвращает точку в общий вид. */
-        var stR = studioById(r.studioId);
+        /* Булавка спрашивает место — у любой точки одинаково. Зал она не
+           спрашивает: он живёт барабаном под строкой студии, и один знак на
+           два разных вопроса заставлял угадывать, какой из них будет задан
+           (Алексей, 7 сентября 2026). */
         var i = +row.dataset.i;
-        if (stR) {
-          /* Залов у студии может не быть вовсе — её только что завели. Тогда
-             веер всё равно про залы, а не про места: подсовывать список «Моих
-             мест» там, где спрашивают зал, значило бы предложить стереть
-             студию вместо ответа (замер 7 сентября 2026: у студии без залов
-             булавка открывала места и тап по ним сносил студию).
-             Последней строкой — вход в карточку студии, тем же словом и тем
-             же знаком, что у «Новой студии» в листе. */
-          var fanHalls = (stR.halls || []).slice();
-          fanHalls.push({ id: "__hallAdd", name: LANG.t("loc.hallAdd"), ic: "plus", add: true });
-          openSpotFan(pick, function (h) {
-            if (h.add) {
-              /* Заводить зал — работа карточки студии, и второй такой формы
-                 мы не заводим: открываем лист студий на этой точке и
-                 раскрываем карточку той самой студии */
-              openLocSheet("stop", "studio", i);
-              toggleStudioEdit(stR);
-              return;
-            }
-            r.hallId = h.id; fRouteSeeded = false;
-            /* Зал входит в имя точки: на площадке говорят «Томсон, зал Эдисон»
-               одной фразой */
-            r.p = LANG.t("form.placeHall", { place: stR.name, hall: h.name });
-            if (i === 0) syncHeadPlace();
-            renderRouteEditor();
-          }, fanHalls);
-          return;
-        }
         openSpotFan(pick, function (sp) {
           r.p = sp.name; r.placeId = sp.id; r.studioId = null; r.hallId = null;
           fRouteSeeded = false;
@@ -31739,6 +31776,11 @@
         var stS = studioFromDraft(la, lo);
         r.studioId = stS.id; r.placeId = null; r.hallId = null;
         placeName = r.p = stS.name;
+        /* Имя этапа подставляем словом пути — «Фотостудия»: пустая строка
+           рядом с названной студией выглядит недоделанной, а этап так и
+           называют вслух. Слово правится поверх: у кого-то это «сборы
+           невесты», у кого-то «с гостями» (Алексей, 7 сентября 2026). */
+        if (!(r.n || "").trim()) r.n = LANG.t("loc.wayStudio");
       } else {
         placeName = ($("locName").value || "").trim() || locPickName;
         addr = locWay === "addr" ? ($("locAddress").value || "").trim() : "";
