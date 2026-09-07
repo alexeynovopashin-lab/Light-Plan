@@ -1052,6 +1052,7 @@
 
     /* ---- Мои жанры ---- */
     "gen.sub":        "Оставьте только то, что снимаете — остальное уйдёт из формы",
+    "gen.paySub":     "Подставляется в оплату новой съёмки",
     "gen.refSet":     "Набор референсов",
     "gen.folderEmpty": "В папке «{folder}» пока пусто",
     "gen.buildSet":   "Соберите сценарий: {tags} и что ещё снять",
@@ -2648,6 +2649,7 @@
     "delv.untracked": "no deadline tracked",
 
     "gen.sub":        "Keep only what you shoot — the rest leaves the form",
+    "gen.paySub":     "Goes into the pay block of a new shoot",
     "gen.refSet":     "Reference set",
     "gen.folderEmpty": "“{folder}” is still empty",
     "gen.buildSet":   "Build the shot list: {tags} and whatever else",
@@ -4117,6 +4119,7 @@
     "delv.until": "entregar antes del {d}",
     "delv.untracked": "sin plazo controlado",
     "gen.sub": "Deja solo lo que fotografías — el resto sale del formulario",
+    "gen.paySub": "Se aplica al pago de una sesión nueva",
     "gen.refSet": "Set de referencias",
     "gen.folderEmpty": "La carpeta «{folder}» todavía está vacía",
     "gen.buildSet": "Arma el guion: {tags} y qué más tomar",
@@ -5474,6 +5477,7 @@
     "delv.until": "在{d}前交付",
     "delv.untracked": "未跟踪截止日期",
     "gen.sub": "只保留你拍摄的类型——其余从表单中移除",
+    "gen.paySub": "带入新拍摄的费用",
     "gen.refSet": "参考集",
     "gen.folderEmpty": "文件夹“{folder}”目前为空",
     "gen.buildSet": "构建拍摄列表：{tags}及其他",
