@@ -22211,9 +22211,21 @@
   }
   /* Строка связи живёт, только пока у студии есть ключ: без него спрашивать
      некого, и предлагать действие, которое заведомо не сработает, — обман. */
+  /* Кого спрашивать про бронь. Прежде спрашивали студию места съёмки —
+     единственную, какая у съёмки была. Теперь студия стоит ячейкой дня, и на
+     свадьбе она третья: строка связи, привязанная к первой ячейке, у такого
+     дня не появлялась вовсе. Спрашиваем всех, у кого есть ключ
+     (Алексей, 7 сентября 2026). */
+  function linkStops() {
+    var out = [];
+    (fRoute || []).forEach(function (r, i) {
+      var st = studioById(r.studioId);
+      if (st && st.key) out.push({ i: i, st: st });
+    });
+    return out;
+  }
   function renderLinkRow() {
-    var st = studioById(sessionStudioId);
-    var on = !!(st && st.key);
+    var on = linkStops().length > 0;
     $("fLinkRow").hidden = !on;
     if (!on) return;
     $("fLinkVal").textContent = LANG.t(fBookingRef ? "form.linked" : "form.linkAsk");
@@ -22232,50 +22244,56 @@
     return res;
   }
   $("fLinkRow").addEventListener("click", function () {
-    var st = studioById(sessionStudioId);
-    if (!st || !st.key) return;
+    var stops = linkStops();
+    if (!stops.length) return;
     var phones = shootPhones();
     if (!phones.length) { $("fLinkVal").textContent = LANG.t("form.linkNone"); return; }
     $("fLinkVal").textContent = LANG.t("form.linking");
-    fetch(studioApi(st) + "/booking/match", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Studio-Key": st.key },
-      body: JSON.stringify({
-        studioId: st.tomcohId || null,
-        /* Дата местная, а не UTC: `toISOString` в вечерние часы отдал бы
-           завтрашний день. Тот же приём, что у ключа воздуха (`airKeyOf`). */
-        date: airKeyOf(fDate),
-        /* Часы спрашиваем те, что стоят в первой ячейке дня: она и есть
-           студия съёмки. Не назвали — спрашиваем по времени съёмки */
-        from: (fRoute[0] && fRoute[0].t) || fmt(fMin),
-        to: (fRoute[0] && fRoute[0].t2) || fmt(fMin + fDur),
-        phones: phones
-      })
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (!j || !j.match) { fBookingRef = null; $("fLinkVal").textContent = LANG.t("form.linkNone"); return; }
-      /* Бронь — источник правды о времени и зале: её завели в студии, а в
-         форме часы могли поставить на глаз */
-      fBookingRef = j.bookingRef;
-      /* Ответ брони ложится в первую ячейку — туда, где эти вопросы теперь и
-         задаются. Отдельных полей у съёмки под зал и часы больше нет. */
-      var head = fRoute[0];
-      if (head) {
-        var stH = studioById(head.studioId);
-        if (j.hallId && stH) {
-          head.hallId = j.hallId;
-          (stH.halls || []).forEach(function (h) {
-            if (h.id === j.hallId) head.p = LANG.t("form.placeHall", { place: stH.name, hall: h.name });
+    var silent = false;                 // хоть одна студия не ответила вовсе
+    /* Студий с ключом в дне бывает две — два зала, две брони. Спрашиваем по
+       очереди и останавливаемся на первом совпадении: связь у съёмки одна, и
+       это та бронь, чьи номера сошлись. */
+    function ask(n) {
+      if (n >= stops.length) {
+        fBookingRef = null;
+        $("fLinkVal").textContent = LANG.t(silent ? "form.linkOff" : "form.linkNone");
+        return;
+      }
+      var it = stops[n], st = it.st, r = fRoute[it.i];
+      fetch(studioApi(st) + "/booking/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Studio-Key": st.key },
+        body: JSON.stringify({
+          studioId: st.tomcohId || null,
+          /* Дата местная, а не UTC: `toISOString` в вечерние часы отдал бы
+             завтрашний день. Тот же приём, что у ключа воздуха (`airKeyOf`). */
+          date: airKeyOf(fDate),
+          /* Часы спрашиваем у самой ячейки: они и есть часы в студии. Не
+             назвали — спрашиваем по времени съёмки */
+          from: r.t || fmt(fMin),
+          to: r.t2 || fmt(fMin + fDur),
+          phones: phones
+        })
+      }).then(function (x) { return x.json(); }).then(function (j) {
+        if (!j || !j.match) { ask(n + 1); return; }
+        /* Бронь — источник правды о времени и зале: её завели в студии, а в
+           форме часы могли поставить на глаз. Ответ ложится в ту ячейку,
+           чью студию спрашивали. */
+        fBookingRef = j.bookingRef;
+        if (j.hallId) {
+          r.hallId = j.hallId;
+          (st.halls || []).forEach(function (h) {
+            if (h.id === j.hallId) r.p = LANG.t("form.placeHall", { place: st.name, hall: h.name });
           });
         }
-        if (j.start) head.t = j.start;
-        if (j.end) head.t2 = j.end;
+        if (j.start) r.t = j.start;
+        if (j.end) r.t2 = j.end;
         renderRouteEditor();
-        syncHeadPlace();
-      }
-      renderLinkRow();
-    }).catch(function () {
-      $("fLinkVal").textContent = LANG.t("form.linkOff");
-    });
+        if (it.i === 0) syncHeadPlace();
+        renderLinkRow();
+      }).catch(function () { silent = true; ask(n + 1); });
+    }
+    ask(0);
   });
   /* Разбора набранных цифр здесь больше нет. Он складывал «1000» в «10:00» и
      чинил на выходе описки вроде «25:70» — работа, которой у барабана не
