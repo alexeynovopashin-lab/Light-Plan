@@ -94,7 +94,7 @@
 
     /* Жанры. Показываемое имя жанра; ключ логики — код, а не это слово */
     "genre.portrait":     "Портрет",
-    "genre.wedding":      "Свадьбы",
+    "genre.wedding":      "Свадьба",
     "genre.party":        "Праздник",
     "genre.lovestory":    "Лавстори",
     "genre.family":       "Семья",
@@ -854,8 +854,10 @@
     "genreShort.architecture": "Архитект.",
     "genreShort.product":      "Предметка",
 
-    /* Имя события в единственном числе: чипс жанра говорит «Свадьбы»,
-       а конкретная съёмка — «Свадьба» */
+    /* Имя события: раньше чипс жанра говорил «Свадьбы» во множественном, и
+       ключ был нужен, чтобы карточка сказала «Свадьба». С 7 сентября 2026 все
+       жанры в единственном числе, и слова совпали — ключ остаётся, потому что
+       в других языках «Праздник» и «Party» могут разойтись снова */
     "genreEv.wedding": "Свадьба",
     "genreEv.party":   "Праздник",
     /* ======== Волна 6: форма, настройки, шторки, служебные сообщения ======== */
@@ -932,6 +934,7 @@
     "form.scenesHint":  "Точки дня: {list}",
     "form.scenePlacePh": "Место — необязательно",
     "form.pickSpotAria": "Выбрать из моих точек",
+    "form.pickHallAria": "Выбрать зал студии",
     "form.order":       "Заказ",
     "form.briefPh":     "Техническое задание: что снять, в каком виде сдать",
     "form.modelsPh":    "Модели: имя и телефон, по одной в строке",
@@ -1792,7 +1795,7 @@
     "dur.hoursMins": "{h}h {m}m",
 
     "genre.portrait":     "Portrait",
-    "genre.wedding":      "Weddings",
+    "genre.wedding":      "Wedding",
     "genre.party":        "Celebration",
     "genre.lovestory":    "Couples",
     "genre.family":       "Family",
@@ -2537,6 +2540,7 @@
     "form.scenesHint":  "Stops of the day: {list}",
     "form.scenePlacePh": "Place — optional",
     "form.pickSpotAria": "Pick from my spots",
+    "form.pickHallAria": "Pick a studio hall",
     "form.order":       "Order",
     "form.briefPh":     "Brief: what to shoot and how it should be delivered",
     "form.modelsPh":    "Models: name and phone, one per line",
@@ -3371,7 +3375,7 @@
     "dur.halfHour": "{h},5 horas",
     "dur.hoursMins": "{h} h {m} min",
     "genre.portrait": "Retrato",
-    "genre.wedding": "Bodas",
+    "genre.wedding": "Boda",
     "genre.party": "Celebración",
     "genre.lovestory": "Parejas",
     "genre.family": "Familia",
@@ -4010,6 +4014,7 @@
     "form.scenesHint": "Puntos del día: {list}",
     "form.scenePlacePh": "Lugar — opcional",
     "form.pickSpotAria": "Elegir de mis puntos",
+    "form.pickHallAria": "Elegir la sala del estudio",
     "form.order": "Encargo",
     "form.briefPh": "Brief: qué tomar y en qué forma entregarlo",
     "form.modelsPh": "Modelos: nombre y teléfono, uno por línea",
@@ -5364,6 +5369,7 @@
     "form.scenesHint": "当日节点：{list}",
     "form.scenePlacePh": "地点——可选",
     "form.pickSpotAria": "从我的地点中选择",
+    "form.pickHallAria": "选择影棚厅",
     "form.order": "订单",
     "form.briefPh": "简报：拍摄内容和交付形式",
     "form.modelsPh": "模特：姓名和电话，每行一个",

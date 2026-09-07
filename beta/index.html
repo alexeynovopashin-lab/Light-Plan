@@ -23488,7 +23488,15 @@
         + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
         + '<div class="rt-place">'
         + '<input class="rt-in-p" type="text" placeholder="' + esc(LANG.t("form.scenePlacePh")) + '" value="' + esc(r.p || "") + '"/>'
-        + '<button type="button" class="rt-pick" aria-label="' + esc(LANG.t("form.pickSpotAria")) + '" data-ic="pin"></button>'
+        /* Знак говорит, о чём спросит кнопка. У точки со студией она
+           спрашивает зал — и носит знак студии, тот же, что у пути
+           «Фотостудия». Одна булавка на два разных вопроса заставляла
+           угадывать, и зал, ради которого её и нажимают, был не найден
+           (Алексей, 7 сентября 2026: «могу выбрать студию, но не могу
+           выбрать зал»). */
+        + '<button type="button" class="rt-pick" aria-label="'
+        + esc(LANG.t(r.studioId ? "form.pickHallAria" : "form.pickSpotAria"))
+        + '" data-ic="' + (r.studioId ? "studio" : "pin") + '"></button>'
         + '</div>'
         + '</div>';
     }).join("") || '<div class="rt-empty">'
@@ -23568,15 +23576,32 @@
            рвёт ссылку и возвращает точку в общий вид. */
         var stR = studioById(r.studioId);
         var i = +row.dataset.i;
-        if (stR && (stR.halls || []).length) {
+        if (stR) {
+          /* Залов у студии может не быть вовсе — её только что завели. Тогда
+             веер всё равно про залы, а не про места: подсовывать список «Моих
+             мест» там, где спрашивают зал, значило бы предложить стереть
+             студию вместо ответа (замер 7 сентября 2026: у студии без залов
+             булавка открывала места и тап по ним сносил студию).
+             Последней строкой — вход в карточку студии, тем же словом и тем
+             же знаком, что у «Новой студии» в листе. */
+          var fanHalls = (stR.halls || []).slice();
+          fanHalls.push({ id: "__hallAdd", name: LANG.t("loc.hallAdd"), ic: "plus", add: true });
           openSpotFan(pick, function (h) {
+            if (h.add) {
+              /* Заводить зал — работа карточки студии, и второй такой формы
+                 мы не заводим: открываем лист студий на этой точке и
+                 раскрываем карточку той самой студии */
+              openLocSheet("stop", "studio", i);
+              toggleStudioEdit(stR);
+              return;
+            }
             r.hallId = h.id; fRouteSeeded = false;
             /* Зал входит в имя точки: на площадке говорят «Томсон, зал Эдисон»
                одной фразой */
             r.p = LANG.t("form.placeHall", { place: stR.name, hall: h.name });
             if (i === 0) syncHeadPlace();
             renderRouteEditor();
-          }, stR.halls);
+          }, fanHalls);
           return;
         }
         openSpotFan(pick, function (sp) {
@@ -30959,7 +30984,9 @@
         var b = document.createElement("button"); b.type = "button";
         if (!list && sameSpot(sp, LAT, LON)) b.className = "on";   // где стоим сейчас
 
-        b.innerHTML = '<span class="ic" data-ic="pin"></span>'
+        /* Знак свой, если строка его назвала: в веере залов последней стоит
+           «＋ зал», и пин на ней врал бы — она не место, а действие */
+        b.innerHTML = '<span class="ic" data-ic="' + (sp.ic || "pin") + '"></span>'
           + '<span class="tx"><span class="t1"></span><span class="t2"></span></span>';
         b.querySelector(".t1").textContent = sp.name;
         b.querySelector(".t2").textContent = sp.sub || "";   // координаты в списке не нужны
@@ -31464,6 +31491,13 @@
           $("locLat").value = (+sp.lat).toFixed(4);
           $("locLon").value = (+sp.lon).toFixed(4);
           locPickName = sp.name;
+          /* Имя ложится в поле, а не только в память листа. Без этого тап по
+             своей же точке не менял на экране ничего: координаты прятались в
+             свёрнутых полях, и строка читалась ненажимаемой — «они теперь не
+             кликабельны» (Алексей, 7 сентября 2026). Ровно так же отвечает
+             список недавних мест, и двух ответов на один тап быть не должно. */
+          $("locName").value = sp.name || "";
+          locNameTyped = true;
           /* Точка знает свой адрес — незачем набирать его второй раз руками */
           if (sp.address) $("locAddress").value = sp.address;
           $("locErr").textContent = "";
