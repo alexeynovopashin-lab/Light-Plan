@@ -5537,7 +5537,7 @@
   .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: var(--ink-7); line-height: 1.5; }
 
   /* Редактор точек в форме */
-  .rt-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px 9px; flex-wrap: wrap; }
+  .rt-row { display: flex; align-items: center; gap: 6px; padding: 7px 14px 9px; flex-wrap: wrap; }
   /* Разделитель тот же, что во всей форме, — прозрачная щель в плашке, сквозь
      которую виден фон страницы (`--surface` #0F0E0C под группой #17150F).
      Своей краски он не заводит.
@@ -5557,21 +5557,9 @@
     color: var(--ink); font-family: inherit; font-size: 15px; outline: none;
     -webkit-appearance: none; appearance: none; min-width: 0;
   }
-  .rt-row .rt-in-t { flex: 0 0 78px; text-align: center; font-variant-numeric: tabular-nums;
-    letter-spacing: 0.3px; }
-  /* Было полем ввода — стало капсулой барабана, и вид у неё капсулы, а не
-     поля: пилюля, без сквиркла. Правило проекта, записанное у капсул начала и
-     конца съёмки: значение времени лежит в пилюле, потому что пилюля читается
-     нажимаемым значением, а подпиленный прямоугольник — обводкой поля.
-     Боковой отступ на два пункта больше вертикального: у круглого края текст
-     подходит к дуге ближе, чем к прямой стенке. */
-  .rt-row button.rt-in-t {
-    background: var(--field); border: none; border-radius: 999px;
-    padding: 10px 13px; color: var(--ink); font-family: inherit; font-size: 15px; cursor: pointer;
-  }
-  .rt-row .rt-in-t.empty { color: var(--ink-8); }
-  .rt-row .rt-in-t.open { background: rgba(226,164,76,0.16); color: var(--brass); }
-  .rt-row .rt-in-n { flex: 1; }
+  /* Имя этапа занимает остаток строки: номер и промежуток стоят по краям и
+     ширины не меняют, а «Сборы невесты» бывает длинным */
+  .rt-row .rt-in-n { flex: 1; min-width: 64px; }
   /* Место в строке маршрута: поле и кнопка выбора из сохранённых точек.
      Фотограф ездит по одним и тем же адресам — набирать их заново незачем */
   /* Второй человек отделён воздухом: две пары «имя — телефон» подряд без
@@ -5580,28 +5568,27 @@
 
   .rt-place { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; }
   .rt-row .rt-in-p { flex: 1; font-size: 13.5px; padding: 8px 11px; }
-  /* Адрес точки говорит тем же голосом, что подпись под местом съёмки
-     (`.sub2`): уровень адреса один, и звучать он должен одинаково в обеих
-     строках. Отступ слева равен внутреннему полю ввода — адрес встаёт под
-     первой буквой имени, а не под краем строки */
-  .rt-addr { flex: 1 0 100%; font-size: 11px; color: var(--ink-6);
-    padding: 0 0 2px 12px; margin-top: -3px;
-    font-variant-numeric: tabular-nums; }
 
-  /* Часы аренды стоят у той точки, где стоит студия, — отдельной строкой под
-     местом. Голос подписи тот же, что у адреса: это свойство точки, а не новый
-     вопрос дня. Капсулы — те же `.rv-v`, что у начала и конца съёмки */
-  .rt-rent { flex: 1 0 100%; display: flex; align-items: center; gap: 8px;
-    padding: 2px 0 2px 12px; }
-  .rt-rent .rt-rl { font-size: 11px; color: var(--ink-6); }
-  /* Пилюля по тому же правилу, что и у времени точки рядом: две капсулы
-     времени в одной строке не могут спорить о форме */
-  .rt-rent .rv-v { min-width: 64px; text-align: center; font-size: 13px;
-    padding: 5px 11px; background: var(--field); border: none; border-radius: 999px;
-    color: var(--ink-2); cursor: pointer;
+  /* Номер пункта. Порядок в маршруте держался молчанием — строки просто шли
+     сверху вниз, и назвать нужную вслух («на третьей точке») было нечем.
+     Голос тот же, что у подписи: номер не соперничает с именем этапа, он его
+     считает. Ширина фиксированная, чтобы имена начинались по одной линии
+     и на десятой точке строка не поехала. */
+  .rt-no { flex: 0 0 15px; font-size: 12px; color: var(--ink-6);
+    font-variant-numeric: tabular-nums; text-align: right; }
+  /* Промежуток точки: пришли — ушли. Две пилюли и тире между ними — та же
+     форма, что у начала и конца съёмки; время во всём приложении лежит в
+     капсуле, а не в поле. */
+  .rt-span { flex: 0 0 auto; display: flex; align-items: center; gap: 3px; }
+  /* Ширина по содержимому, а не «про запас»: цифры моноширинные, длиннее
+     «09:00» здесь не бывает, а каждый лишний пункт отъедается у имени этапа */
+  .rt-span .rv-v { min-width: 0; text-align: center; font-size: 13.5px;
+    padding: 7px 10px; background: var(--field); border: none; border-radius: 999px;
+    color: var(--ink); cursor: pointer; font-family: inherit;
     font-variant-numeric: tabular-nums; }
-  .rt-rent .rv-v.open { background: rgba(226,164,76,0.16); color: var(--brass); }
-  .rt-rent .rn-d { color: var(--ink-3); font-size: 13px; }
+  .rt-span .rv-v.empty { color: var(--ink-8); }
+  .rt-span .rv-v.open { background: rgba(226,164,76,0.16); color: var(--brass); }
+  .rt-span .rn-d { color: var(--ink-3); font-size: 13px; }
 
   .rt-pick { flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
 
@@ -5614,7 +5601,7 @@
   .rt-pick.on { color: var(--brass); }
   .rt-row input::placeholder { color: var(--ink-8); }
   .rt-row .rt-x { flex: 0 0 auto; background: none; border: none; color: var(--ink-7);
-    font-size: 15px; padding: 6px; cursor: pointer; }
+    font-size: 15px; padding: 6px 2px 6px 4px; cursor: pointer; }
   .rt-add { width: 100%; padding: 13px 15px; background: none; border: none;
     box-shadow: inset 0 1px 0 var(--surface); text-align: left;
     font-family: inherit; font-size: 15px; color: var(--ink-3); cursor: pointer; }
@@ -8272,40 +8259,13 @@
         <span class="rl"><span data-i18n="form.road">Время в пути</span><span class="sub2" id="fRoadNote"></span></span>
         <span class="rv act" id="fRoadVal" data-i18n="form.roadAdd">отметить</span>
       </button>
-      <!-- Выбранное место занимает ту же строку: имя (у студии — вместе с
-           залом), адрес под ним и крестик сброса справа. Крестик, а не
-           «Изменить»: место меняют, войдя в него, а вот убрать его прежде
-           было нечем вовсе — приходилось выбирать другое поверх. Знак взят
-           у iOS, где им чистят поле, и говорит ровно это. -->
-      <div class="row sep" id="fPlace" hidden>
-        <button type="button" class="fp-go" id="fPlaceGo">
-          <span id="fPlaceName">—</span><span class="sub2" id="fPlaceCoords"></span>
-        </button>
-        <button type="button" class="fp-x" id="fPlaceClear" aria-label="Убрать место" data-i18n-aria="form.placeClear">
-          <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
-        </button>
-      </div>
-      <!-- Аренда есть только у студии: её всегда бронируют на конкретное время.
-           Своих границ у неё раньше не было вовсе — таймер брал конец у
-           следующей точки маршрута и на свадьбе ошибался на час
-           (docs: ROADMAP, «Студия — своя сущность, и она живёт во времени»). -->
-      <!-- Зал появляется, только когда студия его назвала: у студии без залов
-           строка была бы выбором из ничего -->
-      <!-- Зал барабаном, а не чипсами: чипсы годились на три зала, но студии
-           бывают и на двадцать пять — облако разрасталось на весь экран.
-           Барабан — тот же, что у времени и плейлиста: одна строка в покое,
-           список по нажатию, длина списка ему безразлична. -->
-      <div class="row sep" id="fHall" hidden>
-        <span class="rl" data-i18n="form.hall">Зал</span>
-        <span class="rv"><span class="caps">
-          <button type="button" class="rv-v" id="fHallVal">—</button>
-        </span></span>
-      </div>
-      <div class="inline" id="fHallPick">
-        <div class="ip"><div class="pick-band"></div>
-          <div class="wheel" data-w="hall" id="fwHall"></div>
-        </div>
-      </div>
+      <!-- Место съёмки перестало быть строкой над списком. Оно и есть первая
+           точка дня, и спрашивается тем же способом, что все остальные:
+           ячейкой в списке. Прежде над списком стояли имя места, зал и часы
+           аренды, а внизу те же три вопроса задавались точке маршрута —
+           одна студия называлась четырьмя способами сразу
+           (Алексей, 7 сентября 2026: «похоже на железнодорожный билет,
+           глазу не за что зацепиться»). -->
       <!-- Связь с бронью — по явному нажатию, а не фоном при каждом открытии
            карточки: наружу уезжает набор телефонов, и делать это молча нельзя
            (docs: DECISIONS, «Связь со студией опознаётся по совпадению номеров») -->
@@ -8313,50 +8273,15 @@
         <span class="rl" data-i18n="form.link">Связать с бронью</span>
         <span class="rv act" id="fLinkVal" data-i18n="form.linkAsk">связать</span>
       </button>
-      <!-- Строка о двух видах, и вид выбирает жанр. Там, где студия — весь
-           день съёмки (портрет, предметка, тест), аренда не спрашивается
-           второй раз: она сообщает время съёмки и едет за ним. Там, где
-           студия лишь этап дня (свадьба, событие), у неё свои часы, и поля
-           стоят как стояли (docs: DECISIONS, «Аренда спрашивается только
-           там, где она отдельный вопрос»). -->
-      <div class="row sep" id="fRentRow" hidden>
-        <span class="rl"><span data-i18n="form.rent">Аренда</span><span class="sub2" id="fRentNote"></span></span>
-        <!-- Связано: капсула, как у зала и у времени. У Apple всё, что можно
-             изменить, обведено рамкой — тап по ней и размыкает связь -->
-        <span class="rv" id="fRentSameWrap"><span class="caps">
-          <button type="button" class="rv-v" id="fRentSame">—</button>
-        </span></span>
-        <!-- «12:00 – 13:00» вместо «с … до …»: промежуток так и показывается
-             во всём приложении (`range`), а слова повторяли бы заголовок строки
-             и разгоняли её на четыре этажа -->
-        <!-- Часы аренды набирались цифрами, как номер на телефоне. Время во
-             всём приложении выбирают барабаном — и начало съёмки, и конец, и
-             концы занятого дня; клавиатура здесь была единственным местом,
-             где его печатают (Алексей, 5 сентября). Капсулы те же, что у
-             начала и конца: тап открывает своё колесо под строкой -->
-        <span class="rv rent-in" id="fRentOwn" hidden>
-          <button type="button" class="rv-v" id="fRentFromVal"
-                  aria-label="с" data-i18n-aria="form.rentFrom">—</button>
-          <span class="rn-d">–</span>
-          <button type="button" class="rv-v" id="fRentToVal"
-                  aria-label="до" data-i18n-aria="form.rentTo">—</button>
-        </span>
-        <!-- Тот же крестик, что снимает место: «убрать своё время» и «убрать
-             место» — одно действие с разными предметами, и знак у них один -->
-        <button type="button" class="fp-x" id="fRentBack" hidden aria-label="Вернуть время съёмки" data-i18n-aria="form.rentBack">
-          <svg viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
-        </button>
-      </div>
-      <div class="inline" id="fRentFromPick">
+      <!-- Конец точки — тот же барабан, что и начало. Своих слов у него нет:
+           «Аренда» ушла вместе со строкой, потому что фотограф не
+           администратор студии. У точки просто два часа: когда пришли и
+           когда ушли, а полчаса на дорогу читаются зазором до следующей
+           ячейки и в маршруте не пишутся (решение Алексея, 7 сентября 2026). -->
+      <div class="inline" id="fStopEndPick">
         <div class="ip time"><div class="pick-band"></div>
-          <div class="wheel narrow" data-w="hour" id="fwRFH"></div>
-          <div class="wheel narrow" data-w="min" id="fwRFM"></div>
-        </div>
-      </div>
-      <div class="inline" id="fRentToPick">
-        <div class="ip time"><div class="pick-band"></div>
-          <div class="wheel narrow" data-w="hour" id="fwRTH"></div>
-          <div class="wheel narrow" data-w="min" id="fwRTM"></div>
+          <div class="wheel narrow" data-w="hour" id="fwStEH"></div>
+          <div class="wheel narrow" data-w="min" id="fwStEM"></div>
         </div>
       </div>
       <!-- Время самой точки маршрута — тот же барабан, что у аренды и у начала
@@ -15588,10 +15513,12 @@
     setRouteMode(false);
     openForm(selDate, Math.round(SUN.goldB || viewMin), null, true);
     fRoute = pts.map(function (sp) {
-      return { t: "", n: "", p: sp.name || "", placeId: sp.id,
+      return { t: "", t2: "", n: "", p: sp.name || "", placeId: sp.id,
                studioId: null, hallId: null };
     });
     renderRouteEditor();
+    /* Первая точка черновика — место съёмки: по ней считаются свет и погода */
+    syncHeadPlace();
   }
   $("mapRouteBtn").addEventListener("click", function () { setRouteMode(!routeMode); });
   $("rbClear").addEventListener("click", function () {
@@ -21769,16 +21696,15 @@
   /* ---------- Барабаны внутри формы ---------- */
   var fwSDate = $("fwSDate"), fwEDate = $("fwEDate");   // теперь сетки, не барабаны
   var fwSH = $("fwSH"), fwSM = $("fwSM"), fwEH = $("fwEH"), fwEM = $("fwEM");
-  /* Часы аренды — свои барабаны, а не чужие: строка аренды живёт в группе
-     места, а начало и конец съёмки — в группе времени, и колесо под строкой
-     раскрывается там, где на него нажали */
-  var fwRFH = $("fwRFH"), fwRFM = $("fwRFM"), fwRTH = $("fwRTH"), fwRTM = $("fwRTM");
-  /* Барабан самой точки маршрута — один на все строки, как и у аренды: под
-     строкой всегда только одно колесо, чьё бы время оно ни крутило */
+  /* Барабаны точки маршрута — по одному на каждый конец промежутка и одни на
+     весь список: под строкой всегда только одно колесо, чьё бы время оно ни
+     крутило. Свои, а не общие с началом и концом съёмки: те живут в группе
+     времени, а колесо раскрывается там, где на него нажали */
   var fwStH = $("fwStH"), fwStM = $("fwStM");
+  var fwStEH = $("fwStEH"), fwStEM = $("fwStEM");
   var fwPL = $("fwPL");
   var HOURS = Array.apply(null, Array(24)).map(function (_, i) { return pad(i); });
-  [fwSH, fwEH, fwRFH, fwRTH, fwStH].forEach(function (el2) { fill(el2, HOURS); });
+  [fwSH, fwEH, fwStH, fwStEH].forEach(function (el2) { fill(el2, HOURS); });
   /* Барабан минут перестраивается под шаг и под текущее значение: он обязан
      уметь показать и 30, и 38, если 38 пришли от золотого часа */
   function fillMins(el2, cur) {
@@ -21794,8 +21720,7 @@
     syncWheel(el2, el2._vals.indexOf(m));
   }
   fillMins(fwSM, null); fillMins(fwEM, null);
-  fillMins(fwRFM, null); fillMins(fwRTM, null);
-  fillMins(fwStM, null);
+  fillMins(fwStM, null); fillMins(fwStEM, null);
 
   /* Программная установка не должна выглядеть как выбор пользователя.
      Барабан раскрывается анимацией высоты, и снап по дороге уводит позицию —
@@ -21940,63 +21865,40 @@
 
   attachWheel(fwSH, onStartWheel); attachWheel(fwSM, onStartWheel);
   attachWheel(fwEH, onEndWheel);   attachWheel(fwEM, onEndWheel);
-  attachWheel(fwRFH, onRentWheel); attachWheel(fwRFM, onRentWheel);
-  attachWheel(fwRTH, onRentWheel); attachWheel(fwRTM, onRentWheel);
-  attachWheel(fwStH, onStopTimeWheel); attachWheel(fwStM, onStopTimeWheel);
+  attachWheel(fwStH, onStopTimeWheel);  attachWheel(fwStM, onStopTimeWheel);
+  attachWheel(fwStEH, onStopTimeWheel); attachWheel(fwStEM, onStopTimeWheel);
   attachWheel(fwPL, onPlWheel);
-  /* Барабан своей точки пишет прямо в неё, строку правим на месте — как и у
-     аренды, перерисовка списка снесла бы раскрытое колесо вместе со строкой */
+  /* Один обработчик на оба конца промежутка: колесо говорит, какой конец
+     крутят, а `openRow` — что крутят именно его. Барабан пишет прямо в точку,
+     подпись правим на месте: перерисовка списка снесла бы раскрытое колесо
+     вместе со строкой. Концы стоят каждый сам по себе — тронув начало, мы не
+     двигаем конец: во сколько уйдём, знает фотограф, а не арифметика. */
   function onStopTimeWheel() {
-    if (openRow !== "fStopTime" || stopTimeRow == null) return;
+    if (stopTimeRow == null) return;
     var r = fRoute[stopTimeRow]; if (!r) return;
-    r.t = fmt(wheelIndex(fwStH) * 60 + wheelMin(fwStM));
+    if (openRow === "fStopTime") r.t = fmt(wheelIndex(fwStH) * 60 + wheelMin(fwStM));
+    else if (openRow === "fStopEnd") r.t2 = fmt(wheelIndex(fwStEH) * 60 + wheelMin(fwStEM));
+    else return;
     fRouteSeeded = false;
     paintStopTime(stopTimeRow);
     scheduleDraftSave();
   }
-  /* Времени у точки ещё не было — колесо встаёт не на полночь, а вслед за
-     предыдущей названной точкой (плюс обычный шаг), а у первой точки — на
-     начало самой съёмки: пустая клетка не должна раскрываться нулём */
-  function stopTimeSeed(i) {
+  /* Часа у точки ещё не называли — колесо встаёт не на полночь. Начало идёт
+     вслед за концом предыдущей точки (а если та не кончилась — за её началом
+     плюс обычный шаг), у первой — на начало самой съёмки. Конец встаёт часом
+     позже начала: пустая клетка не должна раскрываться нулём, но и придумывать
+     длину этапа за фотографа нечем — час просто ближайшее правдоподобное. */
+  function stopTimeSeed(i, field) {
+    var self = fRoute[i], own = self ? parseHM(self.t) : null;
+    if (field === "t2") return (own != null ? own : stopTimeSeed(i, "t")) + 60;
     for (var j = i - 1; j >= 0; j--) {
+      var pe = parseHM(fRoute[j].t2);
+      if (pe != null) return snapMin(pe + 30);
       var pv = parseHM(fRoute[j].t);
       if (pv != null) return snapMin(pv + 30);
     }
     return fMin;
   }
-  /* Один обработчик на оба конца аренды: колесо говорит, какой конец крутят,
-     а `openRow` — что крутят именно его. Время студии стоит само по себе и
-     ничего не двигает следом: длительность съёмки от него не зависит */
-  function onRentWheel() {
-    var r = rentStop != null ? fRoute[rentStop] : null, v;
-    if (openRow === "fRentFrom") v = wheelIndex(fwRFH) * 60 + wheelMin(fwRFM);
-    else if (openRow === "fRentTo") v = wheelIndex(fwRTH) * 60 + wheelMin(fwRTM);
-    else return;
-    /* Крутят часы точки — пишем в точку, а строку правим на месте: перерисовка
-       списка снесла бы раскрытый барабан вместе со строкой */
-    if (r) {
-      if (openRow === "fRentFrom") r.rentFrom = v; else r.rentTo = v;
-      paintStopRent(rentStop);
-    } else {
-      if (openRow === "fRentFrom") fRentFrom = v; else fRentTo = v;
-      renderRent();
-    }
-    scheduleDraftSave();
-  }
-  /* Часы аренды читаются оттуда, чьи они: у точки маршрута — свои, у съёмки со
-     студией на самом месте — прежние поля формы. Часов ещё не назвали — барабан
-     встаёт на время самой точки, а не на выдуманное окно: пустое поле честнее
-     подставленного ответа. */
-  function rentVal(end) {
-    var r = rentStop != null ? fRoute[rentStop] : null, v;
-    if (!r) return ((end === "from" ? fRentFrom : fRentTo) || 0);
-    v = end === "from" ? r.rentFrom : r.rentTo;
-    if (v != null) return v;
-    var t = parseHM(r.t);
-    if (t == null) t = fMin;
-    return end === "from" ? t : t + 60;
-  }
-
   function onPlWheel() {
     if (openRow !== "fMusic" || !playlists.length) return;
     var pl = playlists[clamp(wheelIndex(fwPL), 0, playlists.length - 1)];
@@ -22021,19 +21923,16 @@
     ["fStartDate", "fStartDatePick"], ["fStart", "fStartPick"],
     ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"],
     ["fMusic", "fMusicPick"],
-    ["fHall", "fHallPick"],
-    ["fRentFrom", "fRentFromPick"],   ["fRentTo", "fRentToPick"],
-    ["fStopTime", "fStopTimePick"]
+    ["fStopTime", "fStopTimePick"],   ["fStopEnd", "fStopEndPick"]
   ];
   // Подсветку носит капсула, а не строка: в строке их теперь две
   var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal",
-              fMusic: "fMusicVal", fHall: "fHallVal",
-              fRentFrom: "fRentFromVal", fRentTo: "fRentToVal" };
+              fMusic: "fMusicVal" };
   var openRow = null;
-  /* Аренда — единственная строка, чья капсула не одна на форму: у каждой
-     студийной точки маршрута своя, и подсветку носит та, которую тронули.
-     Остальные строки отвечают своим постоянным элементом, как отвечали. */
-  var rentStop = null, stopTimeRow = null, capEls = {};
+  /* У промежутка точки капсула не одна на форму: своя в каждой ячейке списка,
+     и подсветку носит та, которую тронули. Остальные строки отвечают своим
+     постоянным элементом формы, как отвечали. */
+  var stopTimeRow = null, capEls = {};
   function capOf(id) { return capEls[id] || $(CAP[id]); }
   function closeRows() {
     /* «Своя точка» без выбранной строки не даёт капсулы ни через `capEls`,
@@ -22077,20 +21976,14 @@
       var e = endMinOfDay();
       syncWheel(fwEH, Math.floor(e / 60)); syncMinWheel(fwEM, e % 60);
     }
-    if (id === "fRentFrom") {
-      var rf = ((rentVal("from") % 1440) + 1440) % 1440;
-      syncWheel(fwRFH, Math.floor(rf / 60)); syncMinWheel(fwRFM, rf % 60);
-    }
-    if (id === "fRentTo") {
-      var rt = ((rentVal("to") % 1440) + 1440) % 1440;
-      syncWheel(fwRTH, Math.floor(rt / 60)); syncMinWheel(fwRTM, rt % 60);
-    }
-    if (id === "fStopTime") {
+    if (id === "fStopTime" || id === "fStopEnd") {
+      var end2 = id === "fStopEnd";
       var stR = stopTimeRow != null ? fRoute[stopTimeRow] : null;
-      var stV = stR ? parseHM(stR.t) : null;
-      if (stV == null) stV = stopTimeSeed(stopTimeRow);
+      var stV = stR ? parseHM(end2 ? stR.t2 : stR.t) : null;
+      if (stV == null) stV = stopTimeSeed(stopTimeRow, end2 ? "t2" : "t");
       stV = ((stV % 1440) + 1440) % 1440;
-      syncWheel(fwStH, Math.floor(stV / 60)); syncMinWheel(fwStM, stV % 60);
+      syncWheel(end2 ? fwStEH : fwStH, Math.floor(stV / 60));
+      syncMinWheel(end2 ? fwStEM : fwStM, stV % 60);
     }
 
     if (id === "fMusic") {
@@ -22107,33 +22000,17 @@
        клик уже навешен отдельно, в `renderRouteEditor` */
     var cap = $(CAP[r[0]]);
     if (!cap) return;
-    cap.addEventListener("click", function () {
-      /* Капсула съёмки забирает барабан обратно у точки маршрута: барабан один
-         на все часы аренды, и он всегда стоит под тем, чьи часы крутят */
-      if ((r[0] === "fRentFrom" || r[0] === "fRentTo") && rentStop != null) {
-        closeRows(); rentStop = null; capEls = {}; parkRentWheels();
-      }
-      toggleRow(r[0]);
-    });
+    cap.addEventListener("click", function () { toggleRow(r[0]); });
 
   });
 
   /* Место съёмки живёт в самой съёмке: имя, координаты и «в городе» для засветки.
      По умолчанию — текущее место приложения, дальше правится вручную. */
   var sessionPlace = { name: "", town: "", addr: "", lat: LAT, lon: LON, city: true };
-  /* Студия у съёмки и её аренда. Аренда живёт в съёмке, а не в студии: студия
-     вечная, аренда — событие во времени, со своим началом и концом. Пусто —
-     значит место адресное, и ни строки аренды, ни студийного часа нет. */
-  var sessionStudioId = null, fRentFrom = null, fRentTo = null, fHallId = null;
-  /* Связана ли аренда со временем съёмки. Разлад, который назвал Алексей
-     4 сентября 2026: «свадьба — это место, где студия лишь промежуточная
-     точка, но если это часовая съёмка портрета, то время фотосессии и время
-     в студии — это одно и то же время, и задаём один и тот же вопрос дважды».
-     Признак есть у жанра и без нас — тот же, что решает, бывает ли у съёмки
-     маршрут (`hasRoute`): маршрут значит день из этапов, и студия в нём этап.
-     Связано — значит `fRentFrom/fRentTo` пустые, а модель уже умеет читать
-     это как «как съёмка» (`rentWindow`). */
-  var fRentLinked = true;
+  /* Студия съёмки. Своего вопроса у неё в форме нет: она берётся у первой
+     ячейки дня — та и есть место съёмки. Держим отдельно, потому что на неё
+     смотрят те, кто про маршрут ничего не знает: связь с бронью и запись. */
+  var sessionStudioId = null;
   /* Ссылка на бронь в системе студии и заявка на продление. Пусто — связи нет,
      и студия остаётся напоминалкой: таймер и звонок работают без неё. */
   var fBookingRef = null, fRentReq = null;
@@ -22187,62 +22064,62 @@
         renderSessionPlace();
       }).catch(function () {});
   }
-  /* Имени места достаточно. Координаты под ним — шум: человек думает
-     «Кронверкское», а не «59.945 N · 30.313 E», и числа он всё равно не
-     проверяет. Остаётся признак города — он не украшение, а вход в модель:
-     от него зависит засветка при съёмке звёзд. */
-  /* Координаты — не подпись места. «56.020 N · 37.480 E» не отвечает на вопрос
-     «где снимаем» никому, включая того, кто их набрал: широта с долготой
-     читаются приборами, а не людьми. Пока имени нет, честнее сказать, что
-     места нет, — пустая строка не врёт, а числа притворяются ответом.
-
-     Одно исключение, и оно настоящее: фотограф сам набрал координаты руками.
-     В горах, в степи и на воде у точки имени не бывает вовсе, и числа там —
-     единственный способ её назвать. Это его выбор, и мы его показываем. */
+  /* Место съёмки больше не строка формы: его показывает первая ячейка
+     списка. Здесь остаётся то, что ячейке не принадлежит и стоит своими
+     строками, — город, выезд, время в пути и пояс. Имя и координаты по-
+     прежнему живут в `sessionPlace`, потому что на них смотрит вся световая
+     модель, которая про маршрут ничего не знает: ей нужны широта, долгота и
+     признак засветки, а не список этапов дня. */
   function renderSessionPlace() {
-    var shown = sessionPlace.name
-      || (sessionPlace.manual ? coordText(sessionPlace.lat, sessionPlace.lon) : "");
-    /* Место выбрано — строка называет его; не выбрано — на её месте стоят
-       три пути. Двух строк сразу не бывает: это один и тот же вопрос в двух
-       состояниях, до ответа и после (docs: DECISIONS, «Три пути к месту»).
-       Показывает ряд теперь `renderRouteHead`: те же три пути обслуживают и
-       следующую точку маршрута, и решать за двоих должен кто-то один */
-    var has = !!shown;
-    $("fPlace").hidden = !has;
-
-    /* Зал — часть имени места, а не отдельная строка под ним: на площадке
-       сверяют «Томсон, зал Эдисон» одной фразой, как её и произносят.
-       Барабан выбора зала при этом остаётся: он отвечает «какой», а строка —
-       «где мы» (решение Алексея). */
-    var st = studioById(sessionStudioId);
-    var hall = null;
-    if (st && fHallId) {
-      (st.halls || []).forEach(function (h) { if (h.id === fHallId) hall = h; });
-    }
-    if (hall && hall.name) shown = LANG.t("form.placeHall", { place: shown, hall: hall.name });
-    $("fPlaceName").textContent = shown || LANG.t("loc.noPlace");
-    /* Город стоит своей строкой, поэтому подпись под точкой — про саму точку:
-       улица и дом. «В городе» ушло совсем: город назван по имени, и повторять
-       его признаком незачем. «За городом» осталось — это не адрес, а вход в
-       световую модель: от него зависит засветка при съёмке звёзд, и сказать
-       это больше негде. */
-    var bits = [];
-    if (sessionPlace.addr) bits.push(sessionPlace.addr);
-    if (sessionPlace.city === false) bits.push(LANG.t("loc.outCity"));
-    $("fPlaceCoords").textContent = bits.join(" · ");
     /* Пока город набирают, поле не перебиваем: ответ геокодера может прийти
        посреди слова, и курсор уедет вместе с ним */
     if (document.activeElement !== $("fCity")) $("fCity").value = sessionPlace.town || "";
     renderTripRow();
-    renderRentRow();
+    renderLinkRow();
     renderRouteHead();
     var tag = $("fTzTag");
-
     if (tag) {
       var t = tzTag(sessionPlace.lat, sessionPlace.lon, fDate);
       tag.textContent = t;
       tag.hidden = !t;
     }
+  }
+  /* Первая ячейка дня — это и есть место съёмки. Свет, погода, пояс и карта
+     читают `sessionPlace`, а он теперь производный: что стоит в первой
+     ячейке, то и место. Зовём после любой правки первой ячейки — выбором
+     места, веером зала, набором поверх строки и её удалением.
+
+     Геокодер дёргается, только когда правда сменились координаты: он уточняет
+     город и засветку, и звать его на каждое нажатие в поле имени незачем. */
+  function syncHeadPlace() {
+    var r = (fRoute || [])[0], pl = r ? stopPlace(r) : null;
+    sessionStudioId = (r && r.studioId && studioById(r.studioId)) ? r.studioId : null;
+    if (!r || (!pl && !(r.p || "").trim())) {
+      sessionPlace = { name: "", town: sessionPlace.town || "", townTyped: !!sessionPlace.townTyped,
+                       addr: "", lat: LAT, lon: LON, city: sessionPlace.city };
+      renderSessionPlace();
+      return;
+    }
+    if (pl && (sessionPlace.lat !== pl.lat || sessionPlace.lon !== pl.lon)) {
+      setSessionPlace(pl.lat, pl.lon, r.p || pl.name, false, pl.addr || "");
+      return;
+    }
+    /* Координаты те же — сменилось имя: зал выбрали веером или строку
+       поправили руками. Ни города, ни засветки это не меняет. */
+    sessionPlace.name = r.p || (pl ? pl.name : "");
+    if (pl) sessionPlace.addr = pl.addr || "";
+    renderSessionPlace();
+  }
+  /* Что записать в саму съёмку про студию: знак студии, зал и купленные часы.
+     Всё это теперь свойства первой ячейки, но в записи остаются своими полями
+     — на них смотрят карточка, таймер студийного часа и связь с бронью, и
+     заставлять их разбирать маршрут ради одного числа незачем. */
+  function headStudio() {
+    var r = (fRoute || [])[0];
+    var st = r && studioById(r.studioId);
+    if (!st) return { studioId: null, hallId: null, rentFrom: null, rentTo: null };
+    return { studioId: st.id, hallId: r.hallId || null,
+             rentFrom: parseHM(r.t), rentTo: parseHM(r.t2) };
   }
   /* Выезд ли это. Отвечает пара «город съёмки — родной город»: не знаем
      одного из двух, отвечать нечем, и молчание честнее догадки. Сравниваем
@@ -22332,52 +22209,6 @@
       note.textContent = LANG.t("form.roadNoteOff");
     }
   }
-  /* Аренда появляется вместе со студией и исчезает вместе с ней. Часы по
-     умолчанию — часы съёмки: чаще всего они и совпадают, а спорить с этим
-     фотограф будет ровно тогда, когда студия снята с запасом. */
-  /* Зал — подчинённая единица студии, и живёт он в съёмке, а не в аренде:
-     аренда отвечает «когда», зал — «где внутри». Список приходит с карточкой
-     студии; студия без залов строки не показывает — выбирать не из чего. */
-  /* Первым в барабане стоит «не выбран»: зал бывает неизвестен заранее, а
-     навязанный первый врал бы увереннее, чем пустота. */
-  var fwHall = $("fwHall"), hallList = [], hallLabelsKey = "";
-  function hallLabels() {
-    return [LANG.t("form.hallNone")].concat(hallList.map(function (h) { return h.name || h.id; }));
-  }
-  /* Капсула и барабан говорят разное намеренно. В барабане нулевая позиция —
-     значение («не выбран»), в ряду таких же значений. В капсуле значения нет,
-     и вместо него стоит приглашение нажать — тем же приёмом, что у строки
-     организации («выбрать»). */
-  function hallCap(i) { return i > 0 ? hallLabels()[i] : LANG.t("form.hallPick"); }
-  function onHallWheel() {
-    var i = wheelIndex(fwHall);
-    fHallId = (i > 0 && hallList[i - 1]) ? hallList[i - 1].id : null;
-    $("fHallVal").textContent = hallCap(i);
-    /* Зал стоит в имени места — значит меняется вместе с барабаном */
-    renderSessionPlace();
-  }
-  attachWheel(fwHall, onHallWheel);
-  function renderHallRow() {
-    var st = studioById(sessionStudioId);
-    var halls = (st && Array.isArray(st.halls)) ? st.halls : [];
-    $("fHall").hidden = !halls.length;
-    if (!halls.length) { fHallId = null; hallList = []; hallLabelsKey = ""; return; }
-    if (fHallId && !halls.some(function (h) { return h.id === fHallId; })) fHallId = null;
-    hallList = halls;
-    var labels = hallLabels();
-    /* Барабан перезаполняем, только когда список правда сменился: `fill`
-       пересобирает разметку, и делать это на каждой перерисовке формы значило
-       бы дёргать колесо под пальцем */
-    var key = labels.join("\u0000");
-    if (key !== hallLabelsKey) {
-      fill(fwHall, labels.map(function (t) { return esc(t); }));
-      hallLabelsKey = key;
-    }
-    var idx = 0;
-    for (var i = 0; i < halls.length; i++) if (halls[i].id === fHallId) idx = i + 1;
-    syncWheel(fwHall, idx);
-    $("fHallVal").textContent = hallCap(idx);
-  }
   /* Строка связи живёт, только пока у студии есть ключ: без него спрашивать
      некого, и предлагать действие, которое заведомо не сработает, — обман. */
   function renderLinkRow() {
@@ -22414,8 +22245,10 @@
         /* Дата местная, а не UTC: `toISOString` в вечерние часы отдал бы
            завтрашний день. Тот же приём, что у ключа воздуха (`airKeyOf`). */
         date: airKeyOf(fDate),
-        from: fmt(fRentFrom != null ? fRentFrom : fMin),
-        to: fmt(fRentTo != null ? fRentTo : fMin + fDur),
+        /* Часы спрашиваем те, что стоят в первой ячейке дня: она и есть
+           студия съёмки. Не назвали — спрашиваем по времени съёмки */
+        from: (fRoute[0] && fRoute[0].t) || fmt(fMin),
+        to: (fRoute[0] && fRoute[0].t2) || fmt(fMin + fDur),
         phones: phones
       })
     }).then(function (r) { return r.json(); }).then(function (j) {
@@ -22423,73 +22256,26 @@
       /* Бронь — источник правды о времени и зале: её завели в студии, а в
          форме часы могли поставить на глаз */
       fBookingRef = j.bookingRef;
-      if (j.hallId) fHallId = j.hallId;
-      if (j.start) fRentFrom = parseHM(j.start);
-      if (j.end) fRentTo = parseHM(j.end);
-      renderSessionPlace();
+      /* Ответ брони ложится в первую ячейку — туда, где эти вопросы теперь и
+         задаются. Отдельных полей у съёмки под зал и часы больше нет. */
+      var head = fRoute[0];
+      if (head) {
+        var stH = studioById(head.studioId);
+        if (j.hallId && stH) {
+          head.hallId = j.hallId;
+          (stH.halls || []).forEach(function (h) {
+            if (h.id === j.hallId) head.p = LANG.t("form.placeHall", { place: stH.name, hall: h.name });
+          });
+        }
+        if (j.start) head.t = j.start;
+        if (j.end) head.t2 = j.end;
+        renderRouteEditor();
+        syncHeadPlace();
+      }
+      renderLinkRow();
     }).catch(function () {
       $("fLinkVal").textContent = LANG.t("form.linkOff");
     });
-  });
-  function renderRentRow() {
-    renderHallRow();
-    renderLinkRow();
-    renderRent();
-  }
-  /* Отдельно от зала и связи с бронью: строка аренды едет за барабанами
-     времени, и звать ради неё перезаполнение колеса залов на каждый щелчок
-     незачем. Поэтому `refreshForm` зовёт только эту половину. */
-  function renderRent() {
-    var on = !!studioById(sessionStudioId);
-    $("fRentRow").hidden = !on;
-    if (!on) { closeRentRows(); fRentFrom = fRentTo = null; fRentLinked = true; return; }
-    /* Вторая точка размыкает связь: пока точка одна, время в студии и время
-       съёмки — одно и то же, а как только у дня появился маршрут, студия в нём
-       этап, и её часы приходится называть. Мера та же, что у заголовка группы,
-       — число точек, а не жанр: маршрут бывает у любой съёмки, и студийная
-       свадьба без маршрута спрашивать часы не должна. Числа при размыкании
-       берутся от съёмки — это не ответ, а то, от чего его правят. Обратно связь
-       сама не встаёт: точку могли убрать уже после того, как часы назвали
-       руками, и затирать их молча нельзя — на это есть крестик. */
-    if (formStops() > 1 && fRentLinked) fRentLinked = false;
-
-    if (fRentLinked) { closeRentRows(); fRentFrom = fRentTo = null; }
-    else {
-      if (fRentFrom == null) fRentFrom = fMin;
-      if (fRentTo == null) fRentTo = fMin + fDur;
-    }
-    $("fRentSameWrap").hidden = !fRentLinked;
-    $("fRentOwn").hidden = fRentLinked;
-    $("fRentBack").hidden = fRentLinked;
-    /* Подпись говорит, чем эта аренда является, а не как устроена строка:
-       «как съёмка» — факт о часе в студии, ровно как «день уходит на дорогу»
-       у выезда (правило: подписи не про интерфейс) */
-    $("fRentNote").textContent = fRentLinked ? LANG.t("form.rentSame") : "";
-    if (fRentLinked) { $("fRentSame").textContent = range(fMin, fMin + fDur); return; }
-    $("fRentFromVal").textContent = fmt(fRentFrom);
-    $("fRentToVal").textContent = fmt(fRentTo);
-  }
-  /* Колесо не остаётся раскрытым под исчезнувшей строкой: студию убрали или
-     аренду вернули к времени съёмки — крутить больше нечего. Барабаны времени
-     этого не знали, потому что их строки не прячутся никогда. */
-  function closeRentRows() {
-    if (openRow === "fRentFrom" || openRow === "fRentTo") closeRows();
-  }
-  /* Тап по капсуле размыкает связь: дальше часы студии — свой ответ. Курсор
-     сразу в первом поле, иначе размыкание стоило бы двух нажатий. */
-  $("fRentSame").addEventListener("click", function () {
-    fRentLinked = false;
-    fRentFrom = fMin; fRentTo = fMin + fDur;
-    renderRent();
-    toggleRow("fRentFrom");
-    scheduleDraftSave();
-  });
-  /* Крестик возвращает связь. У жанра с маршрутом его нет смысла нажимать —
-     связь там не держится, — но строка и не показывает его: `renderRent`
-     размыкает такой жанр раньше, чем дело доходит до кнопки. */
-  $("fRentBack").addEventListener("click", function () {
-    fRentLinked = true; fRentFrom = fRentTo = null;
-    closeRentRows(); renderRent(); scheduleDraftSave();
   });
   /* Разбора набранных цифр здесь больше нет. Он складывал «1000» в «10:00» и
      чинил на выходе описки вроде «25:70» — работа, которой у барабана не
@@ -23648,99 +23434,91 @@
      уезжают только заполненные (время разобралось и этап назван). */
   var fRoute = [];
   var fRouteSeeded = false;            // точки подставлены нами, а не набраны руками
-  /* Барабаны аренды ездят под ту точку, чьи часы крутят, а список точек
-     перерисовывается целиком — значит перед перерисовкой их надо вернуть на
-     место, иначе `innerHTML` унесёт их вместе со строкой. */
-  function parkRentWheels() {
-    var home = $("fRentRow"), p = home.parentNode;
-    p.insertBefore($("fRentFromPick"), home.nextSibling);
-    p.insertBefore($("fRentToPick"), $("fRentFromPick").nextSibling);
+  /* Барабан времени ездит под ту ячейку, чьи часы крутят, а список
+     перерисовывается целиком — значит перед перерисовкой его надо вернуть на
+     место, иначе `innerHTML` унесёт колесо вместе со строкой. */
+  function parkStopWheels() {
+    var home = $("fRouteList"), p = home.parentNode;
+    p.insertBefore($("fStopTimePick"), home);
+    p.insertBefore($("fStopEndPick"), home);
+    /* Ряд путей тоже уезжает под свою ячейку и тоже обязан вернуться: он
+       становится ребёнком списка, и `innerHTML` унёс бы его вместе со строкой */
+    p.insertBefore($("fPlaceWays"), $("fRouteAdd"));
   }
-  /* Тот же приём, что у аренды: колесо своей точки уезжает под строку, пока её
-     правят, и его надо вернуть на место до `innerHTML`, иначе перерисовка
-     унесёт барабан вместе со строкой, которой он сейчас принадлежит */
-  function parkStopTimeWheel() {
-    var home = $("fRouteList");
-    home.parentNode.insertBefore($("fStopTimePick"), home);
-  }
+  /* Подписи часов правим на месте, без перерисовки списка: перерисовка
+     закрыла бы барабан, которым их сейчас и крутят. */
   function paintStopTime(i) {
     var row = $("fRouteList").querySelector('.rt-row[data-i="' + i + '"]');
     if (!row) return;
-    var r = fRoute[i], b = row.querySelector(".rt-in-t");
-    if (!b) return;
-    b.textContent = r.t || "--:--";
-    b.classList.toggle("empty", !r.t);
+    var r = fRoute[i], b1 = row.querySelector(".rt-t1"), b2 = row.querySelector(".rt-t2");
+    if (b1) { b1.textContent = r.t || "--:--"; b1.classList.toggle("empty", !r.t); }
+    if (b2) { b2.textContent = r.t2 || "--:--"; b2.classList.toggle("empty", !r.t2); }
   }
-  /* Подпись часов у точки — на месте, без перерисовки списка: перерисовка
-     закрыла бы барабан, которым их сейчас и крутят. */
-  function paintStopRent(i) {
-    var row = $("fRouteList").querySelector('.rt-row[data-i="' + i + '"]');
-    if (!row) return;
-    var r = fRoute[i], f = row.querySelector(".rt-rf"), t = row.querySelector(".rt-rt");
-    if (f) f.textContent = r.rentFrom != null ? fmt(r.rentFrom) : "—";
-    if (t) t.textContent = r.rentTo != null ? fmt(r.rentTo) : "—";
-  }
+  /* Ячейка дня. Форма у всех одна, сколько бы их ни было и что бы в них ни
+     стояло: номер, имя этапа и промежуток — первой строкой, место с булавкой —
+     второй. Прежде ячейки были разными: у студийной вырастала третья строка
+     «Аренда», у привязанной к месту — строка адреса, а самая первая точка
+     вообще стояла над списком тремя отдельными вопросами. Читалось это
+     плацкартным билетом — глазу не за что зацепиться
+     (Алексей, 7 сентября 2026).
+
+     Слова «Аренда» больше нет. Оплаченный час студии — это то же время
+     точки: когда пришли и когда ушли. Администратору студии важно, что час
+     куплен; фотографу важно, во сколько он в зале
+     (решение Алексея, 7 сентября 2026). */
   function renderRouteEditor() {
     var host = $("fRouteList"), hints = sceneHints(shootType);
-    /* Точка, чьи часы крутили, могла уехать или перестать быть студией */
-    if (openRow === "fRentFrom" || openRow === "fRentTo" || openRow === "fStopTime") closeRows();
-    parkRentWheels();
-    parkStopTimeWheel();
-    rentStop = null; stopTimeRow = null; capEls = {};
-
+    /* Точка, чьи часы крутили, могла уехать */
+    if (openRow === "fStopTime" || openRow === "fStopEnd") closeRows();
+    parkStopWheels();
+    stopTimeRow = null; capEls = {};
     host.innerHTML = fRoute.map(function (r, i) {
-      /* Адрес показывается только у точки, привязанной к сохранённому месту:
-         набранная руками строка — это подпись, а не адрес, и придумывать ей
-         второй уровень нечем. Адрес, а если его нет — подпись места: у точки
-         в поле дома нет, а «12 км от Томска» отвечает на тот же вопрос */
-      var sp = stopPlace(r), addr = sp ? (sp.addr || sp.sub) : "";
       return '<div class="rt-row" data-i="' + i + '">'
-
-        + '<button type="button" class="rt-in-t' + (r.t ? '' : ' empty') + '">' + esc(r.t || "--:--") + '</button>'
+        + '<span class="rt-no">' + (i + 1) + '</span>'
         + '<input class="rt-in-n" type="text" placeholder="' + esc(hints[i % hints.length]) + '" value="' + esc(r.n || "") + '"/>'
+        /* Промежуток у каждой точки, а не только у студийной: время на дорогу
+           видно зазором между концом одной ячейки и началом следующей, и
+           отдельной строкой его не пишут — «может, уйдём из студии пораньше,
+           это непредсказуемо» (Алексей, 7 сентября 2026) */
+        + '<span class="rt-span">'
+        + '<button type="button" class="rv-v rt-t1' + (r.t ? '' : ' empty') + '">' + esc(r.t || "--:--") + '</button>'
+        + '<span class="rn-d">–</span>'
+        + '<button type="button" class="rv-v rt-t2' + (r.t2 ? '' : ' empty') + '">' + esc(r.t2 || "--:--") + '</button>'
+        + '</span>'
         + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
         + '<div class="rt-place">'
         + '<input class="rt-in-p" type="text" placeholder="' + esc(LANG.t("form.scenePlacePh")) + '" value="' + esc(r.p || "") + '"/>'
         + '<button type="button" class="rt-pick" aria-label="' + esc(LANG.t("form.pickSpotAria")) + '" data-ic="pin"></button>'
         + '</div>'
-        + (addr ? '<div class="rt-addr">' + esc(addr) + '</div>' : '')
-        /* Аренду спрашивает только точка со студией: у площадки под открытым
-           небом часов не покупают */
-        + (r.studioId ? '<div class="rt-rent"><span class="rt-rl">' + esc(LANG.t("form.rent")) + '</span>'
-            + '<span class="caps">'
-            + '<button type="button" class="rv-v rt-rf" aria-label="' + esc(LANG.t("form.rentFrom")) + '">'
-            + (r.rentFrom != null ? esc(fmt(r.rentFrom)) : "—") + '</button>'
-            + '<span class="rn-d">–</span>'
-            + '<button type="button" class="rv-v rt-rt" aria-label="' + esc(LANG.t("form.rentTo")) + '">'
-            + (r.rentTo != null ? esc(fmt(r.rentTo)) : "—") + '</button>'
-            + '</span></div>' : '')
         + '</div>';
-
-
     }).join("") || '<div class="rt-empty">'
       + esc(LANG.t("form.scenesHint", { list: hints.slice(0, 4).join(", ").toLowerCase() })) + "</div>";
     paintIcons(host);
     host.querySelectorAll(".rt-row").forEach(function (row) {
-      var r = fRoute[+row.dataset.i], t = row.querySelector(".rt-in-t");
-      /* Время точки — барабан, как и везде в приложении: тап открывает колесо
-         под строкой, а не клавиатуру (Алексей, 6 сентября 2026, тест маршрута
-         на телефоне). Приём и порядок действий — те же, что у аренды точки. */
-      t.addEventListener("click", function () {
-        var i = +row.dataset.i;
-        if (openRow === "fStopTime" && stopTimeRow === i) { closeRows(); return; }
-        closeRows();
-        stopTimeRow = i; capEls.fStopTime = t;
-        row.parentNode.insertBefore($("fStopTimePick"), row.nextSibling);
-        toggleRow("fStopTime");
-        /* Времени ещё не было — колесо встало на подсказанное, и это уже
-           ответ: записываем его, иначе строка осталась бы с прочерком под
-           раскрытым колесом (та же мысль, что у часов аренды) */
-        if (!r.t) {
-          r.t = fmt(stopTimeSeed(i));
-          fRouteSeeded = false;
-          paintStopTime(i);
-          scheduleDraftSave();
-        }
+      var r = fRoute[+row.dataset.i];
+      /* Оба конца промежутка — один приём: тап открывает колесо под ячейкой, а
+         не клавиатуру (Алексей, 6 сентября 2026, тест маршрута на телефоне).
+         Барабанов два, по одному на конец, и раскрытым бывает всегда один:
+         жест один — результат один. */
+      [["t1", "fStopTime", "t"], ["t2", "fStopEnd", "t2"]].forEach(function (w) {
+        var b = row.querySelector(".rt-" + w[0]);
+        b.addEventListener("click", function () {
+          var i = +row.dataset.i;
+          if (openRow === w[1] && stopTimeRow === i) { closeRows(); return; }
+          closeRows();
+          stopTimeRow = i; capEls[w[1]] = b;
+          row.parentNode.insertBefore($(w[1] + "Pick"), row.nextSibling);
+          toggleRow(w[1]);
+          /* Времени ещё не было — колесо встало на подсказанное, и это уже
+             ответ: записываем его, иначе строка осталась бы с прочерком под
+             раскрытым колесом */
+          if (!fRoute[i][w[2]]) {
+            fRoute[i][w[2]] = fmt(stopTimeSeed(i, w[2]));
+            fRouteSeeded = false;
+            paintStopTime(i);
+            scheduleDraftSave();
+          }
+        });
       });
       /* Клавиатура и барабан — два способа ответить, и открытыми сразу оба
          быть не должны: строку правят либо словом, либо колесом. Курсор в
@@ -23758,25 +23536,21 @@
       row.querySelector(".rt-in-p").addEventListener("input", function () {
         r.p = this.value; r.placeId = null; r.studioId = null; r.hallId = null;
         fRouteSeeded = false;
-
         row.querySelector(".rt-pick").classList.remove("on");
-
-        /* Ссылки не стало — не стало и адреса: он был свойством места, а не
-           этой строки. Убираем на месте, а не перерисовкой: перерисовка
-           отняла бы курсор посреди слова */
-        var ad = row.querySelector(".rt-addr");
-        if (ad) ad.remove();
         /* Место набрали руками — ряд путей своё отспрашивал */
         if (waysStop === +row.dataset.i) { waysStop = null; renderRouteHead(); }
-
-
+        /* Первая ячейка — место всей съёмки: свет и погода считаются по её
+           координатам, и ссылки на них больше нет */
+        if (+row.dataset.i === 0) syncHeadPlace();
       });
       row.querySelector(".rt-x").addEventListener("click", function () {
         fRouteSeeded = false;
-        /* Точки не стало — ряд путей больше не за кем не числится: номера
+        /* Точки не стало — ряд путей больше ни за кем не числится: номера
            сдвинулись, и открытый ряд спрашивал бы место у чужой строки */
         waysStop = null;
-        fRoute.splice(+row.dataset.i, 1); renderRouteEditor();
+        fRoute.splice(+row.dataset.i, 1);
+        if (+row.dataset.i === 0) syncHeadPlace();
+        renderRouteEditor();
       });
 
       /* Место из сохранённых точек — не просто копия имени, а ссылка (r.placeId):
@@ -23788,87 +23562,53 @@
       pick.addEventListener("click", function () {
         /* У точки со студией веер спрашивает зал, а не место: место у неё уже
            названо, а какой из залов — вопрос открытый, и в свадебном дне он
-           решающий («в первом зале с гостями, во втором только пара»). Место
-           у такой точки меняют набором поверх строки: он рвёт ссылку и
-           возвращает точку в общий вид. */
+           решающий («в первом зале с гостями, во втором только пара»). Зал
+           спрашивается здесь и только здесь: своей строки над списком у него
+           больше нет. Место у такой точки меняют набором поверх строки: он
+           рвёт ссылку и возвращает точку в общий вид. */
         var stR = studioById(r.studioId);
+        var i = +row.dataset.i;
         if (stR && (stR.halls || []).length) {
           openSpotFan(pick, function (h) {
             r.hallId = h.id; fRouteSeeded = false;
-            /* Зал входит в имя точки, как он входит в имя места съёмки: на
-               площадке говорят «Томсон, зал Эдисон» одной фразой */
+            /* Зал входит в имя точки: на площадке говорят «Томсон, зал Эдисон»
+               одной фразой */
             r.p = LANG.t("form.placeHall", { place: stR.name, hall: h.name });
+            if (i === 0) syncHeadPlace();
             renderRouteEditor();
           }, stR.halls);
-
           return;
         }
         openSpotFan(pick, function (sp) {
           r.p = sp.name; r.placeId = sp.id; r.studioId = null; r.hallId = null;
           fRouteSeeded = false;
-          /* Строку рисуем заново: вместе с именем у точки появляется адрес,
-             а он стоит отдельной строкой под полем */
+          if (i === 0) syncHeadPlace();
           renderRouteEditor();
         });
       });
-
-      /* Часы аренды этой точки. Барабан тот же, что у съёмки: он переезжает под
-         строку и начинает писать в точку. Раскрытым бывает всегда один — значит
-         и барабан нужен один на все точки, сколько бы студий ни было в дне. */
-      [["rf", "fRentFrom", "rentFrom", "from"], ["rt", "fRentTo", "rentTo", "to"]]
-        .forEach(function (w) {
-          var b = row.querySelector(".rt-" + w[0]);
-          if (!b) return;
-          b.addEventListener("click", function () {
-            var i = +row.dataset.i;
-            if (openRow === w[1] && rentStop === i) { closeRows(); return; }
-            closeRows();
-            rentStop = i; capEls[w[1]] = b;
-            row.parentNode.insertBefore($(w[1] + "Pick"), row.nextSibling);
-            toggleRow(w[1]);
-            /* Часов ещё не называли — барабан встал на время самой точки, и это
-               уже ответ: записываем его, иначе строка осталась бы с прочерком
-               под раскрытым колесом */
-            if (fRoute[i][w[2]] == null) {
-              fRoute[i][w[2]] = rentVal(w[3]);
-              paintStopRent(i);
-              scheduleDraftSave();
-            }
-          });
-        });
-
-
     });
     renderRouteHead();
   }
-  /* Заголовок группы и кнопка «＋». Считаются отдельно от места и отдельно от
-     точек, потому что зависят от обоих: первая точка живёт в `sessionPlace`,
-     остальные в `fRoute`, а вид у блока один. Одна точка — «Место и адрес»,
-     больше одной — «Маршрут дня»: заголовок идёт за числом точек, и спросить
-     его отдельным переключателем значило бы спросить то, что и так видно
+
+  /* Заголовок группы и кнопка «＋». Одна ячейка — «Место и адрес», больше
+     одной — «Маршрут дня»: заголовок идёт за числом ячеек, и спрашивать его
+     отдельным переключателем значило бы спрашивать то, что и так видно
      (docs: DECISIONS, «Маршрут — это счёт точек»).
 
-     Кнопка ждёт первой точки: «＋» над пустым местом предлагал бы вторую
-     точку прежде первой. Как только место названо — маршрут можно строить. */
-  /* Сколько точек у съёмки прямо сейчас: место съёмки плюс точки маршрута.
-     Это единственная мера «маршрут ли это», и по ней идут все, кто спрашивает:
-     заголовок группы и связь аренды со временем съёмки. Прежде аренда шла по
-     жанру (`hasRoute`), и оси разъехались в тот же день, когда маршрут перестал
-     быть жанровым свойством: у портрета с пятью точками студия «как съёмка»
-     занимала весь день, а у студийной свадьбы без маршрута часы спрашивались
-     заново (docs: DECISIONS, «Маршрут — это счёт точек», поправка). */
-  /* Для кого сейчас открыт ряд путей: null — для места съёмки, число — номер
-     точки маршрута. Ряд один на всех, потому что вопрос один: где это. */
+     Кнопка ждёт первой ячейки: «＋» над пустым списком предлагал бы вторую
+     точку прежде первой. Первую заводят тремя путями, и с неё начинается
+     день. */
+  /* Для какой ячейки сейчас открыт ряд путей. Ряд один на всех, потому что
+     вопрос один: где это. */
   var waysStop = null;
-  function formStops() {
-
-    return (sessionPlace.name || sessionPlace.manual ? 1 : 0) + (fRoute || []).length;
-  }
+  /* Сколько пунктов у дня прямо сейчас. Место съёмки больше не считается
+     отдельно от них: оно и есть первый пункт
+     (docs: DECISIONS, «Маршрут — это счёт точек», поправка 7 сентября 2026). */
+  function formStops() { return (fRoute || []).length; }
   function renderRouteHead() {
     var lab = $("fPlaceLabel"), add = $("fRouteAdd"), list = $("fRouteList");
     if (!lab || !add || !list) return;
-    var has = !!(sessionPlace.name || sessionPlace.manual);
-    var n = (fRoute || []).length;               // место рисуется и до того, как список ожил
+    var n = (fRoute || []).length;
     /* Слово «Маршрут дня» в приложении уже принято — им названа группа точек
        в карточке (`card.route`). Заводить второе такое же ради формы значило
        бы держать одну строку в двух ключах и переводить её дважды */
@@ -23886,16 +23626,29 @@
        (замечено Алексеем: «я думал, что кнопка ＋ будет включать отображение
        кнопок место, фотостудия, гео таким же образом как первая точка»). */
     var forStop = waysStop !== null && !!(fRoute || [])[waysStop];
-    $("fPlaceWays").hidden = off || (has && !forStop);
+    /* Три пути стоят под списком, пока у дня нет места вовсе: первая ячейка
+       без места — это тот же вопрос «где снимаем», с которого форма начинала
+       всегда. Место названо — ряд уходит, и следующие ячейки спрашивают его
+       через «＋» (docs: DECISIONS, «Три пути к месту») */
+    var head = (fRoute || [])[0];
+    var headEmpty = !head || !(head.placeId || head.studioId || (head.p || "").trim());
+    var ways = $("fPlaceWays");
+    ways.hidden = off || (!headEmpty && !forStop);
+    /* Ряд стоит под той ячейкой, которую спрашивает, а не под всем списком:
+       иначе три кнопки под шестой точкой предлагали бы место ей, а отвечали
+       за первую */
+    var askIdx = forStop ? waysStop : (headEmpty && n ? 0 : -1);
+    var askRow = askIdx >= 0 ? list.querySelector('.rt-row[data-i="' + askIdx + '"]') : null;
+    if (askRow) askRow.parentNode.insertBefore(ways, askRow.nextSibling);
+    else list.parentNode.insertBefore(ways, $("fRouteAdd"));
     /* Пока ряд открыт, «＋» уходит: две кнопки «добавить» подряд спорили бы,
        какая из них добавляет */
-    add.hidden = off || (!has && !n) || forStop;
+    add.hidden = off || !n || forStop;
     list.hidden = off || !n;
 
-    /* Строка аренды считает точки той же мерой, и вторая точка меняет её
-       смысл: студия перестала быть всей съёмкой. Перерисовываем отсюда,
-       потому что точки добавляют здесь, а не в блоке студии */
-    renderRent();
+    /* Связь с бронью висит на студии первой ячейки, а ячейки добавляют
+       здесь: строка обязана появиться и пропасть вместе с ними */
+    renderLinkRow();
   }
 
 
@@ -23928,14 +23681,18 @@
     var wide = startMin < 900;                       // начали до 15:00 — день впереди
     var a = snapMin(startMin + (wide ? 120 : 30));
     var b = snapMin(startMin + (wide ? 240 : 90));
+    var cap = function (v) { return fmt(Math.min(v, 1410)); };
+    /* Первый пункт — сборы: день начинается там, где начинается съёмка, и это
+       же место съёмки. Место у всех трёх пустое: его называет фотограф */
     return [
-      { t: fmt(Math.min(a, 1410)), n: sceneName("registry"), p: "" },
-      { t: fmt(Math.min(b, 1410)), n: sceneName("walk"), p: "" }
+      { t: fmt(startMin), t2: cap(a), n: sceneName("gathering"), p: "" },
+      { t: cap(a), t2: cap(b), n: sceneName("registry"), p: "" },
+      { t: cap(b), t2: cap(snapMin(b + 90)), n: sceneName("walk"), p: "" }
     ];
   }
   $("fRouteAdd").addEventListener("click", function () {
     if (fRoute.length >= 10) return;          // день из одиннадцати сцен планируют не здесь
-    fRoute.push({ t: "", n: "", p: "" });
+    fRoute.push({ t: "", t2: "", n: "", p: "" });
     /* Ряд путей открывается сразу под новой строкой: «＋» спрашивает «где
        следующая точка», и ответ у него тот же, что у первой. Курсор в поле
        времени больше не ставим — клавиатура закрыла бы собой ровно те три
@@ -23954,14 +23711,13 @@
      (docs: DECISIONS, «Маршрут — это счёт точек»). */
   function routeFromEditor() {
     return fRoute.map(function (r) {
-      return { t: parseHM(r.t), n: (r.n || "").trim(), p: (r.p || "").trim(),
+      /* Промежуток пишется у каждой ячейки, а не только у студийной: во
+         сколько пришли и во сколько ушли — вопрос ко всем этапам дня, а
+         купленный час студии от него ничем не отличается */
+      return { t: parseHM(r.t), t2: parseHM(r.t2),
+               n: (r.n || "").trim(), p: (r.p || "").trim(),
                placeId: r.placeId || null, studioId: r.studioId || null,
-               hallId: r.hallId || null,
-               /* Часы аренды — у той точки, где стоит студия. Не у съёмки:
-                  в свадебном дне студия этап, и залов за день бывает два, у
-                  каждого свой оплаченный час */
-               rentFrom: r.studioId ? (r.rentFrom != null ? r.rentFrom : null) : null,
-               rentTo: r.studioId ? (r.rentTo != null ? r.rentTo : null) : null };
+               hallId: r.hallId || null };
 
     }).filter(function (r) { return (r.t !== null && r.n) || r.placeId || r.studioId || r.p; });
 
@@ -24406,11 +24162,6 @@
     LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(keep);
 
-    /* Связанная аренда — не отдельное число, а то же время съёмки: крутят
-       барабан — едет и она. Раньше строка заполнялась один раз, при выборе
-       студии, и дальше врала: съёмка 18:31–20:31, аренда 18:00–19:00 (замер
-       по снимку Алексея, 4 сентября 2026) */
-    renderRent();
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
     $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
@@ -25436,28 +25187,31 @@
      времени, а не после каждого часа многочасовой сессии.
      (docs: ROADMAP, «Студия — своя сущность, и она живёт во времени») */
   function rentWindow(s) {
-    var st = studioById(s.studioId), dur = s.dur || 90;
-    if (st) {
-      return { st: st,
-               from: s.rentFrom != null ? s.rentFrom : s.min,
-               to: s.rentTo != null ? s.rentTo : (s.end != null ? s.end : s.min + dur) };
-    }
-    /* Студия может стоять точкой маршрута — тогда часы её у точки. Точек со
-       студией за день бывает две (два зала, две брони), и отвечает та, что идёт
-       сейчас; если день ещё не начался или уже кончился — ближайшая впереди,
-       иначе последняя. Одно окно, а не список: телефон, таймер и просьба
-       продлить спрашивают про час, в котором стоят. */
+    /* Часы студии — это часы той ячейки дня, где она стоит: своих полей у
+       аренды больше нет, слово «аренда» ушло из формы вместе со строкой.
+       Ячеек со студией за день бывает две (два зала, две брони), и отвечает
+       та, что идёт сейчас; если день ещё не начался или уже кончился —
+       ближайшая впереди, иначе последняя. Одно окно, а не список: телефон,
+       таймер и просьба продлить спрашивают про час, в котором стоят. */
     var st2 = (Array.isArray(s.route) ? s.route : []).filter(function (r) {
-      return r && r.studioId && studioById(r.studioId) && r.rentFrom != null && r.rentTo != null;
-    }).sort(function (a, b) { return a.rentFrom - b.rentFrom; });
-    if (!st2.length) return null;
-    var now = nowMinOf(s), pick = null, i;
-    if (now !== null) {
-      for (i = 0; i < st2.length; i++) if (now >= st2[i].rentFrom && now <= st2[i].rentTo) { pick = st2[i]; break; }
-      if (!pick) for (i = 0; i < st2.length; i++) if (st2[i].rentFrom > now) { pick = st2[i]; break; }
-      if (!pick) pick = st2[st2.length - 1];
-    } else pick = st2[0];
-    return { st: studioById(pick.studioId), from: pick.rentFrom, to: pick.rentTo, stop: pick };
+      return r && r.studioId && studioById(r.studioId) && r.t != null && r.t2 != null;
+    }).sort(function (a, b) { return a.t - b.t; });
+    if (st2.length) {
+      var now = nowMinOf(s), pick = null, i;
+      if (now !== null) {
+        for (i = 0; i < st2.length; i++) if (now >= st2[i].t && now <= st2[i].t2) { pick = st2[i]; break; }
+        if (!pick) for (i = 0; i < st2.length; i++) if (st2[i].t > now) { pick = st2[i]; break; }
+        if (!pick) pick = st2[st2.length - 1];
+      } else pick = st2[0];
+      return { st: studioById(pick.studioId), from: pick.t, to: pick.t2, stop: pick };
+    }
+    /* Записи, заведённые до того, как место съёмки стало первой ячейкой,
+       держат студию и её часы своими полями. Читаем их как читали. */
+    var st = studioById(s.studioId), dur = s.dur || 90;
+    if (!st) return null;
+    return { st: st,
+             from: s.rentFrom != null ? s.rentFrom : s.min,
+             to: s.rentTo != null ? s.rentTo : (s.end != null ? s.end : s.min + dur) };
   }
 
   /* Телефон студии живёт по фазе аренды: пришёл — есть кому позвонить, ушёл —
@@ -25525,9 +25279,9 @@
         s.rentReq.newEnd = j.newEnd || null;
         if (j.status === "confirmed" && j.newEnd) {
           var v = parseHM(j.newEnd);
-          /* Продлили те часы, которые шли: у точки маршрута — её собственные,
-             у съёмки со студией на месте — прежние поля записи */
-          if (v !== null) { if (rw.stop) rw.stop.rentTo = v; else s.rentTo = v; }
+          /* Продлили те часы, которые шли: у ячейки дня — её собственный
+             конец, у записи старого вида — прежнее поле аренды */
+          if (v !== null) { if (rw.stop) rw.stop.t2 = v; else s.rentTo = v; }
         }
 
         saveAll();
@@ -25808,8 +25562,12 @@
     if (!show) return;
     $("cdRouteFold").classList.remove("open");
     $("cdRouteT").textContent = LANG.t("card.route");
+    /* День кончается там, где кончается последний пункт, а не там, где он
+       начался: у ячейки теперь есть свой конец, и «до 21:30» на банкете,
+       который идёт до одиннадцати, было бы неправдой */
+    var last = route[route.length - 1];
     $("cdRouteS").textContent = LANG.count("unit.point", route.length)
-      + " · " + range(route[0].t, route[route.length - 1].t);
+      + " · " + range(route[0].t, last.t2 != null ? last.t2 : last.t);
 
     var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
     var cur = curIndex(route, nowMin2);
@@ -26438,7 +26196,8 @@
       persons: formPersons(),
       place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
       placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
-      studioId: sessionStudioId, hallId: fHallId, rentFrom: fRentFrom, rentTo: fRentTo,
+      studioId: headStudio().studioId, hallId: headStudio().hallId,
+      rentFrom: headStudio().rentFrom, rentTo: headStudio().rentTo,
       bookingRef: fBookingRef, rentReq: fRentReq,
       wish: wishes.slice(),
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"), deliveredAt: fDeliveredAt,
@@ -26523,15 +26282,8 @@
        точку сам. Гадать, где кончается город и начинается улица, дороже, чем
        показать запись как есть. */
     sessionStudioId = studioById(s.studioId) ? s.studioId : null;
-    fHallId = s.hallId || null;
     fBookingRef = s.bookingRef || null;
     fRentReq = s.rentReq || null;
-    fRentFrom = s.rentFrom != null ? s.rentFrom : null;
-    fRentTo = s.rentTo != null ? s.rentTo : null;
-    /* Записи, где часы аренды проставлены, открываются со своими часами —
-       это ответ фотографа, и стирать его связью нельзя. Пустые читаются так
-       же, как их читает модель: «как съёмка». */
-    fRentLinked = (fRentFrom == null && fRentTo == null);
     sessionPlace = (s.placeLat != null)
       ? { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
           lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
@@ -26583,14 +26335,33 @@
        и неправильный форме. Точка без назначенного часа пропала бы при первой
        же правке, а порядок фотографа подменился бы порядком часов */
     fRoute = (Array.isArray(s.route) ? s.route : []).map(function (r) {
-      return { t: r.t == null ? "" : fmt(r.t), n: r.n || "", p: r.p || "",
+      /* Записи, заведённые до слияния аренды со временем точки, держат часы
+         студии в своих полях — читаем их как промежуток: это и были часы,
+         когда пришли и когда ушли */
+      var f0 = r.t != null ? r.t : r.rentFrom, f1 = r.t2 != null ? r.t2 : r.rentTo;
+      return { t: f0 == null ? "" : fmt(f0), t2: f1 == null ? "" : fmt(f1),
+               n: r.n || "", p: r.p || "",
                placeId: r.placeId || null, studioId: r.studioId || null,
-               hallId: r.hallId || null,
-               rentFrom: r.rentFrom != null ? r.rentFrom : null,
-               rentTo: r.rentTo != null ? r.rentTo : null };
+               hallId: r.hallId || null };
     });
+    /* Запись, заведённая до того, как место съёмки стало первой ячейкой,
+       держит его отдельными полями. Ставим его первым пунктом дня — там ему
+       теперь и место. Часы берём у аренды, если студия их называла, иначе у
+       самой съёмки: это её первый этап, и начинается он с её началом. */
+    if (s.place || s.studioId || s.placeLat != null) {
+      var head0 = (fRoute[0] || {});
+      var already = head0.p && s.place && head0.p.indexOf(s.place) === 0;
+      if (!already) {
+        fRoute.unshift({
+          t: fmt(s.rentFrom != null ? s.rentFrom : s.min),
+          t2: fmt(s.rentTo != null ? s.rentTo : (s.end != null ? s.end : s.min + (s.dur || 60))),
+          n: "", p: s.place || "",
+          placeId: null, studioId: s.studioId || null, hallId: s.hallId || null
+        });
+      }
+    }
     waysStop = null;                         // форма открылась заново: ряд ни за кем не числится
-    rentStop = null;                         // и часы аренды ни за чьей точкой не крутятся
+    stopTimeRow = null;                      // и часы ни за чьей точкой не крутятся
 
 
 
@@ -26642,8 +26413,7 @@
          подсказку геолокации. Города в профиле нет — остаётся прежнее
          поведение, город из-под ног (docs: DECISIONS, «Родной город»). */
       sessionPlace = { name: "", town: myCity() || geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
-      sessionStudioId = null; fRentFrom = null; fRentTo = null; fHallId = null;
-      fRentLinked = true;
+      sessionStudioId = null;
       fBookingRef = null; fRentReq = null;
       fId = newId();
       fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
@@ -27347,30 +27117,25 @@
     });
   }
   $("fRoadRow").addEventListener("click", openRoadSheet);
-  $("fPlaceGo").addEventListener("click", function () {
-    /* Правка идёт тем же путём, каким место выбрали: студию правят карточкой
-       студии, адрес — поиском. Путь виден по самой записи */
-    openLocSheet("session", sessionStudioId ? "studio" : (sessionPlace.manual ? "geo" : "addr"));
-  });
   document.querySelectorAll("#fPlaceWays .pw").forEach(function (b) {
     b.addEventListener("click", function () {
       /* Кнопки те же, спрашивают то же — разница лишь в том, чьё это место:
          съёмки или очередной точки маршрута */
-      if (waysStop !== null && fRoute[waysStop]) openLocSheet("stop", b.dataset.way, waysStop);
-      else openLocSheet("session", b.dataset.way);
+      /* Три пути спрашивают «где это» у той ячейки, которая сейчас ждёт
+         ответа. Ячеек ещё нет вовсе — заводим первую: место съёмки и есть
+         первый пункт дня, и спрашивается он тем же способом, что все
+         остальные */
+      var i = (waysStop !== null && fRoute[waysStop]) ? waysStop : null;
+      if (i === null) {
+        /* Ячейки ещё нет — заводим первую. Есть, но без места — спрашиваем
+           её: пустая первая ячейка и есть незаданное место съёмки */
+        if (!fRoute.length) { fRoute.push({ t: "", t2: "", n: "", p: "" }); renderRouteEditor(); }
+        waysStop = i = 0;
+      }
+      openLocSheet("stop", b.dataset.way, i);
     });
   });
 
-  /* Крестик снимает место целиком: имя, адрес, студию, зал и аренду. Аренда
-     уходит вместе со студией не из аккуратности — без студии её некому
-     держать, и час без хозяина считался бы от пустоты */
-  $("fPlaceClear").addEventListener("click", function () {
-    sessionPlace = { name: "", town: sessionPlace.town || "", townTyped: !!sessionPlace.townTyped,
-                     addr: "", lat: LAT, lon: LON, city: sessionPlace.city };
-    sessionStudioId = null; fHallId = null;
-    fRentFrom = fRentTo = null; fRentLinked = true; fBookingRef = null; fRentReq = null;
-    renderSessionPlace(); renderHallRow(); renderLinkRow();
-  });
   /* Кого снимаем — парой или строкой, смотря по жанру */
   function formPersons() {
     var pp = personsOf(shootType);
@@ -27410,14 +27175,16 @@
       persons: formPersons(),
       place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
       placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
-      /* Аренда пишется только у студии: у адресного места её нет, и нули в
-         записи означали бы бронь, которой не было */
-      studioId: sessionStudioId || null,
-      hallId: sessionStudioId ? fHallId : null,
-      rentFrom: sessionStudioId ? fRentFrom : null,
-      rentTo: sessionStudioId ? fRentTo : null,
-      bookingRef: sessionStudioId ? fBookingRef : null,
-      rentReq: sessionStudioId ? fRentReq : null,
+      /* Студия, зал и её часы — свойства первой ячейки дня; в записи они
+         остаются своими полями, потому что на них смотрят карточка и таймер
+         студийного часа. У адресного места их нет, и нули означали бы бронь,
+         которой не было */
+      studioId: headStudio().studioId,
+      hallId: headStudio().hallId,
+      rentFrom: headStudio().rentFrom,
+      rentTo: headStudio().rentTo,
+      bookingRef: headStudio().studioId ? fBookingRef : null,
+      rentReq: headStudio().studioId ? fRentReq : null,
       wish: wishes.slice(), warn: warn,
       deadlineChoice: fDelvChoice, delivered: $("fDone").classList.contains("on"),
       deliveredAt: $("fDone").classList.contains("on") ? fDeliveredAt : null,
@@ -31945,64 +31712,16 @@
       saveAll(); renderSpotMark(); renderSpots();
       closeLocSheet();
       renderRouteEditor();
+      /* Первая ячейка — место всей съёмки: свет, погода и пояс считаются по
+         её координатам */
+      if (locStopIdx === 0) syncHeadPlace();
       saveNote(LANG.t(locWay === "studio" ? "loc.studioPick" : "loc.saved", { name: placeName }));
       return;
     }
-    if (locTarget === "session") {
-      if (locWay === "studio") {
-        if (!studioDraft) { closeLocSheet(); return; }
-
-        var st = studioFromDraft(la, lo);
-        sessionStudioId = st.id;
-        placeName = st.name;                      // студия называет себя сама
-        addr = st.address;
-      } else {
-
-        /* Ушли с пути студии на адрес или координаты — значит съёмка больше
-           не в студии: аренда и зал уходят вместе с ней */
-        sessionStudioId = null;
-        fRentFrom = fRentTo = null; fRentLinked = true;
-        placeName = ($("locName").value || "").trim() || locPickName;
-        /* Адрес принадлежит съёмке, а не только закладке. Раньше он писался
-           лишь при включённом тумблере «сохранить место» — выключен, и
-           набранный адрес выбрасывался: съёмке он не доставался вообще. */
-        addr = locWay === "addr" ? ($("locAddress").value || "").trim() : "";
-      }
-      /* Город места сильнее города, стоявшего в форме: место названо
-         позже и точнее. Отмечаем его как названный, чтобы обратный геокодер
-         не переписал его обратно на посёлок по соседству.
-
-         Кроме пути студии. Там город приходит из её записи, а запись могла
-         получить его от формы — и «названным» оказывался не ответ человека,
-         а чужая подпись, которую после этого нечем было исправить: геокодер
-         молчал, потому что его просили молчать. У студии есть свои
-         координаты, и по ним ответ точен — пусть отвечает. */
-      if (locPickTown) {
-        sessionPlace.town = locPickTown;
-        if (locWay !== "studio") sessionPlace.townTyped = true;
-      }
-      /* Руками набранные координаты считаем ответом только если имени к ним
-         не дали: назвал место — значит числа ему не подпись */
-      setSessionPlace(la, lo, placeName, locCoordsTyped && !placeName, addr);
-      /* Сохранение в свои места — только на адресных путях: студия ведёт
-         свой список и в чужом не нуждается */
-      savedAsSpot = locWay !== "studio" && $("locSaveSpot").classList.contains("on");
-      if (savedAsSpot) {
-        var idx = -1;
-        for (var si = 0; si < spots.length; si++) if (sameSpot(spots[si], la, lo)) { idx = si; break; }
-        if (idx >= 0) {
-          if (placeName) spots[idx].name = placeName;
-          if (addr) spots[idx].address = addr;
-        } else {
-          spots.unshift({ id: newSpotId(), name: placeName || coordText(la, lo), address: addr,
-            pinned: !locFromHit,
-            lat: +(+la).toFixed(5), lon: +(+lo).toFixed(5) });
-        }
-        saveAll(); renderSpotMark(); renderSpots();
-      }
-    } else {
-      gotoLocation(la, lo);
-    }
+    /* Ветки «место съёмки» здесь больше нет: место съёмки — первая ячейка
+       дня, и лист отвечает ей той же дорогой, что и любой другой точке
+       (`locTarget === "stop"` выше). Осталось место самого приложения. */
+    gotoLocation(la, lo);
     closeLocSheet();
     /* Место сменилось — форма обязана пересчитать то, что от него зависит:
        свет считается по точке, а предупреждение о накладке — по месту и
