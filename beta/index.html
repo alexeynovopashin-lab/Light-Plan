@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=57"></script>
+<script src="lang.js?v=58"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -1685,7 +1685,12 @@
      барабаны, а полоса черновика, и она ниже их вместе взятых. Обратно всё
      возвращает та же кнопка маршрута — выхода без неё тут нет и не нужно. */
   body[data-tab="s-map"].routing .map-read,
-  body[data-tab="s-map"].routing .map-fold { display: none; }
+  body[data-tab="s-map"].routing .map-fold,
+  /* Голый холст: низ убран целиком — часы, сводка и барабаны. Не режим со
+     своей задачей, как маршрут, а просто «уйдите с карты, я смотрю»
+     (Алексей, 7 сентября 2026: «удобно для изучения карты»). */
+  body[data-tab="s-map"].map-bare .map-read,
+  body[data-tab="s-map"].map-bare .map-fold { display: none; }
   /* Липкую строку времени пробовали и отвергли — в симуляторе она встала
      посреди карты и разрезала её пополам. Причина в природе `sticky`: он
      удерживает элемент в границах контейнера, а не «прижимает к низу экрана»,
@@ -1816,7 +1821,8 @@
   }
   /* В наборе маршрута низ — не плита, а карточка черновика со своими полями
      и скруглением: сплошное стекло во всю ширину под ней было бы вторым дном */
-  body[data-tab="s-map"].routing .map-frame::after { display: none; }
+  body[data-tab="s-map"].routing .map-frame::after,
+  body[data-tab="s-map"].map-bare .map-frame::after { display: none; }
 
   /* ---------- Смена низа карты ----------
      Барабаны с часами и полоса черновика подменялись в один кадр (`display`),
@@ -1886,7 +1892,8 @@
      дороже как холст: маршрут читается только целиком, а в кадр 4:5 город
      влезает кварталами. Уходит именно на этом экране и в этом режиме — на
      «Сегодня» барабаны остаются, `--dockh` пересчитывается (`measureDock`). */
-  body[data-tab="s-map"].routing .timebar { display: none; }
+  body[data-tab="s-map"].routing .timebar,
+  body[data-tab="s-map"].map-bare .timebar { display: none; }
   .screen-action { margin: auto 24px 0; }
   /* `relative` — под кнопку «сейчас», которая живёт в пустом центре этой
      строки (см. `.now-tick`): между временем восхода слева и заката справа
@@ -2507,6 +2514,15 @@
   }
   .map-here svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
   .map-here:active { color: var(--brass); }
+  /* Возврат низа: по центру, над таб-баром. Видна только когда низ убран —
+     в обычном состоянии её незачем показывать, панель и так на месте. */
+  .map-bare-btn {
+    left: 50%; right: auto; transform: translateX(-50%);
+    display: none;
+  }
+  body[data-tab="s-map"].map-bare .map-bare-btn { display: inline-flex; }
+  /* В наборе маршрута низ занят полосой черновика — возвращать нечего */
+  body[data-tab="s-map"].routing .map-bare-btn { display: none; }
   /* Слои — тот же кружок, зеркально к «моему месту». Активный набор виден
      сразу, чтобы не открывать список ради вопроса «а Млечный Путь включён?» */
   .map-layers-btn.on { color: var(--brass); }
@@ -6885,6 +6901,16 @@
            пикселях выше, живёт закладка шапки — тусклый контурный знак, — и
            яркий кружок под ней забирал угол себе целиком. Алексей, 5 сентября
            2026: «пропал флажок». Флажок был на месте; пропал он из виду. -->
+      <!-- Возврат низа. Появляется только когда низ убран, и потому ни с чем
+           не спорит: в обычном состоянии её нет вовсе. Форма — тот же круг со
+           стеклом, что у остальных органов карты, знак — тот же шеврон, что
+           сворачивает сводку. Ухватку-полоску (Алексей нарисовал макет)
+           заводить не стали: такой формы в приложении нет ни одной, и она
+           говорила бы чужим языком. Стоит по центру — там, где панель была,
+           и туда же возвращается. -->
+      <button class="map-here map-bare-btn" id="mapBareBtn" aria-label="Показать время" data-i18n-aria="map.showDock">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+      </button>
       <button class="map-here map-route-btn" id="mapRouteBtn" aria-label="Маршрут" data-i18n-aria="map.route" data-ic="route" style="bottom:calc(var(--ctl-bot, 0px) + 54px);"></button>
     </div>
     <!-- Черновик маршрута. Показывается только во включённом режиме: пустая
@@ -29911,11 +29937,61 @@
   /* Шеврон карты: свернуть всё, кроме времени. Состояние переживает
      перезапуск — кто свернул сводку, тот не хочет видеть её и завтра */
   $("mapRead").addEventListener("click", function () {
+    if (bareSwiped) { bareSwiped = false; return; }   // это был свайп, а не тап
     var shut = !$("mapFold").classList.contains("shut");
     setMapFold(shut);
     mapFoldShut = shut;
     saveAll();
   });
+
+  /* ---------- Голый холст ----------
+     Низ уходит целиком — часы, сводка, барабаны, — и остаётся одна карта.
+     Убирает свайп вниз по строке часов: это та самая зона, на которую Алексей
+     показал, и жест там ни с чем не спорит — строка не таскается и не
+     прокручивается, в отличие от барабанов под ней.
+
+     Ухватки-полоски у панели нет намеренно. Её макет Алексей нарисовал и сам
+     же забраковал: «она спорит с дизайном приложения». Спорит справедливо —
+     такой формы в приложении нет ни одной. Обе нужные формы уже приняты:
+     шеврон значит сворачивание, круглое стекло на холсте значит орган карты.
+     Свайп вниз убирает, круглый шеврон по центру возвращает — новых знаков
+     не заведено.
+
+     Состояние не переживает перезапуск: это не настройка, а взгляд на карту
+     здесь и сейчас. Вернувшись в приложение, время хотят видеть. */
+  var mapBare = false, bareSwiped = false;
+  function setMapBare(on) {
+    if (mapBare === !!on) return;
+    mapBare = !!on;
+    swapMapDock(function () {
+      document.body.classList.toggle("map-bare", mapBare);
+      measureDockSoon();
+      routeReflow();
+    });
+  }
+  $("mapBareBtn").addEventListener("click", function () { setMapBare(false); });
+  (function bareSwipe() {
+    var row = $("mapRead"); if (!row) return;
+    var y0 = 0, x0 = 0, live = false;
+    row.addEventListener("pointerdown", function (e) {
+      y0 = e.clientY; x0 = e.clientX; live = true; bareSwiped = false;
+    });
+    row.addEventListener("pointermove", function (e) {
+      if (!live) return;
+      var dy = e.clientY - y0, dx = e.clientX - x0;
+      /* Вниз, заметно и вертикальнее, чем вбок: 40 px отделяют жест от
+         дрожания пальца на тапе, а сравнение с `dx` — от горизонтального
+         движения, которое на этой строке ничего не значит, но и перехватывать
+         его незачем */
+      if (dy > 40 && Math.abs(dy) > Math.abs(dx)) {
+        live = false; bareSwiped = true;
+        setMapBare(true);
+      }
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+      row.addEventListener(t, function () { live = false; });
+    });
+  })();
   function setMapFold(shut) {
     $("mapFold").classList.toggle("shut", shut);
     $("mapRead").classList.toggle("shut", shut);
