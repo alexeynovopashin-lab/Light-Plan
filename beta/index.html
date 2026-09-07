@@ -1300,7 +1300,7 @@
     background: var(--bar);
     backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
     border-bottom: 1px solid var(--hair);
-    padding-bottom: 22px;
+    padding-bottom: 16px;
   }
   .map-save, .map-list {
     width: 44px; height: 44px; flex-shrink: 0; margin: -6px -8px 0 0;
@@ -1797,26 +1797,35 @@
     display: flex; flex-direction: column; gap: 8px;
   }
   body[data-tab="s-plan"] .timebar, body[data-tab="s-set"] .timebar { display: none; }
-  /* На карте барабаны, читалка и свод — одно стекло, а не три плашки: они
-     стоят вплотную, и разные подложки читались бы швами. Карта проходит под
-     ними и видна сквозь них — ради этого низ и делали стеклянным. */
-  body[data-tab="s-map"] .timebar {
-    background: var(--bar); border-top: none;
+  /* Низ карты — ОДНО стекло на всю зону, а не три плашки подряд. Три давали
+     шов: `backdrop-filter` обрезается по границе своего элемента, и у самого
+     края размывать уже нечем — каждая плашка добирала тон по-своему, а на
+     стыке читалки с барабанами это выходило видимой линией (Алексей,
+     7 сентября 2026, стрелками: «под часами зазор»). Зазора там нет — замер
+     давал 0.00, — есть разрыв размытия. Лечится не отступом, а одной
+     поверхностью: стекло лежит слоем в самом кадре, а читалка, свод и
+     барабаны идут по нему прозрачными.
+     Кончается стекло у таб-бара: у того своё, и вдвоём они дали бы двойной
+     тон ровно той же природы. */
+  body[data-tab="s-map"] .map-frame::after {
+    content: ""; position: absolute; left: 0; right: 0;
+    top: calc(100% - var(--ctl-bot, 0px)); bottom: var(--tabh, 0px);
+    z-index: 500; pointer-events: none;
+    background: var(--bar); border-top: 1px solid var(--hair);
     backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
   }
-  body[data-tab="s-map"] #s-map > .map-read,
-  body[data-tab="s-map"] #s-map > .map-fold {
-    background: var(--bar);
-    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  }
+  /* В наборе маршрута низ — не плита, а карточка черновика со своими полями
+     и скруглением: сплошное стекло во всю ширину под ней было бы вторым дном */
+  body[data-tab="s-map"].routing .map-frame::after { display: none; }
+  body[data-tab="s-map"] .timebar { background: none; border-top: none; }
   /* Читалка сама себе крышка стекла: над ней карта открыта, и край должен
      быть виден линией, а не обрывом */
   /* Два пикселя `margin-bottom` под читалкой светились полоской карты между
-     нею и сводом — тот самый прозрачный зазор. Отступ переехал в поле: стекло
-     теперь покрывает его, а часам достаётся воздух сверху и снизу, которого
-     у них не было вовсе (padding по вертикали стоял нулевой). */
+     нею и сводом — тот самый прозрачный зазор. Отступ переехал в поле, а часам
+     достался воздух сверху и снизу, которого у них не было вовсе (padding по
+     вертикали стоял нулевой). Своего стекла у читалки больше нет: его несёт
+     общий слой низа, и линия сверху — тоже его. */
   body[data-tab="s-map"] #s-map > .map-read {
-    border-top: 1px solid var(--hair);
     margin-bottom: 0; padding: 13px 24px 12px;
   }
   /* Свод не растёт бесконечно: `--fold-max` держит его так, чтобы белая
