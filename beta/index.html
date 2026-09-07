@@ -1291,9 +1291,19 @@
      без подложки город с датой ложились бы прямо на кварталы. Стекло то же,
      что у таб-бара, — приём в приложении принят, второго заводить незачем. */
   body[data-tab="s-map"] #s-map > .header {
+    /* Дате нужен низ: без него плашка кончалась ровно на строке «ПН · 7
+       СЕНТЯБРЯ», и край читался обрывом, а не краем. */
+    padding-bottom: 14px;
+  }
+  /* Стекло шапки — отдельным слоем под содержимым, потому что оно растворяется,
+     а буквы растворяться не должны. Маска гасит и заливку, и размытие разом:
+     обрыв стекла над пёстрыми кварталами виден не хуже обрыва цвета. */
+  body[data-tab="s-map"] #s-map > .header::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
     background: var(--bar);
     backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
-    border-bottom: 1px solid var(--hair);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
   }
   .map-save, .map-list {
     width: 44px; height: 44px; flex-shrink: 0; margin: -6px -8px 0 0;
@@ -1804,7 +1814,14 @@
   }
   /* Читалка сама себе крышка стекла: над ней карта открыта, и край должен
      быть виден линией, а не обрывом */
-  body[data-tab="s-map"] #s-map > .map-read { border-top: 1px solid var(--hair); }
+  /* Два пикселя `margin-bottom` под читалкой светились полоской карты между
+     нею и сводом — тот самый прозрачный зазор. Отступ переехал в поле: стекло
+     теперь покрывает его, а часам достаётся воздух сверху и снизу, которого
+     у них не было вовсе (padding по вертикали стоял нулевой). */
+  body[data-tab="s-map"] #s-map > .map-read {
+    border-top: 1px solid var(--hair);
+    margin-bottom: 0; padding: 13px 24px 12px;
+  }
   /* Свод не растёт бесконечно: `--fold-max` держит его так, чтобы белая
      головка оставалась на виду. Прокрутка своя, внутренняя — карта под ним
      при этом не двигается. */
@@ -13784,9 +13801,9 @@
        ошибка в порядке тут стоит уехавшего центра карты. Скрытые барабаны
        (набор маршрута) дают нулевую высоту сами. */
     var tabbar = document.querySelector(".tabbar"), bars = $("timebar"), read = $("mapRead");
-    var tabh = (tabbar && tabbar.offsetHeight) || 0;
-    var dock = tabh + ((bars && bars.offsetHeight) || 0);
-    var bot = dock + ((read && read.offsetHeight) || 0);
+    var tabh = (tabbar && tabbar.getBoundingClientRect().height) || 0;
+    var dock = tabh + ((bars && bars.getBoundingClientRect().height) || 0);
+    var bot = dock + ((read && read.getBoundingClientRect().height) || 0);
     /* Раз док померен живьём — он же и держит переменную. `measureDock`
        считает её один раз при запуске, и в астро-режиме она застревала на
        84 (один таб-бар): барабаны с лентой суток вырастают позже, распорка
@@ -31690,8 +31707,12 @@
      изменении видимой области: адресная строка Safari то появляется, то
      исчезает, и вместе с ней меняется всё. */
   function measureDock() {
-    var tabh = document.querySelector(".tabbar").offsetHeight;
-    var barh = $("timebar").offsetHeight;
+    /* Высоты дробные, и округлять их нельзя: таб-бар в 83.5 px, округлённый
+       до 84, отодвигал барабаны на полпикселя вверх — и между двумя стёклами
+       светилась карта волосяной щелью (Алексей, 7 сентября 2026: «прозрачные
+       зазоры выглядят плохо»). */
+    var tabh = document.querySelector(".tabbar").getBoundingClientRect().height;
+    var barh = $("timebar").getBoundingClientRect().height;
     document.documentElement.style.setProperty("--tabh", tabh + "px");
     document.documentElement.style.setProperty("--dockh", (tabh + barh) + "px");
     /* Свободное окно карты стоит на доке, и считать его раньше дока нельзя.
