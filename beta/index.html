@@ -1817,6 +1817,40 @@
   /* В наборе маршрута низ — не плита, а карточка черновика со своими полями
      и скруглением: сплошное стекло во всю ширину под ней было бы вторым дном */
   body[data-tab="s-map"].routing .map-frame::after { display: none; }
+
+  /* ---------- Смена низа карты ----------
+     Барабаны с часами и полоса черновика подменялись в один кадр (`display`),
+     и переход читался рубкой: «всё просто исчезает и появляется» (Алексей,
+     7 сентября 2026). Теперь низ уезжает вниз и гаснет, подменяется в
+     невидимости и приезжает обратно. Прибор света идёт тем же движением, но
+     без сдвига: он лежит на карте, а не в доке, и ехать ему некуда — он
+     просто гаснет вместе с тем, что уходит.
+     Классы живут только на время движения: постоянный `transition` на этих
+     элементах мешал бы замеру, который ведёт стекло по кадрам. */
+  body.dock-anim #s-map > .map-read,
+  body.dock-anim #s-map > .map-fold,
+  body.dock-anim #s-map > .route-bar,
+  body.dock-anim .timebar,
+  body.dock-anim .map-frame::after,
+  body.dock-anim #mapLight {
+    transition: transform 0.24s ease, opacity 0.24s ease;
+  }
+  body.dock-out #s-map > .map-read,
+  body.dock-out #s-map > .map-fold,
+  body.dock-out #s-map > .route-bar,
+  body.dock-out .timebar,
+  body.dock-out .map-frame::after {
+    transform: translateY(26px); opacity: 0;
+  }
+  body.dock-out #mapLight { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    body.dock-anim #s-map > .map-read,
+    body.dock-anim #s-map > .map-fold,
+    body.dock-anim #s-map > .route-bar,
+    body.dock-anim .timebar,
+    body.dock-anim .map-frame::after,
+    body.dock-anim #mapLight { transition: none; }
+  }
   body[data-tab="s-map"] .timebar { background: none; border-top: none; }
   /* Читалка сама себе крышка стекла: над ней карта открыта, и край должен
      быть виден линией, а не обрывом */
@@ -13787,6 +13821,10 @@
      а именно её читает `moveend`, когда записывает место приложения. */
   var opticPad = -1, opticAgain = false;
   function measureMapOptic(frame) {
+    /* Пока низ едет, мерить нечего: прямоугольник сдвинутого элемента говорит
+       про его сдвиг, а не про раскладку, и стекло погналось бы за собственным
+       движением. Итоговый замер делает сама подмена, когда движение кончилось. */
+    if (document.body.classList.contains("dock-anim")) return;
     var fr = frame.getBoundingClientRect();
     /* Экран в переходе — кадра ещё нет. Считать нечего, но и бросать нельзя:
        без повтора окно осталось бы с числами того мгновения, когда карту ещё
@@ -15050,9 +15088,31 @@
      Порядок — порядок тапов. Переставлять номера перетаскиванием по карте
      было бы честнее для правки середины и дороже во всём остальном; пока
      ошибку исправляют, сняв точку и поставив заново (ROADMAP). */
+  /* Подмена низа карты с переходом. Уехало вниз и погасло — подменили в
+     невидимости — приехало обратно. Замер на это время отключён (`dock-anim`):
+     он ведёт стекло по прямоугольникам, а прямоугольник сдвинутого элемента
+     врёт про раскладку — стекло поехало бы вдвое. Итоговый замер идёт в
+     конце, когда всё уже стоит на местах. */
+  function swapMapDock(apply) {
+    var b = document.body;
+    b.classList.add("dock-anim", "dock-out");
+    setTimeout(function () {
+      apply();
+      requestAnimationFrame(function () {
+        b.classList.remove("dock-out");
+        setTimeout(function () {
+          b.classList.remove("dock-anim");
+          measureMapRotor();
+        }, 260);
+      });
+    }, 240);
+  }
   function setRouteMode(on) {
     routeMode = !!on;
     $("mapRouteBtn").classList.toggle("on", routeMode);
+    swapMapDock(function () { applyRouteMode(); });
+  }
+  function applyRouteMode() {
     $("mapSpots").classList.toggle("routing", routeMode);
     $("mapRouteBar").hidden = !routeMode;
     /* Набор маршрута — состояние всего экрана, а не значок в углу: с ним
