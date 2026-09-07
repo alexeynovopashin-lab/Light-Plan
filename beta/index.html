@@ -29437,7 +29437,12 @@
       var s = p.s, end = s.end != null ? s.end : s.min + (s.dur || 90);
       return '<button class="plan-row" data-i="' + p.i + '" style="border-bottom:1px solid rgba(255,255,255,0.04)">' +
         '<span class="pr-time">' + dMonShort(s.date) + "</span>" +
-        '<span class="pr-who">' + esc(clientName(s) || s.type) + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
+        /* Безымянную запись подписываем так же, как её подписывает день:
+           жанром, встречей или событием. Здесь стоял `s.type` — код записи, —
+           и свадьба без имени клиента выходила в списке словом «wedding» */
+        '<span class="pr-who">' + esc(clientName(s)
+          || (isMeet(s) ? LANG.t("day.meet") : isEvent(s) ? LANG.t("day.event") : genreName(s.type)))
+        + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
     }).join("");
     box.querySelectorAll(".dl-ev").forEach(function (b) {
       b.addEventListener("click", function () {
