@@ -8525,7 +8525,7 @@
     <div class="year-sticky-head">
       <div class="form-top">
         <button class="back" id="yearClose">
-          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span id="yearCloseLbl">—</span>
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.shoots">Съёмки</span>
         </button>
         <!-- Справа от «‹ Август» пустовало место на всю высоту шапки — крутить
              весь год до кнопки внизу списка ради статистики было бы глупо
@@ -16404,7 +16404,6 @@
     renderOverloadSignal();
     $("yTitle").textContent = yearShown;
     $("yearNow").classList.toggle("show", yearShown !== now.getFullYear());
-    $("yearCloseLbl").textContent = monthTitle(calMonth);
     /* Мини-календарь на месяц: та же неделя-с-понедельника и то же имя
        месяца, что и в основном виде (docs: DECISIONS). Число — прямой тап
        в день, имя месяца — тап в месяц целиком; ни то, ни другое не несёт
