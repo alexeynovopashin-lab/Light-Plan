@@ -7761,6 +7761,28 @@
       <span data-i18n="cloud.forget">Отключить облако</span>
     </button>
     <p class="seg-note" id="cloudNote"></p>
+
+    <!-- ============ ТЕСТОВЫЙ ПОСЕВ ============
+         Раздел живёт только в бете: в основном канале он скрыт целиком, и
+         файла `seed.js` оттуда никто не спрашивает. Подписи нарочно не
+         переведены — это инструмент проверки, а не часть продукта, и
+         тащить его в словарь трёх языков незачем. -->
+    <div id="seedSec" hidden>
+      <div class="sec-label">Тестовый посев</div>
+      <button class="data-btn ghost-btn" id="seedGo">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5V9M12 9a5 5 0 0 0-5-5H4.5a5 5 0 0 0 5 5zM12 9a5 5 0 0 1 5-5h2.5a5 5 0 0 1-5 5z"/></svg>
+        <span>Засеять сезон</span>
+      </button>
+      <button class="data-btn ghost-btn" id="seedPics">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16v13H4zM4 15l4.5-4 4 3.5 3-2.5L20 16"/><circle cx="9" cy="10" r="1.4"/></svg>
+        <span>Подтянуть кадры из Pinterest</span>
+      </button>
+      <button class="data-btn ghost-btn" id="seedDrop">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9 7V4.5h6V7M7 7l1 13h8l1-13"/></svg>
+        <span>Убрать посев</span>
+      </button>
+      <p class="seg-note" id="seedNote">Три месяца работы: прошлый месяц закрыт, текущий идёт, следующий набирается. Даты считаются от сегодня. Свои записи посев узнаёт по знаку и меняет только их — настоящие съёмки остаются.</p>
+    </div>
   </div>
 
   <div class="overlay pad flush" id="setOvLocale">
@@ -12515,13 +12537,17 @@
     var segs = u.pathname.split("/").filter(Boolean);
     return segs.length >= 2 && segs[0] !== "pin";
   }
-  function fetchOgBoard(url, onPin, onFail) {
+  /* `limit` — сколько пинов брать с доски. Обычному добавлению ссылки он не
+     нужен (человек добавляет доску целиком и ждёт её целиком), а посеву
+     нужен: доски бывают на девяносто кадров, и тянуть их все ради проверки
+     вёрстки — минуты ожидания и десятки мегабайт на устройстве */
+  function fetchOgBoard(url, onPin, onFail, limit) {
     if (!OG_READER_URL) return;
     fetch(OG_READER_URL + "?board=" + encodeURIComponent(url))
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
         if (!data || !data.pins || !data.pins.length) { if (onFail) onFail(); return; }
-        data.pins.forEach(function (pin) {
+        (limit ? data.pins.slice(0, limit) : data.pins).forEach(function (pin) {
           fetch(OG_READER_URL + "?img=" + encodeURIComponent(pin.image))
             .then(function (res) { return res.ok ? res.blob() : null; })
             .then(function (blob) { return blob ? refShots(blob) : null; })
@@ -29249,6 +29275,143 @@
     $("backupNote").textContent = LANG.t("set.backupReady");
   });
   $("backupLoad").addEventListener("click", function () { $("backupFile").click(); });
+
+  /* ---------- Тестовый посев ----------
+     Три месяца работы одной кнопкой: без данных не проверить ни карточку
+     жанра, ни календарь, ни ленту дня, а заводить два десятка съёмок руками
+     — полдня. Раздел показывается только в бете, и `seed.js` грузится по
+     первому нажатию: в основном канале за файлом никто не пойдёт, хотя
+     `index.html` у каналов один и тот же.
+
+     Посев узнаёт своё по знаку `sd_` в начале `id` и меняет только его —
+     настоящие съёмки рядом с ним не страдают. Кадры подборок тянутся тем же
+     путём, которым их тянет обычное добавление ссылки на доску
+     (`fetchOgBoard` → `refShots`), поэтому второго механизма здесь нет. */
+  if (CHANNEL === "beta") $("seedSec").hidden = false;
+  var seedBusy = false;
+  function seedSay(t) { $("seedNote").textContent = t; }
+  function seedMine(x) { return !!(x && typeof x.id === "string" && x.id.indexOf("sd_") === 0); }
+  function seedKeep(list) { return (list || []).filter(function (x) { return !seedMine(x); }); }
+  /* Файл грузится один раз и остаётся: второе нажатие уже не ходит в сеть */
+  function seedLoad() {
+    if (window.SEED) return Promise.resolve(window.SEED);
+    return new Promise(function (res, rej) {
+      var sc = document.createElement("script");
+      sc.src = "seed.js?v=1";
+      sc.onload = function () { window.SEED ? res(window.SEED) : rej(new Error("no SEED")); };
+      sc.onerror = function () { rej(new Error("no file")); };
+      document.head.appendChild(sc);
+    });
+  }
+  $("seedGo").addEventListener("click", function () {
+    if (seedBusy) return;
+    seedBusy = true; seedSay("Сею…");
+    seedLoad().then(function (SEED) {
+      var br = SEED.boards();
+      sessions = seedKeep(sessions).concat(SEED.sessions());
+      blocks   = seedKeep(blocks).concat(SEED.blocks());
+      orgs     = seedKeep(orgs).concat(SEED.orgs());
+      studios  = seedKeep(studios).concat(SEED.studios());
+      spots    = seedKeep(spots).concat(SEED.spots());
+      /* Подтянутые кадры повторный посев не сбрасывает: тянуть их заново —
+         минута-две и лишний поход в читалку */
+      var haveImgs = shots.some(function (x) { return seedMine(x) && x.im; });
+      if (!haveImgs) {
+        boards = seedKeep(boards); shots = seedKeep(shots).concat(br.shots); shotIx = null;
+        /* Заготовка жанра у приложения уже своя, и заводить рядом вторую с
+           тем же именем — задвоить полку. Посев вливается в существующую;
+           заводит свою, только если жанр пуст (заготовки бывают удалены) */
+        br.boards.forEach(function (bd) {
+          if (bd.kind === "tpl") {
+            var ex = null;
+            for (var i = 0; i < boards.length; i++) {
+              if (boards[i].kind === "tpl" && boards[i].genre === bd.genre) { ex = boards[i]; break; }
+            }
+            if (ex) { bd.items.forEach(function (id) { boardPut(ex, id); }); return; }
+          }
+          boards.push(bd);
+        });
+      }
+      /* Профиль: без города и номера приложение первым делом спросит их
+         листом поверх посева */
+      me.city = SEED.town.name; me.cityLat = SEED.town.lat; me.cityLon = SEED.town.lon;
+      me.cityCC = SEED.town.cc; me.cityAt = SEED.town.name;
+      me.phone = me.phone || SEED.phone;
+      me.met = true; practiceAsked = true; mbSeen = true;
+      /* Свет и карта переезжают вместе с городом — тем же ходом, каким это
+         делает выбор города в настройках. Без него посев лежит в Томске, а
+         рассвет считается там, куда занесла геолокация */
+      if (typeof gotoLocation === "function") {
+        gotoLocation(SEED.town.lat, SEED.town.lon);
+        geoCity = SEED.town.name; geoSub = ""; geoStale = false;
+        applyGeoNames();
+      }
+      saveAll();
+      renderCal(); renderDayPanel(); renderToday(); renderMap();
+      if (typeof renderMbStrip === "function") renderMbStrip();
+      seedSay("Засеяно: " + sessions.filter(seedMine).length + " записей, "
+        + blocks.filter(seedMine).length + " занятостей, " + orgs.filter(seedMine).length + " организаций"
+        + (haveImgs ? ". Кадры оставлены прежними." : ". Кадры — ссылками на доски."));
+      seedBusy = false;
+    }).catch(function () { seedSay("Посев не загрузился: нет файла seed.js или сети."); seedBusy = false; });
+  });
+  $("seedPics").addEventListener("click", function () {
+    if (seedBusy) return;
+    seedBusy = true; seedSay("Иду в читалку за кадрами. Это минута-две.");
+    seedLoad().then(function (SEED) {
+      var pins = SEED.pins, left = pins.length, added = 0;
+      if (!boards.some(seedMine)) { seedSay("Сначала «Засеять сезон» — класть кадры некуда."); seedBusy = false; return; }
+      pins.forEach(function (b) {
+        /* Подборки этого жанра — и заготовка жанра, и мудборды съёмок.
+           Ищем по жанру, а не по знаку посева: заготовка могла быть чужой,
+           посев влился в неё, и своей подборки с таким `id` просто нет */
+        var mine = boards.filter(function (bd) {
+          return bd.genre === b.g && (bd.kind === "tpl" || seedMine(bd));
+        });
+        var first = true, link = "sd_sh_" + b.g;
+        fetchOgBoard(b.url, function (shot, pin) {
+          /* Первый пришедший кадр вытесняет ссылку-заготовку: держать её
+             рядом с картинками незачем, она была временной подписью */
+          if (first) {
+            mine.forEach(function (bd) {
+              bd.items = (bd.items || []).filter(function (id) { return id !== link; });
+            });
+            shots = shots.filter(function (x) { return x.id !== link; }); shotIx = null;
+            first = false;
+          }
+          var id = shotAdd({ id: "sd_im" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                             k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tags: [b.g] });
+          mine.forEach(function (bd) { boardPut(bd, id); if (!bd.cover) bd.cover = id; bd.mt = Date.now(); });
+          added++;
+          seedSay("Кадров положено: " + added);
+          saveAll();
+          if (typeof renderMbStrip === "function") renderMbStrip();
+        }, function () { left--; }, 12);
+      });
+      /* Читалка отвечает пинами вразнобой и по одному — конца у неё нет,
+         поэтому кнопка освобождается по времени, а не по последнему кадру */
+      setTimeout(function () { seedBusy = false; seedSay("Готово. Кадров в подборках: " + added); }, 90000);
+    }).catch(function () { seedSay("Посев не загрузился."); seedBusy = false; });
+  });
+  $("seedDrop").addEventListener("click", function () {
+    sessions = seedKeep(sessions); blocks = seedKeep(blocks); orgs = seedKeep(orgs);
+    studios = seedKeep(studios); spots = seedKeep(spots);
+    /* Кадры посева могли лечь в чужую заготовку жанра — её саму не трогаем,
+       вынимаем только своё */
+    boards.forEach(function (b) {
+      if (Array.isArray(b.items)) b.items = b.items.filter(function (id) { return id.indexOf("sd_") !== 0; });
+      if (b.cover && b.cover.indexOf("sd_") === 0) b.cover = b.items[0] || null;
+    });
+    boards = seedKeep(boards);
+    /* Байты кадров лежат отдельно от записей — снять запись мало, иначе
+       превью останутся в базе сиротами и займут место навсегда */
+    shots.forEach(function (x) { if (seedMine(x) && x.im) blobDrop(x.im); });
+    shots = seedKeep(shots); shotIx = null;
+    saveAll();
+    renderCal(); renderDayPanel(); renderToday(); renderMap();
+    if (typeof renderMbStrip === "function") renderMbStrip();
+    seedSay("Посев убран. Настоящие записи на месте.");
+  });
 
   /* Яндекс.Диск: подключение, отключение, восстановление */
   /* Выбор поставщика и есть подключение: нажатие сразу ведёт на согласие,
