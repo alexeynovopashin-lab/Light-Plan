@@ -805,6 +805,45 @@
       + '<path d="M12 12.6c2.2 0 4.1 1.7 5.1 3.5 1.4 2.5-.6 5-3 4.4-1.5-.4-2.7-.4-4.2 0-2.4.6-4.4-1.9-3-4.4 1-1.8 2.9-3.5 5.1-3.5z"/>'
   };
 
+  /* ---------- Знаки уточнений ----------
+     Уточнение жанра меняет у съёмки знак и имя, и почти всем им форма уже
+     нашлась среди тем: ньюборну — младенец, венчанию — церковь, спорту —
+     бегун. Здесь лежит только то, чего в библиотеке не было вовсе. Стоят
+     они среди тем, а не отдельным набором: кушетка и плечики — такие же
+     предметы, как ёлка и торт, и завтра пригодятся не только уточнению. */
+  var SUB_SIGNS = {
+    /* Будуар — кушетка: сам будуар и есть комната с ней */
+    boudoir: '<path d="M2.4 14V9.2c0-1.9 1.5-3.4 3.4-3.4 1.9 0 3.4 1.5 3.4 3.4V14"/>'
+      + '<path d="M2.4 14h19.2a1.6 1.6 0 0 1 1.6 1.6v2.6H2.4z"/>'
+      + '<path d="M4 18.2v2M20.4 18.2v2"/>',
+    /* Помолвка — одно кольцо с камнем: у свадьбы их два и без камня */
+    ring_stone: '<circle cx="12" cy="15.2" r="5.2"/>'
+      + '<path d="M12 3.6l2.8 2.6-2.8 2.6-2.8-2.6z"/><path d="M9.2 6.2h5.6"/>'
+      + '<path d="M10.3 8.5l1 1.6M13.7 8.5l-1 1.6"/>',
+    /* Бар-мицва — звезда Давида: обряд зовут ею, а не свечами */
+    star_david: '<path d="M12 3.2l7.6 13.2H4.4z"/><path d="M12 20.8L4.4 7.6h15.2z"/>',
+    /* Интерьер — комната изнутри, стены сходятся к дальней стене. Фасад
+       занят самой «Архитектурой», и повторять его было бы нечестно */
+    interior: '<rect x="2.6" y="3.4" width="18.8" height="17.2" rx="1.8"/>'
+      + '<rect x="8.6" y="9.2" width="6.8" height="5.6" rx="1"/>'
+      + '<path d="M2.8 3.6l5.6 5.4M21.2 3.6l-5.6 5.4M2.8 20.4l5.6-5.4M21.2 20.4l-5.6-5.4"/>',
+    /* Макро — цветок: тот самый значок макрорежима, который у фотографа
+       стоит на объективе и на колесе камеры. Лупа означала бы поиск */
+    macro: '<ellipse cx="12" cy="6.4" rx="2.4" ry="3.2"/><ellipse cx="12" cy="17.6" rx="2.4" ry="3.2"/>'
+      + '<ellipse cx="6.4" cy="12" rx="3.2" ry="2.4"/><ellipse cx="17.6" cy="12" rx="3.2" ry="2.4"/>'
+      + '<circle cx="12" cy="12" r="2.2"/>',
+    /* Фешен — плечики: одежда, ставшая предметом съёмки */
+    hanger: '<path d="M12 3.8a2.1 2.1 0 0 1 2.1 2.1c0 1.2-1 1.7-2.1 2.1v1.6"/>'
+      + '<path d="M12 9.6l8.7 6.1c1 .7.5 2.3-.7 2.3H4c-1.2 0-1.7-1.6-.7-2.3z"/>',
+    /* Мотоцикл — бак и ступицы в колёсах: у велосипеда рядом ни того, ни
+       другого, иначе два знака читались бы одинаково */
+    moto: '<circle cx="5.6" cy="16.4" r="3.6"/><circle cx="18.4" cy="16.4" r="3.6"/>'
+      + '<circle cx="5.6" cy="16.4" r="1.2"/><circle cx="18.4" cy="16.4" r="1.2"/>'
+      + '<path d="M5.6 16.4h3.2l1.4-4.2h5.4l2.8 4.2"/>'
+      + '<path d="M15.6 12.2l1.4-3.6M14.6 8.2h4"/>'
+  };
+  for (var sk in SUB_SIGNS) THEMES[sk] = SUB_SIGNS[sk];
+
   /* ---------- Жанры съёмки ---------- */
   /* Ключ жанра — код, а не русское имя: библиотека знаков живёт отдельно от
      приложения и не должна знать язык интерфейса. В самом Light Plan жанр
@@ -902,7 +941,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=63"></script>
+<script src="lang.js?v=64"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -4994,6 +5033,23 @@
   .tool svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; }
   .tool.active { color: var(--brass); background: var(--press-warm); }
   .tool.off { opacity: 0.4; }
+  /* Уточнения выпадают под своим рядом, а не листом поверх экрана: рука
+     держит плитку, и ответ должен появиться там же, где палец. Панель
+     занимает всю ширину сетки и утоплена в неё — видно, что это раскрылось
+     отсюда, а не приехало со стороны. */
+  .sub-drop {
+    grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 4px; padding: 5px; margin: 1px 0 3px;
+    background: var(--press); border-radius: 14px; corner-shape: squircle;
+  }
+  /* Черта под подписью — единственный намёк, что у жанра есть уточнения.
+     Абсолютная, чтобы плитки с уточнениями и без них были одного роста */
+  .tool.hasub { position: relative; }
+  .tool.hasub::after {
+    content: ""; position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%);
+    width: 10px; height: 1.5px; border-radius: 1px; background: currentColor; opacity: 0.3;
+  }
+  .tool.hasub.open::after { opacity: 0.9; width: 14px; }
 
   /* Шкала с детентами: срок сдачи выбирается стрелкой по гравировке, а не кнопками */
   .dial-wrap { position: relative; padding: 2px 0 20px; }
@@ -16426,7 +16482,7 @@
       var items = shoots.map(function (x) {
         return notWork(x)
           ? { t: LANG.t(isMeet(x) ? "plan.meet" : "plan.event"), c: null }
-          : { t: shortGenre(x.type), c: QUAL[qualityOf(x.date)].dot || "#A8B49B" };
+          : { t: shortType(x), c: QUAL[qualityOf(x.date)].dot || "#A8B49B" };
       }).concat((inMonth ? blocksOn(d) : []).map(function (b) {
         return { t: blockLabel(b), c: null };
       }));
@@ -16554,11 +16610,11 @@
             /* Скобки обязательны: `+` связывает крепче тернарника, и без них
                условием становится вся склеенная строка — она истинна всегда,
                а начало разметки и закрывающий тег просто исчезают */
-            + '<span class="wk-ic">' + (soft ? IC.svg(meet ? "guests" : "view_month") : IC.genreSvg(p.s.type)) + "</span>"
+            + '<span class="wk-ic">' + (soft ? IC.svg(meet ? "guests" : "view_month") : typeSvg(p.s)) + "</span>"
             + '<span class="wk-body"><span class="wk-t">'
-            + (meet ? esc(LANG.t("week.meetWith", { genre: shortGenre(p.s.type).toLowerCase() }))
+            + (meet ? esc(LANG.t("week.meetWith", { genre: shortType(p.s).toLowerCase() }))
                 : soft ? esc(LANG.t("plan.event")) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : "")
-                    : esc(spec.ev || genreName(p.s.type)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
+                    : esc(spec.ev || typeName(p.s)) + (clientName(p.s) ? " · " + esc(clientName(p.s)) : ""))
             + "</span>"
             + '<span class="wk-s">' + range(p.s.min, end) + "</span></span></button>";
         }).join("");
@@ -16609,7 +16665,7 @@
       }
       if (due.length) {
         body += '<div class="wk-due">' + IC.svg("clock") + esc(LANG.t("week.dueList", {
-          list: due.map(function (x) { return clientName(x) || (genreSpec(x.type).ev || genreName(x.type)); }).join(", ")
+          list: due.map(function (x) { return clientName(x) || (genreSpec(x.type).ev || typeName(x)); }).join(", ")
         })) + "</div>";
       }
 
@@ -17215,7 +17271,7 @@
         var marks = sessions.filter(function (x) { return onDay(x, dd) && shownRec(x); });
         var mk = marks.slice(0, 3).map(function (x) {
           return '<span class="' + (notWork(x) ? "meet" : "") + '">'
-            + (notWork(x) ? IC.svg(isMeet(x) ? "guests" : "view_month") : IC.genreSvg(x.type)) + "</span>";
+            + (notWork(x) ? IC.svg(isMeet(x) ? "guests" : "view_month") : typeSvg(x)) + "</span>";
         }).join("");
         if (marks.length > 3) mk += '<span class="dd-more">+' + (marks.length - 3) + "</span>";
         if (!marks.length && blocksOn(dd).length) mk = '<span class="meet">' + IC.svg("lock") + "</span>";
@@ -17334,7 +17390,7 @@
             + '<span class="pr-who">' + esc(blockLabel(b)) + "</span></button>";
         }
         var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet", ev3 = it.kind === "event";
-        var nm = clientName(s3) || (meet3 ? LANG.t("day.meet") : ev3 ? LANG.t("day.event") : genreName(s3.type));
+        var nm = clientName(s3) || (meet3 ? LANG.t("day.meet") : ev3 ? LANG.t("day.event") : typeName(s3));
         /* Знак жанра обязателен: пока имя клиента не вписано, жанр говорит
            сама подпись строки, но стоит вписать «Марина и Сергей» — и свадьбу
            от лавстори уже не отличить (замечание с телефона). Знак отвечает
@@ -17359,7 +17415,7 @@
            отрезок — единственное, что о них известно. */
         var past3 = !meet3 && !ev3 && eventPhase(s3) === "after";
         return '<button type="button" class="plan-row" data-i="' + it.i + '">'
-          + '<span class="pr-ic">' + (meet3 ? IC.svg("partner") : ev3 ? IC.svg("view_month") : IC.genreSvg(s3.type)) + "</span>"
+          + '<span class="pr-ic">' + (meet3 ? IC.svg("partner") : ev3 ? IC.svg("view_month") : typeSvg(s3)) + "</span>"
           + (past3 ? "" : '<span class="pr-time">' + fmt(it.a) + (meet3 || ev3 ? " – " + fmt(it.b) : "") + "</span>")
           + '<span class="pr-who">' + esc(nm) + "</span>"
           + (meet3 || ev3
@@ -17475,7 +17531,7 @@
       var soft = meet || ev;   // не работа: приглушённый вид у обоих
       var s2 = it.s, b = it.blk;
       var name = busy ? blockLabel(b)
-        : (clientName(s2) || (meet ? LANG.t("day.meet") : ev ? LANG.t("day.event") : genreName(s2.type)));
+        : (clientName(s2) || (meet ? LANG.t("day.meet") : ev ? LANG.t("day.event") : typeName(s2)));
       /* Подпись говорит про съёмку, а не про кусок, попавший в эти сутки.
          Хвост ночной съёмки в своих сутках начинается в полночь — писать
          «00:00 – 03:10» значило бы сказать, что съёмка началась в полночь.
@@ -17483,8 +17539,8 @@
          уходящей за полночь, время конца остаётся настоящим. */
       var realEnd = s2 && (s2.end != null ? s2.end : s2.min + (s2.dur || 90));
       var sub = busy ? (b.allDay ? LANG.t("day.allDay") : range(it.a, it.b))
-        : (meet ? LANG.t("day.meetLower", { genre: shortGenre(s2.type).toLowerCase() })
-            : ev ? LANG.t("day.eventLower", { genre: shortGenre(s2.type).toLowerCase() })
+        : (meet ? LANG.t("day.meetLower", { genre: shortType(s2).toLowerCase() })
+            : ev ? LANG.t("day.eventLower", { genre: shortType(s2).toLowerCase() })
                 : it.tail
                   ? LANG.t("day.fromDate", { date: dMonShort(s2.date) })
                     + LANG.t("day.tillTime", { t: fmt(realEnd) })
@@ -17512,7 +17568,7 @@
         + (busy ? ' data-b="' + b.id + '"' : ' data-i="' + it.i + '"') + ">"
         + '<span class="dl-ic' + (soft ? " meet" : busy ? " busy" : "") + '">'
         + (busy ? IC.svg(blockKind(b.k).ic)
-            : soft ? IC.svg(meet ? "guests" : "view_month") : IC.genreSvg(s2.type))
+            : soft ? IC.svg(meet ? "guests" : "view_month") : typeSvg(s2))
         + "</span>"
         + '<span class="dl-ev-b"><span class="dl-title">' + esc(name) + "</span>"
         + '<span class="dl-sub">' + esc(sub) + "</span>"
@@ -17797,7 +17853,7 @@
     undoAt = 0;
     saveAll();
     renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderMbStrip();
-    $("undoText").textContent = LANG.t("day.inBin", { name: rec.contact || genreName(rec.type) });
+    $("undoText").textContent = LANG.t("day.inBin", { name: rec.contact || typeName(rec) });
     $("undoBar").classList.add("show");
     clearTimeout(trashTimer);
     trashTimer = setTimeout(hideUndo, 6000);
@@ -17857,8 +17913,8 @@
     host.innerHTML = trashed.map(function (t, k) {
       var s2 = t.rec, d = new Date(s2.date);
       var end = s2.end != null ? s2.end : s2.min + (s2.dur || 90);
-      return '<div class="bin-row"><span class="ic">' + IC.genreSvg(s2.type) + "</span>"
-        + '<span class="tx"><span class="t1">' + esc(clientName(s2) || genreName(s2.type)) + "</span>"
+      return '<div class="bin-row"><span class="ic">' + typeSvg(s2) + "</span>"
+        + '<span class="tx"><span class="t1">' + esc(clientName(s2) || typeName(s2)) + "</span>"
         + '<span class="t2">' + dMonShort(d) + " · "
         + fmt(s2.min) + " – " + fmt(end) + "</span></span>"
         + '<button type="button" class="back" data-k="' + k + '">' + esc(LANG.t("plan.undo")) + "</button></div>";
@@ -18115,7 +18171,7 @@
         var r = icsRows[i];
         return '<div class="ics-row ' + (icsChecked[i] ? "on" : "off") + '" data-i="' + i + '">'
           + '<span class="chk"><svg viewBox="0 0 24 24"><polyline points="5 13 10 18 19 7"/></svg></span>'
-          + '<span class="ic">' + IC.genreSvg(r.type) + "</span>"
+          + '<span class="ic">' + typeSvg(r) + "</span>"
           + '<span class="tx"><span class="t1">' + esc(r.summary) + "</span>"
           + '<span class="t2">' + esc(icsTimeLabel(r)) + (r.location ? " · " + esc(r.location) : "") + "</span></span></div>";
       }).join("");
@@ -18174,7 +18230,7 @@
           '<div class="s-date"><div class="n">' + s.date.getDate() + '</div><div class="m">' + monShortOfDate(s.date) + "</div></div>" +
           /* Событие называет себя событием: жанр у него угадан, а не назначен,
              и строка «Свадьбы · Свадьба Ани» выдавала бы догадку за съёмку */
-          '<div class="s-body"><div class="s-title">' + (isEvent(s) ? esc(LANG.t("plan.event")) : genreName(s.type))
+          '<div class="s-body"><div class="s-title">' + (isEvent(s) ? esc(LANG.t("plan.event")) : typeName(s))
           + (clientName(s) ? " · " + esc(clientName(s)) : "") + "</div>" +
           '<div class="s-sub">' + esc(placeText(s)) + (function (w) {
             var list = Array.isArray(w) ? w : (w && w !== "any" ? [w] : []);
@@ -18342,7 +18398,7 @@
   /* ============================================================
      ФОРМА СЪЁМКИ
      ============================================================ */
-  var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "portrait";
+  var fDate = new Date(), fMin = 1200, fDur = 90, shootType = "portrait", shootSub = "";
   var wishes = [];   // пожелания к погоде; пусто = «неважно». Мультивыбор: облака+закат
   /* ---------- Шаг времени ----------
      По умолчанию пять минут. Прежде было полчаса — по доводу «съёмки назначают
@@ -18486,7 +18542,7 @@
      Собирается на лету из полей, потому что настоящей записи может ещё не
      быть, а мудборд у новой съёмки должен работать сразу. */
   function formSessionLike() {
-    return { id: fId, kind: formKind, type: shootType, date: fDate, min: fMin,
+    return { id: fId, kind: formKind, type: shootType, sub: shootSub, date: fDate, min: fMin,
       contact: contactLine(), persons: formPersons(),
       place: sessionPlace.name, orgId: fOrgId };
   }
@@ -19110,7 +19166,7 @@
       (Array.isArray(s.docs) ? s.docs : []).forEach(function (r, j) {
         var org = orgById(s.orgId);
         out.push({ r: r, from: "session", si: i, di: j,
-          when: s.date, who: (org && org.name) || clientName(s) || genreName(s.type) });
+          when: s.date, who: (org && org.name) || clientName(s) || typeName(s) });
       });
     });
     orgs.forEach(function (o, i) {
@@ -19258,14 +19314,14 @@
   function mbTitle(f) {
     if (f.kind === "session") {
       var s = mbSess(f);
-      return clientName(s) || genreName(s.type);
+      return clientName(s) || typeName(s);
     }
     return genreName(f.g);
   }
   function mbSub(f) {
     if (f.kind === "session") {
       var s = mbSess(f);
-      return genreName(s.type) + " · " + dMon(s.date) + " " + s.date.getFullYear()
+      return typeName(s) + " · " + dMon(s.date) + " " + s.date.getFullYear()
         + (placeText(s) ? " · " + shortPlace(placeText(s)) : "");
     }
     /* Подпись папки — её имя (макет 30 августа 2026): жанр уже стоит
@@ -19280,7 +19336,7 @@
   function mbSubTile(f) {
     if (f.kind === "session") {
       var s = mbSess(f);
-      return dMonShort(s.date) + " · " + genreName(s.type).toLowerCase();
+      return dMonShort(s.date) + " · " + typeName(s).toLowerCase();
     }
     if (f.shelf) {
       var n = boardsOfGenre(f.g).length;
@@ -19366,7 +19422,7 @@
     return shotBoards(r.id).map(function (b) {
       if (b.kind === "shoot") {
         var s = sessions.filter(function (x) { return x.id === b.sid; })[0];
-        return s ? (clientName(s) || genreName(s.type)) : "";
+        return s ? (clientName(s) || typeName(s)) : "";
       }
       return genreName(b.genre);
     }).filter(Boolean);
@@ -20103,7 +20159,7 @@
     if (!b) return LANG.t("mb.sets");
     if (b.kind === "shoot") {
       var s = sessions.filter(function (x) { return x.id === b.sid; })[0];
-      return s ? (clientName(s) || genreName(s.type)) : LANG.t("mb.sets");
+      return s ? (clientName(s) || typeName(s)) : LANG.t("mb.sets");
     }
     return b.name || genreName(b.genre);
   }
@@ -21718,8 +21774,8 @@
       var inc = sessionIncome(p.s), pre = +p.s.prepay || 0, cc = sessionCurrency(p.s);
       var tail = inc ? money(inc, cc) + (pre && pre < inc ? " · " + LANG.t("org.paidIn", { sum: money(pre, cc) }) : "") : "";
       return '<button type="button" class="org-item" data-i="' + p.i + '">'
-        + '<span class="badge">' + IC.genreSvg(p.s.type) + "</span>"
-        + '<span class="org-b"><span class="org-n">' + esc(genreName(p.s.type)) + " · "
+        + '<span class="badge">' + typeSvg(p.s) + "</span>"
+        + '<span class="org-b"><span class="org-n">' + esc(typeName(p.s)) + " · "
         + dMon(p.s.date) + " " + p.s.date.getFullYear() + "</span>"
         + '<span class="org-s">' + esc(tail || LANG.t("org.noSum")) + "</span></span>"
         + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
@@ -22903,6 +22959,54 @@
        Клиента нет, но предоплату проставить можно */
     own:    { route: "off", prepay: true }
   };
+
+  /* ---------- Уточнение жанра ----------
+     Жанр — пресет формы, и дробить его дальше нельзя: ньюборн и деловой
+     портрет спрашивают одно и то же, платят одинаково и сдаются в один срок.
+     А называются по-разному — и в списке дня «Портрет» ничего не говорит там,
+     где сказал бы «Ньюборн». Уточнение и есть эта разница: оно меняет у
+     съёмки имя и знак, и больше ничего. Ни поля, ни сроки, ни оплата, ни
+     папка референсов о нём не знают — папка по-прежнему жанровая, иначе
+     мудборд рассыпался бы на три десятка полок вместо двенадцати.
+
+     Ключ уточнения общий, а не свой у каждого жанра: беременность снимают и
+     портретисты, и семейные, и это одно и то же слово — переводить его дважды
+     незачем. Значение — имя знака из общей библиотеки (icons.js).
+
+     Порядок здесь — порядок в панели: сперва то, что заказывают чаще. */
+  var SUBGENRE = {
+    portrait:     { newborn: "infant", pregnancy: "pregnant", kids: "child", boudoir: "boudoir", business: "briefcase" },
+    wedding:      { engagement: "ring_stone", registry: "hall", church: "church" },
+    party:        { birthday: "cake_bd", jubilee: "feast", newyear: "tree",
+                    graduation: "school", christening: "chapel", barmitzvah: "star_david" },
+    lovestory:    { anniversary: "rings" },
+    family:       { baby: "stroller", pregnancy: "pregnant", generations: "generations" },
+    animals:      { dogs: "dog", cats: "cat", horses: "horse" },
+    landscape:    { stars: "stars" },
+    architecture: { interior: "interior", realty: "home" },
+    /* У стрита уточнений нет намеренно: он и так «что попалось на улице»,
+       делить его — выдумывать различия, которых в работе не бывает */
+    report:       { sport: "runner", concert: "mic", conference: "speaker" },
+    product:      { food: "croissant", macro: "macro", cars: "car", moto: "moto" },
+    ad:           { fashion: "hanger", lookbook: "album", catalog: "doc", beauty: "makeup" }
+  };
+  function subsOf(g) { var o = SUBGENRE[g]; return o ? Object.keys(o) : []; }
+  /* Уточнение принадлежит жанру, а не записи: сменили жанр — чужое уточнение
+     молча забыто. Проверка стоит у всех входов, чтобы старая или руками
+     правленная запись не показывала «Ньюборн» на свадьбе */
+  function subOk(g, x) { return !!(x && SUBGENRE[g] && SUBGENRE[g][x]); }
+  function subName(x) { var k = "sub." + x, v = LANG.t(k); return v === k ? x : v; }
+  /* Имя и знак съёмки: спрашивают запись целиком, а не её жанр, — потому что
+     ответ зависит от обоих полей. Ниже те же три вопроса в узких местах:
+     короткое имя для клетки календаря и имя события для встречи */
+  function typeName(x) { return x && subOk(x.type, x.sub) ? subName(x.sub) : genreName(x && x.type); }
+  function shortType(x) { return x && subOk(x.type, x.sub) ? subName(x.sub) : shortGenre(x && x.type); }
+  function evTypeName(x) { return x && subOk(x.type, x.sub) ? subName(x.sub) : evName(x && x.type); }
+  function typeSvg(x, cls, box) {
+    return x && subOk(x.type, x.sub)
+      ? IC.svg(SUBGENRE[x.type][x.sub], cls, box)
+      : IC.genreSvg(x && x.type, cls, box);
+  }
   /* ---------- Кого снимаем ----------
      У свадьбы двое, и у каждого своё имя и свой телефон: звонить приходится
      то невесте, то жениху, а искать номер в общей строке — потеря минуты там,
@@ -24376,30 +24480,111 @@
   var WISHES = ["any", "clear", "sunset", "cloudy", "fog", "rain", "moon", "stars"];
   var WANT = { "clear": "excellent", "cloudy": "good", "fog": "fog" };
 
+  /* Какой жанр стоит раскрытым. Живёт только в форме и только пока она
+     открыта: записи довольно готового `sub`, а панель — состояние руки */
+  var subOpenFor = null;
+  var GENRE_COLS = 4;                                    // столько же в .tool-grid
   function renderGenres() {
     var list = ALL_GENRES.filter(function (g) { return genresOn[g]; });
     // жанр могли выключить в «Моих жанрах» — форму надо перестроить под подменённый
     var swapped = list.indexOf(shootType) === -1;
-    if (swapped) shootType = list[0];
+    if (swapped) { shootType = list[0]; shootSub = ""; }
+    if (list.indexOf(subOpenFor) < 0) subOpenFor = null;
     $("fType").className = "tool-grid";
-    $("fType").innerHTML = list.map(function (g) {
-      return toolBtn(genreName(g), GENRE_IC[g], g === shootType ? "active" : "", g);
-    }).join("");
-    $("fType").querySelectorAll(".tool").forEach(function (ch) {
+    var cells = list.map(function (g) {
+      var on = g === shootType, sub = on && subOk(g, shootSub) ? shootSub : "";
+      var cls = [];
+      if (on) cls.push("active");
+      if (subsOf(g).length) cls.push("hasub");
+      if (g === subOpenFor) cls.push("open");
+      /* Выбранное уточнение занимает саму плитку жанра — в этом весь смысл:
+         на экране стоит «Ньюборн» с младенцем, а не «Портрет» с пометкой */
+      return toolBtn(sub ? subName(sub) : genreName(g),
+        sub ? IC.body(SUBGENRE[g][sub]) : GENRE_IC[g], cls.join(" "), g);
+    });
+    /* Панель встаёт в конец ряда, из которого её позвали, а не сразу за
+       плиткой: иначе она разрывала бы ряд и остальные жанры разъезжались */
+    if (subOpenFor) {
+      var at = Math.min(cells.length,
+        (Math.floor(list.indexOf(subOpenFor) / GENRE_COLS) + 1) * GENRE_COLS);
+      cells.splice(at, 0, subDrop(subOpenFor));
+    }
+    $("fType").innerHTML = cells.join("");
+    /* Только свои плитки: внутри панели лежат такие же `.tool`, и без
+       `:scope >` жанр слушал бы ещё и собственные уточнения */
+    $("fType").querySelectorAll(":scope > .tool").forEach(function (ch) {
+      var g = ch.dataset.v;
       ch.addEventListener("click", function () {
-        if (ch.dataset.v === shootType) return;
-        shootType = ch.dataset.v;
-        /* Точки, подставленные свадьбой, не переезжают в чужой жанр: у
-           архитектуры «ЗАГС и прогулка» — не план, а мусор. Набитое руками
-           остаётся: его выбрасывать не нам */
-        if (fRouteSeeded && !hasRoute(shootType)) { fRoute = []; renderRouteEditor(); }
-        applyGenrePreset();          // жанр перестраивает форму под себя
-        renderGenres(); refreshForm();
-        scheduleDraftSave();         // жанр — клик, не «input»: сам за собой не пишется
+        /* Тап по своему же жанру раньше не делал ничего — теперь раскрывает
+           уточнения. Долгое нажатие делает то же с любой плитки, но у
+           выбранной жест должен быть и коротким: там его ищут первым */
+        if (g === shootType) { toggleSub(g); return; }
+        pickGenre(g, "");
       });
+      if (!subsOf(g).length) return;
+      holdToOpen(ch, g);
+    });
+    $("fType").querySelectorAll(".sub-drop .tool").forEach(function (ch) {
+      ch.addEventListener("click", function () { pickGenre(ch.dataset.g, ch.dataset.s); });
     });
     // подмена на лету касается только новой съёмки: сохранённой время не переписываем
     if (swapped && editIdx === null) { applyGenrePreset(); refreshForm(); }
+  }
+  /* Панель: первой стоит сама съёмка без уточнения — ею же его и снимают */
+  function subDrop(g) {
+    function cell(name, icon, val) {
+      return '<button class="tool' + (g === shootType && (shootSub || "") === val ? " active" : "")
+        + '" data-g="' + esc(g) + '" data-s="' + esc(val) + '">'
+        + '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' + icon + "</svg>"
+        + "<span>" + esc(name) + "</span></button>";
+    }
+    return '<div class="sub-drop">' + cell(genreName(g), GENRE_IC[g], "")
+      + subsOf(g).map(function (x) { return cell(subName(x), IC.body(SUBGENRE[g][x]), x); }).join("")
+      + "</div>";
+  }
+  function toggleSub(g) {
+    if (!subsOf(g).length) return;
+    subOpenFor = subOpenFor === g ? null : g;
+    renderGenres();
+  }
+  /* Выбор жанра и уточнения — один вход: уточнение чужого жанра меняет и
+     жанр, а пресет при этом перестраивается ровно один раз */
+  function pickGenre(g, x) {
+    var changed = g !== shootType;
+    shootType = g;
+    shootSub = subOk(g, x) ? x : "";
+    subOpenFor = null;
+    if (changed) {
+      /* Точки, подставленные свадьбой, не переезжают в чужой жанр: у
+         архитектуры «ЗАГС и прогулка» — не план, а мусор. Набитое руками
+         остаётся: его выбрасывать не нам */
+      if (fRouteSeeded && !hasRoute(shootType)) { fRoute = []; renderRouteEditor(); }
+      applyGenrePreset();          // жанр перестраивает форму под себя
+    }
+    renderGenres(); refreshForm();
+    scheduleDraftSave();           // жанр — клик, не «input»: сам за собой не пишется
+  }
+  /* Удержание раскрывает уточнения. Отсчёт и порог сдвига взяты у плиток
+     мудборда (MB_HOLD): в приложении уже есть длинный тап, и второй,
+     непохожий на первый, рука читала бы как другой жест.
+
+     Клик после срабатывания гасить не нужно: панель перерисовывает сетку,
+     и плитки, на которой лежал палец, к моменту `click` уже нет. */
+  function holdToOpen(ch, g) {
+    var timer = null, x0 = 0, y0 = 0;
+    function stop() { if (timer) { clearTimeout(timer); timer = null; } }
+    ch.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    ch.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      x0 = e.clientX; y0 = e.clientY;
+      timer = setTimeout(function () { timer = null; toggleSub(g); }, MB_HOLD);
+    });
+    ch.addEventListener("pointermove", function (e) {
+      if (timer && Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 10) stop();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) {
+      ch.addEventListener(ev, stop);
+    });
   }
   function renderWishes() {
     $("fWish").className = "tool-grid";
@@ -24587,7 +24772,7 @@
     var myTo = momentOf(day, end, fromLat, fromLon);
     sessions.forEach(function (s, i) {
       if (i === skipIdx || !sameDay(s.date, day) || !shownRec(s)) return;
-      var sEnd = shootEnd(s), name = clientName(s) || genreName(s.type);
+      var sEnd = shootEnd(s), name = clientName(s) || typeName(s);
       var when = range(s.min, sEnd);
       var oFrom = momentOf(s.date, s.min, s.placeLat, s.placeLon);
       var oTo = momentOf(s.date, sEnd, s.placeLat, s.placeLon);
@@ -24767,7 +24952,7 @@
     var slot = byScore
       ? { a: sh.was.sc, b: sh.now.sc }
       : { a: QUAL[sh.was.q].cond.toLowerCase(), b: QUAL[sh.now.q].cond.toLowerCase() };
-    if (named) slot.who = clientName(s) || genreName(s.type);
+    if (named) slot.who = clientName(s) || typeName(s);
     return {
       t: LANG.t(sh.up ? "wxs.upT" : sh.w === 3 ? "wxs.badT" : "wxs.downT"),
       m: LANG.t((byScore ? "wxs.score" : "wxs.sky") + (named ? "W" : "M"), slot)
@@ -25790,14 +25975,14 @@
     $("cdPeeks").innerHTML = others.map(function (p, k) {
       var inset = 10 + k * 10, top = (others.length - 1 - k) * 22;
       var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
-      var name = clientName(p.s) || evName(p.s.type);
+      var name = clientName(p.s) || evTypeName(p.s);
       /* Заметка бывает в несколько строк — на край берём первую: остальное
          откроется в самой карточке, куда край и ведёт по нажатию */
       var note = String(p.s.notes || "").split("\n")[0].trim();
       var sub = [placeText(p.s), note].filter(Boolean).join(" · ");
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
-        + '<span class="peek-in">' + IC.genreSvg(p.s.type)
+        + '<span class="peek-in">' + typeSvg(p.s)
         + "<b>" + esc(name) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
         + "</span></span>"
         + (sub ? '<span class="peek-sub">' + esc(sub) + "</span>" : "")
@@ -25890,7 +26075,7 @@
     $("cdEvHead").hidden = false;
     $("cdEvHead").classList.toggle("is-meet", notWork(s));
     var spec = genreSpec(s.type), gr = groupSpec(s.type);
-    $("cdEvSign").innerHTML = IC.genreSvg(s.type, null, 24);
+    $("cdEvSign").innerHTML = typeSvg(s, null, 24);
     setDeleteLabel(s);
 
     /* Крупно — то, чем съёмка называется: пара, клиент, организация.
@@ -25907,7 +26092,7 @@
         if (parts.length > 1) { name = parts[0]; person = parts.slice(1).join(", "); }
       }
     }
-    $("cdEvNames").textContent = name || evName(s.type);
+    $("cdEvNames").textContent = name || evTypeName(s);
     fitTitle($("cdEvNames"));
     $("cdEvPerson").hidden = !person;
     $("cdEvPerson").textContent = person;
@@ -25919,11 +26104,11 @@
     var bits = [];
     /* Встреча называет себя встречей и говорит, о чём она: «Встреча · свадьба».
        Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
-    if (isMeet(s)) bits.push(LANG.t("card.meetAbout", { genre: shortGenre(s.type).toLowerCase() }));
+    if (isMeet(s)) bits.push(LANG.t("card.meetAbout", { genre: shortType(s).toLowerCase() }));
     /* Событие называет себя событием и говорит, на что похоже: жанр у него
        угадан, а не назначен, и выдавать догадку за съёмку карточка не вправе */
-    else if (isEvent(s)) bits.push(LANG.t("card.eventAbout", { genre: shortGenre(s.type).toLowerCase() }));
-    else if (name) bits.push(evName(s.type));
+    else if (isEvent(s)) bits.push(LANG.t("card.eventAbout", { genre: shortType(s).toLowerCase() }));
+    else if (name) bits.push(evTypeName(s));
     bits.push(dMon(s.date));
     bits.push(range(s.min, end));
     $("cdEvWhen").textContent = bits.join(" · ")
@@ -26922,10 +27107,10 @@
     /* Заголовок брал `s.type` напрямую — это работало, пока жанр был русским
        словом. После разделения кода и имени он показывал бы «wedding»:
        перевод вскрывает такие места сразу, потому что имя видно на экране. */
-    $("cardTitle").textContent = soft ? LANG.t(meet ? "plan.meet" : "plan.event") : genreName(s.type);
+    $("cardTitle").textContent = soft ? LANG.t(meet ? "plan.meet" : "plan.event") : typeName(s);
     $("cardSub").textContent = soft
-      ? (s.contact ? s.contact + " · " + shortGenre(s.type).toLowerCase()
-                   : LANG.t("card.meetTopic", { genre: shortGenre(s.type).toLowerCase() }))
+      ? (s.contact ? s.contact + " · " + shortType(s).toLowerCase()
+                   : LANG.t("card.meetTopic", { genre: shortType(s).toLowerCase() }))
       : (s.contact || LANG.t("card.noClient"));
 
     /* Опросник. Пока он один — свадебный (`quest/wedding.html`), и показывать
@@ -27260,7 +27445,7 @@
      там, забытая здесь, — и черновик начнёт врать молча. */
   function draftBuild() {
     return {
-      kind: formKind, date: fDate.toISOString(), min: fMin, dur: fDur, type: shootType,
+      kind: formKind, date: fDate.toISOString(), min: fMin, dur: fDur, type: shootType, sub: shootSub,
       contact: $("fContact").value.trim(), clientTel: $("fClientTel").value.trim(),
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
@@ -27343,6 +27528,7 @@
     fLight = s.min % timeStep !== 0;   // некруглая минута — значит её назвал свет
     fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
     shootType = s.type;
+    shootSub = subOk(s.type, s.sub) ? s.sub : "";
     // старые записи хранили строку — поднимаем в массив
     wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "any" ? [s.wish] : []);
     fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
@@ -27475,6 +27661,9 @@
       $("fPrepay").value = "";
       fTrip = false; fTripManual = false;
       $("fBrief").value = ""; $("fModels").value = ""; $("fBreed").value = "";
+      /* Уточнение — свойство съёмки, не привычки: новая начинается с жанра
+         как такового, даже если прошлая была «Ньюборном» */
+      shootSub = ""; subOpenFor = null;
       // Новая съёмка начинается там, где сейчас смотрим свет
       /* Новая съёмка начинается в городе, где стоит фотограф, — но только
          городом: конкретную точку он называет сам, и подставлять вместо неё
@@ -28331,7 +28520,7 @@
          рождается здесь: форма получила его при открытии, и подборка съёмки
          уже висит на нём — выдать второй значило бы оторвать её. */
       id: fId || newId(),
-      date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType,
+      date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType, sub: shootSub,
       contact: contactLine(), clientTel: $("fClientTel").value.trim(),
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
@@ -31128,7 +31317,7 @@
       /* Ищут и по городу: раньше он лежал в имени места и находился заодно,
          теперь у него своё поле — и без него поиск по «Томск» перестал бы
          находить съёмки, которые находил вчера */
-      return ((p.s.contact || "") + " " + genreName(p.s.type) + " "
+      return ((p.s.contact || "") + " " + typeName(p.s) + " "
         + (p.s.place || "") + " " + (p.s.placeTown || "")).toLowerCase().indexOf(searchStem(qs)) > -1;
     }).sort(function (a, b) { return b.s.date - a.s.date; });
     if (!hits.length) { box.innerHTML = '<div class="plan-empty" style="padding:8px 0;">' + esc(LANG.t("search.nothing")) + "</div>"; return; }
@@ -31140,7 +31329,7 @@
            жанром, встречей или событием. Здесь стоял `s.type` — код записи, —
            и свадьба без имени клиента выходила в списке словом «wedding» */
         '<span class="pr-who">' + esc(clientName(s)
-          || (isMeet(s) ? LANG.t("day.meet") : isEvent(s) ? LANG.t("day.event") : genreName(s.type)))
+          || (isMeet(s) ? LANG.t("day.meet") : isEvent(s) ? LANG.t("day.event") : typeName(s)))
         + " · " + fmt(s.min) + "–" + fmt(end) + "</span></button>";
     }).join("");
     box.querySelectorAll(".dl-ev").forEach(function (b) {
@@ -32132,7 +32321,7 @@
       var rows = g.rows.map(function (r) {
         var title = r.kind === "org"
           ? (r.name || LANG.t("org.noName"))
-          : genreName(sessions[r.i].type) + " · " + dMon(sessions[r.i].date)
+          : typeName(sessions[r.i]) + " · " + dMon(sessions[r.i].date)
             + " " + sessions[r.i].date.getFullYear();
         /* Имя пишем рядом с ролью, а не вместо неё: «Ирина» без пояснения не
            говорит, кем она была в этой съёмке, а через год это и забывается */
@@ -32143,7 +32332,7 @@
            весь номер, а именно ту строку, которая стала историей */
         return '<button type="button" class="ph-card' + (r.past ? " past" : "")
           + '" data-k="' + r.kind + '" data-i="' + r.i + '">'
-          + (r.kind === "org" ? IC.svg("city", "ic") : IC.genreSvg(sessions[r.i].type, "ic"))
+          + (r.kind === "org" ? IC.svg("city", "ic") : typeSvg(sessions[r.i], "ic"))
           + '<span class="t">' + esc(title) + "</span>"
           + '<span class="r">' + esc(who) + "</span></button>";
       }).join("");
@@ -32408,7 +32597,7 @@
       b.addEventListener("click", function () { closeEvFan(); fn(); });
       fan.appendChild(b);
     }
-    item("", "note_edit", LANG.t("card.fill"), clientName(s) || genreName(s.type), function () {
+    item("", "note_edit", LANG.t("card.fill"), clientName(s) || typeName(s), function () {
       openForm(null, null, idx);
     });
     /* Подпись говорит, что удаление обратимо: у необратимого на вид действия
