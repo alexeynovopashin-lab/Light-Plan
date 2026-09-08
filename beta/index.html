@@ -331,6 +331,14 @@
        корпуса, а не лежит на нём: на 22 px слитный силуэт читается пятном */
     lock:   '<rect x="4.5" y="10.5" width="15" height="10.5" rx="2.2"/>'
       + '<path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>',
+    /* Колокольчик: «к этому часу прозвонит». Отдельно от будильника, и не по
+       прихоти — замер на живой странице: будильник `alarm` на одиннадцати
+       пикселях сминается в пятно, его циферблат, ножки и кнопка неразличимы
+       (Алексей, 8 сентября 2026: «значок часов рядом с 09:46 не читается,
+       там колокольчик должен быть»). У колокольчика на этом кегле три
+       штриха: купол, подошва, язык — силуэт узнаётся без деталей */
+    bell:   '<path d="M5.2 17.6h13.6l-1.6-2.4v-5a5.2 5.2 0 0 0-10.4 0v5z"/>'
+      + '<path d="M10.3 17.6a1.95 1.95 0 0 0 3.4 0"/>',
     /* Будильник: напоминание накануне съёмки — то, что приходит пушем */
     alarm:  '<circle cx="12" cy="13.4" r="7.4"/><path d="M12 9.2v4.2l2.8 2"/>'
       + '<path d="M12 6v-2.4"/>'
@@ -891,7 +899,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=61"></script>
+<script src="lang.js?v=62"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -5186,6 +5194,65 @@
   .dt-clock { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .dt-left { font-size: 12.5px; color: var(--ink-4); margin-top: 3px; }
   .dt-left b { color: var(--green); font-weight: 400; }
+
+  /* ---------- Виджет студийного часа ----------
+     Форма задана Алексеем картинкой (8 сентября 2026): кольцевой таймер —
+     обод-прогресс, время срабатывания со знаком будильника, крупный отсчёт.
+     Кольцо этому продукту не чужое, а родное: компас света — полный круг
+     суток, золотой и синий час — кольца снаружи, купол — дуга. Материалы
+     свои, а не оранжевый iOS: латунь по рельсу, терракота на тревоге.
+
+     Геометрия столбцов одолжена у плитки дня — обе отвечают на «сколько
+     осталось» и стоят в одном столбце, и вторая раскладка для той же мысли
+     развела бы карточку на два языка. Внутри кольца — когда, справа — где
+     и что делать; повторов между ними нет.
+
+     Тревога живёт на границе (обводка зари ниже), а не в заливке. Красными
+     становятся только обод и число: они и есть предмет разговора. */
+  .studio-tile {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px;
+    align-items: center; margin-top: 9px; padding: 13px 14px; background: var(--sheet);
+    border-radius: 18px; corner-shape: squircle;
+  }
+  .studio-tile[hidden] { display: none; }
+  .st-ring { position: relative; width: 104px; height: 104px; flex-shrink: 0; }
+  /* Прямой потомок, а не любой svg внутри: обод повёрнут на четверть
+     оборота, чтобы отсчёт начинался сверху, — и это правило доставало
+     колокольчик, который лежит внутри того же кольца. Знак ложился на
+     бок (Алексей, 8 сентября 2026: «колокольчик перевёрнут, лежит на
+     боку»). Поворот принадлежит ободу, а не кольцу целиком. */
+  .st-ring > svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .st-ring > svg circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .st-arc-bg { stroke: var(--rail-2); }
+  /* Обод показывает остаток, а не пройденное: пустеющее кольцо и есть
+     ответ на «сколько ещё можно снимать». Переход линейный и длиной в такт —
+     на секундном такте он сливается в непрерывное движение, на
+     двадцатисекундном не даёт числу прыгать раньше обода */
+  .st-arc { stroke: var(--brass); transition: stroke-dashoffset 0.9s linear, stroke 0.4s ease; }
+  .st-in { position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px; }
+  .st-at { display: flex; align-items: center; gap: 4px; font-size: 10.5px;
+    color: var(--ink-6); font-variant-numeric: tabular-nums; }
+  .st-at svg { width: 11px; height: 11px; fill: none; stroke: var(--ink-6);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .st-t { font-size: 25px; font-weight: 700; color: var(--glyph); line-height: 1;
+    letter-spacing: -0.8px; font-variant-numeric: tabular-nums; }
+  /* Строками, а не в ряд: «Студия «Сфера», Зал 2» и «14:00 – 16:00» не
+     помещаются рядом — кольцо забирает треть ширины, и имя обрезалось до
+     «Студия ...». Имя студии сокращать нельзя: в городе их три, и
+     различаются они как раз хвостом */
+  .st-main { min-width: 0; }
+  .st-name { font-size: 15px; color: var(--ink); line-height: 1.3; }
+  .st-win { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums;
+    margin-top: 3px; }
+  .st-note { font-size: 12.5px; color: var(--ink-4); margin-top: 7px; }
+  .studio-tile.warn .st-note { color: var(--brass-deep); }
+  .studio-tile.bad .st-note { color: var(--terra); }
+  .studio-tile.warn .st-arc { stroke: var(--brass-deep); }
+  .studio-tile.warn .st-t { color: var(--brass-deep); }
+  .studio-tile.bad .st-arc { stroke: var(--terra); }
+  .studio-tile.bad .st-t { color: var(--terra); }
+  .studio-tile.bad .st-at, .studio-tile.bad .st-at svg { color: var(--terra); stroke: var(--terra); }
   /* Завершение — тихая кнопка, не действие первого плана: съёмка кончается
      сама, а это ручной дубликат для тех, кто считает переработку. Оттого
      обводка вместо заливки, и зелёный — тот же, каким плитка говорит «идёт». */
@@ -5477,8 +5544,9 @@
      не дружит с `corner-shape`, а настоящий `border` съел бы отступы внутри.
      Правило общее для обоих мест — реплики в карточке и предупреждения
      в форме (`.wish-warn` ниже), иначе они снова разойдутся на два вида. */
-  .say.warn, .say.bad, .wish-warn { position: relative; }
-  .say.warn::before, .say.bad::before, .wish-warn::before {
+  .say.warn, .say.bad, .wish-warn, .studio-tile.warn, .studio-tile.bad { position: relative; }
+  .say.warn::before, .say.bad::before, .wish-warn::before,
+  .studio-tile.warn::before, .studio-tile.bad::before {
     content: ""; position: absolute; inset: 0; padding: 1px; pointer-events: none;
     border-radius: inherit; corner-shape: squircle;
     background: linear-gradient(115deg, #F7C476, #E2744A 42%,
@@ -5490,7 +5558,7 @@
   }
   /* Тревога — тот же приём другим концом палитры: закат уходит в терракоту.
      Степени различаются цветом линии и знака, а не наличием плашки */
-  .say.bad::before {
+  .say.bad::before, .studio-tile.bad::before {
     background: linear-gradient(115deg, #E2744A, #A84E27 45%, rgba(168,78,39,0) 88%);
   }
   .say.bad .s-ic svg { stroke: var(--terra); }
@@ -7989,9 +8057,33 @@
          первой, куда бы фотограф ни переставил остальное -->
     <div class="say warn" id="cdShift" hidden><span class="s-ic" data-ic="warn"></span><span id="cdShiftT"></span></div>
 
-    <!-- Студийный час — тихо, пока не подошёл: за 10 минут и ближе, не раньше.
-         Живёт, только пока у съёмки есть студия и идёт оплаченное время. -->
-    <div class="say" id="cdStudio" hidden><span class="s-ic" id="cdStudioIc"></span><span id="cdStudioT"></span></div>
+    <!-- Студийный час. Был строкой, зажигавшейся за пятнадцать минут до
+         конца; стал кольцевым таймером на всю аренду (Алексей, 8 сентября
+         2026: «важно видеть это в карточке съёмки в виде виджета с таймером
+         отсчёта», форма прислана картинкой). В нативном приложении отсюда
+         вырастут Dynamic Island и виджет на экране — форма выбрана с оглядкой
+         на них.
+
+         Считает не до конца оплаченного времени, а до дедлайна выхода: час
+         студии — 55 минут, и выходить надо раньше, чем кончится оплаченное.
+         Живёт, только пока идёт аренда и идёт съёмка. -->
+    <div class="studio-tile" id="cdStudio" hidden>
+      <div class="st-ring">
+        <svg viewBox="0 0 104 104" aria-hidden="true">
+          <circle class="st-arc-bg" cx="52" cy="52" r="47"/>
+          <circle class="st-arc" id="cdStudioArc" cx="52" cy="52" r="47"/>
+        </svg>
+        <div class="st-in">
+          <div class="st-at"><span data-ic="bell"></span><span id="cdStudioAt">—</span></div>
+          <div class="st-t" id="cdStudioNum">—</div>
+        </div>
+      </div>
+      <div class="st-main">
+        <div class="st-name" id="cdStudioName">—</div>
+        <div class="st-win" id="cdStudioWin">—</div>
+        <div class="st-note" id="cdStudioT">—</div>
+      </div>
+    </div>
     <!-- Звонок администратору. Появляется во время аренды, до и после исчезает:
          действия живут по фазе аренды, а не панелью на весь день (Алексей,
          30 августа 2026). Знак и приём те же, что у звонка клиенту — новой
@@ -11273,6 +11365,7 @@
 
         pro: proMode, manualEnd: manualEnd, icsLayer: icsLayer,
         notif: notifPrefs, wxSeen: wxSeen, wxTold: wxTold, clashTold: clashTold,
+        studioTold: studioTold,
         /* Практика пишется, только когда её выбрали: пока вопрос не задан,
            в записи её нет, и первый запуск остаётся первым */
         practice: practiceAsked ? practice : undefined,
@@ -12769,7 +12862,11 @@
      проще, чем разбираться, который из трёх шумит.
      `srv` лежит включённым и ждёт сервера — тумблер его пока не пускает
      под палец (см. разметку раздела «Уведомления»). */
-  var NOTIF_DEF = { all: true, wx: true, clash: true, srv: true };
+  /* `studio` тумблера на экране не имеет: раздел «Уведомления» назван
+     Алексеем поимённо и студийного часа в списке не было. Значение живёт
+     и слушается главного «Разрешить все» — выключить прибор целиком можно
+     всегда, а отдельная строка появится, если попросят. */
+  var NOTIF_DEF = { all: true, wx: true, clash: true, srv: true, studio: true };
   var notifPrefs = (function (o) {
     var p = {};
     for (var k in NOTIF_DEF) p[k] = (o && typeof o[k] === "boolean") ? o[k] : NOTIF_DEF[k];
@@ -12785,6 +12882,12 @@
   var wxSeen = (saved && saved.wxSeen) || {};
   var wxTold = (saved && saved.wxTold) || {};
   var clashTold = (saved && saved.clashTold) || {};
+  /* Студийный час — третий потребитель той же памяти, и единственный,
+     кому мало факта «сказали». Сигналов у него два на одну съёмку, и
+     считаются они от дедлайна выхода, который умеет переезжать: продление
+     аренды двигает его вперёд. Поэтому в отметке лежит и ступень, и сам
+     дедлайн — не совпал, значит час другой, и звать надо заново. */
+  var studioTold = (saved && saved.studioTold) || {};
   /* Первый обход после обновления — молча. У погоды это выходит само
      собой (первое знакомство с прогнозом не смена), а наложения
      посчитаны и без всякой памяти, и без этой оговорки обновление
@@ -24627,13 +24730,21 @@
     clearTimeout(wxSayTimer);
     wxSayTimer = setTimeout(wxAnnounce, 700);
   }
+  /* Обход целиком. Дешёвое — студийный час и наложения — считается на
+     каждый заход: окно студийного часа длится десять минут, и получасовой
+     шаг проглотил бы его целиком, не сказав ничего. Дорогое — прогноз,
+     который идёт в сеть, — не чаще получаса: модель прогноза быстрее и не
+     обновляется. */
+  function watchTick(force) {
+    studioAnnounce();
+    clashAnnounce();
+    wxWatch(force);
+  }
   function wxWatch(force) {
-    if (!notifOn("wx") && !notifOn("clash")) return;
+    if (!notifOn("wx")) return;
     var now = Date.now();
     if (!force && now - wxWatchAt < WX_WATCH_GAP) return;
     wxWatchAt = now;
-    clashAnnounce();
-    if (!notifOn("wx")) return;
     var list = wxWatched();
     if (!list.length) return;
     /* Заново спрашиваем только при закрытой карточке: у открытой тот же кэш
@@ -24683,11 +24794,9 @@
        карточке — баннер зовёт, подробности лежат там, где им положено */
     say.sort(function (a, b) { return b.sh.w - a.sh.w || a.s.date - b.s.date; });
     var top = say[0], txt = wxShiftSay(top.s, top.sh, true);
-    /* «И ещё N» берём готовым ключом карточки, а не заводим свой: слово
-       для этого в продукте уже есть, и второе значило бы два перевода
-       одной мысли на каждый из языков */
-    notifQueued(dMon(top.s.date) + " · " + txt.t.toLowerCase(),
-      txt.m + (say.length > 1 ? " " + LANG.t("card.clashMore", { n: say.length - 1 }) : ""));
+    /* Счёт остальных отдаём очереди: она одна знает, сколько поводов
+       набралось всего, и «и ещё» в баннере должно быть одно на всех */
+    notifQueued(dMon(top.s.date) + " · " + txt.t.toLowerCase(), txt.m, say.length - 1);
   }
 
   /* ---------- Наложение, появившееся само ----------
@@ -24725,9 +24834,64 @@
     if (!say.length) return;
     say.sort(function (a, b) { return a.s.date - b.s.date; });
     var top = say[0];
-    notifQueued(dMon(top.s.date) + " · " + top.c.t.toLowerCase(),
-      top.c.m + (say.length > 1 ? " " + LANG.t("card.clashMore", { n: say.length - 1 }) : ""));
+    notifQueued(dMon(top.s.date) + " · " + top.c.t.toLowerCase(), top.c.m, say.length - 1);
   }
+
+  /* ---------- Студийный час зовёт дважды ----------
+     Условие 7 сентября 2026: напоминалка обязана работать без сервера и звать
+     дважды — за десять минут до дедлайна выхода и ещё раз через пять. На
+     двухчасовой аренде это 1 ч 45 мин и 1 ч 50 мин от начала.
+
+     Веб зовёт настолько, насколько умеет: при запуске и при возврате в
+     приложение. Свёрнутая PWA на iOS не исполняет `setTimeout`, Notification
+     Triggers там нет вовсе, Web Push требует сервера — настоящее расписание
+     приходит с нативным приложением (SWIFT_MIGRATION_PLAN, итерация 30), и
+     обе ступени лягут туда двумя `UNCalendarNotificationTrigger` без единой
+     правки чисел. Это отложенная половина, а не отменённая задумка.
+
+     Открытой карточке баннер не нужен: там стоит кольцо с отсчётом, и оно
+     честнее любого баннера. Речь про телефон в кармане.
+
+     Память своя, и в ней лежит дедлайн. Продлили аренду — дедлайн стал
+     другим, отметка перестала совпадать сама собой, и обе ступени считаются
+     заново от нового часа. Отдельного кода на аннулирование в `pollRentReq`
+     не нужно вовсе (решение Алексея, 8 сентября 2026). */
+  var STUDIO_SAY = [10, 5];   // минут до дедлайна: первая ступень и вторая
+  function studioAnnounce() {
+    if (!notifOn("studio")) return;
+    var say = [], dirty = false, alive = {};
+    sessions.forEach(function (s) { if (s.id) alive[s.id] = 1; });
+    for (var id in studioTold) if (!alive[id]) { delete studioTold[id]; dirty = true; }
+    watchList().forEach(function (p) {
+      var s = p.s, nm = nowMinOf(s);
+      if (nm === null) return;                    // не сегодня — часа нет
+      var rw = rentWindow(s);
+      if (!rw || nm < rw.from) return;
+      var deadline = studioDeadline(rw), left = deadline - nm;
+      /* Раньше десяти минут молчим: это счётчик, а не новость, и уведомление
+         существует для того, чего человек не может увидеть сам (04_ANTI_GOALS).
+         После дедлайна молчим тоже: сказать опоздавшему, что он опоздал, —
+         не уведомление, а укор, и делать он с ним ничего уже не может
+         (Алексей, 8 сентября 2026). Оба сигнала успевают до нуля. */
+      if (left > STUDIO_SAY[0] || left < 0) return;
+      var stage = left <= STUDIO_SAY[1] ? 2 : 1;
+      var was = studioTold[s.id];
+      if (was && was.to === deadline && was.n >= stage) return;
+      studioTold[s.id] = { to: deadline, n: stage }; dirty = true;
+      say.push({ s: s, rw: rw, left: left, deadline: deadline });
+    });
+    if (dirty) saveAll();
+    if (!say.length) return;
+    /* Два зала разом — говорим про тот, где времени меньше */
+    say.sort(function (a, b) { return a.left - b.left; });
+    var top = say[0], where = studioWhere(top.rw);
+    var m = top.left > 0
+      ? LANG.t("studio.leaveIn", { left: LANG.count("unit.min", top.left), where: where })
+      : LANG.t("studio.leaveNow", { where: where });
+    notifQueued(fmt(top.deadline) + " · " + LANG.t("studio.sayT").toLowerCase(),
+      m, say.length - 1);
+  }
+
   /* Карточку закрыли — числа прочитаны, и следующее сравнение идёт от них.
      Пока она открыта, метка держится: человек мог войти и за другим */
   function wxAck(s) {
@@ -25949,37 +26113,142 @@
         if (cardIdx !== null && sessions[cardIdx] === s) openCard(cardIdx, true);   // не сбрасывая прокрутку
       }).catch(function () {});
   }
-  function renderStudioTimer(s, route, phase, cur, nowMin2) {
-    renderStudioTel(s, nowMin2);
-    renderStudioExtend(s, nowMin2);
-    var el = $("cdStudio");
-    var rw = nowMin2 === null ? null : rentWindow(s);
-    if (!rw || nowMin2 < rw.from) { el.hidden = true; return; }
+  /* Дедлайн выхода: час студии — 55 минут, и выходить надо раньше, чем
+     кончится оплаченное время. Вынесен отдельной функцией, потому что
+     спрашивают его теперь двое — виджет карточки и обход, зовущий баннером. */
+  var STUDIO_FINE = 15;   // минут до дедлайна, с которых счёт идёт по секундам
+  var ST_ARC = 2 * Math.PI * 47;   // длина обода: радиус кольца в разметке
+  /* Минут до дедлайна, на которых шкала обода сбрасывается и начинается
+     второй отсчёт. Число не своё: это вторая ступень сигнала
+     (`STUDIO_SAY[1]`), и расходиться им нельзя — кольцо и баннер говорят
+     об одном и том же моменте */
+  var STUDIO_RESET = 5;
+  function studioDeadline(rw) {
     /* Студийный час — 55 минут, и это больше не спрашивается. Поле «Минут в
        оплаченном часе» стояло в карточке студии и произносило вслух чужую
        бухгалтерию: фотограф читал его как вопрос о том, чего не знает. Где
        час полный, предупреждение просто придёт на пять минут раньше конца —
        цена ошибки в эту сторону пять минут, в другую — опоздание из зала.
        Старые карточки со своим числом его сохраняют (docs: DECISIONS). */
-    var deadline = rw.to - (60 - (rw.st.hourMin || STUDIO_HOUR_MIN));
-    var left = deadline - nowMin2;
-    /* Дальше десяти минут молчим — уведомление существует для того, чего
-       не видно самому, а не как счётчик с самого начала часа (04_ANTI_GOALS).
-       Дальше часа после дедлайна тоже молчим — точка явно уже не студия, а
-       банкет, который идёт дольше записанного, и старое предупреждение
-       превращается в шум, а не в пользу. */
-    if (left > 10 || left < -60) { el.hidden = true; return; }
-    el.hidden = false;
-    el.className = "say" + (left > 0 ? " warn" : " bad");
-    $("cdStudioIc").innerHTML = IC.svg("warn");
-    $("cdStudioT").innerHTML = left > 0
-      ? LANG.t("studio.leaveIn", { left: "<b>" + esc(LANG.count("unit.min", left)) + "</b>" })
-      : (left === 0 ? LANG.t("studio.leaveNow")
-        : LANG.t("studio.late", { over: esc(LANG.count("unit.min", -left)) }));
+    return rw.to - (60 - (rw.st.hourMin || STUDIO_HOUR_MIN));
   }
-  /* Тикает, только пока карточка открыта и точка почасовая: секундная точность
-     тут не нужна, минутной хватает, а второй rAF-цикл в приложении — лишний. */
-  var studioTickId = null;
+  /* Секунды до дедлайна. Минут хватало, пока строка говорила «через 7 минут»;
+     таймеру — нет: последняя четверть часа идёт по секундам. Часы места
+     съёмки, а не телефона, — те же, по которым считается фаза */
+  function studioLeftSec(s, rw) {
+    var at = shootAt(s), n = nowAt(at.lat, at.lon);
+    return studioDeadline(rw) * 60
+      - (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds());
+  }
+  /* Где идёт час: студия и зал, если он назван. Зал берётся у той же ячейки
+     дня, что дала окно, — у двух залов одной студии часы разные */
+  function studioWhere(rw) {
+    var hall = "";
+    if (rw.stop && rw.stop.hallId && Array.isArray(rw.st.halls)) {
+      for (var i = 0; i < rw.st.halls.length; i++)
+        if (rw.st.halls[i].id === rw.stop.hallId) { hall = rw.st.halls[i].name || ""; break; }
+    }
+    return [rw.st.name, hall].filter(Boolean).join(", ");
+  }
+  /* Ч:ММ, пока часа много, и ММ:СС в последней четверти. Формы разной длины
+     не для красоты: «0:47» и «7:32» иначе читались бы одинаково, а значат они
+     сорок семь минут и семь с половиной. Четыре знака против пяти — разница,
+     которую глаз ловит раньше, чем прочитает цифры */
+  function studioClock(sec) {
+    var a = Math.abs(sec), m = Math.floor(a / 60);
+    if (a >= STUDIO_FINE * 60) return Math.floor(m / 60) + ":" + (m % 60 < 10 ? "0" : "") + (m % 60);
+    var ss = a % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function renderStudioTimer(s, route, phase, cur, nowMin2) {
+    renderStudioTel(s, nowMin2);
+    renderStudioExtend(s, nowMin2);
+    paintStudio(s, phase);
+  }
+  /* Виджет отдельно от телефона и продления: его перерисовывает секундный
+     такт последней четверти часа, а их — нет. Опрашивать студию о продлении
+     раз в секунду было бы разорительно ни за что */
+  function paintStudio(s, phase) {
+    var el = $("cdStudio");
+    /* Минуту берём у места съёмки, а не у телефона, и берём её сами.
+       Замер 8 сентября 2026 показал, зачем: устройство в Томске, студия в
+       Лобне — окно проверялось по часам телефона, а секунды считались по
+       часам зала, и виджет расходился сам с собой на четыре часа. Часы
+       аренды записаны настенным временем зала, и сравнивать их можно
+       только с ним (docs: DECISIONS, «Модель времени»). */
+    var nowMin2 = nowMinOf(s);
+    var rw = nowMin2 === null ? null : rentWindow(s);
+    /* Живёт, пока идёт аренда и идёт съёмка. До начала оплаченного времени
+       отсчитывать ещё не от чего; после съёмки — там уже не зал, а дорога */
+    if (!rw || nowMin2 < rw.from || phase === "after") { el.hidden = true; return; }
+    var deadline = studioDeadline(rw), sec = studioLeftSec(s, rw);
+    /* Отсчёт дошёл до нуля — таймера больше нет (Алексей, 8 сентября 2026:
+       «а это не отсчёт, а штраф... кончилась аренда — исчез таймер»).
+       Счётчик, продолжающий тикать после дедлайна, отвечает на вопрос,
+       которого никто не задавал: он ничего не предлагает сделать, а
+       только считает, насколько человек уже виноват. Прибор не для
+       этого. */
+    if (sec <= 0) { el.hidden = true; return; }
+    el.hidden = false;
+    var mins = Math.ceil(sec / 60);
+    /* Тревога приходит вместе со второй ступенью: на последних пяти
+       минутах кольцо сбрасывает шкалу, звонит второй сигнал и краснеют
+       обод с числом — одно событие, сказанное тремя способами разом, а
+       не три события */
+    el.className = "studio-tile"
+      + (mins <= STUDIO_RESET ? " bad" : mins <= STUDIO_FINE ? " warn" : "");
+    /* Таймер считает вниз и только вниз: 10, 9, 8... и до нуля, на котором
+       исчезает (Алексей, 8 сентября 2026: «отсчёт идёт не в ту сторону»).
+       Знака «+» в интерфейсе нет — считать вверх ему больше нечего */
+    $("cdStudioNum").textContent = studioClock(sec);
+    $("cdStudioAt").textContent = fmt(deadline);
+    $("cdStudioName").textContent = studioWhere(rw);
+    $("cdStudioWin").textContent = range(rw.from, rw.to);
+    /* Обод меряет путь до дедлайна выхода, а не до конца оплаченного:
+       к нулю он приходит тогда же, когда и число, иначе кольцо обещало бы
+       ещё пять минут после того, как выходить уже пора.
+
+       Шкала не одна, а две (Алексей, 8 сентября 2026: «кольцо таймера —
+       это не просто кольцо, это отсчёт... в два шага. Когда остаются
+       последние 5 минут, градация сбрасывается и кольцо отсчитывает
+       секунды»). Причина арифметическая: на двухчасовой аренде последние
+       пять минут — четыре процента обода, движения не видно вовсе.
+       Первая шкала кончается ровно там, где начинается вторая, и там же
+       звонит второй сигнал: одно и то же событие, сказанное кольцом и
+       баннером. Обод возвращается на полный круг и сходит по секундам.
+ */
+    var lastSec = STUDIO_RESET * 60;
+    var span1 = Math.max(1, (deadline - rw.from) * 60 - lastSec);
+    var frac = sec <= lastSec ? sec / lastSec
+      : clamp((sec - lastSec) / span1, 0, 1);
+    $("cdStudioArc").setAttribute("stroke-dasharray", ST_ARC);
+    $("cdStudioArc").setAttribute("stroke-dashoffset", (ST_ARC * (1 - frac)).toFixed(1));
+    paintIcons(el);
+    /* Подпись молчит, пока сказать нечего: кольцо, число и час выхода уже
+       ответили, и строка «выйти к 15:55» была бы третьим повторением того
+       же (04_ANTI_GOALS — не повторять того, что человек и так видит).
+       Появляется глаголом ровно тогда, когда пора действовать. */
+    var note = mins <= STUDIO_RESET ? LANG.t("studio.noteNow")
+      : mins <= STUDIO_FINE ? LANG.t("studio.noteWrap") : "";
+    $("cdStudioT").textContent = note;
+    $("cdStudioT").hidden = !note;
+  }
+  /* Такт карточки о двух скоростях. Раз в двадцать секунд — тяжёлые
+     обязанности: опрос продления, музыка, полная отрисовка. Раз в секунду —
+     только виджет и только в последней четверти часа, где счёт идёт по
+     секундам. Секундная точность нужна ровно там, где она решает, и нигде
+     больше: шесть часов бегущих секунд в карточке — уже приборная панель. */
+  var studioTickId = null, studioSecId = null;
+  function studioFine(s) {
+    var nm = nowMinOf(s);
+    var rw = nm === null ? null : rentWindow(s);
+    if (!rw || nm < rw.from || eventPhase(s) === "after") return false;
+    var sec = studioLeftSec(s, rw);
+    /* Ноль достигнут — секунды больше не меняются, и будить отрисовку
+       каждую секунду не за чем: подпись о перерасходе живёт минутами и
+       ей хватает общего такта */
+    return sec > 0 && sec <= STUDIO_FINE * 60;
+  }
   function startStudioTick() {
     stopStudioTick();
     studioTickId = setInterval(function () {
@@ -25993,9 +26262,16 @@
       pollRentReq(s);
       renderCardMusic(s);
     }, 20000);
+    studioSecId = setInterval(function () {
+      if (cardIdx === null) { stopStudioTick(); return; }
+      var s = sessions[cardIdx];
+      if (!s || !studioFine(s)) return;
+      paintStudio(s, eventPhase(s));
+    }, 1000);
   }
   function stopStudioTick() {
     if (studioTickId) { clearInterval(studioTickId); studioTickId = null; }
+    if (studioSecId) { clearInterval(studioSecId); studioSecId = null; }
   }
   function curIndex(route, nowMin2) {
     var c = -1;
@@ -27823,21 +28099,43 @@
 
   /* Уведомление */
   var notifTimer = null;
-  /* Место у баннера одно, а поводов бывает два разом: прогноз переменился
-     и съёмка стала конфликтной. Второй, пришедший через секунду, стёр бы
-     первый непрочитанным — поэтому очередь, и следующий ждёт своей минуты */
-  var notifQueue = [];
-  function notifQueued(title, text) {
+  /* Место у баннера одно, а поводов бывает три разом: студийный час, смена
+     прогноза и наложение. Второй, пришедший через секунду, стёр бы первый
+     непрочитанным — отсюда очередь. Но и очередь не бесконечна: три
+     баннера подряд это семнадцать секунд, которые приложение говорит само
+     с собой, а это уже радио, а не сообщение. Потолок — два, остальные
+     считаются числом (решение Алексея, 8 сентября 2026).
+
+     Счёт дописывается к показанному баннеру на месте, а не при постановке
+     в очередь: поводы приходят с разницей в секунду-другую (студийный час
+     и наложения считаются сразу, погода ждёт сети), а баннер к этому
+     мгновению уже стоит на экране. Хвост живёт у последнего из показанных
+     и уезжает к следующему, когда тот встаёт. */
+  var notifQueue = [], notifMore = 0, NOTIF_MAX = 2;
+  function notifTail() {
+    /* «И ещё N» берём готовым ключом карточки, а не заводим свой: слово
+       для этого в продукте уже есть, и второе значило бы два перевода
+       одной мысли на каждый из языков */
+    return notifMore ? " " + LANG.t("card.clashMore", { n: notifMore }) : "";
+  }
+  function notifQueued(title, text, more) {
+    notifMore += (more || 0);
+    if (notifQueue.length >= NOTIF_MAX) { notifMore++; notifPaint(); return; }
     notifQueue.push([title, text]);
-    if (notifQueue.length === 1) notifNext();
+    if (notifQueue.length === 1) notifNext(); else notifPaint();
+  }
+  function notifPaint() {
+    if (!notifQueue.length || !$("notif").classList.contains("show")) return;
+    $("notifText").textContent =
+      notifQueue[0][1] + (notifQueue.length === 1 ? notifTail() : "");
   }
   function notifNext() {
     var n = notifQueue[0];
-    if (!n) return;
-    notify(n[0], n[1]);
+    if (!n) { notifMore = 0; return; }
+    notify(n[0], n[1] + (notifQueue.length === 1 ? notifTail() : ""));
     setTimeout(function () {
       notifQueue.shift();
-      if (notifQueue.length) notifNext();
+      if (notifQueue.length) notifNext(); else notifMore = 0;
     }, 5600);
   }
   function notify(title, text) {
@@ -29962,7 +30260,7 @@
            появились сразу, а не со следующего обхода */
         renderSessions();
         if (cardIdx !== null && sessions[cardIdx]) renderShift(sessions[cardIdx]);
-        if (notifPrefs[pair[1]] && notifPrefs.all) wxWatch(true);
+        if (notifPrefs[pair[1]] && notifPrefs.all) watchTick(true);
       });
     });
   renderNotif();
@@ -32798,9 +33096,9 @@
      (SWIFT_MIGRATION_PLAN, итерация 30). Полторы секунды форы — чтобы
      первый экран успел нарисоваться раньше баннера: приложение
      открывают ради дела, а не ради разговора с ним. */
-  setTimeout(function () { wxWatch(true); }, 1500);
+  setTimeout(function () { watchTick(true); }, 1500);
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") setTimeout(function () { wxWatch(); }, 900);
+    if (document.visibilityState === "visible") setTimeout(function () { watchTick(); }, 900);
   });
   /* Опросник ловим последним: `cloudCatch` тоже правит адресную строку, и
      разбирать её вдвоём одновременно незачем. Форма к этому мгновению
