@@ -891,7 +891,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=60"></script>
+<script src="lang.js?v=61"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -4601,6 +4601,12 @@
   #storeState.safe { color: var(--green); }
   #cloudState.safe { color: var(--green); }
   .seg button.dim { opacity: 0.4; }
+  /* Строка, которую видно, но трогать нечего: главный тумблер выключен
+     или за настройкой ещё ничего не стоит. Тот же приём и та же мера,
+     что у поставщика облака без ключа приложения выше: функция, которой
+     нет, обязана быть видимой — и обязана молчать при нажатии */
+  .item.dim { opacity: 0.4; }
+  .item.dim .toggle { pointer-events: none; }
   /* display в CSS перебивает атрибут hidden — прячем явно (грабли из DECISIONS) */
   .data-btn[hidden], .item[hidden] { display: none; }
   .item {
@@ -7337,10 +7343,12 @@
       <div class="item" id="setNavProfile"><span class="ir"><span class="item-ic" data-ic="phone"></span><span class="k" data-i18n="set.grpProfile">Профиль</span></span><span class="v" id="setNavProfileV"><span class="go-chev">›</span></span></div>
       <div class="item" id="setNavView"><span class="ir"><span class="item-ic" data-ic="sun_moon"></span><span class="k" data-i18n="set.grpView">Вид</span></span><span class="v" id="setNavViewV"><span class="go-chev">›</span></span></div>
       <div class="item" id="setNavShoots"><span class="ir"><span class="item-ic" data-ic="camera"></span><span class="k" data-i18n="set.grpShoots">Съёмки</span></span><span class="v" id="setNavShootsV"><span class="go-chev">›</span></span></div>
-      <!-- Оповещения без значения: три переключателя уведомлений пока
-           ничего не включают (`[data-toggle]` лишь меняет класс), и «3 из 4»
-           в корне было бы точностью на пустом месте -->
-      <div class="item" id="setNavAlerts"><span class="ir"><span class="item-ic" data-ic="alarm"></span><span class="k" data-i18n="set.grpAlerts">Оповещения</span></span><span class="v"><span class="go-chev">›</span></span></div>
+      <!-- Значение появляется только у молчания. Перечислять, сколько
+           уведомлений из скольких включено, незачем: включённые — это
+           норма, о ней не отчитываются. А выключенные все разом — то
+           состояние, ради которого в раздел и возвращаются, когда
+           приложение вдруг перестало предупреждать -->
+      <div class="item" id="setNavAlerts"><span class="ir"><span class="item-ic" data-ic="alarm"></span><span class="k" data-i18n="set.grpAlerts">Оповещения</span></span><span class="v" id="setNavAlertsV"><span class="go-chev">›</span></span></div>
       <div class="item" id="setNavPlaces"><span class="ir"><span class="item-ic" data-ic="pin"></span><span class="k" data-i18n="set.grpPlaces">Карта и места</span></span><span class="v" id="setNavPlacesV"><span class="go-chev">›</span></span></div>
       <div class="item" id="setNavStore"><span class="ir"><span class="item-ic" data-ic="briefcase"></span><span class="k" data-i18n="set.storage">Хранилище</span></span><span class="v" id="setNavStoreV"><span class="go-chev">›</span></span></div>
       <div class="item" id="setNavData"><span class="ir"><span class="item-ic" data-ic="cloud"></span><span class="k" data-i18n="set.grpData">Данные и облако</span></span><span class="v" id="setNavDataV"><span class="go-chev">›</span></span></div>
@@ -7549,10 +7557,28 @@
     <div class="sec-label" data-i18n="set.feedback">Отклик</div>
     <div class="item"><span class="k" data-i18n="set.clicks">Щелчки слайдера</span><span class="toggle on" id="soundToggle"></span></div>
 
+    <!-- Уведомления существуют ровно для того, чего человек не может
+         увидеть сам (04_ANTI_GOALS): прогноз к съёмке переменился, съёмка
+         стала конфликтной от чужой правки. Всё остальное он видит,
+         открыв карточку, и напоминать ему об этом — работа совы из
+         языкового тренажёра, а не прибора.
+
+         Здесь стояли три тумблера, за которыми ничего не было:
+         «Вечерний брифинг», «Утреннее уточнение», «Напоминание о выезде».
+         Они не выброшены — расписание умеет будить только закрытое
+         нативное приложение, и ждут они итерации 30 плана миграции.
+         Но главный тумблер над тремя пустышками обещал бы голосом
+         настройки то, чего прибор не делает, и с экрана они сняты. -->
     <div class="sec-label" data-i18n="set.notify">Уведомления</div>
-    <div class="item"><span class="k" data-i18n="set.notifyEve">Вечерний брифинг</span><span class="toggle on" data-toggle></span></div>
-    <div class="item"><span class="k" data-i18n="set.notifyMorn">Утреннее уточнение</span><span class="toggle on" data-toggle></span></div>
-    <div class="item"><span class="k" data-i18n="set.notifyLeave">Напоминание о выезде</span><span class="toggle" data-toggle></span></div>
+    <div class="item"><span class="k" data-i18n="set.notifyAll">Разрешить все</span><span class="toggle on" id="notifAllToggle"></span></div>
+    <div class="item" id="notifWxRow"><span class="k" data-i18n="set.notifyWx">Предупреждения о смене погоды</span><span class="toggle on" id="notifWxToggle"></span></div>
+    <div class="item" id="notifClashRow"><span class="k" data-i18n="set.notifyClash">Предупреждения о наложении</span><span class="toggle on" id="notifClashToggle"></span></div>
+    <!-- Сервера у приложения пока нет. Тумблер видно, нажать нельзя —
+         тем же приёмом, что у облачных поставщиков без ключа приложения:
+         «видно, что он есть». Значение хранится включённым, чтобы в день,
+         когда сервер появится, он заговорил без похода в настройки -->
+    <div class="item dim" id="notifSrvRow"><span class="k" data-i18n="set.notifySrv">Уведомления от сервера</span><span class="toggle on" id="notifSrvToggle"></span></div>
+    <p class="seg-note" id="notifNote" data-i18n="set.notifyNote">Приложение говорит только о том, чего не увидеть самому: прогноз к съёмке переменился, съёмка стала конфликтной. Пока это баннер при открытии — разбудить себя свёрнутым оно ещё не умеет.</p>
   </div>
 
   <div class="overlay pad flush" id="setOvPlaces">
@@ -7948,6 +7974,20 @@
     <!-- Наложение говорит там же, где реплика о свете: строкой под плиткой дня.
          На «Сегодня» и «Карту» не выходит никогда (04_ANTI_GOALS) -->
     <div class="say warn" id="cdClash" hidden><span class="s-ic" data-ic="warn"></span><span id="cdClashT"></span></div>
+
+    <!-- Прогноз переменился с прошлого раза. Говорит тем же голосом, что
+         наложение: обе строки про то, что съёмка перестала быть той,
+         какой её задумали. Живёт, пока карточку не закрыли — закрыл,
+         значит прочитал, и следующее сравнение пойдёт от увиденного
+         числа.
+         Своим блоком не заводится намеренно: строка временная,
+         переставлять и выключать в ней нечего. Из-за этого она встаёт
+         над всеми блоками сразу — `applyOrder` переносит их в
+         `#cdEventBlocks` заново при каждой отрисовке, а не-блоки
+         остаются там, где лежали. Тем же живут студийный час и звонок
+         администратору ниже, и место это верное: тревога читается
+         первой, куда бы фотограф ни переставил остальное -->
+    <div class="say warn" id="cdShift" hidden><span class="s-ic" data-ic="warn"></span><span id="cdShiftT"></span></div>
 
     <!-- Студийный час — тихо, пока не подошёл: за 10 минут и ближе, не раньше.
          Живёт, только пока у съёмки есть студия и идёт оплаченное время. -->
@@ -11232,6 +11272,7 @@
         mapRoute: mapRoute,
 
         pro: proMode, manualEnd: manualEnd, icsLayer: icsLayer,
+        notif: notifPrefs, wxSeen: wxSeen, wxTold: wxTold, clashTold: clashTold,
         /* Практика пишется, только когда её выбрали: пока вопрос не задан,
            в записи её нет, и первый запуск остаётся первым */
         practice: practiceAsked ? practice : undefined,
@@ -12721,6 +12762,37 @@
   /* Ручное завершение съёмки. Выключено по умолчанию: автомат по записанным
      рамкам покрывает обычный день, а кнопка нужна тем, кто считает переработку. */
   var manualEnd = !!(saved && saved.manualEnd);
+  /* ---------- Что приложению разрешено говорить вслух ----------
+     Уведомление — единственное место, где прибор заговаривает первым, и
+     право на это он получает у человека, а не берёт сам. Главный тумблер
+     гасит остальные разом: выключить всё одним движением должно быть
+     проще, чем разбираться, который из трёх шумит.
+     `srv` лежит включённым и ждёт сервера — тумблер его пока не пускает
+     под палец (см. разметку раздела «Уведомления»). */
+  var NOTIF_DEF = { all: true, wx: true, clash: true, srv: true };
+  var notifPrefs = (function (o) {
+    var p = {};
+    for (var k in NOTIF_DEF) p[k] = (o && typeof o[k] === "boolean") ? o[k] : NOTIF_DEF[k];
+    return p;
+  })(saved && saved.notif);
+  function notifOn(kind) { return !!(notifPrefs.all && notifPrefs[kind]); }
+  /* Отметки «это человек уже видел» и «об этом уже сказали». Не поле
+     записи, а свой ключ настроек, и причина в слиянии: `mt` считается по
+     всему содержимому записи, и попади отметка внутрь — телефон, который
+     съёмку только открыл посмотреть, выигрывал бы у ноутбука, где её
+     правили. Показанное число — память прибора о себе, а не факт о
+     съёмке. Ключ записи (`s.id`) выдаётся всем при загрузке. */
+  var wxSeen = (saved && saved.wxSeen) || {};
+  var wxTold = (saved && saved.wxTold) || {};
+  var clashTold = (saved && saved.clashTold) || {};
+  /* Первый обход после обновления — молча. У погоды это выходит само
+     собой (первое знакомство с прогнозом не смена), а наложения
+     посчитаны и без всякой памяти, и без этой оговорки обновление
+     встречало бы человека залпом тревог о том, что он и так знает:
+     карточка показывала ему эти наложения всё это время. Признак —
+     отсутствие самого ключа, а не пустота в нём: пусто значит
+     «наложений не было», нет ключа — «эта версия про них не знала». */
+  var clashMute = !(saved && saved.clashTold);
   /* Слои компаса. Солнце и луна были на карте всегда — умолчание сохраняет
      это, чтобы включение слоёв ничего не поменяло тем, кто их не открывал.
      Млечный Путь — новый слой и нишевый, включается по запросу */
@@ -17969,6 +18041,11 @@
             var ds = deliveryState(s);
             if (ds.rank >= 2) return '<div class="s-sync" style="color:' + ds.color + '">' + ds.label + "</div>";
             if (s.delivered) return '<div class="s-sync">' + esc(LANG.t("delv.done")) + "</div>";
+            /* Переменившийся прогноз идёт впереди `s.warn`: тот — снимок,
+               сделанный при сохранении, а этот про то, что стало сейчас */
+            var sh = notifOn("wx") ? wxShiftOf(s) : null;
+            if (sh) return '<div class="s-sync" style="color:#C9853F">⚠ '
+              + esc(LANG.t(sh.up ? "wxs.upT" : sh.w === 3 ? "wxs.badT" : "wxs.downT").toLowerCase()) + "</div>";
             if (s.warn) return '<div class="s-sync" style="color:#C9853F">⚠ ' + s.warn.t.toLowerCase() + "</div>";
             return s.synced ? '<div class="s-sync">'
         + esc(LANG.t("plan.inCalendar", { service: s.synced === "google" ? "Google" : "Apple" })) + "</div>" : "";
@@ -24440,6 +24517,226 @@
     if (cardIdx !== null && sessions[cardIdx]) renderClash(sessions[cardIdx]);
   }
 
+  /* ============================================================
+     ПРОГНОЗ ПЕРЕМЕНИЛСЯ
+     Прогноз — это вероятность, и главное её свойство в том, что она
+     переменная. Утром прибор говорит «100 из 100», человек отменяет ради
+     этого заката всё остальное; к вечеру там 45, а вышло 15 и заката не
+     было вовсе. Число было честным в тот час, когда его показали, — но
+     молчать, когда оно сменилось, нечестно уже сейчас.
+
+     Это ровно тот случай, ради которого уведомления в продукте вообще
+     разрешены: «только для того, чего человек не может увидеть сам»
+     (04_ANTI_GOALS). Открытая карточка показывает свежее число всегда;
+     чего из неё не увидеть — что число стало другим.
+
+     Памяти две. `wxSeen` — прогноз, каким его видел человек: пишется при
+     первом знакомстве молча (первое знакомство не смена) и обновляется,
+     когда карточку закрыли. `wxTold` — то, о чём уже сказали вслух, чтобы
+     каждый заход не повторял одну новость.
+
+     Сети отдельной не нужно: погоду по месту съёмки уже умеет `ptFetch` —
+     та же, которой пользуется карточка, и ответ ложится в общий `ptWx`.
+     ============================================================ */
+  /* Порог. Смена категории неба — повод всегда: «ясно» и «дождь» это разные
+     съёмки, а не разные числа. Баллу заката положено двадцать пунктов: ниже
+     начинается дрожь самой модели, и будить ею человека значит научить его
+     не верить предупреждениям вовсе. Тридцать пять — уже не «переменился», а
+     «съёмку впору переносить», и вес у этого тот же, что у пересечения
+     времени выше. */
+  var WX_SHIFT = 20, WX_HARD = 35;
+  /* Куда считать лучше, куда хуже. Туман стоит над дождём, но ниже ровного
+     неба: карточка давно судит о нём так же — `bad = q === "poor" || q === "fog"` */
+  var QRANK = { poor: 0, fog: 1, plain: 2, good: 3, excellent: 4 };
+  /* Прогноз места съёмки, а не города фотографа: свадьба в Сочи у фотографа
+     из Лобни иначе меняла бы лобненское небо */
+  function wxSnap(s) {
+    var rec = ptAt(shootAt(s), s.date), d = rec && rec.day;
+    if (!d) return null;
+    return { q: d.q, sc: (d.sunset == null ? null : d.sunset) };
+  }
+  /* Насколько разошлись два прогноза: 0 — тот же самый, 2 — переменился,
+     3 — переменился так, что впору переносить */
+  function wxGap(a, b) {
+    if (!a || !b) return 0;
+    var w = 0, dead = { poor: 1, fog: 1 };
+    if (a.q !== b.q) w = (dead[a.q] || dead[b.q]) ? 3 : 2;
+    if (a.sc != null && b.sc != null) {
+      var d = Math.abs(a.sc - b.sc);
+      if (d >= WX_HARD) w = 3; else if (d >= WX_SHIFT && w < 2) w = 2;
+    }
+    return w;
+  }
+  function wxUp(a, b) {
+    if (a.sc != null && b.sc != null && a.sc !== b.sc) return b.sc > a.sc;
+    return QRANK[b.q] > QRANK[a.q];
+  }
+  /* Съёмки, за которыми вообще стоит следить: ещё не прошли и показываются.
+     Встречи и чужие события отсеиваются — у них нет ни света, ни замысла,
+     ради которого стоило бы будить */
+  function watchList() {
+    return sessions.map(function (s, i) { return { s: s, i: i }; })
+      .filter(function (p) {
+        return p.s.id && shownRec(p.s) && !notWork(p.s)
+          && dayOff(p.s.date) >= 0 && eventPhase(p.s) !== "after";
+      });
+  }
+  /* Из них те, у кого есть настоящий прогноз: место с координатами и дата
+     внутри окна. Дальше окна у приложения не прогноз, а выдумка
+     (`dayWeather`), и она не меняется — сравнивать нечего */
+  function wxWatched() {
+    return watchList().filter(function (p) {
+      return ptReach(p.s.date) && shootAt(p.s).lat != null;
+    });
+  }
+  /* Разница, о которой человеку ещё не говорили. Считается на лету от
+     `wxSeen`: хранить вычисленное значило бы завести вторую правду, которая
+     назавтра разойдётся с прогнозом */
+  function wxShiftOf(s) {
+    if (!s || !s.id) return null;
+    var was = wxSeen[s.id], now = wxSnap(s), w = wxGap(was, now);
+    return w ? { w: w, was: was, now: now, up: wxUp(was, now) } : null;
+  }
+  /* Как это сказать. Заголовок — про направление, текст — про числа: балл,
+     если он есть у обоих (закатная съёмка живёт им), иначе категория неба.
+     У баннера своя пара ключей, с именем съёмки: он приходит, когда карточка
+     закрыта, и первое, что нужно знать, — про какую съёмку речь. Внутри
+     карточки имя было бы повтором того, что написано у неё в шапке. */
+  function wxShiftSay(s, sh, named) {
+    var byScore = sh.was.sc != null && sh.now.sc != null
+      && Math.abs(sh.now.sc - sh.was.sc) >= WX_SHIFT;
+    var slot = byScore
+      ? { a: sh.was.sc, b: sh.now.sc }
+      : { a: QUAL[sh.was.q].cond.toLowerCase(), b: QUAL[sh.now.q].cond.toLowerCase() };
+    if (named) slot.who = clientName(s) || genreName(s.type);
+    return {
+      t: LANG.t(sh.up ? "wxs.upT" : sh.w === 3 ? "wxs.badT" : "wxs.downT"),
+      m: LANG.t((byScore ? "wxs.score" : "wxs.sky") + (named ? "W" : "M"), slot)
+    };
+  }
+
+  /* ---------- Обход ----------
+     Настоящего пуша у веба нет: свёрнутая PWA на iOS не исполняет `setTimeout`,
+     а Web Push требует сервера (SWIFT_MIGRATION_PLAN, итерация 30). Значит
+     проверка живёт там, где человек и так появляется: при запуске и при
+     возврате в приложение. Вечерний заход — ровно тот случай, ради которого
+     всё это писалось. Чаще получаса не спрашиваем: модель прогноза так часто
+     и не обновляется. */
+  var wxWatchAt = 0, WX_WATCH_GAP = 30 * 60000, wxSayTimer = null;
+  function wxAnnounceSoon() {
+    clearTimeout(wxSayTimer);
+    wxSayTimer = setTimeout(wxAnnounce, 700);
+  }
+  function wxWatch(force) {
+    if (!notifOn("wx") && !notifOn("clash")) return;
+    var now = Date.now();
+    if (!force && now - wxWatchAt < WX_WATCH_GAP) return;
+    wxWatchAt = now;
+    clashAnnounce();
+    if (!notifOn("wx")) return;
+    var list = wxWatched();
+    if (!list.length) return;
+    /* Заново спрашиваем только при закрытой карточке: у открытой тот же кэш
+       под руками, и вычистить его значило бы показать ей прочерк вместо
+       чисел, которые человек прямо сейчас читает */
+    var byDate = {};
+    list.forEach(function (p) {
+      var at = shootAt(p.s), k = ptKey(at.lat, at.lon, p.s.date);
+      if (cardIdx === null && !ptWait[k]) delete ptWx[k];
+      var dk = dkey(p.s.date);
+      (byDate[dk] || (byDate[dk] = { date: p.s.date, pts: [] })).pts.push(at);
+    });
+    Object.keys(byDate).forEach(function (dk) {
+      var g = byDate[dk];
+      ptFetch(g.pts, g.date, wxAnnounceSoon);
+      g.pts.forEach(function (pt) { ptAirFetch(pt, g.date, wxAnnounceSoon); });
+    });
+    wxAnnounceSoon();   // прогноз мог уже лежать в кэше — тогда сети ждать нечего
+  }
+  function wxAnnounce() {
+    var say = [], alive = {}, dirty = false;
+    sessions.forEach(function (s) { if (s.id) alive[s.id] = 1; });
+    /* Отметки умерших записей чистим здесь же: список маленький, но расти
+       ему без присмотра незачем */
+    [wxSeen, wxTold, clashTold].forEach(function (map) {
+      for (var id in map) if (!alive[id]) { delete map[id]; dirty = true; }
+    });
+    if (notifOn("wx")) wxWatched().forEach(function (p) {
+      var s = p.s, now = wxSnap(s);
+      if (!now) return;
+      /* Первое знакомство — не смена: числа, которого человек не видел, он
+         не мог и потерять */
+      if (!wxSeen[s.id]) { wxSeen[s.id] = now; dirty = true; return; }
+      var w = wxGap(wxSeen[s.id], now);
+      if (!w) return;
+      /* Об этом уже говорили. Но если прогноз ушёл дальше — это новость снова */
+      if (wxTold[s.id] && !wxGap(wxTold[s.id], now)) return;
+      wxTold[s.id] = now; dirty = true;
+      say.push({ s: s, sh: { w: w, was: wxSeen[s.id], now: now, up: wxUp(wxSeen[s.id], now) } });
+    });
+    if (dirty) { saveAll(); renderSessions(); }
+    if (!say.length) return;
+    if (cardIdx !== null && sessions[cardIdx]) renderShift(sessions[cardIdx]);
+    /* Один заход — один баннер. Фронт приходит на всю неделю разом, и пять
+       уведомлений подряд не читает никто: говорим самую тяжёлую и ближнюю,
+       остальные считаем строкой. Каждая при этом помечена в списке и в своей
+       карточке — баннер зовёт, подробности лежат там, где им положено */
+    say.sort(function (a, b) { return b.sh.w - a.sh.w || a.s.date - b.s.date; });
+    var top = say[0], txt = wxShiftSay(top.s, top.sh, true);
+    /* «И ещё N» берём готовым ключом карточки, а не заводим свой: слово
+       для этого в продукте уже есть, и второе значило бы два перевода
+       одной мысли на каждый из языков */
+    notifQueued(dMon(top.s.date) + " · " + txt.t.toLowerCase(),
+      txt.m + (say.length > 1 ? " " + LANG.t("card.clashMore", { n: say.length - 1 }) : ""));
+  }
+
+  /* ---------- Наложение, появившееся само ----------
+     Съёмка становится конфликтной не только от своей правки: соседнюю
+     подвинули, день объявили занятым, дорога между точками оказалась длиннее
+     запаса. Пока карточка закрыта, увидеть это неоткуда — а это ровно то
+     условие, при котором прибору разрешено заговорить первым.
+     Сети не нужно: `clashesOf` уже всё посчитал, нужна только память о том,
+     о чём уже сказали. Считаем тяжёлые (вес 3) — «быть в двух местах разом
+     нельзя»; впритык по дороге человек разрулит сам, увидев карточку. */
+  function clashSig(list) {
+    return list.filter(function (c) { return c.w >= 3; })
+      .map(function (c) { return c.t + "/" + c.m; }).join("|");
+  }
+  function clashAnnounce() {
+    if (!notifOn("clash")) return;
+    var say = [], dirty = false;
+    watchList().forEach(function (p) {
+      var list = clashesOf(p.i), sig = clashSig(list);
+      if (!sig) {
+        if (clashTold[p.s.id]) { delete clashTold[p.s.id]; dirty = true; }
+        return;
+      }
+      if (clashTold[p.s.id] === sig) return;
+      clashTold[p.s.id] = sig; dirty = true;
+      say.push({ s: p.s, c: list[0] });
+    });
+    if (dirty) saveAll();
+    if (clashMute) { clashMute = false; return; }
+    if (!say.length) return;
+    say.sort(function (a, b) { return a.s.date - b.s.date; });
+    var top = say[0];
+    notifQueued(dMon(top.s.date) + " · " + top.c.t.toLowerCase(),
+      top.c.m + (say.length > 1 ? " " + LANG.t("card.clashMore", { n: say.length - 1 }) : ""));
+  }
+  /* Карточку закрыли — числа прочитаны, и следующее сравнение идёт от них.
+     Пока она открыта, метка держится: человек мог войти и за другим */
+  function wxAck(s) {
+    if (!s || !s.id) return;
+    var now = wxSnap(s);
+    if (!now) return;
+    var had = !!wxTold[s.id];
+    if (!had && wxSeen[s.id] && !wxGap(wxSeen[s.id], now)) return;
+    delete wxTold[s.id];
+    wxSeen[s.id] = now;
+    saveAll();
+    renderSessions();
+  }
+
   function refreshForm() {
     var keep = new Date(selDate);
     /* Окно света считаем по месту съёмки, а не по месту, где лежит телефон.
@@ -25225,6 +25522,7 @@
     renderRouteFold(s, route, phase);
     renderRefFold(s, route, phase);
     renderClash(s);
+    renderShift(s);
     renderDeal(s);
     renderOrderBlocks(s);
     renderStack(s);
@@ -25990,6 +26288,23 @@
     paintIcons($("cdClash"));
   }
 
+  /* Строка о переменившемся прогнозе. Держится на `wxSeen`, а не на том,
+     о чём успели сказать баннером: баннер мог не застать человека, метка
+     обязана дождаться. Гаснет, когда карточку закрыли (`wxAck`).
+     Выключенные уведомления гасят и её: «разрешить все» выключают, чтобы
+     приложение замолчало, а не чтобы оно молчало наполовину */
+  function renderShift(s) {
+    var el = $("cdShift");
+    if (!el) return;
+    var sh = notifOn("wx") ? wxShiftOf(s) : null;
+    var show = !!sh && eventPhase(s) !== "after";
+    el.hidden = !show;
+    if (!show) return;
+    var say = wxShiftSay(s, sh, false);
+    $("cdShiftT").innerHTML = "<b>" + esc(say.t) + ".</b> " + esc(say.m);
+    paintIcons(el);
+  }
+
   /* ---------- Состояние сделки ----------
      Пять звеньев в порядке работы: ТЗ, договор, счёт, оплата, акт. Каждое либо
      закрыто, либо его ждут; новых полей под это не заводили — звено считается
@@ -26441,6 +26756,9 @@
   function closeCard() {
     if (ordMode) setOrderMode(false);
     stopStudioTick();
+    /* Карточку закрыли — значит числа в ней прочитаны, и следующее
+       сравнение прогноза пойдёт от них, а не от вчерашних */
+    if (cardIdx !== null) wxAck(sessions[cardIdx]);
     cardIdx = null;
     $("cardOverlay").classList.remove("open");
   }
@@ -27500,6 +27818,23 @@
 
   /* Уведомление */
   var notifTimer = null;
+  /* Место у баннера одно, а поводов бывает два разом: прогноз переменился
+     и съёмка стала конфликтной. Второй, пришедший через секунду, стёр бы
+     первый непрочитанным — поэтому очередь, и следующий ждёт своей минуты */
+  var notifQueue = [];
+  function notifQueued(title, text) {
+    notifQueue.push([title, text]);
+    if (notifQueue.length === 1) notifNext();
+  }
+  function notifNext() {
+    var n = notifQueue[0];
+    if (!n) return;
+    notify(n[0], n[1]);
+    setTimeout(function () {
+      notifQueue.shift();
+      if (notifQueue.length) notifNext();
+    }, 5600);
+  }
   function notify(title, text) {
     $("notifTitle").textContent = title;
     $("notifText").textContent = text;
@@ -27706,9 +28041,15 @@
       if (cardIdx !== null && wasEdit && savedIdx === cardIdx) openCard(cardIdx, true);
       else { closeCard(); go("s-plan"); }
       // Прогноз против замысла — так это придёт пушем накануне
-      if (warn) setTimeout(function () {
-        notify(dMon(fDate) + " · " + warn.t.toLowerCase(), warn.m);
+      if (warn && notifOn("wx")) setTimeout(function () {
+        notifQueued(dMon(fDate) + " · " + warn.t.toLowerCase(), warn.m);
       }, 500);
+      /* Новая съёмка могла лечь поверх занятого дня или другой съёмки.
+         Форма это показывала строкой, но строку читают не всегда, а
+         «быть в двух местах разом» — не та новость, которую можно
+         пропустить. Заодно отметка о сказанном ложится сразу, и обход
+         при следующем запуске не повторит её вторым баннером */
+      setTimeout(clashAnnounce, 700);
     }, 850);
   });
 
@@ -29585,6 +29926,41 @@
     renderSessions(); renderCal(); renderDayPanel();
   });
 
+
+  /* ---------- Тумблеры уведомлений ----------
+     Главный гасит подчинённые не запретом, а видом: строки остаются на
+     месте бледными и не отзываются на палец. Спрятать их совсем значило бы
+     заставить человека включить всё разом, только чтобы вспомнить, что
+     именно он выключал. Строка сервера бледна всегда — его ещё нет. */
+  function renderNotif() {
+    if (!$("notifAllToggle")) return;
+    $("notifAllToggle").classList.toggle("on", notifPrefs.all);
+    $("notifWxToggle").classList.toggle("on", notifPrefs.wx);
+    $("notifClashToggle").classList.toggle("on", notifPrefs.clash);
+    $("notifSrvToggle").classList.toggle("on", notifPrefs.srv);
+    ["notifWxRow", "notifClashRow"].forEach(function (id) {
+      $(id).classList.toggle("dim", !notifPrefs.all);
+    });
+  }
+  [["notifAllToggle", "all"], ["notifWxToggle", "wx"], ["notifClashToggle", "clash"]]
+    .forEach(function (pair) {
+      $(pair[0]).addEventListener("click", function () {
+        if (pair[1] !== "all" && !notifPrefs.all) return;   // выключено главным — молчим
+        notifPrefs[pair[1]] = !notifPrefs[pair[1]];
+        renderNotif();
+        /* Корень настроек отчитывается о молчании — зовём его отсюда, а
+           не из `renderNotif`: на старте тот отрабатывает раньше, чем
+           собраны места, мудборды и облако, о которых корень пишет */
+        renderSetNav();
+        saveAll();
+        /* Метки в списке и в карточке живут по этим же тумблерам: включили —
+           появились сразу, а не со следующего обхода */
+        renderSessions();
+        if (cardIdx !== null && sessions[cardIdx]) renderShift(sessions[cardIdx]);
+        if (notifPrefs[pair[1]] && notifPrefs.all) wxWatch(true);
+      });
+    });
+  renderNotif();
   $("soundToggle").addEventListener("click", function () {
     this.classList.toggle("on");
     if (this.classList.contains("on")) { initAudio(); tickClick(); }
@@ -30955,6 +31331,10 @@
     put("setNavStoreV", boards ? LANG.count("unit.board", boards) : LANG.t("card.none"));
     put("setNavDataV", cloudOn() ? LANG.t("cloud.name." + cloudKind) : LANG.t("set.off"));
     put("setNavLocaleV", LANG_NAMES[LANG.code] + " \u00b7 " + currencySign(currency));
+    /* Отчитывается только молчание: включённые уведомления — норма, а
+       выключенные все разом это то состояние, ради которого в раздел и
+       возвращаются, когда приложение вдруг перестало предупреждать */
+    put("setNavAlertsV", notifPrefs.all ? "" : LANG.t("set.off"));
   }
   renderSetNav();
 
@@ -32406,6 +32786,16 @@
   setTimeout(cloudSyncSoon, 1200);
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") setTimeout(cloudSyncSoon, 400);
+  });
+  /* Прогноз сверяется там, где человек и так появляется: на запуске и на
+     возврате в приложение. Настоящего пуша у веба нет — свёрнутая PWA на
+     iOS не исполняет `setTimeout`, а Web Push требует сервера
+     (SWIFT_MIGRATION_PLAN, итерация 30). Полторы секунды форы — чтобы
+     первый экран успел нарисоваться раньше баннера: приложение
+     открывают ради дела, а не ради разговора с ним. */
+  setTimeout(function () { wxWatch(true); }, 1500);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") setTimeout(function () { wxWatch(); }, 900);
   });
   /* Опросник ловим последним: `cloudCatch` тоже правит адресную строку, и
      разбирать её вдвоём одновременно незачем. Форма к этому мгновению
