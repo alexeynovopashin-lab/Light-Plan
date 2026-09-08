@@ -91,7 +91,7 @@
       placeCity: o.city !== false,
       studioId: o.studio || null, hallId: o.hall || null,
       rentFrom: o.rentFrom || null, rentTo: o.rentTo || null,
-      wish: o.wish || [], guests: o.guests || 0,
+      wish: o.wish || [], guests: o.guests || 0, breed: o.breed || "",
       deadlineChoice: o.dl === undefined ? "auto" : o.dl,
       delivered: !!o.delivered, deliveredAt: o.deliveredAt || null,
       pay: o.pay || "hourly", rate: o.rate || 0, units: o.units || 0,
@@ -203,6 +203,12 @@
           docs: [doc("brief", "Бриф на интерьеры")],
           brief: "Пять залов, съёмка со штатива, вечерний свет не нужен.",
           notes: "Съёмка в помещении: погода в карточке тут лишняя." }),
+      /* Животные: портретный пресет со своей графой — порода стоит там, где
+         у людей имя того, кого снимают */
+      S({ k: "sep_pet", d: 7, t: "animals", min: H(11), dur: 60, c: "Ирина Со", tel: "+7 913 787-97-07",
+          breed: "Бигль, кобель 2 года",
+          place: "Лагерный сад", addr: "Томск, Лагерный сад", lat: 56.4520, lon: 84.9370,
+          pay: "hourly", rate: 5000, notes: "Собака боится вспышки — снимаем на естественном." }),
       S({ k: "sep_team", d: 9, t: "report", min: H(10), dur: 150, c: "Компания «Сибтех»", tel: "+7 913 676-86-96",
           place: "Офис «Сибтех»", addr: "Томск, Учебная, 39", lat: 56.4620, lon: 84.9520,
           pay: "hourly", rate: 6000, notes: "Портреты коллектива, восемнадцать человек." }),

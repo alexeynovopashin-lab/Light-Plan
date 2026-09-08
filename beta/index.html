@@ -825,6 +825,9 @@
       + '<path d="M12.6 1.9h4.8l-1.1 3.6h-2.6z"/><path d="M15 7v1.8"/>',
     "report":    '<path d="M13.2 2.5L6 13.2h4.8L9.4 21.5 17.9 10h-4.8z"/>',
     "product":   '<path d="M12 3.2l7.3 4.2v8.9L12 20.5l-7.3-4.2V7.4z"/><path d="M12 11.7L4.7 7.4M12 11.7l7.3-4.2M12 11.7v8.8"/>',
+    /* Животные — лапа из библиотеки тем: она уже нарисована и уже означает
+       ровно это. Заводить второй знак под тот же смысл незачем */
+    "animals":      THEMES.paw,
     /* Реклама: мегафон — кампания, а не съёмка для себя */
     "ad":     '<path d="M4 9.4h3.4l9.2-4.8v14.8L7.4 14.6H4a1.6 1.6 0 0 1-1.6-1.6v-2a1.6 1.6 0 0 1 1.6-1.6z"/>'
       + '<path d="M7.4 14.6v3.6a1.8 1.8 0 0 0 3.6 0v-1.8"/>'
@@ -899,7 +902,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=62"></script>
+<script src="lang.js?v=63"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -8326,6 +8329,10 @@
            Телефон причёсывается на лету, как у остальных номеров -->
       <input class="sep" type="text" id="fContact" placeholder="Имя клиента" data-i18n-ph="form.clientName"/>
       <input class="sep" type="tel" id="fClientTel" placeholder="Телефон" data-i18n-ph="form.phone"/>
+      <!-- Порода или вид: у съёмки животных снимают питомца, а имя и телефон
+           в карточке принадлежат хозяину. Без этой графы запись не говорит,
+           кого снимали, — а именно по ней потом ищут прошлые съёмки -->
+      <input class="sep" type="text" id="fBreed" placeholder="Порода или вид" data-i18n-ph="form.breedPh" hidden/>
       <!-- У события снимают двоих, и у каждого своё имя и свой телефон:
            звонить приходится то невесте, то жениху. Подписи ставит жанр -->
       <input class="sep" type="text" id="fP1Name" placeholder="Имя невесты" hidden/>
@@ -13522,7 +13529,7 @@
   function sessionNet(s) { return sessionIncome(s) - (+(s && s.expense) || 0); }
 
   /* ---------- Сдача материала ---------- */
-  var GENRE_DEADLINE = { "wedding": 90, "party": 14, "lovestory": 14, "family": 14, "portrait": 7, "landscape": 14,
+  var GENRE_DEADLINE = { "wedding": 90, "party": 14, "lovestory": 14, "family": 14, "portrait": 7, "animals": 7, "landscape": 14,
     "architecture": 5, "street": 14, "report": 3, "product": 5, "ad": 10 };
   var DELV_DAYS = [3, 7, 14, 30, 90];
   var delivery = saved && saved.delivery ? saved.delivery : { mode: "genre", days: 7 };
@@ -17887,6 +17894,7 @@
     portrait: ["портрет", "фотосет"],
     lovestory: ["лавстори", "love story"],
     family: ["семейн", "семья"],
+    animals: ["животн", "питом", "собак", "кошк", "щенок", "котён", "зоо"],
     landscape: ["пейзаж"],
     architecture: ["архитектур", "интерьер"],
     street: ["стрит"],
@@ -22819,7 +22827,7 @@
   });
 
   /* Жанры: пользователь оставляет только свои */
-  var ALL_GENRES = ["portrait","wedding","party","lovestory","family","landscape","architecture","street","report","product","ad"];
+  var ALL_GENRES = ["portrait","wedding","party","lovestory","family","animals","landscape","architecture","street","report","product","ad"];
 
   /* Пиктограммы жанров — инженерные символы одной толщины, не иллюстрации */
   var GENRE_IC = window.ICONS.genres;
@@ -22858,6 +22866,11 @@
        пакеты — только повод другой */
     "party":    { delivery: true,  client: true,  dur: 240, pay: ["hourly", "pack"], route: true },
     "lovestory":    { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
+    /* Животные — портретный пресет со своей графой: снимают питомца, а
+       договаривается и платит хозяин. Отсюда `breed` — порода или вид: без
+       него в записи не остаётся ни слова о том, кого, собственно, снимали,
+       а «Клиент: Ирина» этого не говорит */
+    "animals":      { delivery: true,  client: true,  dur: 60,  pay: ["hourly", "flat", "pack"], breed: true },
     "family":       { delivery: true,  client: true,  dur: 90,  pay: ["hourly", "flat", "pack"] },
     "landscape":      { delivery: false, client: false, dur: null, pay: ["flat"] },
     "architecture": { delivery: true,  client: true,  dur: 120, pay: ["object"] },
@@ -22873,7 +22886,7 @@
      правит поверх. Девять описаний сжимаются в четыре. */
   var GENRE_GROUP = {
     "wedding": "event", "party": "event",
-    "portrait": "people", "lovestory": "people", "family": "people",
+    "portrait": "people", "lovestory": "people", "family": "people", "animals": "people",
     "product": "client", "ad": "client", "architecture": "client", "report": "client",
     "landscape": "own", "street": "own"
   };
@@ -23630,6 +23643,7 @@
     "lovestory":    ["couple", "walk", "evening", "details"],
     "family":       ["allTogether", "kids", "parents", "play", "details"],
     "portrait":     ["face", "fullLength", "hands", "light", "details"],
+    "animals":      ["face", "fullLength", "play", "light", "details"],
     "product":      ["object", "angles", "texture", "composition"],
     "ad":           ["campaign", "model", "product", "scene"],
     "architecture": ["facade", "interior", "detail", "wideShot"],
@@ -23774,7 +23788,10 @@
     { els: ["fPrepayRow"], on: function (sp, gr) { return !!gr.prepay && !meetMode(); } },
     /* Заказ: ТЗ и документы у группы заказчика; модели включает жанр */
     { els: ["fOrderLabel", "fOrderGroup"], on: function (sp, gr) { return !!gr.order && !meetMode(); } },
-    { els: ["fModels"], on: function (sp, gr) { return !!(gr.order && sp.models); } }
+    { els: ["fModels"], on: function (sp, gr) { return !!(gr.order && sp.models); } },
+    /* Порода спрашивается там, где снимают не человека. Признак у жанра, а
+       не у группы: в «Людях» рядом стоят портрет и семья, и им графа не нужна */
+    { els: ["fBreed"], on: function (sp) { return !!sp.breed && !meetMode(); } }
   ];
 
   /* Разделитель рисуется поверху строки, и у первой видимой в группе он
@@ -24199,6 +24216,7 @@
     "lovestory":    ["meeting", "walk", "cafe", "sunset"],
     "family":       ["gathering", "walk", "play", "groupShot"],
     "portrait":     ["start", "changeLook", "street", "finale"],
+    "animals":      ["start", "play", "street", "finale"],
     "report":       ["guestsArrive", "opening", "mainPart", "finale"],
     "product":      ["unboxing", "shooting", "changeBg", "details"],
     "ad":           ["prep", "heroShot", "changeScene", "takes"],
@@ -24331,6 +24349,11 @@
   var genresOn = (saved && saved.genres) || (function () {
     var all = {}; ALL_GENRES.forEach(function (g) { all[g] = 1; }); return all;
   })();
+  /* Жанр, о котором сохранённые данные не знают, — новый, а не выключенный:
+     список пишется целиком, и отсутствие ключа значит «этой версии он был
+     неизвестен». Без этой строки добавленный жанр не появился бы ни у кого,
+     кроме того, кто ставит приложение впервые */
+  ALL_GENRES.forEach(function (g) { if (genresOn[g] === undefined) genresOn[g] = 1; });
   /* Раскладка заготовок — здесь, а не при отрисовке ряда: ряд рисуется по
      фонду, и заводить в нём подборки на лету значило бы менять данные из
      отрисовки. Одним заходом: что включено, у того есть папка. */
@@ -26336,7 +26359,7 @@
   var PANE_IC = {
     pin: IC.svg("pin"), note: IC.svg("note"), purse: IC.svg("purse"), clock: IC.svg("clock"),
     guests: IC.svg("guests"), car: IC.svg("car"), brief: IC.svg("note_edit"), doc: IC.svg("doc"),
-    kit: IC.svg("camera")
+    kit: IC.svg("camera"), paw: IC.svg("paw")
   };
   function renderPanes(s, route, phase, sun) {
     var top = [], bottom = [], spec = genreSpec(s.type);
@@ -26385,6 +26408,15 @@
         + '<span class="badge">' + PANE_IC.guests + "</span>"
         + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.guests")) + "</span>"
         + '<span class="pn-v">' + s.guests + "</span></span></div></div>");
+    }
+    /* Порода — та же плитка, что гости: короткий ответ читается знаком.
+       Стоит перед выездом, потому что отвечает на вопрос «кого снимаем», а
+       он ближе к съёмке, чем дорога до неё */
+    if (s.breed) {
+      top.push('<div class="pane"><div class="pane-row">'
+        + '<span class="badge">' + PANE_IC.paw + "</span>"
+        + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.breed")) + "</span>"
+        + '<span class="pn-t" style="margin-top:2px">' + esc(s.breed) + "</span></span></div></div>");
     }
     if (s.trip) {
       top.push('<div class="pane"><div class="pane-row">'
@@ -27247,6 +27279,7 @@
       guests: fGuests || 0, trip: fTrip, tripManual: fTripManual,
       tripPlace: fTrip ? (sessionPlace.town || sessionPlace.name) : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
+      breed: $("fBreed").value.trim(),
       docs: fDocs.slice(), gear: fGear.slice(), playlist: fPlaylist,
       /* Кадры в черновике больше не лежат: они уже в подборке, и черновику
          довольно помнить её знак. Заодно это чинит старую неровность —
@@ -27266,7 +27299,7 @@
        (жанр сеет точки сам): подставленное не считается набранным руками.
        Без этой оговорки любая тут же закрытая пустая форма считалась бы
        черновиком — ровно тот случай, который проверка обязана отсеивать. */
-    var strs = [o.contact, o.clientTel, o.notes, o.person, o.phone, o.brief, o.models];
+    var strs = [o.contact, o.clientTel, o.notes, o.person, o.phone, o.brief, o.models, o.breed];
     if (strs.some(function (v) { return (v || "").trim(); })) return true;
     if (Array.isArray(o.persons) && o.persons.some(function (p) { return (p.n || "").trim() || (p.tel || "").trim(); })) return true;
     if (+o.guests > 0 || +o.prepay > 0 || +o.rate > 0) return true;
@@ -27357,6 +27390,7 @@
     fTripManual = s.tripManual != null ? !!s.tripManual : !!s.trip;
     $("fBrief").value = s.brief || "";
     $("fModels").value = s.models || "";
+    $("fBreed").value = s.breed || "";
     fDocs = Array.isArray(s.docs)
       ? s.docs.map(function (r) {
           return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url,
@@ -27440,7 +27474,7 @@
       fCurrency = currency;
       $("fPrepay").value = "";
       fTrip = false; fTripManual = false;
-      $("fBrief").value = ""; $("fModels").value = "";
+      $("fBrief").value = ""; $("fModels").value = ""; $("fBreed").value = "";
       // Новая съёмка начинается там, где сейчас смотрим свет
       /* Новая съёмка начинается в городе, где стоит фотограф, — но только
          городом: конкретную точку он называет сам, и подставлять вместо неё
@@ -27632,7 +27666,7 @@
   /* Пример пакета берётся у открытого жанра: «Загс и прогулка» уместны на
      свадьбе и нелепы в предметке */
   var PACK_HINT = {
-    "wedding": 1, "party": 1, "lovestory": 1, "family": 1, "portrait": 1,
+    "wedding": 1, "party": 1, "lovestory": 1, "family": 1, "portrait": 1, "animals": 1,
     "product": 1, "ad": 1, "architecture": 1, "report": 1,
     "landscape": 1, "street": 1
   };
@@ -28324,6 +28358,7 @@
       guests: fGuests || 0,
       trip: fTrip, tripManual: fTripManual, tripPlace: fTrip ? (sessionPlace.town || sessionPlace.name) : "",
       brief: $("fBrief").value.trim(), models: $("fModels").value.trim(),
+      breed: $("fBreed").value.trim(),
       docs: fDocs.filter(function (r) { return r.k === "link" || r.path; })
         .map(function (r) {
           return { k: r.k, path: r.path, name: r.name, size: r.size, url: r.url, kind: r.kind || null };
