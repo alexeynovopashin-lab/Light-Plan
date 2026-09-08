@@ -1,0 +1,511 @@
+<!doctype html><meta charset="utf-8"><title>Посев сезона: три месяца работы</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ body{font:15px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:20px 18px 60px;background:#111;color:#eee}
+ h1{font-size:18px;margin:0 0 6px} h2{font-size:14px;margin:22px 0 8px;color:#9a9a9a;font-weight:600}
+ button{font:inherit;padding:11px 15px;border-radius:11px;border:0;background:#3a6df0;color:#fff;margin:5px 5px 5px 0}
+ button.g{background:#2a2a2a;color:#ddd} button.r{background:#5a2222;color:#f0d0d0}
+ button:disabled{opacity:.45}
+ pre{background:#1b1b1b;padding:12px;border-radius:10px;white-space:pre-wrap;font-size:12px;max-height:44vh;overflow:auto}
+ a{color:#7aa7ff} .n{color:#8d8d8d;font-size:13px}
+ label{display:inline-flex;align-items:center;gap:6px;margin-right:14px}
+ table{border-collapse:collapse;font-size:12.5px;width:100%} td{padding:3px 8px 3px 0;vertical-align:top;color:#bbb}
+ td.d{color:#7f7f7f;white-space:nowrap}
+</style>
+<h1>Посев сезона</h1>
+<p class="n">Три месяца работы фотографа: прошлый месяц закрыт, текущий идёт, следующий набирается.
+Двадцать четыре записи, четыре организации, две студии, занятость, подборки на ваши доски Pinterest.
+Даты считаются от сегодняшнего дня — посев не протухает.</p>
+
+<h2>Куда сеем</h2>
+<label><input type="radio" name="ch" value="beta" checked> бета <span class="n">lightplan.beta.v1</span></label>
+<label><input type="radio" name="ch" value="main"> основа <span class="n">lightplan.v1</span></label>
+
+<h2>Что делаем</h2>
+<button id="go">Засеять сезон</button>
+<button id="pics" class="g">Подтянуть кадры из Pinterest</button>
+<button id="del" class="g">Убрать посев</button>
+<button id="wipe" class="r">Стереть канал начисто</button>
+<p class="n">«Засеять» кладёт записи и подборки со ссылками на доски. «Подтянуть кадры» ходит в читалку
+и раскладывает пины по подборкам — это долго (минуту-две) и требует сети. Посев можно сеять поверх
+существующего: свои записи он узнаёт по знаку <code>sd_</code> и заменяет только их.</p>
+<p><a href="./">→ открыть Light Plan</a></p>
+<pre id="out">—</pre>
+
+<h2>Что внутри</h2>
+<table id="plan"></table>
+
+<script>
+/* ---------- Общее ---------- */
+var P = "sd_";                                  /* знак посева: по нему он и убирается */
+function chan(){ return document.querySelector('input[name=ch]:checked').value; }
+function KEY(){ return chan() === "beta" ? "lightplan.beta.v1" : "lightplan.v1"; }
+function read(){ try { return JSON.parse(localStorage.getItem(KEY()) || "null") || {}; } catch(e){ return {}; } }
+function write(d){ localStorage.setItem(KEY(), JSON.stringify(d)); }
+var lines = [];
+function log(s){ lines.push(s); document.getElementById("out").textContent = lines.join("\n"); document.getElementById("out").scrollTop = 1e6; }
+function reset(){ lines = []; document.getElementById("out").textContent = "—"; }
+
+var T = new Date(); T.setHours(0,0,0,0);
+function D(n, h, m){ var d = new Date(T); d.setDate(d.getDate() + n); if (h != null) d.setHours(h, m || 0, 0, 0); return d; }
+function iso(n, h, m){ return D(n, h, m).toISOString(); }
+var NOWM = (function(){ var d = new Date(); return d.getHours()*60 + d.getMinutes(); })();
+
+/* ---------- Места ---------- */
+var TOMSK = { lat: 56.4846, lon: 84.9482, town: "Томск" };
+var ST_TOMSON = P + "st_tomson", ST_SFERA = P + "st_sfera";
+var studios = [
+  { id: ST_TOMSON, name: "Томсон", addr: "Томск, Красноармейская, 101", tel: "+7 961 887-80-78",
+    town: "Томск", lat: 56.4720, lon: 84.9700,
+    halls: [ { id: P+"h_edison", name: "Эдисон" }, { id: P+"h_tesla", name: "Тесла" } ] },
+  /* Длинное имя нарочно: на карточке оно и обрезается многоточием */
+  { id: ST_SFERA, name: "Студия «Сфера» на Набережной", addr: "Томск, Набережная реки Ушайки, 12",
+    tel: "+7 913 800-15-15", town: "Томск", lat: 56.4881, lon: 84.9633,
+    halls: [ { id: P+"h_cyc", name: "Циклорама" }, { id: P+"h_loft", name: "Лофт" } ] }
+];
+var spots = [
+  { id: P+"sp_park",  name: "Лагерный сад",        addr: "Томск, Лагерный сад",         town: "Томск", lat: 56.4520, lon: 84.9370 },
+  { id: P+"sp_bereg", name: "Берег Томи",          addr: "Томск, Московский тракт",     town: "Томск", lat: 56.4655, lon: 84.9280 },
+  { id: P+"sp_bau",   name: "Дом с драконами",     addr: "Томск, Красноармейская, 68",  town: "Томск", lat: 56.4703, lon: 84.9698 },
+  { id: P+"sp_sol",   name: "Ресторан «Соль»",     addr: "Томск, Набережная, 20",       town: "Томск", lat: 56.4890, lon: 84.9600 }
+];
+
+/* ---------- Клиентская база ---------- */
+var ORG_AG = P+"org_agency", ORG_REST = P+"org_rest", ORG_CULT = P+"org_cult", ORG_FAB = P+"org_fab", ORG_MARK = P+"org_mark";
+var orgs = [
+  { id: ORG_AG,   name: "Агентство «Ольга и Ко»",  person: "Ольга Титова",   phone: "+7 913 111-22-33",
+    req: "Свадебное агентство, ведёт день, отдаёт тайминг за неделю", reqFiles: [], docs: [] },
+  { id: ORG_REST, name: "Ресторан «Соль»",         person: "Марат Шаев",     phone: "+7 913 222-33-44",
+    req: "Банкетный зал, съёмка интерьеров раз в сезон", reqFiles: [], docs: [] },
+  { id: ORG_CULT, name: "Отдел культуры города",   person: "Ирина Белых",    phone: "+7 913 333-44-55",
+    req: "Городские праздники, отчётная съёмка, оплата по счёту", reqFiles: [], docs: [] },
+  { id: ORG_FAB,  name: "Мебельная фабрика «Бауэр»", person: "Пётр Гринёв",  phone: "+7 913 444-55-66",
+    req: "Каталог мебели, съёмка предметки в студии", reqFiles: [], docs: [] },
+  { id: ORG_MARK, name: "Марка «Фэшан»",             person: "Дина Крюкова",  phone: "+7 495 100-20-30",
+    req: "Одежда, кампания на сезон, съёмка в Москве", reqFiles: [], docs: [] }
+];
+
+/* ---------- Документы ----------
+   Ссылками, а не файлами: файл потребовал бы облака, а вид документа
+   («договор», «акт») карточка читает из поля kind, а не из байтов */
+function doc(kind, name){ return { k: "link", kind: kind, url: "https://disk.yandex.ru/d/" + P + kind, name: name }; }
+
+/* ---------- Съёмки ----------
+   Поля те же, что кладёт «Сохранить» в форме. Час считается минутами от полуночи. */
+function S(o){
+  var r = {
+    /* Встреча — тот же снимок полей, другой род записи: карточка зовётся
+       «Встреча», жанр уходит в подзаголовок, денег и сдачи у неё нет */
+    kind: o.meet ? "meet" : "shoot", id: P + o.k, mt: Date.now() - 1000,
+    date: iso(o.d), min: o.min, dur: o.dur, end: o.end != null ? o.end : (o.dur != null ? o.min + o.dur : null),
+    type: o.t, contact: o.c || "", clientTel: o.tel || "", notes: o.notes || "",
+    orgId: o.org || null, person: o.person || "", phone: o.personTel || "", persons: o.persons || [],
+    place: o.place || "", placeTown: o.town || "Томск", placeAddr: o.addr || "",
+    placeLat: o.lat != null ? o.lat : TOMSK.lat, placeLon: o.lon != null ? o.lon : TOMSK.lon,
+    placeCity: o.city !== false,
+    studioId: o.studio || null, hallId: o.hall || null, rentFrom: o.rentFrom || null, rentTo: o.rentTo || null,
+    wish: o.wish || [], guests: o.guests || 0,
+    deadlineChoice: o.dl === undefined ? "auto" : o.dl,
+    delivered: !!o.delivered, deliveredAt: o.deliveredAt || null,
+    pay: o.pay || "hourly", rate: o.rate || 0, units: o.units || 0,
+    expense: o.expense || 0, prepay: o.prepay || 0, currency: "RUB",
+    trip: !!o.trip, tripManual: false, tripPlace: o.trip ? (o.town || "") : "",
+    brief: o.brief || "", models: o.models || "",
+    docs: o.docs || [], gear: [], playlist: null,
+    route: o.route || []
+  };
+  if (o.doneAt != null) r.doneAt = o.doneAt;
+  return r;
+}
+function pt(t, t2, n, p, studio, hall){
+  return { t: t, t2: t2, n: n, p: p, placeId: null, studioId: studio || null, hallId: hall || null };
+}
+var H = function(h, m){ return h*60 + (m||0); };
+
+/* Прошлый месяц закрыт: снято, сдано, оплачено.
+   Текущий идёт: часть съёмок позади и ждёт сдачи, одна прямо сейчас.
+   Следующий набирается: предоплаты, выезды, встречи. */
+function sessions(){ return [
+  /* ——— прошлый месяц ——— */
+  S({ k:"aug_wed", d:-33, t:"wedding", min:H(9), dur:14*60, c:"Аня и Марк", tel:"+7 913 555-66-77",
+      org:ORG_AG, guests:60, pay:"pack", rate:95000, prepay:30000, expense:6000,
+      persons:[{n:"Аня",tel:"+7 913 555-66-77"},{n:"Марк",tel:"+7 913 555-66-78"}],
+      place:"Дом невесты", addr:"Томск, Дзержинского, 14", lat:56.4880, lon:84.9480,
+      delivered:true, deliveredAt:iso(-18,14),
+      docs:[doc("contract","Договор — Аня и Марк"), doc("act","Акт выполненных работ")],
+      notes:"Первый заказ через агентство. Тайминг прислали за неделю.",
+      route:[ pt(H(9),H(11),"Сборы невесты","Дом невесты"),
+              pt(H(11,30),H(12,30),"Сборы жениха","Гостиница «Магистрат»"),
+              pt(H(13),H(15),"Пара в студии","Томсон, зал Эдисон",ST_TOMSON,P+"h_edison"),
+              pt(H(15,30),H(16,30),"Церемония","Сад «Заречье»"),
+              pt(H(17),H(19),"Прогулка","Берег Томи"),
+              pt(H(19,30),H(23),"Банкет","Ресторан «Соль»") ] }),
+  S({ k:"aug_portr", d:-30, t:"portrait", min:H(12), dur:60, c:"Сергей Плахов", tel:"+7 913 606-70-80",
+      place:"Томсон", addr:"Томск, Красноармейская, 101", lat:56.4720, lon:84.9700,
+      studio:ST_TOMSON, hall:P+"h_tesla", rentFrom:H(12), rentTo:H(13),
+      pay:"hourly", rate:4500, expense:1500, delivered:true, deliveredAt:iso(-27,19),
+      notes:"Низкий ключ, портфолио на визитку." }),
+  S({ k:"aug_fam", d:-26, t:"family", min:H(17), dur:90, c:"Семья Кравцовых", tel:"+7 913 707-80-90",
+      place:"Лагерный сад", addr:"Томск, Лагерный сад", lat:56.4520, lon:84.9370,
+      pay:"flat", rate:12000, delivered:true, deliveredAt:iso(-6,22),
+      notes:"Сдал с опозданием: болел. Срок стоял на четырнадцать дней." }),
+  S({ k:"aug_burger", d:-22, t:"product", min:H(10), dur:240, c:"Кофейня «Гренка»", tel:"+7 913 808-90-10", place:"Студия «Сфера» на Набережной", addr:"Томск, Набережная реки Ушайки, 12",
+      lat:56.4881, lon:84.9633, studio:ST_SFERA, hall:P+"h_cyc", rentFrom:H(10), rentTo:H(14),
+      pay:"item", rate:900, units:24, expense:3000, delivered:true, deliveredAt:iso(-16,13),
+      brief:"Двадцать четыре позиции меню, белый и деревянный фон.",
+      docs:[doc("invoice","Счёт на съёмку меню")],
+      notes:"Реквизит привозили сами, свет — постоянный." }),
+  S({ k:"aug_conf", d:-12, t:"report", min:H(9), dur:9*60, c:"Форум «Сибирь»", tel:"+7 383 200-10-10",
+      org:ORG_CULT, trip:true, town:"Новосибирск", place:"Экспоцентр", addr:"Новосибирск, Станционная, 104",
+      lat:55.0084, lon:82.9357, pay:"flat", rate:60000, expense:9000, prepay:20000,
+      delivered:true, deliveredAt:iso(-9,11),
+      docs:[doc("contract","Договор на форум"), doc("invoice","Счёт"), doc("act","Акт")],
+      notes:"Выезд на два дня, ночевал в гостинице рядом." }),
+  S({ k:"aug_land", d:-8, t:"landscape", min:H(5,20), dur:null, end:H(8), wish:["clear"],
+      place:"Берег Томи", addr:"Томск, Московский тракт", lat:56.4655, lon:84.9280,
+      pay:"flat", rate:0, notes:"Для себя. Туман по воде на рассвете." }),
+
+  /* ——— текущий месяц ——— */
+  S({ k:"sep_love", d:-6, t:"lovestory", min:H(18), dur:120, c:"Даша и Егор", tel:"+7 913 909-10-20",
+      persons:[], place:"Лагерный сад", addr:"Томск, Лагерный сад", lat:56.4520, lon:84.9370,
+      pay:"flat", rate:15000, prepay:5000, dl:7, wish:["sunset"],
+      notes:"Сдача горит: неделя вышла, материал не отдан." }),
+  S({ k:"sep_party", d:-3, t:"party", min:H(15), dur:300, c:"Юбилей Нины Петровны", tel:"+7 913 010-20-30",
+      org:ORG_REST, guests:35, pay:"pack", rate:28000, prepay:10000,
+      person:"Нина Петровна", personTel:"+7 913 010-20-30",
+      place:"Ресторан «Соль»", addr:"Томск, Набережная, 20", lat:56.4890, lon:84.9600,
+      docs:[doc("contract","Договор на юбилей")],
+      notes:"Материал в работе, срок ещё есть.",
+      route:[ pt(H(15),H(16),"Сбор гостей","Ресторан «Соль»"),
+              pt(H(16),H(18),"Поздравления","Ресторан «Соль»"),
+              pt(H(18),H(20),"Танцы и торт","Ресторан «Соль»") ] }),
+  /* Идёт прямо сейчас: начало сорок минут назад, конец через пятьдесят */
+  S({ k:"sep_now", d:0, t:"portrait", min:Math.max(0, NOWM - 40), dur:90, c:"Марина Ю.", tel:"+7 913 121-31-41",
+      place:"Томсон", addr:"Томск, Красноармейская, 101", lat:56.4720, lon:84.9700,
+      studio:ST_TOMSON, hall:P+"h_edison", rentFrom:Math.max(0, NOWM - 40), rentTo:Math.min(1439, NOWM + 50),
+      pay:"hourly", rate:5000, prepay:2500, notes:"Съёмка идёт: карточка должна показывать «сейчас»." }),
+  S({ k:"sep_meet", meet:true, d:0, t:"wedding", min:H(19), dur:60, c:"Катя и Слава", tel:"+7 913 232-42-52",
+      place:"Кофейня «Гренка»", addr:"Томск, Ленина, 82", lat:56.4700, lon:84.9550,
+      pay:"hourly", rate:0, notes:"Знакомство, разговор про август будущего года." }),
+  S({ k:"sep_wed", d:1, t:"wedding", min:H(11), dur:11*60, c:"Лена и Тимур", tel:"+7 913 343-53-63",
+      org:ORG_AG, guests:45, pay:"pack", rate:88000, prepay:44000, expense:5000,
+      persons:[{n:"Лена",tel:"+7 913 343-53-63"},{n:"Тимур",tel:"+7 913 343-53-64"}],
+      place:"Томсон", addr:"Томск, Красноармейская, 101", lat:56.4720, lon:84.9700,
+      studio:ST_TOMSON, hall:P+"h_edison", rentFrom:H(13), rentTo:H(15),
+      docs:[doc("contract","Договор — Лена и Тимур"), doc("invoice","Счёт на остаток")],
+      notes:"Завтра. Половина внесена.",
+      route:[ pt(H(11),H(12,30),"Сборы","Гостиница «Магистрат»"),
+              pt(H(13),H(15),"Пара в студии","Томсон, зал Эдисон",ST_TOMSON,P+"h_edison"),
+              pt(H(15,30),H(16,30),"Роспись","ЗАГС на Розы Люксембург"),
+              pt(H(17),H(19),"Прогулка","Дом с драконами"),
+              pt(H(19,30),H(22),"Банкет","Ресторан «Соль»") ] }),
+  /* Наложение: вторая начинается за полчаса до конца первой */
+  S({ k:"sep_clash_a", d:3, t:"portrait", min:H(14), dur:90, c:"Олег Дан", tel:"+7 913 454-64-74",
+      place:"Томсон", addr:"Томск, Красноармейская, 101", lat:56.4720, lon:84.9700,
+      studio:ST_TOMSON, hall:P+"h_tesla", rentFrom:H(14), rentTo:H(15,30),
+      pay:"hourly", rate:5000, notes:"Наложение с семейной — проверка предупреждения." }),
+  S({ k:"sep_clash_b", d:3, t:"family", min:H(15), dur:90, c:"Семья Ким", tel:"+7 913 565-75-85",
+      place:"Лагерный сад", addr:"Томск, Лагерный сад", lat:56.4520, lon:84.9370,
+      pay:"flat", rate:13000, notes:"Наложение с портретом и переезд через город." }),
+  /* Второй скриншот: студийная съёмка с длинным именем места */
+  S({ k:"sep_inter", d:5, t:"architecture", min:H(11), dur:180, c:"Ресторан «Соль»", tel:"+7 913 222-33-44",
+      org:ORG_REST, place:"Студия «Сфера» на Набережной", addr:"Томск, Набережная реки Ушайки, 12",
+      lat:56.4881, lon:84.9633, studio:ST_SFERA, hall:P+"h_loft", rentFrom:H(11), rentTo:H(14),
+      pay:"object", rate:7000, units:5, prepay:15000,
+      docs:[doc("brief","Бриф на интерьеры")],
+      brief:"Пять залов, съёмка со штатива, вечерний свет не нужен.",
+      notes:"Съёмка в помещении: погода в карточке тут лишняя." }),
+  S({ k:"sep_team", d:9, t:"report", min:H(10), dur:150, c:"Компания «Сибтех»", tel:"+7 913 676-86-96",
+      place:"Офис «Сибтех»", addr:"Томск, Учебная, 39", lat:56.4620, lon:84.9520,
+      pay:"hourly", rate:6000, prepay:0, notes:"Портреты коллектива, восемнадцать человек." }),
+
+  /* ——— следующий месяц ——— */
+  S({ k:"oct_meet", meet:true, d:12, t:"family", min:H(18,30), dur:45, c:"Ирина Со", tel:"+7 913 787-97-07",
+      place:"Кофейня «Гренка»", addr:"Томск, Ленина, 82", lat:56.4700, lon:84.9550,
+      pay:"hourly", rate:0, notes:"Разговор про съёмку с новорождённым." }),
+  S({ k:"oct_ad", d:25, t:"ad", min:H(10), dur:8*60, c:"Марка «Фэшан»", tel:"+7 495 100-20-30",
+      org:ORG_MARK, trip:true, town:"Москва", place:"Лофт «Депо»", addr:"Москва, Лесная, 20",
+      lat:55.7799, lon:37.5872, pay:"flat", rate:180000, expense:35000, prepay:90000,
+      models:"Три модели от агентства, визажист свой",
+      brief:"Осенняя капсула, восемь образов, съёмка в движении.",
+      docs:[doc("contract","Договор на кампанию"), doc("invoice","Счёт, предоплата")],
+      notes:"Перелёт и гостиница на заказчике." }),
+  S({ k:"oct_wed_kem", d:31, t:"wedding", min:H(12), dur:10*60, c:"Настя и Родион", tel:"+7 923 898-08-18",
+      trip:true, town:"Кемерово", guests:80, pay:"pack", rate:110000, prepay:40000, expense:12000,
+      persons:[{n:"Настя",tel:"+7 923 898-08-18"},{n:"Родион",tel:"+7 923 898-08-19"}],
+      place:"Усадьба «Красная горка»", addr:"Кемерово, Красная Горка, 1", lat:55.3600, lon:86.0800,
+      docs:[doc("contract","Договор — Настя и Родион")],
+      notes:"Выезд в другой город, дорога четыре часа.",
+      route:[ pt(H(12),H(14),"Сборы","Отель «Кристалл»"),
+              pt(H(14,30),H(15,30),"Церемония","Усадьба «Красная горка»"),
+              pt(H(16),H(18),"Прогулка","Набережная Томи"),
+              pt(H(19),H(22),"Банкет","Усадьба «Красная горка»") ] }),
+  S({ k:"oct_street", d:36, t:"street", min:H(17), dur:180, wish:["cloudy"],
+      place:"Проспект Ленина", addr:"Томск, проспект Ленина", lat:56.4700, lon:84.9520,
+      pay:"flat", rate:0, notes:"Для себя. Дождь не помеха." }),
+  S({ k:"oct_love", d:40, t:"lovestory", min:H(16), dur:120, c:"Вика и Паша", tel:"+7 913 909-19-29",
+      place:"Дом с драконами", addr:"Томск, Красноармейская, 68", lat:56.4703, lon:84.9698,
+      pay:"flat", rate:16000, prepay:5000, wish:["sunset"],
+      notes:"Просили закат — окно света решает время." }),
+  S({ k:"oct_cat", d:45, t:"product", min:H(11), dur:300, c:"Фабрика «Бауэр»", tel:"+7 913 444-55-66",
+      org:ORG_FAB, place:"Студия «Сфера» на Набережной", addr:"Томск, Набережная реки Ушайки, 12",
+      lat:56.4881, lon:84.9633, studio:ST_SFERA, hall:P+"h_cyc", rentFrom:H(11), rentTo:H(16),
+      pay:"item", rate:1200, units:40, prepay:24000,
+      brief:"Каталог: сорок предметов, белый фон, три ракурса.",
+      docs:[doc("invoice","Счёт на каталог")],
+      notes:"Дальний план ждёт подтверждения по количеству." }),
+  S({ k:"oct_city", d:52, t:"party", min:H(12), dur:360, c:"День города", tel:"+7 913 333-44-55",
+      org:ORG_CULT, guests:300, pay:"flat", rate:45000, prepay:0,
+      place:"Новособорная площадь", addr:"Томск, Новособорная площадь", lat:56.4690, lon:84.9530,
+      docs:[doc("contract","Муниципальный договор")],
+      notes:"Отчётная съёмка города. Оплата по счёту после акта.",
+      route:[ pt(H(12),H(14),"Открытие","Новособорная площадь"),
+              pt(H(14),H(16),"Ярмарка","Проспект Ленина"),
+              pt(H(16),H(18),"Концерт","Новособорная площадь") ] })
+]; }
+
+/* ---------- Занятость ---------- */
+function blk(o){
+  return { id:P+o.k2, k:o.k, note:o.note, from:o.from, allDay:!!o.allDay,
+           days:o.allDay ? o.days : 1,
+           min:o.allDay ? null : o.min, dur:o.allDay ? null : o.dur,
+           tzFrom:null, tzTo:null };
+}
+function blocks(){ return [
+  blk({ k2:"b_vac",   k:"off",    from:iso(-19), allDay:true, days:6,  note:"Отпуск на Алтае" }),
+  blk({ k2:"b_we",    k:"off",    from:iso(6),   allDay:true, days:2,  note:"Выходные с семьёй" }),
+  blk({ k2:"b_print", k:"busy",   from:iso(15),  allDay:false, min:H(14), dur:180, note:"Печать альбома в типографии" }),
+  blk({ k2:"b_road",  k:"road",   from:iso(30),  allDay:true, days:2,  note:"Дорога в Кемерово и обратно" }),
+  blk({ k2:"b_fly",   k:"flight", from:iso(24),  allDay:true, days:3,  note:"Москва: перелёт, съёмка, возврат" })
+]; }
+
+/* ---------- Подборки на доски Pinterest ---------- */
+var BOARDS = [
+  { g:"wedding",      url:"https://pin.it/52U81zj19", name:"Свадьба" },
+  { g:"report",       url:"https://pin.it/3qVvzLDZl", name:"Коллектив" },
+  { g:"portrait",     url:"https://pin.it/6ZG1Ycpmq", name:"Мужской портрет" },
+  { g:"party",        url:"https://pin.it/7E6ZyUJeo", name:"День рождения" },
+  { g:"family",       url:"https://pin.it/Ly8xZQAlQ", name:"Семья" },
+  { g:"architecture", url:"https://pin.it/6GOuIc7ix", name:"Интерьер" },
+  { g:"product",      url:"https://pin.it/2DdESd5nh", name:"Бургеры" },
+  { g:"ad",           url:"https://pin.it/L8mumdP43", name:"Реклама" },
+  { g:"landscape",    url:"https://pin.it/1aYuvSyzt", name:"Пейзаж" },
+  { g:"street",       url:"https://pin.it/3BuEyjGsU", name:"Небо" }
+];
+/* Подборка съёмки берёт кадры того же жанра: у карточки должен быть свой мудборд */
+var SHOOT_BOARDS = [
+  { sid:P+"sep_wed",   g:"wedding" },
+  { sid:P+"sep_inter", g:"architecture" },
+  { sid:P+"oct_ad",    g:"ad" },
+  { sid:P+"oct_cat",   g:"product" }
+];
+
+function seedBoards(){
+  var out = [], shots = [];
+  BOARDS.forEach(function(b){
+    var sid = P + "sh_" + b.g;
+    shots.push({ id: sid, k: "link", url: b.url, tags: [b.g] });
+    out.push({ id: P+"bd_"+b.g, kind: "tpl", genre: b.g, name: b.name, items: [sid], cover: null, mt: Date.now() });
+  });
+  SHOOT_BOARDS.forEach(function(s){
+    out.push({ id: P+"bd_s_"+s.g, kind: "shoot", sid: s.sid, genre: s.g, name: null,
+               items: [P+"sh_"+s.g], cover: null, mt: Date.now() });
+  });
+  return { boards: out, shots: shots };
+}
+
+/* ---------- Посев ---------- */
+function mine(x){ return x && typeof x.id === "string" && x.id.indexOf(P) === 0; }
+function keep(list){ return (list || []).filter(function(x){ return !mine(x); }); }
+
+function seed(){
+  reset();
+  var d = read(), now = Date.now();
+  var ss = sessions(), bb = blocks(), br = seedBoards();
+  d.sessions = keep(d.sessions).concat(ss);
+  d.blocks   = keep(d.blocks).concat(bb);
+  d.orgs     = keep(d.orgs).concat(orgs);
+  d.studios  = keep(d.studios).concat(studios);
+  d.spots    = keep(d.spots).concat(spots);
+  /* Подтянутые кадры повторный посев не сбрасывает: тянуть их заново — две
+     минуты и лишний поход в читалку. Признак «уже наполнено» — кадр с
+     картинкой в фонде, а не просто ссылка на доску */
+  var haveImgs = (d.shots || []).some(function(x){ return mine(x) && x.im; });
+  if (!haveImgs) {
+    d.boards = keep(d.boards).concat(br.boards);
+    d.shots  = keep(d.shots).concat(br.shots);
+  }
+  /* Профиль: свой номер и родной город. Без него приложение спросит их первым делом */
+  d.me = d.me || {};
+  d.me.name = d.me.name || "Алексей";
+  d.me.phone = "+7 923 412-33-30";
+  d.me.city = "Томск"; d.me.cityLat = TOMSK.lat; d.me.cityLon = TOMSK.lon; d.me.cityCC = "RU";
+  /* Имя, которому принадлежат координаты: без него приложение сочтёт город
+     неуточнённым и на первом же выходе из поля пойдёт в справочник */
+  d.me.cityAt = "Томск";
+  /* Знакомство пройдено: без этого признака лист «Откуда вы работаете»
+     встаёт при каждом запуске поверх посева */
+  d.me.met = true;
+  d.loc = { lat: TOMSK.lat, lon: TOMSK.lon };
+  /* Практика и обучение: вопрос задан, карточки просмотрены — посев не должен
+     упираться в приветствие при каждом открытии */
+  d.practice = d.practice || "ru";
+  d.mbSeen = true; d.currency = d.currency || "RUB";
+  d.defaultRate = d.defaultRate || 5000;
+  write(d);
+  log("Засеяно в " + KEY());
+  log("  съёмок и встреч: " + ss.length);
+  log("  занятость: " + bb.length + "  организаций: " + orgs.length);
+  log("  студий: " + studios.length + "  точек: " + spots.length);
+  log("  подборок: " + (haveImgs ? "оставлены прежними, с кадрами" : br.boards.length + " (кадры — ссылками на доски)"));
+  log("");
+  log("Открой ./ и перезапусти приложение — снимок читается при загрузке.");
+  log("Дальше «Подтянуть кадры», если нужны настоящие референсы.");
+}
+
+function unseed(){
+  reset();
+  var d = read();
+  ["sessions","blocks","orgs","studios","spots","boards","shots"].forEach(function(k){
+    d[k] = keep(d[k]);
+  });
+  write(d);
+  log("Посев убран из " + KEY() + ". Остальное на месте.");
+  log("Кадры в IndexedDB останутся — их убирает «Стереть канал начисто».");
+}
+
+function wipe(){
+  reset();
+  if (!confirm("Стереть весь канал " + KEY() + " начисто? Вернуть будет нечем.")) return;
+  localStorage.removeItem(KEY());
+  localStorage.removeItem(chan() === "beta" ? "lightplan.beta.draft" : "lightplan.draft");
+  log("Канал " + KEY() + " стёрт. Приложение откроется как в первый раз.");
+}
+
+/* ---------- Кадры из Pinterest ----------
+   Тот же путь, что у приложения: читалка отдаёт список пинов и байты картинки,
+   превью и экранная копия ложатся в IndexedDB (база lp, хранилище blobs). */
+var OG = "https://light-plan-og-reader.alexeynovopashin.workers.dev";
+var PER_BOARD = 12;                              /* больше в посеве незачем */
+var BLOB_T = 200, BLOB_S = 1600;
+var dbP = null;
+function db(){
+  if (dbP) return dbP;
+  dbP = new Promise(function(res, rej){
+    var rq = indexedDB.open("lp", 1);
+    rq.onupgradeneeded = function(){ if (!rq.result.objectStoreNames.contains("blobs")) rq.result.createObjectStore("blobs"); };
+    rq.onsuccess = function(){ res(rq.result); };
+    rq.onerror = function(){ rej(rq.error); };
+  });
+  return dbP;
+}
+function blobPut(id, kind, blob){
+  return db().then(function(dbi){
+    return new Promise(function(res, rej){
+      var tx = dbi.transaction("blobs", "readwrite");
+      tx.objectStore("blobs").put(blob, id + ":" + kind);
+      tx.oncomplete = res; tx.onerror = function(){ rej(tx.error); };
+    });
+  });
+}
+function shrink(file, side){
+  return new Promise(function(res, rej){
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var k = Math.min(side / img.width, side / img.height, 1);
+      var c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * k));
+      c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(b){ b ? res({ blob: b, w: c.width, h: c.height }) : rej(new Error("no blob")); }, "image/jpeg", 0.72);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("not image")); };
+    img.src = url;
+  });
+}
+function newShotId(){ return P + "im" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function refShots(blob){
+  var id = newShotId();
+  return shrink(blob, BLOB_T).then(function(t){
+    return blobPut(id, "t", t.blob)
+      .then(function(){ return shrink(blob, BLOB_S).then(function(s){ return blobPut(id, "s", s.blob); }).catch(function(){}); })
+      .then(function(){ return { im: id, w: t.w, h: t.h }; });
+  });
+}
+function pullBoard(b){
+  return fetch(OG + "?board=" + encodeURIComponent(b.url))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(data){
+      if (!data || !data.pins || !data.pins.length) { log("  " + b.name + ": доска не раскрылась"); return []; }
+      var pins = data.pins.slice(0, PER_BOARD);
+      log("  " + b.name + ": " + data.pins.length + " пинов, беру " + pins.length);
+      return pins.reduce(function(chain, pin){
+        return chain.then(function(acc){
+          return fetch(OG + "?img=" + encodeURIComponent(pin.image))
+            .then(function(r){ return r.ok ? r.blob() : null; })
+            .then(function(bl){ return bl ? refShots(bl) : null; })
+            .then(function(shot){
+              if (shot) acc.push({ id: newShotId(), k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tags: [b.g] });
+              return acc;
+            })
+            .catch(function(){ return acc; });
+        });
+      }, Promise.resolve([]));
+    })
+    .catch(function(){ log("  " + b.name + ": читалка не ответила"); return []; });
+}
+function pullAll(){
+  reset();
+  var btn = document.getElementById("pics");
+  btn.disabled = true; btn.textContent = "Тяну кадры…";
+  log("Иду в читалку за кадрами. Это минута-две.");
+  var d = read();
+  if (!(d.boards || []).some(mine)) { log("Сначала «Засеять сезон» — класть кадры некуда."); btn.disabled = false; btn.textContent = "Подтянуть кадры из Pinterest"; return; }
+  BOARDS.reduce(function(chain, b){
+    return chain.then(function(){
+      return pullBoard(b).then(function(recs){
+        if (!recs.length) return;
+        var d2 = read();
+        d2.shots = (d2.shots || []).concat(recs);
+        var ids = recs.map(function(r){ return r.id; });
+        (d2.boards || []).forEach(function(bd){
+          if (bd.id === P+"bd_"+b.g || bd.id === P+"bd_s_"+b.g) {
+            bd.items = ids.slice();
+            bd.cover = ids[0] || null;
+            bd.mt = Date.now();
+          }
+        });
+        write(d2);
+        log("  " + b.name + ": положено кадров — " + recs.length);
+      });
+    });
+  }, Promise.resolve()).then(function(){
+    var d3 = read();
+    log("");
+    log("Готово. Кадров в фонде: " + (d3.shots || []).filter(mine).length);
+    log("Открой ./ и перезапусти приложение.");
+    btn.disabled = false; btn.textContent = "Подтянуть кадры из Pinterest";
+  });
+}
+
+document.getElementById("go").onclick = seed;
+document.getElementById("del").onclick = unseed;
+document.getElementById("wipe").onclick = wipe;
+document.getElementById("pics").onclick = pullAll;
+
+/* ---------- Что внутри: список для глаз ---------- */
+(function(){
+  var rows = sessions().map(function(s){
+    var d = new Date(s.date), dd = Math.round((d - T) / 86400000);
+    var when = d.toLocaleDateString("ru", { day: "numeric", month: "short" });
+    return '<tr><td class="d">' + when + " (" + (dd >= 0 ? "+" : "") + dd + ")</td><td>"
+      + s.type + "</td><td>" + (s.contact || "—") + "</td><td>" + (s.notes || "") + "</td></tr>";
+  }).concat(blocks().map(function(b){
+    var d = new Date(b.from), dd = Math.round((new Date(b.from).setHours(0,0,0,0) - T) / 86400000);
+    return '<tr><td class="d">' + d.toLocaleDateString("ru", { day: "numeric", month: "short" })
+      + " (" + (dd >= 0 ? "+" : "") + dd + ')</td><td>' + b.k + "</td><td>—</td><td>" + b.note + "</td></tr>";
+  }));
+  document.getElementById("plan").innerHTML = rows.join("");
+})();
+</script>

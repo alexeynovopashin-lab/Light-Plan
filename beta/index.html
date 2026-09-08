@@ -3804,7 +3804,12 @@
   /* Суббота и воскресенье светлее: съёмки чаще всего в них, колонку надо
      находить глазом, а не читать подпись */
   .cal-head span:nth-child(6), .cal-head span:nth-child(7) { color: var(--ink-4); }
-  .cal { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; padding: 0 20px; }
+  /* `minmax(0,1fr)`, а не `1fr`: колонка по умолчанию не уже своего содержимого,
+     и подпись в одну строку («Выходные с семьёй») раздувала её, а вместе с ней
+     и всю сетку — календарь уезжал за правый край экрана, вместо семи колонок
+     помещалось четыре. Ноль в минимуме разрешает колонке быть уже текста, и
+     тогда обрезка многоточием у `.cal-lb` наконец срабатывает. */
+  .cal { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 3px; padding: 0 20px; }
   /* display в CSS перебивает атрибут hidden — прячем масштабы явно */
   .cal[hidden], .cal-head[hidden], .week[hidden] { display: none; }
   .cal .d {
@@ -3812,6 +3817,8 @@
        не запас под подпись. День с подписью растит свою строку сам — так же,
        как растил её и раньше при двух подписях */
     min-height: 47px; border: none; background: none; cursor: pointer;
+    /* То же правило внутри клетки: без нуля флексовый ребёнок не даёт ей сжаться */
+    min-width: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     padding: 3px 1px 0;
     font-family: inherit; font-size: 16.5px; color: var(--ink);
@@ -3822,7 +3829,7 @@
      обёртку: квадрат 40×40 без подписи, растянутая по ширине колонки — с ней */
   .cal .d .d-plate {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-    width: 40px; height: 40px;
+    width: 40px; height: 40px; min-width: 0; max-width: 100%;
     border-radius: 11px; corner-shape: squircle;
     transition: background 0.25s ease;
   }
@@ -29859,6 +29866,10 @@
          занесло геолокацию, и Томск в профиле соседствовал с Гёреме в шапке.
          Переезд только по выбранной подсказке: набранное руками имя
          координат не несёт, а двигать свет наугад нельзя (решение Алексея). */
+      /* Чьи это координаты: имя, для которого их выдал справочник. Без
+         пометки нельзя отличить «город назван и уточнён» от «имя сменили
+         руками, а координаты остались от прежнего» */
+      me.cityAt = me.city;
       if (typeof gotoLocation === "function") {
         gotoLocation(+h.lat, +h.lon);
         /* Имя мы уже знаем — его только что выбрали в списке. Спрашивать
@@ -29877,8 +29888,40 @@
     saveAll();
     renderProfile();
   }
+  /* ---------- Имя без координат ----------
+     Город называют двумя путями: тапом по подсказке — тогда координаты
+     приходят вместе с именем — и просто набрав его руками. Второй путь
+     оставлял свет и карту там, где их застала геолокация: имя в профиле
+     менялось, место нет, и человек, честно ответивший «Томск», смотрел на
+     стамбульский закат (жалоба Алексея, 8 сентября 2026).
+
+     Прежнее правило «набранное руками место не двигает свет» остаётся в
+     силе там, где оно и стояло: посреди набора двигать нельзя, «Том» — это
+     не город. Но набор кончается, и «Готово» в знакомстве или уход из поля
+     в настройках — уже законченный ответ. По нему справочник спрашивается
+     один раз. Нет сети или город не нашёлся — всё остаётся как было, молча:
+     ответ фотографа при этом не пропадает, имя записано в любом случае. */
+  function cityFixup() {
+    var name = (me.city || "").trim();
+    if (!name || me.cityAt === name) return;           // это имя уже уточнено
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&featuretype=settlement&addressdetails=1&limit=1&accept-language="
+          + encodeURIComponent(LANG.code || "ru") + "&q=" + encodeURIComponent(name))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var x = (j || [])[0];
+        if (!x || (me.city || "").trim() !== name) return;   // имя успели сменить
+        var a = x.address || {};
+        takeCity({ name: x.name || name, cc: (a.country_code || "").toLowerCase(),
+                   lat: +x.lat, lon: +x.lon });
+      })
+      .catch(function () {});
+  }
   cityHints($("myCity"), $("myCityHits"), takeCity);
   cityHints($("startCity"), $("startCityHits"), takeCity);
+  /* Уход из поля в настройках — тот же законченный ответ, что и «Готово».
+     Пауза больше, чем у закрытия подсказок (180 мс): тап по подсказке — это
+     тоже blur, и уточнять после него было бы вторым запросом на тот же город */
+  if ($("myCity")) $("myCity").addEventListener("blur", function () { setTimeout(cityFixup, 400); });
 
   /* ---------- Знакомство: город и номер ----------
      Оба поля правятся на месте и сохраняются по мере набора: «Готово»
@@ -29899,6 +29942,9 @@
        считается выбранной: город её назвал, а не догадка о поясе. */
     me.met = true;
     practiceAsked = true;
+    /* Город мог быть набран руками и остаться без координат — тогда свет и
+       карта до сих пор стоят там, где их застала геолокация */
+    cityFixup();
     saveAll();
     $("startScrim").classList.remove("show");
     $("startSheet").classList.remove("open");
