@@ -24715,7 +24715,12 @@
       clashTold[p.s.id] = sig; dirty = true;
       say.push({ s: p.s, c: list[0] });
     });
-    if (dirty) saveAll();
+    /* Молчаливый обход пишет ключ, даже когда писать в него нечего:
+       признак «первого раза» — существование `clashTold`, и обход,
+       не нашедший ни одного наложения, без этой записи оставил бы
+       следующий запуск снова первым — а тот съел бы молча уже
+       настоящее наложение */
+    if (dirty || clashMute) saveAll();
     if (clashMute) { clashMute = false; return; }
     if (!say.length) return;
     say.sort(function (a, b) { return a.s.date - b.s.date; });
