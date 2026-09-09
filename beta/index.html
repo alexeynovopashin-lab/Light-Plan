@@ -976,7 +976,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=64"></script>
+<script src="lang.js?v=65"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -23023,7 +23023,17 @@
     architecture: { interior: "interior", realty: "home" },
     /* У стрита уточнений нет намеренно: он и так «что попалось на улице»,
        делить его — выдумывать различия, которых в работе не бывает */
-    report:       { sport: "runner", concert: "mic", conference: "speaker" },
+    /* Спорт живёт уточнениями репортажа, пока не станет своим жанром (Алексей,
+       9 сентября 2026: «возможно позже мы сделаем отдельный жанр — спорт»).
+       Поэтому спортивные восемь идут подряд, а концерт с конференцией — после:
+       когда блок будут выносить, его видно одним куском.
+       «Спорт» остаётся первым и общим: под ним борьба, хоккей, теннис — всё,
+       у чего своего знака в библиотеке нет. Финишный флаг — гонки: автогонки,
+       картинг, велоспорт, забеги. */
+    report:       { sport: "runner", races: "flag_finish", olympics: "olympics",
+                    football: "ball", basketball: "basketball", volleyball: "volleyball",
+                    swimming: "swimmer", ski: "ski",
+                    concert: "mic", conference: "speaker" },
     product:      { food: "croissant", macro: "macro", cars: "car", moto: "moto" },
     ad:           { fashion: "hanger", lookbook: "album", catalog: "doc", beauty: "makeup" }
   };
