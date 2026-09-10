@@ -5384,6 +5384,25 @@
   .lane-rail::before { left: 0; right: 50%; }
   .lane-rail::after { left: 50%; right: 0; }
   .lane-p:first-child .lane-rail::before, .lane-p:last-child .lane-rail::after { background: none; }
+  /* Концы ленты прижаты к краям плитки, а не стоят по центрам своих колонок.
+     Довод не про красоту: заголовок плитки («11:00 – 19:30» и строка под ним)
+     начинается у настоящего края, а лента — с отступа в полколонки, и между
+     ними была щель, не совпадавшая ни с чем. Хуже того, щель гуляла: у пяти
+     точек полколонки — 25 пикселей, у двух — 61, и один и тот же виджет
+     менял ритм от жанра к жанру. Прижав концы, мы сделали край ленты общим
+     с краем заголовка — вертикаль от «11:00 – 19:30» до «11:00» первой точки
+     идёт сплошной, а справа тем же ребром встают последняя точка и часы
+     «сейчас» (Алексей, 10 сентября 2026: «выглядит элементом, нарушающим
+     ритм»).
+     Условие `:not(:last-child)` — для ленты из одной точки: там первый он же
+     последний, и без оговорки правила бы спорили за одну колонку. */
+  .lane-p:first-child:not(:last-child) { align-items: flex-start; text-align: left; }
+  .lane-p:last-child:not(:first-child) { align-items: flex-end; text-align: right; }
+  /* Нить и точка идут за знаком: его середина — 13 пикселей от края колонки */
+  .lane-p:first-child:not(:last-child) .lane-dot { left: 13px; }
+  .lane-p:last-child:not(:first-child) .lane-dot { left: auto; right: 13px; margin: -4px -4px 0 0; }
+  .lane-p:first-child:not(:last-child) .lane-rail::after { left: 13px; }
+  .lane-p:last-child:not(:first-child) .lane-rail::before { left: 0; right: 13px; }
   .lane-dot { position: absolute; left: 50%; top: 50%; z-index: 2; width: 8px; height: 8px;
     margin: -4px 0 0 -4px; border-radius: 50%; background: var(--ink-8); }
   .lane-t { font-size: 11px; color: var(--ink-3); margin-top: 6px; font-variant-numeric: tabular-nums; }
@@ -5412,6 +5431,17 @@
   .pn-wx .pn-s { text-align: right; }
   .pn-wx .pn-t { text-align: right; }
   .wx-hours.wide { margin-left: 0; justify-content: space-between; width: 100%; }
+  /* Мало колонок — воздух поровну, включая крайние. Три часа, разогнанные
+     в край и в край, стояли столбами по углам с дырой посередине: зазор
+     между ними выходил 125 пикселей при ширине колонки в 30, и строка
+     переставала читаться рядом (Алексей, 10 сентября 2026). Много колонок
+     оставляем как были: там строка уже прокручивается, а `space-evenly`
+     в прокрутке уводит первую колонку за левый край без возврата. */
+  /* Свой зазор строка при этом отпускает: `gap` складывался бы с воздухом
+     `space-evenly` только между колонками, и крайние промежутки выходили
+     бы на те же десять пикселей уже внутренних — ровно та неровность,
+     от которой уходим */
+  .wx-hours.few { justify-content: space-evenly; gap: 0; }
   .wx-pane { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
     background: var(--sheet); border-radius: 16px; corner-shape: squircle; margin-top: 9px; }
   .wx-pane[hidden] { display: none; }
@@ -26852,7 +26882,11 @@
       cols.unshift({ t: cols[0].t - 60, at: cols[0].at, aside: true });
       cols.push({ t: cols[cols.length - 1].t + 60, at: cols[cols.length - 1].at, aside: true });
     }
-    $("cdWx").innerHTML = '<div class="wx-hours wide">' + cols.map(function (c) {
+    /* Порог по числу колонок, а не по зазору: считать зазор пришлось бы после
+       отрисовки, и строка успела бы моргнуть. Пять — предел, за которым воздуха
+       и так мало, а прокрутка уже на пороге */
+    $("cdWx").innerHTML = '<div class="wx-hours wide' + (cols.length <= 5 ? " few" : "")
+      + '">' + cols.map(function (c) {
       var w = wxCol(c, s.date, q, wx);
       return '<div class="wx-h' + (c.aside ? " aside" : "") + '"><div class="hh">' + fmt(c.t) + "</div>"
         + w.sign
