@@ -5430,6 +5430,15 @@
     stroke-linecap: round; stroke-linejoin: round; }
   .pn-wx .pn-s { text-align: right; }
   .pn-wx .pn-t { text-align: right; }
+  /* Ширину правому столбцу задаёт то, что длиннее: градус или слово об
+     условиях. Слова разной длины — «Ясно» и «Переменно» отличаются на
+     тридцать пикселей, — и знак погоды, стоящий слева от столбца, ездил от
+     карточки к карточке (Алексей, 12 сентября 2026: «в зависимости от погоды
+     значок солнца скачет»). Столбец держим по самому длинному из пяти слов,
+     отмеренному на живом шрифте (`measureWxCond`), — знак стоит на месте,
+     каким бы ни было небо. Запасное число на случай, если мерка ещё не
+     сработала: ширина «Переменно» на двенадцатом кегле */
+  .pn-wx > span { min-width: var(--wx-cond, 62px); }
   .wx-hours.wide { margin-left: 0; justify-content: space-between; width: 100%; }
   /* Мало колонок — воздух поровну, включая крайние. Три часа, разогнанные
      в край и в край, стояли столбами по углам с дырой посередине: зазор
@@ -26678,7 +26687,28 @@
     guests: IC.svg("guests"), car: IC.svg("car"), brief: IC.svg("note_edit"), doc: IC.svg("doc"),
     kit: IC.svg("camera"), paw: IC.svg("paw")
   };
+  /* Самое длинное слово об условиях — мерой, а не числом: слова переводятся,
+     и английское «Changeable» шире русского «Переменно». Меряем раз на язык:
+     шрифты в приложении системные, дожидаться их загрузки нечего, и второй
+     замер ничего бы не изменил. */
+  var wxCondAt = null;
+  function measureWxCond(force) {
+    if (!force && wxCondAt === LANG.code) return;
+    var box = document.createElement("span");
+    box.style.cssText = "position:absolute;left:-9999px;top:0;visibility:hidden;"
+      + "white-space:nowrap;font-size:12px";
+    document.body.appendChild(box);
+    var w = 0;
+    ["excellent", "fog", "good", "plain", "poor"].forEach(function (q) {
+      box.textContent = LANG.t("qualCond." + q);
+      w = Math.max(w, box.getBoundingClientRect().width);
+    });
+    box.parentNode.removeChild(box);
+    document.documentElement.style.setProperty("--wx-cond", Math.ceil(w) + "px");
+    wxCondAt = LANG.code;
+  }
   function renderPanes(s, route, phase, sun) {
+    measureWxCond();
     var top = [], bottom = [], spec = genreSpec(s.type);
 
     /* Место и погода — один блок: булавка сама говорит, что можно нажать,
@@ -30228,6 +30258,7 @@
       }
     }
     renderMoneyLabels();
+    if (typeof measureWxCond === "function") measureWxCond(true);  // слово о погоде стало другой длины
     /* Настройки — тот самый экран, с которого меняют язык: его строки видно
        первыми, и половина из них собирается в коде, а не лежит в разметке */
     if ($("fDelvLabels")) buildDelvDial();
