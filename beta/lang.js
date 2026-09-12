@@ -429,6 +429,9 @@
     "map.routeOff":    "Убрать с карты",
     "map.stopNoPlace": "без места",
     "map.stopsNoPlace": "без места: {n}",
+    /* Чем добираются от точки до следующей */
+    "map.wayDrive":    "Отсюда едут",
+    "map.wayWalk":     "Отсюда идут пешком",
 
     "layer.sun":  "Солнце",
 
@@ -2179,6 +2182,8 @@
     "map.routeOff":    "Take off the map",
     "map.stopNoPlace": "no place",
     "map.stopsNoPlace": "no place: {n}",
+    "map.wayDrive":    "Drive from here",
+    "map.wayWalk":     "Walk from here",
 
 
     "layer.sun":     "Sun",

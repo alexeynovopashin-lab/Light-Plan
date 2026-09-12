@@ -2475,6 +2475,14 @@
      второй ещё летит. Поэтому дорога и прямая — два разных элемента с общей
      геометрией, и каждый показывает своё. */
   #mapPath .rp-raw { stroke: var(--brass); stroke-width: 2.2; opacity: 0.45; stroke-dasharray: 6 6; }
+  /* Пеший кусок — цепочка точек, а не дорога: подложки у него нет вовсе, и
+     это не украшение. Широкая полупрозрачная подложка под жилой — приём, каким
+     карты рисуют проезжую часть; тропа, нарисованная так же, обещала бы, что
+     там можно проехать. Точки — тот же язык, каким сказаны часы на дуге и
+     съёмки в календаре. Круглые они от `stroke-linecap: round` выше: нулевая
+     длина штриха превращается в точку диаметром в толщину линии. */
+  #mapPath .rp-foot { stroke: var(--brass); stroke-width: 2.8; opacity: 0.9;
+    stroke-dasharray: 0 5.6; }
 
   /* Якорь нулевого размера: `translate` ставит его в спроецированный пиксель,
      а знак и подпись висят от него отступами. Так на каждом кадре карты
@@ -2866,6 +2874,29 @@
   }
   .rb-off svg { width: 13px; height: 13px; fill: none; stroke: var(--ink-7); stroke-width: 1.8; stroke-linecap: round; }
   .rb-off:active svg { stroke: var(--ink-3); }
+  /* ---------- Чем добираются от этой точки до следующей ----------
+     Знак стоит в строке той точки, от которой выходят, — «отсюда пешком».
+     У последней строки его нет: выходить некуда.
+
+     Машина погашена, пеший ход горит. Это не подсветка выбранного, а разница
+     по существу: ехать — обычное дело дня, идти — решение фотографа, и
+     говорить о себе должно оно. Погашенный знак при этом остаётся кнопкой,
+     ровно как крестик рядом. */
+  .rb-way {
+    width: 30px; height: 28px; flex: none; border: none; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rb-way svg { width: 16px; height: 16px; fill: none; stroke: var(--ink-7);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .rb-way.on svg { stroke: var(--brass); }
+  .rb-way:active svg { stroke: var(--ink-3); }
+  .rb-way.on:active svg { stroke: var(--brass-deep); }
+  /* Пеший переход в маршруте записи: тот же знак, но не кнопка — править
+     маршрут отсюда нельзя, и нажиматься ему незачем */
+  .rb-foot { width: 30px; height: 28px; flex: none; display: flex;
+    align-items: center; justify-content: center; }
+  .rb-foot svg { width: 16px; height: 16px; fill: none; stroke: var(--brass);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
   .rb-make {
     width: 100%; padding: 10px; border: none; cursor: pointer;
@@ -11617,7 +11648,7 @@
         zones: zoneCache,
         // Хранится выбор фотографа, а не вычисленная из него тема
         mapFold: mapFoldShut, mapLabels: mapLabels, mapLayers: mapLayers, spots: spots, studios: studios, theme: themePref,
-        mapRoute: mapRoute,
+        mapRoute: mapRoute, mapWalk: mapWalk,
 
         pro: proMode, manualEnd: manualEnd, icsLayer: icsLayer,
         notif: notifPrefs, wxSeen: wxSeen, wxTold: wxTold, clashTold: clashTold,
@@ -13406,6 +13437,15 @@
      есть чем назвать. Черновик один на приложение, как и сам список мест: два
      сразу некому различать. */
   var mapRoute = (saved && saved.mapRoute) || [];
+  /* ---------- Чем добираются между точками черновика ----------
+     Признак живёт у перехода, а не у маршрута целиком: день, где доехали до
+     квартала и дальше прошлись до кадра, — обычный день в городе, и общий
+     тумблер «еду / иду» сказать про него нечего (решение Алексея, 12 сентября
+     2026). Ключ — пара точек, а не номер перехода: список переставляют и
+     прореживают, и «второй переход» после правки значит уже другое, а «от
+     этой точки до этой» значит то же самое всегда. */
+  var mapWalk = (saved && saved.mapWalk) || {};
+  function walkKey(a, b) { return a + ">" + b; }
   var routeMode = false;
   /* ---------- Маршрут записанной съёмки на холсте ----------
      Черновик отвечает на «куда поедем», записанная съёмка — на «куда едем
@@ -16166,7 +16206,7 @@
   function chainDist(chain) {
     var runs = chainRuns(chain);
     if (!runs.length) return "";
-    roadAsk(runs.map(roadKey), function () { placeRoutePath(); renderRouteBar(); });
+    roadAsk(runs.map(runKey), function () { placeRoutePath(); renderRouteBar(); });
     var km = 0, min = 0, i, road;
     for (i = 0; i < runs.length; i++) {
       road = roadOf(runs[i]);
@@ -16209,6 +16249,14 @@
         var g = document.createElement("span"); g.className = "rb-gap";
         g.textContent = LANG.t("map.stopNoPlace");
         row.appendChild(g);
+      }
+      /* Пеший переход называется знаком, автомобильный молчит: ехать — обычное
+         дело дня, а идти сказано фотографом, и говорить о себе должно оно */
+      if (q.walk && chain[i + 1]) {
+        var f = document.createElement("span"); f.className = "rb-foot";
+        f.setAttribute("aria-label", LANG.t("map.wayWalk"));
+        f.innerHTML = '<svg viewBox="0 0 24 24">' + window.ICONS.body("hiker") + "</svg>";
+        row.appendChild(f);
       }
       box.appendChild(row);
     });
@@ -16266,7 +16314,25 @@
       off.setAttribute("aria-label", LANG.t("map.routeDrop"));
       off.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       off.addEventListener("click", function () { routeToggle(sp); });
-      row.appendChild(no); row.appendChild(nm); row.appendChild(off);
+      row.appendChild(no); row.appendChild(nm);
+      /* Знак способа — у той точки, от которой выходят. У последней его нет:
+         выходить ей некуда. */
+      var nx = pts[i + 1];
+      if (nx) {
+        var k = walkKey(sp.id, nx.id);
+        var way = document.createElement("button"); way.type = "button";
+        way.className = "rb-way" + (mapWalk[k] ? " on" : "");
+        way.setAttribute("aria-label", LANG.t(mapWalk[k] ? "map.wayWalk" : "map.wayDrive"));
+        way.innerHTML = '<svg viewBox="0 0 24 24">'
+          + window.ICONS.body(mapWalk[k] ? "hiker" : "car") + "</svg>";
+        way.addEventListener("click", function () {
+          if (mapWalk[k]) delete mapWalk[k]; else mapWalk[k] = 1;
+          saveAll();
+          placeRoutePath(); renderRouteBar();
+        });
+        row.appendChild(way);
+      }
+      row.appendChild(off);
       box.appendChild(row);
     });
   }
@@ -16295,9 +16361,11 @@
     shootType = g;
     setRouteMode(false);
     openForm(selDate, Math.round(SUN.goldB || viewMin), null, true);
-    fRoute = pts.map(function (sp) {
+    fRoute = pts.map(function (sp, i) {
+      var nx = pts[i + 1];
       return { t: "", t2: "", n: "", p: sp.name || "", placeId: sp.id,
-               studioId: null, hallId: null };
+               studioId: null, hallId: null,
+               walk: !!(nx && mapWalk[walkKey(sp.id, nx.id)]) };
     });
     renderRouteEditor();
     /* Первая точка черновика — место съёмки: по ней считаются свет и погода */
@@ -16358,10 +16426,52 @@
       return (+p.lon).toFixed(5) + "," + (+p.lat).toFixed(5);
     }).join(";");
   }
+  /* Способ входит в ключ, а не остаётся снаружи. Ключ по одним координатам
+     отвечал бы вчерашней дорогой на сегодняшний вопрос: те же четыре точки,
+     переключили на пеший — и в кэше уже лежит ответ, только про шоссе. */
+  function runKey(run) { return run.mode + "|" + roadKey(run.pts); }
+  /* ---------- Пеший путь считает другой сервис ----------
+     Демо-сервер OSRM имя профиля игнорирует: на `foot` и `bike` он отвечает
+     байт в байт тем же, что на `driving`. Проверено дважды — 5 сентября на
+     четырёх точках Томска и 12 сентября на Гёреме с Ургюпом, где хеш
+     геометрии совпал у всех трёх профилей.
+
+     Тропы умеет Valhalla на FOSSGIS. Формат ответа у неё свой (закодированная
+     полилиния), но она принимает `format=osrm` вместе с `shape_format=geojson`
+     и отдаёт ровно то, что мы и так разбираем: `routes[0].geometry.coordinates`,
+     метры и секунды. Своего декодера поэтому не понадобилось.
+
+     `directions_type=none` снимает пошаговые указания, которых мы не
+     показываем: с ними ответ на четыре точки Каппадокии весил 99 КБ, без них
+     18 КБ — столько же, сколько у OSRM.
+
+     Числа, ради которых всё и затевалось (Гёреме — Ургюп, замер 12 сентября):
+     шоссе 9,5 км и 11 минут, тропы 9,1 км и 117 минут. Своей меры у ходьбы не
+     было вовсе — вместо неё стояло автомобильное время.
+
+     У пешего профиля есть потолок: дальше сотни километров сервер отвечает
+     `DistanceExceeded`, не считая (замерено: 85 км считает, 100 отказ). Это не
+     обрабатывается особо — отказ выглядит как любой другой несостоявшийся
+     ответ, и кусок остаётся штриховой прямой. Ходить сто километров между
+     точками съёмочного дня некому. */
+  function roadUrl(key) {
+    var i = key.indexOf("|"), mode = key.slice(0, i), pts = key.slice(i + 1);
+    if (mode !== "foot")
+      return "https://router.project-osrm.org/route/v1/driving/" + pts
+           + "?overview=full&geometries=geojson";
+    var locs = pts.split(";").map(function (p) {
+      var c = p.split(",");
+      return { lat: +c[1], lon: +c[0] };
+    });
+    return "https://valhalla1.openstreetmap.de/route?json="
+      + encodeURIComponent(JSON.stringify({
+          locations: locs, costing: "pedestrian",
+          format: "osrm", shape_format: "geojson", directions_type: "none"
+        }));
+  }
   function roadFetch(key, onReady) {
     roadFly[key] = true;
-    fetch("https://router.project-osrm.org/route/v1/driving/" + key
-          + "?overview=full&geometries=geojson")
+    fetch(roadUrl(key))
       .then(function (r) { return r.json(); })
       .then(function (j) {
         var r = j && j.routes && j.routes[0];
@@ -16380,9 +16490,9 @@
      маршрутами, которых никто не увидит, незачем. Ключ при этом сверяется, а не
      таймер — иначе кадры жеста карты (`move` сыплется десятками в секунду)
      откладывали бы запрос бесконечно, пока карту тащат пальцем. */
-  function roadOf(pts) {
-    if (pts.length < 2) return null;
-    var key = roadKey(pts);
+  function roadOf(run) {
+    if (!run || run.pts.length < 2) return null;
+    var key = runKey(run);
     return (key in roadCache) ? roadCache[key] : undefined;
   }
   /* Спрашиваем разом всё, что нужно кадру, а не каждый кусок сам за себя.
@@ -16410,8 +16520,11 @@
      `lat === null`, а всё, что рисует, обязано это переживать. */
   function routeChain() {
     if (mapShoot) return shootChain(mapShoot);
-    return routeSpots().map(function (sp) {
-      return { name: sp.name || "", lat: sp.lat, lon: sp.lon };
+    var pts = routeSpots();
+    return pts.map(function (sp, i) {
+      var nx = pts[i + 1];
+      return { name: sp.name || "", lat: sp.lat, lon: sp.lon,
+               walk: !!(nx && mapWalk[walkKey(sp.id, nx.id)]) };
     });
   }
   /* Точки съёмки в порядке дня. Координаты достаются косвенно: место из «Моих
@@ -16431,12 +16544,26 @@
     b = String(b || "").trim().toLowerCase().replace(/[«»"']/g, "");
     return !!a && a === b;
   }
+  /* Маршрут для карты читается не так, как день. `routeOf` отвечает на вопрос
+     «что и во сколько»: он сортирует по времени и молчит о точках, которым часа
+     ещё не назначили. Карте нужен другой ответ — «куда и в каком порядке», и
+     часы для него не условие. Черновик, только что ставший съёмкой, часов не
+     имеет вовсе ни у одной точки: их называет фотограф, а карта знает только
+     порядок (`makeRouteShoot`). По `routeOf` такая съёмка выглядела бы пустой
+     ровно в том сценарии, ради которого маршрут и кладут на карту.
+     Порядок берём тот, что стоит в списке: его задал фотограф, и форма
+     показывает точки в нём же. */
+  function routeStops(s) {
+    return (Array.isArray(s.route) ? s.route : []).filter(function (r) {
+      return r && (r.placeId || r.studioId || (r.p || "").trim());
+    });
+  }
   function shootChain(s) {
-    return routeOf(s).map(function (r) {
+    return routeStops(s).map(function (r) {
       var p = stopPlace(r);
       if (!p && s.placeLat != null && sameStopName(r.p, s.place))
         p = { name: s.place || "", lat: s.placeLat, lon: s.placeLon };
-      return { name: (r.p || (p && p.name) || r.n || ""),
+      return { name: (r.p || (p && p.name) || r.n || ""), walk: !!r.walk,
                lat: p ? p.lat : null, lon: p ? p.lon : null };
     });
   }
@@ -16444,20 +16571,35 @@
      координатами. Точка без места рвёт цепочку надвое — и это ровно то, что
      видно на холсте разрывом линии. */
   function chainRuns(chain) {
-    var runs = [], cur = [];
-    chain.forEach(function (q) {
-      if (q.lat == null) { if (cur.length > 1) runs.push(cur); cur = []; return; }
+    var runs = [], cur = null, i, a, b, mode;
+    for (i = 0; i + 1 < chain.length; i++) {
+      a = chain[i]; b = chain[i + 1];
+      /* Разрыв рвёт цепочку: спрашивать дорогу через точку, которой нет на
+         карте, не у кого */
+      if (a.lat == null || b.lat == null) { cur = null; continue; }
       /* Два этапа в одном месте — не переезд. День в одном ресторане давал три
          точки подряд с одними координатами: маршрутизатор отвечал на них «0,0 км,
          0 мин», и полоса показывала замер там, где мерить нечего. */
-      var last = cur[cur.length - 1];
-      if (last && sameSpot(last, q.lat, q.lon)) return;
-      cur.push(q);
-    });
-    if (cur.length > 1) runs.push(cur);
+      if (sameSpot(a, b.lat, b.lon)) continue;
+      /* Смена способа рвёт цепочку так же, как разрыв: считают их разные
+         сервисы, и один запрос на пеший и автомобильный кусок разом не
+         соберёшь. Подряд идущие переходы одного способа по-прежнему уезжают
+         одним запросом — день целиком на колёсах остаётся одним, каким и был. */
+      mode = a.walk ? "foot" : "car";
+      /* Кусок продолжается, если он кончается там же, где начинается этот
+         переход. Сравниваем местом, а не строкой списка: пропущенный этап в
+         том же ресторане оставил в куске предыдущую точку, и по строке они
+         разные, а по карте — одна. */
+      var last = cur && cur.pts[cur.pts.length - 1];
+      if (!cur || cur.mode !== mode || !last || !sameSpot(last, a.lat, a.lon)) {
+        cur = { mode: mode, pts: [a] };
+        runs.push(cur);
+      }
+      cur.pts.push(b);
+    }
     return runs;
   }
-  var routePathEl = null, routeHaloEl = null, routeRawEl = null;
+  var routePathEl = null, routeHaloEl = null, routeFootEl = null, routeRawEl = null;
   function placeRoutePath() {
     var svg = $("mapPath"); if (!svg) return;
     if (!routePathEl) {
@@ -16466,33 +16608,39 @@
       routeHaloEl.setAttribute("class", "rp-halo");
       routePathEl = document.createElementNS(ns, "path");
       routePathEl.setAttribute("class", "rp-line");
+      routeFootEl = document.createElementNS(ns, "path");
+      routeFootEl.setAttribute("class", "rp-foot");
       routeRawEl = document.createElementNS(ns, "path");
       routeRawEl.setAttribute("class", "rp-raw");
-      svg.appendChild(routeHaloEl); svg.appendChild(routePathEl); svg.appendChild(routeRawEl);
+      svg.appendChild(routeHaloEl); svg.appendChild(routePathEl);
+      svg.appendChild(routeFootEl); svg.appendChild(routeRawEl);
     }
     var runs = chainRuns(routeChain());
-    if (!lmap || !runs.length) { setRouteD("", ""); return; }
-    roadAsk(runs.map(roadKey), function () { placeRoutePath(); renderRouteBar(); });
-    var solid = "", raw = "", j, i, p;
+    if (!lmap || !runs.length) { setRouteD("", "", ""); return; }
+    roadAsk(runs.map(runKey), function () { placeRoutePath(); renderRouteBar(); });
+    var solid = "", foot = "", raw = "", j, i, p;
     for (j = 0; j < runs.length; j++) {
       /* Пока дорога едет, точки всё же соединены — но прямой и штрихом: линия
          сама говорит, что это ещё не путь, а связь. Пустой холст на её месте
          был бы хуже — набранного маршрута не видно вовсе. */
       var road = roadOf(runs[j]);
-      var line = (road && road.line) || runs[j].map(function (q) { return [q.lon, q.lat]; });
+      var line = (road && road.line) || runs[j].pts.map(function (q) { return [q.lon, q.lat]; });
       var d = "";
       for (i = 0; i < line.length; i++) {
         try { p = lmap.project(line[i]); } catch (e) { return; }
         d += (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1);
       }
-      if (road && road.line) solid += d; else raw += d;
+      if (!(road && road.line)) raw += d;
+      else if (runs[j].mode === "foot") foot += d;
+      else solid += d;
     }
-    setRouteD(solid, raw);
+    setRouteD(solid, foot, raw);
   }
-  function setRouteD(solid, raw) {
+  function setRouteD(solid, foot, raw) {
     if (!routePathEl) return;
     routePathEl.setAttribute("d", solid);
     routeHaloEl.setAttribute("d", solid);
+    routeFootEl.setAttribute("d", foot);
     routeRawEl.setAttribute("d", raw);
   }
   /* ---------- Кадр под весь маршрут ----------
@@ -24830,7 +24978,7 @@
       return { t: parseHM(r.t), t2: parseHM(r.t2),
                n: (r.n || "").trim(), p: (r.p || "").trim(),
                placeId: r.placeId || null, studioId: r.studioId || null,
-               hallId: r.hallId || null };
+               hallId: r.hallId || null, walk: !!r.walk };
 
     }).filter(function (r) { return (r.t !== null && r.n) || r.placeId || r.studioId || r.p; });
 
@@ -27311,7 +27459,7 @@
          сказала бы то же, что уже сказала плитка.
          Ссылку берём на саму запись — список съёмок пересобирается, а запись
          остаётся собой (см. `mapShoot`). */
-      if (routeOf(s).length > 1) setMapShoot(s);
+      if (routeStops(s).length > 1) setMapShoot(s);
     });
   }
   function fillBlock(id, html) {
@@ -28227,7 +28375,7 @@
          когда пришли и когда ушли */
       var f0 = r.t != null ? r.t : r.rentFrom, f1 = r.t2 != null ? r.t2 : r.rentTo;
       return { t: f0 == null ? "" : fmt(f0), t2: f1 == null ? "" : fmt(f1),
-               n: r.n || "", p: r.p || "",
+               n: r.n || "", p: r.p || "", walk: !!r.walk,
                placeId: r.placeId || null, studioId: r.studioId || null,
                hallId: r.hallId || null };
     });
