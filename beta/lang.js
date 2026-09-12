@@ -425,6 +425,10 @@
     "map.delSpot":     "Удалить точку",
     "map.routeMake":   "Сделать съёмкой",
     "map.routeClear":  "Снять все точки",
+    /* Маршрут записанной съёмки, положенный на карту читать */
+    "map.routeOff":    "Убрать с карты",
+    "map.stopNoPlace": "без места",
+    "map.stopsNoPlace": "без места: {n}",
 
     "layer.sun":  "Солнце",
 
@@ -2172,6 +2176,9 @@
     "map.delSpot":     "Delete this spot",
     "map.routeMake":   "Make it a shoot",
     "map.routeClear":  "Drop all stops",
+    "map.routeOff":    "Take off the map",
+    "map.stopNoPlace": "no place",
+    "map.stopsNoPlace": "no place: {n}",
 
 
     "layer.sun":     "Sun",

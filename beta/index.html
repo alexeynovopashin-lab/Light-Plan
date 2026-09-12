@@ -2468,8 +2468,13 @@
   #mapPath path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
   #mapPath .rp-halo { stroke: var(--brass); stroke-width: 7.5; opacity: 0.2; }
   #mapPath .rp-line { stroke: var(--brass); stroke-width: 2.8; opacity: 0.95; }
-  #mapPath.raw .rp-halo { display: none; }
-  #mapPath.raw .rp-line { stroke-width: 2.2; opacity: 0.45; stroke-dasharray: 6 6; }
+  /* Штрих — свойство куска, а не всей линии. Пока он был признаком холста
+     (`#mapPath.raw`), цепочка была одна и вопрос «дорога или прямая» стоял
+     раз на весь маршрут. У маршрута записанной съёмки кусков несколько: точка
+     без места рвёт цепочку, и один кусок может уже приехать дорогой, пока
+     второй ещё летит. Поэтому дорога и прямая — два разных элемента с общей
+     геометрией, и каждый показывает своё. */
+  #mapPath .rp-raw { stroke: var(--brass); stroke-width: 2.2; opacity: 0.45; stroke-dasharray: 6 6; }
 
   /* Якорь нулевого размера: `translate` ставит его в спроецированный пиксель,
      а знак и подпись висят от него отступами. Так на каждом кадре карты
@@ -2838,6 +2843,20 @@
   .rb-nm {
     flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: var(--ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 6px;
+  }
+  /* ---------- Точка съёмки, у которой нет места на карте ----------
+     Номер полый — тем же приёмом, каким полой рисуется булавка, взятая у
+     геокодера: заливка значит «координаты настоящие», её отсутствие — «за
+     этой строкой на холсте ничего не стоит». Второго знака не заводим, оттенок
+     смысла носит заливка (docs: DECISIONS, «Точка, взятая у геокодера, полая»).
+     Само имя не гасим: этап дня состоялся, это карта про него молчит. */
+  .rb-row.gap .rb-no i {
+    background: none; color: var(--brass);
+    box-shadow: inset 0 0 0 1.2px var(--brass-dark);
+  }
+  .rb-gap {
+    flex: none; font-size: 11px; letter-spacing: 0.2px; color: var(--ink-5);
+    padding-right: 10px; white-space: nowrap;
   }
   /* Поле крестика шире знака: 34×28 — палец целится в площадь, а не в
      тринадцать пикселей чернил */
@@ -13388,6 +13407,23 @@
      сразу некому различать. */
   var mapRoute = (saved && saved.mapRoute) || [];
   var routeMode = false;
+  /* ---------- Маршрут записанной съёмки на холсте ----------
+     Черновик отвечает на «куда поедем», записанная съёмка — на «куда едем
+     завтра»: тот же вопрос, только ответ уже дан и лежит в форме. До сих пор
+     второго на карте не было вовсе, и увидеть маршрут свадьбы можно было,
+     только набрав его заново булавками.
+
+     Кладём его на карту только читать. Правка остаётся там, где стоит время
+     этапов: у точки съёмки есть час, а у булавки часа нет, и перенос строки
+     пальцем по холсту молча спорил бы с порядком, заданным временем
+     (решение Алексея, 12 сентября 2026). Поэтому два состояния холста, а не
+     одно на двоих: режим набора и режим чтения не пересекаются.
+
+     Съёмка держится ссылкой на саму запись, а не её номером: список
+     пересобирается (удалили соседнюю — номера съехали), а запись остаётся
+     собой. */
+  var mapShoot = null;
+  var mapShootFit = false;          // кадр под маршрут ставится один раз, при открытии
   function routeSpots() {
     var out = [];
     mapRoute.forEach(function (id) {
@@ -15823,8 +15859,41 @@
       box.appendChild(el);
       spotMarks.push({ sp: sp, el: el });
     });
+    buildShootMarks(box);
     placeSpotMarks();
     paintRouteNos();
+  }
+  /* Знаки точек открытой съёмки. Тот же слой и тот же знак, что у сохранённых
+     мест, — и это не экономия, а условие: маршрут проходит через свои места
+     тоже, и две разные булавки на одной точке читались бы как две точки.
+     Отличает их только номер, который у этих стоит всегда: порядок дня и есть
+     то, ради чего маршрут кладут на карту.
+
+     Точки без координат знака не получают вовсе — их и нет на холсте; про них
+     говорит полоса внизу и разрыв линии. */
+  var shootMarks = [];
+  function buildShootMarks(box) {
+    shootMarks = [];
+    if (!mapShoot || !box) return;
+    var seen = {};
+    shootChain(mapShoot).forEach(function (q, i) {
+      if (q.lat == null) return;
+      /* Одно место — один знак. День возвращается в тот же ресторан трижды, и
+         три булавки стояли бы пиксель в пиксель, а номера легли бы друг на
+         друга. Номер несёт первый приход; весь порядок называет полоса внизу —
+         холст отвечает за географию, список за счёт. */
+      var k = q.lat.toFixed(5) + "," + q.lon.toFixed(5);
+      if (seen[k]) return;
+      seen[k] = true;
+      var el = document.createElement("div");
+      el.className = "spot-mark";
+      el.innerHTML = '<svg viewBox="0 0 24 24">' + window.ICONS.body("pin") + "</svg>"
+        + '<span class="sm-name"></span><span class="sm-no"></span>';
+      el.querySelector(".sm-name").textContent = q.name || coordText(q.lat, q.lon);
+      el.querySelector(".sm-no").textContent = String(i + 1);
+      box.appendChild(el);
+      shootMarks.push({ sp: q, el: el });
+    });
   }
   /* Номера черновика ставятся при правке списка, а не на кадре карты: порядок
      меняется тапом, а `move` сыплется десятками в секунду и искать в списке
@@ -15832,7 +15901,10 @@
   function paintRouteNos() {
     spotMarks.forEach(function (m) {
       var no = m.el.querySelector(".sm-no"); if (!no) return;
-      var i = mapRoute.indexOf(m.sp.id);
+      /* Пока на холсте лежит маршрут съёмки, номера черновика сняты: считать
+         по порядку можно что-то одно, а два ряда номеров на одной карте
+         заставляли бы гадать, чей сейчас перед глазами */
+      var i = mapShoot ? -1 : mapRoute.indexOf(m.sp.id);
       no.hidden = i < 0;
       if (i >= 0) no.textContent = String(i + 1);
     });
@@ -15860,30 +15932,52 @@
         setTimeout(function () {
           b.classList.remove("dock-anim");
           measureMapRotor();
+          /* Кадр под маршрут ставится здесь и только здесь. Раньше, в
+             `routeReflow`, он считался по старому окну: пока док едет,
+             `measureMapOptic` мерить отказывается (прямоугольник сдвинутого
+             элемента врёт про раскладку), и `--ctl-bot` держал высоту без
+             полосы. Замер 12 сентября 2026: первая точка маршрута вставала на
+             618-й пиксель при окне до 611-го — ровно под полосой. */
+          if (mapShootFit) { mapShootFit = false; fitChain(); placeSpotMarks(); }
         }, 260);
       });
     }, 240);
   }
   function setRouteMode(on) {
     routeMode = !!on;
+    /* Набор начался — чтение кончилось: холст один, и линия на нём одна */
+    if (routeMode && mapShoot) { mapShoot = null; buildSpotMarks(); }
     $("mapRouteBtn").classList.toggle("on", routeMode);
     swapMapDock(function () { applyRouteMode(); });
   }
+  /* Открыть маршрут записи или убрать его с холста. Зовут отсюда двое:
+     плитка места в карточке съёмки и крестик полосы. */
+  function setMapShoot(s) {
+    mapShoot = s || null;
+    if (mapShoot && routeMode) routeMode = false;
+    mapShootFit = !!mapShoot;
+    $("mapRouteBtn").classList.toggle("on", routeMode);
+    buildSpotMarks();
+    swapMapDock(function () { applyRouteMode(); });
+  }
   function applyRouteMode() {
+    /* Полоса внизу обслуживает оба состояния холста, а вот тап по булавке —
+       только набор: в чтении класть точку некуда */
+    var bar = routeMode || !!mapShoot;
     $("mapSpots").classList.toggle("routing", routeMode);
-    $("mapRouteBar").hidden = !routeMode;
+    $("mapRouteBar").hidden = !bar;
     /* Набор маршрута — состояние всего экрана, а не значок в углу: с ним
        уходят барабаны времени и прибор света (CSS, `body.routing`). Оба
        обслуживают вопрос «какой здесь свет», а этот режим — про «куда и в
        каком порядке». Признак на `body`, потому что барабаны живут вне экрана
        карты, в закреплённом доке. */
-    document.body.classList.toggle("routing", routeMode);
+    document.body.classList.toggle("routing", bar);
     /* Док стал ниже на всю полосу барабанов — распорка низа экрана считается
        от измеренного `--dockh`, и без пересчёта кадр остался бы прежним. */
     measureDockSoon();
     routeReflow();
     paintRouteNos();
-    if (routeMode) renderRouteBar();
+    if (bar) renderRouteBar();
   }
   /* Полоса растёт строками, и ровно на столько же убывает кадр: они делят
      остаток экрана. Движок карты и слой отметок про это сами не узнают —
@@ -16066,13 +16160,64 @@
      минуту до того, как приедет длина дороги, значит поставить число, которое
      тут же сменится другим. */
 
+  /* Длина и время всей цепочки — сумма по кускам. Не приехал хоть один кусок,
+     молчим целиком: «22 км» за половину маршрута хуже пустоты, потому что
+     число не говорит, что оно про половину. */
+  function chainDist(chain) {
+    var runs = chainRuns(chain);
+    if (!runs.length) return "";
+    roadAsk(runs.map(roadKey), function () { placeRoutePath(); renderRouteBar(); });
+    var km = 0, min = 0, i, road;
+    for (i = 0; i < runs.length; i++) {
+      road = roadOf(runs[i]);
+      if (!road || !road.line) return "";
+      km += road.km; min += road.min;
+    }
+    return LANG.t("pro.distKm", { n: km < 10 ? num(km, 1) : num(Math.round(km)) })
+      + " · " + durLabel(min);
+  }
+  /* Полоса маршрута записанной съёмки. Та же полоса и тот же список, что у
+     черновика: маршрут — одна вещь, и знать её в двух видах глазу незачем.
+     Уходят только кнопки правки: складывать сюда точки, снимать их и делать
+     из этого съёмку нечего — съёмка уже есть. Крестик остаётся и значит то
+     же, что значил: убрать с холста то, что на нём лежит. */
+  function renderShootBar(bar) {
+    var s = mapShoot, chain = shootChain(s);
+    var gaps = chain.filter(function (q) { return q.lat == null; }).length;
+    var dist = chainDist(chain);
+    bar.classList.add("filled");
+    $("rbSum").textContent = s.contact || genreName(s.type);
+    $("rbSub").textContent = [LANG.count("unit.point", chain.length), dist,
+      gaps ? LANG.t("map.stopsNoPlace", { n: gaps }) : ""]
+      .filter(Boolean).join(" · ");
+    $("rbAdd").hidden = true; $("rbMake").hidden = true; $("rbSave").hidden = true;
+    $("rbClear").hidden = false;
+    $("rbClear").setAttribute("aria-label", LANG.t("map.routeOff"));
+    var box = $("rbList"); if (!box) return;
+    box.innerHTML = "";
+    chain.forEach(function (q, i) {
+      var row = document.createElement("div");
+      row.className = "rb-row" + (q.lat == null ? " gap" : "");
+      /* Номер не кнопка: переносить строки здесь нечем — порядок дня задан
+         часами этапов, а не списком */
+      var no = document.createElement("span"); no.className = "rb-no";
+      no.innerHTML = "<i>" + (i + 1) + "</i>";
+      var nm = document.createElement("span"); nm.className = "rb-nm";
+      nm.textContent = q.name;
+      row.appendChild(no); row.appendChild(nm);
+      if (q.lat == null) {
+        var g = document.createElement("span"); g.className = "rb-gap";
+        g.textContent = LANG.t("map.stopNoPlace");
+        row.appendChild(g);
+      }
+      box.appendChild(row);
+    });
+  }
   function renderRouteBar() {
     var bar = $("mapRouteBar"); if (!bar || bar.hidden) return;
+    if (mapShoot) { renderShootBar(bar); return; }
     var pts = routeSpots();
-    var road = roadOf(pts, function () { placeRoutePath(); renderRouteBar(); });
-    var dist = (pts.length < 2 || !road) ? ""
-      : LANG.t("pro.distKm", { n: road.km < 10 ? num(road.km, 1) : num(Math.round(road.km)) })
-        + " · " + durLabel(road.min);
+    var dist = chainDist(routeChain());
     bar.classList.toggle("filled", pts.length > 0);
     if (pts.length) {
       /* Строк много — шапка сжимается в одну и отдаёт им высоту. Счёт точек
@@ -16089,6 +16234,7 @@
     /* Корзине нечего стирать, а вееру нечего показывать — обе кнопки уходят,
        а не гаснут: погашенная кнопка обещает действие, которого нет */
     $("rbClear").hidden = !pts.length;
+    $("rbClear").setAttribute("aria-label", LANG.t("map.routeClear"));
     /* Вееру нечего показывать не только когда точек нет вовсе, но и когда все
        они уже в маршруте: с единственной сохранённой точкой ＋ открывал список
        из одной строки, и та стояла в маршруте с номером. Кнопка выглядела
@@ -16159,6 +16305,10 @@
   }
   $("mapRouteBtn").addEventListener("click", function () { setRouteMode(!routeMode); });
   $("rbClear").addEventListener("click", function () {
+    /* Один знак, два списка: в чтении крестик убирает с холста чужой маршрут,
+       в наборе — снимает свой черновик. Оба раза он значит «убрать отсюда», а
+       не «удалить»: ни съёмка, ни места от него не страдают. */
+    if (mapShoot) { setMapShoot(null); return; }
     mapRoute = []; saveAll();
     paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
   });
@@ -16230,56 +16380,190 @@
      маршрутами, которых никто не увидит, незачем. Ключ при этом сверяется, а не
      таймер — иначе кадры жеста карты (`move` сыплется десятками в секунду)
      откладывали бы запрос бесконечно, пока карту тащат пальцем. */
-  function roadOf(pts, onReady) {
+  function roadOf(pts) {
     if (pts.length < 2) return null;
     var key = roadKey(pts);
-    if (key in roadCache) return roadCache[key];
-    if (roadFly[key]) return undefined;
-    if (roadPend !== key) {
-      roadPend = key;
-      clearTimeout(roadWait);
-      roadWait = setTimeout(function () { roadFetch(key, onReady); }, 400);
-    }
-    return undefined;
+    return (key in roadCache) ? roadCache[key] : undefined;
   }
-  var routePathEl = null, routeHaloEl = null;
+  /* Спрашиваем разом всё, что нужно кадру, а не каждый кусок сам за себя.
+     Ожидание одно на цепочку, потому что ждём мы руку, а не кусок: пока
+     ожидание сидело в куске, второй кусок сбивал таймер первому — до сети
+     доезжал только последний, и первая половина маршрута оставалась прямой
+     навсегда (разрыв делает кусков столько, сколько точек без места). */
+  function roadAsk(keys, onReady) {
+    var id = keys.join("|");
+    if (!id || roadPend === id) return;
+    roadPend = id;
+    clearTimeout(roadWait);
+    roadWait = setTimeout(function () {
+      keys.forEach(function (key) {
+        if ((key in roadCache) || roadFly[key]) return;
+        roadFetch(key, onReady);
+      });
+    }, 400);
+  }
+  /* ---------- Что именно лежит на холсте ----------
+     Два списка разной природы приводятся к одному виду: координаты и имя.
+     Черновик набран булавками, и координаты у него есть у каждой точки по
+     построению. Маршрут съёмки — ссылки и строки, и у строки, набранной
+     руками, координат может не быть вовсе. Поэтому общий вид допускает
+     `lat === null`, а всё, что рисует, обязано это переживать. */
+  function routeChain() {
+    if (mapShoot) return shootChain(mapShoot);
+    return routeSpots().map(function (sp) {
+      return { name: sp.name || "", lat: sp.lat, lon: sp.lon };
+    });
+  }
+  /* Точки съёмки в порядке дня. Координаты достаются косвенно: место из «Моих
+     мест» по ссылке, студия по своей ссылке, а больше их взять негде —
+     геокодер в этом приложении называет город, а не здание, и подставить
+     центр Томска вместо ЗАГСа значило бы нарисовать маршрут, которого не было
+     (замер 12 сентября 2026: из шести имён этапов Nominatim нашёл два).
+
+     Четвёртый источник — якорь самой записи (`placeLat`). Он отдаёт координаты
+     не первой точке, а той, которую называет: у свадьбы Лены и Тимура якорь
+     стоит на студии, а первый этап — сборы в гостинице, и «первая точка = место
+     съёмки» приписало бы сборам адрес студии. Замер 12 сентября 2026: из пяти
+     записанных маршрутов якорь совпадает с первым этапом у трёх, а у двух
+     называет этап из середины дня. Поэтому сверяем имена, а не позиции. */
+  function sameStopName(a, b) {
+    a = String(a || "").trim().toLowerCase().replace(/[«»"']/g, "");
+    b = String(b || "").trim().toLowerCase().replace(/[«»"']/g, "");
+    return !!a && a === b;
+  }
+  function shootChain(s) {
+    return routeOf(s).map(function (r) {
+      var p = stopPlace(r);
+      if (!p && s.placeLat != null && sameStopName(r.p, s.place))
+        p = { name: s.place || "", lat: s.placeLat, lon: s.placeLon };
+      return { name: (r.p || (p && p.name) || r.n || ""),
+               lat: p ? p.lat : null, lon: p ? p.lon : null };
+    });
+  }
+  /* Куски, которые можно спросить у маршрутизатора: подряд идущие точки с
+     координатами. Точка без места рвёт цепочку надвое — и это ровно то, что
+     видно на холсте разрывом линии. */
+  function chainRuns(chain) {
+    var runs = [], cur = [];
+    chain.forEach(function (q) {
+      if (q.lat == null) { if (cur.length > 1) runs.push(cur); cur = []; return; }
+      /* Два этапа в одном месте — не переезд. День в одном ресторане давал три
+         точки подряд с одними координатами: маршрутизатор отвечал на них «0,0 км,
+         0 мин», и полоса показывала замер там, где мерить нечего. */
+      var last = cur[cur.length - 1];
+      if (last && sameSpot(last, q.lat, q.lon)) return;
+      cur.push(q);
+    });
+    if (cur.length > 1) runs.push(cur);
+    return runs;
+  }
+  var routePathEl = null, routeHaloEl = null, routeRawEl = null;
   function placeRoutePath() {
     var svg = $("mapPath"); if (!svg) return;
-    var pts = routeSpots(), d = "", i, p;
     if (!routePathEl) {
       var ns = "http://www.w3.org/2000/svg";
       routeHaloEl = document.createElementNS(ns, "path");
       routeHaloEl.setAttribute("class", "rp-halo");
       routePathEl = document.createElementNS(ns, "path");
       routePathEl.setAttribute("class", "rp-line");
-      svg.appendChild(routeHaloEl); svg.appendChild(routePathEl);
+      routeRawEl = document.createElementNS(ns, "path");
+      routeRawEl.setAttribute("class", "rp-raw");
+      svg.appendChild(routeHaloEl); svg.appendChild(routePathEl); svg.appendChild(routeRawEl);
     }
-    if (!lmap || pts.length < 2) { setRouteD(""); return; }
-    /* Пока дорога едет, точки всё же соединены — но прямой и штрихом: линия
-       сама говорит, что это ещё не путь, а связь. Пустой холст на её месте
-       был бы хуже — набранного маршрута не видно вовсе. */
-    var road = roadOf(pts, function () { placeRoutePath(); renderRouteBar(); });
-    var line = (road && road.line) || pts.map(function (q) { return [q.lon, q.lat]; });
-    svg.classList.toggle("raw", !(road && road.line));
-    for (i = 0; i < line.length; i++) {
-      try { p = lmap.project(line[i]); } catch (e) { return; }
-      d += (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1);
+    var runs = chainRuns(routeChain());
+    if (!lmap || !runs.length) { setRouteD("", ""); return; }
+    roadAsk(runs.map(roadKey), function () { placeRoutePath(); renderRouteBar(); });
+    var solid = "", raw = "", j, i, p;
+    for (j = 0; j < runs.length; j++) {
+      /* Пока дорога едет, точки всё же соединены — но прямой и штрихом: линия
+         сама говорит, что это ещё не путь, а связь. Пустой холст на её месте
+         был бы хуже — набранного маршрута не видно вовсе. */
+      var road = roadOf(runs[j]);
+      var line = (road && road.line) || runs[j].map(function (q) { return [q.lon, q.lat]; });
+      var d = "";
+      for (i = 0; i < line.length; i++) {
+        try { p = lmap.project(line[i]); } catch (e) { return; }
+        d += (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1);
+      }
+      if (road && road.line) solid += d; else raw += d;
     }
-    setRouteD(d);
+    setRouteD(solid, raw);
   }
-  function setRouteD(d) {
+  function setRouteD(solid, raw) {
     if (!routePathEl) return;
-    routePathEl.setAttribute("d", d);
-    routeHaloEl.setAttribute("d", d);
+    routePathEl.setAttribute("d", solid);
+    routeHaloEl.setAttribute("d", solid);
+    routeRawEl.setAttribute("d", raw);
+  }
+  /* ---------- Кадр под весь маршрут ----------
+     Своей арифметикой, а не `fitBounds`: холст карты — не то, что видно.
+     Он квадрат по диагонали кадра (`--rotor-d`, чтобы живой компас крутил
+     его без пустых углов), а видно из него окно между шапкой и стеклом.
+     `fitBounds` уложил бы маршрут в холст целиком, и половина его оказалась
+     бы за краями экрана.
+
+     Считаем в два захода: ставим середину, меряем, во сколько раз маршрут
+     не влез, и поправляем зум на логарифм этого числа. Второго уточнения не
+     нужно — масштаб проекции линеен по степени двойки, и первая же поправка
+     точна. */
+  function fitChain() {
+    if (!lmap) return;
+    var pts = routeChain().filter(function (q) { return q.lat != null; });
+    var frame = document.querySelector(".map-frame"), box = $("mapSpots");
+    if (!pts.length || !frame || !box || !frame.offsetHeight) return;
+    var la1 = 90, la2 = -90, lo1 = 180, lo2 = -180;
+    pts.forEach(function (q) {
+      la1 = Math.min(la1, q.lat); la2 = Math.max(la2, q.lat);
+      lo1 = Math.min(lo1, q.lon); lo2 = Math.max(lo2, q.lon);
+    });
+    var c = [(lo1 + lo2) / 2, (la1 + la2) / 2];
+    var css = getComputedStyle(document.documentElement);
+    var top = parseFloat(css.getPropertyValue("--optic-top")) || 0;
+    var bot = parseFloat(css.getPropertyValue("--ctl-bot")) || 0;
+    /* Поля по 44: булавка висит над своей точкой и носит подпись, и без
+       запаса крайняя точка упиралась бы именем в шапку */
+    var winW = frame.offsetWidth - 88, winH = frame.offsetHeight - top - bot - 88;
+    mapQuiet = true;
+    lmap.jumpTo({ center: c });
+    if (pts.length > 1 && winW > 40 && winH > 40) {
+      var a = null, b;
+      try { a = lmap.project([lo1, la2]); b = lmap.project([lo2, la1]); } catch (e) { a = null; }
+      if (a) {
+        var k = Math.min(winW / Math.max(1, Math.abs(b.x - a.x)),
+                         winH / Math.max(1, Math.abs(b.y - a.y)));
+        lmap.jumpTo({ center: c, zoom: clamp(lmap.getZoom() + Math.log(k) / Math.LN2, 2, 16) });
+      }
+    }
+    /* Середина окна — не середина карты. Своё поле (`setPadding`) карта держит
+       по свёрнутому низу, чтобы раскрытая сводка её не двигала, а полоса
+       маршрута выше свёрнутого низа на всю себя. Поэтому после зума считаем,
+       на сколько пикселей середина маршрута разошлась с серединой видимого
+       окна, и на столько же двигаем камеру. Замер 12 сентября 2026: без этого
+       первая точка вставала на 621-й пиксель при окне до 611-го — под полосой,
+       хотя масштаб был подобран верно. */
+    try {
+      var pc = lmap.project(c), pm = lmap.project(lmap.getCenter());
+      var wantX = (box.offsetWidth - frame.offsetWidth) / 2 + frame.offsetWidth / 2;
+      var wantY = (box.offsetHeight - frame.offsetHeight) / 2
+                + (top + (frame.offsetHeight - bot)) / 2;
+      lmap.jumpTo({ center: lmap.unproject([pm.x + (pc.x - wantX), pm.y + (pc.y - wantY)]) });
+    } catch (e) {}
+    setTimeout(function () { mapQuiet = false; }, 300);
   }
 
   function placeSpotMarks() {
     placeRoutePath();
-    if (!lmap || !spotMarks.length) return;
+    if (!lmap || !(spotMarks.length || shootMarks.length)) return;
 
     var box = $("mapSpots"); if (!box) return;
     var w = box.offsetWidth, h = box.offsetHeight;
-    spotMarks.forEach(function (m) {
+    placeMarks(spotMarks, w, h, true);
+    /* Точка съёмки под головкой наблюдателя знака не теряет: у неё есть
+       номер, а номер без булавки повис бы в пустоте */
+    placeMarks(shootMarks, w, h, false);
+  }
+  function placeMarks(list, w, h, here) {
+    list.forEach(function (m) {
       var p;
       try { p = lmap.project([m.sp.lon, m.sp.lat]); } catch (e) { return; }
       /* За кадром знак не рисуем вовсе: на другом материке проекция даёт
@@ -16291,7 +16575,7 @@
       m.el.style.transform = "translate(" + p.x.toFixed(1) + "px," + p.y.toFixed(1) + "px)";
       /* Точка под булавкой опознаётся тем же допуском в ~60 м, что и закладка:
          иначе знак и головка наблюдателя спорили бы за один пиксель */
-      m.el.classList.toggle("here", sameSpot(m.sp, LAT, LON));
+      if (here) m.el.classList.toggle("here", sameSpot(m.sp, LAT, LON));
     });
   }
   /* ---------- Тап по отметке ----------
@@ -27020,6 +27304,14 @@
       closeCard(); go("s-map");
 
       if (typeof syncMap === "function") syncMap();
+      /* День с точками едет на карту целиком. Плитка называет одно место, но
+         открывает она карту, а карта — про «куда и в каком порядке»: съёмка,
+         у которой этапов больше одного, вся про дорогу между ними. Одиночная
+         точка остаётся как была: линии из неё не выйдет, а полоса внизу
+         сказала бы то же, что уже сказала плитка.
+         Ссылку берём на саму запись — список съёмок пересобирается, а запись
+         остаётся собой (см. `mapShoot`). */
+      if (routeOf(s).length > 1) setMapShoot(s);
     });
   }
   function fillBlock(id, html) {
