@@ -26833,14 +26833,7 @@
      имени — значит однажды написать «Ресторан Ресторан «Соль»». */
   function studioSpotName(id) {
     var st = id && studioById(id);
-    if (!st || !st.name) return "";
-    /* Слово не дописываем, если оно уже сказано: студии сплошь зовут
-       «Студия «Сфера» на Набережной», и приставка дала бы «Фотостудия Студия
-       «Сфера»». Проверяем по корню, а не по целому слову: «студия», «фотостудия»
-       и «студии» — одно и то же слово в разных падежах и составах */
-    var mark = LANG.t("studio.mark").toLowerCase();
-    if (mark && st.name.toLowerCase().indexOf(mark) >= 0) return st.name;
-    return LANG.t("studio.tileOnly", { name: st.name });
+    return st && st.name ? LANG.t("studio.tileOnly", { name: st.name }) : "";
   }
 
   function renderPanes(s, route, phase, sun) {
