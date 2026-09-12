@@ -5672,10 +5672,14 @@
      приём, что записан про купол, только вывернутый: светлое от светлого
      отделяет глубина, тёмное от тёмного — свет на ребре. Живут оба признака
      одновременно, каждый работает в своей теме. */
+  /* Ближний лист отделён тоном и тенью, остальные — общим тоном и кантом по
+     кромке. Третьей и четвёртой ступени тона в палитре нет, и заводить их ради
+     стопки не стоит: разведённые гармошкой на сорок четыре пункта, они и так
+     читаются отдельными листами, а сведённые — стоят ровной стопкой, что и
+     есть правда о них */
+  .peek { background: var(--peek-2); box-shadow: inset 0 1px 0 var(--stack-edge); }
   .peek[data-k="0"] { background: var(--peek-1);
     box-shadow: 0 -6px 14px -4px var(--stack-shade), inset 0 1px 0 var(--stack-edge); }
-  .peek[data-k="1"] { background: var(--peek-2);
-    box-shadow: inset 0 1px 0 var(--stack-edge); }
   .peek:active { background: var(--press); }
   .peeks.dragging .peek, .card-sheet.dragging { transition: none; }
   .peek-in {
@@ -26117,11 +26121,25 @@
         return aw - bw || a.s.min - b.s.min;
       });
   }
-  /* Соседние съёмки дня выглядывают из-под листа: два края достаточно,
-     дальше стопка превращается в кашу. Порядок — свадьба первой, потом по времени */
+  /* Соседние съёмки дня выглядывают из-под листа. Прежде их показывалось две,
+     а остальные молчали — и ничто не говорило, что они есть: день с пятью
+     съёмками выглядел днём с тремя (Алексей, 12 сентября 2026: «надо, чтобы
+     было видно короткую информацию по всем»). Теперь выходят все.
+     Порядок — свадьба первой, потом по времени */
+  /* Сколько краёв в стопке. Жест считает свои числа от этого: чем глубже
+     стопка, тем дальше уезжает передний лист (см. гармошку ниже) */
+  var stackN = 0;
+  var PEEK_H = 74, PEEK_STEP = 22, PEEK_OPEN = 44;   /* высота края в CSS — та же 74 */
   function renderStack(s) {
     var list = dayStack(s);
-    var others = list.filter(function (p) { return p.i !== cardIdx; }).slice(0, 2);
+    /* Сверху вниз — по времени дня: стопка читается как день, а не как список
+       наоборот. Ближний к карточке край — последняя съёмка дня, самый дальний
+       — первая. `dayStack` ставит съёмку с маршрутом впереди прочих, и правило
+       это было нужно, пока из списка выбирали двоих: показать стоило свадьбу.
+       Теперь показываются все, и порядок остаётся один — временной */
+    var others = list.filter(function (p) { return p.i !== cardIdx; })
+      .sort(function (a, b) { return b.s.min - a.s.min || b.i - a.i; });
+    stackN = others.length;
     var wrap = $("cdSheet").parentElement;
     $("cdPeeks").hidden = !others.length;
     /* Отступ даёт обёртка, а не лист: собственный margin у листа схлопывается
@@ -26145,7 +26163,10 @@
        74 пикселя при содержимом в 43 — остаток стоял пустым. */
     var curEnd = shootEnd(s);
     $("cdPeeks").innerHTML = others.map(function (p, k) {
-      var inset = 10 + k * 10, top = (others.length - 1 - k) * 22;
+      /* Ступень ширины перестаёт расти на четвёртом крае: иначе глубокие
+         листы сходятся в полоску. Дальше их разводят кант по кромке и
+         сорок четыре пункта, на которые гармошка их разносит */
+      var inset = 10 + Math.min(k, 3) * 10, top = (others.length - 1 - k) * PEEK_STEP;
       var end = shootEnd(p.s);
       /* Жанр словом, а не только знаком слева: знак в четырнадцать пикселей
          узнаётся хуже, чем читается слово, а места строка ещё оставляет.
@@ -26176,7 +26197,7 @@
         + (note ? '<span class="peek-sub note">' + esc(note) + "</span>" : "")
         + "</button>";
     }).join("");
-    wrap.style.paddingTop = (others.length * 22) + "px";
+    wrap.style.paddingTop = (others.length * PEEK_STEP) + "px";
     $("cdPeeks").querySelectorAll(".peek").forEach(function (b) {
       b.addEventListener("click", function () { openCard(+b.dataset.i, false, true); });
     });
@@ -26189,19 +26210,30 @@
   (function () {
     var sheet = $("cdSheet"), peeks = $("cdPeeks"), overlay = $("cardOverlay");
     var y0 = null, on = false;
-    /* Числа сходятся с высотой края (74) и шагом стопки (22), а не подобраны
-       на глаз: ближний край виден на 22, значит лист должен уехать ровно на
-       52 — тогда край открыт целиком и ни пикселя дальше. Прежние 66 давали
-       под ним пустую полосу в 14 пунктов: карточка уезжала дальше, чем есть
-       что показывать, и жест выглядел незаконченным.
-       Дальний край поднимается на тот же шаг 22 — на сколько он глубже в
-       стопке, — и открывается целиком тоже: 44 + 52 − 22 = 74. */
-    var MAX = 52, STEP = 22;
+    /* Гармошка раскрывается вниз от верхнего края стопки, а не вверх от
+       переднего листа. Пока краёв было два, разница не читалась; на четырёх
+       верхний уезжал бы на 66 пунктов вверх — под шапку карточки и за экран.
+       Теперь самый дальний край стоит на месте, а всё, что ближе, разъезжается
+       под ним; дальше всех едет передний лист, и это верно по смыслу: тянут
+       именно его.
+       Числа не подобраны на глаз. Раскрытый край показывает 44 пункта — две
+       строки, «кто и когда» и «где»; ближний открывается целиком на 74 — к ним
+       добавляется заметка. Отсюда ход переднего листа: (N−1)·44 + 74 − N·22.
+       На одном крае это прежние 52, и жест, к которому привыкли, не изменился.
+       Длина протяга растёт мягче, чем стопка: глубокая стопка стоит чуть более
+       долгого движения, но не втрое более долгого. */
+    var STEP = 22;
+
+    function sheetTravel() {
+      return stackN ? (stackN - 1) * PEEK_OPEN + PEEK_H - stackN * STEP : 0;
+    }
+    function pullLen() { return 110 + Math.max(0, stackN - 1) * 30; }
 
     function spread(p) {
-      sheet.style.transform = "translateY(" + (MAX * p) + "px)";
+      sheet.style.transform = "translateY(" + (sheetTravel() * p) + "px)";
       peeks.querySelectorAll(".peek").forEach(function (b) {
-        b.style.transform = "translateY(" + (-(+b.dataset.k) * STEP * p) + "px)";
+        b.style.transform = "translateY("
+          + ((stackN - 1 - +b.dataset.k) * STEP * p) + "px)";
       });
     }
     function release() {
@@ -26222,7 +26254,7 @@
       if (!on && dy > 6) { on = true; sheet.classList.add("dragging"); peeks.classList.add("dragging"); }
       if (!on) return;
       e.preventDefault();               // жест наш: прокрутку не отдаём
-      spread(Math.max(0, Math.min(1, dy / 110)));
+      spread(Math.max(0, Math.min(1, dy / pullLen())));
     }, { passive: false });
     sheet.addEventListener("touchend", function () { if (y0 !== null) { y0 = null; if (on) release(); } });
     sheet.addEventListener("touchcancel", function () { y0 = null; release(); });
