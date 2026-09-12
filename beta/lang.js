@@ -1464,6 +1464,10 @@
        студия, ни в каком зале стоит камера (Алексей, 10 сентября 2026) */
     "studio.tileHall": "Фотостудия {name}. Зал {hall}",
     "studio.tileOnly": "Фотостудия {name}",
+    /* Корень слова, которым язык называет студию: по нему проверяем, не
+       сказано ли оно уже в самом имени — «Студия «Сфера»» не должна стать
+       «Фотостудией Студия «Сфера»» */
+    "studio.mark":     "студи",
     "form.placeHall":  "{place}, зал {hall}",
     "form.link":       "Связать с бронью",
     "form.linkAsk":    "связать",
@@ -3113,6 +3117,7 @@
     "loc.studioNone":  "No studio picked",
     "studio.tileHall": "{name} studio. {hall} hall",
     "studio.tileOnly": "{name} studio",
+    "studio.mark":     "studio",
     "form.placeHall":  "{place}, {hall}",
     "form.link":       "Link to booking",
     "form.linkAsk":    "link",
@@ -4616,6 +4621,7 @@
     "loc.studioNone": "Sin estudio elegido",
     "studio.tileHall": "Estudio {name}. Sala {hall}",
     "studio.tileOnly": "Estudio {name}",
+    "studio.mark": "estudio",
     "form.placeHall": "{place}, sala {hall}",
     "form.link": "Vincular con la reserva",
     "form.linkAsk": "vincular",
@@ -6042,6 +6048,7 @@
     "loc.studioNone": "未选择影棚",
     "studio.tileHall": "{name}摄影棚 · {hall}厅",
     "studio.tileOnly": "{name}摄影棚",
+    "studio.mark": "影棚",
     "form.placeHall": "{place}，{hall}",
     "form.link": "关联预订",
     "form.linkAsk": "关联",

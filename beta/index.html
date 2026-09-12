@@ -26801,30 +26801,84 @@
     guests: IC.svg("guests"), car: IC.svg("car"), brief: IC.svg("note_edit"), doc: IC.svg("doc"),
     kit: IC.svg("camera"), paw: IC.svg("paw")
   };
+  /* ---------- О каком месте говорит плитка ----------
+     Плитка отвечает на «куда ехать», а не «где вообще». У дня с маршрутом
+     ответ меняется по часам: до дня это первая точка, в день съёмки — та, что
+     идёт сейчас по графику.
+
+     Прежде крупной строкой стояло место записи, а у дня с маршрутом это просто
+     один из этапов. На свадьбе Лены и Тимура крупно стояла студия (второй
+     этап, 13:00), а первый — гостиница в 11:00 — ютился мелкой строкой под
+     ней, и читалось это как «Томсон, который в гостинице «Магистрат»»
+     (Алексей, 12 сентября 2026: «мне непонятна логика»).
+
+     Без маршрута ответ один и тот же на все случаи: место записи; не назвали —
+     топоним, который геокодер вернул по её координатам (`placeTown`); нет и
+     его — город фотографа. */
+  function cardSpot(s, route) {
+    if (route.length) {
+      var now = new Date(), nm = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
+      var i = curIndex(route, nm), r = route[i >= 0 ? i : 0], st = stopPlace(r);
+      var name = studioSpotName(r.studioId) || shortPlace(st ? st.name : (r.p || r.n || ""));
+      return { name: name || shortPlace(placeText(s)), t: r.t,
+               at: st && st.lat != null ? st : shootAt(s) };
+    }
+    return { name: studioSpotName(s.studioId) || shortPlace(placeText(s)) || me.city || "",
+             t: s.min, at: shootAt(s) };
+  }
+  /* Студию называем словом, а не именем. Студии сплошь зовутся топонимами —
+     «Москва», «Питер», «Манхэттен», «Париж», — и голое имя в плитке места
+     сообщало бы, что съёмка в другом городе (Алексей, 12 сентября 2026).
+     Прочим местам вида не дописываем: приложение его не знает, а угадывать по
+     имени — значит однажды написать «Ресторан Ресторан «Соль»». */
+  function studioSpotName(id) {
+    var st = id && studioById(id);
+    if (!st || !st.name) return "";
+    /* Слово не дописываем, если оно уже сказано: студии сплошь зовут
+       «Студия «Сфера» на Набережной», и приставка дала бы «Фотостудия Студия
+       «Сфера»». Проверяем по корню, а не по целому слову: «студия», «фотостудия»
+       и «студии» — одно и то же слово в разных падежах и составах */
+    var mark = LANG.t("studio.mark").toLowerCase();
+    if (mark && st.name.toLowerCase().indexOf(mark) >= 0) return st.name;
+    return LANG.t("studio.tileOnly", { name: st.name });
+  }
+
   function renderPanes(s, route, phase, sun) {
     var top = [], bottom = [], spec = genreSpec(s.type);
 
     /* Место и погода — один блок: булавка сама говорит, что можно нажать,
        а правая половина пустовала. Кнопка «На карте» была лишней */
-    if (placeText(s) && phase !== "after") {
-      /* Погода плитки — про место съёмки: она стоит под его именем, и брать
-         её у города фотографа значило бы подписать чужое небо чужим адресом */
-      var q = qualityOf(s.date), wx = dayWeather(s.date), pAt = shootAt(s);
+    var spot = cardSpot(s, route);
+    if (spot.name && phase !== "after") {
+      /* Погода плитки — про ту точку, которую плитка назвала: она стоит под её
+         именем, и брать её у города фотографа значило бы подписать чужое небо
+         чужим адресом */
+      var q = qualityOf(s.date), wx = dayWeather(s.date), pAt = spot.at;
       var pRec = ptAt(pAt, s.date), pDay = pRec && pRec.day;
-      var pHour = pRec && pRec.byHour ? nearHour(pRec.byHour, clamp(Math.round(s.min / 60), 0, 23)) : null;
+      /* Час, о котором говорит погода. Будущий день — час этой точки: к
+         прогнозу вопрос «что там будет». В день съёмки вопрос уже другой —
+         «что за окном сейчас», и час съёмки на него не отвечает
+         (Алексей, 12 сентября 2026). */
+      var nowD = new Date();
+      var wxH = sameDay(s.date, nowD) ? nowD.getHours() : clamp(Math.round(spot.t / 60), 0, 23);
+      var pHour = pRec && pRec.byHour ? nearHour(pRec.byHour, clamp(wxH, 0, 23)) : null;
       var pWait = !pDay && (ptOnWay(pAt, s.date) || (!pRec && ptReach(s.date)));
       var pQ = pDay ? pDay.q : q;
-      var sub = firstScenePlace(route);
-      var pTitle = shortPlace(placeText(s));
+      var pTitle = spot.name;
+      /* Под точкой — город. Он отвечает на «далеко ли»: съёмка в Кемерове и
+         съёмка в Томске выглядели одинаково, пока город молчал. Совпал с
+         именем точки (плитка и называет город) — второй раз не повторяем */
+      var pCity = s.placeTown || me.city || "";
+      var sub = pCity && pCity !== pTitle ? pCity : "";
       top.push('<button type="button" class="pane wide" data-act="map"><div class="pane-row">'
         + '<span class="badge">' + PANE_IC.pin + "</span>"
         + '<span class="pn-body"><span class="pn-t">' + esc(pTitle) + "</span>"
-        + (sub && sub !== pTitle ? '<span class="pn-s">' + esc(sub) + "</span>" : "")
+        + (sub ? '<span class="pn-s">' + esc(sub) + "</span>" : "")
         + "</span>"
         + '<span class="pn-wx">'
         + '<span class="wx-line">' + (pWait ? "" : wxSign(pQ))
         + '<span class="pn-t" style="font-size:19px">'
-        + (pWait ? "—" : (pHour && pHour.temp != null ? tempShow(pHour.temp) : tempOut(pDay ? pDay.tempBase : wx.tempBase, s.min)) + "°")
+        + (pWait ? "—" : (pHour && pHour.temp != null ? tempShow(pHour.temp) : tempOut(pDay ? pDay.tempBase : wx.tempBase, wxH * 60)) + "°")
         + "</span></span>"
         + '<span class="pn-s">' + (pWait ? "—" : QUAL[pQ].cond) + "</span></span>"
         + "</div></button>");
@@ -26951,7 +27005,9 @@
 
     var mapBtn = $("cdPanes").querySelector('[data-act="map"]');
     if (mapBtn) mapBtn.addEventListener("click", function () {
-      var atMap = shootAt(s);
+      /* Карта открывается на той точке, которую плитка назвала, а не на якоре
+         записи: тапают именно по названному месту */
+      var atMap = spot.at;
       if (atMap.lat != null) { LAT = atMap.lat; LON = atMap.lon; TZ = tzAt(atMap.lat, atMap.lon, s.date); }
       closeCard(); go("s-map");
 
