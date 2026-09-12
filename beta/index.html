@@ -5688,14 +5688,30 @@
   }
   .peek-in b { font-weight: 600; color: var(--ink-3);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .peek-in span { font-variant-numeric: tabular-nums; margin-left: auto; flex-shrink: 0; }
+  /* Жанр рядом с именем, но тише его: он повторяет знак слева и служит
+     подсказкой, а не подписью */
+  .peek-in i { font-style: normal; color: var(--ink-6); flex-shrink: 0; }
+  .peek-t { font-variant-numeric: tabular-nums; margin-left: auto; flex-shrink: 0; }
+  /* Соседняя съёмка перекрывает эту по времени. Цветом, а не словом: слово
+     заняло бы строку, а строк на краю три и каждая уже при деле */
+  .peek-t.over { color: var(--terra); }
   /* Вторая строка края: живёт под кромкой и открывается вместе с оттянутым
      листом. Место и заметка — одной строкой, длинное подрезается: край
      называет съёмку, а не пересказывает её */
   .peek-sub {
     margin-top: 7px; width: 100%; font-size: 11.5px; color: var(--ink-7);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+    text-align: left; display: flex; gap: 10px;
   }
+  /* Многоточие — на каждой половине своё: у ряда, ставшего гибким, оно не
+     работает, обрезать умеет только сам текстовый блок */
+  .peek-sub > span, .peek-sub em { min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Точка съёмки — у правого края, под часами: город отвечает «куда ехать»,
+     точка — «куда приехав». Два разных вопроса, и склеивать их точкой в одну
+     строку значило бы предлагать читать их как одно */
+  .peek-sub em { font-style: normal; margin-left: auto; }
+  .peek-sub.note { margin-top: 4px; color: var(--ink-8); display: block;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Имя .sheet уже занято нижними листами настроек — у карточки своё */
   .card-sheet {
     position: relative; z-index: 1;
@@ -26121,20 +26137,43 @@
        оттянутый край добавляет место и заметку: именно там живёт то, чем
        похожие съёмки различаются («у обеих собака», «студия оплачена»).
        Смысл жеста — узнать про соседнюю съёмку, не уходя из этой. */
+    /* Оттянутый край показывал одну строку на всё про всё — место и заметку,
+       склеенные точкой, обрезаемые вместе (Алексей, 12 сентября 2026:
+       «непростительно мало информации»). Строк теперь три, и каждая отвечает
+       на свой вопрос: кто и когда, где, чем эта съёмка отличается от соседней.
+       Высоты для третьей хватило без правки геометрии: край и раньше был
+       74 пикселя при содержимом в 43 — остаток стоял пустым. */
+    var curEnd = shootEnd(s);
     $("cdPeeks").innerHTML = others.map(function (p, k) {
       var inset = 10 + k * 10, top = (others.length - 1 - k) * 22;
-      var end = p.s.end != null ? p.s.end : p.s.min + (p.s.dur || 90);
-      var name = clientName(p.s) || evTypeName(p.s);
+      var end = shootEnd(p.s);
+      /* Жанр словом, а не только знаком слева: знак в четырнадцать пикселей
+         узнаётся хуже, чем читается слово, а места строка ещё оставляет.
+         Имя при этом остаётся в видимой полосе — в ней весь смысл края: день
+         с двумя портретами различают именно имена, жанр у них общий. */
+      var genre = isMeet(p.s) ? LANG.t("plan.meet") : evTypeName(p.s);
+      var name = clientName(p.s);
+      /* Пересечение по времени — самое важное, что можно сказать о соседней
+         съёмке, и говорится оно не строкой, а цветом часов: строка на краю
+         дорога, а тревога и так читается с одного взгляда */
+      var over = p.s.min < curEnd && s.min < end;
+      /* Город и место вместе. `placeText` отдаёт одно из двух, и на съёмке без
+         своей точки край показывал голый «Томск», а на съёмке с точкой —
+         голую «Гостиницу»: в обоих случаях половину ответа */
+      var town = p.s.placeTown || "", spot = p.s.place || "";
       /* Заметка бывает в несколько строк — на край берём первую: остальное
          откроется в самой карточке, куда край и ведёт по нажатию */
       var note = String(p.s.notes || "").split("\n")[0].trim();
-      var sub = [placeText(p.s), note].filter(Boolean).join(" · ");
       return '<button type="button" class="peek" data-i="' + p.i + '" data-k="' + k + '"'
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
         + '<span class="peek-in">' + typeSvg(p.s)
-        + "<b>" + esc(name) + "</b><span>" + fmt(p.s.min) + " – " + fmt(end)
-        + "</span></span>"
-        + (sub ? '<span class="peek-sub">' + esc(sub) + "</span>" : "")
+        + "<i>" + esc(genre) + (name ? " ·" : "") + "</i>"
+        + (name ? "<b>" + esc(name) + "</b>" : "")
+        + '<span class="peek-t' + (over ? " over" : "") + '">'
+        + fmt(p.s.min) + " – " + fmt(end) + "</span></span>"
+        + (town || spot ? '<span class="peek-sub"><span>' + esc(town) + "</span>"
+            + (spot ? "<em>" + esc(spot) + "</em>" : "") + "</span>" : "")
+        + (note ? '<span class="peek-sub note">' + esc(note) + "</span>" : "")
         + "</button>";
     }).join("");
     wrap.style.paddingTop = (others.length * 22) + "px";
