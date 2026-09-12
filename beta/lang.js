@@ -805,8 +805,6 @@
     "day.inAt":       "через {left} · в {t}",
 
     /* Лента дня: два-три знака подписаны одним словом */
-    "lane.start":  "Начало",
-    "lane.end":    "Конец",
     "lane.golden": "Золотой",
 
     /* Студийный час: буфер выхода из почасового места */
@@ -2508,8 +2506,6 @@
     "day.soonAt":     "Soon: {name}",
     "day.inAt":       "in {left} · at {t}",
 
-    "lane.start":  "Start",
-    "lane.end":    "End",
     "lane.golden": "Golden",
 
     "studio.sayT":     "Studio hour",
@@ -4073,8 +4069,6 @@
     "day.lastPoint": "último punto del día",
     "day.soonAt": "Pronto: {name}",
     "day.inAt": "en {left} · a las {t}",
-    "lane.start": "Inicio",
-    "lane.end": "Fin",
     "lane.golden": "Dorada",
     "studio.sayT": "Hora de estudio",
     "studio.leaveIn": "Salir de la sala en {left}. {where}.",
@@ -5501,8 +5495,6 @@
     "day.lastPoint": "当天最后一点",
     "day.soonAt": "即将：{name}",
     "day.inAt": "在{left}后·在{t}",
-    "lane.start": "开始",
-    "lane.end": "结束",
     "lane.golden": "黄金",
     "studio.sayT": "工作室时间",
     "studio.leaveIn": "{left}后离开影棚。{where}。",

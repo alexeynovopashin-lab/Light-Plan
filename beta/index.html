@@ -5371,8 +5371,18 @@
 
   /* Лента точек: знаки сверху, латунная нить, время и подпись снизу */
   .lane { display: flex; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+  .lane[hidden] { display: none; }
   .lane::-webkit-scrollbar { display: none; }
-  .lane-p { flex: 1 0 44px; min-width: 44px; display: flex; flex-direction: column;
+  /* Колонки умеют сжиматься. Прежде они держали 44 пикселя намертво, и шесть
+     точек не помещались в плитку: лента уезжала под правый край на пятнадцать
+     пикселей, а после того, как концы прижались к краям, последняя точка стала
+     обрезаться заметнее — её содержимое ушло в ту самую отрезанную полосу.
+     Полоса прокрутки внутри карточки — плохой ответ на телефоне, поэтому
+     колонки сжимаются до 32 пикселей: столько нужно часам («09:00» на
+     одиннадцатом кегле — двадцать девять), а подпись под ними и так с
+     многоточием. До семи точек лента укладывается целиком, дальше начинает
+     прокручиваться, как и прежде. */
+  .lane-p { flex: 1 1 44px; min-width: 32px; display: flex; flex-direction: column;
     align-items: center; text-align: center; }
   .lane-ic { height: 26px; display: flex; align-items: center; justify-content: center;
     width: 26px; border-radius: 50%; }
@@ -26355,7 +26365,18 @@
 
     renderStudioTimer(s, route, phase, cur, nowMin2);
 
-    var pts = lanePoints(s, route, light);
+    /* Лента — план дня, а не второй пересказ его рамок. У съёмки в одной точке
+       плана нет: «начало 14:00» и «конец 15:30» уже сказаны строкой выше и
+       строкой над ней, а лента повторяла их в третий раз — и рисовала при этом
+       рельс из ниоткуда в никуда, с двумя пустыми кольцами вместо знаков:
+       у слов «начало» и «конец» своего знака нет, и `IC.forPoint` отдавал им
+       заглушку (Алексей, 12 сентября 2026: «нам вообще тут не нужен таймлайн,
+       он перетёк сюда случайно из свадеб»).
+       Золотой час при этом не теряется: о нём говорит строка света под
+       плиткой — словами, а не делением шкалы, и говорит она это и без
+       маршрута (`lightCase` подставляет вместо точек саму съёмку). */
+    var pts = route.length ? lanePoints(s, route, light) : [];
+    $("cdLane").hidden = !pts.length;
     var curP = -1;
     if (nowMin2 !== null && phase === "during")
       for (var j = 0; j < pts.length; j++) if (!pts[j].light && pts[j].t <= nowMin2) curP = j;
@@ -26686,14 +26707,10 @@
     if (nowMin2 !== null) for (var i = 0; i < route.length; i++) if (route[i].t <= nowMin2) c = i;
     return c;
   }
+  /* Зовётся только с непустым маршрутом: без него ленты нет вовсе
+     (см. `renderDayTile`) */
   function lanePoints(s, route, light) {
-    var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
-    var pts = route.length
-      ? route.map(function (r) { return { t: r.t, n: r.n, light: false }; })
-      /* Без своих точек день всё равно имеет форму: начало и конец съёмки.
-         Это делает ленту одинаковой у свадьбы и у портрета */
-      : [{ t: s.min, n: LANG.t("lane.start"), light: false },
-         { t: end, n: LANG.t("lane.end"), light: false }];
+    var pts = route.map(function (r) { return { t: r.t, n: r.n, light: false }; });
     if (light && !light.bad) {
       var g = cardSun(s).goldB;
       var from = pts[0].t - 60, to = pts[pts.length - 1].t + 60;
