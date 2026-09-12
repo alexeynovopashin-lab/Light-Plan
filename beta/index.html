@@ -26645,8 +26645,23 @@
       for (var i = 0; i < rw.st.halls.length; i++)
         if (rw.st.halls[i].id === rw.stop.hallId) { hall = rw.st.halls[i].name || ""; break; }
     }
-    return hall ? LANG.t("studio.tileHall", { name: rw.st.name, hall: hall })
-                : LANG.t("studio.tileOnly", { name: rw.st.name });
+    return hall ? LANG.t("studio.hallOf", { studio: studioNamed(rw.st.name), hall: hall })
+                : studioNamed(rw.st.name);
+  }
+  /* Имя студии со словом впереди: «Фотостудия Томсон». Слово это дефинитор, а
+     не часть имени, — как «отель» у «Хилтона», — и в имя его не пишут. Но если
+     всё-таки написали, второй раз не повторяем: поле спрашивает название, а
+     человек мог ответить полным («Фотостудия Радуга»), и «Фотостудия
+     Фотостудия Радуга» была бы наша ошибка, а не его.
+     Слово берётся из самой строки словаря, а не из отдельного ключа: так они
+     не разойдутся при переводе. «Студия-Я» и «Studio 47» проверку проходят
+     по-разному, и оба раза верно: русское слово — «фотостудия», и «Студия-Я»
+     его не содержит, а английское — «studio», и «Studio 47» содержит. */
+  function studioNamed(name) {
+    if (!name) return "";
+    var def = LANG.t("studio.tileOnly", { name: "" }).replace(/\s+/g, " ").trim();
+    return def && name.toLowerCase().indexOf(def.toLowerCase()) >= 0
+      ? name : LANG.t("studio.tileOnly", { name: name });
   }
   /* Ч:ММ, пока часа много, и ММ:СС в последней четверти. Формы разной длины
      не для красоты: «0:47» и «7:32» иначе читались бы одинаково, а значат они
@@ -26833,7 +26848,7 @@
      имени — значит однажды написать «Ресторан Ресторан «Соль»». */
   function studioSpotName(id) {
     var st = id && studioById(id);
-    return st && st.name ? LANG.t("studio.tileOnly", { name: st.name }) : "";
+    return st ? studioNamed(st.name) : "";
   }
 
   function renderPanes(s, route, phase, sun) {
