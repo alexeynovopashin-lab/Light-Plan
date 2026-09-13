@@ -5098,6 +5098,10 @@
   .wheel[data-w="date"] .w-item { justify-content: flex-end; padding-right: 16px; }
   .wheel[data-w="hour"] .w-item { justify-content: flex-end; padding-right: 5px; }
   .wheel[data-w="min"] .w-item { justify-content: flex-start; padding-left: 5px; }
+  /* Час вне съёмки: виден, но приглушён — колесо с него доедет до ближайшего
+     часа съёмки. Цветом, а не прозрачностью: прозрачность у строк барабана
+     уже занята перспективой */
+  .w-item.off { color: var(--ink-8); }
 
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .chip {
@@ -5926,6 +5930,7 @@
   .rt-span .rv-v.empty { color: var(--ink-8); }
   .rt-span .rv-v.open { color: var(--brass); }
   .rt-span .rn-d { color: var(--ink-7); font-size: 13px; }
+  .rt-span .rt-day { color: var(--ink-7); font-size: 11px; margin-left: 3px; }
 
   /* Место — вторая строка ячейки, голосом подписи. Знак булавки слева и есть
      кнопка выбора: знак и действие в одном месте, второй кнопке справа взяться
@@ -22967,9 +22972,17 @@
   function onStopTimeWheel() {
     if (stopTimeRow == null) return;
     var r = fRoute[stopTimeRow]; if (!r) return;
-    if (openRow === "fStopTime") r.t = fmt(wheelIndex(fwStH) * 60 + wheelMin(fwStM));
-    else if (openRow === "fStopEnd") r.t2 = fmt(wheelIndex(fwStEH) * 60 + wheelMin(fwStEM));
-    else return;
+    var end2 = openRow === "fStopEnd";
+    if (!end2 && openRow !== "fStopTime") return;
+    var hw = end2 ? fwStEH : fwStH;
+    if (hw._h0 == null) return;
+    var h = hw._h0 + wheelIndex(hw);
+    /* Час вне съёмки виден, но не выбирается: отпущенное на нём колесо само
+       доезжает до ближайшего часа съёмки, а записывается уже тот, когда
+       колесо остановится во второй раз (Алексей, 13 сентября 2026: «не
+       ограничивай барабан в привычном смысле, это выглядит не эстетично») */
+    if (h < hw._lo || h > hw._hi) { setWheel(hw, clamp(h, hw._lo, hw._hi) - hw._h0, true); return; }
+    setCellMin(r, end2 ? "t2" : "t", h * 60 + wheelMin(end2 ? fwStEM : fwStM));
     fRouteSeeded = false;
     paintStopTime(stopTimeRow);
     scheduleDraftSave();
@@ -22980,15 +22993,55 @@
      позже начала: пустая клетка не должна раскрываться нулём, но и придумывать
      длину этапа за фотографа нечем — час просто ближайшее правдоподобное. */
   function stopTimeSeed(i, field) {
-    var self = fRoute[i], own = self ? parseHM(self.t) : null;
+    var self = fRoute[i], own = self ? cellMin(self, "t") : null;
     if (field === "t2") return (own != null ? own : stopTimeSeed(i, "t")) + 60;
     for (var j = i - 1; j >= 0; j--) {
-      var pe = parseHM(fRoute[j].t2);
+      var pe = cellMin(fRoute[j], "t2");
       if (pe != null) return snapMin(pe + 30);
-      var pv = parseHM(fRoute[j].t);
+      var pv = cellMin(fRoute[j], "t");
       if (pv != null) return snapMin(pv + 30);
     }
     return fMin;
+  }
+  /* У ячейки в форме время лежит строкой часов («05:30»), а день — рядом
+     числом: `td` у начала, `t2d` у конца, сколько суток от дня начала
+     съёмки. Вместе они дают то, что хранит запись, — минуты от полуночи
+     первого дня. Строку не заменили числом: её читают и пишут ещё засев
+     маршрута, бронь студии и черновик, и дню у них взяться неоткуда —
+     без дня ячейка стоит в первых сутках, как стояла всегда. */
+  function cellMin(r, f) {
+    var v = r ? parseHM(r[f]) : null;
+    return v == null ? null : v + (r[f + "d"] || 0) * 1440;
+  }
+  function setCellMin(r, f, m) {
+    r[f] = fmt(m);
+    r[f + "d"] = Math.floor(m / 1440);
+  }
+  /* Час в пилюле, а рядом дата, если сутки не первые: «05:30 1 сен». В
+     первые сутки даты нет — день и так назван у начала съёмки. Конец
+     промежутка дату повторяет, только если ушёл в другие сутки, чем начало:
+     «12:00 1 сен – 14:00», но «23:00 1 сен – 00:30 2 сен» */
+  function stopTimeHTML(r, f) {
+    if (!r[f]) return "--:--";
+    var d = r[f + "d"] || 0;
+    if (!d || (f === "t2" && r.t && (r.td || 0) === d)) return esc(r[f]);
+    var day = new Date(fDate); day.setDate(day.getDate() + d);
+    return esc(r[f]) + '<span class="rt-day">' + esc(dMonShort(day)) + "</span>";
+  }
+  /* Барабан часов точки идёт по часам съёмки, а не по кругу суток: у съёмки
+     31 августа 23:30 — 2 сентября 00:30 два разных «23» и два разных «00»,
+     и круг их не различит. Часы стоят подряд через все дни съёмки, по краям —
+     ещё по суткам, чтобы колесо не упиралось в край. Всё, что вне часов
+     съёмки, приглушено (docs: DECISIONS, «Точка маршрута знает свой день»). */
+  function fillStopHours(el2) {
+    var lo = Math.floor(fMin / 60), hi = Math.floor((fMin + fDur) / 60);
+    var days = Math.floor((fMin + fDur) / 1440) + 1, labels = [];
+    for (var h = -24; h < (days + 1) * 24; h++) labels.push(pad(((h % 24) + 24) % 24));
+    fill(el2, labels);
+    el2._h0 = -24; el2._lo = lo; el2._hi = hi;
+    for (var i = 0; i < el2.children.length; i++) {
+      el2.children[i].classList.toggle("off", i - 24 < lo || i - 24 > hi);
+    }
   }
   /* Зал крутят — меняется имя точки: на площадке говорят «Люмен, зал Белый»
      одной фразой, и строка обязана ехать за колесом. Подпись правим на месте,
@@ -23099,13 +23152,13 @@
       syncWheel(fwEH, Math.floor(e / 60)); syncMinWheel(fwEM, e % 60);
     }
     if (id === "fStopTime" || id === "fStopEnd") {
-      var end2 = id === "fStopEnd";
+      var end2 = id === "fStopEnd", stHw = end2 ? fwStEH : fwStH;
       var stR = stopTimeRow != null ? fRoute[stopTimeRow] : null;
-      var stV = stR ? parseHM(end2 ? stR.t2 : stR.t) : null;
+      var stV = stR ? cellMin(stR, end2 ? "t2" : "t") : null;
       if (stV == null) stV = stopTimeSeed(stopTimeRow, end2 ? "t2" : "t");
-      stV = ((stV % 1440) + 1440) % 1440;
-      syncWheel(end2 ? fwStEH : fwStH, Math.floor(stV / 60));
-      syncMinWheel(end2 ? fwStEM : fwStM, stV % 60);
+      fillStopHours(stHw);
+      syncWheel(stHw, clamp(Math.floor(stV / 60) - stHw._h0, 0, stHw.children.length - 1));
+      syncMinWheel(end2 ? fwStEM : fwStM, ((stV % 60) + 60) % 60);
     }
 
     if (id === "fHall") {
@@ -23253,7 +23306,7 @@
     var st = r && studioById(r.studioId);
     if (!st) return { studioId: null, hallId: null, rentFrom: null, rentTo: null };
     return { studioId: st.id, hallId: r.hallId || null,
-             rentFrom: parseHM(r.t), rentTo: parseHM(r.t2) };
+             rentFrom: cellMin(r, "t"), rentTo: cellMin(r, "t2") };
   }
   /* Выезд ли это. Отвечает пара «город съёмки — родной город»: не знаем
      одного из двух, отвечать нечем, и молчание честнее догадки. Сравниваем
@@ -24697,8 +24750,8 @@
     var row = $("fRouteList").querySelector('.rt-row[data-i="' + i + '"]');
     if (!row) return;
     var r = fRoute[i], b1 = row.querySelector(".rt-t1"), b2 = row.querySelector(".rt-t2");
-    if (b1) { b1.textContent = r.t || "--:--"; b1.classList.toggle("empty", !r.t); }
-    if (b2) { b2.textContent = r.t2 || "--:--"; b2.classList.toggle("empty", !r.t2); }
+    if (b1) { b1.innerHTML = stopTimeHTML(r, "t"); b1.classList.toggle("empty", !r.t); }
+    if (b2) { b2.innerHTML = stopTimeHTML(r, "t2"); b2.classList.toggle("empty", !r.t2); }
   }
   /* Ячейка дня. Форма у всех одна, сколько бы их ни было и что бы в них ни
      стояло: номер, имя этапа и промежуток — первой строкой, место с булавкой —
@@ -24732,9 +24785,9 @@
            пишут — «может, уйдём из студии пораньше, это непредсказуемо»
            (Алексей, 7 сентября 2026). Нажимаются половины по отдельности. */
         + '<span class="rt-span">'
-        + '<button type="button" class="rv-v rt-t1' + (r.t ? '' : ' empty') + '">' + esc(r.t || "--:--") + '</button>'
+        + '<button type="button" class="rv-v rt-t1' + (r.t ? '' : ' empty') + '">' + stopTimeHTML(r, "t") + '</button>'
         + '<span class="rn-d">–</span>'
-        + '<button type="button" class="rv-v rt-t2' + (r.t2 ? '' : ' empty') + '">' + esc(r.t2 || "--:--") + '</button>'
+        + '<button type="button" class="rv-v rt-t2' + (r.t2 ? '' : ' empty') + '">' + stopTimeHTML(r, "t2") + '</button>'
         + '</span>'
         + '<button type="button" class="rt-x" aria-label="' + esc(LANG.t("gen.removeAria")) + '">✕</button>'
         + '</div>'
@@ -24773,7 +24826,7 @@
              ответ: записываем его, иначе строка осталась бы с прочерком под
              раскрытым колесом */
           if (!fRoute[i][w[2]]) {
-            fRoute[i][w[2]] = fmt(stopTimeSeed(i, w[2]));
+            setCellMin(fRoute[i], w[2], stopTimeSeed(i, w[2]));
             fRouteSeeded = false;
             paintStopTime(i);
             scheduleDraftSave();
@@ -24997,7 +25050,7 @@
       /* Промежуток пишется у каждой ячейки, а не только у студийной: во
          сколько пришли и во сколько ушли — вопрос ко всем этапам дня, а
          купленный час студии от него ничем не отличается */
-      return { t: parseHM(r.t), t2: parseHM(r.t2),
+      return { t: cellMin(r, "t"), t2: cellMin(r, "t2"),
                n: (r.n || "").trim(), p: (r.p || "").trim(),
                placeId: r.placeId || null, studioId: r.studioId || null,
                hallId: r.hallId || null, walk: !!r.walk };
@@ -25985,7 +26038,7 @@
         LAT = la; LON = lo; TZ = tzAt(la, lo, s.date);
         computeSun(s.date);
       }
-      return stateAt(r.t);
+      return stateAt(r.t % 1440);
     });
     LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(kDate);
@@ -26049,9 +26102,8 @@
        идёт (docs: DECISIONS, «Модель времени») */
     var at = shootAt(s);
     var now = nowAt(at.lat, at.lon);
-    if (!sameDay(s.date, now)) return s.date > now ? "before" : "after";
-
-    var m = now.getHours() * 60 + now.getMinutes();
+    var m = shootMin(s, now);
+    if (m === null) return dayDiff(now, s.date) < 0 ? "before" : "after";
     var to = s.end != null ? s.end : s.min + (s.dur || 90);
     if (m < s.min) return "before";
     if (s.doneAt != null) return m < s.doneAt ? "during" : "after";
@@ -26069,7 +26121,9 @@
 
     // Ближайшая к золотому окну точка дня: попадает ли, и насколько мимо.
     // Без точек роль точки играет сама съёмка — её начало и конец
-    var pts = route.length ? route : (function () {
+    /* Свет считается по дню начала, и точке второго дня отвечает её час
+       суток — как отвечал, пока день у точки не хранился */
+    var pts = route.length ? route.map(function (r) { return { t: r.t % 1440, n: r.n }; }) : (function () {
       var end = s.end != null ? s.end : s.min + (s.dur || 90);
       return [{ t: s.min, n: LANG.t("card.shootPoint") }, { t: end, n: LANG.t("card.shootPoint") }];
     })();
@@ -26830,8 +26884,7 @@
     $("cdDayM").textContent = monthOfDate(s.date);
     $("cdDayW").textContent = wdFull(s.date);
 
-    var now = new Date(), today = sameDay(s.date, now);
-    var nowMin2 = today ? now.getHours() * 60 + now.getMinutes() : null;
+    var now = new Date(), nowMin2 = shootMin(s, now), today = nowMin2 !== null;
     var cur = curIndex(route, nowMin2);
 
     $("cdDayClock").textContent = today ? fmt(nowMin2) : "";
@@ -27026,7 +27079,20 @@
     var at = shootAt(s);
     var n = nowAt(at.lat, at.lon);
 
-    return sameDay(s.date, n) ? n.getHours() * 60 + n.getMinutes() : null;
+    return shootMin(s, n);
+  }
+  /* Минута съёмки — сколько прошло от полуночи её первого дня. Так же
+     хранятся конец записи (`end = min + dur`) и время точек маршрута, поэтому
+     «сейчас» сравнивается с ними без поправок на полночь: 00:31 второго дня —
+     это 1471, а не 31. Пока идут календарные дни съёмки — число, вне их —
+     null, как прежде вне её единственного дня. Часы передаёт звавший: одни
+     зовут с часами места съёмки, другие — с часами телефона
+     (docs: DECISIONS, «Точка маршрута знает свой день»). */
+  function shootMin(s, now) {
+    var d = dayDiff(now, s.date);
+    var end = s.end != null ? s.end : s.min + (s.dur || 90);
+    if (d < 0 || d > Math.floor(end / 1440)) return null;
+    return d * 1440 + now.getHours() * 60 + now.getMinutes();
   }
   /* Ответ студии приходит человеком, а не сразу — спрашиваем тактом карточки.
      Подтвердили — конец аренды переезжает на новый, и таймер выхода считает
@@ -27044,7 +27110,15 @@
           var v = parseHM(j.newEnd);
           /* Продлили те часы, которые шли: у ячейки дня — её собственный
              конец, у записи старого вида — прежнее поле аренды */
-          if (v !== null) { if (rw.stop) rw.stop.t2 = v; else s.rentTo = v; }
+          if (v !== null) {
+            if (rw.stop) {
+              /* Конец точки хранится от полуночи первого дня съёмки, а студия
+                 называет только час. День берём у прежнего конца; продлить
+                 можно лишь вперёд, поэтому час меньше прежнего — уже завтра */
+              var v2 = v + Math.floor(rw.stop.t2 / 1440) * 1440;
+              rw.stop.t2 = v2 < rw.stop.t2 ? v2 + 1440 : v2;
+            } else s.rentTo = v;
+          }
         }
 
         saveAll();
@@ -27226,7 +27300,7 @@
       if (!s) { stopStudioTick(); return; }
       var route = notWork(s) ? [] : routeOf(s);
       var phase = eventPhase(s);
-      var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
+      var nowMin2 = shootMin(s, new Date());
       renderStudioTimer(s, route, phase, curIndex(route, nowMin2), nowMin2);
       pollRentReq(s);
       renderCardMusic(s);
@@ -27286,7 +27360,7 @@
      его — город фотографа. */
   function cardSpot(s, route) {
     if (route.length) {
-      var now = new Date(), nm = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
+      var nm = shootMin(s, new Date());
       var i = curIndex(route, nm), r = route[i >= 0 ? i : 0], st = stopPlace(r);
       var name = studioSpotName(r.studioId) || shortPlace(st ? st.name : (r.p || r.n || ""));
       return { name: name || shortPlace(placeText(s)), t: r.t,
@@ -27322,7 +27396,7 @@
          «что за окном сейчас», и час съёмки на него не отвечает
          (Алексей, 12 сентября 2026). */
       var nowD = new Date();
-      var wxH = sameDay(s.date, nowD) ? nowD.getHours() : clamp(Math.round(spot.t / 60), 0, 23);
+      var wxH = sameDay(s.date, nowD) ? nowD.getHours() : clamp(Math.round((spot.t % 1440) / 60), 0, 23);
       var pHour = pRec && pRec.byHour ? nearHour(pRec.byHour, clamp(wxH, 0, 23)) : null;
       var pWait = !pDay && (ptOnWay(pAt, s.date) || (!pRec && ptReach(s.date)));
       var pQ = pDay ? pDay.q : q;
@@ -27511,7 +27585,7 @@
        километров, и погода там своя — ровно как свет в `routeLight`. Точка
        без координат отвечает якорем дня */
     var hours = route.length
-      ? route.map(function (r) { return { t: r.t, at: stopPlace(r) || at }; })
+      ? route.map(function (r) { return { t: r.t % 1440, at: stopPlace(r) || at }; })
       : (function () {
           var end = s.end != null ? s.end : s.min + (s.dur || 90), out = [], t = s.min;
           while (t <= end) { out.push({ t: t, at: at }); t += 120; }
@@ -27591,7 +27665,7 @@
     $("cdRouteS").textContent = LANG.count("unit.point", route.length)
       + " · " + range(route[0].t, last.t2 != null ? last.t2 : last.t);
 
-    var now = new Date(), nowMin2 = sameDay(s.date, now) ? now.getHours() * 60 + now.getMinutes() : null;
+    var nowMin2 = shootMin(s, new Date());
     var cur = curIndex(route, nowMin2);
     $("cdRouteBody").innerHTML = route.map(function (r, i) {
       var cls = i === cur ? " now" : (nowMin2 !== null && r.t < nowMin2 ? " past" : "");
@@ -27792,9 +27866,9 @@
     return mine.concat(set);
   }
   function currentStage(s, route) {
-    var now = new Date();
-    if (!sameDay(s.date, now) || !route.length) return "";
-    var c = curIndex(route, now.getHours() * 60 + now.getMinutes());
+    var nm = shootMin(s, new Date());
+    if (nm === null || !route.length) return "";
+    var c = curIndex(route, nm);
     return c >= 0 ? route[c].n : "";
   }
 
@@ -28396,7 +28470,8 @@
          студии в своих полях — читаем их как промежуток: это и были часы,
          когда пришли и когда ушли */
       var f0 = r.t != null ? r.t : r.rentFrom, f1 = r.t2 != null ? r.t2 : r.rentTo;
-      return { t: f0 == null ? "" : fmt(f0), t2: f1 == null ? "" : fmt(f1),
+      return { t: f0 == null ? "" : fmt(f0), td: f0 == null ? 0 : Math.floor(f0 / 1440),
+               t2: f1 == null ? "" : fmt(f1), t2d: f1 == null ? 0 : Math.floor(f1 / 1440),
                n: r.n || "", p: r.p || "", walk: !!r.walk,
                placeId: r.placeId || null, studioId: r.studioId || null,
                hallId: r.hallId || null };
@@ -28409,9 +28484,11 @@
       var head0 = (fRoute[0] || {});
       var already = head0.p && s.place && head0.p.indexOf(s.place) === 0;
       if (!already) {
+        var h0 = s.rentFrom != null ? s.rentFrom : s.min;
+        var h1 = s.rentTo != null ? s.rentTo : (s.end != null ? s.end : s.min + (s.dur || 60));
         fRoute.unshift({
-          t: fmt(s.rentFrom != null ? s.rentFrom : s.min),
-          t2: fmt(s.rentTo != null ? s.rentTo : (s.end != null ? s.end : s.min + (s.dur || 60))),
+          t: fmt(h0), td: Math.floor(h0 / 1440),
+          t2: fmt(h1), t2d: Math.floor(h1 / 1440),
           n: "", p: s.place || "",
           placeId: null, studioId: s.studioId || null, hallId: s.hallId || null
         });
