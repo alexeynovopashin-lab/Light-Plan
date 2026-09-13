@@ -11059,32 +11059,44 @@
     if (!p || p.lat == null || !isFinite(p.lat)) return false;
     return !!ptWait[ptKey(p.lat, p.lon, date)];
   }
-  function ptFetch(list, date, done) {
+  /* `last` — последние сутки съёмки через полночь: точке второго дня прогноз
+     нужен на её дату, а не на дату начала. Сервис принимает промежуток, и все
+     сутки приходят одним запросом; без `last` спрашивается один день, как
+     прежде */
+  function ptFetch(list, date, done, last) {
     if (typeof fetch === "undefined" || !ptReach(date)) return;
+    var dates = [date];
+    for (var dd = last ? addDays(date, 1) : null; dd && dd <= last && ptReach(dd); dd = addDays(dd, 1)) dates.push(dd);
     var want = list.filter(function (p) {
-      var k = ptKey(p.lat, p.lon, date);
-      return !ptWx[k] && !ptWait[k];
+      return dates.some(function (d) {
+        var k = ptKey(p.lat, p.lon, d);
+        return !ptWx[k] && !ptWait[k];
+      });
     });
     if (!want.length) return;
-    want.forEach(function (p) { ptWait[ptKey(p.lat, p.lon, date)] = true; });
-    var day = airKeyOf(date);
+    function each(fn) {
+      want.forEach(function (p, i) { dates.forEach(function (d) { fn(p, i, d, ptKey(p.lat, p.lon, d)); }); });
+    }
+    each(function (p, i, d, k) { ptWait[k] = true; });
     fetch("https://api.open-meteo.com/v1/forecast?latitude="
       + want.map(function (p) { return p.lat.toFixed(4); }).join(",")
       + "&longitude=" + want.map(function (p) { return p.lon.toFixed(4); }).join(",")
-      + "&hourly=" + PT_VARS + "&start_date=" + day + "&end_date=" + day
+      + "&hourly=" + PT_VARS + "&start_date=" + airKeyOf(date) + "&end_date=" + airKeyOf(dates[dates.length - 1])
       + "&timezone=auto&windspeed_unit=ms")
       .then(function (r) { return r.json(); })
       .then(function (j) {
         /* Одна координата — объект, несколько — массив: сервис отвечает по
            числу заданных точек, а не по форме запроса */
         var arr = Array.isArray(j) ? j : [j];
-        want.forEach(function (p, i) {
-          var k = ptKey(p.lat, p.lon, date), h = arr[i] && arr[i].hourly;
+        /* Запись — на каждые сутки своя: `ptBuild` кладёт в неё день и часы
+           одной даты, а ответ несёт весь промежуток */
+        each(function (p, i, d, k) {
+          var h = arr[i] && arr[i].hourly;
           delete ptWait[k];
           /* Пустой ответ тоже запоминается: без записи следующая перерисовка
              спросила бы то же самое, и карточка ходила бы по кругу */
           ptWx[k] = (h && h.time)
-            ? ptBuild({ lat: p.lat, lon: p.lon, raw: h, air: ptAirC[k] || null }, date)
+            ? ptBuild({ lat: p.lat, lon: p.lon, raw: h, air: ptAirC[k] || null }, d)
             : { lat: p.lat, lon: p.lon, raw: null, day: null, byHour: null };
         });
         if (done) done();
@@ -11092,7 +11104,7 @@
       .catch(function () {
         /* Сеть на съёмке рвётся кусками: ключи освобождаем, следующее
            открытие карточки спросит снова */
-        want.forEach(function (p) { delete ptWait[ptKey(p.lat, p.lon, date)]; });
+        each(function (p, i, d, k) { delete ptWait[k]; });
       });
   }
   /* Дым — поправка к закатному баллу, и нужен он ровно якорю: балл в карточке
@@ -23451,8 +23463,12 @@
         body: JSON.stringify({
           studioId: st.tomcohId || null,
           /* Дата местная, а не UTC: `toISOString` в вечерние часы отдал бы
-             завтрашний день. Тот же приём, что у ключа воздуха (`airKeyOf`). */
-          date: airKeyOf(fDate),
+             завтрашний день. Тот же приём, что у ключа воздуха (`airKeyOf`).
+             Дата — начала самой ячейки, а не съёмки: бронь считается по
+             своему началу, и студия после полуночи уже в других сутках
+             (docs: DECISIONS, «Точка маршрута знает свой день»). Не назвали
+             часы — спрашиваем по началу съёмки, то есть её датой */
+          date: airKeyOf(r.t ? addDays(fDate, r.td || 0) : fDate),
           /* Часы спрашиваем у самой ячейки: они и есть часы в студии. Не
              назвали — спрашиваем по времени съёмки */
           from: r.t || fmt(fMin),
@@ -25894,12 +25910,14 @@
 
   /* Солнце считается для места самой съёмки, а не для того, куда сейчас
      смотрит приложение: у выездной съёмки свой горизонт и своё время света. */
-  function cardSun(s) {
+  /* `day` — другие сутки той же съёмки: золотой час у точки второго дня свой */
+  function cardSun(s, day) {
     var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate), out = {};
     var at = shootAt(s);
-    if (at.lat != null) { LAT = at.lat; LON = at.lon; TZ = tzAt(at.lat, at.lon, s.date); }
+    day = day || s.date;
+    if (at.lat != null) { LAT = at.lat; LON = at.lon; TZ = tzAt(at.lat, at.lon, day); }
 
-    computeSun(s.date);
+    computeSun(day);
     out.st = stateAt(s.min);
     out.shadow = shadowWord(s.min);
     out.goldB = SUN.goldB; out.blueB = SUN.blueB; out.set = SUN.set;
@@ -26031,14 +26049,16 @@
     var at = shootAt(s);
     if (at.lat != null) { LAT = at.lat; LON = at.lon; TZ = tzAt(at.lat, at.lon, s.date); }
     computeSun(s.date);
-    var aLat = LAT, aLon = LON;
+    var aLat = LAT, aLon = LON, aDay = 0;
+    /* Солнце пересчитывается и на смене суток: точке второго дня — небо её
+       даты, а не час суток дня начала */
     var out = route.map(function (r) {
-      var p = stopPlace(r), la = p ? p.lat : aLat, lo = p ? p.lon : aLon;
-      if (la !== LAT || lo !== LON) {
-        LAT = la; LON = lo; TZ = tzAt(la, lo, s.date);
-        computeSun(s.date);
+      var p = stopPlace(r), la = p ? p.lat : aLat, lo = p ? p.lon : aLon, d = Math.floor(r.t / 1440);
+      if (la !== LAT || lo !== LON || d !== aDay) {
+        LAT = la; LON = lo; TZ = tzAt(la, lo, shootDate(s, d)); aDay = d;
+        computeSun(shootDate(s, d));
       }
-      return stateAt(r.t % 1440);
+      return stateAt(r.t - d * 1440);
     });
     LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(kDate);
@@ -26121,20 +26141,35 @@
 
     // Ближайшая к золотому окну точка дня: попадает ли, и насколько мимо.
     // Без точек роль точки играет сама съёмка — её начало и конец
-    /* Свет считается по дню начала, и точке второго дня отвечает её час
-       суток — как отвечал, пока день у точки не хранился */
-    var pts = route.length ? route.map(function (r) { return { t: r.t % 1440, n: r.n }; }) : (function () {
+    /* Свет считается в момент события: точка второго дня сверяется с окном
+       своих суток, сдвинутым на эти сутки. Первые сутки берут окно,
+       переданное карточкой, — однодневной съёмке не меняется ничего */
+    var wins = [{ b: sun.goldB, e: sun.blueB, d: 0 }];
+    function winOf(t) {
+      var d = Math.floor(t / 1440);
+      if (!wins[d]) {
+        var w = cardSun(s, shootDate(s, d));
+        wins[d] = { b: w.goldB === null ? null : w.goldB + d * 1440,
+                    e: w.blueB === null ? null : w.blueB + d * 1440, d: d };
+      }
+      return wins[d];
+    }
+    var pts = route.length ? route.map(function (r) { return { t: r.t, n: r.n }; }) : (function () {
       var end = s.end != null ? s.end : s.min + (s.dur || 90);
       return [{ t: s.min, n: LANG.t("card.shootPoint") }, { t: end, n: LANG.t("card.shootPoint") }];
     })();
     var hit = null, near = null, gap = 1e9;
     pts.forEach(function (r) {
-      if (r.t >= sun.goldB - 10 && r.t <= sun.blueB) { if (!hit) hit = r; return; }
-      var d = Math.min(Math.abs(r.t - sun.goldB), Math.abs(r.t - sun.blueB));
+      var w = r.w = winOf(r.t);
+      if (w.b === null || w.e === null) return;
+      if (r.t >= w.b - 10 && r.t <= w.e) { if (!hit) hit = r; return; }
+      var d = Math.min(Math.abs(r.t - w.b), Math.abs(r.t - w.e));
       if (d < gap) { gap = d; near = r; }
     });
 
-    var q = qualityOf(s.date), wx = dayWeather(s.date), bad = q === "poor" || q === "fog";
+    /* Погода — тех суток, где золотой час попал в точку */
+    var qd = hit ? shootDate(s, hit.w.d) : s.date;
+    var q = qualityOf(qd), wx = dayWeather(qd), bad = q === "poor" || q === "fog";
     if (bad) {
       return { bad: true, text: LANG.t("light.waitedSunset", {
         name: hit ? hit.n : LANG.t("card.shootPoint"),
@@ -26142,13 +26177,13 @@
     }
     if (hit) {
       return { bad: false, text: LANG.t("light.inGolden", {
-        name: hit.n, range: range(sun.goldB, sun.blueB) }) };
+        name: hit.n, range: range(hit.w.b, hit.w.e) }) };
     }
     /* Мимо на час — стоит сказать, мимо на полдня — нет: утренняя съёмка
        не имеет отношения к вечернему золотому часу */
     if (near && gap <= 180) {
       return { bad: false, text: LANG.t("light.missGolden", {
-        range: range(sun.goldB, sun.blueB), name: near.n,
+        range: range(near.w.b, near.w.e), name: near.n,
         gap: durLabel(Math.round(gap)) }) };
     }
     return null;
@@ -26573,7 +26608,8 @@
       if (!$("cardOverlay").classList.contains("open")) return;
       renderEventCard(s);
     };
-    ptFetch(pts, s.date, again);
+    var end = s.end != null ? s.end : s.min + (s.dur || 90);
+    ptFetch(pts, s.date, again, shootDate(s, Math.floor(end / 1440)));
     ptAirFetch(pts[0], s.date, again);      // дым нужен закатному баллу, то есть якорю
   }
 
@@ -26828,7 +26864,7 @@
     /* Строка под именем обязана содержать жанр, дату и время — это первое,
        что человек ищет в карточке (замечание с тестов) */
     var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
-    var when = whenWord(s.date);
+    var when = phase === "after" ? afterWord(s.date) : whenWord(s.date);
     var bits = [];
     /* Встреча называет себя встречей и говорит, о чём она: «Встреча · свадьба».
        Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
@@ -26837,10 +26873,22 @@
        угадан, а не назначен, и выдавать догадку за съёмку карточка не вправе */
     else if (isEvent(s)) bits.push(LANG.t("card.eventAbout", { genre: shortType(s).toLowerCase() }));
     else if (name) bits.push(evTypeName(s));
-    bits.push(dMon(s.date));
-    bits.push(range(s.min, end));
-    $("cdEvWhen").textContent = bits.join(" · ")
-      + (phase === "after" ? afterWord(s.date) : (when ? " · " + when : ""));
+    /* Слово стоит у даты, которую описывает: оно про день начала, и после
+       времени конца читалось «00:30 вчера». Конец в других сутках называет
+       свою дату — то же правило, что у пилюли в форме: «31 августа, вчера ·
+       23:30 – 00:30 2 сентября». Промежуток через сутки собираем сами:
+       `Intl` у 12-часовых часов снял бы повтор AM/PM, а у разных суток он не
+       повтор (docs: DECISIONS, «Точка маршрута знает свой день»).
+       Дата со словом и промежуток через сутки не рвутся внутри: на 375
+       строка шла в две и переносила «3 дня / назад». Перенос — только
+       на « · » между частями, и точка остаётся в конце строки, а не
+       открывает следующую */
+    var nbsp = function (t) { return t.replace(/\s/g, "\u00A0"); };
+    bits.push(nbsp(when ? LANG.t("card.dateWhen", { date: dMon(s.date), when: when }) : dMon(s.date)));
+    var endDay = Math.floor(end / 1440) - Math.floor(s.min / 1440);
+    bits.push(endDay ? nbsp(fmt(s.min) + " – " + fmt(end) + " " + dMon(addDays(s.date, Math.floor(end / 1440))))
+                     : range(s.min, end));
+    $("cdEvWhen").textContent = bits.join("\u00A0· ");
     $("cdEvWhen").classList.toggle("past", phase === "after");
 
     /* Номер показываем и набираем только целым. Записан он как придётся —
@@ -26873,8 +26921,8 @@
     var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate())
       - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
     if (days <= 0) return "";
-    if (days === 1) return " " + LANG.t("when.yesterday");
-    return days <= 7 ? " " + LANG.t("when.daysAgo", { n: LANG.count("unit.day", days) }) : "";
+    if (days === 1) return LANG.t("when.yesterday");
+    return days <= 7 ? LANG.t("when.daysAgo", { n: LANG.count("unit.day", days) }) : "";
   }
 
   /* Плитка дня: дата, навигатор, лента знаков */
@@ -27094,6 +27142,16 @@
     if (d < 0 || d > Math.floor(end / 1440)) return null;
     return d * 1440 + now.getHours() * 60 + now.getMinutes();
   }
+  /* Обратный ход: в какие сутки съёмки попадает минута `t` и какая у них
+     дата. Свет и погода точки считаются по её суткам, а не по дню начала.
+     За краями съёмки — крайние сутки: прогноз спрашивается только на её дни.
+     Первые сутки отдают саму дату записи — однодневной съёмке отвечают те же
+     даты, что и прежде */
+  function shootDayOf(s, t) {
+    var end = s.end != null ? s.end : s.min + (s.dur || 90);
+    return clamp(Math.floor(t / 1440), 0, Math.floor(end / 1440));
+  }
+  function shootDate(s, d) { return d ? addDays(s.date, d) : s.date; }
   /* Ответ студии приходит человеком, а не сразу — спрашиваем тактом карточки.
      Подтвердили — конец аренды переезжает на новый, и таймер выхода считает
      уже от него: иначе баннер продолжал бы гнать к прежнему часу. */
@@ -27389,16 +27447,19 @@
       /* Погода плитки — про ту точку, которую плитка назвала: она стоит под её
          именем, и брать её у города фотографа значило бы подписать чужое небо
          чужим адресом */
-      var q = qualityOf(s.date), wx = dayWeather(s.date), pAt = spot.at;
-      var pRec = ptAt(pAt, s.date), pDay = pRec && pRec.day;
+      /* Сутки точки — её собственные: студия после полуночи отвечает
+         прогнозом своей даты */
+      var pD = shootDayOf(s, spot.t), pDate = shootDate(s, pD);
+      var q = qualityOf(pDate), wx = dayWeather(pDate), pAt = spot.at;
+      var pRec = ptAt(pAt, pDate), pDay = pRec && pRec.day;
       /* Час, о котором говорит погода. Будущий день — час этой точки: к
          прогнозу вопрос «что там будет». В день съёмки вопрос уже другой —
          «что за окном сейчас», и час съёмки на него не отвечает
          (Алексей, 12 сентября 2026). */
       var nowD = new Date();
-      var wxH = sameDay(s.date, nowD) ? nowD.getHours() : clamp(Math.round((spot.t % 1440) / 60), 0, 23);
+      var wxH = sameDay(pDate, nowD) ? nowD.getHours() : clamp(Math.round((spot.t - pD * 1440) / 60), 0, 23);
       var pHour = pRec && pRec.byHour ? nearHour(pRec.byHour, clamp(wxH, 0, 23)) : null;
-      var pWait = !pDay && (ptOnWay(pAt, s.date) || (!pRec && ptReach(s.date)));
+      var pWait = !pDay && (ptOnWay(pAt, pDate) || (!pRec && ptReach(pDate)));
       var pQ = pDay ? pDay.q : q;
       var pTitle = spot.name;
       /* Под точкой — город. Он отвечает на «далеко ли»: съёмка в Кемерове и
@@ -27585,7 +27646,7 @@
        километров, и погода там своя — ровно как свет в `routeLight`. Точка
        без координат отвечает якорем дня */
     var hours = route.length
-      ? route.map(function (r) { return { t: r.t % 1440, at: stopPlace(r) || at }; })
+      ? route.map(function (r) { return { t: r.t, at: stopPlace(r) || at }; })
       : (function () {
           var end = s.end != null ? s.end : s.min + (s.dur || 90), out = [], t = s.min;
           while (t <= end) { out.push({ t: t, at: at }); t += 120; }
@@ -27611,7 +27672,11 @@
        и так мало, а прокрутка уже на пороге */
     $("cdWx").innerHTML = '<div class="wx-hours wide' + (cols.length <= 5 ? " few" : "")
       + '">' + cols.map(function (c) {
-      var w = wxCol(c, s.date, q, wx);
+      /* Колонка спрашивает прогноз суток, в которые попал её час. За краями
+         съёмки — крайние сутки: час дороги до и после стоит в тех же сутках,
+         что и точка рядом, как стоял до дня у точки */
+      var d = shootDayOf(s, c.t), dt = shootDate(s, d);
+      var w = d ? wxCol({ t: c.t - d * 1440, at: c.at }, dt, qualityOf(dt), dayWeather(dt)) : wxCol(c, s.date, q, wx);
       return '<div class="wx-h' + (c.aside ? " aside" : "") + '"><div class="hh">' + fmt(c.t) + "</div>"
         + w.sign
         + '<div class="tt">' + w.temp + "</div>"

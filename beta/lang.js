@@ -770,6 +770,7 @@
     "card.meetTopic":   "по теме: {genre}",
     "card.meetAbout":   "Встреча · {genre}",
     "card.eventAbout":  "Событие · {genre}",
+    "card.dateWhen":    "{date}, {when}",
 
     /* Свет и погода в карточке */
     "card.byDate":      "до {d}",
@@ -2482,6 +2483,7 @@
     "card.meetTopic":   "about: {genre}",
     "card.meetAbout":   "Meeting · {genre}",
     "card.eventAbout":  "Event · {genre}",
+    "card.dateWhen":    "{date}, {when}",
 
     "card.byDate":      "by {d}",
     "card.noDataDay":   "no data for this day",
@@ -4050,6 +4052,7 @@
     "card.meetTopic": "sobre: {genre}",
     "card.meetAbout": "Reunión · {genre}",
     "card.eventAbout": "Evento · {genre}",
+    "card.dateWhen": "{date}, {when}",
     "card.byDate": "para el {d}",
     "card.noDataDay": "no hay datos para ese día",
     "card.forecastFake": "pronóstico simulado",
@@ -5476,6 +5479,7 @@
     "card.meetTopic": "关于：{genre}",
     "card.meetAbout": "会议·{genre}",
     "card.eventAbout": "事件 · {genre}",
+    "card.dateWhen": "{date}，{when}",
     "card.byDate": "在{d}前",
     "card.noDataDay": "此日无数据",
     "card.forecastFake": "预报为模拟",
