@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=66"></script>
+<script src="lang.js?v=67"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -8927,9 +8927,25 @@
           <div class="chips" id="fPayType"></div>
           <div class="chips" id="fPackChips" hidden style="margin-top:8px;"></div>
         </div>
-        <div class="pay-row sep">
+        <div class="pay-row sep" id="fRateRow">
           <span class="k" id="fRateLabel">—</span>
           <input class="pay-in" type="text" inputmode="numeric" id="fRate" placeholder="0"/>
+        </div>
+        <!-- «В месяц» у заводимой группы: одна сумма тремя полями -->
+        <div id="fMonRows" hidden>
+          <div class="pay-row sep">
+            <span class="k" id="fMonMonthLbl">—</span>
+            <input class="pay-in" type="text" inputmode="numeric" id="fMonMonth" placeholder="0"/>
+          </div>
+          <div class="pay-row sep">
+            <span class="k" id="fMonShootLbl">—</span>
+            <input class="pay-in" type="text" inputmode="numeric" id="fMonShoot" placeholder="0"/>
+          </div>
+          <div class="pay-row sep">
+            <span class="k" id="fMonHourLbl">—</span>
+            <input class="pay-in" type="text" inputmode="numeric" id="fMonHour" placeholder="0"/>
+          </div>
+          <div class="f-hint rep-sum sep" id="fMonHint">—</div>
         </div>
         <div class="pay-row sep" id="fUnitsRow" hidden>
           <span class="k" id="fUnitsLabel">—</span>
@@ -13876,6 +13892,7 @@
     var r = +s.rate || 0;
     if (mech === "hourly") return r * ((s.dur || 0) / 60);   // ставка × часы
     if (mech === "unit")   return r * (+s.units || 0);        // цена × количество
+    if (mech === "monthly") return r || repShare(s);          // свой гонорар или доля месяца
     return r;                                                // flat: сдельно / пакет
   }
   function sessionNet(s) { return sessionIncome(s) - (+(s && s.expense) || 0); }
@@ -19130,7 +19147,7 @@
   var REP_MIN = 2, REP_MAX = 100, REP_DEF_N = 4;
   var REP_BLOCKS = { client: 1, route: 1, kit: 1, refs: 1, playlist: 1, notes: 0,
                      brief: 1, docs: 1, wish: 1, delivery: 1 };
-  var fRep = "never", fRepN = REP_DEF_N, fRepOn = {}, fRepOf = null;
+  var fRep = "never", fRepN = REP_DEF_N, fRepOn = {}, fRepOf = null, fRepMonthly = 0;
   /* Знак записи, с которой работает форма. Раньше он рождался только при
      «Сохранить», и до этой минуты у съёмки не было ничего, к чему привязать
      подборку, — поэтому кадры и лежали в форме своим списком `fRefs`, а
@@ -19199,7 +19216,7 @@
   });
 
   /* ---------- Оплата в форме ---------- */
-  function payProbe() { return { pay: fPay, rate: fRate, units: fUnits, dur: fDur, expense: fExpense }; }
+  function payProbe() { return { id: fId, date: fDate, rep: fRepOf, pay: fPay, rate: fRate, units: fUnits, dur: fDur, expense: fExpense }; }
   /* ---------- Референсы ----------
      Оригинал уезжает на Диск фотографа, рядом с ним на устройстве остаются
      две копии — превью для сетки и экранная для работы на площадке. Байты
@@ -22734,7 +22751,17 @@
   }
   function renderPay() {
     var keys = genreSpec(shootType).pay;
-    if (keys.indexOf(fPay) === -1) fPay = keys[0];   // способ не из этого жанра — берём первый
+    /* «В месяц» — способ группы: есть, пока повтор заводится, и у карточки
+       из группы, заведённой помесячно */
+    if ((repEditable() && fRep !== "never") || (fRepOf && fRepOf.monthly)) keys = keys.concat("monthly");
+    if (keys.indexOf(fPay) === -1) {                 // способ не из этого жанра — берём первый
+      /* Повтор выключили: месячная сумма ставкой другого способа не становится */
+      if (fPay === "monthly") {
+        fRate = PAY[keys[0]].m === "hourly" ? (rateOf(shootType) || 0) : 0;
+        $("fRate").value = fRate || "";
+      }
+      fPay = keys[0];
+    }
     var mech = PAY[fPay].m;
     $("fPayType").innerHTML = keys.map(function (k) {
       return '<button class="chip' + (k === fPay ? " active" : "") + '" data-k="' + k + '">' + esc(LANG.t("pay." + k)) + "</button>";
@@ -22743,7 +22770,9 @@
       ch.addEventListener("click", function () {
         if (ch.dataset.k === fPay) return;
         var wasMech = PAY[fPay].m, wasPack = fPay === "pack";
-        fPay = ch.dataset.k; rememberGenre("pay", fPay);
+        fPay = ch.dataset.k;
+        /* «В месяц» жанру не запоминаем: у новой съёмки без повтора его нет */
+        if (fPay !== "monthly") rememberGenre("pay", fPay);
         var nowMech = PAY[fPay].m;
         /* Число в поле означает разное: ставку в час, цену за предмет, сумму
            сделки. Сменилась механика — прежнее значение становится ложью, и
@@ -22762,7 +22791,7 @@
     // Подпись поля ставки под механику
     var cs = currencySign(fCurrency);
     $("fRateLabel").textContent = mech === "hourly" ? LANG.t("form.rateHour", { sign: cs })
-      : LANG.t(mech === "unit" ? "form.priceEach" : "form.sumFlat", { sign: cs });
+      : LANG.t(mech === "unit" ? "form.priceEach" : mech === "monthly" ? "form.perShoot" : "form.sumFlat", { sign: cs });
     // Количество — только для «за единицу»
     $("fUnitsRow").hidden = mech !== "unit";
     $("fUnitsLabel").textContent = LANG.t(PAY[fPay].unit ? "payUnit." + fPay : "form.qty");
@@ -22789,8 +22818,26 @@
         });
       });
     }
+    /* «В месяц»: у заводимой группы — три поля одной суммы, у карточки из
+       группы — её гонорар. Пустое поле — доля месяца (она и в подсказке),
+       число — доплата или скидка этой съёмки сверх месяца (Алексей,
+       13–14 сентября 2026) */
+    var mon = mech === "monthly", compose = mon && repEditable() && fRep !== "never";
+    var first = compose ? repFirstCount() : 0, perShoot = compose ? fRepMonthly / first : 0;
+    $("fRateRow").hidden = compose;
+    $("fMonRows").hidden = !compose;
+    $("fRate").placeholder = mon && !compose ? String(Math.round(repShare(payProbe()))) : "0";
+    if (compose) {
+      $("fMonMonthLbl").textContent = LANG.t("form.perMonth", { sign: cs });
+      $("fMonShootLbl").textContent = LANG.t("form.perShoot", { sign: cs });
+      $("fMonHourLbl").textContent = LANG.t("form.perHour", { sign: cs });
+      monShow("fMonMonth", fRepMonthly);
+      monShow("fMonShoot", perShoot);
+      monShow("fMonHour", fDur ? perShoot / (fDur / 60) : 0);
+      $("fMonHint").textContent = LANG.t("rep.payFirst", { n: LANG.count("unit.shoot", first) });
+    }
     // Итог: доход и прибыль
-    var inc = sessionIncome(payProbe()), net = inc - fExpense;
+    var inc = compose ? perShoot : sessionIncome(payProbe()), net = inc - fExpense;
     /* Доля предоплаты держит поле, пока в него не вписали своё число:
        пересчитывать набранную руками сумму значило бы спорить с человеком.
        Доли нет — поле не трогаем вовсе, и всё работает как до этой правки. */
@@ -22808,7 +22855,10 @@
       + (fPrepay ? "<br>" + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(fPrepay, fCurrency), rest: money(rest, fCurrency) })) : "") + "</span>"
       + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net, fCurrency) + "</span>";
     // Сводка спойлера: способ и итог одной строкой
-    $("fPaySumm").innerHTML = esc(LANG.t("pay." + fPay)) + " · <b>" + money(net, fCurrency) + "</b>";
+    /* У помесячной в сводке сумма месяца: «В месяц · 12 500» читалось бы
+       как месяц за двенадцать с половиной */
+    var summ = !mon ? net : compose ? fRepMonthly : (fRepOf && fRepOf.monthly) || 0;
+    $("fPaySumm").innerHTML = esc(LANG.t("pay." + fPay)) + " · <b>" + money(summ, fCurrency) + "</b>";
     slideFold($("fPayBody"), !payFolded);
     $("fPayFold").classList.toggle("open", !payFolded);
   }
@@ -22824,6 +22874,12 @@
   bindPayInput("fRate", function (v) { fRate = v; });
   bindPayInput("fExpense", function (v) { fExpense = v; });
   bindPayInput("fPrepay", function (v) { fPrepay = v; fPrepayAuto = false; });
+  /* Три поля одной суммы: вписали любое — хранится месяц, два других
+     пересчитаны от него. Поле, в котором печатают, не трогаем */
+  function monShow(id, v) { if (document.activeElement !== $(id)) $(id).value = v ? Math.round(v) : ""; }
+  bindPayInput("fMonMonth", function (v) { fRepMonthly = v; });
+  bindPayInput("fMonShoot", function (v) { fRepMonthly = v * repFirstCount(); });
+  bindPayInput("fMonHour", function (v) { fRepMonthly = v * (fDur / 60) * repFirstCount(); });
   /* Количество — степпером: в поле пальцем цифры вводить неудобно */
   /* Кнопки — для «на один больше», поле — для «их пятьдесят».
      Предел поднят до 9999: партия предметки бывает и в тысячу кадров */
@@ -23638,7 +23694,9 @@
     flat:   { m: "flat" },
     pack:   { m: "flat" },
     object: { m: "unit",   unit: true },
-    item:   { m: "unit",   unit: true }
+    item:   { m: "unit",   unit: true },
+    /* Только у повтора: сумма за месяц у группы, у карточки — доля месяца */
+    monthly: { m: "monthly" }
   };
   var GENRE = {
     /* Пакет есть у всех, кто работает с людьми: у портретного фотографа это
@@ -28478,7 +28536,7 @@
          превью в черновике занимали место в `localStorage` вторым слоем. */
       sid: fId,
       route: routeFromEditor(),
-      repDraft: fRep !== "never" ? { rule: fRep, n: fRepN, on: fRepOn } : undefined
+      repDraft: fRep !== "never" ? { rule: fRep, n: fRepN, on: fRepOn, monthly: fRepMonthly } : undefined
     };
   }
   /* «Хотя бы одно поле заполнено» (Алексей, 24 августа 2026) — форма,
@@ -28496,6 +28554,7 @@
     if (strs.some(function (v) { return (v || "").trim(); })) return true;
     if (Array.isArray(o.persons) && o.persons.some(function (p) { return (p.n || "").trim() || (p.tel || "").trim(); })) return true;
     if (+o.guests > 0 || +o.prepay > 0 || +o.rate > 0) return true;
+    if (o.repDraft && +o.repDraft.monthly > 0) return true;   // сумма «в месяц» — та же ставка
     if ((o.docs || []).length || (o.gear || []).length) return true;
     /* Набранный мудборд — тоже набранное руками: человек мог не написать ни
        строчки, а собрать двадцать кадров, и потерять их закрытием формы
@@ -28541,6 +28600,7 @@
       fRep = s.repDraft.rule;
       fRepN = clamp(+s.repDraft.n || REP_DEF_N, REP_MIN, REP_MAX);
       for (var rk in REP_BLOCKS) if (s.repDraft.on && rk in s.repDraft.on) fRepOn[rk] = s.repDraft.on[rk] ? 1 : 0;
+      fRepMonthly = +s.repDraft.monthly || 0;
     }
     fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
     shootType = s.type;
@@ -28576,7 +28636,7 @@
     $("fP2Name").value = (ps[1] && ps[1].n) || "";
     $("fP2Tel").value = (ps[1] && ps[1].tel) || "";
     // Оплата сохранённой съёмки — свёрнута: данные уже введены
-    fPay = (s.pay && genreSpec(s.type).pay.indexOf(s.pay) >= 0) ? s.pay : genreSpec(s.type).pay[0];
+    fPay = (s.pay && (genreSpec(s.type).pay.indexOf(s.pay) >= 0 || s.pay === "monthly")) ? s.pay : genreSpec(s.type).pay[0];
     fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
     fCurrency = sessionCurrency(s);
     /* Новых полей у старой записи нет вовсе — это пустое поле, а не поломка
@@ -28650,7 +28710,7 @@
   function openForm(d, startMin, idx, fromLight, kind) {
     editIdx = (idx === undefined || idx === null) ? null : idx;
     formKind = kind || "shoot";
-    fRep = "never"; fRepN = REP_DEF_N; fRepOn = repDefaults(); fRepOf = null;
+    fRep = "never"; fRepN = REP_DEF_N; fRepOn = repDefaults(); fRepOf = null; fRepMonthly = 0;
     var draftRestored = false;
     if (editIdx !== null) {
       var s = sessions[editIdx];
@@ -29060,6 +29120,35 @@
     }
     return out;
   }
+  /* Месяц помесячной оплаты — от первой съёмки группы, абонемент с 14-го по
+     13-е (Алексей, 13 сентября 2026). Номер месяца от начала; месяц без
+     такого числа кончается своим последним днём: от 31 января первый — по
+     28 февраля, второй — с 1 по 30 марта */
+  function repPeriodIndex(start, date) {
+    var a = new Date(start), d = new Date(date);
+    var k = (d.getFullYear() - a.getFullYear()) * 12 + d.getMonth() - a.getMonth();
+    return d.getDate() < a.getDate() ? k - 1 : k;
+  }
+  /* Доля месяца: сумма группы поровну между живыми помесячными карточками
+     этого месяца (Алексей, 14 сентября 2026). Удалённая выпадает — доли
+     остальных растут, месяц не падает. Карточка со своим гонораром в счёт
+     идёт: её число — доплата или скидка, доли соседей оно не двигает.
+     Пробник формы — та же карточка, её узнаём по знаку */
+  function repShare(s) {
+    var rep = s && s.rep;
+    if (!rep || !rep.monthly) return 0;
+    var k = repPeriodIndex(rep.start, s.date), n = 1;
+    sessions.forEach(function (x) {
+      if (x.id !== s.id && x.rep && x.rep.g === rep.g && x.pay === "monthly"
+          && repPeriodIndex(rep.start, x.date) === k) n++;
+    });
+    return rep.monthly / n;
+  }
+  /* Сколько карточек заводимой группы ложится в первый месяц — на столько
+     делится сумма в поле «за съёмку» (Алексей, 14 сентября 2026) */
+  function repFirstCount() {
+    return repDates(fDate, fRep, fRepN).filter(function (d) { return repPeriodIndex(fDate, d) === 0; }).length;
+  }
   function renderRep() {
     var can = repEditable(), on = can && fRep !== "never";
     /* Карточка из группы: строка остаётся, но это сведения, а не выбор —
@@ -29130,7 +29219,7 @@
     b.addEventListener("click", function () {
       openRepMenu(false);
       fRep = b.dataset.rep;
-      renderRep(); scheduleDraftSave();
+      renderRep(); renderPay(); scheduleDraftSave();
     });
   });
   var fwRep = $("fwRep");
@@ -29139,7 +29228,7 @@
     if (openRow !== "fRepN") return;
     var n = wheelIndex(fwRep) + REP_MIN;
     if (n === fRepN) return;
-    fRepN = n; renderRep(); scheduleDraftSave();
+    fRepN = n; renderRep(); renderPay(); scheduleDraftSave();
   });
   document.querySelectorAll("#formOverlay .rep-blk .toggle").forEach(function (t) {
     t.addEventListener("click", function () {
@@ -29157,11 +29246,16 @@
   function repMake(rec) {
     var dates = repDates(rec.date, fRep, fRepN), g = newId(), on = fRepOn;
     rec.rep = { g: g, rule: fRep, i: 1, n: dates.length };
+    /* Помесячная сумма и начало месяцев — в сведениях каждой карточки:
+       удаление первой не уносит их с собой */
+    var mon = fPay === "monthly" ? { monthly: fRepMonthly, start: rec.date.toISOString() } : null;
+    if (mon) { rec.rep.monthly = mon.monthly; rec.rep.start = mon.start; }
     var src = boardOfSession(rec, false);
     dates.slice(1).forEach(function (d, k) {
       var c = JSON.parse(JSON.stringify(rec));
       c.id = newId(); c.date = d;
       c.rep = { g: g, rule: fRep, i: k + 2, n: dates.length };
+      if (mon) { c.rep.monthly = mon.monthly; c.rep.start = mon.start; }
       c.bookingRef = null; c.rentReq = null;
       c.prepay = 0; c.delivered = false; c.deliveredAt = null; c.questSent = null;
       delete c.fromMeetOn; delete c.fromMeetId; delete c.grewOn; delete c.grewToId; delete c.telLog;
