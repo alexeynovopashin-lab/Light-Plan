@@ -3890,6 +3890,10 @@
   .scope-menu .ic svg { width: 19px; height: 19px; fill: none; stroke: var(--ink-4);
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .scope-menu button.on .ic svg { stroke: var(--ink); }
+  /* Веер повтора стоит над формой съёмки: форма — оверлей на слое 80 */
+  .rep-scrim { z-index: 90; }
+  .rep-menu { z-index: 91; transform-origin: calc(100% - 20px) -10px; }
+  .rep-sum { margin: 0; padding: 11px 15px 13px; line-height: 1.45; }
   .plan-title {
     flex: 0 1 auto; min-width: 0; background: none; border: none; padding: 4px;
     /* 18, а не 19: разницы на глаз нет, а последние 5px решали. При 19px не
@@ -8613,6 +8617,7 @@
           <button type="button" id="fGuestsPlus" aria-label="Больше" data-i18n-aria="form.more">+</button>
         </span>
       </div>
+      <div class="row sep rep-blk" data-rep="client" hidden><span class="rl" data-i18n="rep.client">Повторять клиента</span><span class="toggle" role="switch"></span></div>
     </div>
 
     <!-- Время отделено от жанра: между ними встал клиент. Съёмку называют
@@ -8661,6 +8666,22 @@
           <div class="wheel narrow" data-w="min" id="fwEM"></div>
         </div>
       </div>
+      <!-- Повтор заводит независимые копии съёмки один раз, при сохранении:
+           главной и зависимой нет, общее у них только ключ группы. Правило —
+           веером с галочкой, как вид «Съёмок»; количество — барабаном
+           (docs: ROADMAP, «Повтор съёмки — поле в карточке»). -->
+      <div class="row sep" id="fRepRow" hidden><span class="rl" data-i18n="rep.label">Повтор</span>
+        <span class="rv"><span class="caps"><button type="button" class="rv-v" id="fRepVal">—</button></span></span>
+      </div>
+      <div class="row sep" id="fRepNRow" hidden><span class="rl" data-i18n="rep.count">Сколько раз</span>
+        <span class="rv"><span class="caps"><button type="button" class="rv-v" id="fRepNVal">—</button></span></span>
+      </div>
+      <div class="inline" id="fRepNPick">
+        <div class="ip"><div class="pick-band"></div>
+          <div class="wheel" data-w="rep" id="fwRep"></div>
+        </div>
+      </div>
+      <div class="f-hint rep-sum sep" id="fRepSum" hidden>—</div>
     </div>
 
     <!-- Место и адрес — своя группа, а не половина строки «Место и клиент».
@@ -8792,6 +8813,7 @@
         <span class="rt-no"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
         <span data-i18n="form.addStopShort">Точка</span>
       </button>
+      <div class="row sep rep-blk" data-rep="route" hidden><span class="rl" data-i18n="rep.route">Повторять место и маршрут</span><span class="toggle" role="switch"></span></div>
     </div>
 
     <!-- Заметки, оборудование и плейлист
@@ -8800,6 +8822,7 @@
     <div class="g-label" data-i18n="card.notes">Заметки</div>
     <div class="group">
       <textarea id="fNotes" placeholder="Оборудование, договорённости, заметки" data-i18n-ph="form.notesPh"></textarea>
+      <div class="row sep rep-blk" data-rep="notes" hidden><span class="rl" data-i18n="rep.notes">Повторять заметки</span><span class="toggle" role="switch"></span></div>
       <!-- Список техники ведёт сам фотограф — каталога не навязываем. Один
            общий список хранится в настройках, а что взято на эту съёмку —
            в записи (docs: ROADMAP, «Список оборудования») -->
@@ -8807,6 +8830,7 @@
         <span data-i18n="form.kit">Оборудование</span>
         <span class="rv"><span id="fKitSummary">—</span></span>
       </button>
+      <div class="row sep rep-blk" data-rep="kit" hidden><span class="rl" data-i18n="rep.kit">Повторять оборудование</span><span class="toggle" role="switch"></span></div>
       <!-- Плейлист съёмки. Ссылки здесь нет: список общий и живёт в
            настройках («Съёмки» → «Плейлисты»). Здесь только выбор — тумблер
            отвечает «нужна ли на этой съёмке музыка», барабан — «какая».
@@ -8828,6 +8852,7 @@
           <div class="wheel" data-w="pl" id="fwPL"></div>
         </div>
       </div>
+      <div class="row sep rep-blk" data-rep="playlist" hidden><span class="rl" data-i18n="rep.playlist">Повторять плейлист</span><span class="toggle" role="switch"></span></div>
     </div>
 
     <!-- Маршрут дня: жанру, который длится целый день, часы начала и конца
@@ -8839,6 +8864,7 @@
     <div class="group" id="fOrderGroup" hidden>
       <textarea id="fBrief" placeholder="Техническое задание: что снять, в каком виде сдать" data-i18n-ph="form.briefPh"></textarea>
       <textarea class="sep" id="fModels" placeholder="Модели: имя и телефон, по одной в строке" data-i18n-ph="form.modelsPh" hidden></textarea>
+      <div class="row sep rep-blk" data-rep="brief" hidden><span class="rl" data-i18n="rep.brief">Повторять задание и модели</span><span class="toggle" role="switch"></span></div>
       <!-- Вид документа выбирается до добавления, как папка у референсов:
            он же фильтр списка, он же метка для новых файлов -->
       <div class="rf-tags wrap sep" id="docKinds"></div>
@@ -8852,11 +8878,13 @@
       </div>
       <input type="file" id="docFile" multiple hidden>
       <div class="ref-note" id="docNote" hidden></div>
+      <div class="row sep rep-blk" data-rep="docs" hidden><span class="rl" data-i18n="rep.docs">Повторять документы</span><span class="toggle" role="switch"></span></div>
     </div>
 
     <div class="g-label" id="fWishLabel" data-i18n="form.wish">Нужна погода</div>
     <div class="group" id="fWishGroup">
       <div class="g-chips"><div class="chips" id="fWish"></div></div>
+      <div class="row sep rep-blk" data-rep="wish" hidden><span class="rl" data-i18n="rep.wish">Повторять пожелания к погоде</span><span class="toggle" role="switch"></span></div>
     </div>
 
     <!-- Референсы: картинки едут на Диск фотографа, ссылки живут строкой -->
@@ -8920,6 +8948,7 @@
         <div class="f-hint" id="fDelvHint">—</div>
       </div>
       <div class="row sep" id="fDoneRow"><span class="rl" data-i18n="form.delivered">Материал сдан</span><span class="toggle" id="fDone"></span></div>
+      <div class="row sep rep-blk" data-rep="delivery" hidden><span class="rl" data-i18n="rep.delivery">Повторять срок сдачи</span><span class="toggle" role="switch"></span></div>
     </div>
 
     <!-- Оплата — деньги живут только внутри «Съёмок» (Anti-Goals) -->
@@ -8936,6 +8965,7 @@
       <div class="strip" id="fMbStrip" hidden></div>
       <input type="file" id="refFile" accept="image/*" multiple hidden>
       <div class="ref-note" id="refNote" hidden></div>
+      <div class="row sep rep-blk" data-rep="refs" hidden><span class="rl" data-i18n="rep.refs">Повторять мудборд</span><span class="toggle" role="switch"></span></div>
     </div>
 
     <button class="danger" id="fDelete" data-i18n="card.delShoot" hidden>Удалить</button>
@@ -9659,6 +9689,17 @@
     <button data-scope="month"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_month"></span><span data-i18n="plan.viewMonth">Один месяц</span></button>
     <button data-scope="week"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_week"></span><span data-i18n="plan.viewWeek">Неделя</span></button>
     <button data-scope="day"><span class="mk" data-ic="check"></span><span class="ic" data-ic="view_day"></span><span data-i18n="plan.viewDay">Один день</span></button>
+  </div>
+  <!-- Веер правила повтора — та же форма, что у вида «Съёмок», но над формой
+       съёмки: та живёт оверлеем, и веер обязан лечь поверх неё -->
+  <div class="scope-scrim rep-scrim" id="repScrim" hidden></div>
+  <div class="scope-menu rep-menu" id="repMenu" hidden>
+    <button data-rep="never"><span class="mk" data-ic="check"></span><span data-i18n="rep.never">Никогда</span></button>
+    <button data-rep="day"><span class="mk" data-ic="check"></span><span data-i18n="rep.day">Каждый день</span></button>
+    <button data-rep="week"><span class="mk" data-ic="check"></span><span data-i18n="rep.week">Каждую неделю</span></button>
+    <button data-rep="week2"><span class="mk" data-ic="check"></span><span data-i18n="rep.week2">Каждые 2 недели</span></button>
+    <button data-rep="month"><span class="mk" data-ic="check"></span><span data-i18n="rep.month">Каждый месяц</span></button>
+    <button data-rep="year"><span class="mk" data-ic="check"></span><span data-i18n="rep.year">Каждый год</span></button>
   </div>
 
   <!-- ============ ГДЕ СНИМАЕМ ============
@@ -19062,6 +19103,17 @@
   var fPrepayAuto = true;
   /* Гости — только у события дня; 0 значит «не указано», а не «нет гостей» */
   var fGuests = 0;
+  /* Повтор: правило, сколько всего карточек вместе с этой (до 100), какие
+     блоки переносятся в копии. `fRepOf` — сведения о группе у правимой
+     карточки: она уже создана повтором, и второй раз группу не заводят.
+     Умолчания блоков — Алексей, 13 сентября 2026: клиент, маршрут,
+     оборудование, мудборд, плейлист, задание и модели, документы, пожелания
+     к погоде, срок сдачи — вкл; заметки — выкл. */
+  var REP_RULES = ["never", "day", "week", "week2", "month", "year"];
+  var REP_MIN = 2, REP_MAX = 100, REP_DEF_N = 4;
+  var REP_BLOCKS = { client: 1, route: 1, kit: 1, refs: 1, playlist: 1, notes: 0,
+                     brief: 1, docs: 1, wish: 1, delivery: 1 };
+  var fRep = "never", fRepN = REP_DEF_N, fRepOn = {}, fRepOf = null;
   /* Знак записи, с которой работает форма. Раньше он рождался только при
      «Сохранить», и до этой минуты у съёмки не было ничего, к чему привязать
      подборку, — поэтому кадры и лежали в форме своим списком `fRefs`, а
@@ -23097,12 +23149,13 @@
     ["fStartDate", "fStartDatePick"], ["fStart", "fStartPick"],
     ["fEndDate", "fEndDatePick"],     ["fEnd", "fEndPick"],
     ["fMusic", "fMusicPick"],
+    ["fRepN", "fRepNPick"],
     ["fStopTime", "fStopTimePick"],   ["fStopEnd", "fStopEndPick"],
     ["fHall", "fHallPick"]
   ];
   // Подсветку носит капсула, а не строка: в строке их теперь две
   var CAP = { fStartDate: "fStartDate", fStart: "fStartVal", fEndDate: "fEndDate", fEnd: "fEndVal",
-              fMusic: "fMusicVal" };
+              fMusic: "fMusicVal", fRepN: "fRepNVal" };
   var openRow = null;
   /* У промежутка точки капсула не одна на форму: своя в каждой ячейке списка,
      и подсветку носит та, которую тронули. Остальные строки отвечают своим
@@ -23185,6 +23238,7 @@
       for (var hi = 0; hi < hl.length; hi++) if (hl[hi].id === hr.hallId) at = hi + 1;
       syncWheel(fwHall, at);
     }
+    if (id === "fRepN") syncWheel(fwRep, fRepN - REP_MIN);
     if (id === "fMusic") {
       var at = 0;
       for (var pi = 0; pi < playlists.length; pi++) if (playlists[pi].n === fPlaylist) { at = pi; break; }
@@ -25447,12 +25501,12 @@
     blocksOn(day).forEach(function (b) {
       var name = blockLabel(b);
       if (b.allDay) {
-        out.push({ w: 3, t: LANG.t("clash.dayBusyT"), m: LANG.t("clash.dayBusyM", { name: name }) });
+        out.push({ n: name, w: 3, t: LANG.t("clash.dayBusyT"), m: LANG.t("clash.dayBusyM", { name: name }) });
         return;
       }
       var bEnd = b.min + b.dur;
       if (min < bEnd && b.min < end) {
-        out.push({ w: 3, t: LANG.t("clash.timeBusyT"),
+        out.push({ n: name, w: 3, t: LANG.t("clash.timeBusyT"),
           m: LANG.t("clash.timeBusyM", { name: name, when: range(b.min, bEnd) }) });
       }
     });
@@ -25470,7 +25524,7 @@
       var oTo = momentOf(s.date, sEnd, s.placeLat, s.placeLon);
       /* Пересечение времени — тяжелее всего: быть в двух местах разом нельзя */
       if (myFrom < oTo && oFrom < myTo) {
-        out.push({ w: 3, t: LANG.t("clash.overlapT"),
+        out.push({ n: name, w: 3, t: LANG.t("clash.overlapT"),
           m: LANG.t("clash.overlapM", { name: name, when: when }) });
         return;
       }
@@ -25487,7 +25541,7 @@
          Поэтому выезд отвечает сам, до всякой дороги, и весом наравне с
          пересечением времени: успеть нельзя, а не «впритык». */
       if ((trip || s.trip) && otherPlace && place && otherPlace !== place) {
-        out.push({ w: 3, t: LANG.t("clash.tripDayT"),
+        out.push({ n: name, w: 3, t: LANG.t("clash.tripDayT"),
           m: LANG.t("clash.tripDayM", { name: name, when: when,
             place: [placeText(s), s.place && s.placeTown ? s.placeTown : ""].filter(Boolean).join(", ") }) });
         return;
@@ -25505,14 +25559,14 @@
            Снятая руками отметка выше по-прежнему закрывает разговор: человек
            ответил «успею», и спорить с ним числами нельзя. */
         if (mins != null && mins > FLY_MIN) {
-          out.push({ w: 3, t: LANG.t("clash.tripFarT"),
+          out.push({ n: name, w: 3, t: LANG.t("clash.tripFarT"),
             m: LANG.t("clash.tripFarM", { name: name, when: when,
               place: [placeText(s), s.place && s.placeTown ? s.placeTown : ""].filter(Boolean).join(", "),
               need: roughDur(mins) }) });
           return;
         }
         if (mins != null && gap < mins) {
-          out.push({ w: 2, t: LANG.t("clash.tripShortT"),
+          out.push({ n: name, w: 2, t: LANG.t("clash.tripShortT"),
             /* Длительностью, а не числом минут: «2900 минут» человек не
                читает, а «48 ч 20 мин» читает сразу. Тот же `durLabel`, что
                держит длительность съёмки, — второго языка для времени в
@@ -25522,7 +25576,7 @@
           return;
         }
         if (mins == null && gap < travelMin) {
-          out.push({ w: 2, t: LANG.t("clash.tripTightT"),
+          out.push({ n: name, w: 2, t: LANG.t("clash.tripTightT"),
             m: LANG.t("clash.tripTightM", { name: name, when: when,
               gap: durLabel(gap) }) });
           return;
@@ -25532,7 +25586,7 @@
          Единственное предупреждение, которое рождается из световой модели */
       var otherWants = Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []);
       if (wants.indexOf("sunset") >= 0 && otherWants.indexOf("sunset") >= 0) {
-        out.push({ w: 1, t: LANG.t("clash.bothSunsetT"),
+        out.push({ n: name, w: 1, t: LANG.t("clash.bothSunsetT"),
           m: LANG.t("clash.bothSunsetM", { name: name, when: when }) });
       }
     });
@@ -25900,6 +25954,7 @@
     var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
+    renderRep();
   }
   /* ============================================================
      КАРТОЧКА СЪЁМКИ
@@ -28405,7 +28460,8 @@
          довольно помнить её знак. Заодно это чинит старую неровность —
          превью в черновике занимали место в `localStorage` вторым слоем. */
       sid: fId,
-      route: routeFromEditor()
+      route: routeFromEditor(),
+      repDraft: fRep !== "never" ? { rule: fRep, n: fRepN, on: fRepOn } : undefined
     };
   }
   /* «Хотя бы одно поле заполнено» (Алексей, 24 августа 2026) — форма,
@@ -28461,6 +28517,14 @@
      который разойдётся с первым на первой же правке. */
   function fillFormFrom(s) {
     fLight = s.min % timeStep !== 0;   // некруглая минута — значит её назвал свет
+    /* У записи `rep` — сведения о созданной группе; у черновика `repDraft` —
+       ещё не созданный повтор, который форма обязана вернуть как был */
+    fRepOf = s.rep && s.rep.g ? s.rep : null;
+    if (s.repDraft && REP_RULES.indexOf(s.repDraft.rule) >= 0) {
+      fRep = s.repDraft.rule;
+      fRepN = clamp(+s.repDraft.n || REP_DEF_N, REP_MIN, REP_MAX);
+      for (var rk in REP_BLOCKS) if (s.repDraft.on && rk in s.repDraft.on) fRepOn[rk] = s.repDraft.on[rk] ? 1 : 0;
+    }
     fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
     shootType = s.type;
     shootSub = subOk(s.type, s.sub) ? s.sub : "";
@@ -28569,6 +28633,7 @@
   function openForm(d, startMin, idx, fromLight, kind) {
     editIdx = (idx === undefined || idx === null) ? null : idx;
     formKind = kind || "shoot";
+    fRep = "never"; fRepN = REP_DEF_N; fRepOn = repDefaults(); fRepOf = null;
     var draftRestored = false;
     if (editIdx !== null) {
       var s = sessions[editIdx];
@@ -28931,6 +28996,163 @@
     }
     renderMusicRow(); scheduleDraftSave();
   });
+
+  /* ---------- Повтор съёмки ----------
+     Копии заводятся один раз, при сохранении формы, и дальше живут сами
+     по себе: главной и зависимой карточки нет (docs: ROADMAP, «Повтор съёмки
+     — поле в карточке»). Строка есть только у съёмки — встреча повтора не
+     просила — и только пока карточка не в группе. */
+  function repDefaults() {
+    var o = {};
+    for (var k in REP_BLOCKS) o[k] = REP_BLOCKS[k];
+    return o;
+  }
+  function repEditable() { return formKind === "shoot" && !fRepOf; }
+  /* Даты группы, первая — сама съёмка. Месяц без такого числа пропускается,
+     а не сдвигается на последний день: 31 января → 31 марта → 31 мая
+     (Алексей, 13 сентября 2026). Так же год от 29 февраля. «Сколько раз»
+     считает созданные карточки, пропуски в счёт не идут. */
+  function repDates(d0, rule, n) {
+    var out = [new Date(d0)], y = d0.getFullYear(), m = d0.getMonth(), dd = d0.getDate();
+    for (var k = 1; out.length < n && k <= n * 4; k++) {
+      var c = rule === "day" ? new Date(y, m, dd + k)
+        : rule === "week" ? new Date(y, m, dd + 7 * k)
+        : rule === "week2" ? new Date(y, m, dd + 14 * k)
+        : rule === "month" ? new Date(y, m + k, dd)
+        : new Date(y + k, m, dd);
+      if (c.getDate() !== dd && (rule === "month" || rule === "year")) continue;
+      c.setHours(d0.getHours(), d0.getMinutes(), 0, 0);
+      out.push(c);
+    }
+    return out;
+  }
+  function renderRep() {
+    var can = repEditable(), on = can && fRep !== "never";
+    $("fRepRow").hidden = !can;
+    $("fRepVal").textContent = LANG.t("rep." + fRep);
+    $("fRepNRow").hidden = !on;
+    if (!on && openRow === "fRepN") closeRows();
+    $("fRepNVal").textContent = LANG.count("unit.times", fRepN);
+    document.querySelectorAll("#formOverlay .rep-blk").forEach(function (row) {
+      var k = row.dataset.rep, t = row.querySelector(".toggle");
+      /* Плейлиста без библиотеки в форме нет — нет и вопроса, повторять ли его */
+      row.hidden = !on || (k === "playlist" && !(playlists && playlists.length));
+      t.classList.toggle("on", !!fRepOn[k]);
+      t.setAttribute("aria-checked", fRepOn[k] ? "true" : "false");
+    });
+    renderRepSum();
+  }
+  /* Итог до сохранения: сколько карточек, до какой даты и какие копии
+     ложатся на занятое. Копии на занятые даты всё равно создаются — решает
+     фотограф (Алексей: «наложения, если возникнут, — это важно и нужно»).
+     Спрашиваем `clashesFor` только про дни, где хоть что-то есть: сто дат по
+     всему списку съёмок на каждый поворот барабана — лишняя работа. */
+  function renderRepSum() {
+    var el = $("fRepSum"), on = repEditable() && fRep !== "never";
+    el.hidden = !on;
+    if (!on) return;
+    var dates = repDates(fDate, fRep, fRepN), busy = {}, hits = [];
+    sessions.forEach(function (s) { busy[dkey(new Date(s.date))] = true; });
+    var place = placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town });
+    dates.slice(1).forEach(function (d) {
+      if (!busy[dkey(d)] && !blocksOn(d).length) return;
+      var c = clashesFor(d, fMin, fMin + fDur, place, editIdx, wishes, sessionPlace.lat, sessionPlace.lon,
+        fTrip, fTripManual && !fTrip)[0];
+      if (c) hits.push(dMon(d) + " — " + (c.n || c.t));
+    });
+    var text = LANG.t("rep.sum", { n: LANG.count("unit.shoot", dates.length), last: dMon(dates[dates.length - 1]) });
+    if (hits.length) {
+      var list = hits.slice(0, 3).join("; ");
+      if (hits.length > 3) list += " " + LANG.t("rep.more", { n: hits.length - 3 });
+      text += " " + LANG.t("rep.clash", { n: hits.length, list: list });
+    }
+    el.textContent = text;
+  }
+  function openRepMenu(on) {
+    var menu = $("repMenu");
+    menu.hidden = !on;
+    $("repScrim").hidden = !on;
+    if (!on) return;
+    paintIcons(menu);
+    menu.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.rep === fRep); });
+    /* От капсулы, как веер вида от своей кнопки. Капсула стоит справа —
+       веер выравнивается по её правому краю; внизу экрана раскрывается вверх */
+    var dev = document.querySelector(".device"), dr = dev.getBoundingClientRect();
+    var ar = $("fRepVal").getBoundingClientRect(), w = menu.offsetWidth, h = menu.offsetHeight;
+    var top = ar.bottom - dr.top + 8;
+    if (top + h > dr.height - 12) top = ar.top - dr.top - h - 8;
+    menu.style.left = Math.round(clamp(ar.right - dr.left - w, 12, dr.width - w - 12)) + "px";
+    menu.style.top = Math.round(Math.max(12, top)) + "px";
+  }
+  $("fRepVal").addEventListener("click", function () { openRepMenu($("repMenu").hidden); });
+  $("repScrim").addEventListener("click", function () { openRepMenu(false); });
+  $("repMenu").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      openRepMenu(false);
+      fRep = b.dataset.rep;
+      renderRep(); scheduleDraftSave();
+    });
+  });
+  var fwRep = $("fwRep");
+  fill(fwRep, Array.apply(null, Array(REP_MAX - REP_MIN + 1)).map(function (_, i) { return String(i + REP_MIN); }));
+  attachWheel(fwRep, function () {
+    if (openRow !== "fRepN") return;
+    var n = wheelIndex(fwRep) + REP_MIN;
+    if (n === fRepN) return;
+    fRepN = n; renderRep(); scheduleDraftSave();
+  });
+  document.querySelectorAll("#formOverlay .rep-blk .toggle").forEach(function (t) {
+    t.addEventListener("click", function () {
+      var k = t.parentNode.dataset.rep;
+      fRepOn[k] = fRepOn[k] ? 0 : 1;
+      renderRep(); scheduleDraftSave();
+    });
+  });
+  /* Копии группы. Переносится всё, что записано, кроме того, что никогда не
+     переносится: бронь студии, отметки «оплачено» (предоплата), «сдано»,
+     отправленный опросник, связи со встречей и архив номеров — это факты
+     одной карточки. «Завершено» живёт по знаку записи и у копии не
+     возникает само. Время начала и конца едет всегда, дату задаёт правило.
+     Выключенный блок уходит в копию пустым, как у новой съёмки. */
+  function repMake(rec) {
+    var dates = repDates(rec.date, fRep, fRepN), g = newId(), on = fRepOn;
+    rec.rep = { g: g, rule: fRep, i: 1, n: dates.length };
+    var src = boardOfSession(rec, false);
+    dates.slice(1).forEach(function (d, k) {
+      var c = JSON.parse(JSON.stringify(rec));
+      c.id = newId(); c.date = d;
+      c.rep = { g: g, rule: fRep, i: k + 2, n: dates.length };
+      c.bookingRef = null; c.rentReq = null;
+      c.prepay = 0; c.delivered = false; c.deliveredAt = null; c.questSent = null;
+      delete c.fromMeetOn; delete c.fromMeetId; delete c.grewOn; delete c.grewToId; delete c.telLog;
+      if (!on.client) {
+        c.contact = ""; c.clientTel = ""; c.orgId = null; c.person = ""; c.phone = "";
+        c.persons = []; c.guests = 0; c.breed = "";
+      }
+      if (!on.route) {
+        c.route = []; c.place = ""; c.placeTown = myCity() || ""; c.placeAddr = "";
+        c.placeLat = LAT; c.placeLon = LON; c.placeCity = true;
+        c.studioId = null; c.hallId = null; c.rentFrom = null; c.rentTo = null;
+        c.trip = false; c.tripManual = false; c.tripPlace = "";
+      }
+      if (!on.notes) c.notes = "";
+      if (!on.kit) c.gear = [];
+      if (!on.playlist) delete c.playlist;
+      if (!on.brief) { c.brief = ""; c.models = ""; }
+      if (!on.docs) c.docs = [];
+      c.wish = on.wish ? rec.wish.slice() : [];
+      c.warn = on.wish ? wishesCheck(d) : null;
+      if (!on.delivery) c.deadlineChoice = "auto";
+      sessions.push(c);
+      /* Мудборд — копия подборки: кадр лежит в нескольких подборках без
+         копии байтов, подборка у каждой карточки своя */
+      if (on.refs && src && src.items && src.items.length) {
+        boards.push({ id: newId(), kind: "shoot", sid: c.id, genre: c.type, items: src.items.slice(),
+                      name: src.name || null, cover: src.cover || null });
+      }
+      syncBoardGenre(c);
+    });
+  }
   function renderKitList() {
     var host = $("kitList");
     host.innerHTML = equipment.length ? equipment.map(function (name, i) {
@@ -29517,8 +29739,12 @@
     var telGone = telRetire(prevRec ? shootTels(prevRec) : [], shootTels(rec),
       prevRec && prevRec.telLog);
     if (telGone.length) rec.telLog = telGone;
+    /* Правка карточки из группы хранит её сведения: форма собирает запись
+       заново, и без этой строки карточка молча выпала бы из группы */
+    if (fRepOf) rec.rep = fRepOf;
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
     syncBoardGenre(rec);
+    if (repEditable() && fRep !== "never") repMake(rec);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
     /* Настоящая запись легла в список — черновику, который её и держал,
