@@ -793,6 +793,7 @@
     "rep.sum":          "{n}, последняя — {last}.",
     "rep.clash":        "Наложения — {n}: {list}.",
     "rep.more":         "и ещё {n}",
+    "rep.info":         "{rule} · {i} из {n}",
 
     /* Свет и погода в карточке */
     "card.byDate":      "до {d}",
@@ -2528,6 +2529,7 @@
     "rep.sum":          "{n}, the last on {last}.",
     "rep.clash":        "Overlaps — {n}: {list}.",
     "rep.more":         "and {n} more",
+    "rep.info":         "{rule} · {i} of {n}",
 
     "card.byDate":      "by {d}",
     "card.noDataDay":   "no data for this day",
@@ -4119,6 +4121,7 @@
     "rep.sum": "{n}, la última el {last}.",
     "rep.clash": "Solapamientos — {n}: {list}.",
     "rep.more": "y {n} más",
+    "rep.info": "{rule} · {i} de {n}",
     "card.byDate": "para el {d}",
     "card.noDataDay": "no hay datos para ese día",
     "card.forecastFake": "pronóstico simulado",
@@ -5568,6 +5571,7 @@
     "rep.sum": "共{n}，最后一次：{last}。",
     "rep.clash": "冲突{n}处：{list}。",
     "rep.more": "另有{n}处",
+    "rep.info": "{rule} · 第{i}次，共{n}次",
     "card.byDate": "在{d}前",
     "card.noDataDay": "此日无数据",
     "card.forecastFake": "预报为模拟",

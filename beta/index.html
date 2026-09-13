@@ -399,6 +399,10 @@
       + '<path d="M3.2 9.2h17.6M3.2 14.4h17.6"/>',
     view_day:   '<rect x="3.2" y="4.4" width="17.6" height="15.2" rx="2"/>'
       + '<path d="M3.2 9.2h17.6M6.6 12.6h7.4M6.6 16h10.8"/>',
+    /* Повтор: карточка из группы, заведённой полем «Повтор». Петля с двумя
+       стрелками, а не круговая стрелка — та занята меткой «↺ сейчас» */
+    repeat:     '<path d="M16.4 3.6l3.2 3.2-3.2 3.2"/><path d="M4.4 11.4V10a3.2 3.2 0 0 1 3.2-3.2h12"/>'
+      + '<path d="M7.6 20.4l-3.2-3.2 3.2-3.2"/><path d="M19.6 12.6V14a3.2 3.2 0 0 1-3.2 3.2h-12"/>',
     /* Ползунки: настройка вида, как в «Настройках» приложения.
        Прежняя «шестерёнка» из круга и восьми лучей читалась солнцем */
     sliders: '<path d="M4 8h9M17.5 8H20M4 16h3M11.5 16H20"/>'
@@ -976,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=65"></script>
+<script src="lang.js?v=66"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -3731,6 +3735,12 @@
   .plan-row.busy .pr-time { color: var(--ink-4); font-size: 14px; }
   .plan-row.busy .pr-who { font-size: 15px; }
   .pr-ic { display: inline-flex; flex-shrink: 0; }
+  /* Знак повтора держится за имя, а не за край строки: имя перестаёт
+     растягиваться, хвост строки уходит вправо сам (у него margin-left: auto) */
+  .plan-row.rep .pr-who { flex: 0 1 auto; }
+  .pr-rep { display: inline-flex; flex-shrink: 0; margin-left: -5px; }
+  .pr-rep svg { width: 14px; height: 14px; fill: none; stroke: var(--ink-5);
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .pr-ic svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-4);
     stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -5234,6 +5244,10 @@
   .ev-head { margin: 2px 0 0; text-align: center; }
   .ev-head[hidden] { display: none; }
   .ev-sign { display: block; margin: 0 auto; line-height: 0; }
+  /* Абсолютный без смещений стоит там, где стоял бы в строке, но места не
+     занимает: знак жанра остаётся ровно по центру */
+  .ev-rep { position: absolute; margin: 7px 0 0 5px; }
+  .ev-sign .ev-rep svg { width: 16px; height: 16px; stroke: var(--ink-5); }
   .ev-sign svg { width: 40px; height: 30px; fill: none; stroke: var(--glyph); stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; }
   /* Имя карточки живёт одной строкой и ради этого ужимается. «Елена и
@@ -5753,6 +5767,8 @@
   /* Жанр рядом с именем, но тише его: он повторяет знак слева и служит
      подсказкой, а не подписью */
   .peek-in i { font-style: normal; color: var(--ink-6); flex-shrink: 0; }
+  .peek-rep { display: inline-flex; flex-shrink: 0; margin-left: -3px; }
+  .peek-in .peek-rep svg { width: 12px; height: 12px; stroke: var(--ink-5); }
   .peek-t { font-variant-numeric: tabular-nums; margin-left: auto; flex-shrink: 0; }
   /* Соседняя съёмка перекрывает эту по времени. Цветом, а не словом: слово
      заняло бы строку, а строк на краю три и каждая уже при деле */
@@ -8671,7 +8687,8 @@
            веером с галочкой, как вид «Съёмок»; количество — барабаном
            (docs: ROADMAP, «Повтор съёмки — поле в карточке»). -->
       <div class="row sep" id="fRepRow" hidden><span class="rl" data-i18n="rep.label">Повтор</span>
-        <span class="rv"><span class="caps"><button type="button" class="rv-v" id="fRepVal">—</button></span></span>
+        <span class="rv"><span class="caps"><button type="button" class="rv-v" id="fRepVal">—</button></span>
+          <span id="fRepInfo" hidden></span></span>
       </div>
       <div class="row sep" id="fRepNRow" hidden><span class="rl" data-i18n="rep.count">Сколько раз</span>
         <span class="rv"><span class="caps"><button type="button" class="rv-v" id="fRepNVal">—</button></span></span>
@@ -18061,10 +18078,10 @@
            Встречу и чужое событие правка не трогает: сдачи у них нет, и
            отрезок — единственное, что о них известно. */
         var past3 = !meet3 && !ev3 && eventPhase(s3) === "after";
-        return '<button type="button" class="plan-row" data-i="' + it.i + '">'
+        return '<button type="button" class="plan-row' + (s3.rep && s3.rep.g ? " rep" : "") + '" data-i="' + it.i + '">'
           + '<span class="pr-ic">' + (meet3 ? IC.svg("partner") : ev3 ? IC.svg("view_month") : typeSvg(s3)) + "</span>"
           + (past3 ? "" : '<span class="pr-time">' + fmt(it.a) + (meet3 || ev3 ? " – " + fmt(it.b) : "") + "</span>")
-          + '<span class="pr-who">' + esc(nm) + "</span>"
+          + '<span class="pr-who">' + esc(nm) + "</span>" + repSign(s3, "pr-rep")
           + (meet3 || ev3
              ? '<span class="pr-due">' + esc(LANG.t(meet3 ? "plan.meet" : "plan.event").toLowerCase()) + "</span>"
              : past3
@@ -26788,7 +26805,7 @@
         + ' style="width:calc(100% - ' + inset * 2 + 'px);top:' + top + 'px;z-index:' + (9 - k) + '">'
         + '<span class="peek-in">' + typeSvg(p.s)
         + "<i>" + esc(genre) + (name ? " ·" : "") + "</i>"
-        + (name ? "<b>" + esc(name) + "</b>" : "")
+        + (name ? "<b>" + esc(name) + "</b>" : "") + repSign(p.s, "peek-rep")
         + '<span class="peek-t' + (over ? " over" : "") + '">'
         + fmt(p.s.min) + " – " + fmt(end) + "</span></span>"
         + (town || spot ? '<span class="peek-sub"><span>' + esc(town) + "</span>"
@@ -26894,7 +26911,7 @@
     $("cdEvHead").hidden = false;
     $("cdEvHead").classList.toggle("is-meet", notWork(s));
     var spec = genreSpec(s.type), gr = groupSpec(s.type);
-    $("cdEvSign").innerHTML = typeSvg(s, null, 24);
+    $("cdEvSign").innerHTML = typeSvg(s, null, 24) + repSign(s, "ev-rep");
     setDeleteLabel(s);
 
     /* Крупно — то, чем съёмка называется: пара, клиент, организация.
@@ -29008,6 +29025,23 @@
     return o;
   }
   function repEditable() { return formKind === "shoot" && !fRepOf; }
+  /* «Каждую неделю · 3 из 7» — по живым карточкам группы, по порядку дат:
+     удалённая выпадает из счёта, и номера за ней сдвигаются (Алексей,
+     13 сентября 2026). Записанные при создании номер и счёт не читаются —
+     они помнят группу такой, какой её завели. */
+  function repInfo(rep) {
+    var me = editIdx !== null ? sessions[editIdx] : null;
+    var mates = sessions.filter(function (x) { return x.rep && x.rep.g === rep.g; })
+      .sort(function (a, b) { return new Date(a.date) - new Date(b.date) || a.min - b.min; });
+    var i = mates.indexOf(me), rule = LANG.t("rep." + rep.rule);
+    return i < 0 ? rule : LANG.t("rep.info", { rule: rule, i: i + 1, n: mates.length });
+  }
+  /* Знак повтора у карточки из группы: строка «Съёмок», край стопки, шапка */
+  function repSign(s, cls) {
+    if (!s || !s.rep || !s.rep.g) return "";
+    return '<span class="' + cls + '" role="img" aria-label="' + esc(LANG.t("rep.label")) + '">'
+      + IC.svg("repeat") + "</span>";
+  }
   /* Даты группы, первая — сама съёмка. Месяц без такого числа пропускается,
      а не сдвигается на последний день: 31 января → 31 марта → 31 мая
      (Алексей, 13 сентября 2026). Так же год от 29 февраля. «Сколько раз»
@@ -29028,7 +29062,13 @@
   }
   function renderRep() {
     var can = repEditable(), on = can && fRep !== "never";
-    $("fRepRow").hidden = !can;
+    /* Карточка из группы: строка остаётся, но это сведения, а не выбор —
+       без капсулы, без переключателей и без повторного создания */
+    var info = formKind === "shoot" && fRepOf ? repInfo(fRepOf) : "";
+    $("fRepRow").hidden = !can && !info;
+    $("fRepVal").parentNode.style.display = can ? "" : "none";
+    $("fRepInfo").hidden = !info;
+    $("fRepInfo").textContent = info;
     $("fRepVal").textContent = LANG.t("rep." + fRep);
     $("fRepNRow").hidden = !on;
     if (!on && openRow === "fRepN") closeRows();
