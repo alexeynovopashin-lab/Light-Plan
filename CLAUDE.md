@@ -104,10 +104,15 @@ re-sent with every subsequent request.
     - `SESSIONS_CHAT.md` is not in worktrees — read and append it by the
       absolute path in the main folder; announce which worktree you took;
     - verify in your worktree, never on `localhost:8788/beta/` — that server
-      and the simulator webclip show the main folder. Preview configs `wt-1`,
-      `wt-2`, `wt-3` serve the worktree on 8791–8793 (`localhost:879N/beta/`).
-      Before `preview_start`, check the port is free
-      (`lsof -iTCP:879N -sTCP:LISTEN`) — same name means someone else's server;
+      and the simulator webclip show the main folder. `preview_start` reads
+      the `launch.json` of the folder the session was launched from, not of
+      the worktree. Launched from `/Users/alexey/Documents/Light_Plan`: add
+      your own entry to that folder's `.claude/launch.json` — name
+      `wt-<task>`, `python3 -m http.server <port> -d Light_Plan/.claude/worktrees/<task>`,
+      port 8791–8799 — and delete it when done. Launched from the repo
+      folder: `wt-1`…`wt-3` (8791–8793) serve the current worktree. Either
+      way check the port is free first (`lsof -iTCP:<port> -sTCP:LISTEN`) —
+      a busy port is someone else's server. URL: `localhost:<port>/beta/`;
     - finish: commit in the worktree → `git fetch origin && git rebase origin/main`
       (re-verify if the rebase touched your files) → `git push origin HEAD:main`,
       never force; rejected → fetch and rebase again. Then
