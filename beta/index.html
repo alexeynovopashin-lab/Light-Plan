@@ -3748,22 +3748,6 @@
   .pr-ic svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-4);
     stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* Свайп влево по строке — как в родных списках iOS.
-     Удаление обратимо: под списком остаётся «Вернуть» */
-  .swipe { position: relative; overflow: hidden; }
-  .swipe-del {
-    position: absolute; right: 0; top: 0; bottom: 0; width: 92px;
-    display: flex; align-items: center; justify-content: center;
-    background: none; border: none; cursor: pointer;
-    font-family: inherit; font-size: 14px; color: var(--terra);
-  }
-  .swipe .plan-row {
-    position: relative; background: var(--surface);
-    transition: transform 0.32s cubic-bezier(0.25,1,0.4,1);
-    touch-action: pan-y;
-  }
-  .swipe.dragging .plan-row { transition: none; }
-  .swipe.open .plan-row { transform: translateX(-92px); }
   /* Плавает поверх текущей вкладки, а не живёт внутри одной из них — удаляют
      карточку чаще всего не со «Съёмок», и отмена обязана быть видна оттуда
      же, откуда удаляли. Тот же приём и уровень, что у #notif и #binTarget:
@@ -5224,7 +5208,6 @@
     color: var(--brass-deep); cursor: pointer;
   }
   .card-edit:active { opacity: 0.6; }
-  .card-trust { font-size: 11px; color: var(--ink-7); margin: 9px 4px 0; }
   /* Прогноз испортился — единственное, чего не умеет обычный календарь */
   .card-warn {
     font-size: 13px; color: var(--terra); margin: 10px 4px 0; line-height: 1.45;
@@ -7390,10 +7373,6 @@
       <!-- Свои точки — булавки сохранённых мест. Отдельно от компаса: это
            не про свет, а про то, что человек сам отметил на карте. -->
       <button data-layer="spots"><span class="mk" data-ic="check"></span><span class="ic" data-ic="pin"></span><span data-i18n="layer.spots">Мои места</span></button>
-      <!-- Осадки: радар, а не прогноз. Прогноз говорит «дождь», радар говорит
-           «ливень пройдёт мимо через двадцать минут» — на съёмке это разные
-           сведения, и переносить нельзя как раз тогда, когда важен второй -->
-      <button data-layer="rain"><span class="mk" data-ic="check"></span><span class="ic" data-ic="rain"></span><span data-i18n="layer.rain">Осадки</span></button>
     </div>
 
     <!-- Время выбранного момента — единственное, что переживает сворачивание -->
@@ -7413,9 +7392,6 @@
         <div class="t-row"><span class="t-label" data-i18n="map.golden">Золотой час</span><span class="t-value" id="mGolden">—</span></div>
         <div class="t-row"><span class="t-label" data-i18n="map.blue">Синий час</span><span class="t-value" id="mBlue">—</span></div>
         <div class="t-row"><span class="t-label" data-i18n="map.moon">Луна</span><span class="t-value" id="mMoon">—</span></div>
-        <!-- Радар говорит «сейчас», но снимок сделан до десяти минут назад:
-             без времени кадра это обещание, которое слой не держит -->
-        <div class="t-row" id="mRadarRow" hidden><span class="t-label" data-i18n="map.radar">Радар</span><span class="t-value" id="mRadar">—</span></div>
         <div class="t-row"><span class="t-label" data-i18n="map.spot">Точка съёмки</span><span class="t-value" id="mPoint">—</span></div>
         <!-- Ближайшее событие с отсчётом. Диапазоны выше отвечают на вопрос дня
              («когда золотой час»), а эта строка — на вопрос момента: сколько
@@ -8153,8 +8129,6 @@
         <span class="lg-v"><a href="https://maplibre.org/" target="_blank" rel="noopener">MapLibre GL JS</a> 4.7.1 · BSD-3-Clause</span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.weather">Погода</span>
         <span class="lg-v"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0</span></div>
-      <div class="lg-row" id="lgRadarRow"><span class="lg-k" data-i18n="lg.radar">Радар осадков</span>
-        <span class="lg-v"><a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a></span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.geocode">Поиск места</span>
         <span class="lg-v"><a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a> · OpenStreetMap</span></div>
       <div class="lg-row"><span class="lg-k" data-i18n="lg.placeName">Имя места</span>
@@ -8499,17 +8473,6 @@
       <div class="row sep" id="cdPlaceLine"><span class="rl" data-i18n="card.place">Место</span><span class="rv" id="cdPlace">—</span></div>
     </div>
 
-    <!-- Ради этого блока планировщик и существует: обычный календарь
-         знает время, но не знает, какой свет в это время будет -->
-    <div class="g-label" id="cdLightLabel" data-i18n="card.lightWx">Свет и погода</div>
-    <div class="group" id="cdLightGroup">
-      <div class="row"><span class="rl" data-i18n="tele.light">Свет</span><span class="rv" id="cdLight">—</span></div>
-      <div class="row sep"><span class="rl" data-i18n="tele.shadow">Тени</span><span class="rv" id="cdShadow">—</span></div>
-      <div class="row sep"><span class="rl" data-i18n="tele.sky">Небо</span><span class="rv" id="cdSky">—</span></div>
-      <div class="row sep" id="cdSunsetRow"><span class="rl" data-i18n="tele.sunset">Закат</span><span class="rv" id="cdSunset">—</span></div>
-      <div class="row"><span class="rl" data-i18n="tele.golden">Золотой час</span><span class="rv" id="cdGold">—</span></div>
-    </div>
-    <p class="card-trust" id="cdTrust">—</p>
     <p class="card-warn" id="cdWarn" hidden></p>
 
     <div class="g-label" id="cdDelvLabel" data-i18n="card.delivery">Сдача материала</div>
@@ -10218,13 +10181,6 @@
     for (var i = 0; i < 7; i++) out += "<span>" + dCap(abbr3(dtf(O_WD_S).format(new Date(2001, 0, 1 + i)))) + "</span>";
     return out;
   }
-  /* Промежуток дат одной строкой: «18–24 августа», «August 18 – 24»,
-     «8月18日～24日». Порядок и знак промежутка тоже свойство языка,
-     поэтому склейка через дефис отдаётся `Intl` целиком */
-  function dMonRange(a, b) {
-    try { return dTidy(dtf(O_DM).formatRange(a, b)); }
-    catch (e) { return dMon(a) + " – " + dMon(b); }   // formatRange новее самого Intl
-  }
 
   /* ---------- Часы: 24 или 12 с AM/PM ----------
      Это привычка, а не язык. В США говорят «7 PM», в России «19:00», а
@@ -10900,13 +10856,6 @@
     var q = r > 0.80 ? "excellent" : r > 0.62 ? "good" : r > 0.38 ? "plain"
           : r > 0.22 ? "fog" : "poor";
     qCache[key] = q; return q;
-  }
-  function trustOf(d) {
-    var days = Math.round((d - new Date().setHours(0,0,0,0)) / 86400000);
-    if (days < 0) return LANG.t("trust.past");
-    if (days <= 2) return LANG.t("trust.sure");
-    if (days <= 6) return LANG.t("trust.week");
-    return LANG.t("trust.far");
   }
 
   /* Детали погоды дня: температура, ветер, тренд облачности к окну съёмки */
@@ -12249,27 +12198,19 @@
     return cloudFresh().then(function () { return fn(cloudDrv()); });
   }
 
-  /* Пути, записанные до появления выбора, начинались с «app:/»: это был
-     адрес Яндекса, попавший в наши данные. Срезаем его на входе — старые
-     записи открываются как были, а миграции для этого не нужно. */
-  function relPath(p) { return String(p || "").replace(/^app:\/+/, ""); }
   function cloudEnsureDir(rel) {
-    rel = relPath(rel);
     if (!cloudOn()) return Promise.resolve();
     return cloudCall(function (d) { return d.ensureDir(rel); }).catch(function () {});
   }
   function cloudUpload(rel, blob) {
-    rel = relPath(rel);
     if (!cloudOn()) return Promise.reject(new Error(LANG.t("cloud.errNotLinked")));
     return cloudCall(function (d) { return d.upload(rel, blob); });
   }
   function cloudDownloadUrl(rel) {
-    rel = relPath(rel);
     if (!cloudOn()) return Promise.reject(new Error(LANG.t("cloud.errNotLinked")));
     return cloudCall(function (d) { return d.downloadUrl(rel); });
   }
   function cloudDelete(rel) {
-    rel = relPath(rel);
     if (!cloudOn()) return Promise.resolve();
     return cloudCall(function (d) { return d.remove(rel); }).catch(function () {});
   }
@@ -12851,7 +12792,7 @@
      системного перетаскивания: поднятая пальцем плитка падала обратно в свою
      же подборку через наш приём файлов. */
   function refImg(r, kind) {
-    if (!r || !r.im) return r && r.thumb ? '<img src="' + r.thumb + '" alt="" draggable="false">' : "";
+    if (!r || !r.im) return "";
     var k = kind || "t", have = blobUrl(r.im, k);
     return '<img data-bid="' + esc(r.im) + '" data-bk="' + k + '" draggable="false"'
       + (r.w && r.h ? ' width="' + r.w + '" height="' + r.h + '"' : "")
@@ -12971,34 +12912,6 @@
       .catch(function () { if (onFail) onFail(); });
   }
 
-  /* ---------- Перенос старых превью ----------
-     Начерно и один раз: данные в прототипе одноразовые, аккуратной миграции
-     не строим (15_MOODBOARD, «Старые данные переносятся один раз»).
-     Экранного размера у старых кадров нет — оригинал лежит на Диске.
-
-     Запись правится сразу, а байты уезжают в базу в фоне: снимок читают
-     ниже по файлу, и он должен быть уже новым к этому моменту. */
-  function dataToBlob(s) {
-    var i = s.indexOf(","), bin = atob(s.slice(i + 1)), a = new Uint8Array(bin.length);
-    for (var n = 0; n < bin.length; n++) a[n] = bin.charCodeAt(n);
-    return new Blob([a], { type: (s.slice(5, i).split(";")[0] || "image/jpeg") });
-  }
-  function migrateThumbs(root) {
-    var n = 0;
-    (function walk(o) {
-      if (!o || typeof o !== "object") return;
-      if (Array.isArray(o)) { o.forEach(walk); return; }
-      if (typeof o.thumb === "string" && o.thumb.slice(0, 5) === "data:") {
-        var id = blobId(), b = null;
-        try { b = dataToBlob(o.thumb); } catch (e) {}
-        if (b) { blobPut(id, "t", b).catch(function () {}); o.im = id; n++; }
-        delete o.thumb;
-      }
-      for (var k in o) walk(o[k]);
-    })(root);
-    return n;
-  }
-
   var saved = loadAll();
   /* Лента мудборда — то же правило свёрнутости, что у сводки дня: кто убрал
      плитки с глаз, тот убрал их и на следующий день. Читается здесь, а не
@@ -13013,9 +12926,6 @@
      создания первой подборки их можно не показывать»). Признак липкий:
      подборку могут опустошить или удалить, но узнанного это не отменяет. */
   mbSeen = !!(saved && saved.mbSeen);
-  /* Снимок худеет ровно один раз — после того, как всё ниже успело из него
-     прочитаться и записаться обратно */
-  if (migrateThumbs(saved)) setTimeout(function () { saveAll(); renderStorageInfo(); }, 0);
   /* Корзина: удалённые съёмки с их местом в списке и временем удаления.
      Даты внутри восстанавливаются так же, как у обычных записей.
      Читается сразу после `loadAll`, а не раньше: `var` поднимается вверх, но
@@ -13059,77 +12969,11 @@
      в каждой съёмке фотографа. Пока имя и ключ были одной строкой, перевести
      жанр было нельзя: перевод сломал бы данные.
      Теперь ключ — код (`wedding`), имя — строка словаря. */
-  var GENRE_CODE = {
-    "Портрет": "portrait", "Свадьбы": "wedding", "Праздник": "party",
-    "Лавстори": "lovestory", "Семья": "family", "Пейзаж": "landscape",
-    "Архитектура": "architecture", "Стрит": "street", "Репортаж": "report",
-    "Предметка": "product", "Реклама": "ad"
-  };
-  /* Имя жанра для экрана. Терпима к старым записям: пришло русское имя —
-     переводим в код на лету, пришло незнакомое — отдаём как есть, потому что
+  /* Имя жанра для экрана. Пришло незнакомое — отдаём как есть, потому что
      показать чужое слово честнее, чем пустоту */
   function genreName(g) {
-    var code = GENRE_CODE[g] || g;
-    var s = LANG.t("genre." + code);
-    return s === "genre." + code ? g : s;
-  }
-  /* Разовый перевод сохранённых данных с имён на коды. Трогает всё, где жанр
-     был ключом или значением: сами съёмки, включённые жанры, ручные правки
-     пресетов, наборы референсов и пакеты. Записи, заведённые до этой правки,
-     иначе потеряли бы и пресет формы, и свои пакеты. */
-  function migrateGenres(d) {
-    if (!d) return d;
-    var keys = function (o) {
-      if (!o || typeof o !== "object") return o;
-      var out = {};
-      for (var k in o) out[GENRE_CODE[k] || k] = o[k];
-      return out;
-    };
-    if (Array.isArray(d.sessions)) d.sessions.forEach(function (s) {
-      if (s && GENRE_CODE[s.type]) s.type = GENRE_CODE[s.type];
-    });
-    d.genres = keys(d.genres);
-    d.genrePrefs = keys(d.genrePrefs);
-    d.genreRefs = keys(d.genreRefs);
-    d.packs = keys(d.packs);
-    return d;
-  }
-  saved = migrateGenres(saved);
-  /* Пожелание к погоде — тот же приём: код внутри, имя на экране. Хранится
-     только в съёмке (`wish`), поэтому миграция короче жанровой. */
-  var WISH_CODE = {
-    "Неважно": "any", "Ясно": "clear", "Закат": "sunset", "Облачно": "cloudy",
-    "Туман": "fog", "Осадки": "rain", "Луна": "moon", "Звёзды": "stars"
-  };
-  function migrateWishes(d) {
-    if (!d || !Array.isArray(d.sessions)) return d;
-    d.sessions.forEach(function (s) {
-      if (!s) return;
-      if (Array.isArray(s.wish)) s.wish = s.wish.map(function (w) { return WISH_CODE[w] || w; });
-      else if (s.wish) s.wish = WISH_CODE[s.wish] || s.wish;
-    });
-    return d;
-  }
-  saved = migrateWishes(saved);
-  /* Вид документа — тот же приём в шестой раз, и это уже не совпадение:
-     строка, которую где-то сравнивают, всегда оказывается ключом. Вид лежал
-     русским словом в каждой бумаге (`kind`), по нему шёл фильтр в списках и
-     по нему же считалась цепочка сделки (`has("Договор")`). Перевести его,
-     не разведя код и имя, значило бы порвать и фильтры, и сделку. */
-  var DOC_KIND_CODE = {
-    "Договор": "contract", "Счёт": "invoice", "Чек": "receipt",
-    "Акт": "act", "ТЗ": "brief", "Реквизиты": "req"
-  };
-  function migrateDocKinds(d) {
-    if (!d) return d;
-    var fix = function (list) {
-      (Array.isArray(list) ? list : []).forEach(function (r) {
-        if (r && DOC_KIND_CODE[r.kind]) r.kind = DOC_KIND_CODE[r.kind];
-      });
-    };
-    (Array.isArray(d.sessions) ? d.sessions : []).forEach(function (s) { if (s) fix(s.docs); });
-    (Array.isArray(d.orgs) ? d.orgs : []).forEach(function (o) { if (o) fix(o.docs); });
-    return d;
+    var s = LANG.t("genre." + g);
+    return s === "genre." + g ? g : s;
   }
   var CURRENCIES = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"];
   var currency = (saved && CURRENCIES.indexOf(saved.currency) >= 0) ? saved.currency : "RUB";
@@ -13146,7 +12990,6 @@
     return d;
   }
   saved = migrateCurrency(saved);
-  saved = migrateDocKinds(saved);
   /* Папка референсов — седьмая по счёту. Фотограф раскладывает кадры по
      папкам («Сборы», «Детали»), имя папки лежит в самом кадре (`tag`) и по
      нему же идёт фильтр в четырёх списках. Свои папки, набранные руками,
@@ -13163,19 +13006,6 @@
     "Герой": "hero", "Общий": "wide", "Крупный": "closeUp", "Момент": "moment",
     "Передний план": "foreground", "Небо": "sky", "Кадр": "frame", "Геометрия": "geometry"
   };
-  function migrateRefTags(d) {
-    if (!d) return d;
-    var fix = function (list) {
-      (Array.isArray(list) ? list : []).forEach(function (r) {
-        if (r && r.tag && TAG_CODE[r.tag]) r.tag = TAG_CODE[r.tag];
-      });
-    };
-    (Array.isArray(d.sessions) ? d.sessions : []).forEach(function (x) { if (x) fix(x.refs); });
-    if (d.genreRefs) for (var g in d.genreRefs) fix(d.genreRefs[g]);
-    fix(d.shots);       // кадры фонда — те же теги, только уже не по спискам
-    return d;
-  }
-  saved = migrateRefTags(saved);
 
   /* ---------- Практика ведения дел ----------
      Третья ось, рядом с языком и валютой, и от них не зависящая. Договор,
@@ -13224,10 +13054,6 @@
     return "";
   }
   var practice = (saved && PRACTICE[saved.practice]) ? saved.practice : null;
-  /* Записи есть, а практики нет — это тот, кто работал до появления настройки.
-     У него была российская цепочка, ею и остаётся: он ничего не выбирал, и
-     менять правила задним числом нечестно. Спросим только новичка. */
-  if (!practice && saved && ((saved.sessions || []).length || (saved.orgs || []).length)) practice = "ru";
   var practiceAsked = !!practice;
   /* Выбрал ли практику сам человек. Город назначает её только новичку: если
      фотограф однажды поправил правила руками, справочник стран ему не
@@ -13280,14 +13106,6 @@
     }
     return s;
   }
-  /* Записям, заведённым до этой правки, знак раздаём разом при первом запуске
-     и тут же сохраняем: иначе он менялся бы при каждой загрузке, и ссылка,
-     отправленная вчера, назавтра не нашла бы свою запись */
-  (function () {
-    var added = 0;
-    sessions.forEach(function (s) { if (!s.id) { s.id = newId(); added++; } });
-    if (added) setTimeout(function () { saveAll(); }, 0);
-  })();
   function byId(id) {
     if (!id) return -1;
     for (var i = 0; i < sessions.length; i++) if (sessions[i].id === id) return i;
@@ -13345,25 +13163,7 @@
   /* Слои компаса. Солнце и луна были на карте всегда — умолчание сохраняет
      это, чтобы включение слоёв ничего не поменяло тем, кто их не открывал.
      Млечный Путь — новый слой и нишевый, включается по запросу */
-  /* Осадки временно сняты с карты (Алексей, 31 августа 2026). Две причины,
-     обе замерены, а не предположены:
-     1. Бесплатный кэш RainViewer отдаёт радар только до z7. С z8 и выше
-        вместо осадков приходит серая плашка «Zoom Level Not Supported» —
-        картинка одна и та же на весь мир, 1370 байт. Карта открывается на
-        z15, то есть слой не работал ни на одном рабочем масштабе, а честно
-        сообщал об этом ватермарком поверх города.
-     2. Радар мозаичный, из национальных сетей, и дыр в нём больше, чем
-        покрытия. Кадр от 31 августа: из 26 проверенных точек данные были в
-        15; пусто — Москва, Томск, Новосибирск, Екатеринбург, Стамбул, Дубай,
-        Каир, Алматы, Бали, Кейптаун, Мальдивы. Маска покрытия RainViewer
-        подтверждает: это не ясная погода, это край мозаики.
-     Слой без ключа не чинится: обе границы — политика поставщика. Код
-     оставлен целиком, флага достаточно, чтобы вернуть его вместе с ключом
-     RainViewer (тогда проверить заново обе границы — зум и покрытие). */
-  var RAIN_OK = false;
-  var mapLayers = (saved && saved.mapLayers) || { sun: true, moon: true, mw: false, rain: false };
-  if (mapLayers.rain === undefined) mapLayers.rain = false;   /* слой заведён позже прежних настроек */
-  if (!RAIN_OK) mapLayers.rain = false;   /* включённый прежде слой гаснет вместе с флагом */
+  var mapLayers = (saved && saved.mapLayers) || { sun: true, moon: true, mw: false };
   /* Компас и свои точки были на карте всегда, без вопроса — умолчание true
      сохраняет это тем, кто уже пользуется картой и о новом пункте меню не знает */
   if (mapLayers.compass === undefined) mapLayers.compass = true;
@@ -13565,15 +13365,6 @@
   function newSpotId() {
     return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
-  /* Точки существовали до ссылок на них: адрес в карточке копировал имя
-     строкой, и id был не нужен. Строка маршрута, привязанная к почасовому
-     месту, обязана читать его настройки живыми — id раздаём один раз, задним
-     числом, тем записям, что успели накопиться без него. */
-  (function migrateSpotIds() {
-    var touched = false;
-    spots.forEach(function (sp) { if (!sp.id) { sp.id = newSpotId(); touched = true; } });
-    if (touched) saveAll();
-  })();
   function spotById(id) {
     if (!id) return null;
     for (var i = 0; i < spots.length; i++) if (spots[i].id === id) return spots[i];
@@ -15736,13 +15527,6 @@
     var off = (lat != null && lon != null && isFinite(lat) && isFinite(lon)) ? tzAt(lat, lon, d) : TZ;
     return base - off * 3600000;
   }
-  /* Зона съёмки — по её точке; нет точки, значит она там же, где приложение */
-  function sessionTz(s, date) {
-    if (!s) return TZ;
-    var at = shootAt(s);
-    return at.lat != null ? tzAt(at.lat, at.lon, date || s.date) : TZ;
-
-  }
   /* Ответ о зоне приходит позже, чем нарисован экран: перерисовываем то, что
      открыто, — тем же приёмом, что у дороги (`clashesRefresh`) */
   function zonesRefresh() {
@@ -15968,67 +15752,6 @@
     applyMapStyle();
   }
 
-  /* ---------- Радар осадков ----------
-     RainViewer: открытый каталог кадров без ключа. Отдаёт список снимков за
-     последние два часа и ближайший прогноз; берём последний прошедший — это
-     «сейчас», а не модель.
-
-     Слой необязателен во всех смыслах: выключен по умолчанию, при отсутствии
-     сети просто не появляется, и карта работает как работала. Условие
-     бесплатного доступа — видимая атрибуция; она в «Правовой информации»
-     вместе с CARTO и OSM. */
-  var rainTiles = null, rainFrame = null, rainHost = "", rainAt = 0;
-  function fetchRadar() {
-    if (typeof fetch === "undefined" || rainFrame) return Promise.resolve();
-    return fetch("https://api.rainviewer.com/public/weather-maps.json")
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        var past = j && j.radar && j.radar.past;
-        if (!past || !past.length) return;
-        rainHost = j.host || "https://tilecache.rainviewer.com";
-        rainFrame = past[past.length - 1].path;
-        rainAt = past[past.length - 1].time * 1000;
-      }).catch(function () {});
-  }
-  /* Строка со временем снимка: она и есть честность слоя. Кадр обновляется
-     раз в десять минут, и «сейчас» на карте — это всегда немного «только
-     что» */
-  function renderRadarRow() {
-    var row = $("mRadarRow"); if (!row) return;
-    var show = !!(mapLayers.rain && rainAt);
-    row.hidden = !show;
-    if (!show) return;
-    var mins = Math.max(0, Math.round((Date.now() - rainAt) / 60000));
-    var d = new Date(rainAt);
-    $("mRadar").textContent = fmt(d.getHours() * 60 + d.getMinutes())
-      + (mins ? " · " + LANG.t("radar.ago", { n: mins }) : "");
-  }
-  function dropRain() {
-    if (!lmap || !rainTiles) return;
-    if (lmap.getLayer("rain")) lmap.removeLayer("rain");
-    if (lmap.getSource("rain")) lmap.removeSource("rain");
-    rainTiles = null;
-  }
-  function setMapRain(on) {
-    mapLayers.rain = RAIN_OK && !!on;
-    if (!lmap) return;
-    dropRain();
-    if (!mapLayers.rain) { renderRadarRow(); return; }
-    fetchRadar().then(function () {
-      renderRadarRow();
-      if (!mapLayers.rain || !rainFrame || !lmap || !lmap.isStyleLoaded()) return;
-      dropRain();
-      /* 256 — размер плитки, 2 — цветовая схема, 1_1 — сглаживание и снег
-         отдельным цветом. Полупрозрачно: радар кладётся на карту, а не вместо
-         неё, и метки съёмки должны читаться сквозь ливень. Растровый слой
-         поверх векторного стиля — движку это всё равно, источники смешиваются */
-      lmap.addSource("rain", { type: "raster", tileSize: 256, maxzoom: 7,
-        tiles: [rainHost + rainFrame + "/256/{z}/{x}/{y}/2/1_1.png"] });
-      lmap.addLayer({ id: "rain", type: "raster", source: "rain",
-        paint: { "raster-opacity": 0.62 } });
-      rainTiles = true;
-    });
-  }
   /* ---------- Отметки сохранённых точек на холсте ----------
      Список точек рисуется дважды разными способами, и это не дублирование:
      разметка знаков перестраивается только когда меняется сам список, а на
@@ -16988,9 +16711,6 @@
       localIdeographFontFamily: "'PingFang SC','Hiragino Sans GB','Noto Sans CJK SC',sans-serif"
     });
     lmap.touchZoomRotate.disableRotation();
-    /* Плитка приходит одна на всю колонку зумов, и проявлять её незачем:
-       затухание только растягивало бы подмену масштаба. */
-    lmap.on("load", function () { if (mapLayers.rain) setMapRain(true); });
     /* Отметки едут вместе с холстом: событие идёт на каждом кадре жеста,
        и обработчик поэтому двигает только `transform` уже готовых знаков */
     lmap.on("move", placeSpotMarks);
@@ -17175,13 +16895,13 @@
      встаёт обычное имя. Раньше короткие имена лежали таблицей в коде — то
      есть код знал язык интерфейса, хотя его дело ширина ячейки. */
   function shortGenre(t) {
-    var k = "genreShort." + (GENRE_CODE[t] || t), v = LANG.t(k);
+    var k = "genreShort." + t, v = LANG.t(k);
     return v === k ? genreName(t) : v;
   }
   /* Имя события: жанр названием чипса стоит во множественном («Свадьбы»),
      а событие — одно («Свадьба»). Тот же приём с запасным именем. */
   function evName(t) {
-    var k = "genreEv." + (GENRE_CODE[t] || t), v = LANG.t(k);
+    var k = "genreEv." + t, v = LANG.t(k);
     return v === k ? genreName(t) : v;
   }
 
@@ -17339,11 +17059,6 @@
     var o = { rise: SUN.rise, set: SUN.set, blueA: SUN.blueA, goldA: SUN.goldA, goldB: SUN.goldB, blueB: SUN.blueB };
     computeSun(keep);
     return o;
-  }
-  function weekLabel(a, b) {
-    return a.getMonth() === b.getMonth()
-      ? dMonRange(a, b)
-      : dMonShort(a) + " – " + dMonShort(b);
   }
   function renderWeek() {
     /* Неделю смотрят про занятость, а не про свет: где день занят целиком,
@@ -18587,43 +18302,6 @@
        одно и обязано было договаривать за знак */
   }
 
-  /* ---------- Свайп влево по строке съёмки ---------- */
-  var SWIPE_W = 92;
-  function closeSwipes() {
-    var open = document.querySelectorAll("#dpSessions .swipe.open");
-    open.forEach(function (s) { s.classList.remove("open"); });
-    return open.length > 0;
-  }
-  function attachSwipe(row) {
-    var box = row.parentNode, x0 = 0, y0 = 0, dragging = false;
-    row.addEventListener("pointerdown", function (e) {
-      x0 = e.clientX; y0 = e.clientY; dragging = false; row._moved = false;
-    });
-    row.addEventListener("pointermove", function (e) {
-      if (e.buttons === 0 && e.pointerType === "mouse") return;
-      var dx = e.clientX - x0, dy = e.clientY - y0;
-      // вертикальное движение принадлежит прокрутке, горизонтальное — свайпу
-      if (!dragging && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
-        dragging = true; row._moved = true; box.classList.add("dragging");
-        row.setPointerCapture && row.setPointerCapture(e.pointerId);
-      }
-      if (!dragging) return;
-      var open = box.classList.contains("open") ? -SWIPE_W : 0;
-      row.style.transform = "translateX(" + clamp(open + dx, -SWIPE_W, 0) + "px)";
-    });
-    function end(e) {
-      if (!dragging) return;
-      var dx = e.clientX - x0, open = box.classList.contains("open") ? -SWIPE_W : 0;
-      var at = clamp(open + dx, -SWIPE_W, 0);
-      box.classList.remove("dragging");
-      row.style.transform = "";
-      box.classList.toggle("open", at < -SWIPE_W / 2);
-      dragging = false;
-      setTimeout(function () { row._moved = false; }, 0);
-    }
-    row.addEventListener("pointerup", end);
-    row.addEventListener("pointercancel", end);
-  }
   /* ---------- Удаление в корзину ----------
      Удаление перестало быть концом записи. Шести секунд «Вернуть» хватает на
      промах пальцем и не хватает на «заметил через неделю» — а съёмку, в
@@ -19433,7 +19111,7 @@
   function renderRvBars(r) {
     var n = refViewList ? refViewList.length : 1;
     $("rvCounter").textContent = n > 1 ? (refViewIdx + 1) + " / " + n : "";
-    var tags = (r.tag ? [tagName(r.tag)] : []).concat(r.tags || []);
+    var tags = (r.tags || []).slice();
     /* Теги — не подпись, а дверь: раньше разделы и теги правились только
        долгим тапом по плитке, а долгий тап ничем не показан, и найти его
        было неоткуда (жалоба Алексея: «не понимаю как добавлять теги»).
@@ -19845,13 +19523,11 @@
      любого кода, а не только для нынешних: сменивший практику не должен
      увидеть, что его старые бумаги вдруг стали безымянными. */
   function docKinds() { return practiceSpec().docs; }
-  /* Имя вида для экрана. Терпима к старым записям, как и `genreName`:
-     пришло русское слово — переводим в код на лету */
+  /* Имя вида для экрана: пришло незнакомое слово — отдаём как есть */
   function docKindName(k) {
     if (!k) return "";
-    var code = DOC_KIND_CODE[k] || k;
-    var s = LANG.t("doc." + code);
-    return s === "doc." + code ? k : s;
+    var s = LANG.t("doc." + k);
+    return s === "doc." + k ? k : s;
   }
   var fDocKind = null;                 // выбранный вид: и фильтр, и метка новым
   /* Имя файла обычно уже говорит, что это: «dogovor-romashka.pdf». Угадываем,
@@ -20319,13 +19995,6 @@
   var MB_HOLD = 420;
   var mbSorting = false, mbDrag = null, mbSettling = false;
   function mbBuzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
-  /* Порядок ряда читаем из самого ряда, а не из данных: так он всегда
-     совпадает с тем, что человек видит, и плитки без `data-rk` — рамка «+»,
-     «ещё N», призраки — в перестановке не участвуют по построению. */
-  function mbRkOrder(host) {
-    return Array.prototype.slice.call(host.querySelectorAll("[data-rk]"))
-      .map(function (c) { return c.dataset.rk; });
-  }
   /* ---------- Режим сортировки ----------
      Долгий тап переводит мудборд в отдельный режим — как домашний экран
      iOS. Пока он включён, ряд принадлежит пальцу целиком: страница не
@@ -20583,11 +20252,6 @@
       el.style.transition = animate ? "transform .3s cubic-bezier(.22,.9,.25,1)" : "none";
       el.style.transform = (ox || oy) ? ("translate(" + ox + "px," + oy + "px)") : "";
     });
-  }
-  function mbMyArt(t) {
-    var d = mbDrag; if (!d) return;
-    var a = d.btn.querySelector(".mb-tile-art");
-    if (a) a.style.transform = t;
   }
   /* Отпустили: доводим плитку до нового места и записываем порядок. Пока
      идёт доводка, новый жест не начинается — `mbSettling`. */
@@ -23282,10 +22946,6 @@
       el2._quiet = false;
     }, 380);
   }
-  function dateIndex(d) {
-    for (var i = 0; i < dateList.length; i++) if (sameDay(dateList[i].date, d)) return i;
-    return BACK;
-  }
 
   /* ---------- Сетка выбора даты ----------
      Один компонент на четыре места: начало и конец съёмки, начало и конец
@@ -24786,67 +24446,6 @@
     if (b) boardPrune(b);   // ни кадра не положили — подборке не за что держаться
   }
   function genreShots(g) { return boardShots(boardTpl(g, false)); }
-  /* Список кадров подборки жанра — заводится по первому обращению, как
-     раньше заводился `genreRefs[g]` */
-  function genreBoard(g) { return boardTpl(g, true); }
-
-  /* ---------- Перевод старых списков ----------
-     Начерно и один раз, как и перенос превью: данные в прототипе
-     одноразовые. Каждая запись из `s.refs` и `genreRefs` становится кадром
-     в фонде, а её место — строкой в подборке. Старые поля после этого
-     из снимка уходят. */
-  function adoptRefs() {
-    var moved = 0;
-    function take(list, board) {
-      (list || []).forEach(function (r) {
-        if (!r || (r.k !== "link" && !r.im && !r.path)) return;
-        /* `tags` переносим наравне с `tag`: свободные теги стояли на записи
-           рядом с разделом, и раньше их тут просто не копировали — а старые
-           поля после переноса удаляются, и восстановить было нечем. Раздел
-           остаётся отдельным полем до слияния ниже: сливает его одно место
-           на весь файл, а не каждый перенос по-своему. */
-        var id = shotAdd({ id: r.im || newId(), k: r.k || "img", im: r.im || null,
-          w: r.w || null, h: r.h || null, path: r.path || null, url: r.url || null,
-          tags: Array.isArray(r.tags) ? r.tags.slice() : [], tag: r.tag || null });
-        boardPut(board, id);
-        moved++;
-      });
-    }
-    sessions.forEach(function (s) {
-      if (!Array.isArray(s.refs) || !s.refs.length) { if (s.refs) delete s.refs; return; }
-      take(s.refs, boardOfSession(s, true));
-      delete s.refs;
-    });
-    if (saved && saved.genreRefs) {
-      for (var g in saved.genreRefs) {
-        var list = saved.genreRefs[g];
-        if (list && list.length) take(list, boardTpl(g, true));
-      }
-      delete saved.genreRefs;
-    }
-    return moved;
-  }
-  if (adoptRefs()) setTimeout(function () { saveAll(); }, 0);
-
-  /* ---------- Раздел и теги — один список слов ----------
-     До 30 августа 2026 «Раздел» был жёстким и одним на кадр (GENRE_TAGS,
-     решение от 3 августа — из времён до самого мудборда, когда референсы
-     были простыми списками, а не фондом кадров), а свободные теги — вторым,
-     отдельным списком в том же листе. Алексей: граница между ними
-     надуманная, кадр может быть и «Невестой», и «Парой» разом. Переносим
-     значение раздела в тот же список, что и свободные теги, и убираем поле
-     `tag` совсем — начерно и один раз, как остальные переносы формата
-     (данные прототипа одноразовые, аккуратной миграции не строим). */
-  var mergedTags = 0;
-  shots.forEach(function (r) {
-    if (r && r.tag) {
-      r.tags = r.tags || [];
-      if (r.tags.indexOf(r.tag) < 0) r.tags.push(r.tag);
-      delete r.tag;
-      mergedTags++;
-    }
-  });
-  if (mergedTags) setTimeout(function () { saveAll(); }, 0);
 
   /* ---------- Папки набора референсов ----------
      Папки называют предмет съёмки, а не процесс, поэтому идут от жанра, а не
@@ -25600,15 +25199,14 @@
     mbSeeded = true;
     /* Записать нужно тут же, иначе признак не доживёт до следующего запуска
        и заготовки разложатся заново — вместе с теми, что человек убрал.
-       Через `setTimeout`, тем же приёмом, что и у `migrateThumbs`: на этой
+       Через `setTimeout`: на этой
        строке половина состояния приложения ещё не объявлена. */
     setTimeout(function () { saveAll(); renderMbStrip(); renderMbCount(); }, 0);
   }
-  /* Имя пожелания для экрана. `WISH_CODE` заведён у migrateWishes. */
+  /* Имя пожелания для экрана */
   function wishName(w) {
-    var code = WISH_CODE[w] || w;
-    var s = LANG.t("wish." + code);
-    return s === "wish." + code ? w : s;
+    var s = LANG.t("wish." + w);
+    return s === "wish." + w ? w : s;
   }
   var WISHES = ["any", "clear", "sunset", "cloudy", "fog", "rain", "moon", "stars"];
   var WANT = { "clear": "excellent", "cloudy": "good", "fog": "fog" };
@@ -25739,7 +25337,7 @@
     });
   }
 
-  /* Сходится ли замысел с прогнозом. `w` — код пожелания (см. WISH_CODE) */
+  /* Сходится ли замысел с прогнозом. `w` — код пожелания */
   function wishCheck(w, d) {
     if (w === "any") return null;
     var q = qualityOf(d);
@@ -25971,7 +25569,7 @@
       }
       /* Спор за свет: две съёмки одного дня заказали закат, а золотой час один.
          Единственное предупреждение, которое рождается из световой модели */
-      var otherWants = Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []);
+      var otherWants = s.wish || [];
       if (wants.indexOf("sunset") >= 0 && otherWants.indexOf("sunset") >= 0) {
         out.push({ n: name, w: 1, t: LANG.t("clash.bothSunsetT"),
           m: LANG.t("clash.bothSunsetM", { name: name, when: when }) });
@@ -25984,7 +25582,7 @@
     var s = sessions[idx];
     if (!s) return [];
     return clashesFor(s.date, s.min, shootEnd(s), placeKey(s), idx,
-      Array.isArray(s.wish) ? s.wish : (s.wish ? [s.wish] : []), s.placeLat, s.placeLon,
+      s.wish || [], s.placeLat, s.placeLon,
       !!s.trip, !!(s.tripManual && !s.trip));
   }
   /* Ответ OSRM пришёл позже, чем нарисовалось предупреждение: перерисовываем
@@ -26367,14 +25965,6 @@
     computeSun(kDate);
     return out;
   }
-  /* Погода приходит на место, выбранное в приложении, а не на место съёмки:
-     прогноз тянется одной точкой. Если точки разъехались — говорим об этом,
-     а не выдаём чужую облачность за здешнюю. */
-  function placeFar(s) {
-    var at = shootAt(s);
-    if (at.lat == null) return false;
-    return Math.abs(at.lat - LAT) > 0.35 || Math.abs(at.lon - LON) > 0.6;
-  }
 
 
   /* ---------- Маршрут дня ----------
@@ -26587,7 +26177,7 @@
      пресет его требует, точка дня попадает в окно, и есть что сказать. */
   var LIGHT_WISH = { sunset: 1, stars: 1, moon: 1 };
   function lightCase(s, route, sun) {
-    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "any" ? [s.wish] : []);
+    var want = s.wish || [];
     var asks = want.some(function (w) { return LIGHT_WISH[w]; });
     if (!asks || sun.goldB === null || sun.blueB === null) return null;
 
@@ -27086,8 +26676,6 @@
     // Старый вид карточки — списки «ярлык — значение» — не показывается нигде
     $("cardTitle").hidden = true; $("cardSub").hidden = true;
     $("cdWhenLabel").hidden = true; $("cdWhenGroup").hidden = true;
-    $("cdLightLabel").hidden = true; $("cdLightGroup").hidden = true;
-    $("cdTrust").hidden = true;
     $("cdDelvLabel").hidden = true; $("cdDelvGroup").hidden = true;
     $("cdNotesLabel").hidden = true; $("cdNotes").hidden = true;
     $("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
@@ -28090,10 +27678,6 @@
     $(id).hidden = !html;
     $(id).innerHTML = html;
   }
-  function firstScenePlace(route) {
-    for (var i = 0; i < route.length; i++) if (route[i].p) return route[i].p;
-    return "";
-  }
   function nextPoint(s, route, phase) {
     if (!route.length || phase === "after") return null;
     var now = new Date();
@@ -28389,7 +27973,7 @@
     $("cdRefS").textContent = LANG.count("unit.frame", all.length)
       + " · " + LANG.t("card.refsFrom") + (offLabel ? " · " + offLabel : "");
     $("cdRefStrip").innerHTML = all.slice(0, 7).map(function (r) {
-      return r.im || r.thumb ? refImg(r) : '<span class="ph"></span>';
+      return r.im ? refImg(r) : '<span class="ph"></span>';
     }).join("");
   }
   /* Набор жанра и референсы съёмки — вместе: на площадке они об одном */
@@ -28533,7 +28117,7 @@
     if (renewUndo && renewUndo.s !== s) renewUndo = null;   // другая карточка — отказ окончательный
     cardIdx = idx;
     var wasAt = keepScroll ? $("cardOverlay").scrollTop : 0;
-    var spec = genreSpec(s.type), sun = cardSun(s);
+    var spec = genreSpec(s.type);
     var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
 
     /* Встреча — та же карточка, но заголовком «Встреча»: жанр уходит в
@@ -28620,39 +28204,16 @@
     $("cdPlaceLine").hidden = !pLine;
     $("cdPlace").textContent = pLine;
 
-    // Свет на время съёмки: характер, тени, небо
-    $("cdLight").textContent = sun.st.label + " · " + sun.st.light;
-    $("cdShadow").textContent = sun.shadow;
-
-    /* Небо и закатный балл — про место съёмки. `wxReal` знает только место
-       приложения: у фотографа из Лобни свадьба в Сочи получала лобненские
-       облака и лобненский балл заката, то есть ответ про другое небо */
-    var q = qualityOf(s.date), wx = dayWeather(s.date), real = wxReal[dkey(s.date)];
-    var skyAt = shootAt(s), skyRec = ptAt(skyAt, s.date), skyDay = skyRec && skyRec.day;
-    var skyWait = !skyDay && (ptOnWay(skyAt, s.date) || (!skyRec && ptReach(s.date)));
-    if (skyDay) { q = skyDay.q; real = skyDay; }
-    $("cdSky").textContent = skyWait ? "—" : QUAL[q].cond + " · " + (skyDay ? skyDay.cloud : wx.cloud) + "%";
-
-    var sc = real ? real.sunset : null;
-    if (skyWait) sc = null;
-    if (isFinite(sc) && sc !== null) {
-      $("cdSunset").textContent = sunsetShort(sc) + " · " + sc + " / 100";
-      $("cdSunset").style.color = sc >= 75 ? "#E2A44C" : sc >= 50 ? "#A8B49B" : sc >= 28 ? "#C0B8AA" : "#7C9CC4";
-    } else if (skyWait) {
-      $("cdSunset").textContent = "—";
-      $("cdSunset").style.color = "#8A8478";
-    } else {
-      $("cdSunset").textContent = LANG.t(wxLive ? "card.noDataDay" : "card.forecastFake");
-      $("cdSunset").style.color = "#8A8478";
-    }
-    $("cdGold").textContent = (sun.goldB === null || sun.set === null) ? "—" : range(sun.goldB, sun.blueB);
-
-    $("cdTrust").textContent = trustOf(s.date)
-      + (placeFar(s) ? " · " + LANG.t("card.wxOtherPlace") : "");
+    /* Погода для предупреждения ниже — про место съёмки. `wxReal` знает только
+       место приложения: у фотографа из Лобни свадьба в Сочи получала лобненские
+       облака, то есть ответ про другое небо */
+    var q = qualityOf(s.date);
+    var skyRec = ptAt(shootAt(s), s.date), skyDay = skyRec && skyRec.day;
+    if (skyDay) q = skyDay.q;
 
     // Съёмка ждала свет, а прогноз обещает другое — сказать заранее, не постфактум
     // (имя не wishes: так называется рабочий набор формы, затирать его нельзя)
-    var want = Array.isArray(s.wish) ? s.wish : (s.wish && s.wish !== "any" ? [s.wish] : []);
+    var want = s.wish || [];
     var bad = want.length && (q === "poor" || q === "fog");
     $("cdWarn").hidden = !bad;
     /* `want` хранит коды пожеланий с волны 1 — печатать их напрямую значило
@@ -29003,8 +28564,7 @@
     fDate = dayOf(s.date); fMin = s.min; fDur = s.dur || 90;
     shootType = s.type;
     shootSub = subOk(s.type, s.sub) ? s.sub : "";
-    // старые записи хранили строку — поднимаем в массив
-    wishes = Array.isArray(s.wish) ? s.wish.slice() : (s.wish && s.wish !== "any" ? [s.wish] : []);
+    wishes = (s.wish || []).slice();
     fDelvChoice = (s.deadlineChoice === undefined) ? "auto" : s.deadlineChoice;
     $("fDone").classList.toggle("on", !!s.delivered);
     fDeliveredAt = s.deliveredAt || null;
@@ -29070,10 +28630,7 @@
        и неправильный форме. Точка без назначенного часа пропала бы при первой
        же правке, а порядок фотографа подменился бы порядком часов */
     fRoute = (Array.isArray(s.route) ? s.route : []).map(function (r) {
-      /* Записи, заведённые до слияния аренды со временем точки, держат часы
-         студии в своих полях — читаем их как промежуток: это и были часы,
-         когда пришли и когда ушли */
-      var f0 = r.t != null ? r.t : r.rentFrom, f1 = r.t2 != null ? r.t2 : r.rentTo;
+      var f0 = r.t, f1 = r.t2;
       return { t: f0 == null ? "" : hm24(f0), td: f0 == null ? 0 : Math.floor(f0 / 1440),
                t2: f1 == null ? "" : hm24(f1), t2d: f1 == null ? 0 : Math.floor(f1 / 1440),
                n: r.n || "", p: r.p || "", walk: !!r.walk,
@@ -30048,16 +29605,9 @@
     /* Опросник отдали на встрече, встреча за это время выросла в съёмку, и
        ответы пришли уже после — так будет чаще всего. Класть их во встречу,
        которая отработана, незачем: они нужны там, куда фотограф собирается,
-       а не там, где он был. Идём по знаку; у записей, заведённых до знаков,
-       остаётся связь по строке даты */
+       а не там, где он был. Идём по знаку, который ставит сам рост встречи */
     if (idx >= 0 && sessions[idx].grewOn) {
-      var m = sessions[idx];
-      var next = byId(m.grewToId);
-      if (next < 0) {
-        for (var i = 0; i < sessions.length; i++) {
-          if (!notWork(sessions[i]) && sessions[i].fromMeetOn === dayText(m.date)) { next = i; break; }
-        }
-      }
+      var next = byId(sessions[idx].grewToId);
       if (next >= 0) idx = next;
     }
     questApply(a, idx >= 0 ? idx : null);
@@ -32881,14 +32431,6 @@
       paintIcons($("mapLayersMenu"));
     }
   }
-  /* Пункт «Осадки» не отключается, а убирается: серый тумблер обещает, что
-     слой есть и его когда-то дадут, а его нет — см. RAIN_OK у настроек слоёв */
-  if (!RAIN_OK) {
-    var rainItem = $("mapLayersMenu").querySelector('[data-layer="rain"]');
-    if (rainItem) rainItem.hidden = true;
-    var rainCredit = $("lgRadarRow");
-    if (rainCredit) rainCredit.hidden = true;   /* ссылка на поставщика, чьих плиток мы не берём */
-  }
   $("mapLayersBtn").addEventListener("click", function () {
     openMapLayers($("mapLayersMenu").hidden);
   });
@@ -32903,8 +32445,7 @@
       /* Звёзды двигают границы суток, а от них считается всё остальное —
          поэтому пересобираем день целиком, а не перерисовываем одну карту.
          Время под пальцем сохраняем: человек смотрел на свой момент. */
-      if (k === "rain") setMapRain(mapLayers.rain);
-      else if (k === "mw") applyDate(viewMin);
+      if (k === "mw") applyDate(viewMin);
       else renderMap();
     });
   });
