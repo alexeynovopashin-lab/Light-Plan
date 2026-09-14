@@ -29357,7 +29357,9 @@
       var rep = { g: old.g, rule: old.rule, i: have + k + 1, n: have + dates.length };
       if (old.start) { rep.monthly = old.monthly; rep.start = old.start; }
       var c = repCopy(rec, d, rep, src);
-      if (c.pay === "monthly") c.rate = null;
+      /* Помесячная группа продлевается помесячно, даже если последнюю
+         перевели на разовый способ: иначе её сумма размножится по копиям */
+      if (old.start) { c.pay = "monthly"; c.rate = null; }
     });
   }
   /* Копии группы. Переносится всё, что записано, кроме того, что никогда не
