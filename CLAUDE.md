@@ -86,6 +86,14 @@ re-sent with every subsequent request.
 17. When resuming a large session on Pro, Claude Code offers "resume from a
     summary" — remind me to accept it instead of restoring full history.
 
+## Parallel sessions chat
+
+18. Several Claude sessions work in this folder at once. `SESSIONS_CHAT.md`
+    is their shared channel (not in git). Read it at session start after
+    `git log`, before committing, and when you need something only another
+    session can do. Rules are at the top of the file: append to the end
+    only, never rewrite or delete entries, sign with your task name.
+
 # Compact instructions
 
 When compacting, keep: decisions made and why, current task state, open
