@@ -29265,11 +29265,16 @@
     /* У продления первая дата — сама последняя карточка, она уже есть */
     var dates = repDates(fDate, fRep, fRepN + (ext ? 1 : 0)), busy = {}, hits = [];
     sessions.forEach(function (s) { busy[dkey(new Date(s.date))] = true; });
-    var place = placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town });
+    /* Наложения — у будущих копий, а не у формы: место, выезд и пожелания
+       берём такими, какими их выставит `repCopy` по переключателям */
+    var own = !!fRepOn.route;
+    var place = own ? placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town })
+      : placeKey({ place: "", placeTown: myCity() || "" });
+    var wants = fRepOn.wish ? wishes : [];
     dates.slice(1).forEach(function (d) {
       if (!busy[dkey(d)] && !blocksOn(d).length) return;
-      var c = clashesFor(d, fMin, fMin + fDur, place, editIdx, wishes, sessionPlace.lat, sessionPlace.lon,
-        fTrip, fTripManual && !fTrip)[0];
+      var c = clashesFor(d, fMin, fMin + fDur, place, editIdx, wants, own ? sessionPlace.lat : LAT,
+        own ? sessionPlace.lon : LON, own && fTrip, own && fTripManual && !fTrip)[0];
       if (c) hits.push(dMon(d) + " — " + (c.n || c.t));
     });
     var text = LANG.t(ext ? "rep.sumMore" : "rep.sum",
