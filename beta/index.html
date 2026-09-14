@@ -20691,9 +20691,16 @@
     /* Плитка может уехать перетаскиванием за край видимой части — длинная
        подборка не помещается на экран целиком. Без автопрокрутки нижние
        кадры были бы недостижимы жестом, только через сортировку. */
+    /* Край включается не раньше, чем палец из него выйдет, — как `edgeOk` у
+       плиток подборок. До первого движения `lastY` был нулём, то есть «палец
+       у верхнего края»: удержание кадра без движения само листало папку
+       вверх, 12 точек за кадр (замер в PWA: st 682 → 106 за 700 мс), и меню
+       открывалось уже над другим местом. */
+    var edgeOk = false;
     function autoScroll() {
       var sc = $("mbFolderOverlay"), r = sc.getBoundingClientRect(), edge = 56, speed = 12;
-      if (lastY < r.top + edge) sc.scrollTop -= speed;
+      if (!edgeOk) { if (lastY >= r.top + edge && lastY <= r.bottom - edge) edgeOk = true; }
+      else if (lastY < r.top + edge) sc.scrollTop -= speed;
       else if (lastY > r.bottom - edge) sc.scrollTop += speed;
       scrollRaf = requestAnimationFrame(autoScroll);
     }
@@ -20708,7 +20715,7 @@
       consumed = false;
       sx = e.clientX; sy = e.clientY; lifted = false; dragged = false;
       timer = setTimeout(function () {
-        lifted = true; consumed = true; skip = null;
+        lifted = true; consumed = true; skip = null; lastY = sy; edgeOk = false;
         order = board.items.slice();
         var r0 = btn.getBoundingClientRect();
         grabX = sx - r0.left; grabY = sy - r0.top;
