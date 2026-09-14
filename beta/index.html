@@ -16568,36 +16568,23 @@
      включённой кнопкой. Выход из набора тоже убирает: под плашкой тогда
      барабаны времени.
 
-     Хозяев у плашки теперь двое, и съёмочный путь (`removeSession`,
-     `hideUndo`) не тронут. Съёмка владеет ей, пока `undoAt` не пуст, — тогда
-     маршрут плашку не снимает и на «Вернуть» не отвечает. */
-  var routeUndo = null, routeUndoTimer = null;
+     Хозяев у плашки теперь трое (съёмка, маршрут, объединение подборок —
+     ROADMAP, волна 5), и три отдельных протокола владения через `undoAt`
+     переставали читаться. Полоса обобщена в `showUndo(text, restore, kind)`
+     (объявлена у корзины, ниже по файлу) — маршрут и съёмка делят одну
+     кнопку через неё, каждый со своим `kind`, чтобы «снять черновик молча»
+     (`dropRouteUndo`) не мог погасить чужую плашку. */
   function offerRouteUndo(ids) {
     if (!ids.length) return;
-    /* Съёмочная отмена, если висела, уступает место: текст на плашке один, и
-       «Вернуть» под чужим текстом вернуло бы не то */
-    hideUndo(); clearTimeout(trashTimer);
-    routeUndo = ids;
-    $("undoText").textContent = LANG.t("map.routeCleared", { n: LANG.count("unit.point", ids.length) });
-    $("undoBar").classList.add("show");
-    clearTimeout(routeUndoTimer);
-    routeUndoTimer = setTimeout(dropRouteUndo, 6000);
+    showUndo(LANG.t("map.routeCleared", { n: LANG.count("unit.point", ids.length) }), function () {
+      /* Место могли удалить за эти секунды — возвращаем только живые */
+      mapRoute = ids.filter(function (id) { return spotById(id); }); saveAll();
+      paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
+    }, "route");
   }
   function dropRouteUndo() {
-    if (!routeUndo) return;
-    routeUndo = null; clearTimeout(routeUndoTimer);
-    if (undoAt === null) $("undoBar").classList.remove("show");
+    if (undoOwner && undoOwner.kind === "route") hideUndo();
   }
-  /* Слушатель съёмки стоит на той же кнопке ниже по файлу и молчит, пока
-     `undoAt` пуст, — этот встаёт раньше и молчит в обратном случае */
-  $("undoBtn").addEventListener("click", function () {
-    if (!routeUndo || undoAt !== null) return;
-    /* Место могли удалить за эти секунды — возвращаем только живые */
-    var ids = routeUndo.filter(function (id) { return spotById(id); });
-    dropRouteUndo();
-    mapRoute = ids; saveAll();
-    paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
-  });
   $("rbMake").addEventListener("click", makeRouteShoot);
   /* Второй путь набора: точка из списка сохранённых. Веер тот же, что у
      закладки в шапке, — четвёртое место его вызова. Карта при этом не едет:
@@ -18651,7 +18638,21 @@
      сотрут насовсем. Полоса «Вернуть» осталась — это не второй механизм, а
      короткий путь к тому же: горизонты разные, хранилище одно.
      Удалённое остаётся на устройстве: на нашем сервере по-прежнему ничего. */
-  var undoAt = null, trashTimer = null;
+  /* ---------- Полоса «Вернуть» — общий хозяин ----------
+     Один `#undoBar` на троих (съёмка, маршрут — выше по файлу, объединение
+     подборок — мудборд): кто последний позвал `showUndo`, тот и отвечает на
+     клик, остальные молчат, пока не позовут сами. `kind` — не для показа,
+     а чтобы «снять молча» (`dropRouteUndo`, `bury` подборки) не гасило
+     чужую плашку по ошибке. */
+  var undoOwner = null, undoTimer = null;
+  function showUndo(text, restore, kind) {
+    undoOwner = { restore: restore, kind: kind };
+    $("undoText").textContent = text;
+    $("undoBar").classList.add("show");
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(hideUndo, 6000);
+  }
+  function hideUndo() { $("undoBar").classList.remove("show"); undoOwner = null; clearTimeout(undoTimer); }
   function removeSession(i) {
     var rec = sessions[i];
     if (!rec) return;
@@ -18659,15 +18660,10 @@
     /* Запись помнит, где стояла и когда её убрали: возвращать надо на место,
        а не в конец списка */
     trashed.unshift({ rec: rec, at: i, del: Date.now() });
-    undoAt = 0;
     saveAll();
     renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderMbStrip();
-    $("undoText").textContent = LANG.t("day.inBin", { name: rec.contact || typeName(rec) });
-    $("undoBar").classList.add("show");
-    clearTimeout(trashTimer);
-    trashTimer = setTimeout(hideUndo, 6000);
+    showUndo(LANG.t("day.inBin", { name: rec.contact || typeName(rec) }), function () { restoreTrashed(0); }, "session");
   }
-  function hideUndo() { $("undoBar").classList.remove("show"); undoAt = null; }
   /* Возврат — общий для полосы и для листа корзины: одно действие, одно место */
   function restoreTrashed(k) {
     var t = trashed[k];
@@ -18688,9 +18684,10 @@
     renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderBin(); renderMbStrip();
   }
   $("undoBtn").addEventListener("click", function () {
-    if (undoAt === null) return;
-    restoreTrashed(undoAt);
+    if (!undoOwner) return;
+    var restore = undoOwner.restore;
     hideUndo();
+    restore();
   });
 
   /* Значок корзины показывается только когда в ней что-то есть */
