@@ -932,6 +932,8 @@
     /* Референсы на весь экран */
     "refs.all":   "Все",
     "refs.empty": "Пусто. Набор жанра собирается в «Мои жанры» — он подскажет, что снять, когда мысль встала.",
+    "refs.own":   "Эта съёмка",
+    "refs.set":   "Набор жанра «{genre}»",
 
     /* Счёт дней до съёмки и после неё */
     "when.tomorrow":  "завтра",
@@ -2672,6 +2674,8 @@
 
     "refs.all":   "All",
     "refs.empty": "Empty. The genre set is built in “My genres” — it prompts what to shoot when your mind goes blank.",
+    "refs.own":   "This shoot",
+    "refs.set":   "“{genre}” genre set",
 
     "when.tomorrow":  "tomorrow",
     "when.yesterday": "yesterday",
@@ -4271,6 +4275,8 @@
     "doc.openFail": "No se abrió el archivo: no hay conexión con la nube.",
     "refs.all": "Todas",
     "refs.empty": "Vacío. El set del género se arma en «Mis géneros» — te recuerda qué tomar cuando la cabeza se queda en blanco.",
+    "refs.own": "Esta sesión",
+    "refs.set": "Set del género «{genre}»",
     "when.tomorrow": "mañana",
     "when.yesterday": "ayer",
     "when.inDays": "en {n}",
@@ -5742,6 +5748,8 @@
     "doc.openFail": "文件未打开：无法连接云盘。",
     "refs.all": "全部",
     "refs.empty": "空。类型集在“我的类型”中构建——当你思路枯竭时提示拍摄内容。",
+    "refs.own": "本次拍摄",
+    "refs.set": "「{genre}」类型集",
     "when.tomorrow": "明天",
     "when.yesterday": "昨天",
     "when.inDays": "{n}后",

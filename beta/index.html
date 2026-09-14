@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=75"></script>
+<script src="lang.js?v=76"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -5889,32 +5889,16 @@
   .rf-tag.on .n { color: rgba(23,21,15,0.6); }
   /* В настройках папок немного, и они должны быть видны все сразу */
   .rf-tags.wrap { flex-wrap: wrap; overflow: visible; padding: 12px 13px 6px; }
-  /* `grid-auto-rows: min-content` — не украшение, без него сетка складывалась
-     каскадом: кадры налезали друг на друга, показывая от соседа одну макушку
-     (жалоба Алексея со снимка, 1 сентября 2026).
-     Ряду `auto` высоту диктует содержимое, а диктовать тут некому. Ячейка
-     обрезает себя (`overflow: hidden` — иначе не будет ни скругления, ни
-     `cover`), а обрезающий себя элемент из расчёта высоты ряда выпадает:
-     его содержимое прокручивается, значит ничего не обещает наружу. Своё
-     `aspect-ratio` он в этом расчёте тоже не предъявляет. Ряды выходили по
-     21 точке при ячейке в 147 — отсюда наезд. `min-content` считает ту же
-     ячейку уже по известной ширине колонки, и пропорция наконец слышна.
-     Мерить приходится обеими руками: свою роль играет и то, что прокрутка
-     живёт на самой сетке — стоит унести `overflow` отсюда, и ряды
-     выпрямляются сами. Но полноэкранному списку прокрутка нужна здесь. */
-  .rf-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr);
-    grid-auto-rows: min-content;
-    gap: 6px; padding: 0 16px 30px; align-content: start; scrollbar-width: none; }
+  /* Разворот — та же масонри, что в папке мудборда (Алексей, 14 сентября
+     2026, вариант Б): кадры в своих пропорциях, два раздела — своя съёмка и
+     под ней набор жанра. Прежняя сетка в три колонки с обрезом 3:4 ушла
+     вместе с её `grid-auto-rows` (DECISIONS, 2 сентября): здесь больше не
+     grid, а прокручиваемый блок с разделами. */
+  .rf-grid { flex: 1; overflow-y: auto; padding: 0 16px 30px; scrollbar-width: none; }
   .rf-grid::-webkit-scrollbar { display: none; }
-  .rf-cell { aspect-ratio: 3/4; border-radius: 10px; corner-shape: squircle; overflow: hidden; border: none;
-    padding: 0; background: var(--sheet); cursor: pointer; position: relative; }
-  .rf-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .rf-cell.link { display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 8px; text-align: left; }
-  .rf-cell .host { font-size: 11px; color: var(--brass); }
-  .rf-cell .path { font-size: 10px; color: var(--ink-7); overflow: hidden;
-    text-overflow: ellipsis; white-space: nowrap; }
-  .rf-empty { grid-column: 1 / -1; padding: 26px 2px; font-size: 13.5px; color: var(--ink-7); line-height: 1.5; }
+  #rfGrid .mb-grid { margin-top: 6px; }
+  #rfGrid .mb-grid + .mb-grid-lbl { padding-top: 14px; }
+  .rf-empty { padding: 26px 2px; font-size: 13.5px; color: var(--ink-7); line-height: 1.5; }
 
   /* ---------- Редактор точек в форме: нить дня ----------
      Раскладка перенесена один в один из демки Алексея («Маршрут дня —
@@ -6669,13 +6653,14 @@
     background: var(--fill-b); font-size: 11px; color: var(--ink-3);
   }
   /* Мудборд — плитка-масонри: кадры в естественных пропорциях, а не
-     квадратный обрез (макет «Moodboard Shoots»). Только тут: у остальных
-     `.ref-grid` (референсы съёмки, набор жанра, документы) квадрат
-     остаётся правильным выбором — их не трогаем. */
-  #mbGrid.mb-grid { display: block; column-count: 2; column-gap: 8px; }
-  #mbGrid.mb-grid .ref-card { width: 100%; aspect-ratio: auto; break-inside: avoid; margin: 0 0 8px; }
-  #mbGrid.mb-grid .ref-card img { height: auto; object-fit: initial; }
-  #mbGrid.mb-grid .ref-card.link { aspect-ratio: 1/1; }
+     квадратный обрез (макет «Moodboard Shoots»). Тут и в развороте
+     референсов карточки (`#rfGrid`): у остальных `.ref-grid` (референсы
+     съёмки, набор жанра, документы) квадрат остаётся правильным выбором —
+     их не трогаем. */
+  #mbGrid.mb-grid, #rfGrid .mb-grid { display: block; column-count: 2; column-gap: 8px; }
+  #mbGrid.mb-grid .ref-card, #rfGrid .mb-grid .ref-card { width: 100%; aspect-ratio: auto; break-inside: avoid; margin: 0 0 8px; }
+  #mbGrid.mb-grid .ref-card img, #rfGrid .mb-grid .ref-card img { height: auto; object-fit: initial; }
+  #mbGrid.mb-grid .ref-card.link, #rfGrid .mb-grid .ref-card.link { aspect-ratio: 1/1; }
   /* Строка «пока пусто» — поперёк обеих колонок, а не текстом внутри одной.
      У сетки-масонри раскладка многоколоночная, и текст в ней течёт по
      колонкам как в газете: фраза разрывалась пополам и уезжала вверх второй
@@ -28456,18 +28441,40 @@
       b.addEventListener("click", function () { rfTag = b.dataset.t || null; renderRefsFull(); });
     });
 
-    var shown = rfList.filter(function (r) { return !rfTag || (r.tags || []).indexOf(rfTag) >= 0; });
-    $("rfGrid").innerHTML = shown.map(function (r, i) {
+    /* Два раздела, а не общая куча (вариант Б): своё положено под эту
+       съёмку, набор жанра — общий на все портреты. На площадке их листают
+       подряд, поэтому просмотрщик получает один список в том порядке, в
+       каком кадры стоят на экране, — как в папке мудборда. */
+    var pass = function (r) { return !rfTag || (r.tags || []).indexOf(rfTag) >= 0; };
+    var own = rfList.filter(function (r) { return r.own && pass(r); });
+    var set = rfList.filter(function (r) { return !r.own && pass(r); });
+    var shown = own.concat(set);
+    var imgs = shown.filter(function (r) { return r.im; });
+    function cell(r) {
+      var i = shown.indexOf(r);
       if (r.k === "link" && !r.im) {
-        return '<button type="button" class="rf-cell link" data-i="' + i + '">'
+        return '<button type="button" class="ref-card link" data-i="' + i + '">'
           + '<span class="host">' + refHost(r.url) + "</span>"
           + '<span class="path">' + refTail(r.url) + "</span></button>";
       }
-      return '<button type="button" class="rf-cell" data-i="' + i + '">'
-        + refImg(r) + "</button>";
-    }).join("") || '<div class="rf-empty">' + esc(LANG.t("refs.empty")) + "</div>";
-    $("rfGrid").querySelectorAll(".rf-cell").forEach(function (b) {
-      b.addEventListener("click", function () { openRef(shown[+b.dataset.i]); });
+      return '<button type="button" class="ref-card" data-i="' + i + '">' + refImg(r) + "</button>";
+    }
+    function section(label, list) {
+      if (!list.length) return "";
+      return '<div class="mb-grid-lbl">' + esc(label) + " · " + list.length + "</div>"
+        + '<div class="mb-grid">' + list.map(cell).join("") + "</div>";
+    }
+    $("rfGrid").innerHTML = (section(LANG.t("refs.own"), own)
+      + section(LANG.t("refs.set", { genre: genreName(rfGenre) }), set))
+      || '<div class="rf-empty">' + esc(LANG.t("refs.empty")) + "</div>";
+    $("rfGrid").querySelectorAll(".ref-card").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var r = shown[+b.dataset.i];
+        if (!r) return;
+        var at = imgs.indexOf(r);
+        if (at < 0) openRef(r);
+        else openRefAt(imgs, at, null, b);
+      });
     });
   }
   $("rfClose").addEventListener("click", function () { $("refsFull").classList.remove("open"); });
