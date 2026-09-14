@@ -19822,11 +19822,26 @@
         var kill = e.target.closest("[data-kill]");
         if (kill) {
           var i = +kill.dataset.kill, r = fDocs[i];
-          if (r && r.k === "doc" && r.path) cloudDelete(r.path);
+          /* Файл на Диске не стираем: «Назад» должен вернуть документ, а
+             копии группы везут тот же путь. Стирает «Сохранить» (`docsGone`) */
           fDocs.splice(i, 1); renderDocs(); renderDocKinds(); return;
         }
         openDoc(fDocs[+b.dataset.i]);
       });
+    });
+  }
+  /* Документы, убранные из записи при сохранении. Файл на Диске стираем,
+     только если путь больше нигде не встречается: копии повтора делят один
+     файл, а запись в корзине ещё можно вернуть */
+  function docsGone(prev, rec) {
+    if (!prev || !prev.docs) return;
+    var used = {};
+    function mark(s) { (s && s.docs || []).forEach(function (d) { if (d.path) used[d.path] = true; }); }
+    sessions.forEach(mark);
+    trashed.forEach(function (t) { mark(t.rec); });
+    mark(rec);
+    prev.docs.forEach(function (d) {
+      if (d.k === "doc" && d.path && !used[d.path]) { used[d.path] = true; cloudDelete(d.path); }
     });
   }
   function openDoc(r) {
@@ -29975,6 +29990,7 @@
     syncBoardGenre(rec);
     if (repEditable() && fRep !== "never") repMake(rec);
     else if (repExt()) repExtend(rec);
+    docsGone(prevRec, rec);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
     /* Настоящая запись легла в список — черновику, который её и держал,
