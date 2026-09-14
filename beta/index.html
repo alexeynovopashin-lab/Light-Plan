@@ -13911,7 +13911,8 @@
     var r = +s.rate || 0;
     if (mech === "hourly") return r * ((s.dur || 0) / 60);   // ставка × часы
     if (mech === "unit")   return r * (+s.units || 0);        // цена × количество
-    if (mech === "monthly") return r || repShare(s);          // свой гонорар или доля месяца
+    /* Пустое поле (null) — доля месяца; число, и 0 тоже, — свой гонорар */
+    if (mech === "monthly") return s.rate == null ? repShare(s) : r;
     return r;                                                // flat: сдельно / пакет
   }
   function sessionNet(s) { return sessionIncome(s) - (+(s && s.expense) || 0); }
@@ -22817,7 +22818,7 @@
            Вход в пакеты чистим отдельно: иначе случайно совпавшая сумма
            подсветила бы пакет, которого никто не выбирал. */
         if (nowMech !== wasMech || fPay === "pack" || wasPack) {
-          fRate = nowMech === "hourly" ? (rateOf(shootType) || 0) : 0;
+          fRate = nowMech === "hourly" ? (rateOf(shootType) || 0) : nowMech === "monthly" ? null : 0;
           $("fRate").value = fRate || "";
         }
         renderPay();
@@ -22907,7 +22908,9 @@
       renderPay();
     });
   }
-  bindPayInput("fRate", function (v) { fRate = v; });
+  /* У карточки «в месяц» пустое поле и «0» — разное: доля месяца и
+     бесплатная съёмка */
+  bindPayInput("fRate", function (v) { fRate = fPay === "monthly" && !$("fRate").value.trim() ? null : v; });
   bindPayInput("fExpense", function (v) { fExpense = v; });
   bindPayInput("fPrepay", function (v) { fPrepay = v; fPrepayAuto = false; });
   /* Три поля одной суммы: вписали любое — хранится месяц, два других
@@ -26055,7 +26058,7 @@
 
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
-    $("fRate").value = fRate || ""; $("fExpense").value = fExpense || "";
+    $("fRate").value = fRate == null ? "" : fRate || (fPay === "monthly" ? "0" : ""); $("fExpense").value = fExpense || "";
     renderPay(); renderFormMb();
     $("refNote").hidden = true;
     /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
@@ -28694,7 +28697,7 @@
     $("fP2Tel").value = (ps[1] && ps[1].tel) || "";
     // Оплата сохранённой съёмки — свёрнута: данные уже введены
     fPay = (s.pay && (genreSpec(s.type).pay.indexOf(s.pay) >= 0 || s.pay === "monthly")) ? s.pay : genreSpec(s.type).pay[0];
-    fRate = +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
+    fRate = s.pay === "monthly" && s.rate == null ? null : +s.rate || 0; fUnits = +s.units || 1; fExpense = +s.expense || 0;
     fCurrency = sessionCurrency(s);
     /* Новых полей у старой записи нет вовсе — это пустое поле, а не поломка
        (docs/12_CARD_ARCHITECTURE.md, «Совместимость») */
@@ -29334,7 +29337,7 @@
     /* Помесячная сумма и начало месяцев — в сведениях каждой карточки:
        удаление первой не уносит их с собой */
     var mon = fPay === "monthly" ? { monthly: fRepMonthly, start: rec.date.toISOString() } : null;
-    if (mon) { rec.rep.monthly = mon.monthly; rec.rep.start = mon.start; }
+    if (mon) { rec.rep.monthly = mon.monthly; rec.rep.start = mon.start; rec.rate = null; }
     var src = boardOfSession(rec, false);
     dates.slice(1).forEach(function (d, k) {
       var rep = { g: g, rule: fRep, i: k + 2, n: dates.length };
@@ -29354,7 +29357,7 @@
       var rep = { g: old.g, rule: old.rule, i: have + k + 1, n: have + dates.length };
       if (old.start) { rep.monthly = old.monthly; rep.start = old.start; }
       var c = repCopy(rec, d, rep, src);
-      if (c.pay === "monthly") c.rate = 0;
+      if (c.pay === "monthly") c.rate = null;
     });
   }
   /* Копии группы. Переносится всё, что записано, кроме того, что никогда не
