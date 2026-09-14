@@ -5587,6 +5587,12 @@
   .wx-h .pp { font-size: 10px; color: var(--ink-7); }
   /* Час до и час после съёмки: те же колонки, ступень второстепенного 0.45 */
   .wx-h.aside { opacity: 0.45; }
+  /* Свет у точки — латунью, как золотая точка на ленте; синий час — синим.
+     Строка есть у всех колонок, если хоть одной есть что сказать: иначе
+     колонки разъедутся по высоте */
+  .wx-h .ll { height: 18px; }
+  .wx-h .ll svg { width: 16px; height: 16px; margin: 2px 0 0; stroke: var(--brass); }
+  .wx-h .ll.blue svg { stroke: var(--blue); }
 
   /* Разворачиваемое: маршрут и референсы. Свёрнуто — знак и суть одной строкой */
   .fold { margin-top: 9px; background: var(--sheet); border-radius: 16px; corner-shape: squircle; overflow: hidden; }
@@ -5611,6 +5617,10 @@
   .sc-n { font-size: 15px; color: var(--ink-2); }
   .sc-p { display: block; font-size: 11.5px; color: var(--ink-7); margin-top: 1px; }
   .sc-item.past { opacity: 0.45; }
+  /* Слово света справа — только у строк маршрута, где его есть что сказать */
+  .sc-item.lit { grid-template-columns: 26px 50px 1fr auto; }
+  .sc-l { font-size: 11.5px; color: var(--brass); text-align: right; }
+  .sc-l.blue { color: var(--blue); }
   .sc-item.now .sc-n { color: var(--ink); }
   .sc-item.now .sc-ic svg { stroke: var(--green); }
 
@@ -26318,6 +26328,16 @@
     computeSun(kDate);
     return out;
   }
+  /* Что свет у точки скажет в карточке. Говорит только тон `excellent` —
+     золотой час, рассвет и светает, закат и сумерки, синий час; утро, день и
+     ночь молчат: свет в карточке — условие, а не строка у каждой точки
+     (docs/11_EVENT_CARD.md). Знаки — из листа «Погода»; своего знака у синего
+     часа нет, он рисуется закатом своего цвета */
+  function pointLight(st) {
+    if (!st || st.tone !== "excellent") return null;
+    return { sign: st.k === "golden" ? "golden" : st.k === "dawn" || st.k === "dawning" ? "sunrise" : "sunset",
+             word: st.label, blue: st.k === "blue" };
+  }
 
   /* Карточка события целиком: шапка, навигатор, сцены, плитки.
      Всё, что ниже (Когда, Свет и погода), для события прячется: его вопросы
@@ -26880,6 +26900,9 @@
     var sun = cardSun(s);
     if (phase !== "after") ensureCardWx(s, route);
     var light = phase === "after" ? null : lightCase(s, route, sun);
+    /* Свет у каждой точки — по её месту и её суткам. После съёмки погода и
+       маршрут спрятаны, и спрашивать небо не для кого */
+    var lit = phase !== "after" && route.length ? routeLight(s, route) : null;
 
     $("cardOrder").hidden = false;
     // Старый вид карточки — списки «ярлык — значение» — не показывается нигде
@@ -26896,8 +26919,8 @@
     renderEvHead(s, phase);
     renderDayTile(s, route, phase, light);
     renderPanes(s, route, phase, sun);
-    renderWxPane(s, route, phase);
-    renderRouteFold(s, route, phase);
+    renderWxPane(s, route, phase, lit);
+    renderRouteFold(s, route, phase, lit);
     renderRefFold(s, route, phase);
     renderClash(s);
     renderShift(s);
@@ -27903,7 +27926,7 @@
   }
 
   /* Погода: знак и градус, рядом — часы точек дня. Только словами и знаками */
-  function renderWxPane(s, route, phase) {
+  function renderWxPane(s, route, phase, lit) {
     if (phase === "after") { $("cdWx").hidden = true; return; }
     var q = qualityOf(s.date), wx = dayWeather(s.date), at = shootAt(s);
     /* Погода по часам: точки дня, если они есть, иначе шаг по два часа
@@ -27912,7 +27935,7 @@
        километров, и погода там своя — ровно как свет в `routeLight`. Точка
        без координат отвечает якорем дня */
     var hours = route.length
-      ? route.map(function (r) { return { t: r.t, at: stopPlace(r) || at }; })
+      ? route.map(function (r, i) { return { t: r.t, at: stopPlace(r) || at, lt: lit ? pointLight(lit[i]) : null }; })
       : (function () {
           var end = s.end != null ? s.end : s.min + (s.dur || 90), out = [], t = s.min;
           while (t <= end) { out.push({ t: t, at: at }); t += 120; }
@@ -27928,7 +27951,7 @@
        Добавляем час до и час после — дорога на площадку и дорога домой,
        блекло: это часть дня, но не оплачиваемая. fmt и tempAt считают по
        модулю суток, полночь их не смущает */
-    var cols = hours.map(function (h) { return { t: h.t, at: h.at, aside: false }; });
+    var cols = hours.map(function (h) { return { t: h.t, at: h.at, aside: false, lt: h.lt || null }; });
     if (cols.length < 3) {
       cols.unshift({ t: cols[0].t - 60, at: cols[0].at, aside: true });
       cols.push({ t: cols[cols.length - 1].t + 60, at: cols[cols.length - 1].at, aside: true });
@@ -27936,6 +27959,11 @@
     /* Порог по числу колонок, а не по зазору: считать зазор пришлось бы после
        отрисовки, и строка успела бы моргнуть. Пять — предел, за которым воздуха
        и так мало, а прокрутка уже на пороге */
+    /* Строка света под числами — у точки маршрута, когда свету есть что
+       сказать. Не сказать ни одной — строки нет, и высота панели прежняя.
+       Слово в колонку не влезает («Золотой час» 64 px при шаге 53), поэтому
+       знак, а слово — для VoiceOver и в строке маршрута */
+    var anyLit = cols.some(function (c) { return c.lt; });
     $("cdWx").innerHTML = '<div class="wx-hours wide' + (cols.length <= 5 ? " few" : "")
       + '">' + cols.map(function (c) {
       /* Колонка спрашивает прогноз суток, в которые попал её час. За краями
@@ -27946,7 +27974,10 @@
       return '<div class="wx-h' + (c.aside ? " aside" : "") + '"><div class="hh">' + fmt(c.t) + "</div>"
         + w.sign
         + '<div class="tt">' + w.temp + "</div>"
-        + '<div class="pp">' + w.cloud + "</div></div>";
+        + '<div class="pp">' + w.cloud + "</div>"
+        + (anyLit ? '<div class="ll' + (c.lt && c.lt.blue ? " blue" : "") + '"'
+          + (c.lt ? ' role="img" aria-label="' + esc(c.lt.word) + '">' + IC.svg(c.lt.sign) : ">") + "</div>" : "")
+        + "</div>";
     }).join("") + "</div>";
   }
 
@@ -27983,7 +28014,7 @@
     return IC.svg(name, "i-wx");
   }
   /* Маршрут: свёрнут до строки со знаками, разворачивается тапом */
-  function renderRouteFold(s, route, phase) {
+  function renderRouteFold(s, route, phase, lit) {
     var show = route.length && phase !== "after";
     $("cdRouteFold").hidden = !show;
     if (!show) return;
@@ -28000,10 +28031,12 @@
     var cur = curIndex(route, nowMin2);
     $("cdRouteBody").innerHTML = route.map(function (r, i) {
       var cls = i === cur ? " now" : (nowMin2 !== null && r.t < nowMin2 ? " past" : "");
-      return '<div class="sc-item' + cls + '"><span class="sc-ic">' + laneIcon(r.n) + "</span>"
+      var lt = lit ? pointLight(lit[i]) : null;
+      return '<div class="sc-item' + cls + (lt ? " lit" : "") + '"><span class="sc-ic">' + laneIcon(r.n) + "</span>"
         + '<span class="sc-t">' + fmt(r.t) + "</span>"
         + '<span><span class="sc-n">' + esc(r.n) + "</span>"
-        + (r.p ? '<span class="sc-p">' + esc(r.p) + "</span>" : "") + "</span></div>";
+        + (r.p ? '<span class="sc-p">' + esc(r.p) + "</span>" : "") + "</span>"
+        + (lt ? '<span class="sc-l' + (lt.blue ? " blue" : "") + '">' + esc(lt.word) + "</span>" : "") + "</div>";
     }).join("");
   }
 
