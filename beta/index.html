@@ -20679,7 +20679,23 @@
   function mbGridDrag(btn, board, onOpen, onMenu) {
     var timer = null, lifted = false, dragged = false, consumed = false;
     var sx = 0, sy = 0, order = null, sid = btn.dataset.sid, lastY = 0, scrollRaf = null;
-    var grabX = 0, grabY = 0, skip = null;
+    var grabX = 0, grabY = 0, skip = null, cells = null, cellsTop = 0;
+    /* Над чьим местом палец — по снятым местам соседей, а не через
+       `elementFromPoint`. В PWA на iOS тот находил сам поднятый кадр, хотя с
+       него сняты касания (`pointer-events: none`): палец над «7», а ответ —
+       «6», и перестановка молчала (замер 14 сентября 2026: 5 переносов из 6
+       без единой смены порядка). Места снимаются при подъёме и после каждой
+       перестановки, прокрутка папки с тех пор учитывается сдвигом — так же
+       клетки снимает жест подборок (`mbStartDrag`). */
+    function snapCells(list) { cells = list; cellsTop = $("mbFolderOverlay").scrollTop; }
+    function cellAt(x, y) {
+      var d = $("mbFolderOverlay").scrollTop - cellsTop;
+      for (var i = 0; i < cells.length; i++) {
+        var c = cells[i];
+        if (x >= c.l && x <= c.r && y >= c.t - d && y <= c.b - d) return c.sid;
+      }
+      return null;
+    }
     /* Кадр ведётся от своего места в разметке, а не от места подъёма: после
        перестановки оно другое, и сдвиг от старого уводил бы кадр из-под
        пальца */
@@ -20719,6 +20735,7 @@
         order = board.items.slice();
         var r0 = btn.getBoundingClientRect();
         grabX = sx - r0.left; grabY = sy - r0.top;
+        snapCells(mbGridCells(btn));
         try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
         btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
         btn.style.transform = "scale(1.06)";
@@ -20733,26 +20750,19 @@
       dragged = true; lastY = e.clientY;
       btn.style.transition = "none";
       follow(e.clientX, e.clientY);
-      /* Тот же приём, что у `mbStartDrag`: гасим себя на миг, иначе
-         `elementFromPoint` каждый раз находит поднятую плитку, а не то,
-         что под ней */
-      btn.style.pointerEvents = "none";
-      var hit = document.elementFromPoint(e.clientX, e.clientY);
-      btn.style.pointerEvents = "";
-      var over = hit && hit.closest ? hit.closest(".ref-card:not(.add)") : null;
-      if (!over || over === btn || !over.dataset.sid) { skip = null; return; }
+      var toId = cellAt(e.clientX, e.clientY);
+      if (!toId) { skip = null; return; }
       /* С кем только что поменялись — того не трогаем, пока палец с него не
          уйдёт. Кадры разной высоты: после обмена под пальцем часто снова
          оказывается тот же сосед, и без этого пара менялась бы на каждом
          движении туда и обратно (замер в песочнице: итог зависел от
          чётности числа событий) */
-      var toId = over.dataset.sid;
       if (toId === skip) return;
       var fromPos = order.indexOf(sid), toPos = order.indexOf(toId);
       if (fromPos >= 0 && toPos >= 0 && fromPos !== toPos) {
         order.splice(fromPos, 1);
         order.splice(toPos, 0, sid);
-        mbFlipReorder(order, btn);
+        snapCells(mbFlipReorder(order, btn));
         skip = toId;
         follow(e.clientX, e.clientY);
       }
@@ -20811,20 +20821,29 @@
     });
     var addEl = grid.querySelector(".ref-card.add");
     if (addEl) grid.appendChild(addEl);
+    /* Новые места мерим без переходов: сосед мог ещё ехать с прошлой
+       перестановки, и его прямоугольник был бы серединой пути, а не местом.
+       Эти места и возвращаем — по ним жест ищет, над кем палец. */
+    var cells = [];
     cards.forEach(function (c) {
       if (c === draggedBtn) return;
-      var b = before[c.dataset.sid];
-      if (!b) return;
-      var a = c.getBoundingClientRect();
-      var dx = b.left - a.left, dy = b.top - a.top;
-      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
-      c.style.transition = "none";
+      c.style.transition = "none"; c.style.transform = "none";
+      var a = c.getBoundingClientRect(), b = before[c.dataset.sid];
+      cells.push({ sid: c.dataset.sid, l: a.left, t: a.top, r: a.right, b: a.bottom });
+      var dx = b ? b.left - a.left : 0, dy = b ? b.top - a.top : 0;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { c.style.transform = ""; return; }
       c.style.transform = "translate(" + dx + "px," + dy + "px)";
       requestAnimationFrame(function () {
         c.style.transition = "transform .22s ease";
         c.style.transform = "";
       });
     });
+    return cells;
+  }
+  function mbGridCells(except) {
+    return Array.prototype.slice.call($("mbGrid").querySelectorAll(".ref-card:not(.add)"))
+      .filter(function (c) { return c !== except; })
+      .map(function (c) { var a = c.getBoundingClientRect(); return { sid: c.dataset.sid, l: a.left, t: a.top, r: a.right, b: a.bottom }; });
   }
   /* ---------- Обложка летит в шапку папки ----------
      Клон — синтетический прямоугольник с одной картинкой (той же, что
