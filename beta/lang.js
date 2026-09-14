@@ -797,6 +797,7 @@
     "rep.payFirst":      "{n} в первом месяце",
     "rep.renew":        "Продлить повтор",
     "rep.renewOff":     "Не продлевать",
+    "rep.renewOffDone": "Повтор не продлится",
     "rep.countMore":    "Сколько ещё",
     "rep.sumMore":      "Ещё {n}, последняя — {last}.",
 
@@ -2542,6 +2543,7 @@
     "rep.payFirst":      "{n} in the first month",
     "rep.renew":        "Extend the repeat",
     "rep.renewOff":     "Don't extend",
+    "rep.renewOffDone": "The repeat won't be extended",
     "rep.countMore":    "How many more",
     "rep.sumMore":      "Another {n}, the last on {last}.",
 
@@ -4143,6 +4145,7 @@
     "rep.payFirst": "{n} en el primer mes",
     "rep.renew": "Prolongar la repetición",
     "rep.renewOff": "No prolongar",
+    "rep.renewOffDone": "La repetición no se prolongará",
     "rep.countMore": "Cuántas más",
     "rep.sumMore": "{n} más, la última el {last}.",
     "card.byDate": "para el {d}",
@@ -5602,6 +5605,7 @@
     "rep.payFirst": "第一个月{k}次拍摄",
     "rep.renew": "延长重复",
     "rep.renewOff": "不延长",
+    "rep.renewOffDone": "重复不再延长",
     "rep.countMore": "再加几次",
     "rep.sumMore": "再加{k}次拍摄，最后一次：{last}。",
     "card.byDate": "在{d}前",

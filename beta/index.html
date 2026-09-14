@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=69"></script>
+<script src="lang.js?v=70"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -18545,7 +18545,9 @@
      сотрут насовсем. Полоса «Вернуть» осталась — это не второй механизм, а
      короткий путь к тому же: горизонты разные, хранилище одно.
      Удалённое остаётся на устройстве: на нашем сервере по-прежнему ничего. */
-  var undoAt = null, trashTimer = null;
+  /* undoFn — отмена не из корзины («Не продлевать»): полоса одна, что она
+     вернёт, решает последнее действие */
+  var undoAt = null, trashTimer = null, undoFn = null;
   function removeSession(i) {
     var rec = sessions[i];
     if (!rec) return;
@@ -18553,7 +18555,7 @@
     /* Запись помнит, где стояла и когда её убрали: возвращать надо на место,
        а не в конец списка */
     trashed.unshift({ rec: rec, at: i, del: Date.now() });
-    undoAt = 0;
+    undoAt = 0; undoFn = null;
     saveAll();
     renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderMbStrip();
     $("undoText").textContent = LANG.t("day.inBin", { name: rec.contact || typeName(rec) });
@@ -18561,7 +18563,7 @@
     clearTimeout(trashTimer);
     trashTimer = setTimeout(hideUndo, 6000);
   }
-  function hideUndo() { $("undoBar").classList.remove("show"); undoAt = null; }
+  function hideUndo() { $("undoBar").classList.remove("show"); undoAt = null; undoFn = null; }
   /* Возврат — общий для полосы и для листа корзины: одно действие, одно место */
   function restoreTrashed(k) {
     var t = trashed[k];
@@ -18582,6 +18584,7 @@
     renderSessions(); renderCal(); renderDayPanel(); renderBinBtn(); renderBin(); renderMbStrip();
   }
   $("undoBtn").addEventListener("click", function () {
+    if (undoFn) { undoFn(); hideUndo(); return; }
     if (undoAt === null) return;
     restoreTrashed(undoAt);
     hideUndo();
@@ -28418,9 +28421,22 @@
   $("cdRenewOff").addEventListener("click", function () {
     var s = cardIdx !== null ? sessions[cardIdx] : null;
     if (!s || !s.rep || !s.rep.g) return;
-    sessions.forEach(function (x) { if (x.rep && x.rep.g === s.rep.g) x.rep.stop = 1; });
+    var hit = sessions.filter(function (x) { return x.rep && x.rep.g === s.rep.g && !x.rep.stop; });
+    hit.forEach(function (x) { x.rep.stop = 1; });
     saveAll();
     renderRenew(s);
+    /* Решение остаётся «одним нажатием», но промах мимо «Продлить» в 4 px
+       отменяется, как удаление: полоса «Вернуть» на 6 секунд (ревью 14.09) */
+    $("undoText").textContent = LANG.t("rep.renewOffDone");
+    undoAt = null;
+    undoFn = function () {
+      hit.forEach(function (x) { delete x.rep.stop; });
+      saveAll();
+      if (cardIdx !== null && sessions[cardIdx]) renderRenew(sessions[cardIdx]);
+    };
+    $("undoBar").classList.add("show");
+    clearTimeout(trashTimer);
+    trashTimer = setTimeout(hideUndo, 6000);
   });
   $("cardAdd").addEventListener("click", function () {
     if (cardIdx === null) return;
