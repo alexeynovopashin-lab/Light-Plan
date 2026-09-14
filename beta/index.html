@@ -10271,6 +10271,14 @@
     try { return dtf(O_TIME).format(atMin(m)).replace(/ /g, "\u00A0"); }
     catch (e) { return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm; }
   }
+  /* Те же часы для машины: «ЧЧ:ММ» по 24 часам при любом языке и любой
+     настройке часов. `fmt` — строка экрана, у en-US это «9:00 AM», и её не
+     читает ни `parseHM`, ни студия (docs: DECISIONS, «Волна 7») */
+  function hm24(m) {
+    m = Math.round(((m % 1440) + 1440) % 1440);
+    var h = Math.floor(m / 60), mm = m % 60;
+    return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm;
+  }
   /* Время для крупных мест — купола и свода карты. «AM/PM» набирается мельче
      цифр: в часовой типографике обозначение половины суток никогда не
      равняется кеглю самого времени, и при 46 пунктах разница бросается в
@@ -23344,7 +23352,7 @@
     return v == null ? null : v + (r[f + "d"] || 0) * 1440;
   }
   function setCellMin(r, f, m) {
-    r[f] = fmt(m);
+    r[f] = hm24(m);
     r[f + "d"] = Math.floor(m / 1440);
   }
   /* Час в пилюле, а рядом дата, если сутки не первые: «05:30 1 сен». В
@@ -23353,10 +23361,10 @@
      «12:00 1 сен – 14:00», но «23:00 1 сен – 00:30 2 сен» */
   function stopTimeHTML(r, f) {
     if (!r[f]) return "--:--";
-    var d = r[f + "d"] || 0;
-    if (!d || (f === "t2" && r.t && (r.td || 0) === d)) return esc(r[f]);
+    var d = r[f + "d"] || 0, shown = fmt(parseHM(r[f]));
+    if (!d || (f === "t2" && r.t && (r.td || 0) === d)) return esc(shown);
     var day = new Date(fDate); day.setDate(day.getDate() + d);
-    return esc(r[f]) + '<span class="rt-day">' + esc(dMonShort(day)) + "</span>";
+    return esc(shown) + '<span class="rt-day">' + esc(dMonShort(day)) + "</span>";
   }
   /* Барабан часов точки идёт по часам съёмки, а не по кругу суток: у съёмки
      31 августа 23:30 — 2 сентября 00:30 два разных «23» и два разных «00»,
@@ -23791,8 +23799,8 @@
           date: airKeyOf(r.t ? addDays(fDate, r.td || 0) : fDate),
           /* Часы спрашиваем у самой ячейки: они и есть часы в студии. Не
              назвали — спрашиваем по времени съёмки */
-          from: r.t || fmt(fMin),
-          to: r.t2 || fmt(fMin + fDur),
+          from: r.t || hm24(fMin),
+          to: r.t2 || hm24(fMin + fDur),
           phones: phones
         })
       }).then(function (x) { return x.json(); }).then(function (j) {
@@ -25355,11 +25363,11 @@
     var wide = startMin < 900;                       // начали до 15:00 — день впереди
     var a = snapMin(startMin + (wide ? 120 : 30));
     var b = snapMin(startMin + (wide ? 240 : 90));
-    var cap = function (v) { return fmt(Math.min(v, 1410)); };
+    var cap = function (v) { return hm24(Math.min(v, 1410)); };
     /* Первый пункт — сборы: день начинается там, где начинается съёмка, и это
        же место съёмки. Место у всех трёх пустое: его называет фотограф */
     return [
-      { t: fmt(startMin), t2: cap(a), n: sceneName("gathering"), p: "" },
+      { t: hm24(startMin), t2: cap(a), n: sceneName("gathering"), p: "" },
       { t: cap(a), t2: cap(b), n: sceneName("registry"), p: "" },
       { t: cap(b), t2: cap(snapMin(b + 90)), n: sceneName("walk"), p: "" }
     ];
@@ -28933,8 +28941,8 @@
          студии в своих полях — читаем их как промежуток: это и были часы,
          когда пришли и когда ушли */
       var f0 = r.t != null ? r.t : r.rentFrom, f1 = r.t2 != null ? r.t2 : r.rentTo;
-      return { t: f0 == null ? "" : fmt(f0), td: f0 == null ? 0 : Math.floor(f0 / 1440),
-               t2: f1 == null ? "" : fmt(f1), t2d: f1 == null ? 0 : Math.floor(f1 / 1440),
+      return { t: f0 == null ? "" : hm24(f0), td: f0 == null ? 0 : Math.floor(f0 / 1440),
+               t2: f1 == null ? "" : hm24(f1), t2d: f1 == null ? 0 : Math.floor(f1 / 1440),
                n: r.n || "", p: r.p || "", walk: !!r.walk,
                placeId: r.placeId || null, studioId: r.studioId || null,
                hallId: r.hallId || null };
@@ -28950,8 +28958,8 @@
         var h0 = s.rentFrom != null ? s.rentFrom : s.min;
         var h1 = s.rentTo != null ? s.rentTo : (s.end != null ? s.end : s.min + (s.dur || 60));
         fRoute.unshift({
-          t: fmt(h0), td: Math.floor(h0 / 1440),
-          t2: fmt(h1), t2d: Math.floor(h1 / 1440),
+          t: hm24(h0), td: Math.floor(h0 / 1440),
+          t2: hm24(h1), t2d: Math.floor(h1 / 1440),
           n: "", p: s.place || "",
           placeId: null, studioId: s.studioId || null, hallId: s.hallId || null
         });
