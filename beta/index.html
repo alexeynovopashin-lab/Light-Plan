@@ -27115,6 +27115,10 @@
     renderCardMusic(s);
 
     var dur = s.dur || 90, endMin = s.end != null ? s.end : s.min + dur;
+    /* День с точками кончается концом последней, а не её началом — как в
+       свёрнутом маршруте: у съёмки 23:30 → 00:30 через сутки иначе выходило
+       «23:30 – 23:00» и «23,5 часа» вместо 25 */
+    var last = route[route.length - 1], lastEnd = last ? (last.t2 != null ? last.t2 : last.t) : endMin;
     if (!route.length) {
       /* Съёмка без точек — это отрезок: когда начинается и сколько идёт */
       if (phase === "during") {
@@ -27153,12 +27157,12 @@
       $("cdDayLeft").innerHTML = LANG.t("day.inAt", {
         left: "<b>" + esc(durLabel(route[0].t - nowMin2)) + "</b>", t: esc(fmt(route[0].t)) });
     } else if (phase === "before") {
-      $("cdDayNow").textContent = range(route[0].t, route[route.length - 1].t);
-      $("cdDayLeft").textContent = durLabel(route[route.length - 1].t - route[0].t)
+      $("cdDayNow").textContent = range(route[0].t, lastEnd);
+      $("cdDayLeft").textContent = durLabel(lastEnd - route[0].t)
         + " · " + LANG.count("unit.point", route.length);
     } else {
       $("cdDayNow").textContent = LANG.t(isMeet(s) ? "day.meetDone" : isEvent(s) ? "day.eventDone" : "day.shootDone");
-      $("cdDayLeft").textContent = range(route[0].t, route[route.length - 1].t);
+      $("cdDayLeft").textContent = range(route[0].t, lastEnd);
     }
 
     renderStudioTimer(s, route, phase, cur, nowMin2);
