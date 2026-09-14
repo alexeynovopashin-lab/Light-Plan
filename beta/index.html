@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=71"></script>
+<script src="lang.js?v=72"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -8951,10 +8951,17 @@
           <div class="chips" id="fPayType"></div>
           <div class="chips" id="fPackChips" hidden style="margin-top:8px;"></div>
         </div>
+        <!-- «В месяц» у карточки группы: сумма её месяца, правка — с этого
+             месяца и дальше -->
+        <div class="pay-row sep" id="fMonSumRow" hidden>
+          <span class="k" id="fMonSumLbl">—</span>
+          <input class="pay-in" type="text" inputmode="numeric" id="fMonSum" placeholder="0"/>
+        </div>
         <div class="pay-row sep" id="fRateRow">
           <span class="k" id="fRateLabel">—</span>
           <input class="pay-in" type="text" inputmode="numeric" id="fRate" placeholder="0"/>
         </div>
+        <div class="f-hint rep-sum sep" id="fMonSumHint" hidden>—</div>
         <!-- «В месяц» у заводимой группы: одна сумма тремя полями -->
         <div id="fMonRows" hidden>
           <div class="pay-row sep">
@@ -19192,6 +19199,7 @@
   /* `fRepExt` — форма открыта кнопкой «Продлить» последней карточки группы:
      барабан считает новые карточки, а не всю группу */
   var fRep = "never", fRepN = REP_DEF_N, fRepOn = {}, fRepOf = null, fRepMonthly = 0, fRepExt = false;
+  var fMonSum = null;   // набранная сумма месяца у карточки группы; null — не трогали
   /* Знак записи, с которой работает форма. Раньше он рождался только при
      «Сохранить», и до этой минуты у съёмки не было ничего, к чему привязать
      подборку, — поэтому кадры и лежали в форме своим списком `fRefs`, а
@@ -22890,7 +22898,20 @@
     var first = compose ? repFirstCount() : 0, perShoot = compose ? fRepMonthly / first : 0;
     $("fRateRow").hidden = compose;
     $("fMonRows").hidden = !compose;
-    $("fRate").placeholder = mon && !compose ? String(Math.round(extMon ? repExtShare() : repShare(payProbe()))) : "0";
+    /* «За месяц» у карточки помесячной группы: сумма её месяца. Набранная
+       действует с этого месяца и дальше, прежние месяцы не трогает
+       (Алексей, 14 сентября 2026) */
+    var sumRow = mon && !compose && !extMon && !!(fRepOf && fRepOf.start);
+    var mk = sumRow ? repPeriodIndex(fRepOf.start, fDate) : 0, sumWas = sumRow ? repSumAt(fRepOf, mk) : 0;
+    var sumEdit = sumRow && fMonSum !== null && fMonSum !== sumWas ? { k: mk, sum: fMonSum, at: Infinity } : null;
+    $("fMonSumRow").hidden = !sumRow;
+    $("fMonSumHint").hidden = !sumEdit;
+    if (sumRow) {
+      $("fMonSumLbl").textContent = LANG.t("form.perMonth", { sign: cs });
+      monShow("fMonSum", sumEdit ? fMonSum : sumWas);
+    }
+    if (sumEdit) $("fMonSumHint").textContent = repSumHint(mk, sumWas);
+    $("fRate").placeholder = mon && !compose ? String(Math.round(extMon ? repExtShare() : repShare(payProbe(), sumEdit))) : "0";
     /* Гонорар копий продления не задаётся: они получают долю месяца. Число
        последней в поле не показываем, его вернёт `refreshForm` */
     $("fRate").disabled = extMon;
@@ -22905,7 +22926,8 @@
       $("fMonHint").textContent = LANG.t("rep.payFirst", { n: LANG.count("unit.shoot", first), k: first });
     }
     // Итог: доход и прибыль
-    var inc = compose ? perShoot : extMon ? repExtShare() : sessionIncome(payProbe()), net = inc - fExpense;
+    var inc = compose ? perShoot : extMon ? repExtShare()
+      : sumEdit && fRate == null ? repShare(payProbe(), sumEdit) : sessionIncome(payProbe()), net = inc - fExpense;
     /* Доля предоплаты держит поле, пока в него не вписали своё число:
        пересчитывать набранную руками сумму значило бы спорить с человеком.
        Доли нет — поле не трогаем вовсе, и всё работает как до этой правки. */
@@ -22925,10 +22947,40 @@
     // Сводка спойлера: способ и итог одной строкой
     /* У помесячной в сводке сумма месяца: «В месяц · 12 500» читалось бы
        как месяц за двенадцать с половиной */
-    var summ = !mon ? net : compose ? fRepMonthly : (fRepOf && fRepOf.monthly) || 0;
+    var summ = !mon ? net : compose ? fRepMonthly : sumRow ? (sumEdit ? fMonSum : sumWas)
+      : extMon ? repSumAt(fRepOf, repPeriodIndex(fRepOf.start, repDates(fDate, fRep, fRepN + 1)[1] || fDate))
+      : (fRepOf && fRepOf.monthly) || 0;
     $("fPaySumm").innerHTML = esc(LANG.t("pay." + shown)) + " · <b>" + money(summ, fCurrency) + "</b>";
     slideFold($("fPayBody"), !payFolded);
     $("fPayFold").classList.toggle("open", !payFolded);
+  }
+  /* Подсказка под новой суммой месяца: с какого дня, вместо какой, и чего
+     она касается помимо доли — прошедших месяцев и предоплат, внесённых по
+     прежней доле. Число предоплаты не переписывается, меняется остаток */
+  function repSumHint(mk, was) {
+    var start = fRepOf.start, edit = { k: mk, sum: fMonSum, at: Infinity }, yr = new Date().getFullYear();
+    function dm(d) { return d.getFullYear() === yr ? dMon(d) : dMonYear(d); }
+    var text = LANG.t("rep.sumFrom", { d: dm(repPeriodStart(start, mk)),
+      sum: money(fMonSum, fCurrency), was: money(was, fCurrency) });
+    if (repPeriodStart(start, mk + 1) <= dayOf(new Date())) text += " " + LANG.t("rep.sumPast");
+    var paid = [];
+    sessions.forEach(function (x) {
+      var me = editIdx !== null && x === sessions[editIdx], p = me ? payProbe() : x;
+      var pre = me ? fPrepay : +x.prepay || 0;
+      if (!pre || !p.rep || p.rep.g !== fRepOf.g || p.pay !== "monthly" || p.rate != null
+          || repPeriodIndex(start, p.date) < mk) return;
+      var now = repShare(p, edit);
+      if (Math.round(now) !== Math.round(repShare(p))) paid.push({ d: dayOf(p.date), pre: pre, sum: now });
+    });
+    if (paid.length) {
+      paid.sort(function (a, b) { return a.d - b.d; });
+      var list = paid.slice(0, 3).map(function (o) {
+        return LANG.t("rep.sumPaidOf", { d: dm(o.d), pre: money(o.pre, fCurrency), sum: money(o.sum, fCurrency) });
+      }).join("; ");
+      if (paid.length > 3) list += " " + LANG.t("rep.more", { n: paid.length - 3 });
+      text += " " + LANG.t("rep.sumPaid", { list: list });
+    }
+    return text;
   }
   /* Свёрнутая оплата раскрывается тапом по сводке */
   var payFolded = true;
@@ -22947,6 +22999,8 @@
   /* Три поля одной суммы: вписали любое — хранится месяц, два других
      пересчитаны от него. Поле, в котором печатают, не трогаем */
   function monShow(id, v) { if (document.activeElement !== $(id)) $(id).value = v ? Math.round(v) : ""; }
+  /* Пустое поле «За месяц» — сумма не меняется */
+  bindPayInput("fMonSum", function (v) { fMonSum = $("fMonSum").value.trim() ? v : null; });
   bindPayInput("fMonMonth", function (v) { fRepMonthly = v; });
   bindPayInput("fMonShoot", function (v) { fRepMonthly = v * repFirstCount(); });
   bindPayInput("fMonHour", function (v) { fRepMonthly = v * (fDur / 60) * repFirstCount(); });
@@ -28821,7 +28875,7 @@
   function openForm(d, startMin, idx, fromLight, kind) {
     editIdx = (idx === undefined || idx === null) ? null : idx;
     formKind = kind || "shoot";
-    fRep = "never"; fRepN = REP_DEF_N; fRepOn = repDefaults(); fRepOf = null; fRepMonthly = 0;
+    fRep = "never"; fRepN = REP_DEF_N; fRepOn = repDefaults(); fRepOf = null; fRepMonthly = 0; fMonSum = null;
     fRepExt = false; repWheelFill();
     var draftRestored = false;
     if (editIdx !== null) {
@@ -29293,29 +29347,63 @@
      остальных растут, месяц не падает. Карточка со своим гонораром в счёт
      идёт: её число — доплата или скидка, доли соседей оно не двигает.
      Пробник формы — та же карточка, её узнаём по знаку */
-  function repShare(s) {
+  function repShare(s, extra) {
     var rep = s && s.rep;
-    if (!rep || !rep.monthly) return 0;
-    var k = repPeriodIndex(rep.start, s.date), n = 1;
+    if (!rep || !rep.start) return 0;
+    var k = repPeriodIndex(rep.start, s.date), sum = repSumAt(rep, k, extra), n = 1;
+    if (!sum) return 0;
     sessions.forEach(function (x) {
       if (x.id !== s.id && x.rep && x.rep.g === rep.g && x.pay === "monthly"
           && repPeriodIndex(rep.start, x.date) === k) n++;
     });
-    return rep.monthly / n;
+    return sum / n;
+  }
+  /* Сумма месяца k у группы. Смена суммы — запись «с месяца k — столько»
+     в сведениях каждой карточки (`rep.sums`), первая сумма группы — смена
+     с нулевого месяца. Читается со всех живых карточек группы: слияние
+     облака целиком оставляет у карточки версию, где смены ещё нет, и её
+     донесут соседи. Действует самая поздняя из смен, начатых не позже
+     месяца k: новая перекрывает и те, что раньше ставили на месяцы после
+     неё (Алексей, 14 сентября 2026, вариант Б). `extra` — набранная в форме */
+  function repSumAt(rep, k, extra) {
+    var best = { sum: +rep.monthly || 0, at: 0 };
+    function see(e) { if (e.k <= k && e.at > best.at) best = e; }
+    sessions.forEach(function (x) { if (x.rep && x.rep.g === rep.g && x.rep.sums) x.rep.sums.forEach(see); });
+    if (rep.sums) rep.sums.forEach(see);
+    if (extra) see(extra);
+    return best.sum;
+  }
+  /* Все смены суммы группы — копии продления несут их с собой */
+  function repSumsOf(g) {
+    var seen = {}, out = [];
+    sessions.forEach(function (x) {
+      if (x.rep && x.rep.g === g && x.rep.sums) x.rep.sums.forEach(function (e) {
+        if (seen[e.k + ":" + e.at]) return;
+        seen[e.k + ":" + e.at] = 1;
+        out.push({ k: e.k, sum: e.sum, at: e.at });
+      });
+    });
+    return out;
+  }
+  /* Первый день месяца k группы. Месяц без такого числа начинается первым
+     числом следующего: от 31 января второй месяц идёт с 1 марта */
+  function repPeriodStart(start, k) {
+    var a = dayOf(start), d = new Date(a.getFullYear(), a.getMonth() + k, a.getDate());
+    return d.getDate() === a.getDate() ? d : new Date(a.getFullYear(), a.getMonth() + k + 1, 1);
   }
   /* Доля первой новой карточки продления: сумма месяца на живые помесячные
      карточки её месяца вместе с копиями, которые в него лягут. Последняя
      считается тем способом, что стоит у неё в форме */
   function repExtShare() {
     var rep = fRepOf, dates = repDates(fDate, fRep, fRepN + 1).slice(1);
-    if (!rep || !rep.monthly || !dates.length) return 0;
+    if (!rep || !rep.start || !dates.length) return 0;
     var k = repPeriodIndex(rep.start, dates[0]), me = editIdx !== null ? sessions[editIdx] : null;
     var n = dates.filter(function (d) { return repPeriodIndex(rep.start, d) === k; }).length;
     if (fPay === "monthly" && repPeriodIndex(rep.start, fDate) === k) n++;
     sessions.forEach(function (x) {
       if (x !== me && x.rep && x.rep.g === rep.g && x.pay === "monthly" && repPeriodIndex(rep.start, x.date) === k) n++;
     });
-    return rep.monthly / n;
+    return repSumAt(rep, k) / n;
   }
   /* Сколько карточек заводимой группы ложится в первый месяц — на столько
      делится сумма в поле «за съёмку» (Алексей, 14 сентября 2026) */
@@ -29458,7 +29546,11 @@
     var have = repMates(old.g).length, src = boardOfSession(rec, false);
     dates.forEach(function (d, k) {
       var rep = { g: old.g, rule: old.rule, i: have + k + 1, n: have + dates.length };
-      if (old.start) { rep.monthly = old.monthly; rep.start = old.start; }
+      if (old.start) {
+        rep.monthly = old.monthly; rep.start = old.start;
+        var sums = repSumsOf(old.g);
+        if (sums.length) rep.sums = sums;
+      }
       var c = repCopy(rec, d, rep, src);
       /* Помесячная группа продлевается помесячно, даже если последнюю
          перевели на разовый способ: иначе её сумма размножится по копиям */
@@ -30095,6 +30187,17 @@
        заново, и без этой строки карточка молча выпала бы из группы */
     if (fRepOf) rec.rep = fRepOf;
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
+    /* Новая сумма месяца — смена у всей группы с месяца этой карточки.
+       Пишется и карточкам в корзине: возвращённая понесёт её сама */
+    if (fRepOf && fRepOf.start && !repExt() && rec.pay === "monthly" && fMonSum !== null) {
+      var mk = repPeriodIndex(fRepOf.start, rec.date);
+      if (fMonSum !== repSumAt(fRepOf, mk)) {
+        var sumCh = { k: mk, sum: fMonSum, at: Date.now() };
+        sessions.concat(trashed.map(function (t) { return t.rec; })).forEach(function (x) {
+          if (x && x.rep && x.rep.g === fRepOf.g) x.rep.sums = (x.rep.sums || []).concat([sumCh]);
+        });
+      }
+    }
     syncBoardGenre(rec);
     if (repEditable() && fRep !== "never") repMake(rec);
     else if (repExt()) repExtend(rec);
