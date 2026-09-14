@@ -4145,7 +4145,7 @@
     "rep.payFirst": "{n} en el primer mes",
     "rep.renew": "Prolongar la repetición",
     "rep.renewOff": "No prolongar",
-    "rep.renewOffDone": "La repetición no se prolongará",
+    "rep.renewOffDone": "No se prolongará",
     "rep.countMore": "Cuántas más",
     "rep.sumMore": "{n} más, la última el {last}.",
     "card.byDate": "para el {d}",
