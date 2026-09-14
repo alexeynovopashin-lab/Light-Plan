@@ -28870,11 +28870,12 @@
   });
   $("fDelete").addEventListener("click", function () {
     if (editIdx === null) return;
-    dropSessionBoard(sessions[editIdx]);
-    sessions.splice(editIdx, 1);
+    /* Через корзину, как из карточки: запись можно вернуть, а при очистке
+       корзины она получит тень и не воскреснет при слиянии. Подборку тоже
+       убирает очистка корзины */
+    var i = editIdx;
     editIdx = null;
-    saveAll();
-    renderSessions(); renderCal(); renderDayPanel(); renderMbStrip();
+    removeSession(i);
     closeRows();
     $("formOverlay").classList.remove("open");
     closeCard();     // записи больше нет: карточка под формой указывала бы в пустоту
