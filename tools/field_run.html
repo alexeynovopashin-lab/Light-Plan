@@ -1,0 +1,493 @@
+<title>Полевой прогон</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+
+<style>
+  :root {
+    --ground:   #EAEDF0;
+    --surface:  #FFFFFF;
+    --sunk:     #E1E6EA;
+    --ink:      #171B20;
+    --ink-2:    #414B55;
+    --ink-3:    #6B7681;
+    --hair:     #D0D7DE;
+    --hair-2:   #BAC4CD;
+    --brass:    #9A6816;
+    --brass-bg: #F3E7CE;
+    --terra:    #9C3F29;
+    --terra-bg: #F6E0D9;
+    --done:     #2F6B4F;
+    --radius:   10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #12161A;
+      --surface:  #1A2026;
+      --sunk:     #232B32;
+      --ink:      #E8ECF0;
+      --ink-2:    #B4BEC8;
+      --ink-3:    #838F9B;
+      --hair:     #2A333B;
+      --hair-2:   #3A454F;
+      --brass:    #E2A44C;
+      --brass-bg: #33291A;
+      --terra:    #D8836A;
+      --terra-bg: #35211B;
+      --done:     #6FBF95;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:   #12161A;
+    --surface:  #1A2026;
+    --sunk:     #232B32;
+    --ink:      #E8ECF0;
+    --ink-2:    #B4BEC8;
+    --ink-3:    #838F9B;
+    --hair:     #2A333B;
+    --hair-2:   #3A454F;
+    --brass:    #E2A44C;
+    --brass-bg: #33291A;
+    --terra:    #D8836A;
+    --terra-bg: #35211B;
+    --done:     #6FBF95;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .wrap {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 0 18px 72px;
+  }
+
+  /* ---------- Шапка ---------- */
+  .head { padding: 34px 0 22px; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 12px;
+  }
+
+  h1 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: clamp(2rem, 9vw, 2.75rem);
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+
+  .lede {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 1rem;
+    max-width: 34rem;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .meta a, .meta span {
+    display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--hair-2);
+    border-radius: 7px;
+    color: var(--ink-2);
+    text-decoration: none;
+    background: var(--surface);
+  }
+  .meta a { color: var(--brass); border-color: var(--brass); }
+  .meta a:active { background: var(--brass-bg); }
+
+  /* ---------- Счётчик ---------- */
+  .bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--ground);
+    border-bottom: 1px solid var(--hair);
+    padding: 11px 0 12px;
+    margin-bottom: 26px;
+  }
+  .bar-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .tally {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  .tally b { color: var(--ink); font-weight: 600; }
+  .reset {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--hair-2);
+    color: var(--ink-3);
+    padding: 2px 0;
+    cursor: pointer;
+  }
+  .reset:active { color: var(--ink); }
+  .track {
+    height: 3px;
+    margin-top: 9px;
+    background: var(--sunk);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .fill {
+    height: 100%;
+    width: 0%;
+    background: var(--brass);
+    transition: width 0.28s ease;
+  }
+  @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+
+  /* ---------- Разделы ---------- */
+  section { margin-bottom: 34px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding-bottom: 9px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--hair);
+  }
+  h2 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+    flex: 1;
+  }
+  .sec-n {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+  }
+  .sec-note {
+    margin: -6px 0 16px;
+    color: var(--ink-3);
+    font-size: 0.875rem;
+  }
+
+  /* ---------- Пункты ---------- */
+  .items { display: flex; flex-direction: column; gap: 10px; }
+
+  .item {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 13px;
+    padding: 14px 15px;
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .item:focus-within {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+  }
+  .item input { position: absolute; opacity: 0; pointer-events: none; }
+
+  .box {
+    width: 24px;
+    height: 24px;
+    margin-top: 1px;
+    border: 1.5px solid var(--hair-2);
+    border-radius: 7px;
+    background: var(--ground);
+    display: grid;
+    place-items: center;
+  }
+  .box svg { width: 14px; height: 14px; opacity: 0; }
+  .box svg path { stroke: var(--surface); stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  .item input:checked ~ .box { background: var(--done); border-color: var(--done); }
+  .item input:checked ~ .box svg { opacity: 1; }
+  .item input:checked ~ .txt .what { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--hair-2); }
+  .item input:checked ~ .txt .how,
+  .item input:checked ~ .txt .bad { opacity: 0.5; }
+
+  .txt { min-width: 0; }
+  .what {
+    display: block;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 3px;
+  }
+  .how { display: block; color: var(--ink-2); font-size: 0.9rem; }
+  .bad {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: var(--terra);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    line-height: 1.45;
+  }
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ---------- Решение, а не проверка ---------- */
+  .call {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-left: 3px solid var(--brass);
+    border-radius: var(--radius);
+    padding: 16px 17px;
+  }
+  .call h3 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-size: 1.05rem;
+    margin: 0 0 8px;
+  }
+  .call p { margin: 0 0 12px; color: var(--ink-2); font-size: 0.92rem; }
+  .call p:last-child { margin-bottom: 0; }
+
+  .nums {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 0 0 13px;
+    padding: 0;
+    list-style: none;
+  }
+  .nums li {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    padding: 5px 9px;
+    background: var(--sunk);
+    border-radius: 6px;
+    color: var(--ink-2);
+  }
+  .nums li b { color: var(--ink); font-weight: 600; }
+
+  .ways { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 0.9rem; }
+  .ways li { margin-bottom: 7px; }
+  .ways li:last-child { margin-bottom: 0; }
+  .ways b { color: var(--ink); font-weight: 600; }
+
+  footer {
+    margin-top: 38px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hair);
+    color: var(--ink-3);
+    font-size: 0.84rem;
+  }
+  footer p { margin: 0 0 7px; }
+</style>
+
+<div class="wrap">
+
+  <header class="head">
+    <p class="eyebrow">Light Plan · бета</p>
+    <h1>Полевой прогон</h1>
+    <p class="lede">Пятнадцать проверок, которые может закрыть только устройство: установленное с рабочего стола приложение, живое небо и настоящий Диск. Песочница на них слепа. Плюс один вопрос, на который нужен ваш глаз, а не палец.</p>
+    <div class="meta">
+      <a href="https://alexeynovopashin-lab.github.io/Light-Plan/beta/">открыть бету</a>
+      <span>80fb55e → a68decb</span>
+      <span>lang.js ?v=23</span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="bar-row">
+      <span class="tally"><b id="n">0</b> из <span id="all">14</span> закрыто</span>
+      <button class="reset" id="reset" type="button">сбросить</button>
+    </div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Легло сегодня</h2>
+      <span class="sec-n">7 пунктов</span>
+    </div>
+    <p class="sec-note">Ничего из этого телефон ещё не видел. Первые пять — про то, что в установленном PWA системные окна не показываются вовсе, поэтому проверять надо именно с рабочего стола, а не в Safari.</p>
+
+    <div class="items" id="items-new"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Ждёт с прошлых заходов</h2>
+      <span class="sec-n">8 пунктов</span>
+    </div>
+    <p class="sec-note">Код лежит в бете давно, подтвердить его может только устройство: Safari, датчики, живая карта, настоящее облако.</p>
+
+    <div class="items" id="items-old"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Не проверка, а выбор</h2>
+      <span class="sec-n">без отметки</span>
+    </div>
+
+    <div class="call">
+      <h3>Зазор компаса: чем платим</h3>
+      <p>Померено <code>getBBox</code> в браузере, не арифметикой по константам. Ничего не обрезано, но сверху и снизу вчетверо теснее, чем с боков:</p>
+      <ul class="nums">
+        <li>над «С» <b>2.7 px</b></li>
+        <li>под «Ю» <b>3.5 px</b></li>
+        <li>у «В» <b>15.1 px</b></li>
+        <li>у «З» <b>15.3 px</b></li>
+      </ul>
+      <p>Записанное в дорожной карте лекарство — сдвиг центра вниз на 4–6 px — выбросило бы «Ю» за пределы кадра: внизу не запас, а те же три с половиной пикселя. Остальные выходы каждый отменяют что-то уже принятое:</p>
+      <ul class="ways">
+        <li><b>Свести кольцо внутрь</b> (160 → 155) — буквы сядут на обод: он на 154, между ними останется пиксель вместо шести.</li>
+        <li><b>Дать буквам свой радиус</b> — против решения «буквы и числа делят одно кольцо, а не спорят за разные».</li>
+        <li><b>Вырастить кадр</b> (340 → ~348) — отменяет пункт 0.4, где высота отдана сводке дня.</li>
+        <li><b>Оставить 2.7 px</b> — ничего не обрезано, буква просто стоит близко к краю.</li>
+      </ul>
+      <p>Посмотрите глазами на живом экране и скажите, чем платим — правка займёт минуты, выбор ваш.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Разбор каждой правки — в <code>DECISIONS.md</code>, последние разделы. Что закрыто и что осталось — в <code>ROADMAP.md</code>.</p>
+    <p>Отметки хранятся только в этом браузере — на телефоне свой список, на ноутбуке свой.</p>
+  </footer>
+
+</div>
+
+<script>
+  var NEW = [
+    ["Ссылка на документ в форме съёмки",
+     "Форма съёмки → блок документов → «Ссылка». Наберите адрес без «https://» — схема должна дописаться сама.",
+     "провал: ничего не открылось или кнопка мертва"],
+    ["Ссылка на документ организации",
+     "Настройки → Организации и документы → карточка → «Ссылка». То же самое, другой заголовок листа.",
+     "провал: бумага легла не в ту организацию"],
+    ["Удаление организации, за которой числятся съёмки",
+     "Вопрос приходит листом снизу. «Отмена» оставляет всё как было; «Удалить» убирает организацию, а съёмки остаются и теряют заказчика.",
+     "провал: удалилось без вопроса или пропали съёмки"],
+    ["Очистить корзину",
+     "Удалите съёмку, откройте корзину, нажмите «Очистить». Проверьте текст на одной, двух и пяти записях — «В корзине 1 съёмка», «2 съёмки», «5 съёмок».",
+     "провал: «1 съёмка» превратилась в «1 съёмку» или наоборот"],
+    ["Очистить и начать своё",
+     "Передача телефона, последний шаг. Вопрос листом; дальше на ваше усмотрение — за «Стереть» пути назад нет.",
+     "провал: стёрлось без вопроса"],
+    ["Отсчёт после конца съёмки",
+     "Откройте карточку съёмки, которая кончилась час-два назад — не позже трёх часов. Вместо «осталось 0 мин» должно стоять «сверх плана 1 ч 13 мин · по записи до 19:47».",
+     "провал: снова замороженный ноль или пустая строка"],
+    ["Догон в облако для кадров без сети",
+     "Отключите Диск, добавьте кадр в подборку, подключите Диск обратно и откройте приложение заново. Подборка должна сменить состояние с «на устройстве» на «в облаке».",
+     "провал: состояние не изменилось — кадр так и не уехал"]
+  ];
+
+  var OLD = [
+    ["Системное меню iOS на кадре мудборда",
+     "Долгий тап по плитке должен открыть наш лист действий и только его. Гасится свойством, которого Chromium не знает — подтвердить может только устройство.",
+     "провал: поверх нашего листа встало меню iOS «Скопировать / Поделиться»"],
+    ["Сквиркл на скруглениях",
+     "72 места переведены на corner-shape. Браузер, не знающий свойства, молча оставляет обычные дуги.",
+     "провал: углы выглядят как везде, разницы нет"],
+    ["Нулевой сегмент на круге суток",
+     "Полярный день или ночь: сегмент нулевой длины с круглым концом. В Safari он может не нарисоваться вовсе.",
+     "провал: точки нет там, где она должна быть"],
+    ["Млечный Путь поверх карты города",
+     "Включите слой на застроенном месте. На пустом холсте облако читается отлично, в улицах может утонуть.",
+     "провал: точки неразличимы на фоне зданий"],
+    ["Лимб и дорожка в обеих темах",
+     "Переключите тему на живой карте: деления, буквы, путь солнца.",
+     "провал: что-то пропало или слилось с подложкой"],
+    ["Чип азимута при быстром движении",
+     "Гоняйте ползунок времени рывками. Чип на пальце должен держаться за светило, а не догонять его.",
+     "провал: чип отстаёт и живёт своей жизнью"],
+    ["Закачка подборок с Диска",
+     "С подключённым Диском: пометка «взять с собой», вставка из буфера, перетаскивание кадра. Живьём это не проверялось ни разу.",
+     "провал: кадры не качаются или не добавляются"],
+    ["Карточка встречи в светлой теме",
+     "Её смотрели только в тёмной.",
+     "провал: нечитаемые строки или пропавшие подписи"]
+  ];
+
+  function rows(list, host, prefix) {
+    host.innerHTML = list.map(function (it, i) {
+      return '<label class="item">'
+        + '<input type="checkbox" data-k="' + prefix + i + '">'
+        + '<span class="box"><svg viewBox="0 0 16 16"><path d="M3 8.4l3.4 3.4L13 4.6"/></svg></span>'
+        + '<span class="txt"><span class="what">' + it[0] + '</span>'
+        + '<span class="how">' + it[1] + '</span>'
+        + '<span class="bad">' + it[2] + '</span></span>'
+        + '</label>';
+    }).join("");
+  }
+
+  rows(NEW, document.getElementById("items-new"), "n");
+  rows(OLD, document.getElementById("items-old"), "o");
+
+  var KEY = "lightplan.fieldrun.v1";
+  var boxes = [].slice.call(document.querySelectorAll(".item input"));
+
+  function read() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+  function write(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function tally() {
+    var n = boxes.filter(function (b) { return b.checked; }).length;
+    document.getElementById("n").textContent = n;
+    document.getElementById("all").textContent = boxes.length;
+    document.getElementById("fill").style.width = (n / boxes.length * 100) + "%";
+  }
+
+  var state = read();
+  boxes.forEach(function (b) {
+    b.checked = !!state[b.dataset.k];
+    b.addEventListener("change", function () {
+      var s = read();
+      if (b.checked) s[b.dataset.k] = 1; else delete s[b.dataset.k];
+      write(s);
+      tally();
+    });
+  });
+  tally();
+
+  document.getElementById("reset").addEventListener("click", function () {
+    boxes.forEach(function (b) { b.checked = false; });
+    write({});
+    tally();
+  });
+</script>
