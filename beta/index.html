@@ -28449,7 +28449,7 @@
   });
   /* «Продлить»: форма последней карточки, барабан «Сколько ещё» */
   $("cdRenewGo").addEventListener("click", function () {
-    if (cardIdx === null || !repRenewable(sessions[cardIdx])) return;
+    if (cardIdx === null || !repLast(sessions[cardIdx])) return;
     openForm(null, null, cardIdx);
     fRepExt = true; fRep = fRepOf.rule;
     repWheelFill(); renderRep(); renderPay();
@@ -29211,10 +29211,13 @@
   /* Напоминалка о продлении — у последней живой карточки, пока группу не
      погасили. Отказ записан у каждой карточки, а читается у любой: карточка,
      возвращённая из корзины, унесла туда сведения без отметки */
-  function repRenewable(s) {
+  function repLast(s) {
     if (!s || !s.rep || !s.rep.g || notWork(s)) return false;
     var m = repMates(s.rep.g);
-    return m[m.length - 1] === s && !m.some(function (x) { return x.rep.stop; });
+    return m[m.length - 1] === s;
+  }
+  function repRenewable(s) {
+    return repLast(s) && !repMates(s.rep.g).some(function (x) { return x.rep.stop; });
   }
   /* Отказ, который ещё можно вернуть: пока карточка открыта, плашка стоит на
      месте с «Вернуть». Полоса внизу на 6 секунд не годилась: плашка
@@ -29224,14 +29227,19 @@
   var renewUndo = null;
   function renderRenew(s) {
     var undo = !!(renewUndo && renewUndo.s === s);
-    var show = !ordMode && (undo || repRenewable(s));
+    var show = !ordMode && (undo || repLast(s));
     $("cdRenew").hidden = !show;
     if (!show) return;
+    /* Погасили насовсем — вход в продление остаётся тихой строкой, как
+       отправленный опросник; плашка с «Не продлевать» не возвращается
+       (Алексей, 14 сентября 2026) */
+    var quiet = !undo && !repRenewable(s);
     var n = repMates(s.rep.g).length;
     $("cdRenewS").textContent = LANG.t("rep.info", { rule: LANG.t("rep." + s.rep.rule), i: n, n: n });
     $("cdRenewGo").querySelector(".qr-t").textContent = LANG.t(undo ? "rep.renewOffDone" : "rep.renew");
-    $("cdRenewGo").classList.toggle("sent", undo);
+    $("cdRenewGo").classList.toggle("sent", undo || quiet);
     $("cdRenewGo").disabled = undo;
+    $("cdRenewOff").hidden = quiet;
     $("cdRenewOff").textContent = LANG.t(undo ? "plan.undo" : "rep.renewOff");
     $("cdRenewOff").classList.toggle("on", undo);
   }
