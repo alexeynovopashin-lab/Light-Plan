@@ -10278,6 +10278,23 @@
     catch (e) { return fmt(a) + "\u00A0–\u00A0" + fmt(b); }
   }
   function sameDay(a, b) { return a.toDateString() === b.toDateString(); }
+  /* День записи хранится строкой «ГГГГ-ММ-ДД», а не моментом
+     (docs/16_TIME_MODEL.md). `toISOString` писал полночь пояса телефона
+     в UTC, и в другом поясе та же строка открывалась соседним днём: группа
+     «Каждый месяц» от 31 марта, заведённая в Томске, в Москве становилась
+     30-м. В памяти день — `Date` на местную полночь, как и был.
+     Строку дня нельзя отдавать `new Date`: её читают полночью UTC, и западнее
+     Гринвича выходит вчера. Прежний момент — засевы и записи до смены —
+     читается как раньше, днём того пояса, где его открыли */
+  function dayText(d) {
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function dayOf(v) {
+    var m = typeof v === "string" && /^(\d{4})-(\d\d)-(\d\d)$/.exec(v);
+    var d = m ? new Date(+m[1], m[2] - 1, +m[3]) : new Date(v);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
 
   /* ============================================================
      СОЛНЕЧНАЯ МОДЕЛЬ (NOAA)
@@ -11646,7 +11663,7 @@
   var selDate = new Date();              // просматриваемый день
   var viewMin = 0;                       // просматриваемое время
   var calMonth = new Date();             // месяц в календаре
-  var calSel = new Date();               // выбранный день в календаре
+  var calSel = dayOf(new Date());        // выбранный день в календаре — полночь, как у «Сегодня»
   var calScope = "month";                // масштаб: месяц, неделя или один день
   /* Какие свободные окна фотограф раскрыл по часам. Живёт до ухода с экрана:
      раскрыл — значит целится в конкретный час, и схлопывать это обратно на
@@ -11747,7 +11764,7 @@
       stampList(shots, now); stampList(boards, now);
       var data = {
         sessions: sessions.map(function (s) {
-          var o = {}; for (var k in s) o[k] = (k === "date") ? s.date.toISOString() : s[k];
+          var o = {}; for (var k in s) o[k] = (k === "date") ? dayText(s.date) : s[k];
           return o;
         }),
         me: me,
@@ -11772,7 +11789,7 @@
            в записи её нет, и первый запуск остаётся первым */
         practice: practiceAsked ? practice : undefined,
         trashed: trashed.map(function (t) {
-          var r = {}; for (var k in t.rec) r[k] = (k === "date") ? t.rec.date.toISOString() : t.rec[k];
+          var r = {}; for (var k in t.rec) r[k] = (k === "date") ? dayText(t.rec.date) : t.rec[k];
           return { rec: r, at: t.at, del: t.del };
         }),
         travelMin: travelMin, musicApp: musicApp, playlists: playlists,
@@ -11780,7 +11797,7 @@
         mbStripFold: !mbStripOpen, mbSeen: mbSeen, mbSeeded: mbSeeded,
         telCountry: telCountry,
         blocks: blocks.map(function (b) {
-          var o = {}; for (var k in b) o[k] = (k === "from") ? b.from.toISOString() : b[k];
+          var o = {}; for (var k in b) o[k] = (k === "from") ? dayText(b.from) : b[k];
           return o;
         }),
         /* Тени окончательно удалённых. Пустой массив тоже пишем: он значит
@@ -12704,7 +12721,7 @@
       var raw = localStorage.getItem(STORE);
       if (!raw) return null;
       var o = JSON.parse(raw);
-      if (o.sessions) o.sessions.forEach(function (s) { s.date = new Date(s.date); });
+      if (o.sessions) o.sessions.forEach(function (s) { s.date = dayOf(s.date); });
       return o;
     } catch (e) { return null; }
   }
@@ -12982,7 +12999,7 @@
      значение — нет, и объявленная выше корзина молча оказывалась пустой после
      каждого перезапуска. Хранилище при этом было в порядке — тем и опасно. */
   var trashed = (saved && Array.isArray(saved.trashed) ? saved.trashed : []).map(function (t) {
-    var r = {}; for (var k in t.rec) r[k] = (k === "date") ? new Date(t.rec[k]) : t.rec[k];
+    var r = {}; for (var k in t.rec) r[k] = (k === "date") ? dayOf(t.rec[k]) : t.rec[k];
     return { rec: r, at: t.at || 0, del: t.del || 0 };
   });
 
@@ -13474,7 +13491,7 @@
      ни сдачи материала, и попади он в sessions — полез бы в прибыль за год,
      в «ждём: акт» и в карточки. Занятость — это не съёмка без полей. */
   var blocks = (saved && saved.blocks) || [];
-  blocks.forEach(function (b) { b.from = new Date(b.from); });
+  blocks.forEach(function (b) { b.from = dayOf(b.from); });
   var BLOCK_KINDS = [
     { k: "off",    ic: "home" },
     { k: "road",   ic: "car" },
@@ -28272,7 +28289,7 @@
     $("cardEdit").hidden = isEvent(s);
     if (!$("cdGrow").hidden) $("cdGrow").querySelector(".gb-s").textContent = LANG.t(meet ? "card.growS" : "card.growSEv");
     if (soft && s.grewOn) {
-      var g = new Date(s.grewOn);
+      var g = dayOf(s.grewOn);
       $("cdGrown").textContent = LANG.t("card.grownOn", { d: dMon(g) });
     }
 
@@ -28556,10 +28573,10 @@
       /* Отправленный опросник переезжает вместе с остальным: иначе на карточке
          съёмки кнопка появилась бы снова и клиенту ушёл бы второй */
       questSent: m.questSent || null,
-      wish: [], fromMeetOn: m.date.toISOString(), fromMeetId: m.id || null
+      wish: [], fromMeetOn: dayText(m.date), fromMeetId: m.id || null
     };
     rec.end = rec.min + rec.dur;
-    m.grewOn = when.toISOString();                // встреча помнит, чем кончилась
+    m.grewOn = dayText(when);                     // встреча помнит, чем кончилась
     /* Знаком, а не строкой даты: дату встречи можно поправить, и связь по ней
        рвётся молча. Строку оставляем для записей, заведённых до знаков */
     m.grewToId = rec.id;
@@ -28595,7 +28612,7 @@
      там, забытая здесь, — и черновик начнёт врать молча. */
   function draftBuild() {
     return {
-      kind: formKind, date: fDate.toISOString(), min: fMin, dur: fDur, type: shootType, sub: shootSub,
+      kind: formKind, date: dayText(fDate), min: fMin, dur: fDur, type: shootType, sub: shootSub,
       contact: $("fContact").value.trim(), clientTel: $("fClientTel").value.trim(),
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
@@ -28687,7 +28704,7 @@
       for (var rk in REP_BLOCKS) if (s.repDraft.on && rk in s.repDraft.on) fRepOn[rk] = s.repDraft.on[rk] ? 1 : 0;
       fRepMonthly = +s.repDraft.monthly || 0;
     }
-    fDate = new Date(s.date); fMin = s.min; fDur = s.dur || 90;
+    fDate = dayOf(s.date); fMin = s.min; fDur = s.dur || 90;
     shootType = s.type;
     shootSub = subOk(s.type, s.sub) ? s.sub : "";
     // старые записи хранили строку — поднимаем в массив
@@ -28815,7 +28832,9 @@
       /* Время пришло от света («Запланировать» на золотой час) — не округляем;
          обычное начало округляем до шага, чтобы не ставить 19:47 руками */
       fLight = !!fromLight;
-      fDate = new Date(d); fMin = fromLight ? Math.round(startMin) : snapMin(startMin);
+      /* День без времени суток: экран неба держит в выбранном дне и минуту,
+         а запись хранит только день — минута у неё своя, fMin */
+      fDate = dayOf(d); fMin = fromLight ? Math.round(startMin) : snapMin(startMin);
       $("fDone").classList.remove("on");
       fDeliveredAt = null;
       $("fContact").value = ""; $("fClientTel").value = ""; $("fNotes").value = "";
@@ -29248,7 +29267,7 @@
      такого числа кончается своим последним днём: от 31 января первый — по
      28 февраля, второй — с 1 по 30 марта */
   function repPeriodIndex(start, date) {
-    var a = new Date(start), d = new Date(date);
+    var a = dayOf(start), d = dayOf(date);
     var k = (d.getFullYear() - a.getFullYear()) * 12 + d.getMonth() - a.getMonth();
     return d.getDate() < a.getDate() ? k - 1 : k;
   }
@@ -29389,7 +29408,7 @@
     rec.rep = { g: g, rule: fRep, i: 1, n: dates.length };
     /* Помесячная сумма и начало месяцев — в сведениях каждой карточки:
        удаление первой не уносит их с собой */
-    var mon = fPay === "monthly" ? { monthly: fRepMonthly, start: rec.date.toISOString() } : null;
+    var mon = fPay === "monthly" ? { monthly: fRepMonthly, start: dayText(rec.date) } : null;
     if (mon) { rec.rep.monthly = mon.monthly; rec.rep.start = mon.start; rec.rate = null; }
     var src = boardOfSession(rec, false);
     dates.slice(1).forEach(function (d, k) {
@@ -29680,7 +29699,7 @@
       var next = byId(m.grewToId);
       if (next < 0) {
         for (var i = 0; i < sessions.length; i++) {
-          if (!notWork(sessions[i]) && sessions[i].fromMeetOn === m.date.toISOString()) { next = i; break; }
+          if (!notWork(sessions[i]) && sessions[i].fromMeetOn === dayText(m.date)) { next = i; break; }
         }
       }
       if (next >= 0) idx = next;
@@ -29982,7 +30001,7 @@
          рождается здесь: форма получила его при открытии, и подборка съёмки
          уже висит на нём — выдать второй значило бы оторвать её. */
       id: fId || newId(),
-      date: new Date(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType, sub: shootSub,
+      date: dayOf(fDate), min: fMin, end: fMin + fDur, dur: fDur, type: shootType, sub: shootSub,
       contact: contactLine(), clientTel: $("fClientTel").value.trim(),
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
@@ -33153,7 +33172,7 @@
                 days: b.days || 1, min: b.min || 600, dur: b.dur || 120,
                 tzFrom: b.tzFrom != null ? b.tzFrom : null, tzTo: b.tzTo != null ? b.tzTo : null }
             : { k: (pre && pre.k) || "off", note: (pre && pre.note) || "",
-                from: new Date(day || calSel), allDay: pre ? !!pre.allDay : at == null,
+                from: dayOf(day || calSel), allDay: pre ? !!pre.allDay : at == null,
                 days: 1, min: at == null ? ((pre && pre.min) || 600) : at,
                 dur: (pre && pre.dur) || 120,
                 tzFrom: pre ? pre.tzFrom : null, tzTo: pre ? pre.tzTo : null };
@@ -33180,7 +33199,7 @@
   });
   $("blkDone").addEventListener("click", function () {
     var rec = { id: blkEditId || newBlockId(), k: blk.k, note: (blk.note || "").trim(),
-                from: new Date(blk.from), allDay: blk.allDay,
+                from: dayOf(blk.from), allDay: blk.allDay,
                 days: blk.allDay ? blockDays(blk) : 1,
                 min: blk.allDay ? null : blk.min, dur: blk.allDay ? null : blk.dur,
                 /* Пояса — снимок на момент записи, как адрес студии: правила
