@@ -29150,7 +29150,9 @@
   /* Живые карточки группы по порядку дат */
   function repMates(g) {
     return sessions.filter(function (x) { return x.rep && x.rep.g === g; })
-      .sort(function (a, b) { return new Date(a.date) - new Date(b.date) || a.min - b.min; });
+      /* Одна дата и минута — порядок по номеру в группе, а не по месту в
+         массиве: слияние и возврат из корзины его переставляют */
+      .sort(function (a, b) { return new Date(a.date) - new Date(b.date) || a.min - b.min || a.rep.i - b.rep.i; });
   }
   /* Напоминалка о продлении — у последней живой карточки, пока группу не
      погасили. Отказ записан у каждой карточки, а читается у любой: карточка,
