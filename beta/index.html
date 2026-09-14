@@ -20679,6 +20679,15 @@
   function mbGridDrag(btn, board, onOpen, onMenu) {
     var timer = null, lifted = false, dragged = false, consumed = false;
     var sx = 0, sy = 0, order = null, sid = btn.dataset.sid, lastY = 0, scrollRaf = null;
+    var grabX = 0, grabY = 0, skip = null;
+    /* Кадр ведётся от своего места в разметке, а не от места подъёма: после
+       перестановки оно другое, и сдвиг от старого уводил бы кадр из-под
+       пальца */
+    function follow(x, y) {
+      btn.style.transform = "none";
+      var h = btn.getBoundingClientRect();
+      btn.style.transform = "translate(" + (x - grabX - h.left) + "px," + (y - grabY - h.top) + "px) scale(1.06)";
+    }
     /* Плитка может уехать перетаскиванием за край видимой части — длинная
        подборка не помещается на экран целиком. Без автопрокрутки нижние
        кадры были бы недостижимы жестом, только через сортировку. */
@@ -20699,8 +20708,10 @@
       consumed = false;
       sx = e.clientX; sy = e.clientY; lifted = false; dragged = false;
       timer = setTimeout(function () {
-        lifted = true; consumed = true;
+        lifted = true; consumed = true; skip = null;
         order = board.items.slice();
+        var r0 = btn.getBoundingClientRect();
+        grabX = sx - r0.left; grabY = sy - r0.top;
         try { navigator.vibrate && navigator.vibrate(16); } catch (err) {}
         btn.style.transition = "transform .22s cubic-bezier(.2,1.4,.4,1)";
         btn.style.transform = "scale(1.06)";
@@ -20714,7 +20725,7 @@
       if (!lifted) { if (Math.abs(dx) + Math.abs(dy) > 8) clearTimeout(timer); return; }
       dragged = true; lastY = e.clientY;
       btn.style.transition = "none";
-      btn.style.transform = "translate(" + dx + "px," + dy + "px) scale(1.06)";
+      follow(e.clientX, e.clientY);
       /* Тот же приём, что у `mbStartDrag`: гасим себя на миг, иначе
          `elementFromPoint` каждый раз находит поднятую плитку, а не то,
          что под ней */
@@ -20722,14 +20733,21 @@
       var hit = document.elementFromPoint(e.clientX, e.clientY);
       btn.style.pointerEvents = "";
       var over = hit && hit.closest ? hit.closest(".ref-card:not(.add)") : null;
-      if (over && over !== btn && over.dataset.sid) {
-        var toId = over.dataset.sid;
-        var fromPos = order.indexOf(sid), toPos = order.indexOf(toId);
-        if (fromPos >= 0 && toPos >= 0 && fromPos !== toPos) {
-          order.splice(fromPos, 1);
-          order.splice(toPos, 0, sid);
-          mbFlipReorder(order, btn);
-        }
+      if (!over || over === btn || !over.dataset.sid) { skip = null; return; }
+      /* С кем только что поменялись — того не трогаем, пока палец с него не
+         уйдёт. Кадры разной высоты: после обмена под пальцем часто снова
+         оказывается тот же сосед, и без этого пара менялась бы на каждом
+         движении туда и обратно (замер в песочнице: итог зависел от
+         чётности числа событий) */
+      var toId = over.dataset.sid;
+      if (toId === skip) return;
+      var fromPos = order.indexOf(sid), toPos = order.indexOf(toId);
+      if (fromPos >= 0 && toPos >= 0 && fromPos !== toPos) {
+        order.splice(fromPos, 1);
+        order.splice(toPos, 0, sid);
+        mbFlipReorder(order, btn);
+        skip = toId;
+        follow(e.clientX, e.clientY);
       }
     });
     function release() {
@@ -20777,9 +20795,12 @@
       bySid[c.dataset.sid] = c;
       if (c !== draggedBtn) before[c.dataset.sid] = c.getBoundingClientRect();
     });
+    /* Поднятый кадр переезжает вместе со всеми: оставленный на старом месте
+       в разметке, он держал сетку неизменной, и сосед под пальцем не
+       уступал места никогда */
     order.forEach(function (id) {
       var el = bySid[id];
-      if (el && el !== draggedBtn) grid.appendChild(el);
+      if (el) grid.appendChild(el);
     });
     var addEl = grid.querySelector(".ref-card.add");
     if (addEl) grid.appendChild(addEl);
