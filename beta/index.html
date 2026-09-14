@@ -5366,6 +5366,9 @@
   .dt-now .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
   .dt-now .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dt-clock { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  /* Пояс под цифрами, а не рядом: в строку он забирал 42 px у «Сейчас: Студия»,
+     которой и без него впритык (замер на 390 px: 99 из нужных 112) */
+  .dt-clock .tz-tag { display: block; font-size: 11px; text-align: right; line-height: 1.2; }
   .dt-left { font-size: 12.5px; color: var(--ink-4); margin-top: 3px; }
   .dt-left b { color: var(--green); font-weight: 400; }
 
@@ -27104,10 +27107,15 @@
     $("cdDayM").textContent = monthOfDate(s.date);
     $("cdDayW").textContent = wdFull(s.date);
 
-    var now = new Date(), nowMin2 = shootMin(s, now), today = nowMin2 !== null;
+    var nowMin2 = nowMinOf(s), today = nowMin2 !== null;
     var cur = curIndex(route, nowMin2);
 
-    $("cdDayClock").textContent = today ? fmt(nowMin2) : "";
+    /* Часы плитки — время места, как фаза и таймер: съёмка в Москве, телефон
+       в Томске, и «16:10» рядом со «Сейчас: Студия» в 12:10 было бы чужим.
+       Разошлось с телефоном — рядом пояс (docs: 16_TIME_MODEL, «Два правила») */
+    var at = shootAt(s), tzt = today ? tzTag(at.lat, at.lon) : "";
+    $("cdDayClock").innerHTML = today
+      ? esc(fmt(nowMin2)) + (tzt ? ' <span class="tz-tag">' + esc(tzt) + "</span>" : "") : "";
     $("cdDayDot").style.display = phase === "during" ? "" : "none";
     /* Кнопка живёт только там, где ей есть что сделать: включённая настройка,
        идущая съёмка, сегодняшний день. Встречу не завершают — она не работа. */
@@ -27309,9 +27317,11 @@
      хранятся конец записи (`end = min + dur`) и время точек маршрута, поэтому
      «сейчас» сравнивается с ними без поправок на полночь: 00:31 второго дня —
      это 1471, а не 31. Пока идут календарные дни съёмки — число, вне их —
-     null, как прежде вне её единственного дня. Часы передаёт звавший: одни
-     зовут с часами места съёмки, другие — с часами телефона
-     (docs: DECISIONS, «Точка маршрута знает свой день»). */
+     null, как прежде вне её единственного дня. Часы передаёт звавший, и это
+     всегда часы места съёмки: `nowMinOf` и `eventPhase`. Прежде плитка дня,
+     маршрут, место и такт таймера звали с часами телефона, и в поездке
+     карточка говорила «Финал», пока шла студия (docs: DECISIONS, «Точка
+     маршрута знает свой день» и «Волна 2: одни часы, одна дата»). */
   function shootMin(s, now) {
     var d = dayDiff(now, s.date);
     var end = s.end != null ? s.end : s.min + (s.dur || 90);
@@ -27534,7 +27544,7 @@
       if (!s) { stopStudioTick(); return; }
       var route = notWork(s) ? [] : routeOf(s);
       var phase = eventPhase(s);
-      var nowMin2 = shootMin(s, new Date());
+      var nowMin2 = nowMinOf(s);
       renderStudioTimer(s, route, phase, curIndex(route, nowMin2), nowMin2);
       pollRentReq(s);
       renderCardMusic(s);
@@ -27594,7 +27604,7 @@
      его — город фотографа. */
   function cardSpot(s, route) {
     if (route.length) {
-      var nm = shootMin(s, new Date());
+      var nm = nowMinOf(s);
       var i = curIndex(route, nm), r = route[i >= 0 ? i : 0], st = stopPlace(r);
       var name = studioSpotName(r.studioId) || shortPlace(st ? st.name : (r.p || r.n || ""));
       return { name: name || shortPlace(placeText(s)), t: r.t,
@@ -27906,7 +27916,7 @@
     $("cdRouteS").textContent = LANG.count("unit.point", route.length)
       + " · " + range(route[0].t, last.t2 != null ? last.t2 : last.t);
 
-    var nowMin2 = shootMin(s, new Date());
+    var nowMin2 = nowMinOf(s);
     var cur = curIndex(route, nowMin2);
     $("cdRouteBody").innerHTML = route.map(function (r, i) {
       var cls = i === cur ? " now" : (nowMin2 !== null && r.t < nowMin2 ? " past" : "");
@@ -28107,7 +28117,7 @@
     return mine.concat(set);
   }
   function currentStage(s, route) {
-    var nm = shootMin(s, new Date());
+    var nm = nowMinOf(s);
     if (nm === null || !route.length) return "";
     var c = curIndex(route, nm);
     return c >= 0 ? route[c].n : "";
