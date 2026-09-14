@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=68"></script>
+<script src="lang.js?v=69"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -22871,7 +22871,7 @@
       monShow("fMonMonth", fRepMonthly);
       monShow("fMonShoot", perShoot);
       monShow("fMonHour", fDur ? perShoot / (fDur / 60) : 0);
-      $("fMonHint").textContent = LANG.t("rep.payFirst", { n: LANG.count("unit.shoot", first) });
+      $("fMonHint").textContent = LANG.t("rep.payFirst", { n: LANG.count("unit.shoot", first), k: first });
     }
     // Итог: доход и прибыль
     var inc = compose ? perShoot : sessionIncome(payProbe()), net = inc - fExpense;
@@ -29285,7 +29285,10 @@
       if (c) hits.push(dm(d) + " — " + (c.n || c.t));
     });
     var text = LANG.t(ext ? "rep.sumMore" : "rep.sum",
-      { n: LANG.count("unit.shoot", dates.length - (ext ? 1 : 0)), last: dm(dates[dates.length - 1]) });
+      /* {k} — голое число: китайскому нужно счётное слово между ним и
+         словом, а общее «拍摄» в `unit.shoot` его не несёт */
+      { n: LANG.count("unit.shoot", dates.length - (ext ? 1 : 0)), k: dates.length - (ext ? 1 : 0),
+        last: dm(dates[dates.length - 1]) });
     if (hits.length) {
       var list = hits.slice(0, 3).join("; ");
       if (hits.length > 3) list += " " + LANG.t("rep.more", { n: hits.length - 3 });
