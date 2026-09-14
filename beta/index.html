@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=67"></script>
+<script src="lang.js?v=68"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -6115,6 +6115,11 @@
   .quest-row .qr-t { font-size: 15px; font-weight: 600; color: var(--brass); }
   .quest-row .qr-s { font-size: 12px; color: var(--ink-4); }
   .quest-row.sent .qr-t { font-weight: 500; color: var(--ink-3); }
+  /* Продление повтора — та же плашка предложения, что у опросника. Отказ
+     словами, а не крестиком: «Не продлевать» гасит строку у группы насовсем
+     (Алексей, 13 сентября 2026) */
+  .renew-off { flex: none; padding: 8px 2px; background: none; border: none; cursor: pointer;
+    font-family: inherit; font-size: 13px; color: var(--ink-4); }
   .quest-row:active { background: var(--press-warm); }
   /* В карточке референсы только смотрят: удаление живёт в форме */
   #cdRefs .kill { display: none; }
@@ -8320,6 +8325,20 @@
             aria-label="Показывать в карточке" data-i18n-aria="card.blockShow"></span>
     </div>
 
+    <!-- Продление повтора: на последней живой карточке группы, во всех трёх
+         видах карточки, с минуты создания. «Продлить» открывает форму этой
+         карточки с барабаном «Сколько ещё» — новые карточки ложатся в ту же
+         группу. «Не продлевать» гасит строку у всей группы насовсем.
+         Удалили последнюю — строка переходит на новую последнюю (Алексей,
+         13–14 сентября 2026) -->
+    <div class="quest-wrap" id="cdRenew" hidden>
+      <button type="button" class="quest-row" id="cdRenewGo">
+        <span class="qr-t" data-i18n="rep.renew">Продлить повтор</span>
+        <span class="qr-s" id="cdRenewS">—</span>
+      </button>
+      <button type="button" class="renew-off" id="cdRenewOff" data-i18n="rep.renewOff">Не продлевать</button>
+    </div>
+
 
     <!-- Порядок этих блоков переставляется фотографом: см. «Изменить порядок» -->
     <div id="cdEventBlocks">
@@ -8690,7 +8709,7 @@
         <span class="rv"><span class="caps"><button type="button" class="rv-v" id="fRepVal">—</button></span>
           <span id="fRepInfo" hidden></span></span>
       </div>
-      <div class="row sep" id="fRepNRow" hidden><span class="rl" data-i18n="rep.count">Сколько раз</span>
+      <div class="row sep" id="fRepNRow" hidden><span class="rl" id="fRepNLbl" data-i18n="rep.count">Сколько раз</span>
         <span class="rv"><span class="caps"><button type="button" class="rv-v" id="fRepNVal">—</button></span></span>
       </div>
       <div class="inline" id="fRepNPick">
@@ -19147,7 +19166,9 @@
   var REP_MIN = 2, REP_MAX = 100, REP_DEF_N = 4;
   var REP_BLOCKS = { client: 1, route: 1, kit: 1, refs: 1, playlist: 1, notes: 0,
                      brief: 1, docs: 1, wish: 1, delivery: 1 };
-  var fRep = "never", fRepN = REP_DEF_N, fRepOn = {}, fRepOf = null, fRepMonthly = 0;
+  /* `fRepExt` — форма открыта кнопкой «Продлить» последней карточки группы:
+     барабан считает новые карточки, а не всю группу */
+  var fRep = "never", fRepN = REP_DEF_N, fRepOn = {}, fRepOf = null, fRepMonthly = 0, fRepExt = false;
   /* Знак записи, с которой работает форма. Раньше он рождался только при
      «Сохранить», и до этой минуты у съёмки не было ничего, к чему привязать
      подборку, — поэтому кадры и лежали в форме своим списком `fRefs`, а
@@ -23311,7 +23332,7 @@
       for (var hi = 0; hi < hl.length; hi++) if (hl[hi].id === hr.hallId) at = hi + 1;
       syncWheel(fwHall, at);
     }
-    if (id === "fRepN") syncWheel(fwRep, fRepN - REP_MIN);
+    if (id === "fRepN") syncWheel(fwRep, fRepN - repBase());
     if (id === "fMusic") {
       var at = 0;
       for (var pi = 0; pi < playlists.length; pi++) if (playlists[pi].n === fPlaylist) { at = pi; break; }
@@ -26474,6 +26495,7 @@
     if (!s) return;
     ordMode = on;
     questTune(on, s);
+    renderRenew(s);
     $("cdOrderFoot").hidden = !on;
 
     $("cardEdit").hidden = on || isEvent(s);
@@ -28202,6 +28224,7 @@
         : LANG.t("quest.title");
       $("cdQuestS").textContent = sent ? LANG.t("quest.againSub") : LANG.t("quest.rowSub");
     }
+    renderRenew(s);
 
     /* Эволюция: кнопка есть, пока съёмка из встречи не назначена */
     /* Событие достраивается тем же путём, что и встреча: «Назначить съёмку»
@@ -28361,6 +28384,25 @@
   $("cardBack").addEventListener("click", closeCard);
   $("cardEdit").addEventListener("click", function () {
     if (cardIdx !== null) openForm(null, null, cardIdx);
+  });
+  /* «Продлить»: форма последней карточки, барабан «Сколько ещё» */
+  $("cdRenewGo").addEventListener("click", function () {
+    if (cardIdx === null || !repRenewable(sessions[cardIdx])) return;
+    openForm(null, null, cardIdx);
+    fRepExt = true; fRep = fRepOf.rule;
+    repWheelFill(); renderRep();
+    /* Пришли продлевать — форма открывается на группе времени с повтором,
+       а не на жанрах: барабан «Сколько ещё» ниже первого экрана */
+    var o = $("formOverlay"), lbl = $("fRepRow").parentNode.previousElementSibling;
+    o.scrollTop = lbl.getBoundingClientRect().top - o.getBoundingClientRect().top - 96;
+  });
+  /* «Не продлевать»: одно нажатие, у всей группы, насовсем */
+  $("cdRenewOff").addEventListener("click", function () {
+    var s = cardIdx !== null ? sessions[cardIdx] : null;
+    if (!s || !s.rep || !s.rep.g) return;
+    sessions.forEach(function (x) { if (x.rep && x.rep.g === s.rep.g) x.rep.stop = 1; });
+    saveAll();
+    renderRenew(s);
   });
   $("cardAdd").addEventListener("click", function () {
     if (cardIdx === null) return;
@@ -28711,6 +28753,7 @@
     editIdx = (idx === undefined || idx === null) ? null : idx;
     formKind = kind || "shoot";
     fRep = "never"; fRepN = REP_DEF_N; fRepOn = repDefaults(); fRepOf = null; fRepMonthly = 0;
+    fRepExt = false; repWheelFill();
     var draftRestored = false;
     if (editIdx !== null) {
       var s = sessions[editIdx];
@@ -29085,14 +29128,34 @@
     return o;
   }
   function repEditable() { return formKind === "shoot" && !fRepOf; }
+  function repExt() { return fRepExt && formKind === "shoot" && !!fRepOf; }
+  /* Живые карточки группы по порядку дат */
+  function repMates(g) {
+    return sessions.filter(function (x) { return x.rep && x.rep.g === g; })
+      .sort(function (a, b) { return new Date(a.date) - new Date(b.date) || a.min - b.min; });
+  }
+  /* Напоминалка о продлении — у последней живой карточки, пока группу не
+     погасили. Отказ записан у каждой карточки, а читается у любой: карточка,
+     возвращённая из корзины, унесла туда сведения без отметки */
+  function repRenewable(s) {
+    if (!s || !s.rep || !s.rep.g || notWork(s)) return false;
+    var m = repMates(s.rep.g);
+    return m[m.length - 1] === s && !m.some(function (x) { return x.rep.stop; });
+  }
+  function renderRenew(s) {
+    var show = !ordMode && repRenewable(s);
+    $("cdRenew").hidden = !show;
+    if (!show) return;
+    var n = repMates(s.rep.g).length;
+    $("cdRenewS").textContent = LANG.t("rep.info", { rule: LANG.t("rep." + s.rep.rule), i: n, n: n });
+  }
   /* «Каждую неделю · 3 из 7» — по живым карточкам группы, по порядку дат:
      удалённая выпадает из счёта, и номера за ней сдвигаются (Алексей,
      13 сентября 2026). Записанные при создании номер и счёт не читаются —
      они помнят группу такой, какой её завели. */
   function repInfo(rep) {
     var me = editIdx !== null ? sessions[editIdx] : null;
-    var mates = sessions.filter(function (x) { return x.rep && x.rep.g === rep.g; })
-      .sort(function (a, b) { return new Date(a.date) - new Date(b.date) || a.min - b.min; });
+    var mates = repMates(rep.g);
     var i = mates.indexOf(me), rule = LANG.t("rep." + rep.rule);
     return i < 0 ? rule : LANG.t("rep.info", { rule: rule, i: i + 1, n: mates.length });
   }
@@ -29150,7 +29213,7 @@
     return repDates(fDate, fRep, fRepN).filter(function (d) { return repPeriodIndex(fDate, d) === 0; }).length;
   }
   function renderRep() {
-    var can = repEditable(), on = can && fRep !== "never";
+    var can = repEditable(), ext = repExt(), on = (can && fRep !== "never") || ext;
     /* Карточка из группы: строка остаётся, но это сведения, а не выбор —
        без капсулы, без переключателей и без повторного создания */
     var info = formKind === "shoot" && fRepOf ? repInfo(fRepOf) : "";
@@ -29162,6 +29225,7 @@
     $("fRepNRow").hidden = !on;
     if (!on && openRow === "fRepN") closeRows();
     $("fRepNVal").textContent = LANG.count("unit.times", fRepN);
+    $("fRepNLbl").textContent = LANG.t(ext ? "rep.countMore" : "rep.count");
     document.querySelectorAll("#formOverlay .rep-blk").forEach(function (row) {
       var k = row.dataset.rep, t = row.querySelector(".toggle");
       /* Плейлиста без библиотеки в форме нет — нет и вопроса, повторять ли его */
@@ -29177,10 +29241,11 @@
      Спрашиваем `clashesFor` только про дни, где хоть что-то есть: сто дат по
      всему списку съёмок на каждый поворот барабана — лишняя работа. */
   function renderRepSum() {
-    var el = $("fRepSum"), on = repEditable() && fRep !== "never";
+    var el = $("fRepSum"), ext = repExt(), on = (repEditable() && fRep !== "never") || ext;
     el.hidden = !on;
     if (!on) return;
-    var dates = repDates(fDate, fRep, fRepN), busy = {}, hits = [];
+    /* У продления первая дата — сама последняя карточка, она уже есть */
+    var dates = repDates(fDate, fRep, fRepN + (ext ? 1 : 0)), busy = {}, hits = [];
     sessions.forEach(function (s) { busy[dkey(new Date(s.date))] = true; });
     var place = placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town });
     dates.slice(1).forEach(function (d) {
@@ -29189,7 +29254,8 @@
         fTrip, fTripManual && !fTrip)[0];
       if (c) hits.push(dMon(d) + " — " + (c.n || c.t));
     });
-    var text = LANG.t("rep.sum", { n: LANG.count("unit.shoot", dates.length), last: dMon(dates[dates.length - 1]) });
+    var text = LANG.t(ext ? "rep.sumMore" : "rep.sum",
+      { n: LANG.count("unit.shoot", dates.length - (ext ? 1 : 0)), last: dMon(dates[dates.length - 1]) });
     if (hits.length) {
       var list = hits.slice(0, 3).join("; ");
       if (hits.length > 3) list += " " + LANG.t("rep.more", { n: hits.length - 3 });
@@ -29223,10 +29289,19 @@
     });
   });
   var fwRep = $("fwRep");
-  fill(fwRep, Array.apply(null, Array(REP_MAX - REP_MIN + 1)).map(function (_, i) { return String(i + REP_MIN); }));
+  /* У новой группы барабан с двух — одна карточка не повтор; у продления
+     с одной: там считаются только новые */
+  function repBase() { return fRepExt ? 1 : REP_MIN; }
+  function repWheelFill() {
+    var b = repBase();
+    if (!fwRep || +fwRep.dataset.base === b) return;
+    fwRep.dataset.base = b;
+    fill(fwRep, Array.apply(null, Array(REP_MAX - b + 1)).map(function (_, i) { return String(i + b); }));
+  }
+  repWheelFill();
   attachWheel(fwRep, function () {
     if (openRow !== "fRepN") return;
-    var n = wheelIndex(fwRep) + REP_MIN;
+    var n = wheelIndex(fwRep) + repBase();
     if (n === fRepN) return;
     fRepN = n; renderRep(); renderPay(); scheduleDraftSave();
   });
@@ -29237,14 +29312,9 @@
       renderRep(); scheduleDraftSave();
     });
   });
-  /* Копии группы. Переносится всё, что записано, кроме того, что никогда не
-     переносится: бронь студии, отметки «оплачено» (предоплата), «сдано»,
-     отправленный опросник, связи со встречей и архив номеров — это факты
-     одной карточки. «Завершено» живёт по знаку записи и у копии не
-     возникает само. Время начала и конца едет всегда, дату задаёт правило.
-     Выключенный блок уходит в копию пустым, как у новой съёмки. */
+  /* Новая группа: эта карточка первая, копии — по правилу */
   function repMake(rec) {
-    var dates = repDates(rec.date, fRep, fRepN), g = newId(), on = fRepOn;
+    var dates = repDates(rec.date, fRep, fRepN), g = newId();
     rec.rep = { g: g, rule: fRep, i: 1, n: dates.length };
     /* Помесячная сумма и начало месяцев — в сведениях каждой карточки:
        удаление первой не уносит их с собой */
@@ -29252,40 +29322,65 @@
     if (mon) { rec.rep.monthly = mon.monthly; rec.rep.start = mon.start; }
     var src = boardOfSession(rec, false);
     dates.slice(1).forEach(function (d, k) {
-      var c = JSON.parse(JSON.stringify(rec));
-      c.id = newId(); c.date = d;
-      c.rep = { g: g, rule: fRep, i: k + 2, n: dates.length };
-      if (mon) { c.rep.monthly = mon.monthly; c.rep.start = mon.start; }
-      c.bookingRef = null; c.rentReq = null;
-      c.prepay = 0; c.delivered = false; c.deliveredAt = null; c.questSent = null;
-      delete c.fromMeetOn; delete c.fromMeetId; delete c.grewOn; delete c.grewToId; delete c.telLog;
-      if (!on.client) {
-        c.contact = ""; c.clientTel = ""; c.orgId = null; c.person = ""; c.phone = "";
-        c.persons = []; c.guests = 0; c.breed = "";
-      }
-      if (!on.route) {
-        c.route = []; c.place = ""; c.placeTown = myCity() || ""; c.placeAddr = "";
-        c.placeLat = LAT; c.placeLon = LON; c.placeCity = true;
-        c.studioId = null; c.hallId = null; c.rentFrom = null; c.rentTo = null;
-        c.trip = false; c.tripManual = false; c.tripPlace = "";
-      }
-      if (!on.notes) c.notes = "";
-      if (!on.kit) c.gear = [];
-      if (!on.playlist) delete c.playlist;
-      if (!on.brief) { c.brief = ""; c.models = ""; }
-      if (!on.docs) c.docs = [];
-      c.wish = on.wish ? rec.wish.slice() : [];
-      c.warn = on.wish ? wishesCheck(d) : null;
-      if (!on.delivery) c.deadlineChoice = "auto";
-      sessions.push(c);
-      /* Мудборд — копия подборки: кадр лежит в нескольких подборках без
-         копии байтов, подборка у каждой карточки своя */
-      if (on.refs && src && src.items && src.items.length) {
-        boards.push({ id: newId(), kind: "shoot", sid: c.id, genre: c.type, items: src.items.slice(),
-                      name: src.name || null, cover: src.cover || null });
-      }
-      syncBoardGenre(c);
+      var rep = { g: g, rule: fRep, i: k + 2, n: dates.length };
+      if (mon) { rep.monthly = mon.monthly; rep.start = mon.start; }
+      repCopy(rec, d, rep, src);
     });
+  }
+  /* Продление: новые карточки после последней, в ту же группу (Алексей,
+     14 сентября 2026). Копируются с последней — какой её оставили правками,
+     и правило идёт от её даты. Сумма и начало месяцев — у группы и едут
+     дальше; свой гонорар последней (доплата или скидка) — факт одной
+     карточки, в копии не едет */
+  function repExtend(rec) {
+    var old = rec.rep, dates = repDates(rec.date, fRep, fRepN + 1).slice(1);
+    var have = repMates(old.g).length, src = boardOfSession(rec, false);
+    dates.forEach(function (d, k) {
+      var rep = { g: old.g, rule: old.rule, i: have + k + 1, n: have + dates.length };
+      if (old.monthly) { rep.monthly = old.monthly; rep.start = old.start; }
+      var c = repCopy(rec, d, rep, src);
+      if (c.pay === "monthly") c.rate = 0;
+    });
+  }
+  /* Копии группы. Переносится всё, что записано, кроме того, что никогда не
+     переносится: бронь студии, отметки «оплачено» (предоплата), «сдано»,
+     отправленный опросник, связи со встречей и архив номеров — это факты
+     одной карточки. «Завершено» живёт по знаку записи и у копии не
+     возникает само. Время начала и конца едет всегда, дату задаёт правило.
+     Выключенный блок уходит в копию пустым, как у новой съёмки. */
+  function repCopy(rec, d, rep, src) {
+    var c = JSON.parse(JSON.stringify(rec)), on = fRepOn;
+    c.id = newId(); c.date = d; c.rep = rep;
+    c.bookingRef = null; c.rentReq = null;
+    c.prepay = 0; c.delivered = false; c.deliveredAt = null; c.questSent = null;
+    delete c.fromMeetOn; delete c.fromMeetId; delete c.grewOn; delete c.grewToId; delete c.telLog;
+    if (!on.client) {
+      c.contact = ""; c.clientTel = ""; c.orgId = null; c.person = ""; c.phone = "";
+      c.persons = []; c.guests = 0; c.breed = "";
+    }
+    if (!on.route) {
+      c.route = []; c.place = ""; c.placeTown = myCity() || ""; c.placeAddr = "";
+      c.placeLat = LAT; c.placeLon = LON; c.placeCity = true;
+      c.studioId = null; c.hallId = null; c.rentFrom = null; c.rentTo = null;
+      c.trip = false; c.tripManual = false; c.tripPlace = "";
+    }
+    if (!on.notes) c.notes = "";
+    if (!on.kit) c.gear = [];
+    if (!on.playlist) delete c.playlist;
+    if (!on.brief) { c.brief = ""; c.models = ""; }
+    if (!on.docs) c.docs = [];
+    c.wish = on.wish ? rec.wish.slice() : [];
+    c.warn = on.wish ? wishesCheck(d) : null;
+    if (!on.delivery) c.deadlineChoice = "auto";
+    sessions.push(c);
+    /* Мудборд — копия подборки: кадр лежит в нескольких подборках без
+       копии байтов, подборка у каждой карточки своя */
+    if (on.refs && src && src.items && src.items.length) {
+      boards.push({ id: newId(), kind: "shoot", sid: c.id, genre: c.type, items: src.items.slice(),
+                    name: src.name || null, cover: src.cover || null });
+    }
+    syncBoardGenre(c);
+    return c;
   }
   function renderKitList() {
     var host = $("kitList");
@@ -29879,6 +29974,7 @@
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
     syncBoardGenre(rec);
     if (repEditable() && fRep !== "never") repMake(rec);
+    else if (repExt()) repExtend(rec);
     saveAll();
     var wasEdit = editIdx !== null, savedIdx = editIdx;
     /* Настоящая запись легла в список — черновику, который её и держал,
