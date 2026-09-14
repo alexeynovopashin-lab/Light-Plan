@@ -29264,6 +29264,9 @@
     if (!on) return;
     /* У продления первая дата — сама последняя карточка, она уже есть */
     var dates = repDates(fDate, fRep, fRepN + (ext ? 1 : 0)), busy = {}, hits = [];
+    /* Группа уходит в другой год — без года «последняя — 25 сентября» врёт */
+    var yr = new Date().getFullYear();
+    function dm(d) { return d.getFullYear() === yr ? dMon(d) : dMonYear(d); }
     sessions.forEach(function (s) { busy[dkey(new Date(s.date))] = true; });
     /* Наложения — у будущих копий, а не у формы: место, выезд и пожелания
        берём такими, какими их выставит `repCopy` по переключателям */
@@ -29275,10 +29278,10 @@
       if (!busy[dkey(d)] && !blocksOn(d).length) return;
       var c = clashesFor(d, fMin, fMin + fDur, place, editIdx, wants, own ? sessionPlace.lat : LAT,
         own ? sessionPlace.lon : LON, own && fTrip, own && fTripManual && !fTrip)[0];
-      if (c) hits.push(dMon(d) + " — " + (c.n || c.t));
+      if (c) hits.push(dm(d) + " — " + (c.n || c.t));
     });
     var text = LANG.t(ext ? "rep.sumMore" : "rep.sum",
-      { n: LANG.count("unit.shoot", dates.length - (ext ? 1 : 0)), last: dMon(dates[dates.length - 1]) });
+      { n: LANG.count("unit.shoot", dates.length - (ext ? 1 : 0)), last: dm(dates[dates.length - 1]) });
     if (hits.length) {
       var list = hits.slice(0, 3).join("; ");
       if (hits.length > 3) list += " " + LANG.t("rep.more", { n: hits.length - 3 });
