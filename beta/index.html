@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=73"></script>
+<script src="lang.js?v=74"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -16141,6 +16141,9 @@
     routeMode = !!on;
     /* Набор начался — чтение кончилось: холст один, и линия на нём одна */
     if (routeMode && mapShoot) { mapShoot = null; buildSpotMarks(); }
+    /* Вышли из набора — возвращать снятый черновик некуда, а плашка висела
+       бы над барабанами времени */
+    if (!routeMode) dropRouteUndo();
     $("mapRouteBtn").classList.toggle("on", routeMode);
     swapMapDock(function () { applyRouteMode(); });
   }
@@ -16149,6 +16152,7 @@
   function setMapShoot(s) {
     mapShoot = s || null;
     if (mapShoot && routeMode) routeMode = false;
+    if (!routeMode) dropRouteUndo();
     mapShootFit = !!mapShoot;
     $("mapRouteBtn").classList.toggle("on", routeMode);
     buildSpotMarks();
@@ -16336,6 +16340,7 @@
       spots.unshift(sp);
     }
     if (mapRoute.indexOf(sp.id) < 0) mapRoute.push(sp.id);
+    dropRouteUndo();                    // новая точка сильнее возврата снятого черновика
     saveAll();
     renderSpotMark(); renderSpots();
     paintRouteNos(); placeRoutePath(); renderRouteBar();
@@ -16344,6 +16349,7 @@
   function routeToggle(sp) {
     var i = mapRoute.indexOf(sp.id);
     if (i >= 0) mapRoute.splice(i, 1); else mapRoute.push(sp.id);
+    dropRouteUndo();
     saveAll();
     paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
   }
@@ -16531,7 +16537,57 @@
        в наборе — снимает свой черновик. Оба раза он значит «убрать отсюда», а
        не «удалить»: ни съёмка, ни места от него не страдают. */
     if (mapShoot) { setMapShoot(null); return; }
+    var was = mapRoute.slice();
     mapRoute = []; saveAll();
+    paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
+    offerRouteUndo(was);
+  });
+  /* ---------- Возврат снятого черновика ----------
+     Крестик в наборе снимал черновик без возврата: пять точек, собранных по
+     карте, пропадали от одного промаха по шапке. Переспрос не нужен — у
+     приложения своя обратимость, «Вернуть» на шесть секунд, как у удаления
+     съёмки (ROADMAP, волна 6).
+
+     Плашка та же, `#undoBar`, а не вторая. Замер 14 сентября 2026 (402×874):
+     она встаёт на 734–777, поверх «Сделать съёмкой» (744–781), а та после
+     снятия выключена — точек нет. Уйдя по таймеру, плашка открывает
+     выключенную кнопку, и запоздалое «Вернуть» попадает в пустоту, а не в
+     форму съёмки (урок `7b2204f`). Сама плашка стоит поверх, а не в потоке:
+     её уход ничего не двигает.
+
+     Новая точка сильнее возврата (Алексей, 14 сентября 2026): первый же
+     набор убирает плашку сразу. Живи она дальше — ушла бы по таймеру уже над
+     включённой кнопкой. Выход из набора тоже убирает: под плашкой тогда
+     барабаны времени.
+
+     Хозяев у плашки теперь двое, и съёмочный путь (`removeSession`,
+     `hideUndo`) не тронут. Съёмка владеет ей, пока `undoAt` не пуст, — тогда
+     маршрут плашку не снимает и на «Вернуть» не отвечает. */
+  var routeUndo = null, routeUndoTimer = null;
+  function offerRouteUndo(ids) {
+    if (!ids.length) return;
+    /* Съёмочная отмена, если висела, уступает место: текст на плашке один, и
+       «Вернуть» под чужим текстом вернуло бы не то */
+    hideUndo(); clearTimeout(trashTimer);
+    routeUndo = ids;
+    $("undoText").textContent = LANG.t("map.routeCleared", { n: LANG.count("unit.point", ids.length) });
+    $("undoBar").classList.add("show");
+    clearTimeout(routeUndoTimer);
+    routeUndoTimer = setTimeout(dropRouteUndo, 6000);
+  }
+  function dropRouteUndo() {
+    if (!routeUndo) return;
+    routeUndo = null; clearTimeout(routeUndoTimer);
+    if (undoAt === null) $("undoBar").classList.remove("show");
+  }
+  /* Слушатель съёмки стоит на той же кнопке ниже по файлу и молчит, пока
+     `undoAt` пуст, — этот встаёт раньше и молчит в обратном случае */
+  $("undoBtn").addEventListener("click", function () {
+    if (!routeUndo || undoAt !== null) return;
+    /* Место могли удалить за эти секунды — возвращаем только живые */
+    var ids = routeUndo.filter(function (id) { return spotById(id); });
+    dropRouteUndo();
+    mapRoute = ids; saveAll();
     paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
   });
   $("rbMake").addEventListener("click", makeRouteShoot);

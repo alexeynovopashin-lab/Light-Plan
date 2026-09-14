@@ -426,6 +426,8 @@
     "map.delSpot":     "Удалить точку",
     "map.routeMake":   "Сделать съёмкой",
     "map.routeClear":  "Снять все точки",
+    /* Плашка возврата после крестика: {n} — «3 точки» */
+    "map.routeCleared": "Маршрут снят · {n}",
     /* Маршрут записанной съёмки, положенный на карту читать */
     "map.routeOff":    "Убрать с карты",
     "map.stopNoPlace": "без места",
@@ -2218,6 +2220,7 @@
     "map.delSpot":     "Delete this spot",
     "map.routeMake":   "Make it a shoot",
     "map.routeClear":  "Drop all stops",
+    "map.routeCleared": "Route cleared · {n}",
     "map.routeOff":    "Take off the map",
     "map.stopNoPlace": "no place",
     "map.stopsNoPlace": "no place: {n}",
