@@ -86,13 +86,45 @@ re-sent with every subsequent request.
 17. When resuming a large session on Pro, Claude Code offers "resume from a
     summary" — remind me to accept it instead of restoring full history.
 
-## Parallel sessions chat
+## Parallel sessions
 
 18. Several Claude sessions work in this folder at once. `SESSIONS_CHAT.md`
     is their shared channel (not in git). Read it at session start after
     `git log`, before committing, and when you need something only another
     session can do. Rules are at the top of the file: append to the end
     only, never rewrite or delete entries, sign with your task name.
+19. **Code changes go through your own git worktree.** Main folder =
+    `/Users/alexey/Documents/Light_Plan/Light_Plan`. Documentation-only work
+    (ROADMAP, DECISIONS, prompts, memory) may stay in the main folder;
+    anything that edits `beta/`, `tools/`, root `index.html`, `lang.js`,
+    `icons.js` starts in a worktree, before the first edit:
+    - create: `git -C <main> worktree add .claude/worktrees/<task> -b wt/<task> origin/main`,
+      then `EnterWorktree` with `path` = that folder. Works from either
+      launch folder;
+    - `SESSIONS_CHAT.md` is not in worktrees — read and append it by the
+      absolute path in the main folder; announce which worktree you took;
+    - verify in your worktree, never on `localhost:8788/beta/` — that server
+      and the simulator webclip show the main folder. Preview configs `wt-1`,
+      `wt-2`, `wt-3` serve the worktree on 8791–8793 (`localhost:879N/beta/`).
+      Before `preview_start`, check the port is free
+      (`lsof -iTCP:879N -sTCP:LISTEN`) — same name means someone else's server;
+    - finish: commit in the worktree → `git fetch origin && git rebase origin/main`
+      (re-verify if the rebase touched your files) → `git push origin HEAD:main`,
+      never force; rejected → fetch and rebase again. Then
+      `git -C <main> pull --ff-only` so the webclip shows it; if that pull
+      refuses because of someone's uncommitted edits, write it to the chat,
+      do not work around it. Remove the worktree only when your commits are
+      in `origin/main` (`git worktree remove`, no `--force`).
+20. **Guard hook.** `~/.claude/hooks/light-plan-guard.py` denies, in the main
+    folder: `git checkout/switch/restore/stash/clean/rebase`, `reset --hard`
+    or HEAD-moving reset, `pull`/`merge` without `--ff-only`,
+    `add -A`/`add .`/`commit -a`/`--amend`, `worktree remove --force`,
+    whole-file overwrite of shared files (Write, `>`, `tee`); force push
+    anywhere. A denial is not an obstacle to route around — it means the
+    command would erase or absorb another chat's uncommitted work. In the
+    main folder stage your files by name and `git pull --ff-only` before
+    committing. `DECISIONS.md` merges with `merge=union` (`.gitattributes`):
+    parallel appends at the end are glued, not conflicted.
 
 # Compact instructions
 
