@@ -980,7 +980,7 @@
 })(typeof window !== "undefined" ? window : this);
 
 </script>
-<script src="lang.js?v=74"></script>
+<script src="lang.js?v=75"></script>
 
 <script src="qr.js?v=1"></script>
 <!-- Каталог созвездий: константы неба для пасхалки «Астро». Отдельным
@@ -22126,10 +22126,67 @@
     } });
     if (f.kind === "genre") {
       items.push({ t: LANG.t("mb.newFolder"), sub: genreName(f.g), go: function () { mbNewFolder(f.g); } });
+      var mergeTargets = mbMergeTargets(b);
+      if (mergeTargets.length) {
+        items.push({ t: LANG.t("mb.mergeInto"), go: function () { openMbMergePick(b, mergeTargets); } });
+      }
     }
     items.push({ t: LANG.t("mb.delBoard"), go: function () { openMbBoardSheet(b.id); } });
     askPick(mbTitle(f), items, mbSub(f));
   });
+  /* ---------- Объединение подборок словом, не жестом ----------
+     Жест слияния (перетаскивание плитки на плитку) убран 31 августа 2026:
+     обычная пауза посреди переноса срабатывала как объединение, потеряно
+     4 подборки из 12 за сеанс (DECISIONS.md). Взамен — строка в том же
+     меню, что переименование и «Новая подборка» (решено 14 сентября 2026).
+     Только папки жанра — подборка съёмки чужая для другой съёмки, это её
+     референсы, не набор для объединения. Свой жанр первым в списке. */
+  function mbMergeTargets(b) {
+    var own = boardsOfGenre(b.genre).filter(function (x) { return x !== b; });
+    var other = boards.filter(function (x) { return x.kind === "tpl" && x.genre !== b.genre; });
+    return own.concat(other);
+  }
+  function openMbMergePick(b, targets) {
+    askPick(LANG.t("mb.mergeInto"), targets.map(function (t) {
+      return { t: boardTitle(t), sub: genreName(t.genre), go: function () { confirmMbMerge(b, t); } };
+    }));
+  }
+  function confirmMbMerge(from, to) {
+    var moving = from.items.filter(function (id) { return !boardHas(to, id); }).length;
+    var sub = moving ? LANG.t("mb.mergeConfirmSub", { n: LANG.count("unit.frame", moving), name: boardTitle(to) })
+                      : LANG.t("mb.mergeConfirmNone", { name: boardTitle(to) });
+    askYes(LANG.t("mb.mergeConfirm"), sub, LANG.t("mb.mergeOk"), function () { mbMergeBoards(from, to); });
+  }
+  /* `from` не переживает объединение (`boardDrop` внутри `mbMergeBoards`)
+     дольше, чем окно «Вернуть»: держим сам объект и то, чем был `to.items`
+     до переноса, — воскрешение через `boardAddFolder` дало бы новый `id` и
+     оборвало бы ссылки, которые на старый уже могли лечь. */
+  function mbMergeBoards(from, to) {
+    if (!from || !to || from === to) return;
+    var fromIndex = boards.indexOf(from);
+    var toBefore = to.items.slice();
+    var moved = from.items.filter(function (id) { return !boardHas(to, id); });
+    /* Стоим внутри исчезающей подборки — тот же выход, что у прямого
+       удаления (`mbBoardDel`, строка выше по файлу): иначе экран продолжит
+       показывать папку вне `boards`, и класть в неё дальше будет некуда */
+    if (mbOpen && mbBoard(mbOpen) === from) { mbPickEnd(); mbOpen = null; $("mbFolderOverlay").classList.remove("open"); }
+    from.items.slice().forEach(function (id) { boardPut(to, id); });
+    boardDrop(from);
+    saveAll();
+    renderMbStrip(); renderMbCount(); renderMbShelf();
+    if ($("mbFolderOverlay").classList.contains("open")) renderMbFolder();
+    if ($("mbOverlay").classList.contains("open")) renderMbGallery();
+    var text = moved.length ? LANG.t("mb.mergedInto", { n: LANG.count("unit.frame", moved.length), name: boardTitle(to) })
+                             : LANG.t("mb.mergedIntoNone", { name: boardTitle(to) });
+    showUndo(text, function () {
+      boards.splice(Math.min(fromIndex, boards.length), 0, from);
+      to.items = toBefore;
+      graves = graves.filter(function (g) { return g.id !== from.id; });
+      saveAll();
+      renderMbStrip(); renderMbCount(); renderMbShelf();
+      if ($("mbOverlay").classList.contains("open")) renderMbGallery();
+    }, "merge");
+  }
   $("mbPickBtn").addEventListener("click", function () {
     if (!mbOpen) return;
     if (mbPickOn()) mbPickEnd(); else mbPicked = [];
