@@ -22789,7 +22789,7 @@
     var keys = genreSpec(shootType).pay;
     /* «В месяц» — способ группы: есть, пока повтор заводится, и у карточки
        из группы, заведённой помесячно */
-    if ((repEditable() && fRep !== "never") || (fRepOf && fRepOf.monthly)) keys = keys.concat("monthly");
+    if ((repEditable() && fRep !== "never") || (fRepOf && fRepOf.start)) keys = keys.concat("monthly");
     if (keys.indexOf(fPay) === -1) {                 // способ не из этого жанра — берём первый
       /* Повтор выключили: месячная сумма ставкой другого способа не становится */
       if (fPay === "monthly") {
@@ -29352,7 +29352,7 @@
     var have = repMates(old.g).length, src = boardOfSession(rec, false);
     dates.forEach(function (d, k) {
       var rep = { g: old.g, rule: old.rule, i: have + k + 1, n: have + dates.length };
-      if (old.monthly) { rep.monthly = old.monthly; rep.start = old.start; }
+      if (old.start) { rep.monthly = old.monthly; rep.start = old.start; }
       var c = repCopy(rec, d, rep, src);
       if (c.pay === "monthly") c.rate = 0;
     });
