@@ -29189,7 +29189,9 @@
      считает созданные карточки, пропуски в счёт не идут. */
   function repDates(d0, rule, n) {
     var out = [new Date(d0)], y = d0.getFullYear(), m = d0.getMonth(), dd = d0.getDate();
-    for (var k = 1; out.length < n && k <= n * 4; k++) {
+    /* Предел — страховка от вечного цикла. 29 февраля бывает реже раза в
+       четыре года: 2100, 2200 и 2300 не високосные, ×4 теряло три даты */
+    for (var k = 1; out.length < n && k <= n * 5; k++) {
       var c = rule === "day" ? new Date(y, m, dd + k)
         : rule === "week" ? new Date(y, m, dd + 7 * k)
         : rule === "week2" ? new Date(y, m, dd + 14 * k)
