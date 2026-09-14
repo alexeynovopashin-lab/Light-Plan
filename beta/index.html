@@ -20688,6 +20688,12 @@
       else if (lastY > r.bottom - edge) sc.scrollTop += speed;
       scrollRaf = requestAnimationFrame(autoScroll);
     }
+    /* Поднятый кадр держит касание сам, как плитка подборки (`mbStartDrag`).
+       Без этого iOS отдавала касание прокрутке на первом же движении: замер
+       в PWA симулятора 14 сентября 2026 — подъём через 420 мс есть, первый
+       `pointermove` пришёл, через 9 мс `pointercancel`, дальше только
+       прокрутка папки. Кадр не переставлялся ни разу. */
+    btn.addEventListener("touchmove", function (e) { if (lifted) e.preventDefault(); }, { passive: false });
     btn.addEventListener("pointerdown", function (e) {
       if (e.button) return;
       consumed = false;
