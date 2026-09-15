@@ -31345,8 +31345,11 @@
             shots = shots.filter(function (x) { return x.id !== link; }); shotIx = null;
             first = false;
           }
+          /* Без тегов: в `tags` лежат разделы жанра («Пара», «Детали»), а код
+             самого жанра разделом не бывает и висел в подборке сырым чипом
+             «wedding». Жанр кадру и так известен — от подборки */
           var id = shotAdd({ id: "sd_im" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-                             k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tags: [b.g] });
+                             k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h });
           mine.forEach(function (bd) { boardPut(bd, id); if (!bd.cover) bd.cover = id; bd.mt = Date.now(); });
           added++;
           seedSay("Кадров положено: " + added);

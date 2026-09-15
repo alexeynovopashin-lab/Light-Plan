@@ -306,7 +306,7 @@
     var out = [], shots = [];
     PINS.forEach(function (b) {
       var sid = P + "sh_" + b.g;
-      shots.push({ id: sid, k: "link", url: b.url, tags: [b.g], mt: Date.now() });
+      shots.push({ id: sid, k: "link", url: b.url, mt: Date.now() });   // жанр — у подборки, не тег кадра
       out.push({ id: P + "bd_" + b.g, kind: "tpl", genre: b.g, name: b.name,
                  items: [sid], cover: null, mt: Date.now() });
     });
