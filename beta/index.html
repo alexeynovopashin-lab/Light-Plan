@@ -12847,20 +12847,25 @@
     try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) { return LANG.t("set.errWrite"); }
     return null;
   }
+  var storeInfoSeq = 0;
   function renderStorageInfo() {
     var raw = localStorage.getItem(STORE) || "";
     var n = 0;
     try { n = (JSON.parse(raw || "{}").sessions || []).length; } catch (e) {}
-    if ($("storeCount")) $("storeCount").textContent = n + " · "
-      + LANG.t("doc.kb", { n: num(Math.max(1, Math.round(raw.length / 1024))) });
+    var base = n + " · " + LANG.t("doc.kb", { n: num(Math.max(1, Math.round(raw.length / 1024))) });
+    if ($("storeCount")) $("storeCount").textContent = base;
     /* Картинки в снимке больше не лежат — их место показывает браузер.
        Чистить, когда станет тесно, первыми стоит экранные копии прошедших
-       съёмок (docs/15_MOODBOARD.md, «Место на устройстве») */
+       съёмок (docs/15_MOODBOARD.md, «Место на устройстве»).
+       На запуске зовут дважды подряд (`askPersistence` и следом прямой вызов),
+       и хвост дописывали оба ответа: «картинки 0,1 МБ · картинки 0,1 МБ» в
+       PWA. Строка пишется целиком, и только последним вызовом. */
     if ($("storeCount") && navigator.storage && navigator.storage.estimate) {
-      var line = $("storeCount");
+      var line = $("storeCount"), seq = ++storeInfoSeq;
       navigator.storage.estimate().then(function (e) {
+        if (seq !== storeInfoSeq) return;
         var mb = (e.usage || 0) / 1048576;
-        if (mb >= 0.05) line.textContent += " · " + LANG.t("set.storeImages", { n: num(mb, 1) });
+        line.textContent = base + (mb >= 0.05 ? " · " + LANG.t("set.storeImages", { n: num(mb, 1) }) : "");
       }).catch(function () {});
     }
     var when = localStorage.getItem(BACKUP_KEY);
