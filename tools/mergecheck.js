@@ -1,6 +1,11 @@
-/* Слияние двух снимков: проверка парами. Функция чистая — облако не нужно */
+/* Слияние двух снимков: проверка парами. Функция чистая — облако не нужно.
+     node tools/mergecheck.js                 — прогон по beta/index.html
+     node tools/mergecheck.js старый/index.html — по другой странице:
+       git show e96fcd8^:beta/index.html > /tmp/index_old.html
+   С 16-й проверки — деньги группы повтора: предоплата при заведении и
+   продлении, доли месяца после слияния и смены суммы. */
 const fs = require("fs"), vm = require("vm");
-const h = fs.readFileSync("beta/index.html", "utf8");
+const h = fs.readFileSync(process.argv[2] || "beta/index.html", "utf8");
 const grab = (sig) => { const i = h.indexOf(sig); if (i < 0) throw new Error("нет: " + sig);
   let d = 0; for (let k = h.indexOf("{", i); k < h.length; k++) {
     if (h[k] === "{") d++; else if (h[k] === "}") { d--; if (!d) return h.slice(i, k + 1); } } };
@@ -124,6 +129,99 @@ const ids = o => (o || []).map(r => r.id).sort();
   const a = { dev: "A", sessions: [{ id: "s1", n: "без отметки" }] };
   const b = { dev: "B", sessions: [{ id: "s1", mt: 1, n: "с отметкой" }] };
   ok("без отметки проигрывает любой известной правке", M(a, b).sessions[0].n === "с отметкой", M(a, b).sessions[0]);
+}
+
+/* ---------- Повтор: деньги группы ----------
+   Заведение, продление и доля месяца вырезаются из той же страницы и идут в
+   своей песочнице. Форма подменена тем, что она передаёт: правило, число
+   карточек, способ оплаты. Смены суммы (`repSumAt`, `repSumsOf`) у старых
+   страниц нет — тогда их нет и здесь, и проверки долей должны не сойтись. */
+const has = sig => h.indexOf(sig) >= 0;
+const repSrc = ["var PAY = {", "function dayOf(", "function dayText(", "function repDates(", "function repPeriodIndex(",
+  "function repShare(", "function repSumAt(", "function repSumsOf(", "function repMates(",
+  "function repCopy(", "function repMake(", "function repExtend(", "function sessionIncome("]
+  .filter(s => s.startsWith("var") || has(s) || !/repSumAt|repSumsOf/.test(s))
+  .map(s => s.startsWith("var") ? h.slice(h.indexOf(s), h.indexOf("};", h.indexOf(s)) + 2) : grab(s)).join("\n");
+const R = {};
+vm.createContext(R);
+new vm.Script(`var sessions = [], boards = [], trashed = [], LAT = 56.47, LON = 84.95, me = {};
+  var fRep = "never", fRepN = 2, fRepOn = { client: 1, route: 1, notes: 1, kit: 1, playlist: 1, brief: 1, docs: 1, wish: 1, delivery: 1, refs: 1 };
+  var fPay = "flat", fRepMonthly = 0, idN = 0;
+  function newId() { return "n" + (++idN); }
+  function notWork() { return false; }
+  function myCity() { return ""; }
+  function boardOfSession() { return null; }
+  function syncBoardGenre() {}
+  function wishesCheck() { return null; }
+  ${repSrc}`).runInContext(R);
+const dd = (y, m, d) => new Date(y, m, d);
+const rec = (id, date, extra) => Object.assign({ id, kind: "shoot", type: "report", date, min: 600, dur: 60, end: 660,
+  pay: "flat", rate: 15000, prepay: 0, wish: [], route: [], mt: 10 }, extra || {});
+/* Снимок — как его пишет saveAll: день строкой. Обратно — как читает загрузка */
+const snap = (dev, list) => ({ dev, sessions: JSON.parse(JSON.stringify(list.map(s => Object.assign({}, s, { date: R.dayText(s.date) })))) });
+const load = list => { R.sessions = list.map(s => Object.assign({}, s, { date: R.dayOf(s.date) })); };
+const byDate = f => R.sessions.slice().sort((a, b) => a.date - b.date).map(f).join(" ");
+const dm = d => ("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2);
+const pre = () => byDate(s => dm(s.date) + ":" + (s.prepay || 0));
+const inc = () => byDate(s => dm(s.date) + "=" + Math.round(R.sessionIncome(s)));
+
+// 16. Заведение: предоплата только у первой карточки, копии по нулям
+{
+  const first = rec("g1", dd(2026, 8, 14), { prepay: 5000 });
+  R.sessions = [first]; R.fRep = "week"; R.fRepN = 3; R.fPay = "flat";
+  R.repMake(first);
+  ok("заведение: предоплата только у первой", pre() === "14.09:5000 21.09:0 28.09:0", pre());
+}
+// 17. Продление: копии по нулям, у первой и у последней — своя, поставленная руками
+{
+  const last = R.sessions.slice().sort((a, b) => a.date - b.date)[2];
+  last.prepay = 3000;
+  R.fRepN = 2;
+  R.repExtend(last);
+  ok("продление: копии по нулям, свои предоплаты не тронуты", pre() === "14.09:5000 21.09:0 28.09:3000 05.10:0 12.10:0", pre());
+}
+// 18. Помесячная группа: доля месяца и предоплата первой
+{
+  const first = rec("m1", dd(2026, 8, 14), { pay: "monthly", prepay: 12000 });
+  R.sessions = [first]; R.fRep = "week"; R.fRepN = 4; R.fPay = "monthly"; R.fRepMonthly = 40000;
+  R.repMake(first);
+  ok("помесячная: четыре доли по 10 000, предоплата у первой",
+     inc() === "14.09=10000 21.09=10000 28.09=10000 05.10=10000" && pre() === "14.09:12000 21.09:0 28.09:0 05.10:0", [inc(), pre()]);
+}
+/* 19–21. Два устройства. A продлил группу из 18 на четыре недели и смены
+   суммы ещё не видел; B поставил 60 000 с первого месяца на своих четырёх
+   карточках, правка новее. Месяц 0 — 14.09…13.10 (пять карточек), месяц 1 —
+   19.10, 26.10, 02.11 */
+{
+  const base = snap("B", R.sessions);
+  R.fRepN = 4;
+  R.repExtend(R.sessions.slice().sort((a, b) => a.date - b.date)[3]);
+  const a = snap("A", R.sessions);
+  const b = JSON.parse(JSON.stringify(base));
+  b.sessions.forEach(s => { s.rep.sums = [{ k: 0, sum: 60000, at: 100 }]; s.mt = 20; });
+  const want = "14.09=12000 21.09=12000 28.09=12000 05.10=12000 12.10=12000 19.10=20000 26.10=20000 02.11=20000";
+  load(M(a, b).sessions);
+  const ab = inc();
+  ok("слияние: смена суммы доходит до копий продления", ab === want, ab);
+  load(M(b, a).sessions);
+  ok("слияние групп: порядок сторон не важен", inc() === ab, [ab, inc()]);
+  /* C правил заметку 21.09 позже всех, а смену суммы не получал: его версия
+     карточки побеждает, но сумму месяца держат соседи */
+  const c = JSON.parse(JSON.stringify(base));
+  c.dev = "C"; c.sessions = c.sessions.filter(s => s.date === "2026-09-21");
+  c.sessions[0].notes = "с другого"; c.sessions[0].mt = 30;
+  const abc = M(M(a, b), c);
+  load(abc.sessions);
+  ok("слияние со старой версией карточки держит сумму",
+     inc() === want && abc.sessions.find(s => s.date === "2026-09-21").notes === "с другого", inc());
+}
+// 22. Новая смена перекрывает поставленную раньше на более поздний месяц
+{
+  const g = [0, 1, 2, 3].map(i => rec("p" + i, dd(2026, 6 + i, 14), { pay: "monthly", rate: null,
+    rep: { g: "P", rule: "month", i: i + 1, n: 4, monthly: 50000, start: "2026-07-14", sums: [{ k: 3, sum: 70000, at: 1 }] } }));
+  g[1].rep.sums = g[1].rep.sums.concat([{ k: 1, sum: 55000, at: 2 }]);
+  R.sessions = g;
+  ok("смена суммы: новая перекрывает прежнюю на поздний месяц", inc() === "14.07=50000 14.08=55000 14.09=55000 14.10=55000", inc());
 }
 console.log("\nсошлось: " + pass + "   не сошлось: " + fail);
 process.exit(fail ? 1 : 0);
