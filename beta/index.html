@@ -6844,10 +6844,19 @@
      референсов карточки (`#rfGrid`): у остальных `.ref-grid` (референсы
      съёмки, набор жанра, документы) квадрат остаётся правильным выбором —
      их не трогаем. */
-  #mbGrid.mb-grid, #rfGrid .mb-grid { display: block; column-count: 2; column-gap: 8px; }
-  #mbGrid.mb-grid .ref-card, #rfGrid .mb-grid .ref-card { width: 100%; aspect-ratio: auto; break-inside: avoid; margin: 0 0 8px; }
+  /* Плитки — строчные блоки, а не блоки. Блоки с `break-inside: avoid`
+     WebKit раскладывает по колонкам криво: четыре кадра вставали 3/1, под
+     правой колонкой полтора экрана пустоты, а Chromium те же четыре ставит
+     2/2 (хвосты, заход Б; PWA, разворот из четырёх кадров: 3/1 и высота 775
+     → 2/2 и 643; Playwright WebKit, папка: 743 → 593, как в Chromium).
+     Строки оба движка делят одинаково.
+     `orphans`/`widows` по единице — иначе при одном кадре и «+» строк всего
+     две, разрыв между ними запрещён, и Chromium клал обе в левую колонку. */
+  #mbGrid.mb-grid, #rfGrid .mb-grid { display: block; column-count: 2; column-gap: 8px; orphans: 1; widows: 1; }
+  #mbGrid.mb-grid .ref-card, #rfGrid .mb-grid .ref-card { display: inline-block; vertical-align: top; width: 100%; aspect-ratio: auto; break-inside: avoid; margin: 0 0 8px; }
+  #mbGrid.mb-grid .ref-card.add { display: inline-flex; }
   #mbGrid.mb-grid .ref-card img, #rfGrid .mb-grid .ref-card img { height: auto; object-fit: initial; }
-  #mbGrid.mb-grid .ref-card.link, #rfGrid .mb-grid .ref-card.link { aspect-ratio: 1/1; }
+  #mbGrid.mb-grid .ref-card.link, #rfGrid .mb-grid .ref-card.link { display: inline-flex; aspect-ratio: 1/1; }
   /* Строка «пока пусто» — поперёк обеих колонок, а не текстом внутри одной.
      У сетки-масонри раскладка многоколоночная, и текст в ней течёт по
      колонкам как в газете: фраза разрывалась пополам и уезжала вверх второй
