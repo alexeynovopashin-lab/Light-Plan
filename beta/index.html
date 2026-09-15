@@ -3002,6 +3002,10 @@
   }
   .rb-clear:active { background: var(--ink-9); }
   .rb-add[hidden], .rb-clear[hidden] { display: none; }
+  /* Пока полоса держит высоту после снятия (`offerRouteUndo`), снятый крестик
+     оставляет своё место пустым: иначе на него съезжал «＋» (349–377×617–645),
+     и второй тап того же пальца открывал список мест */
+  .route-bar.hold .rb-clear[hidden] { display: inline-flex; visibility: hidden; pointer-events: none; }
 
   /* ---------- Список маршрута ----------
      Окно списка держит четыре строки и девять пикселей пятой: обрезанная
@@ -3114,6 +3118,10 @@
   }
   .rb-make:active { background: var(--brass-deep); }
   .rb-make:disabled { background: var(--ink-10); color: var(--ink-5); }
+  /* Полоса держит прежнюю высоту, пока висит «Вернуть» снятого маршрута
+     (`offerRouteUndo`): кнопка остаётся внизу, на своём месте, — на неё и
+     ложится плашка */
+  .route-bar.hold .rb-make { margin-top: auto; }
   .rb-make[hidden], .rb-save[hidden] { display: none; }
   /* Закладка в зоне большого пальца. Контурная, а не залитая: заливка в этом
      месте обещает готовый маршрут, а тут ещё нет ни одной точки. Делает она
@@ -16486,10 +16494,11 @@
        в наборе — снимает свой черновик. Оба раза он значит «убрать отсюда», а
        не «удалить»: ни съёмка, ни места от него не страдают. */
     if (mapShoot) { setMapShoot(null); return; }
-    var was = mapRoute.slice();
+    var was = mapRoute.slice(), holdH = $("mapRouteBar").offsetHeight;
     mapRoute = []; saveAll();
-    paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
-    offerRouteUndo(was);
+    paintRouteNos(); placeRoutePath(); renderRouteBar();
+    offerRouteUndo(was, holdH);
+    routeReflow();
   });
   /* ---------- Возврат снятого черновика ----------
      Крестик в наборе снимал черновик без возврата: пять точек, собранных по
@@ -16514,14 +16523,35 @@
      переставали читаться. Полоса обобщена в `showUndo(text, restore, kind)`
      (объявлена у корзины, ниже по файлу) — маршрут и съёмка делят одну
      кнопку через неё, каждый со своим `kind`, чтобы «снять черновик молча»
-     (`dropRouteUndo`) не мог погасить чужую плашку. */
-  function offerRouteUndo(ids) {
+     (`dropRouteUndo`) не мог погасить чужую плашку.
+
+     Пока плашка висит, полоса держит высоту, какая была до снятия (Алексей,
+     15 сентября 2026, хвосты, заход Б). Сжимаясь сразу, она роняла кнопку
+     «Маршрут» на место крестика: при трёх точках крестик 615–643, кнопка
+     после снятия 605–639, и второй тап того же пальца выключал набор, а
+     выход гасил «Вернуть». Отпускает высоту уход плашки — любой: таймер,
+     первая точка, «Вернуть», выход из набора, чужая плашка.
+
+     Сама плашка ложится ровно на выключенную «Сделать съёмкой» (решение
+     того же дня): на обычном месте (730–775) она закрывала вторую строку
+     подсказки пустого черновика (720–734). Кнопка в удержании прижата к
+     низу полосы, поэтому её место то же, что до снятия. */
+  function offerRouteUndo(ids, holdH) {
     if (!ids.length) return;
     showUndo(LANG.t("map.routeCleared", { n: LANG.count("unit.point", ids.length) }), function () {
       /* Место могли удалить за эти секунды — возвращаем только живые */
       mapRoute = ids.filter(function (id) { return spotById(id); }); saveAll();
       paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
     }, "route");
+    var bar = $("mapRouteBar");
+    if (holdH) { bar.style.minHeight = holdH + "px"; bar.classList.add("hold"); }
+    undoOver($("rbMake"));
+  }
+  function routeBarRelease() {
+    var bar = $("mapRouteBar");
+    if (!bar || !bar.classList.contains("hold")) return;
+    bar.style.minHeight = ""; bar.classList.remove("hold");
+    routeReflow();
   }
   function dropRouteUndo() {
     if (undoOwner && undoOwner.kind === "route") hideUndo();
@@ -18541,14 +18571,27 @@
      а чтобы «снять молча» (`dropRouteUndo`, `bury` подборки) не гасило
      чужую плашку по ошибке. */
   var undoOwner = null, undoTimer = null;
+  /* Положить плашку поверх элемента, а не на обычное место над вкладками.
+   `null` возвращает обычное место. Снимается при следующем показе, а не при
+   уходе: уходящая плашка ещё гаснет на глазах и не должна прыгать. */
+  function undoOver(el) {
+    var ub = $("undoBar"), s = ub.style;
+    s.top = s.left = s.width = s.height = s.right = s.bottom = s.padding = "";
+    if (!el || !el.offsetHeight || !ub.offsetParent) return;
+    var r = el.getBoundingClientRect(), p = ub.offsetParent.getBoundingClientRect();
+    s.top = (r.top - p.top) + "px"; s.left = (r.left - p.left) + "px";
+    s.width = r.width + "px"; s.height = r.height + "px";
+    s.right = "auto"; s.bottom = "auto"; s.padding = "0 15px";
+  }
   function showUndo(text, restore, kind) {
+    routeBarRelease(); undoOver(null);
     undoOwner = { restore: restore, kind: kind };
     $("undoText").textContent = text;
     $("undoBar").classList.add("show");
     clearTimeout(undoTimer);
     undoTimer = setTimeout(hideUndo, 6000);
   }
-  function hideUndo() { $("undoBar").classList.remove("show"); undoOwner = null; clearTimeout(undoTimer); }
+  function hideUndo() { $("undoBar").classList.remove("show"); undoOwner = null; clearTimeout(undoTimer); routeBarRelease(); }
   function removeSession(i) {
     var rec = sessions[i];
     if (!rec) return;
