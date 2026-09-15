@@ -27133,7 +27133,7 @@
     /* Строка под именем обязана содержать жанр, дату и время — это первое,
        что человек ищет в карточке (замечание с тестов) */
     var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
-    var when = phase === "after" ? afterWord(s.date) : whenWord(s.date);
+    var when = phase === "after" ? afterWord(s) : whenWord(s.date);
     var bits = [];
     /* Встреча называет себя встречей и говорит, о чём она: «Встреча · свадьба».
        Иначе карточка выдаёт себя за саму съёмку, которой ещё нет */
@@ -27185,8 +27185,10 @@
   }
   /* Знак жанра в шапке: свадьба и лавстори рисуются крупным знаком события,
      остальные берут свою пиктограмму из библиотеки */
-  function afterWord(d) {
-    var n = new Date();
+  /* «Вчера» — по дате места съёмки, как и фаза «после»: съёмка в Москве в
+     22:30 по Москве ещё сегодняшняя, хотя в Томске уже 02:30 следующего дня */
+  function afterWord(s) {
+    var at = shootAt(s), n = nowAt(at.lat, at.lon), d = s.date;
     var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate())
       - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
     if (days <= 0) return "";
