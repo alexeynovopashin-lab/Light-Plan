@@ -20573,13 +20573,28 @@
       }
       return null;
     }
-    /* Кадр ведётся от своего места в разметке, а не от места подъёма: после
-       перестановки оно другое, и сдвиг от старого уводил бы кадр из-под
-       пальца */
+    /* За пальцем едет копия кадра поверх экрана, а сам кадр пустым местом
+       стоит в сетке — туда он и ляжет. Прежде двигали сам кадр сдвигом от
+       места в разметке, и WebKit это ломал: кадр, сдвинутый за низ своей
+       колонки, он пересчитывает в следующую, и место кадра со сдвигом и без
+       расходилось на высоту колонки (Playwright WebKit: 639 против −537;
+       PWA: у края папки кадр при отпускании на 856 pt выше пальца). Chromium
+       держал кадр под пальцем. Копия в `position: fixed` вне колонок —
+       тот же приём, что у обложки, летящей в шапку (`mb-fly`). Появляется
+       на первом движении: подъём и удержание без движения выглядят как были. */
+    var ghost = null;
     function follow(x, y) {
-      btn.style.transform = "none";
-      var h = btn.getBoundingClientRect();
-      btn.style.transform = "translate(" + (x - grabX - h.left) + "px," + (y - grabY - h.top) + "px) scale(1.06)";
+      if (!ghost) {
+        btn.style.transition = "none"; btn.style.transform = "none";
+        var r = btn.getBoundingClientRect();
+        ghost = btn.cloneNode(true);
+        ghost.style.cssText = "position:fixed;margin:0;z-index:9999;pointer-events:none;transform:scale(1.06);"
+          + "box-shadow:0 10px 24px var(--glass-cast);width:" + r.width + "px;height:" + r.height + "px";
+        document.body.appendChild(ghost);
+        btn.style.boxShadow = "none"; btn.style.zIndex = ""; btn.style.position = "";
+        btn.style.opacity = "0";
+      }
+      ghost.style.left = (x - grabX) + "px"; ghost.style.top = (y - grabY) + "px";
     }
     /* Плитка может уехать перетаскиванием за край видимой части — длинная
        подборка не помещается на экран целиком. Без автопрокрутки нижние
@@ -20589,12 +20604,18 @@
        у верхнего края»: удержание кадра без движения само листало папку
        вверх, 12 точек за кадр (замер в PWA: st 682 → 106 за 700 мс), и меню
        открывалось уже над другим местом. */
-    var edgeOk = false;
+    var edgeOk = false, lastX = 0;
+    /* Папка листается и тогда, когда палец стоит у края, а `pointermove` в это
+       время не приходит: кадр оставался на своём месте в сетке и уезжал вместе
+       с ней, а под пальцем проплывали соседи без перестановки (замер в PWA:
+       прокрутка 0 → 1048, кадр при отпускании на 1047 pt выше пальца). Каждый
+       сдвиг прокрутки ведём тем же путём, что и движение пальца. */
     function autoScroll() {
-      var sc = $("mbFolderOverlay"), r = sc.getBoundingClientRect(), edge = 56, speed = 12;
+      var sc = $("mbFolderOverlay"), r = sc.getBoundingClientRect(), edge = 56, speed = 12, was = sc.scrollTop;
       if (!edgeOk) { if (lastY >= r.top + edge && lastY <= r.bottom - edge) edgeOk = true; }
       else if (lastY < r.top + edge) sc.scrollTop -= speed;
       else if (lastY > r.bottom - edge) sc.scrollTop += speed;
+      if (dragged && sc.scrollTop !== was) track(lastX, lastY);
       scrollRaf = requestAnimationFrame(autoScroll);
     }
     /* Поднятый кадр держит касание сам, как плитка подборки (`mbStartDrag`).
@@ -20603,11 +20624,22 @@
        `pointermove` пришёл, через 9 мс `pointercancel`, дальше только
        прокрутка папки. Кадр не переставлялся ни разу. */
     btn.addEventListener("touchmove", function (e) { if (lifted) e.preventDefault(); }, { passive: false });
+    /* Поднятый кадр слушает окно, а не себя, — как `mbStartDrag`. Перестановка
+       переносит узел кадра (`appendChild`), и iOS на этом снимает с него
+       захват касания: дальше события получает то, что под пальцем. Пока под
+       пальцем ехал сам кадр, это был он; под копией — пустое место, и в PWA
+       копия застревала посреди папки без отпускания. */
+    var pid = null;
+    function winMove(e) { if (e.pointerId === pid) move(e); }
+    function winUp(e) { if (e.pointerId === pid) release(); }
     btn.addEventListener("pointerdown", function (e) {
       if (e.button) return;
-      consumed = false;
+      consumed = false; pid = e.pointerId;
       sx = e.clientX; sy = e.clientY; lifted = false; dragged = false;
       timer = setTimeout(function () {
+        window.addEventListener("pointermove", winMove);
+        window.addEventListener("pointerup", winUp);
+        window.addEventListener("pointercancel", winUp);
         lifted = true; consumed = true; skip = null; lastY = sy; edgeOk = false;
         order = board.items.slice();
         var r0 = btn.getBoundingClientRect();
@@ -20621,13 +20653,17 @@
         scrollRaf = requestAnimationFrame(autoScroll);
       }, 420);
     });
-    btn.addEventListener("pointermove", function (e) {
+    function move(e) {
       var dx = e.clientX - sx, dy = e.clientY - sy;
       if (!lifted) { if (Math.abs(dx) + Math.abs(dy) > 8) clearTimeout(timer); return; }
-      dragged = true; lastY = e.clientY;
+      dragged = true; lastX = e.clientX; lastY = e.clientY;
+      track(e.clientX, e.clientY);
+    }
+    btn.addEventListener("pointermove", function (e) { if (!lifted) move(e); });
+    function track(x, y) {
       btn.style.transition = "none";
-      follow(e.clientX, e.clientY);
-      var toId = cellAt(e.clientX, e.clientY);
+      follow(x, y);
+      var toId = cellAt(x, y);
       if (!toId) { skip = null; return; }
       /* С кем только что поменялись — того не трогаем, пока палец с него не
          уйдёт. Кадры разной высоты: после обмена под пальцем часто снова
@@ -20641,13 +20677,18 @@
         order.splice(toPos, 0, sid);
         snapCells(mbFlipReorder(order, btn));
         skip = toId;
-        follow(e.clientX, e.clientY);
+        follow(x, y);
       }
-    });
+    }
     function release() {
       clearTimeout(timer);
       if (scrollRaf) { cancelAnimationFrame(scrollRaf); scrollRaf = null; }
+      window.removeEventListener("pointermove", winMove);
+      window.removeEventListener("pointerup", winUp);
+      window.removeEventListener("pointercancel", winUp);
       if (!lifted) return;
+      if (ghost) { ghost.remove(); ghost = null; }
+      btn.style.opacity = "";
       btn.style.transition = "transform .3s cubic-bezier(.2,1.3,.35,1)";
       btn.style.transform = "none"; btn.style.boxShadow = "none";
       btn.style.zIndex = ""; btn.style.position = "";
@@ -20664,15 +20705,15 @@
       } else if (onMenu) onMenu();
       order = null;
     }
-    btn.addEventListener("pointerup", release);
-    btn.addEventListener("pointercancel", release);
+    function upOnBtn() { if (!lifted) release(); }
+    btn.addEventListener("pointerup", upOnBtn);
+    btn.addEventListener("pointercancel", upOnBtn);
     btn.addEventListener("click", function (e) {
       if (consumed) { consumed = false; e.preventDefault(); e.stopPropagation(); return; }
-      if (mbSorting && e.target && e.target.closest && e.target.closest(".mb-del")) {
-        e.preventDefault(); e.stopPropagation();
-        if (onMenu && boardId) onMenu(boardId); else onOpen();
-        return;
-      }
+      /* Ветки «тап по крестику в режиме сортировки» здесь нет: крестик `.mb-del`
+         рисует только плитка подборки (`mbTileArt`), в кадре его не бывает.
+         Скопированная из `mbStartDrag`, она звала `boardId`, которого в этой
+         функции нет (хвосты, заход Б: в PWA крестиков в сетке папки 0). */
       onOpen();
     });
   }
