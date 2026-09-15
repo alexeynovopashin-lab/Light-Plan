@@ -26303,6 +26303,23 @@
      без координат отвечает якорем дня. Солнце пересчитывается только когда
      место действительно сменилось — обычно день стоит в одном городе, и проход
      обходится одним счётом. */
+  /* Допуск к началу вечернего золотого часа — один на строку света и знак у
+     точки: точка, начатая не раньше чем за десять минут до золотого часа, в
+     золотом часе (Алексей, 15 сентября 2026, вариант «а»). Пока допуск был
+     только у строки, она называла прогулку 18:30 при золоте с 18:37, а знака
+     у прогулки не было. К другим границам — рассвету, синему часу — допуска
+     нет */
+  var GOLD_EARLY = 10;
+  /* Окно вечернего света у места и дня — то же солнце, что у знака точки */
+  function sunAt(p, day) {
+    var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate);
+    if (p && p.lat != null) { LAT = p.lat; LON = p.lon; TZ = tzAt(p.lat, p.lon, day); }
+    computeSun(day);
+    var out = { goldB: SUN.goldB, blueB: SUN.blueB };
+    LAT = kLat; LON = kLon; TZ = kTz;
+    computeSun(kDate);
+    return out;
+  }
   function routeLight(s, route) {
     var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate);
     var at = shootAt(s);
@@ -26317,7 +26334,9 @@
         LAT = la; LON = lo; TZ = tzAt(la, lo, shootDate(s, d)); aDay = d;
         computeSun(shootDate(s, d));
       }
-      return stateAt(r.t - d * 1440);
+      var m = r.t - d * 1440, st = stateAt(m);
+      if (st.k === "evening" && SUN.goldB !== null && m >= SUN.goldB - GOLD_EARLY) st = stateAt(SUN.goldB);
+      return st;
     });
     LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(kDate);
@@ -26417,27 +26436,29 @@
     // Ближайшая к золотому окну точка дня: попадает ли, и насколько мимо.
     // Без точек роль точки играет сама съёмка — её начало и конец
     /* Свет считается в момент события: точка второго дня сверяется с окном
-       своих суток, сдвинутым на эти сутки. Первые сутки берут окно,
-       переданное карточкой, — однодневной съёмке не меняется ничего */
-    var wins = [{ b: sun.goldB, e: sun.blueB, d: 0 }];
-    function winOf(t) {
-      var d = Math.floor(t / 1440);
-      if (!wins[d]) {
-        var w = cardSun(s, shootDate(s, d));
-        wins[d] = { b: w.goldB === null ? null : w.goldB + d * 1440,
-                    e: w.blueB === null ? null : w.blueB + d * 1440, d: d };
+       своих суток, сдвинутым на эти сутки. Солнце — места самой точки, как у
+       знака (`routeLight`): маршрут уезжает за десятки километров, и окно
+       якоря дня у дальней точки расходилось со знаком на минуты. Точка без
+       координат отвечает якорем дня */
+    var wins = {}, at = shootAt(s);
+    function winOf(r) {
+      var d = Math.floor(r.t / 1440), key = (r.at.lat != null ? r.at.lat + "," + r.at.lon : "") + "|" + d;
+      if (!wins[key]) {
+        var w = sunAt(r.at, shootDate(s, d));
+        wins[key] = { b: w.goldB === null ? null : w.goldB + d * 1440,
+                      e: w.blueB === null ? null : w.blueB + d * 1440, d: d };
       }
-      return wins[d];
+      return wins[key];
     }
-    var pts = route.length ? route.map(function (r) { return { t: r.t, n: r.n }; }) : (function () {
+    var pts = route.length ? route.map(function (r) { return { t: r.t, n: r.n, at: stopPlace(r) || at }; }) : (function () {
       var end = s.end != null ? s.end : s.min + (s.dur || 90);
-      return [{ t: s.min, n: LANG.t("card.shootPoint") }, { t: end, n: LANG.t("card.shootPoint") }];
+      return [{ t: s.min, n: LANG.t("card.shootPoint"), at: at }, { t: end, n: LANG.t("card.shootPoint"), at: at }];
     })();
     var hit = null, near = null, gap = 1e9;
     pts.forEach(function (r) {
-      var w = r.w = winOf(r.t);
+      var w = r.w = winOf(r);
       if (w.b === null || w.e === null) return;
-      if (r.t >= w.b - 10 && r.t <= w.e) { if (!hit) hit = r; return; }
+      if (r.t >= w.b - GOLD_EARLY && r.t <= w.e) { if (!hit) hit = r; return; }
       var d = Math.min(Math.abs(r.t - w.b), Math.abs(r.t - w.e));
       if (d < gap) { gap = d; near = r; }
     });
