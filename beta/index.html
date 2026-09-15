@@ -226,40 +226,70 @@
      русскую точку. Риск ложных срабатываний на коротких словах снят
      границей `\b`, которой нет у аналогичных русских слов ровно по той же
      причине, что и у «кот»/«кота»: латиница её умеет, кириллица — нет. */
-  var POINT_WORDS = [
+  /* Ярусы, а не один порядок (15 сентября 2026). Раньше побеждало правило,
+     стоящее выше в списке, и «Прогулка у водопада» получала парк, а
+     «Съёмка на крыше» — камеру: общее слово стояло раньше точного. Теперь
+     правила разложены на четыре яруса, и точное слово бьёт общее, где бы
+     оно ни стояло в названии:
+       1 — событие: обряд, момент дня, повод, транспорт, занятие с предметом;
+       2 — тип места: пляж, мост, крыша, отель;
+       3 — имя места, в котором нет слова-типа: Тадж-Махал, Уюни;
+       4 — общее: прогулка, съёмка, портреты, люди.
+     Внутри яруса порядок по-прежнему решает, и комментарии «раньше» ниже
+     говорят именно о нём.
+     Любая церемония — арка: пляжная, в отеле, чайная, хупа (Алексей,
+     15 сентября 2026). Никях — мечеть. Страна и город знак не выбирают:
+     в Дубае снимают и никях, и европейскую выездную церемонию.
+     Имя учится, когда оно называет само место, а не город или край вокруг:
+     «Альгамбра» — да, «Прага» и «Тоскана» — нет.
+     Кириллице граница слова ставится руками: `(?:^|[^а-яё])` перед корнем и
+     список окончаний после. Без неё «сад» ловил «усадьбу», «арк» —
+     «подарки», «площадь» — «смотровую площадку».
+     Слово может вести к знаку, который ещё не нарисован: такое правило
+     уступает следующему (`pick`), и знак загорается сам, когда появится. */
+  var POINT_WORDS = [];
+  function tier(n, rules) {
+    for (var i = 0; i < rules.length; i++) POINT_WORDS.push([rules[i][0], rules[i][1], n]);
+  }
+
+  /* ---- Ярус 1. Событие ---- */
+  tier(1, [
+    /* Мехенди раньше ЗАГСа: «роспись хной» — узор на руках, а не регистрация */
+    [/мехенди|менди|(?:^|[^а-яё])хн(?:а|ы|ой|у)(?![а-яё])|\bmehn?di\b|\bmehendi\b|\bhenna\b/i, "mehendi"],
     [/сбор|подготов|утро|макия|стилист|getting ready|bridal prep|hair.{0,3}makeup|makeup artist|\bstylist\b/i, "rings"],
-    [/загс|роспис|регистрац|выкуп|registry office|register office|city hall wedding|marriage registration|marriage license/i, "hall"],
-    [/венчан|храм|церк|собор|church wedding|\bcathedral\b|\bchurch\b/i, "church"],
-    [/костёл|костел|кирх|капелл|\bchapel\b|\bkirk\b/i, "chapel"],
-    [/мечет|никях|никах|\bmosque\b|\bnikah\b/i, "mosque"],
-    [/прогул|парк|сквер|набережн|сад|\bpark\b|\bgarden\b|waterfront|promenade|\bstroll\b/i, "park"],
-    [/фотосесс|съём|съем|локац|портрет|кадр|photoshoot|photo session|\blocation\b|\bportraits?\b|\bshoot\b/i, "camera"],
+    [/загс|роспис|регистрац|выкуп|дворц\S* бракосочетан|дворец бракосочетан|registry office|register office|city hall wedding|marriage registration|marriage license|door games|接亲|迎亲/i, "hall"],
+    /* Венчание — событие; храм как место съёмки живёт ярусом ниже */
+    [/венчан|church wedding/i, "church"],
+    [/никах|никях|\bnikah\b|\bnikkah\b/i, "mosque"],
     /* Уборка раньше города: «уборка площадки» — про метлу, а не про площадь */
     [/уборк|клининг|подготовка площадк|clean.?up|venue prep|\btidying\b/i, "broom"],
-    [/город|центр|площад|\bcity\b|\bdowntown\b|city center|\bsquare\b/i, "city"],
     [/тост|шампанск|фуршет|поздравлен|\btoast\b|\bchampagne\b|reception drinks|\bspeeches\b/i, "toast"],
-    [/пара|молодожён|молодожен|первый взгляд|\bcouple\b|newlyweds|first look/i, "couple"],
+    /* Первый взгляд — момент дня. Сама пара стоит почти в каждой точке
+       свадьбы и знака не решает: она в ярусе общих слов */
+    [/первый взгляд|first look/i, "couple"],
     /* Транспорт раньше людей: «автобус гостей» — про автобус */
     [/автобус|шаттл|\bbus\b|\bshuttle\b/i, "bus"],
-    [/гост|свидетел|друзь|команд|\bguests?\b|\bwitness(?:es)?\b|best man|maid of honor|bridal party/i, "guests"],
     [/причёск|прическ|стайлинг|укладк|\bhair\b|hairstyl|\bupdo\b/i, "hair"],
     [/макия|мейк|визаж|\bmakeup\b|\bmua\b/i, "makeup"],
-    [/арк|выездн|церемони|wedding arch|outdoor ceremony|\baltar\b|\baisle\b/i, "arch"],
-    [/диджей|dj|вертушк|turntable/i, "dj"],
+    /* Смена образа — переодевание между локациями, у pre-wedding их три-шесть */
+    [/смен\S* образ|переодеван|costume change|outfit change|换装/i, "hanger"],
+    /* Любая церемония — арка: хупа, мандап, семь кругов у огня, чайная
+       церемония — тоже церемонии. «Арк» с границей: иначе «подарки» */
+    [/(?:^|[^а-яё])арк(?:а|и|у|ой|е|ах|ами)?(?![а-яё])|выездн|церемони|(?:^|[^а-яё])хуп(?:а|ы|у|ой|е)(?![а-яё])|мандап|пхер|wedding arch|outdoor ceremony|\bceremon(?:y|ies)\b|\bchuppah\b|\bhuppah\b|\bmandap\b|\bpher(?:a|e)s?\b|\baltar\b|\baisle\b|ceremonia|cerimonia|zeremonie|ceremonie|仪式|敬茶/i, "arch"],
+    /* `dj` с границей: иначе «Djemaa el-Fna» в Марракеше */
+    [/диджей|\bdj\b|вертушк|turntable/i, "dj"],
     [/гитар|музыкант|живой звук|группа|бэнд|\bguitars?\b|\bmusician\b|live music|\bbands?\b/i, "guitar"],
     [/микрофон|ведущ|тамада|конферанс|microphone|\bmc\b|\bemcee\b|\bhost\b/i, "mic"],
     [/музык|оркестр|танцпол|\bmusic\b|\borchestra\b|dance floor/i, "music"],
     [/альбом|печать|фотокниг|\balbum\b|\bprints?\b|photo book/i, "album"],
-    [/улиц|проспект|бульвар|\bstreet\b|\bavenue\b|boulevard/i, "street"],
     [/велосипед|вело|\bbikes?\b|\bbicycle\b|\bcycling\b/i, "bike"],
-    [/лавочк|скамей|фонар|бульвар|\bbench\b|lamppost|streetlamp/i, "lamp_bench"],
-    [/студи|софтбокс|павильон|\bstudio\b|\bsoftbox\b|\bpavilion\b/i, "studio"],
-    [/банкет|ресторан|застол|ужин|\bbanquet\b|\brestaurant\b|\bdinner\b|reception dinner/i, "feast"],
+    /* Бар — с границей: иначе «барат» и «бар-мицва» */
+    [/банкет|ресторан|застол|ужин|валим|изакая|(?:^|[^а-яё])бар(?:а|е|у|ом)?(?![а-яё-])|\bbanquet\b|\brestaurant\b|\bdinner\b|reception dinner|\bwalima\b|\bizakaya\b|\bbar\b(?![ -]?mitzvah)|婚宴/i, "feast"],
     /* Именинный торт ловится раньше свадебного: «торт» без уточнения
        на съёмке чаще свадебный, со свечами — всегда день рождения */
     [/именинн|торт со свеч|свечи на торт|birthday cake|candles on.{0,6}cake/i, "cake_bd"],
     [/торт|\bcake\b/i, "cake"],
-    [/танец|танц|\bdance\b|\bdancing\b/i, "dance"],
+    [/танец|танц|сангит|\bdance\b|\bdancing\b|\bsangeet\b/i, "dance"],
     [/букет|цвет|флорист|\bbouquet\b|\bflowers?\b|\bflorist\b/i, "bouquet"],
     [/салют|фейерверк|огн|\bfireworks\b|\bsalute\b/i, "fireworks"],
     /* Светил четыре, а не одно. Раньше все эти слова вели к «солнцу», и точка
@@ -269,14 +299,19 @@
        обязан ловиться раньше общего солнца. */
     [/рассвет|восход|\bsunrise\b/i, "sunrise"],
     [/закат|\bsunset\b/i, "sunset"],
-    [/золот|режимн|golden hour/i, "golden"],
-    [/солнц|солнечн|свет|\bsun\b|\bsunny\b/i, "sun"],
+    /* Золотой — только час: «Золотой мост» во Владивостоке — мост */
+    [/золот\S* час|режимн|golden hour/i, "golden"],
+    /* «Свет» целым словом: иначе «Светлана» */
+    [/солнц|солнечн|(?:^|[^а-яё])свет(?:ом)?(?![а-яё])|\bsun\b|\bsunny\b/i, "sun"],
+    [/северн\S* сияни|полярн\S* сияни|\baurora\b|northern lights|极光/i, "aurora"],
     [/переезд|трансфер|дорог|выезд|авто|машин|\btransfer\b|\bdrive\b|\bcar\b|\bdeparture\b/i, "car"],
     /* Темы событий: точка дня называется не только по-свадебному */
     [/подар|вручен|презент|\bgifts?\b|\bpresents?\b/i, "gift"],
     [/ёлк|елк|новый год|рождеств|нового года|christmas tree|new year'?s?|\bchristmas\b/i, "tree"],
-    [/аэростат|воздушн(ый|ого) шар|hot air balloon/i, "balloon_air"],
+    [/аэростат|воздушн(ый|ого|ом|ых|ые) шар|hot air balloon/i, "balloon_air"],
     [/шарик|день рожден|днюх|именин|\bballoons?\b|\bbirthday\b/i, "balloons"],
+    /* Bridal party — свита невесты, а не вечеринка */
+    [/bridal party|wedding party/i, "guests"],
     [/вечеринк|корпоратив|праздник|афтепати|\bparty\b|corporate event|\bcelebration\b|after.?party/i, "bunting"],
     [/футбол|мяч|\bfootball\b|\bsoccer\b|\bballs?\b/i, "ball"],
     [/забег|марафон|кросс|эстафет|легк(ая|ой) атлетик|\brun\b|\bmarathon\b|relay race|track and field/i, "runner"],
@@ -290,15 +325,24 @@
     [/выступлен|трибун|пресс-подход|брифинг|инаугурац|\bspeech\b|\bpodium\b|press briefing|\binauguration\b/i, "speaker"],
     [/форум|конференц|панел|дискусс|дебат|\bforum\b|\bconference\b|\bpanels?\b|\bdiscussion\b|\bdebate\b/i, "forum"],
     [/механизм|станок|шестерн|наладк|\bmachinery\b|\bgears?\b/i, "gears"],
-    [/завод|фабрик|цех|производств|промышлен|\bfactory\b|\bplant\b|production line|\bindustrial\b/i, "factory"],
-    [/яхт|катер|теплоход|корабл|палуб|круиз|парусн|\byacht\b|\bboats?\b|\bships?\b|\bdecks?\b|\bcruise\b|\bsailing\b/i, "yacht"],
-    [/порт|причал|пристан|марин|набережная порт|\bport\b|\bharbor\b|\bmarina\b|\bpiers?\b/i, "anchor"],
+    [/вертол[её]т|\bhelicopters?\b|\bhelipad\b/i, "helicopter"],
+    [/трамва|фуникул[её]р|\btrams?\b|\bfunicular\b|\bcable car\b/i, "tram"],
+    /* Лодка раньше яхты, а яхта держит «boat» за собой: пока лодка не
+       нарисована, «Boat trip» остаётся яхтой, а не заглушкой.
+       «Шикара» и «катер» — целым словом: иначе «шикарный вид» и «Катерина» */
+    [/лодк|гондол|(?:^|[^а-яё])шикар(?:а|ы|е|у|ой)(?![а-яё])|сампан|(?:^|[^а-яё])доу(?![а-яё])|пиниси|\bboats?\b|\bgondolas?\b|\bshikara\b|\bsampan\b|\bdhow\b|\bphinisi\b/i, "boat"],
+    [/(?:^|[^а-яё])яхт(?!-?\s?клуб)|(?:^|[^а-яё])катер(?:а|у|ом|е|ы|ов|ах)?(?![а-яё])|теплоход|корабл|палуб|круиз|парусн|\byachts?\b(?! club)|\bboats?\b|\bships?\b|\bdecks?\b|\bcruise\b|\bsailing\b/i, "yacht"],
     [/снеговик|снежн(ая|ые) баб|\bsnowman\b/i, "snowman"],
     [/снегопад|метел|вьюг|\bsnowfall\b|\bblizzard\b/i, "snow"],
-    [/снег|мороз|каток|зимн|горк|\bsnow\b|\bfrost\b|ice rink|\bwinter\b|\bsledding\b/i, "snowflake"],
+    /* Зимний лес — снег (так он и лежит в каталоге мест), а зимний сад —
+       оранжерея. Ледяной отель — снег, а не отель */
+    [/снег|мороз|каток|зимн(?!(?:ий|его|ем)\s+сад)|горк|ледян\S* отел|\bsnow\b|\bfrost\b|ice rink|\bwinter\b|\bsledding\b|icehotel|ice hotel/i, "snowflake"],
     [/балет|пуант|хореограф|\bballet\b|\bpointe\b|choreograph/i, "ballet"],
     [/лыж|сноуборд|склон|подъёмник|подъемник|\bski\b|\bsnowboard\b|\bslope\b|ski lift/i, "ski"],
-    [/лошад|конн|верхов|манеж|ипподром|\bhorses?\b|\briding\b|\bequestrian\b|\bracetrack\b/i, "horse"],
+    /* Слон раньше лошади: «барат на слоне» — про слона, барат без слона —
+       жених верхом */
+    [/(?:^|[^а-яё])слон(?:а|у|ом|е|ы|ов|ам|ами|ах|ик)?(?![а-яё])|\belephants?\b/i, "elephant"],
+    [/лошад|конн|верхов|манеж|ипподром|ранчо|конюш|эстанси|барат|\bhorses?\b|\briding\b|\bequestrian\b|\bracetrack\b|\branch\b|\bstables?\b|\bestancia\b|\bbaraat\b/i, "horse"],
     /* Границы слова `\b` тут не работают: она считается по латинице, и «Кот»
        её не даёт вовсе. Отсекаем хвост явным «дальше не буква» */
     [/кошк|котён|котен|кот(?:а|у|ом|ы)?(?![а-яё])|\bcat\b|\bkittens?\b/i, "cat"],
@@ -308,8 +352,8 @@
     [/плаван|бассейн|купан|заплыв|\bswim(?:ming)?\b|\bpools?\b/i, "swimmer"],
     [/завтрак|выпечк|пекарн|кофе-брейк|круассан|\bbreakfast\b|\bbakery\b|coffee break|\bcroissant\b/i, "croissant"],
     [/рюкзак|сборы в дорогу|\bbackpacks?\b|packing (?:for|up)/i, "backpack"],
-    [/штамп|печат|нотариус|подпис|\bstamps?\b|\bnotary\b|\bsignature\b|\bsigning\b/i, "stamp"],
-    [/ребён|ребен|дет(и|ск|ям)|пряник|\bchild(?:ren)?\b|\bkids?\b/i, "child"],
+    /* Ктуба — брачный договор, подписывается перед хупой */
+    [/штамп|печат|нотариус|подпис|ктуб|\bstamps?\b|\bnotary\b|\bsignature\b|\bsigning\b|\bketubah?\b/i, "stamp"],
     [/сутк|день и ночь|круглосуточ|day and night|round.?the.?clock|24.?hours?/i, "sun_moon"],
     [/волейбол|\bvolleyball\b/i, "volleyball"],
     [/баскетбол|\bbasketball\b/i, "basketball"],
@@ -318,21 +362,140 @@
     [/индейк|запечён|запечен|горячее|\bturkey\b|\broast\b|main course/i, "turkey"],
     [/повар|кухн|кейтеринг|шеф|\bchef\b|\bkitchen\b|\bcatering\b/i, "chef"],
     [/перерыв|тайминг|четверть часа|\bbreak\b|\btiming\b|quarter hour/i, "clock_quarter"],
-    [/офис|бизнес-центр|подача|бизнес-парк|\boffice\b|business center|business park/i, "office_car"],
     [/теплоход|паром|круизн|причал судна|\bferry\b|cruise ship/i, "ship"],
     [/жара|мороз|градус|температур|\bheat\b|\bcold\b|\bdegrees?\b|\btemperature\b/i, "thermometer"],
     [/будильник|подъём|подъем|напоминан|\balarm\b|wake.?up|\breminder\b/i, "alarm"],
-    [/поход|маршрут пеш|тропа|турист|\bhik(?:e|ing)\b|\btrail\b|\btourist\b/i, "hiker"],
     /* Выпускной раньше школы: «школьный выпускной» — про конфедератку, а не
        про здание. Линейка осталась школе: чаще это первое сентября */
     [/выпускн|последний звонок|\bgraduation\b|\bprom\b/i, "graduation"],
-    [/школ|линейк|первое сентября|\bschool\b|first day of school/i, "school"],
     [/дата свадьб|день свадьб|годовщин|wedding date|wedding day|\banniversary\b/i, "wedding_day"],
     [/коляск|прогулка с малыш|\bstrollers?\b|\bprams?\b/i, "stroller"],
+    [/пелён|пелен|новорожд|\bswaddl\w*\b|\bnewborn\b/i, "infant"]
+  ]);
+
+  /* ---- Ярус 2. Тип места ----
+     Сперва сооружения, потом природа, потом места-пространства: «сад
+     усадьбы» — усадьба, «набережная у моста» — мост. */
+  tier(2, [
+    [/(?:^|[^а-яё])мост(?:а|у|ом|е|ы|ов|ам|ами|ах|ик|ики)?(?![а-яё])|(?:^|[^а-яё])канал(?:а|у|ом|е|ы|ов|ах)?(?![а-яё])|(?:^|[^а-яё])понте(?![а-яё])|\bbridges?\b|\bpuente\b|\bponte\b|\bpont\b|\bbrucke\b|\bkopru(?:su)?\b|\bcanals?\b|golden gate|大桥|石桥/i, "bridge"],
+    [/(?:^|[^а-яё])крыш|руфтоп|\brooftops?\b|\broof\b|\bterrazza\b|\bazotea\b|天台|屋顶/i, "rooftop"],
+    [/смотров|обзорн\S* площадк|панорамн\S* площадк|\bviewpoints?\b|\blookout\b|\bmirador\b|\bbelvedere\b|\bmirante\b|展望台|观景台/i, "viewpoint"],
+    [/лестниц|ступен|потёмкинск|потемкинск|\bstairs\b|\bsteps\b|\bescadaria\b|\bescalinata\b|\bscalinata\b|\bselaron\b/i, "stairs"],
+    [/(?:^|[^а-яё])отел(?:ь|я|е|ю|ем|и|ей)(?![а-яё])|гостиниц|лобби|сьют|ресепшн|ресепшен|\bhotels?\b|\blobby\b|\bsuites?\b|酒店/i, "hotel"],
+    [/студи\S* с декорац|декораци|\bbackdrops?\b|\bset design\b/i, "backdrop"],
+    [/студи|софтбокс|павильон|циклорам|\bstudio\b|\bsoftbox\b|\bpavilion\b|\bcyclorama\b/i, "studio"],
+    [/пассаж|крыт\S* галере|витторио эмануэле|(?:^|[^а-яё])гум(?![а-яё])|\barcade\b|\bgalleria\b|vittorio emanuele/i, "arcade"],
+    [/музе|библиотек|галере|стеделейк|васконселос|\bmuseums?\b|\blibrary\b|\bgallery\b|\bbiblioteca\b|\bmuseo\b|stedelijk|vasconcelos|博物馆|美术馆|图书馆/i, "museum"],
+    /* Театр с границей: иначе «амфитеатр» */
+    [/(?:^|[^а-яё])театр|(?:^|[^а-яё])опер(?:а|ы|у|е|ой)(?![а-яё])|оперн|филармони|концертн\S* зал|\btheat(?:re|er)\b|\bteatro\b|\bopera\b|concert hall|剧院/i, "theatre"],
+    [/хаммам|онсэн|онсен|рёкан|рекан|(?:^|[^а-яё])бан(?:я|и|ю|ей)(?![а-яё])|\bhammam\b|\bonsen\b|\bryokan\b|\bbanya\b|温泉/i, "bathhouse"],
+    /* Плантация раньше чайной: «чайная плантация» — ряды на склоне */
+    [/рисов\S* террас|рисов\S* пол|плантац|\brice terraces?\b|\brice paddies\b|\btea (?:estate|plantation|garden)s?\b|梯田|茶园/i, "terraces"],
+    [/чайн\S* дом|(?:^|[^а-яё])чайн(?:ая|ой|ую)(?![а-яё])|чайхан|\bteahouse\b|tea house|茶室|茶馆|찻집/i, "teahouse"],
+    [/вокзал|(?:^|[^а-яё])метро(?![а-яё])|перрон|\bstation\b|\bgare\b|\bsubway\b|\bmetro\b|地铁|车站/i, "station"],
+    [/аэропорт|\bairport\b|机场/i, "plane"],
+    [/университет|кампус|\bcampus\b|\buniversity\b|大学/i, "campus"],
+    [/мельниц|польдер|\bwindmills?\b|\bpolders?\b/i, "windmill"],
+    [/ханок|минка|гассё|гассе|традиционн\S* деревн|\bhanok\b|\bminka\b|gassho|한옥|合掌/i, "hanok"],
+    [/усадьб|особняк|поместь|палаццо|палацио|(?:^|[^а-яё])шато(?![а-яё])|(?:^|[^а-яё])вилл(?:а|ы|у|е|ой)(?![а-яё])|гасиенд|асиенд|\bmanor\b|\bestates?\b|\bmansion\b|\bchateau\b|\bvillas?\b|\bhacienda\b|\bpalacio\b|\bpalazzo\b|\bquinta\b|庄园/i, "manor"],
+    /* «Дворцовая площадь» — площадь, а не дворец */
+    [/(?:^|[^а-яё])замк(?:а|у|ом|е|и|ов)?(?![а-яё])|(?:^|[^а-яё])замок(?![а-яё])|крепост|дворец|дворц(?!ов\S*\s+площад)|кремл|касб|(?:^|[^а-яё])форт(?:а|у|е)?(?![а-яё])|цитадел|\bcastles?\b|\bpalace\b|\bfort(?:ress)?\b|\bkasbah\b|\bcitadel\b|\bschloss\b|城堡|宫殿/i, "castle"],
+    [/руин|развалин|амфитеатр|\bruins?\b|amphitheat(?:re|er)|遗址/i, "ruins"],
+    /* Храм как место: сперва не христианский, потом «храм» вообще — в
+       русском это чаще церковь */
+    [/буддийск|пагод|синтоистск|индуистск|храм\S* бали|\btemples?\b|\bpagodas?\b|神社|寺院/i, "temple"],
+    [/(?:^|[^а-яё])храм|церк|(?:^|[^а-яё])собор|\bcathedral\b|\bchurch\b|\biglesia\b|\bchiesa\b|\beglise\b|\bkirche\b|教堂/i, "church"],
+    [/костёл|костел|кирх|капелл|\bchapel\b|\bkirk\b/i, "chapel"],
+    [/мечет|\bmosques?\b|\bmasjid\b|مسجد|清真寺/i, "mosque"],
+    [/мавзоле|чарбаг|гробниц|\bmausoleum\b|\bcharbagh\b|\btomb\b/i, "mausoleum"],
+    [/рын(?:ок|ка|ке|ку)(?![а-яё])|базар|(?:^|[^а-яё])сук(?![а-яё])|\bsouks?\b|\bsouq\b|\bbazaar\b|\bmercado\b|\bmarket\b|市场/i, "market"],
+    /* Лофт раньше завода: «industrial district» — квартал, а не цех */
+    [/лофт|граффит|стрит-арт|индустриальн\S* квартал|\bloft\b|\bwarehouse\b|street.?art|\bgraffiti\b|industrial district/i, "loft"],
+    [/завод|фабрик|цех|производств|промышлен|\bfactory\b|\bplant\b|production line|\bindustrial\b/i, "factory"],
+    /* Бизнес-центр раньше города: иначе он ловится «центром» */
+    [/офис|бизнес-центр|подача|бизнес-парк|\boffice\b|business center|business park/i, "office_car"],
+    [/школ|линейк|первое сентября|\bschool\b|first day of school/i, "school"],
+    [/детск\S* сад|детсад|\bkindergarten\b/i, "child"],
+    [/ботаническ|оранжере|теплиц|зимн(?:ий|его|ем)\s+сад|аптекарск\S* огород|сады у залива|\bbotanic|\bglasshouse\b|\bgreenhouse\b|\bconservatory\b|\bserre\b|kew gardens|gardens by the bay|植物园/i, "glasshouse"],
+    [/амбар|сарай|сенова|(?:^|[^а-яё])ферм(?:а|ы|е|у|ой|ах)?(?![а-яё])|фермерск|деревенск|рустик|\bbarns?\b|\bfarmhouse\b|\bfarm\b|\bgranero\b|\brustic\b/i, "barn"],
+    /* Природа */
+    [/водопад|фосс(?![а-яё])|\bwaterfalls?\b|\bcascadas?\b|\bcascata\b|\bwasserfall\b|foss\b|شلال|瀑布/i, "waterfall"],
+    [/ледник|айсберг|\bglaciers?\b|\bicebergs?\b|jokulsarlon/i, "glacier"],
+    /* Соляное озеро раньше озера */
+    [/солончак|солян\S* равнин|солян\S* озер|лагун|\bsalt flats?\b|\bsalar\b|\bsalinas\b|\blagoon\b/i, "salt_flat"],
+    [/озер|(?:^|[^а-яё])пруд|(?:^|[^а-яё])рек(?:а|и|е|у|ой)(?![а-яё])|речк|(?:^|[^а-яё])лейк|\blakes?\b|\blac\b|\blago\b|\bponds?\b|\brivers?\b|湖边|湖畔/i, "lake"],
+    /* Пляж раньше пустыни: «Балтика в дюнах» — пляж */
+    [/пляж|(?:^|[^а-яё])мор(?:е|я|ю|ем)(?![а-яё])|побереж|океан|балтик\S* в дюнах|\bbeach(?:es)?\b|\bplaya\b|\bspiaggia\b|\bpraia\b|\bplage\b|\bstrand\b|\bseaside\b|海滩|沙滩|海边|شاطئ/i, "beach"],
+    [/пустын|(?:^|[^а-яё])дюн|бархан|бедуин|\bdeserts?\b|\bdunes?\b|\berg\b|\bwadi\b|沙漠|صحراء/i, "desert"],
+    [/олив\S* (?:рощ|сад)|\bolive groves?\b|\boliveto\b|\bolivar\b/i, "olive"],
+    [/виноград|винодел|винн\S* погреб|(?:^|[^а-яё])погреб|винотек|\bvineyards?\b|\bwinery\b|\bbodegas?\b|\bcellar\b|\bvina\b|\bvigna\b|\bvignoble\b|\bweingut\b|酒庄|葡萄园/i, "vineyard"],
+    [/(?:^|[^а-яё])пол(?:е|я|ю|ем|ях|ям|ями)(?![а-яё])|(?:^|[^а-яё])луг(?:а|у|ом|е|ов)?(?![а-яё])|лаванд|подсолнух|(?:^|[^а-яё])рапс|пшениц|\bfields?\b|\bmeadows?\b|\bchamp\b|\bcampo\b|\blavender\b|\bsunflowers?\b|\bwheat\b|花海|田野/i, "field"],
+    [/(?:^|[^а-яё])лес(?:а|у|ом|е|ной|ная|ное|ные|ных|ам|ах)?(?![а-яё])|(?:^|[^а-яё])бор(?:а|у|ом|е|ы)?(?![а-яё])|(?:^|[^а-яё])рощ|тайг|бамбук|секвой|\bforests?\b|\bwoods\b|\bbosque\b|\bwald\b|\bbois\b|\bredwoods?\b|\bsequoias?\b|\bbamboo\b|森林|竹林/i, "forest"],
+    [/(?:^|[^а-яё])гор(?:ы|а|ах|ам|е|у|ой|ная|ное|ный|ные|ных|ном)?(?![а-яё])|обрыв|утёс|утес|(?:^|[^а-яё])скал|ущель|перевал|\bmountains?\b|\bcliffs?\b|\bcanyon\b|\bgorge\b|\bmontana\b|\bmontagna\b|山顶/i, "mountain"],
+    /* Бедуинский лагерь — пустыня, он ловится выше */
+    [/палаточн|палатк|кемпинг|глэмпинг|глемпинг|(?:^|[^а-яё])шат[её]р(?![а-яё])|(?:^|[^а-яё])юрт(?:а|ы|е|у)?(?![а-яё])|\bglamping\b|\bcamping\b|\bcampsite\b|\btents?\b/i, "tent"],
+    /* Пространства */
+    /* Порт раньше набережной: «набережная порта» — про порт. «Порт» —
+       целым словом: иначе «портрет», «спорт», «аэропорт» */
+    [/(?:^|[^а-яё])порт(?:а|у|ом|е|ы|ов)?(?![а-яё])|причал|пристан|пирс|боардвок|яхт-?\s?клуб|марин\S* (?:бэй|бей|для яхт)|дубай.?марин|\bport\b|\bharbou?r\b|\bmarina\b|\bpiers?\b|\bjetty\b|\bmolo\b|\bboardwalk\b|yacht club|port de plaisance/i, "anchor"],
+    [/набережн|(?:^|[^а-яё])наб\.|променад|корниш|малекон|лунгомаре|(?:^|[^а-яё])бунд(?![а-яё])|\bpromenade\b|\bwaterfront\b|\bcorniche\b|\bmalecon\b|\blungomare\b|uferpromenade|\bembankment\b|\briverside\b|\bthe bund\b|外滩|滨江|كورنيش/i, "waterfront"],
+    /* «Площадь» — без «площадки»: смотровая, детская, для церемонии */
+    [/(?:^|[^а-яё])площад(?:ь|и|ью|ей|ям|ями|ях)(?![а-яё])|пьяцц|\bplaza\b|\bpiazza\b|\bsquare\b|\bmeydan[ıi]?\b|\bplatz\b|广场/i, "plaza"],
+    /* «Двор» — без «дворца»: окончание перечислено */
+    [/(?:^|[^а-яё])двор(?:а|у|ом|е|ы|ов|ик|ики|ах)?(?![а-яё])|дворик|патио|(?:^|[^а-яё])риад|\bcourtyards?\b|\bpatio\b|\briads?\b|\bcortile\b|\binnenhof\b|四合院|庭院/i, "courtyard"],
+    [/стар\S* город|историческ\S* центр|медин|хутун|\bold town\b|\bold city\b|\bmedina\b|casco antiguo|casco viejo|\baltstadt\b|vieille ville|centro storico|centro historico|\bhutongs?\b|老城|古城|胡同/i, "old_town"],
+    [/небоскр[её]б|высотк|делов\S* квартал|(?:^|[^а-яё])сити(?![а-яё])|\bskyscrapers?\b|\bskyline\b|business district|\bcbd\b|摩天/i, "skyline"],
+    [/улиц|проспект|бульвар|\bstreet\b|\bavenue\b|boulevard/i, "street"],
+    [/лавочк|скамей|фонар|бульвар|\bbench\b|lamppost|streetlamp/i, "lamp_bench"],
+    /* Парк — без «парковки», сад — без «усадьбы» и «посадки». Набережная
+       держится и здесь: пока её знак не нарисован, она остаётся парком, как
+       было до ярусов, а не падает в заглушку */
+    [/парк(?!овк)|сквер|набережн|\bwaterfront\b|promenade|(?:^|[^а-яё])сад(?:а|у|ом|е|ы|ов|ах)?(?![а-яё])|\bparks?\b|\bgardens?\b|\bjardin\b|\bgarten\b|\bhadiqa\b|\bparque\b|\bparco\b|公园|花园/i, "park"],
+    /* Площадь держится и за городом — до своего знака, как набережная у парка */
+    [/(?:^|[^а-яё])город(?:а|у|ом|е)?(?![а-яё])|центр|(?:^|[^а-яё])площад(?:ь|и|ью|ей|ям|ями|ях)(?![а-яё])|\bcity\b|\bdowntown\b|city center|\bsquare\b/i, "city"]
+  ]);
+
+  /* ---- Ярус 3. Имя места без слова-типа ----
+     Только места из каталога Алексея (15 сентября 2026), и только те, чьё
+     имя называет само место. Имя с типом внутри («Карлов мост», «Kew
+     Gardens») ловится ярусом выше. */
+  tier(3, [
+    [/нгапали|\bngapali\b/i, "beach"],
+    [/кавагути|kawaguchi/i, "lake"],
+    [/уюни|\buyuni\b/i, "salt_flat"],
+    [/уэно|\bueno\b/i, "park"],
+    [/арасияма|arashiyama/i, "forest"],
+    [/к[её]кенхоф|keukenhof/i, "field"],
+    [/тегалаланг|tegallalang/i, "terraces"],
+    [/доломит|dolomit|фудзи|\bfuji\b|мохер|\bmoher\b/i, "mountain"],
+    [/вади.?рам|\bwadi rum\b|(?:^|[^а-яё])сахар(?:а|е|у|ы)(?![а-яё])|\bsahara\b|аль.?кудр|al.?qudra|white sands|уайт.?сэндс/i, "desert"],
+    [/й[её]кюльсаурлоун/i, "glacier"],
+    [/джемаа|\bd?jemaa\b|навона|\bnavona\b/i, "plaza"],
+    [/манх[эе]ттен|\bmanhattan\b|пудун|\bpudong\b|дефанс|la defense/i, "skyline"],
+    [/уинвуд|\bwynwood\b|шордич|shoreditch|нов\S* голланди|new holland/i, "loft"],
+    [/гранд.?централ|grand central|аточ|\batocha\b/i, "station"],
+    [/лиг\S* плющ|ivy league/i, "campus"],
+    [/альгамбр|alhambra|топкап|topkapi|айт.?бен.?хадду|ait.?ben.?haddou|форт амер|amer fort|amber fort/i, "castle"],
+    [/(?:^|[^а-яё])эфес|\bephesus\b|пестум|\bpaestum\b|джераш|\bjerash\b/i, "ruins"],
+    [/ангкор|\bangkor\b|фусими|\bfushimi\b|(?:^|[^а-яё])ват арун|\bwat arun\b/i, "temple"],
+    [/букчон|\bbukchon\b|сиракава|shirakawa/i, "hanok"],
+    [/заансе|zaanse|киндердейк|kinderdijk/i, "windmill"],
+    [/тадж.?махал|taj mahal|хумаюн|\bhumayun\b/i, "mausoleum"]
+  ]);
+
+  /* ---- Ярус 4. Общее: знак, только если больше сказать нечего ---- */
+  tier(4, [
+    [/прогул|\bstroll\b/i, "park"],
+    [/фотосесс|съём|съем|локац|портрет|кадр|предсвадеб|pre.?wedding|photoshoot|photo session|\blocation\b|\bportraits?\b|\bshoot\b|婚纱照/i, "camera"],
+    /* «Пара» целым словом: иначе «парадная» */
+    [/(?:^|[^а-яё])пар(?:а|ы|у|ой|е)(?![а-яё])|молодожён|молодожен|\bcouple\b|newlyweds/i, "couple"],
+    [/гост|свидетел|друзь|команд|\bguests?\b|\bwitness(?:es)?\b|best man|maid of honor|bridal party/i, "guests"],
+    [/ребён|ребен|дет(и|ск|ям)|пряник|\bchild(?:ren)?\b|\bkids?\b/i, "child"],
     [/поколен|бабушк|дедушк|\bgenerations\b|\bgrandma\b|\bgrandpa\b|grandparents/i, "generations"],
-    [/пелён|пелен|новорожд|\bswaddl\w*\b|\bnewborn\b/i, "infant"],
-    [/напарник|второй фотограф|ассистент|видеограф|second photographer|\bassistant\b|\bvideographer\b/i, "partner"]
-  ];
+    [/напарник|второй фотограф|ассистент|видеограф|second photographer|\bassistant\b|\bvideographer\b/i, "partner"],
+    [/поход|маршрут пеш|тропа|турист|\bhik(?:e|ing)\b|\btrail\b|\btourist\b/i, "hiker"]
+  ]);
+  var WEAK = 4;
 
   /* ---------- Знаки плиток и действий ---------- */
   var UI = {
@@ -928,10 +1091,39 @@
     "stars":  WEATHER.stars
   };
 
+  /* ---------- Места ----------
+     Знаки мест маршрута: пляж, мост, крыша, усадьба. Рисуются в Claude
+     Design (15 сентября 2026) и ложатся сюда по одному; словарь точек уже
+     знает их имена и подхватит каждый, как только он появится. Горы берут
+     рисунок жанра «Пейзаж» — так же, как «Праздник» берёт шарики. */
+  var PLACES = {
+    "mountain": GENRES.landscape
+  };
+
   /* ---------- Доступ ---------- */
   var ALL = {};
   function merge(group) { for (var k in group) if (!ALL[k]) ALL[k] = group[k]; }
-  merge(POINTS); merge(UI); merge(GEAR); merge(WEATHER); merge(SIGNS); merge(THEMES);
+  merge(POINTS); merge(UI); merge(GEAR); merge(WEATHER); merge(SIGNS); merge(THEMES); merge(PLACES);
+
+  /* Латинские диакритики снимаются перед разбором: malecón = malecon,
+     château = chateau, köprü = kopru. Кириллица не трогается — «й» и «ё»
+     собираются обратно. */
+  function fold(s) {
+    return String(s || "").normalize("NFD").replace(/([A-Za-z])[\u0300-\u036f]+/g, "$1").normalize("NFC");
+  }
+  /* Первое сработавшее правило. Правило, чей знак ещё не нарисован,
+     уступает следующему, если не просили `all` */
+  function pick(text, all) {
+    text = fold(text);
+    if (!text) return null;
+    for (var i = 0; i < POINT_WORDS.length; i++) {
+      var r = POINT_WORDS[i];
+      if (!r[0].test(text)) continue;
+      if (!all && !ALL[r[1]]) continue;
+      return { sign: r[1], tier: r[2] };
+    }
+    return null;
+  }
 
   var ICONS = {
     signs: SIGNS,
@@ -942,6 +1134,7 @@
     weather: WEATHER,
     genres: GENRES,
     wishes: WISHES,
+    places: PLACES,
 
     /* Тело знака по имени. Неизвестное имя — нейтральный кружок,
        чтобы отсутствие знака никогда не ломало разметку */
@@ -967,11 +1160,22 @@
     /* Знак точки дня по её названию: «Сборы невесты» → кольца */
     /* Знак берётся из общего словаря, а не только из точек дня: тема события
        (подарок, ёлка, завод) — такая же законная точка, как ЗАГС */
-    forPoint: function (name) {
-      for (var i = 0; i < POINT_WORDS.length; i++) {
-        if (POINT_WORDS[i][0].test(name)) return ALL[POINT_WORDS[i][1]] || POINTS.dot;
-      }
-      return POINTS.dot;
+    /* Место ячейки — второй источник (15 сентября 2026). Название решает,
+       если сказало больше общего слова; иначе решает ссылка на студию, за
+       ней строка места: «Фотосессия» у Gardens by the Bay — оранжерея,
+       «Церемония» на пляже — всё равно арка. */
+    forPoint: function (name, place, studio) {
+      return ALL[ICONS.pointSign(name, place, studio)] || POINTS.dot;
+    },
+    /* Имя знака, а не тело. `all` — не пропускать ненарисованные знаки:
+       так проверка видит, что понял словарь, а не что стоит на экране */
+    pointSign: function (name, place, studio, all) {
+      var n = pick(name, all);
+      if (n && n.tier < WEAK) return n.sign;
+      if (studio) return "studio";
+      var p = pick(place, all);
+      if (p && p.tier < WEAK) return p.sign;
+      return (n || p || { sign: "dot" }).sign;
     },
     pointWords: POINT_WORDS
   };
@@ -26135,7 +26339,13 @@
       if (!el.querySelector("svg")) el.insertAdjacentHTML("afterbegin", IC.svg(el.dataset.ic));
     });
   }
-  function laneIcon(name) { return "<svg viewBox=\"0 0 24 24\">" + IC.forPoint(name) + "</svg>"; }
+  /* Знак точки: название решает, место ячейки — если название сказало
+     только общее («Фотосессия», «Прогулка»). Ссылка на студию — сама студия,
+     какой бы строкой она ни была подписана */
+  function laneIcon(name, r) {
+    var place = r ? (r.p || (spotById(r.placeId) || {}).name || "") : "";
+    return "<svg viewBox=\"0 0 24 24\">" + IC.forPoint(name, place, !!(r && studioById(r.studioId))) + "</svg>";
+  }
   /* На ленте помещается одно слово: «Сборы жениха» → «Сборы» */
   function laneWord(n) {
     var w = String(n).trim().split(/\s+/)[0];
@@ -27065,7 +27275,7 @@
         : ((nowMin2 !== null && p.t <= nowMin2) || (phase === "after" && route.length) ? " past" : "");
       if (p.light) cls += " light";
       return '<div class="lane-p' + cls + '">'
-        + '<div class="lane-ic">' + laneIcon(p.n) + "</div>"
+        + '<div class="lane-ic">' + laneIcon(p.n, p.r) + "</div>"
         + '<div class="lane-rail"><span class="lane-dot"></span></div>'
         + '<div class="lane-t">' + fmt(p.t) + "</div>"
         + '<div class="lane-n">' + esc(laneWord(p.n)) + "</div></div>";
@@ -27437,7 +27647,7 @@
   /* Зовётся только с непустым маршрутом: без него ленты нет вовсе
      (см. `renderDayTile`) */
   function lanePoints(s, route, light) {
-    var pts = route.map(function (r) { return { t: r.t, n: r.n, light: false }; });
+    var pts = route.map(function (r) { return { t: r.t, n: r.n, r: r, light: false }; });
     if (light && !light.bad) {
       var g = cardSun(s).goldB;
       var from = pts[0].t - 60, to = pts[pts.length - 1].t + 60;
@@ -27539,7 +27749,7 @@
     var nx = nextPoint(s, route, phase);
     if (nx) {
       top.push('<div class="pane"><div class="pane-row">'
-        + '<span class="badge">' + laneIcon(nx.n) + "</span>"
+        + '<span class="badge">' + laneIcon(nx.n, nx.r) + "</span>"
         + '<span class="pn-body"><span class="pn-k">' + esc(LANG.t("pane.next")) + "</span>"
         + '<span class="pn-t" style="margin-top:2px">' + esc(nx.n) + "</span></span></div>"
         + '<div class="pn-s" style="margin-top:8px">'
@@ -27683,7 +27893,7 @@
     var now = new Date();
     if (!sameDay(s.date, now)) return null;
     var m = now.getHours() * 60 + now.getMinutes();
-    for (var i = 0; i < route.length; i++) if (route[i].t > m) return { n: route[i].n, t: route[i].t, in: route[i].t - m };
+    for (var i = 0; i < route.length; i++) if (route[i].t > m) return { n: route[i].n, t: route[i].t, in: route[i].t - m, r: route[i] };
     return null;
   }
 
@@ -27794,7 +28004,7 @@
     $("cdRouteBody").innerHTML = route.map(function (r, i) {
       var cls = i === cur ? " now" : (nowMin2 !== null && r.t < nowMin2 ? " past" : "");
       var lt = lit ? pointLight(lit[i]) : null;
-      return '<div class="sc-item' + cls + (lt ? " lit" : "") + '"><span class="sc-ic">' + laneIcon(r.n) + "</span>"
+      return '<div class="sc-item' + cls + (lt ? " lit" : "") + '"><span class="sc-ic">' + laneIcon(r.n, r) + "</span>"
         + '<span class="sc-t">' + fmt(r.t) + "</span>"
         + '<span><span class="sc-n">' + esc(r.n) + "</span>"
         + (r.p ? '<span class="sc-p">' + esc(r.p) + "</span>" : "") + "</span>"
