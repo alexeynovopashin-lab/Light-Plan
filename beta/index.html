@@ -22981,6 +22981,14 @@
       monShow("fMonHour", fDur ? perShoot / (fDur / 60) : 0);
       $("fMonHint").textContent = LANG.t("rep.payFirst", { n: LANG.count("unit.shoot", first), k: first });
     }
+    /* Предоплата группы — только у первой карточки, дальше по нулям, и при
+       продлении тоже: каждую следующую ставят руками в её карточке (Алексей,
+       15 сентября 2026). Блок продления говорит о новых карточках, а им
+       предоплаты нет, — поля и строки остатка нет вовсе. Прятать матрицей
+       состава нельзя: та обнулила бы число последней, а оно её и уходит в
+       запись нетронутым */
+    var ext = repExt();
+    if (ext) $("fPrepayRow").hidden = true;
     // Итог: доход и прибыль
     var inc = compose ? perShoot : extMon ? repExtShare()
       : sumEdit && fRate == null ? repShare(payProbe(), sumEdit) : sessionIncome(payProbe()), net = inc - fExpense;
@@ -22998,7 +23006,7 @@
     $("fPayTotal").innerHTML =
       '<span class="lbl">' + esc(LANG.t("form.incomeIs", { sum: money(inc, fCurrency) })) + hrs
       + (fExpense ? " " + esc(LANG.t("form.minusExp", { sum: money(fExpense, fCurrency) })) : "")
-      + (fPrepay ? "<br>" + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(fPrepay, fCurrency), rest: money(rest, fCurrency) })) : "") + "</span>"
+      + (fPrepay && !ext ? "<br>" + esc(LANG.t("pane.prepayRest", { word: prepayWord(), prepay: money(fPrepay, fCurrency), rest: money(rest, fCurrency) })) : "") + "</span>"
       + '<span class="val' + (net < 0 ? " neg" : "") + '">' + money(net, fCurrency) + "</span>";
     // Сводка спойлера: способ и итог одной строкой
     /* У помесячной в сводке сумма месяца: «В месяц · 12 500» читалось бы
