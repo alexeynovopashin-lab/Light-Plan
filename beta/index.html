@@ -26310,6 +26310,15 @@
      у прогулки не было. К другим границам — рассвету, синему часу — допуска
      нет */
   var GOLD_EARLY = 10;
+  /* Часы съёмки без маршрута: шаг в два часа от начала и сам конец. По ним
+     идут колонки погоды, знак света под колонками и строка света — одни часы
+     на всех, чтобы строка и знак не спорили */
+  function shootHours(s) {
+    var end = s.end != null ? s.end : s.min + (s.dur || 90), out = [], t = s.min;
+    while (t <= end) { out.push({ t: t }); t += 120; }
+    if (!out.length || out[out.length - 1].t !== end) out.push({ t: end });
+    return out;
+  }
   /* Окно вечернего света у места и дня — то же солнце, что у знака точки */
   function sunAt(p, day) {
     var kLat = LAT, kLon = LON, kTz = TZ, kDate = new Date(selDate);
@@ -26450,10 +26459,13 @@
       }
       return wins[key];
     }
-    var pts = route.length ? route.map(function (r) { return { t: r.t, n: r.n, at: stopPlace(r) || at }; }) : (function () {
-      var end = s.end != null ? s.end : s.min + (s.dur || 90);
-      return [{ t: s.min, n: LANG.t("card.shootPoint"), at: at }, { t: end, n: LANG.t("card.shootPoint"), at: at }];
-    })();
+    /* Без маршрута — те же часы, что у колонок погоды и знаков под ними, а не
+       одни начало и конец: съёмка 17:00–20:00 накрывает золотой час целиком,
+       а по краям выходила «мимо на 10 мин» при золотом знаке у 19:00
+       (Алексей, 15 сентября 2026) */
+    var pts = (route.length ? route : shootHours(s)).map(function (r) {
+      return route.length ? { t: r.t, n: r.n, at: stopPlace(r) || at } : { t: r.t, n: LANG.t("card.shootPoint"), at: at };
+    });
     var hit = null, near = null, gap = 1e9;
     pts.forEach(function (r) {
       var w = r.w = winOf(r);
@@ -26924,7 +26936,9 @@
     var light = phase === "after" ? null : lightCase(s, route, sun);
     /* Свет у каждой точки — по её месту и её суткам. После съёмки погода и
        маршрут спрятаны, и спрашивать небо не для кого */
-    var lit = phase !== "after" && route.length ? routeLight(s, route) : null;
+    /* Без маршрута точками служат часы колонок погоды (`shootHours`): у них
+       свет спрашивается так же, по месту съёмки и своим суткам */
+    var lit = phase === "after" ? null : routeLight(s, route.length ? route : shootHours(s));
 
     $("cardOrder").hidden = false;
     // Старый вид карточки — списки «ярлык — значение» — не показывается нигде
@@ -27956,12 +27970,7 @@
        без координат отвечает якорем дня */
     var hours = route.length
       ? route.map(function (r, i) { return { t: r.t, at: stopPlace(r) || at, lt: lit ? pointLight(lit[i]) : null }; })
-      : (function () {
-          var end = s.end != null ? s.end : s.min + (s.dur || 90), out = [], t = s.min;
-          while (t <= end) { out.push({ t: t, at: at }); t += 120; }
-          if (out[out.length - 1].t !== end) out.push({ t: end, at: at });
-          return out;
-        })();
+      : shootHours(s).map(function (h, i) { return { t: h.t, at: at, lt: lit ? pointLight(lit[i]) : null }; });
     hours = hours.slice(0, 6);
     /* Панель показывается по основным точкам: добавки не должны выводить её
        туда, где её раньше не было */
