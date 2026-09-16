@@ -31372,6 +31372,20 @@
       /* Подтянутые кадры повторный посев не сбрасывает: тянуть их заново —
          минута-две и лишний поход в читалку */
       var haveImgs = shots.some(function (x) { return seedMine(x) && x.im; });
+      /* Кадры повторный посев не перекачивает, но вид у них должен выйти тот
+         же, что у свежих. Старый посев клал кадру код жанра тегом, и в
+         подборке висел сырой чип «wedding»: разделом жанра код не бывает,
+         ключа `tag.wedding` в словаре нет. Снимаем — иначе чип уходил только
+         после «Убрать посев» и посева заново. */
+      if (haveImgs) {
+        var genreTag = {}; ALL_GENRES.forEach(function (g) { genreTag[g] = 1; });
+        shots.forEach(function (x) {
+          if (!seedMine(x) || !Array.isArray(x.tags)) return;
+          var keep = x.tags.filter(function (t) { return !genreTag[t]; });
+          if (keep.length !== x.tags.length) x.tags = keep;
+        });
+        shotIx = null;
+      }
       if (!haveImgs) {
         boards = seedKeep(boards); shots = seedKeep(shots).concat(br.shots); shotIx = null;
         /* Заготовка жанра у приложения уже своя, и заводить рядом вторую с
