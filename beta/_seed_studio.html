@@ -1,0 +1,105 @@
+<!doctype html><meta charset="utf-8"><title>Посев: студийный час</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ body{font:15px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:22px;background:#111;color:#eee}
+ h1{font-size:17px;margin:0 0 12px}
+ button{font:inherit;padding:12px 16px;border-radius:11px;border:0;background:#3a6df0;color:#fff;margin:6px 6px 6px 0}
+ button.g{background:#2a2a2a;color:#ddd}
+ pre{background:#1b1b1b;padding:12px;border-radius:10px;white-space:pre-wrap;font-size:12px}
+ a{color:#7aa7ff} .n{color:#999;font-size:13px}
+</style>
+<h1>Посев: студийный час</h1>
+<p>Аренда идёт прямо сейчас, конец подставляется относительно текущей минуты.
+Три кнопки — три состояния кольца: спокойное, «пора собираться» (последние 15 мин)
+и «пора выходить» (последние 5 мин, где шкала обода сбрасывается).</p>
+<p class="n">Координаты студии берутся из пояса устройства: часы аренды записаны
+настенным временем зала, и студия в другом поясе честно покажет другое время
+(на этом уже спотыкались — см. DECISIONS, «Студийный час стал таймером»).</p>
+<button data-m="70">Спокойное</button>
+<button data-m="17">Пора собираться</button>
+<button data-m="8">Пора выходить</button>
+<button id="del" class="g">Убрать посев</button>
+<p><a href="./">→ открыть Light Plan</a></p>
+<pre id="out">—</pre>
+<script>
+/* Вид записи — тот же договор, что у `_seed.html`: `date` строкой
+   «ГГГГ-ММ-ДД», часы точки маршрута числом минут, жанр кодом. Подробности
+   там же, в шапке скрипта. */
+var KEY = "lightplan.beta.v1", STID = "seed_studio", SID = "seed_studio_day";
+function read(){ try { return JSON.parse(localStorage.getItem(KEY) || "null") || {}; } catch(e){ return {}; } }
+function write(d){ localStorage.setItem(KEY, JSON.stringify(d)); }
+function log(s){ document.getElementById("out").textContent = s; }
+function dayText(d){
+  return d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+}
+/* Долгота из смещения пояса устройства: 15° на час. Карте этого хватает.
+   А вот часам — нет, и на этом засев спотыкался: приложение спрашивает
+   настоящую зону координат у Open-Meteo (`zoneOf`), и для выдуманной точки
+   она приходит чужая. Замер 16 сентября: телефон Asia/Tomsk (+7), долгота
+   105° — карточка сказала «Зал 11:11 UTC+9», аренда 08:41 – 10:28 уже
+   кончилась, и ни одного из трёх состояний кольца не показала. Оценка по
+   долготе (`tzFor`) совпадала — но только пока ответ из сети не пришёл.
+
+   Поэтому зону не угадываем, а объявляем: кладём её в тот же кэш `zones`,
+   откуда её берёт `zoneOf`. Ключ — округление до полуградуса, как в
+   `zoneKey`. Тогда у зала часы телефона, и «до конца аренды» считается от
+   той же минуты, от которой засев её и отмерял. */
+function lonHere(){ return (-new Date().getTimezoneOffset() / 60) * 15; }
+function zoneKey(lat, lon){
+  return (Math.round(lat*2)/2).toFixed(1) + "," + (Math.round(lon*2)/2).toFixed(1);
+}
+function pinZone(d, lat, lon){
+  d.zones = d.zones || {};
+  d.zones[zoneKey(lat, lon)] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+function studio(){
+  return { id: STID, name: "Студия «Сфера»", address: "Ленина, 1", tel: "+7 999 000-11-22",
+           key: "", tomcohId: null, town: "", lat: 56.0, lon: lonHere(), mt: Date.now(),
+           halls: [{ id: "seed_hall", name: "Зал 2" }] };
+}
+function session(mins){
+  var n = new Date(), nm = n.getHours() * 60 + n.getMinutes();
+  var d = new Date(); d.setHours(0,0,0,0);
+  var from = Math.max(0, nm - 90), to = Math.min(1439, nm + mins);
+  return { id: SID, mt: Date.now(), kind: "shoot", type: "portrait", sub: "",
+    date: dayText(d), min: from, dur: 300, end: Math.min(1439, nm + 150),
+    contact: "Ирина", clientTel: "+7 913 555-20-30",
+    orgId: null, person: "Ирина", phone: "+7 913 555-20-30", persons: [],
+    place: "Студия «Сфера»", placeTown: "", placeAddr: "Ленина, 1",
+    placeLat: 56.0, placeLon: lonHere(), placeCity: true,
+    studioId: null, hallId: null, rentFrom: null, rentTo: null,
+    guests: 0, breed: "", wish: [], warn: null,
+    notes: "Посев для замера студийного часа.",
+    deadlineChoice: "auto", delivered: false, deliveredAt: null,
+    pay: "hourly", rate: 3000, units: 0, expense: 0, prepay: 0, currency: "RUB",
+    trip: false, tripManual: false, tripPlace: "",
+    brief: "", models: "", docs: [], gear: [], playlist: null,
+    /* Часы точки — числом минут от полуночи первого дня съёмки */
+    route: [{ t: from, t2: to, n: "Зал", p: "Студия «Сфера»", placeId: null,
+              studioId: STID, hallId: "seed_hall", walk: false }] };
+}
+[].forEach.call(document.querySelectorAll("button[data-m]"), function (b) {
+  b.onclick = function () {
+    var mins = +b.dataset.m, d = read();
+    d.studios = (d.studios || []).filter(function (s) { return s.id !== STID; }).concat([studio()]);
+    d.sessions = (d.sessions || []).filter(function (s) { return s.id !== SID; }).concat([session(mins)]);
+    pinZone(d, 56.0, lonHere());
+    /* Отметки о сказанном чистим: иначе баннер смолчит, решив, что уже звонил */
+    if (d.studioTold) delete d.studioTold[SID];
+    write(d);
+    var n = new Date(), nm = n.getHours() * 60 + n.getMinutes();
+    log("Засеяно.\nАренда до " + Math.floor((nm + mins) / 60) + ":" + ("0" + ((nm + mins) % 60)).slice(-2)
+      + "\nДедлайн выхода на пять минут раньше."
+      + "\nЗона зала: " + Intl.DateTimeFormat().resolvedOptions().timeZone + " — как у телефона."
+      + "\nОткрой ./ и перезапусти приложение.");
+  };
+});
+document.getElementById("del").onclick = function () {
+  var d = read();
+  d.sessions = (d.sessions || []).filter(function (s) { return s.id !== SID; });
+  d.studios = (d.studios || []).filter(function (s) { return s.id !== STID; });
+  if (d.studioTold) delete d.studioTold[SID];
+  write(d);
+  log("Посев убран.");
+};
+</script>

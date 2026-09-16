@@ -1,0 +1,130 @@
+<!doctype html><meta charset="utf-8"><title>Посев: свадебный день</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ body{font:15px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:22px;background:#111;color:#eee}
+ h1{font-size:17px;margin:0 0 12px}
+ button{font:inherit;padding:11px 16px;border-radius:11px;border:0;background:#3a6df0;color:#fff;margin:6px 6px 6px 0}
+ button.g{background:#2a2a2a;color:#ddd}
+ pre{background:#1b1b1b;padding:12px;border-radius:10px;white-space:pre-wrap;font-size:12px}
+ a{color:#7aa7ff}
+ .n{color:#999;font-size:13px}
+</style>
+<h1>Посев: свадебный день, две студии, разные залы</h1>
+<p>Кладёт в <code>lightplan.beta.v1</code> две студии с залами и одну съёмку на 6 точек.
+Существующие данные не трёт: студии и съёмка добавляются, всё остальное остаётся.</p>
+<button id="go">Засеять: маршрут</button>
+<button id="go2">Засеять: маршрут + место-студия</button>
+<button id="del" class="g">Убрать посев</button>
+<p class="n">Первая — как в жизни: место съёмки адресное, студии стоят точками маршрута.
+Вторая — то же, но местом съёмки назначена студия Томсон с залом Эдисон: тогда строка «Зал»
+наверху и веер зала у точки живут одновременно, и развилку видно целиком.</p>
+<p><a href="./">→ открыть Light Plan</a></p>
+<pre id="out">—</pre>
+<script>
+/* ============================================================
+   ВИД ЗАПИСИ. Страница пишет прямо в `localStorage`, минуя приложение, —
+   значит обязана класть ровно то, что кладёт туда `saveAll` (docs:
+   DECISIONS, 16_TIME_MODEL.md). Три места, где легко ошибиться:
+
+   1. `date` — строка «ГГГГ-ММ-ДД», а не момент. `toISOString` писал полночь
+      пояса телефона в UTC, и в другом поясе та же запись открывалась соседним
+      днём. Старый момент приложение ещё читает, но писать его нельзя.
+   2. `t`/`t2` точки маршрута — ЧИСЛО минут от полуночи первого дня съёмки,
+      как их кладёт `routeFromEditor`. Строка «ЧЧ:ММ» — вид ячейки в форме
+      (`cellMin`/`setCellMin`), в запись она не уезжает. Не «чинить».
+   3. Жанр, пожелание и вид документа — только коды («wedding», «sunset»,
+      «contract»): имя им даёт словарь. Русское слово тут работало до волны 7а,
+      теперь заплаток, принимающих его, в коде нет.
+
+   Адрес студии лежит в поле `address` (так его пишет `studioFromDraft`), а не
+   в `addr`. Поля студии и съёмки — те же, что у посева сезона `beta/seed.js`.
+   ============================================================ */
+var KEY = "lightplan.beta.v1";
+var ST1 = "st_seed_tomson", ST2 = "st_seed_lumen";
+var SID = "seed_wedding_day";
+function read(){ try { return JSON.parse(localStorage.getItem(KEY) || "null") || {}; } catch(e){ return {}; } }
+function write(d){ localStorage.setItem(KEY, JSON.stringify(d)); }
+function log(s){ document.getElementById("out").textContent = s; }
+/* День записи — строкой, как его пишет `dayText` приложения */
+function dayText(d){
+  return d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+}
+function H(h, m){ return h*60 + (m||0); }
+
+/* Ближайшая суббота — чтобы день лежал впереди и открывался с ленты */
+function nextSat(){
+  var d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+  return d;
+}
+var studios = [
+  { id: ST1, name: "Томсон", address: "Томск, Красноармейская, 101", tel: "+7 913 000-11-22",
+    key: "", tomcohId: null, town: "Томск", lat: 56.4720, lon: 84.9700, mt: Date.now(),
+    halls: [ { id: "h_edison", name: "Эдисон" }, { id: "h_tesla", name: "Тесла" } ] },
+  { id: ST2, name: "Люмен", address: "Томск, Учебная, 8", tel: "+7 913 000-33-44",
+    key: "", tomcohId: null, town: "Томск", lat: 56.4650, lon: 84.9540, mt: Date.now(),
+    halls: [ { id: "h_white", name: "Белый" }, { id: "h_loft", name: "Лофт" }, { id: "h_cyc", name: "Циклорама" } ] }
+];
+/* Точка маршрута: часы числом минут, место — ссылкой на студию или строкой */
+function pt(t, t2, n, p, studio, hall){
+  return { t: t, t2: t2, n: n, p: p, placeId: null,
+           studioId: studio || null, hallId: hall || null, walk: false };
+}
+function session(){
+  var d = nextSat();
+  return {
+    id: SID, mt: Date.now(),
+    kind: "shoot", type: "wedding", sub: "",
+    date: dayText(d), min: H(9), dur: H(14), end: H(23),
+    contact: "Аня и Марк", clientTel: "+7 913 555-66-77",
+    orgId: null, person: "Аня", phone: "+7 913 555-66-77", persons: [],
+    place: "Дом невесты", placeTown: "Томск", placeAddr: "Томск, Дзержинского, 14",
+    placeLat: 56.4880, placeLon: 84.9480, placeCity: true,
+    /* Место съёмки студией не является: развилка проверяется в чистом виде —
+       залы спрашиваются только у точек маршрута */
+    studioId: null, hallId: null, rentFrom: null, rentTo: null,
+    guests: 60, breed: "", wish: [], warn: null,
+    notes: "Посев для проверки развилки «зал: строка сверху или веер у точки».",
+    deadlineChoice: "auto", delivered: false, deliveredAt: null,
+    pay: "flat", rate: 90000, units: 0, expense: 0, prepay: 20000, currency: "RUB",
+    trip: false, tripManual: false, tripPlace: "",
+    brief: "", models: "", docs: [], gear: [], playlist: null,
+    route: [
+      pt(H(9),      H(11),    "Сборы невесты", "Дом невесты"),
+      pt(H(11, 30), H(12,30), "Выкуп",         "Дом невесты"),
+      pt(H(13),     H(15),    "Студия, пара",  "Томсон, зал Эдисон", ST1, "h_edison"),
+      pt(H(15, 30), H(16,30), "Церемония",     "Сад «Заречье»"),
+      pt(H(18),     H(21),    "Студия, гости", "Люмен, зал Лофт",    ST2, "h_loft"),
+      pt(H(21, 30), H(23),    "Банкет",        "Ресторан «Соль»")
+    ]
+  };
+}
+function seed(topStudio){
+  var d = read();
+  var rec = session();
+  if (topStudio) {
+    rec.place = "Томсон"; rec.placeAddr = "Томск, Красноармейская, 101";
+    rec.placeLat = 56.4720; rec.placeLon = 84.9700;
+    rec.studioId = ST1; rec.hallId = "h_edison";
+    rec.rentFrom = H(13); rec.rentTo = H(15);
+    rec.route[0].p = "Томсон, зал Эдисон"; rec.route[0].studioId = ST1;
+    rec.route[0].hallId = "h_edison";
+    rec.route[0].n = "Сборы в студии";
+  }
+  d.studios = (d.studios || []).filter(function(s){ return s.id !== ST1 && s.id !== ST2; }).concat(studios);
+  d.sessions = (d.sessions || []).filter(function(s){ return s.id !== SID; }).concat([rec]);
+  write(d);
+  log("Засеяно" + (topStudio ? " (место съёмки — студия)" : "") + ".\nСтудий: " + d.studios.length + ", съёмок: " + d.sessions.length
+    + "\nДень: " + dayText(nextSat())
+    + "\nОткрой ./ и перезапусти приложение (посев читается при загрузке).");
+}
+document.getElementById("go").onclick = function(){ seed(false); };
+document.getElementById("go2").onclick = function(){ seed(true); };
+document.getElementById("del").onclick = function(){
+  var d = read();
+  d.studios = (d.studios || []).filter(function(s){ return s.id !== ST1 && s.id !== ST2; });
+  d.sessions = (d.sessions || []).filter(function(s){ return s.id !== SID; });
+  write(d);
+  log("Посев убран. Остальные данные на месте.");
+};
+</script>

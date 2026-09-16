@@ -1,0 +1,87 @@
+<!doctype html><meta charset="utf-8"><title>Посев: погода по точкам</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ body{font:15px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:22px;background:#111;color:#eee}
+ h1{font-size:17px;margin:0 0 12px}
+ button{font:inherit;padding:11px 16px;border-radius:11px;border:0;background:#3a6df0;color:#fff;margin:6px 6px 6px 0}
+ button.g{background:#2a2a2a;color:#ddd}
+ pre{background:#1b1b1b;padding:12px;border-radius:10px;white-space:pre-wrap;font-size:12px}
+ a{color:#7aa7ff} .n{color:#999;font-size:13px}
+</style>
+<h1>Посев: день, разъехавшийся на сорок километров</h1>
+<p>Сборы в отеле на берегу Сочи, дальше церемония, прогулка и банкет в Красной Поляне.
+Замер 7 сентября: на берегу 22° и ясно, в Поляне на закате 14° и 80% облаков.
+Панель обязана показать это разными числами, а не одним.</p>
+<button id="go">Засеять</button>
+<button id="del" class="g">Убрать посев</button>
+<p class="n">Точки маршрута ссылаются на «Мои места» — координаты берутся оттуда, как в жизни.</p>
+<p><a href="./">→ открыть Light Plan</a></p>
+<pre id="out">—</pre>
+<script>
+/* Вид записи — тот же договор, что у `_seed.html`: `date` строкой
+   «ГГГГ-ММ-ДД», часы точки маршрута числом минут, жанр и пожелание кодами.
+   Подробности там же, в шапке скрипта. */
+var KEY = "lightplan.beta.v1";
+var SP_SEA = "p_seed_sea", SP_POL = "p_seed_pol", SID = "seed_wx_day";
+function read(){ try { return JSON.parse(localStorage.getItem(KEY) || "null") || {}; } catch(e){ return {}; } }
+function write(d){ localStorage.setItem(KEY, JSON.stringify(d)); }
+function log(s){ document.getElementById("out").textContent = s; }
+function dayText(d){
+  return d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+}
+function H(h, m){ return h*60 + (m||0); }
+/* Завтра: день внутри окна прогноза и ещё не наступил — карточка в фазе «до» */
+function tomorrow(){ var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+1); return d; }
+var spots = [
+  { id: SP_SEA, name: "Отель «Приморский»", sub: "Сочи, берег", named: true, pinned: true,
+    address: "Сочи, Приморская набережная, 1", lat: 43.58500, lon: 39.72300, mt: Date.now() },
+  { id: SP_POL, name: "Красная Поляна", sub: "горы, 600 м", named: true, pinned: true,
+    address: "Сочи, Красная Поляна, Медовеевка", lat: 43.67900, lon: 40.20300, mt: Date.now() }
+];
+/* Точка маршрута: часы числом минут, место — ссылкой в «Мои места» */
+function pt(t, t2, n, p, placeId){
+  return { t: t, t2: t2, n: n, p: p, placeId: placeId || null,
+           studioId: null, hallId: null, walk: false };
+}
+function session(){
+  var d = tomorrow();
+  return {
+    id: SID, mt: Date.now(), kind: "shoot", type: "wedding", sub: "",
+    date: dayText(d), min: H(12), dur: H(11), end: H(23),
+    contact: "Вера и Тимур", clientTel: "+7 918 555-10-20",
+    orgId: null, person: "Вера", phone: "+7 918 555-10-20", persons: [],
+    place: "Отель «Приморский»", placeTown: "Сочи", placeAddr: "Сочи, Приморская набережная, 1",
+    placeLat: 43.58500, placeLon: 39.72300, placeCity: true,
+    studioId: null, hallId: null, rentFrom: null, rentTo: null,
+    /* Пожелание кодом — имя ему даёт словарь. По нему же карточка скажет
+       «ждали закат, а прогноз обещает другое», если прогноз испортится */
+    guests: 40, breed: "", wish: ["sunset"], warn: null,
+    notes: "Посев для замера погоды по точкам: берег и горы в одном дне.",
+    deadlineChoice: "auto", delivered: false, deliveredAt: null,
+    pay: "flat", rate: 120000, units: 0, expense: 0, prepay: 0, currency: "RUB",
+    trip: true, tripManual: false, tripPlace: "Сочи",
+    brief: "", models: "", docs: [], gear: [], playlist: null,
+    route: [
+      pt(H(12),     H(14),    "Сборы",     "Отель «Приморский»", SP_SEA),
+      pt(H(14, 30), H(16),    "Церемония", "Красная Поляна",     SP_POL),
+      pt(H(17),     H(18,30), "Прогулка",  "Красная Поляна",     SP_POL),
+      pt(H(19, 30), H(23),    "Банкет",    "Красная Поляна",     SP_POL)
+    ]
+  };
+}
+document.getElementById("go").onclick = function(){
+  var d = read();
+  d.spots = (d.spots || []).filter(function(s){ return s.id !== SP_SEA && s.id !== SP_POL; }).concat(spots);
+  d.sessions = (d.sessions || []).filter(function(s){ return s.id !== SID; }).concat([session()]);
+  write(d);
+  log("Засеяно.\nМест: " + d.spots.length + ", съёмок: " + d.sessions.length
+    + "\nДень: " + dayText(tomorrow()) + "\nОткрой ./ и перезапусти приложение.");
+};
+document.getElementById("del").onclick = function(){
+  var d = read();
+  d.spots = (d.spots || []).filter(function(s){ return s.id !== SP_SEA && s.id !== SP_POL; });
+  d.sessions = (d.sessions || []).filter(function(s){ return s.id !== SID; });
+  write(d);
+  log("Посев убран.");
+};
+</script>
