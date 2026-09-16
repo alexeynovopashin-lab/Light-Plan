@@ -5445,11 +5445,6 @@
   .card-warn {
     font-size: 13px; color: var(--terra); margin: 10px 4px 0; line-height: 1.45;
   }
-  .card-notes {
-    font-size: 15px; color: var(--ink-2); line-height: 1.5;
-    background: var(--sheet); border-radius: 14px; corner-shape: squircle; padding: 14px 15px;
-    white-space: pre-wrap; word-break: break-word;
-  }
   /* ---------- Карточка события ----------
      docs/11_EVENT_CARD.md. Плотные плитки со знаками: фотограф ловит глазом
      на ходу, а не читает строки. Маршрут и референсы разворачиваются. */
@@ -6292,7 +6287,7 @@
   .card-money.open + .group { border-radius: 0 0 14px 14px; }
   /* display перебивает hidden — прячем явно (грабли из DECISIONS) */
   .card-money[hidden], #cardOverlay .group[hidden], #cardOverlay .row[hidden],
-  .card-notes[hidden], .g-label[hidden], .card-warn[hidden] { display: none; }
+  .g-label[hidden], .card-warn[hidden] { display: none; }
   /* Эволюция встречи: действие крупное, но не кричит — латунь текстом,
      а не плашкой, как и все действия продукта */
   .grow-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
@@ -6343,9 +6338,6 @@
   .renew-off.on { font-weight: 600; color: var(--brass); }
   .quest-row:active { background: var(--press-warm); }
   .quest-row:disabled { cursor: default; background: none; }
-  /* В карточке референсы только смотрят: удаление живёт в форме */
-  #cdRefs .kill { display: none; }
-
   /* ---------- Знакомство: плашки поверх живого интерфейса ----------
      Не отдельный экран с картинками, а слой над самим приложением: рамка
      адресуется живому элементу, и приложение в это время само показывает,
@@ -8497,9 +8489,6 @@
         <button class="round" id="cardOrder" aria-label="Настроить карточку" data-i18n-aria="card.tune" hidden data-ic="sliders"></button>
       </div>
     </div>
-    <h2 class="form-title" id="cardTitle" data-i18n="card.shootPoint">Съёмка</h2>
-    <p class="form-sub" id="cardSub">—</p>
-
     <!-- ===== Карточка события: docs/11_EVENT_CARD.md =====
          Знак события, имена, счёт, телефон. Дальше — плитки со знаками:
          глаз цепляется за пиктограмму, а не читает строку. -->
@@ -8706,27 +8695,7 @@
     </div><!-- /sheet -->
     </div><!-- /stack-wrap -->
 
-    <div class="g-label" id="cdWhenLabel" data-i18n="card.when">Когда</div>
-    <div class="group" id="cdWhenGroup">
-      <div class="row"><span class="rl" data-i18n="card.date">Дата</span><span class="rv" id="cdDate">—</span></div>
-      <div class="row sep"><span class="rl" data-i18n="card.time">Время</span>
-        <span class="rv"><span id="cdTime">—</span><span class="sub" id="cdDur">—</span><span class="sub tz-tag" id="cdTz" hidden></span></span>
-      </div>
-      <div class="row sep" id="cdPlaceLine"><span class="rl" data-i18n="card.place">Место</span><span class="rv" id="cdPlace">—</span></div>
-    </div>
-
     <p class="card-warn" id="cdWarn" hidden></p>
-
-    <div class="g-label" id="cdDelvLabel" data-i18n="card.delivery">Сдача материала</div>
-    <div class="group" id="cdDelvGroup">
-      <div class="row" id="cdDelvRow"><span class="rl" data-i18n="card.status">Статус</span><span class="rv" id="cdDelv">—</span></div>
-    </div>
-
-    <div class="g-label" id="cdRefsLabel" data-i18n="card.refs">Референсы</div>
-    <div class="ref-grid" id="cdRefs"></div>
-
-    <div class="g-label" id="cdNotesLabel" data-i18n="card.notes">Заметки</div>
-    <p class="card-notes" id="cdNotes"></p>
 
     <!-- Встреча кончается решением. Кнопка не переименовывает запись, а
          порождает съёмку: разговор 5 февраля был и остаётся в календаре, а
@@ -12065,7 +12034,6 @@
        адрес приложения. Секрет не нужен: обмен идёт по PKCE. */
     dropbox: ""
   };
-  var CLOUD_NAMES = ["yandex", "google", "dropbox"];
   /* Канал обратной связи. Аккаунта ещё нет — заглушка (username свободен на
      момент записи, не проверялся боем). Завести настоящий канал/бота в
      Telegram и подставить сюда адрес — единственное, что нужно сделать,
@@ -27120,13 +27088,10 @@
     var lit = phase === "after" ? null : routeLight(s, route.length ? route : shootHours(s));
 
     $("cardOrder").hidden = false;
-    // Старый вид карточки — списки «ярлык — значение» — не показывается нигде
-    $("cardTitle").hidden = true; $("cardSub").hidden = true;
-    $("cdWhenLabel").hidden = true; $("cdWhenGroup").hidden = true;
-    $("cdDelvLabel").hidden = true; $("cdDelvGroup").hidden = true;
-    $("cdNotesLabel").hidden = true; $("cdNotes").hidden = true;
+    /* Последний остаток старого вида — строка денег. Она так же не
+       показывается нигде: всё, что говорил старый вид, говорят плитки
+       (archive/ARCHIVE.md, «Старый вид карточки») */
     $("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
-    $("cdRefsLabel").hidden = true; $("cdRefs").innerHTML = "";
 
     renderBinBtn();
     renderEvHead(s, phase);
@@ -28566,20 +28531,10 @@
     if (renewUndo && renewUndo.s !== s) renewUndo = null;   // другая карточка — отказ окончательный
     cardIdx = idx;
     var wasAt = keepScroll ? $("cardOverlay").scrollTop : 0;
-    var spec = genreSpec(s.type);
-    var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
 
-    /* Встреча — та же карточка, но заголовком «Встреча»: жанр уходит в
-       подзаголовок, потому что он тут предмет разговора, а не вид работы */
+    /* Встреча — та же карточка, но говорит о себе иначе: имя и жанр
+       расставляет шапка события (`renderEvHead`) */
     var meet = isMeet(s), soft = notWork(s);
-    /* Заголовок брал `s.type` напрямую — это работало, пока жанр был русским
-       словом. После разделения кода и имени он показывал бы «wedding»:
-       перевод вскрывает такие места сразу, потому что имя видно на экране. */
-    $("cardTitle").textContent = soft ? LANG.t(meet ? "plan.meet" : "plan.event") : typeName(s);
-    $("cardSub").textContent = soft
-      ? (s.contact ? s.contact + " · " + shortType(s).toLowerCase()
-                   : LANG.t("card.meetTopic", { genre: shortType(s).toLowerCase() }))
-      : (s.contact || LANG.t("card.noClient"));
 
     /* Опросник. Пока он один — свадебный (`quest/wedding.html`), и показывать
        его на портрете или пейзаже значило бы дать ссылку не на то: жанр
@@ -28622,37 +28577,6 @@
       $("cdGrown").textContent = LANG.t("card.grownOn", { d: dMon(g) });
     }
 
-    $("cdDate").textContent = wdShort(s.date) + " · " + dMon(s.date);
-    $("cdTime").textContent = range(s.min, end);
-    /* Время карточки — местное время съёмки. Когда оно расходится с часами
-       телефона, рядом стоит пояс: иначе «18:00» читается как своё */
-    var cdTz = $("cdTz");
-    if (cdTz) {
-      var atTz = shootAt(s);
-      var tzt = tzTag(atTz.lat, atTz.lon, s.date);
-
-      cdTz.textContent = tzt;
-      cdTz.hidden = !tzt;
-    }
-    $("cdDur").textContent = durLabel(dur);
-    /* Строка места в карточке говорит адрес целиком: точка, город, улица.
-       Ради этого адрес и доезжает до записи — иначе он лежал бы в закладке,
-       где фотографу его не видно в момент выезда. */
-    /* Зал стоит сразу за именем студии и до города: «Томсон, Сфера, Томск,
-       Красноармейская 101а» — так адрес читается от частного к общему, как его
-       и произносят вслух */
-    var pStudio = studioById(s.studioId);
-    var pHall = "";
-    if (pStudio && s.hallId && Array.isArray(pStudio.halls)) {
-      for (var hi = 0; hi < pStudio.halls.length; hi++) {
-        if (pStudio.halls[hi].id === s.hallId) { pHall = pStudio.halls[hi].name || ""; break; }
-      }
-    }
-    var pLine = [placeText(s), pHall, s.place && s.placeTown ? s.placeTown : "", s.placeAddr || ""]
-      .filter(Boolean).join(", ");
-    $("cdPlaceLine").hidden = !pLine;
-    $("cdPlace").textContent = pLine;
-
     /* Погода для предупреждения ниже — про место съёмки. `wxReal` знает только
        место приложения: у фотографа из Лобни свадьба в Сочи получала лобненские
        облака, то есть ответ про другое небо */
@@ -28670,37 +28594,6 @@
     if (bad) $("cdWarn").textContent = LANG.t("card.wishMissed", {
       wish: want.map(function (w) { return wishName(w).toLowerCase(); }).join(", "),
       cond: QUAL[q].cond.toLowerCase() });
-
-    // Сдача материала — только у жанров, где есть что сдавать
-    var hasDelv = spec.delivery !== false;
-    $("cdDelvLabel").hidden = !hasDelv;
-    $("cdDelvGroup").hidden = !hasDelv;
-    if (hasDelv) {
-      var ds = deliveryState(s), dd = deadlineDate(s);
-      $("cdDelv").textContent = ds.label + (dd && !s.delivered
-        ? " · " + LANG.t("card.byDate", { d: dMon(dd) }) : "");
-      $("cdDelv").style.color = ds.color;
-    }
-
-    // Референсы — те же карточки, что в форме, но без крестика удаления
-    var refs = sessionShots(s);
-    $("cdRefsLabel").hidden = !refs.length;
-    $("cdRefs").innerHTML = refs.map(function (r, i) {
-      if (r.k === "link") {
-        return '<button type="button" class="ref-card link" data-i="' + i + '">'
-          + '<span class="host">' + refHost(r.url) + "</span>"
-          + '<span class="path">' + refTail(r.url) + "</span></button>";
-      }
-      return '<button type="button" class="ref-card" data-i="' + i + '">'
-        + refImg(r) + "</button>";
-    }).join("");
-    $("cdRefs").querySelectorAll(".ref-card").forEach(function (b) {
-      b.addEventListener("click", function () { openRef(refs[+b.dataset.i]); });
-    });
-
-    $("cdNotesLabel").hidden = !s.notes;
-    $("cdNotes").hidden = !s.notes;
-    $("cdNotes").textContent = s.notes || "";
 
     // Деньги — свёрнуты и появляются, только если суммы заданы
     var inc = sessionIncome(s), exp = +s.expense || 0;
