@@ -21,16 +21,18 @@
 |---|---|---|---|
 | Радар осадков | слой RainViewer на карте, выключенный флагом `RAIN_OK` с 31 августа 2026 | `bdb00eb`, 15.09.2026 | [↓](#радар-осадков) |
 | Старый блок света карточки | строки «Свет / Тени / Небо / Закат / Золотой час» и строка доверия прогнозу в карточке съёмки, спрятанные новым видом карточки | `bdb00eb`, 15.09.2026 | [↓](#старый-блок-света-карточки) |
+| Старый вид карточки | заголовок с клиентом и группы «Когда», «Сдача материала», «Референсы», «Заметки» — остальные списки «ярлык — значение», спрятанные новым видом | `8bacaa6`, 16.09.2026 | [↓](#старый-вид-карточки) |
 
-### Мёртвые функции — строка оглавления
+### Мёртвые функции и переменные — строка оглавления
 
-Все вырезаны в `bdb00eb`, 15.09.2026. Замер перед вырезкой: у каждой одно
-вхождение имени в `beta/index.html` — само объявление; в `beta/lang.js`,
-`beta/icons.js`, `tools/` — ноль; обращений через `window[…]`, `eval`, строковые
-таймеры в бете нет вовсе.
+Замер перед вырезкой у всех один: одно вхождение имени в `beta/index.html` —
+само объявление; в `beta/lang.js`, `beta/icons.js`, `tools/` — ноль; обращений
+через `window[…]`, `eval`, `new Function`, строковые таймеры в бете нет вовсе.
+Если не сказано иначе — вырезано в `bdb00eb`, 15.09.2026.
 
 | Функция | Что делала | Последний вызов снят коммитом |
 |---|---|---|
+| `CLOUD_NAMES` (вырезана в `8bacaa6`, 16.09.2026) | список облаков `["yandex", "google", "dropbox"]` рядом с ключами приложений; выбор облака живёт своими путями | вызова не было с рождения |
 | `attachSwipe`, `closeSwipes`, `SWIPE_W`, CSS `.swipe*` | свайп влево по строке съёмки открывал кнопку удаления | `50918a7`, 11.08.2026, «Линия „сейчас“ на ленте, утро открывается с девяти» |
 | `weekLabel` | подпись недели для заголовка календаря | `67bc6f9`, 02.08.2026, «Give the calendar one header line and a third view» |
 | `dMonRange` | промежуток дат одной строкой через `Intl.DateTimeFormat.formatRange`, с запасной склейкой через тире; в комментарии: порядок и знак промежутка — свойство языка | единственный вызов стоял в уже мёртвой `weekLabel`; сама функция — `3225d88`, 22.08.2026 |
@@ -416,4 +418,213 @@ $("cdGold").textContent = (sun.goldB === null || sun.set === null) ? "—" : ran
 
 $("cdTrust").textContent = trustOf(s.date)
   + (placeFar(s) ? " · " + LANG.t("card.wxOtherPlace") : "");
+```
+
+## Старый вид карточки
+
+**Что делал.** До перехода на карточку события (`renderEventCard`,
+docs/11_EVENT_CARD.md) карточка съёмки была списком «ярлык — значение».
+Заголовком стояло имя жанра и клиент (`cardTitle`/`cardSub`), ниже шли
+группы: «Когда» — дата, время с длительностью и поясом, место одной строкой
+от точки до улицы (`cdWhenGroup`); «Сдача материала» — статус и срок
+(`cdDelvGroup`); «Референсы» — те же карточки, что в форме, но без крестика
+удаления (`cdRefs`); «Заметки» — текст записи (`cdNotes`).
+
+**Почему вырезан.** Новый вид прятал их все при каждом открытии, без
+исключений и без ветвлений: строки стояли подряд в `renderEventCard`, а сама
+она зовётся в конце каждого `openCard`. При этом `openCard` на каждом открытии
+продолжал их заполнять — считать адрес со студией и залом, собирать сетку
+референсов и вешать на неё обработчики, спрашивать пояс места. То же самое
+говорят плитки нового вида: шапка события (`renderEvHead`), плитка дня
+(`renderDayTile`), плитки места и сдачи (`renderPanes`), разворот маршрута
+(`renderRouteFold`) и разворот референсов (`renderRefFold`). Вырезан
+16 сентября 2026 (хвосты, заход В), решение Алексея 15 сентября.
+
+**Что осталось жить рядом.** Строка `cdWarn` — «ждали закат, а прогноз обещает
+другое» — стояла между `cdWhenGroup` и `cdDelvLabel`, но новым видом не
+прячется и в фазе «до» видна. Она и её расчёт (`q`, `skyRec`, `want`, `bad`)
+не тронуты. Строка денег старого вида (`cdMoneyBtn`, `cdMoneyGroup`,
+`cdMoneySum`, `cdIncome`, `cdExpense`, `cdProfit`) в этой вырезке тоже
+осталась: прячется она так же, как остальные, но в решении Алексея её нет.
+Разворот референсов волны 5 (`18e825e`) живёт на `#rfGrid`, а не на `#cdRefs`,
+и вырезки не касается.
+
+**Коммит вырезки:** `8bacaa6`.
+
+**Что нужно для возврата.**
+
+- Вернуть разметку: `cardTitle`/`cardSub` — сразу после панели кнопок
+  `.card-bar-r`, перед комментарием «Карточка события»; остальные группы — в
+  `#cardOverlay` после `</div><!-- /stack-wrap -->`, причём `cdWhenGroup` до
+  строки `#cdWarn`, а `cdDelvLabel` и ниже — после неё.
+- Вернуть в `openCard` объявления `spec`, `dur`, `end` (они были вырезаны
+  вместе с последними их читателями) и заполнение — код ниже, в том же
+  порядке: заголовок сразу за `wasAt`, дата и место перед расчётом `q`,
+  сдача, референсы и заметки — сразу после блока `cdWarn`.
+- Вернуть прячущие строки в `renderEventCard` перед `renderBinBtn()` — иначе
+  старый вид покажется поверх нового.
+- Вернуть CSS: правило `.card-notes` (стояло сразу за `.card-warn`),
+  `#cdRefs .kill` (за `.quest-row:disabled`) и `.card-notes[hidden]` в общее
+  правило с `.g-label[hidden]`.
+- Вернуть семь ключей словаря в четыре языка: `card.when`, `card.date`,
+  `card.time`, `card.place`, `card.status`, `card.meetTopic`, `card.noClient`.
+  Остальные ключи разметки (`card.shootPoint`, `card.delivery`, `card.refs`,
+  `card.notes`, `card.byDate`, `plan.meet`, `plan.event`) на месте: их читают
+  и другие места.
+
+### Код
+
+Заголовок и подзаголовок, разметка (8500–8501):
+
+```html
+<h2 class="form-title" id="cardTitle" data-i18n="card.shootPoint">Съёмка</h2>
+<p class="form-sub" id="cardSub">—</p>
+```
+
+Группы, разметка (8709–8729; строка `#cdWarn` между ними — живая, приведена
+для места вставки):
+
+```html
+<div class="g-label" id="cdWhenLabel" data-i18n="card.when">Когда</div>
+<div class="group" id="cdWhenGroup">
+  <div class="row"><span class="rl" data-i18n="card.date">Дата</span><span class="rv" id="cdDate">—</span></div>
+  <div class="row sep"><span class="rl" data-i18n="card.time">Время</span>
+    <span class="rv"><span id="cdTime">—</span><span class="sub" id="cdDur">—</span><span class="sub tz-tag" id="cdTz" hidden></span></span>
+  </div>
+  <div class="row sep" id="cdPlaceLine"><span class="rl" data-i18n="card.place">Место</span><span class="rv" id="cdPlace">—</span></div>
+</div>
+
+<p class="card-warn" id="cdWarn" hidden></p>
+
+<div class="g-label" id="cdDelvLabel" data-i18n="card.delivery">Сдача материала</div>
+<div class="group" id="cdDelvGroup">
+  <div class="row" id="cdDelvRow"><span class="rl" data-i18n="card.status">Статус</span><span class="rv" id="cdDelv">—</span></div>
+</div>
+
+<div class="g-label" id="cdRefsLabel" data-i18n="card.refs">Референсы</div>
+<div class="ref-grid" id="cdRefs"></div>
+
+<div class="g-label" id="cdNotesLabel" data-i18n="card.notes">Заметки</div>
+<p class="card-notes" id="cdNotes"></p>
+```
+
+CSS (`.card-notes` — 5448–5452, `#cdRefs .kill` — 6346–6347, и одно слово из
+общего правила 6294–6295):
+
+```css
+.card-notes {
+  font-size: 15px; color: var(--ink-2); line-height: 1.5;
+  background: var(--sheet); border-radius: 14px; corner-shape: squircle; padding: 14px 15px;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+/* В карточке референсы только смотрят: удаление живёт в форме */
+#cdRefs .kill { display: none; }
+
+/* display перебивает hidden — прячем явно (грабли из DECISIONS) */
+.card-money[hidden], #cardOverlay .group[hidden], #cardOverlay .row[hidden],
+.card-notes[hidden], .g-label[hidden], .card-warn[hidden] { display: none; }
+```
+
+Прячущие строки в `renderEventCard` (27123–27129; строка денег осталась в
+коде, приведена целиком ради порядка):
+
+```js
+// Старый вид карточки — списки «ярлык — значение» — не показывается нигде
+$("cardTitle").hidden = true; $("cardSub").hidden = true;
+$("cdWhenLabel").hidden = true; $("cdWhenGroup").hidden = true;
+$("cdDelvLabel").hidden = true; $("cdDelvGroup").hidden = true;
+$("cdNotesLabel").hidden = true; $("cdNotes").hidden = true;
+$("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
+$("cdRefsLabel").hidden = true; $("cdRefs").innerHTML = "";
+```
+
+Заполнение в `openCard`. Заголовок (28569–28582; `meet`/`soft` остались в
+коде — их читает кнопка «Назначить съёмку»):
+
+```js
+var spec = genreSpec(s.type);
+var dur = s.dur || 90, end = s.end != null ? s.end : s.min + dur;
+
+/* Встреча — та же карточка, но заголовком «Встреча»: жанр уходит в
+   подзаголовок, потому что он тут предмет разговора, а не вид работы */
+var meet = isMeet(s), soft = notWork(s);
+/* Заголовок брал `s.type` напрямую — это работало, пока жанр был русским
+   словом. После разделения кода и имени он показывал бы «wedding»:
+   перевод вскрывает такие места сразу, потому что имя видно на экране. */
+$("cardTitle").textContent = soft ? LANG.t(meet ? "plan.meet" : "plan.event") : typeName(s);
+$("cardSub").textContent = soft
+  ? (s.contact ? s.contact + " · " + shortType(s).toLowerCase()
+               : LANG.t("card.meetTopic", { genre: shortType(s).toLowerCase() }))
+  : (s.contact || LANG.t("card.noClient"));
+```
+
+Дата, время, пояс и место (28625–28654):
+
+```js
+$("cdDate").textContent = wdShort(s.date) + " · " + dMon(s.date);
+$("cdTime").textContent = range(s.min, end);
+/* Время карточки — местное время съёмки. Когда оно расходится с часами
+   телефона, рядом стоит пояс: иначе «18:00» читается как своё */
+var cdTz = $("cdTz");
+if (cdTz) {
+  var atTz = shootAt(s);
+  var tzt = tzTag(atTz.lat, atTz.lon, s.date);
+
+  cdTz.textContent = tzt;
+  cdTz.hidden = !tzt;
+}
+$("cdDur").textContent = durLabel(dur);
+/* Строка места в карточке говорит адрес целиком: точка, город, улица.
+   Ради этого адрес и доезжает до записи — иначе он лежал бы в закладке,
+   где фотографу его не видно в момент выезда. */
+/* Зал стоит сразу за именем студии и до города: «Томсон, Сфера, Томск,
+   Красноармейская 101а» — так адрес читается от частного к общему, как его
+   и произносят вслух */
+var pStudio = studioById(s.studioId);
+var pHall = "";
+if (pStudio && s.hallId && Array.isArray(pStudio.halls)) {
+  for (var hi = 0; hi < pStudio.halls.length; hi++) {
+    if (pStudio.halls[hi].id === s.hallId) { pHall = pStudio.halls[hi].name || ""; break; }
+  }
+}
+var pLine = [placeText(s), pHall, s.place && s.placeTown ? s.placeTown : "", s.placeAddr || ""]
+  .filter(Boolean).join(", ");
+$("cdPlaceLine").hidden = !pLine;
+$("cdPlace").textContent = pLine;
+```
+
+Сдача, референсы, заметки (28673–28703):
+
+```js
+// Сдача материала — только у жанров, где есть что сдавать
+var hasDelv = spec.delivery !== false;
+$("cdDelvLabel").hidden = !hasDelv;
+$("cdDelvGroup").hidden = !hasDelv;
+if (hasDelv) {
+  var ds = deliveryState(s), dd = deadlineDate(s);
+  $("cdDelv").textContent = ds.label + (dd && !s.delivered
+    ? " · " + LANG.t("card.byDate", { d: dMon(dd) }) : "");
+  $("cdDelv").style.color = ds.color;
+}
+
+// Референсы — те же карточки, что в форме, но без крестика удаления
+var refs = sessionShots(s);
+$("cdRefsLabel").hidden = !refs.length;
+$("cdRefs").innerHTML = refs.map(function (r, i) {
+  if (r.k === "link") {
+    return '<button type="button" class="ref-card link" data-i="' + i + '">'
+      + '<span class="host">' + refHost(r.url) + "</span>"
+      + '<span class="path">' + refTail(r.url) + "</span></button>";
+  }
+  return '<button type="button" class="ref-card" data-i="' + i + '">'
+    + refImg(r) + "</button>";
+}).join("");
+$("cdRefs").querySelectorAll(".ref-card").forEach(function (b) {
+  b.addEventListener("click", function () { openRef(refs[+b.dataset.i]); });
+});
+
+$("cdNotesLabel").hidden = !s.notes;
+$("cdNotes").hidden = !s.notes;
+$("cdNotes").textContent = s.notes || "";
 ```
