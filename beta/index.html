@@ -28068,7 +28068,10 @@
   }
   function nextPoint(s, route, phase) {
     if (!route.length || phase === "after") return null;
-    var now = new Date();
+    /* «Сейчас» у плитки — часы места съёмки: часы точек записаны в них же,
+       и телефон в чужом поясе иначе показывает не ту точку или прячет
+       плитку в день съёмки (docs: DECISIONS, «Хвосты, заход А2») */
+    var at = shootAt(s), now = nowAt(at.lat, at.lon);
     if (!sameDay(s.date, now)) return null;
     var m = now.getHours() * 60 + now.getMinutes();
     for (var i = 0; i < route.length; i++) if (route[i].t > m) return { n: route[i].n, t: route[i].t, in: route[i].t - m, r: route[i] };
