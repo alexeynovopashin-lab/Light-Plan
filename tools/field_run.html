@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Полевой прогон</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -257,6 +259,22 @@
     font-family: "IBM Plex Mono", ui-monospace, monospace;
     line-height: 1.45;
   }
+  .item.done {
+    background: none;
+    border-style: dashed;
+  }
+  .item.done .what { color: var(--ink-3); font-weight: 500; }
+  .item.done .how { color: var(--ink-3); font-size: 0.85rem; }
+  .item.done .box { border-style: dashed; background: none; }
+  .closed {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: var(--done);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    line-height: 1.45;
+  }
+
   code {
     font-family: "IBM Plex Mono", ui-monospace, monospace;
     font-size: 0.85em;
@@ -264,46 +282,6 @@
     padding: 1px 5px;
     border-radius: 4px;
   }
-
-  /* ---------- Решение, а не проверка ---------- */
-  .call {
-    background: var(--surface);
-    border: 1px solid var(--hair);
-    border-left: 3px solid var(--brass);
-    border-radius: var(--radius);
-    padding: 16px 17px;
-  }
-  .call h3 {
-    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
-    font-size: 1.05rem;
-    margin: 0 0 8px;
-  }
-  .call p { margin: 0 0 12px; color: var(--ink-2); font-size: 0.92rem; }
-  .call p:last-child { margin-bottom: 0; }
-
-  .nums {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin: 0 0 13px;
-    padding: 0;
-    list-style: none;
-  }
-  .nums li {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    padding: 5px 9px;
-    background: var(--sunk);
-    border-radius: 6px;
-    color: var(--ink-2);
-  }
-  .nums li b { color: var(--ink); font-weight: 600; }
-
-  .ways { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 0.9rem; }
-  .ways li { margin-bottom: 7px; }
-  .ways li:last-child { margin-bottom: 0; }
-  .ways b { color: var(--ink); font-weight: 600; }
 
   footer {
     margin-top: 38px;
@@ -320,7 +298,7 @@
   <header class="head">
     <p class="eyebrow">Light Plan · бета</p>
     <h1>Полевой прогон</h1>
-    <p class="lede">Сорок девять проверок для телефона. Одни может закрыть только устройство: установленное с рабочего стола приложение, живое небо и настоящий Диск — песочница на них слепа. Другие — умолчания повтора съёмки, выбранные без вас: их надо увидеть в деле. Плюс один вопрос, на который нужен ваш глаз, а не палец.</p>
+    <p class="lede">Сорок девять проверок для телефона. Одни может закрыть только устройство: установленное с рабочего стола приложение, живое небо и настоящий Диск — песочница на них слепа. Другие — умолчания повтора съёмки, выбранные без вас: их надо увидеть в деле.</p>
     <div class="meta">
       <a href="https://alexeynovopashin-lab.github.io/Light-Plan/beta/">открыть бету</a>
       <span>80fb55e → ed3987b</span>
@@ -394,32 +372,6 @@
     <p class="sec-note">Код лежит в бете давно, подтвердить его может только устройство: Safari, датчики, живая карта, настоящее облако.</p>
 
     <div class="items" id="items-old"></div>
-  </section>
-
-  <section>
-    <div class="sec-head">
-      <h2>Не проверка, а выбор</h2>
-      <span class="sec-n">без отметки</span>
-    </div>
-
-    <div class="call">
-      <h3>Зазор компаса: чем платим</h3>
-      <p>Померено <code>getBBox</code> в браузере, не арифметикой по константам. Ничего не обрезано, но сверху и снизу вчетверо теснее, чем с боков:</p>
-      <ul class="nums">
-        <li>над «С» <b>2.7 px</b></li>
-        <li>под «Ю» <b>3.5 px</b></li>
-        <li>у «В» <b>15.1 px</b></li>
-        <li>у «З» <b>15.3 px</b></li>
-      </ul>
-      <p>Записанное в дорожной карте лекарство — сдвиг центра вниз на 4–6 px — выбросило бы «Ю» за пределы кадра: внизу не запас, а те же три с половиной пикселя. Остальные выходы каждый отменяют что-то уже принятое:</p>
-      <ul class="ways">
-        <li><b>Свести кольцо внутрь</b> (160 → 155) — буквы сядут на обод: он на 154, между ними останется пиксель вместо шести.</li>
-        <li><b>Дать буквам свой радиус</b> — против решения «буквы и числа делят одно кольцо, а не спорят за разные».</li>
-        <li><b>Вырастить кадр</b> (340 → ~348) — отменяет пункт 0.4, где высота отдана сводке дня.</li>
-        <li><b>Оставить 2.7 px</b> — ничего не обрезано, буква просто стоит близко к краю.</li>
-      </ul>
-      <p>Посмотрите глазами на живом экране и скажите, чем платим — правка займёт минуты, выбор ваш.</p>
-    </div>
   </section>
 
   <footer>
@@ -597,9 +549,20 @@
      "не так: не появилась или не пригодилась"]
   ];
 
+  /* Четвёртый элемент строки — повод закрытия. Такой пункт остаётся в
+     массиве (номера соседей держат отметки), но рисуется без квадрата и
+     в счёт не идёт: проверять его больше нечего. */
   function rows(list, host, prefix, from) {
     from = from || 0;
     host.innerHTML = list.map(function (it, i) {
+      if (it[3]) {
+        return '<div class="item done">'
+          + '<span class="box"><svg viewBox="0 0 16 16"><path d="M3 8.4l3.4 3.4L13 4.6"/></svg></span>'
+          + '<span class="txt"><span class="what">' + it[0] + '</span>'
+          + '<span class="how">' + it[1] + '</span>'
+          + '<span class="closed">' + it[3] + '</span></span>'
+          + '</div>';
+      }
       return '<label class="item">'
         + '<input type="checkbox" data-k="' + prefix + (from + i) + '">'
         + '<span class="box"><svg viewBox="0 0 16 16"><path d="M3 8.4l3.4 3.4L13 4.6"/></svg></span>'
