@@ -73,6 +73,9 @@ document.getElementById("go").onclick = function(){
   var d = read();
   d.spots = (d.spots || []).filter(function(s){ return s.id !== SP_SEA && s.id !== SP_POL; }).concat(spots);
   d.sessions = (d.sessions || []).filter(function(s){ return s.id !== SID; }).concat([session()]);
+  /* Знакомство пройдено: без этого признака лист «Откуда вы работаете»
+     встаёт поверх посева, как его ставит `closeStartSheet` в приложении */
+  d.me = d.me || {}; d.me.met = true;
   write(d);
   log("Засеяно.\nМест: " + d.spots.length + ", съёмок: " + d.sessions.length
     + "\nДень: " + dayText(tomorrow()) + "\nОткрой ./ и перезапусти приложение.");

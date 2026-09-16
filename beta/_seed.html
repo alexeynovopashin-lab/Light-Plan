@@ -113,6 +113,9 @@ function seed(topStudio){
   }
   d.studios = (d.studios || []).filter(function(s){ return s.id !== ST1 && s.id !== ST2; }).concat(studios);
   d.sessions = (d.sessions || []).filter(function(s){ return s.id !== SID; }).concat([rec]);
+  /* Знакомство пройдено: без этого признака лист «Откуда вы работаете»
+     встаёт поверх посева, как его ставит `closeStartSheet` в приложении */
+  d.me = d.me || {}; d.me.met = true;
   write(d);
   log("Засеяно" + (topStudio ? " (место съёмки — студия)" : "") + ".\nСтудий: " + d.studios.length + ", съёмок: " + d.sessions.length
     + "\nДень: " + dayText(nextSat())

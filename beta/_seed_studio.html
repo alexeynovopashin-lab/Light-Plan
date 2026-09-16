@@ -86,6 +86,9 @@ function session(mins){
     pinZone(d, 56.0, lonHere());
     /* Отметки о сказанном чистим: иначе баннер смолчит, решив, что уже звонил */
     if (d.studioTold) delete d.studioTold[SID];
+    /* Знакомство пройдено: без этого признака лист «Откуда вы работаете»
+       встаёт поверх посева, как его ставит `closeStartSheet` в приложении */
+    d.me = d.me || {}; d.me.met = true;
     write(d);
     var n = new Date(), nm = n.getHours() * 60 + n.getMinutes();
     log("Засеяно.\nАренда до " + Math.floor((nm + mins) / 60) + ":" + ("0" + ((nm + mins) % 60)).slice(-2)
