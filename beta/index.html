@@ -12862,17 +12862,23 @@
     try { n = (JSON.parse(raw || "{}").sessions || []).length; } catch (e) {}
     var base = n + " · " + LANG.t("doc.kb", { n: num(Math.max(1, Math.round(raw.length / 1024))) });
     if ($("storeCount")) $("storeCount").textContent = base;
-    /* Картинки в снимке больше не лежат — их место показывает браузер.
+    /* Картинки в снимке больше не лежат — их место считаем по своей базе.
        Чистить, когда станет тесно, первыми стоит экранные копии прошедших
        съёмок (docs/15_MOODBOARD.md, «Место на устройстве»).
+       `navigator.storage.estimate` каналов не знает: у корня и беты один
+       адрес, и в бете в число входили картинки и данные корня — одно и то же
+       «6,5 МБ» в обоих каналах на 1,2 своих. Считаем сами: сумма размеров
+       блобов своей базы (`lp` у корня, `lp.beta` у беты). Число выходит
+       чуть меньше занятого — накладные расходы браузера и снимок в
+       `localStorage` в него не входят, зато оно про свои картинки.
        На запуске зовут дважды подряд (`askPersistence` и следом прямой вызов),
        и хвост дописывали оба ответа: «картинки 0,1 МБ · картинки 0,1 МБ» в
        PWA. Строка пишется целиком, и только последним вызовом. */
-    if ($("storeCount") && navigator.storage && navigator.storage.estimate) {
+    if ($("storeCount")) {
       var line = $("storeCount"), seq = ++storeInfoSeq;
-      navigator.storage.estimate().then(function (e) {
+      blobBytes().then(function (bytes) {
         if (seq !== storeInfoSeq) return;
-        var mb = (e.usage || 0) / 1048576;
+        var mb = bytes / 1048576;
         line.textContent = base + (mb >= 0.05 ? " · " + LANG.t("set.storeImages", { n: num(mb, 1) }) : "");
       }).catch(function () {});
     }
@@ -12974,6 +12980,25 @@
       .catch(function () {});
   }
   function blobId() { return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7); }
+  /* Сколько места занимают картинки канала. Курсором, а не `getAll`: размер
+     у блоба известен по описанию, байты при этом с диска не читаются, и
+     сотня кадров не оседает в памяти разом. */
+  function blobBytes() {
+    return blobDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var sum = 0, tx = db.transaction(BLOB_STORE, "readonly"), rq = tx.objectStore(BLOB_STORE).openCursor();
+        rq.onsuccess = function () {
+          var c = rq.result;
+          if (!c) return;
+          sum += (c.value && c.value.size) || 0;
+          c.continue();
+        };
+        tx.oncomplete = function () { res(sum); };
+        tx.onerror = function () { rej(tx.error); };
+        tx.onabort = function () { rej(tx.error); };
+      });
+    });
+  }
   /* Какие блобы уже лежат на устройстве — известно только списком ключей из
      базы, а спрашивать её на каждую плитку было бы асинхронно и медленно.
      Снимаем список один раз при загрузке и дальше держим в памяти: то же
