@@ -140,10 +140,13 @@ function unseed(){
     if (Array.isArray(b.items)) b.items = b.items.filter(function(id){ return id.indexOf(P) !== 0; });
     if (b.cover && b.cover.indexOf(P) === 0) b.cover = (b.items || [])[0] || null;
   });
+  /* Байты кадров лежат отдельно от записей: снять запись мало, иначе
+     картинки останутся в базе сиротами */
+  var ims = (d.shots || []).filter(function(x){ return mine(x) && x.im; }).map(function(x){ return x.im; });
   d.boards = keep(d.boards); d.shots = keep(d.shots);
   write(d);
   log("Посев убран из " + KEY() + ". Остальное на месте.");
-  log("Кадры в IndexedDB останутся — их убирает «Стереть канал начисто».");
+  if (ims.length) blobsDrop(ims).then(function(){ log("Картинок посева вынуто из базы: " + ims.length); });
 }
 
 function wipe(){
@@ -156,20 +159,34 @@ function wipe(){
 
 /* ---------- Кадры из Pinterest ----------
    Тот же путь, что у приложения: читалка отдаёт список пинов и байты картинки,
-   превью и экранная копия ложатся в IndexedDB (база lp, хранилище blobs). */
+   превью и экранная копия ложатся в IndexedDB канала (хранилище blobs). */
 var OG = "https://light-plan-og-reader.alexeynovopashin.workers.dev";
 var PER_BOARD = 12;                              /* больше в посеве незачем */
 var BLOB_T = 200, BLOB_S = 1600;
-var dbP = null;
+var dbP = {};
+/* Картинки у каналов в разных базах: бета читает lp.beta, корень — lp. Раньше
+   страница клала всё в lp, и кадры беты стояли без картинок, а в базе корня
+   копились сироты (замер захода Д2: 40 записей в lp, 0 в lp.beta) */
 function db(){
-  if (dbP) return dbP;
-  dbP = new Promise(function(res, rej){
-    var rq = indexedDB.open("lp", 1);
+  var name = chan() === "beta" ? "lp.beta" : "lp";
+  if (dbP[name]) return dbP[name];
+  dbP[name] = new Promise(function(res, rej){
+    var rq = indexedDB.open(name, 1);
     rq.onupgradeneeded = function(){ if (!rq.result.objectStoreNames.contains("blobs")) rq.result.createObjectStore("blobs"); };
     rq.onsuccess = function(){ res(rq.result); };
     rq.onerror = function(){ rej(rq.error); };
   });
-  return dbP;
+  return dbP[name];
+}
+/* Как `blobDrop` у приложения: превью и экранная копия кадра */
+function blobsDrop(ims){
+  return db().then(function(dbi){
+    return new Promise(function(res){
+      var tx = dbi.transaction("blobs", "readwrite"), st = tx.objectStore("blobs");
+      ims.forEach(function(im){ st.delete(im + ":t"); st.delete(im + ":s"); });
+      tx.oncomplete = res; tx.onerror = function(){ res(); };
+    });
+  }).catch(function(){});
 }
 function blobPut(id, kind, blob){
   return db().then(function(dbi){
@@ -218,7 +235,8 @@ function pullBoard(b){
             .then(function(r){ return r.ok ? r.blob() : null; })
             .then(function(bl){ return bl ? refShots(bl) : null; })
             .then(function(shot){
-              if (shot) acc.push({ id: newShotId(), k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h, tags: [b.g] });
+              /* Без тегов: код жанра разделом не бывает и висел сырым чипом «wedding» */
+              if (shot) acc.push({ id: newShotId(), k: "link", url: pin.permalink, im: shot.im, w: shot.w, h: shot.h });
               return acc;
             })
             .catch(function(){ return acc; });
@@ -238,15 +256,19 @@ function pullAll(){
     return chain.then(function(){
       return pullBoard(b).then(function(recs){
         if (!recs.length) return;
-        var d2 = read();
-        d2.shots = (d2.shots || []).concat(recs);
+        var d2 = read(), link = P + "sh_" + b.g;
         var ids = recs.map(function(r){ return r.id; });
+        /* Кадры вытесняют ссылку-заготовку — она была временной подписью.
+           Подборки ищутся по жанру, как у кнопки приложения: посев влился в
+           заготовку жанра, и своей подборки с таким id у него нет. Список
+           подборки не затирается: в заготовке могут лежать и чужие кадры */
+        d2.shots = (d2.shots || []).filter(function(x){ return x.id !== link; }).concat(recs);
         (d2.boards || []).forEach(function(bd){
-          if (bd.id === P+"bd_"+b.g || bd.id === P+"bd_s_"+b.g) {
-            bd.items = ids.slice();
-            bd.cover = ids[0] || null;
-            bd.mt = Date.now();
-          }
+          if (bd.genre !== b.g || !(bd.kind === "tpl" || mine(bd))) return;
+          bd.items = (bd.items || []).filter(function(id){ return id !== link; });
+          ids.forEach(function(id){ put(bd, id); });
+          if (!bd.cover) bd.cover = ids[0];
+          bd.mt = Date.now();
         });
         write(d2);
         log("  " + b.name + ": положено кадров — " + recs.length);
