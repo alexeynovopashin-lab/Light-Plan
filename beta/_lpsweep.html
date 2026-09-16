@@ -33,7 +33,17 @@
 var DB = "lp", STORE = "blobs", orphans = null;
 function say(t){ document.getElementById("out").textContent = t; }
 function mb(n){ return (n / 1048576).toFixed(2).replace(".", ",") + " МБ"; }
+/* `indexedDB.open` заводит базу, которой нет, — а страница, которая только
+   считает, создавать чужую базу не должна. Сперва спрашиваем список. */
 function open_(){
+  var ask = indexedDB.databases ? indexedDB.databases().catch(function(){ return null; })
+                                : Promise.resolve(null);
+  return ask.then(function(list){
+    if (list && !list.some(function(d){ return d.name === DB; })) return null;
+    return openRaw();
+  });
+}
+function openRaw(){
   return new Promise(function(res, rej){
     var q = indexedDB.open(DB);
     q.onsuccess = function(){ res(q.result); };
@@ -67,6 +77,7 @@ function keysWord(n){
 document.getElementById("scan").addEventListener("click", function(){
   say("Считаю…");
   open_().then(function(db){
+    if (!db) { say("Базы lp нет — убирать нечего."); return; }
     if (!db.objectStoreNames.contains(STORE)) { db.close(); say("Базы lp с картинками нет — убирать нечего."); return; }
     var live = liveKeys();
     return tx(db, "readonly", function(st){ return st.getAllKeys(); }).then(function(keys){
@@ -96,6 +107,7 @@ document.getElementById("go").addEventListener("click", function(){
   if (!confirm("Удалить " + keysWord(orphans.length) + " из lp? Картинки корня останутся на месте.")) return;
   say("Удаляю…");
   open_().then(function(db){
+    if (!db) { say("Базы lp нет."); return; }
     return tx(db, "readwrite", function(st){ orphans.forEach(function(k){ st.delete(k); }); })
       .then(function(){ return tx(db, "readonly", function(st){ return st.getAllKeys(); }); })
       .then(function(keys){
