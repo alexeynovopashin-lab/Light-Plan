@@ -6277,16 +6277,8 @@
   .gh-tiles .mb-cover { background-size: cover; }
   .gh-tiles + .org-empty { padding-top: 10px; }
 
-  .card-money {
-    display: flex; justify-content: space-between; align-items: center;
-    width: 100%; margin-top: 30px; padding: 14px 15px; min-height: 52px;
-    background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
-    font-family: inherit; font-size: 16px; color: var(--ink); cursor: pointer;
-  }
-  .card-money.open { border-radius: 14px 14px 0 0; corner-shape: squircle; }
-  .card-money.open + .group { border-radius: 0 0 14px 14px; }
   /* display перебивает hidden — прячем явно (грабли из DECISIONS) */
-  .card-money[hidden], #cardOverlay .group[hidden], #cardOverlay .row[hidden],
+  #cardOverlay .group[hidden], #cardOverlay .row[hidden],
   .g-label[hidden], .card-warn[hidden] { display: none; }
   /* Эволюция встречи: действие крупное, но не кричит — латунь текстом,
      а не плашкой, как и все действия продукта */
@@ -8707,13 +8699,6 @@
     </button>
     <div class="card-grown" id="cdGrown" hidden></div>
 
-    <!-- Деньги не первое, что видишь: строка сворачивается (04_ANTI_GOALS) -->
-    <button class="card-money" id="cdMoneyBtn" hidden><span class="rl" data-i18n="card.money">Деньги</span><span class="rv" id="cdMoneySum">—</span></button>
-    <div class="group" id="cdMoneyGroup" hidden>
-      <div class="row sep"><span class="rl" data-i18n="card.income">Доход</span><span class="rv" id="cdIncome">—</span></div>
-      <div class="row sep"><span class="rl" data-i18n="card.expense">Расходы</span><span class="rv" id="cdExpense">—</span></div>
-      <div class="row"><span class="rl" data-i18n="card.profit">Прибыль</span><span class="rv" id="cdProfit">—</span></div>
-    </div>
 
     <!-- Удаление живёт в карточке, а не только в свайпе по списку: карточка
          это место, где о съёмке принимают решения, и «отменилась» — одно из
@@ -21889,7 +21874,6 @@
         return ta < tb ? -1 : 1;
       });
     }
-    var SORT_LABELS = ["mb.sortManual", "mb.sortNewest", "mb.sortByTag"];
     /* Строка инструментов на время выбора меняет состав: сортировать и
        назначать обложку посреди выбора незачем, а «выбрать все» просится
        ровно туда, где стояла сортировка, — место освободилось само. */
@@ -25555,6 +25539,25 @@
     var s = LANG.t("wish." + w);
     return s === "wish." + w ? w : s;
   }
+  /* Пожелание, названное безлично: погоды ждёт фотограф, а не съёмка — та же
+     правка, что заход А2 сделал строке света («Ожидался закат, …»). Форма
+     согласована со словом, поэтому она у каждого пожелания своя, и живёт в
+     словаре, а не склеивается на месте.
+
+     Берётся только у своего языка: в цепочке за ним стоит английский, и
+     испанский экран получил бы английское слово вместо собственного имени
+     пожелания. Нет форм — печатаем имена, как печатали. */
+  function wishWaited(list) {
+    var d = LANG.dict[LANG.code] || LANG.dict[LANG.base(LANG.code)] || {};
+    var said = list.map(function (w) { return d["wish.was." + w]; });
+    if (said.some(function (f) { return !f; }))
+      return list.map(function (w) { return wishName(w).toLowerCase(); }).join(", ");
+    /* Первая форма открывает предложение и печатается как в словаре,
+       следующие стоят внутри фразы — со строчной */
+    return said.map(function (f, i) {
+      return i ? f.charAt(0).toLowerCase() + f.slice(1) : f;
+    }).join(", ");
+  }
   var WISHES = ["any", "clear", "sunset", "cloudy", "fog", "rain", "moon", "stars"];
   var WANT = { "clear": "excellent", "cloudy": "good", "fog": "fog" };
 
@@ -27088,10 +27091,6 @@
     var lit = phase === "after" ? null : routeLight(s, route.length ? route : shootHours(s));
 
     $("cardOrder").hidden = false;
-    /* Последний остаток старого вида — строка денег. Она так же не
-       показывается нигде: всё, что говорил старый вид, говорят плитки
-       (archive/ARCHIVE.md, «Старый вид карточки») */
-    $("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
 
     renderBinBtn();
     renderEvHead(s, phase);
@@ -28590,24 +28589,11 @@
     var bad = want.length && (q === "poor" || q === "fog");
     $("cdWarn").hidden = !bad;
     /* `want` хранит коды пожеланий с волны 1 — печатать их напрямую значило
-       бы показать «sunset, clear». Имя берётся у словаря, как везде */
+       бы показать «sunset, clear». Слова берутся у словаря, как везде */
     if (bad) $("cdWarn").textContent = LANG.t("card.wishMissed", {
-      wish: want.map(function (w) { return wishName(w).toLowerCase(); }).join(", "),
+      wish: wishWaited(want),
       cond: QUAL[q].cond.toLowerCase() });
 
-    // Деньги — свёрнуты и появляются, только если суммы заданы
-    var inc = sessionIncome(s), exp = +s.expense || 0;
-    var hasMoney = inc > 0 || exp > 0;
-    $("cdMoneyBtn").hidden = !hasMoney;
-    $("cdMoneyGroup").hidden = true;
-    $("cdMoneyBtn").classList.remove("open");
-    if (hasMoney) {
-      var cc = sessionCurrency(s);
-      $("cdMoneySum").textContent = money(inc - exp, cc);
-      $("cdIncome").textContent = money(inc, cc);
-      $("cdExpense").textContent = exp ? money(exp, cc) : LANG.t("card.none");
-      $("cdProfit").textContent = money(inc - exp, cc);
-    }
 
     // Событийная карточка перекрывает решения обычной: считается последней
     renderEventCard(s);
@@ -28785,11 +28771,6 @@
     calSel = new Date(when); calMonth = new Date(when.getFullYear(), when.getMonth(), 1);
     renderCal(); renderDayPanel();
     openForm(null, null, sessions.length - 1);    // дату и время называет фотограф
-  });
-  $("cdMoneyBtn").addEventListener("click", function () {
-    var open = $("cdMoneyGroup").hidden;
-    $("cdMoneyGroup").hidden = !open;
-    this.classList.toggle("open", open);
   });
 
   /* ---------- Черновик новой записи ----------

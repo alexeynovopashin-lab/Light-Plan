@@ -161,6 +161,16 @@
     "wish.moon":   "Луна",
     "wish.stars":  "Звёзды",
 
+    /* Пожелание в предупреждении карточки: ждёт погоды фотограф, а не съёмка.
+       Форма согласована со словом, поэтому она у каждого своя */
+    "wish.was.clear":  "Ожидалась ясная погода",
+    "wish.was.sunset": "Ожидался закат",
+    "wish.was.cloudy": "Ожидалась облачность",
+    "wish.was.fog":    "Ожидался туман",
+    "wish.was.rain":   "Ожидались осадки",
+    "wish.was.moon":   "Ожидалась луна",
+    "wish.was.stars":  "Ожидались звёзды",
+
     /* ---- Экран «Сегодня» ----
        Состояния света. Ключ — код состояния, а не слово: состояние выбирает
        высота солнца, и от языка она не зависит. У каждого четыре подписи:
@@ -743,10 +753,6 @@
     "card.notes":       "Заметки",
     "card.route":       "Маршрут дня",
     "card.docs":        "Документы",
-    "card.money":       "Деньги",
-    "card.income":      "Доход",
-    "card.expense":     "Расходы",
-    "card.profit":      "Прибыль",
     "card.none":        "нет",
     "card.orderReset":  "По умолчанию",
     "card.orderDone":   "Готово",
@@ -801,7 +807,7 @@
     "card.noDataDay":   "нет данных на этот день",
     "card.forecastFake": "прогноз имитируется",
     "card.wxOtherPlace": "погода показана для места, выбранного в приложении",
-    "card.wishMissed":  "Съёмка ждала: {wish}. Прогноз на этот день — {cond}.",
+    "card.wishMissed":  "{wish}. Прогноз на этот день — {cond}.",
     "card.clashMore":   "И ещё {n}.",
     "wxs.downT":        "Прогноз переменился",
     "wxs.badT":         "Прогноз испортился",
@@ -1982,6 +1988,15 @@
     "wish.moon":   "Moon",
     "wish.stars":  "Stars",
 
+    /* Same words the warning printed before the Russian line went impersonal */
+    "wish.was.clear":  "clear",
+    "wish.was.sunset": "sunset",
+    "wish.was.cloudy": "cloudy",
+    "wish.was.fog":    "fog",
+    "wish.was.rain":   "rain",
+    "wish.was.moon":   "moon",
+    "wish.was.stars":  "stars",
+
     "sun.noon.label":  "Noon",
     "sun.noon.sense":  "sun overhead — the light is harsh",
     "sun.noon.light":  "Harsh and bright",
@@ -2497,10 +2512,6 @@
     "card.notes":       "Notes",
     "card.route":       "Day route",
     "card.docs":        "Documents",
-    "card.money":       "Money",
-    "card.income":      "Income",
-    "card.expense":     "Expenses",
-    "card.profit":      "Profit",
     "card.none":        "none",
     "card.orderReset":  "Default",
     "card.orderDone":   "Done",
@@ -4102,10 +4113,6 @@
     "card.notes": "Notas",
     "card.route": "Ruta del día",
     "card.docs": "Documentos",
-    "card.money": "Dinero",
-    "card.income": "Ingresos",
-    "card.expense": "Gastos",
-    "card.profit": "Ganancia",
     "card.none": "no hay",
     "card.orderReset": "Por defecto",
     "card.orderDone": "Listo",
@@ -5564,10 +5571,6 @@
     "card.notes": "备注",
     "card.route": "当日路线",
     "card.docs": "文档",
-    "card.money": "金钱",
-    "card.income": "收入",
-    "card.expense": "支出",
-    "card.profit": "利润",
     "card.none": "无",
     "card.orderReset": "默认",
     "card.orderDone": "完成",

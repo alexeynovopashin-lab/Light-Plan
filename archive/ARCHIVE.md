@@ -21,7 +21,7 @@
 |---|---|---|---|
 | Радар осадков | слой RainViewer на карте, выключенный флагом `RAIN_OK` с 31 августа 2026 | `bdb00eb`, 15.09.2026 | [↓](#радар-осадков) |
 | Старый блок света карточки | строки «Свет / Тени / Небо / Закат / Золотой час» и строка доверия прогнозу в карточке съёмки, спрятанные новым видом карточки | `bdb00eb`, 15.09.2026 | [↓](#старый-блок-света-карточки) |
-| Старый вид карточки | заголовок с клиентом и группы «Когда», «Сдача материала», «Референсы», «Заметки» — остальные списки «ярлык — значение», спрятанные новым видом | `8bacaa6`, 16.09.2026 | [↓](#старый-вид-карточки) |
+| Старый вид карточки | заголовок с клиентом и группы «Когда», «Сдача материала», «Референсы», «Заметки» — остальные списки «ярлык — значение», спрятанные новым видом; строка денег досталась заходу Г | `8bacaa6`, 16.09.2026; строка денег — `«хвосты Г»`, 16.09.2026 | [↓](#старый-вид-карточки) |
 
 ### Мёртвые функции и переменные — строка оглавления
 
@@ -33,6 +33,7 @@
 | Функция | Что делала | Последний вызов снят коммитом |
 |---|---|---|
 | `CLOUD_NAMES` (вырезана в `8bacaa6`, 16.09.2026) | список облаков `["yandex", "google", "dropbox"]` рядом с ключами приложений; выбор облака живёт своими путями | вызова не было с рождения |
+| `SORT_LABELS` (вырезана 16.09.2026, хвосты заход Г) | три ключа порядка мудборда `["mb.sortManual", "mb.sortNewest", "mb.sortByTag"]`; живой список того же состава лежит рядом под именем `SORT_KEYS` | `af3e185`, 30.08.2026, «Мудборд по макету: верх одной строкой, настройки, папки внутри жанра» |
 | `attachSwipe`, `closeSwipes`, `SWIPE_W`, CSS `.swipe*` | свайп влево по строке съёмки открывал кнопку удаления | `50918a7`, 11.08.2026, «Линия „сейчас“ на ленте, утро открывается с девяти» |
 | `weekLabel` | подпись недели для заголовка календаря | `67bc6f9`, 02.08.2026, «Give the calendar one header line and a third view» |
 | `dMonRange` | промежуток дат одной строкой через `Intl.DateTimeFormat.formatRange`, с запасной склейкой через тире; в комментарии: порядок и знак промежутка — свойство языка | единственный вызов стоял в уже мёртвой `weekLabel`; сама функция — `3225d88`, 22.08.2026 |
@@ -444,12 +445,104 @@ docs/11_EVENT_CARD.md) карточка съёмки была списком «�
 другое» — стояла между `cdWhenGroup` и `cdDelvLabel`, но новым видом не
 прячется и в фазе «до» видна. Она и её расчёт (`q`, `skyRec`, `want`, `bad`)
 не тронуты. Строка денег старого вида (`cdMoneyBtn`, `cdMoneyGroup`,
-`cdMoneySum`, `cdIncome`, `cdExpense`, `cdProfit`) в этой вырезке тоже
-осталась: прячется она так же, как остальные, но в решении Алексея её нет.
+`cdMoneySum`, `cdIncome`, `cdExpense`, `cdProfit`) в вырезке `8bacaa6` тоже
+осталась — в решении Алексея 15 сентября её не было; спрошено отдельно,
+16 сентября он сказал резать, и она ушла заходом Г (ниже своим подразделом).
 Разворот референсов волны 5 (`18e825e`) живёт на `#rfGrid`, а не на `#cdRefs`,
 и вырезки не касается.
 
-**Коммит вырезки:** `8bacaa6`.
+**Коммит вырезки:** `8bacaa6`; строка денег — вырезка захода Г, 16 сентября
+2026.
+
+### Строка денег (вырезана заходом Г)
+
+**Что делала.** Свёрнутая строка «Деньги» со сводной суммой; тап разворачивал
+группу из трёх строк — «Доход», «Расходы», «Прибыль». Показывалась, только
+если у съёмки заданы суммы (`hasMoney`).
+
+**Почему вырезана.** Та же причина, что у остальных групп старого вида:
+`renderEventCard` прятала её безусловно при каждом открытии карточки, а
+`openCard` продолжала считать суммы и заполнять строки. Замер 16 сентября:
+свадьба с гонораром 90 000 ₽ во всех трёх видах карточки и встреча — кнопка
+`hidden`, `display: none`, при этом сводная сумма посчитана. То, что говорила
+строка, говорит блок гонорара нового вида (`cdMoneyBlk`, ключи `pane.fee`,
+`pane.minusExp`) — его вырезка не касается.
+
+**Что нужно для возврата.**
+
+- Разметку вернуть в `#cardOverlay` между `#cdGrown` и комментарием про
+  удаление.
+- В `openCard` вернуть заполнение сразу после блока `cdWarn`, до вызова
+  `renderEventCard`.
+- В `renderEventCard` вернуть прячущую строку рядом с `$("cardOrder").hidden`.
+- Вернуть обработчик разворота — он стоял после обработчика `cdRenewGo`.
+- Вернуть CSS `.card-money` и `.card-money[hidden]` в общее правило с
+  `.g-label[hidden]`.
+- Вернуть четыре ключа словаря в четыре языка: `card.money`, `card.income`,
+  `card.expense`, `card.profit`. `card.none` не трогать — его читают и другие
+  места.
+
+Разметка (8710–8716):
+
+```html
+<!-- Деньги не первое, что видишь: строка сворачивается (04_ANTI_GOALS) -->
+<button class="card-money" id="cdMoneyBtn" hidden><span class="rl" data-i18n="card.money">Деньги</span><span class="rv" id="cdMoneySum">—</span></button>
+<div class="group" id="cdMoneyGroup" hidden>
+  <div class="row sep"><span class="rl" data-i18n="card.income">Доход</span><span class="rv" id="cdIncome">—</span></div>
+  <div class="row sep"><span class="rl" data-i18n="card.expense">Расходы</span><span class="rv" id="cdExpense">—</span></div>
+  <div class="row"><span class="rl" data-i18n="card.profit">Прибыль</span><span class="rv" id="cdProfit">—</span></div>
+</div>
+```
+
+Заполнение в `openCard` (28598–28610):
+
+```js
+// Деньги — свёрнуты и появляются, только если суммы заданы
+var inc = sessionIncome(s), exp = +s.expense || 0;
+var hasMoney = inc > 0 || exp > 0;
+$("cdMoneyBtn").hidden = !hasMoney;
+$("cdMoneyGroup").hidden = true;
+$("cdMoneyBtn").classList.remove("open");
+if (hasMoney) {
+  var cc = sessionCurrency(s);
+  $("cdMoneySum").textContent = money(inc - exp, cc);
+  $("cdIncome").textContent = money(inc, cc);
+  $("cdExpense").textContent = exp ? money(exp, cc) : LANG.t("card.none");
+  $("cdProfit").textContent = money(inc - exp, cc);
+}
+```
+
+Обработчик разворота (28789–28793):
+
+```js
+$("cdMoneyBtn").addEventListener("click", function () {
+  var open = $("cdMoneyGroup").hidden;
+  $("cdMoneyGroup").hidden = !open;
+  this.classList.toggle("open", open);
+});
+```
+
+CSS (6280–6287):
+
+```css
+.card-money {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; margin-top: 30px; padding: 14px 15px; min-height: 52px;
+  background: var(--sheet); border: none; border-radius: 14px; corner-shape: squircle;
+  font-family: inherit; font-size: 16px; color: var(--ink); cursor: pointer;
+}
+.card-money.open { border-radius: 14px 14px 0 0; corner-shape: squircle; }
+.card-money.open + .group { border-radius: 0 0 14px 14px; }
+```
+
+Прячущая строка в `renderEventCard` (27091–27094):
+
+```js
+/* Последний остаток старого вида — строка денег. Она так же не
+   показывается нигде: всё, что говорил старый вид, говорят плитки
+   (archive/ARCHIVE.md, «Старый вид карточки») */
+$("cdMoneyBtn").hidden = true; $("cdMoneyGroup").hidden = true;
+```
 
 **Что нужно для возврата.**
 
