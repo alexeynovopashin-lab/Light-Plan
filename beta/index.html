@@ -17126,6 +17126,19 @@
     }
     return qualityOf(d);
   }
+  /* Окно света в названной точке: и солнце, и погода её. `dayWindow` считает
+     солнце по глобальным `LAT/LON` — подменяем их на время расчёта и кладём
+     обратно, тем же приёмом, что `ptBuild` и `routeLight`. Точки нет — окно
+     точки приложения, как было всегда. */
+  function windowAt(d, at) {
+    if (!at || at.lat == null || !isFinite(at.lat)) return dayWindow(d);
+    var kLat = LAT, kLon = LON, kTz = TZ;
+    LAT = at.lat; LON = at.lon; TZ = tzAt(at.lat, at.lon, d);
+    var w = dayWindow(d, at);
+    LAT = kLat; LON = kLon; TZ = kTz;
+    computeSun(selDate);          // солнце возвращается к точке приложения
+    return w;
+  }
   /* `at` — точка, чью погоду спрашиваем. Не названа — общий прогноз */
   function dayWindow(d, at) {
     var keep = new Date(selDate);
@@ -23682,9 +23695,31 @@
      опора не появится. Точка приложения — геолокация, карта или Лобня из
      кода — опорой не служит: за место съёмки её не выдают. */
   function placeAnchor() {
-    if (fPlaceKnown) return fPlaceKnown;
-    if (me.cityLat != null && me.cityLon != null) return { lat: +me.cityLat, lon: +me.cityLon };
-    return null;
+    return fPlaceKnown || myCityAt();
+  }
+  /* «Мой город» точкой. Спрашивают отдельно от опоры те, у кого места быть
+     ещё не может: форма из месяца открывается до того, как съёмка заведена,
+     и `fPlaceKnown` там принадлежит прошлой форме. */
+  function myCityAt() {
+    return (me.cityLat != null && me.cityLon != null) ? { lat: +me.cityLat, lon: +me.cityLon } : null;
+  }
+  /* Точка, по которой форма считает свет: место съёмки, а его нет — опора.
+     `sessionPlace` уже производный от опоры (`syncHeadPlace`), поэтому второй
+     раз правило не разворачиваем. */
+  function formAt() {
+    return (sessionPlace && sessionPlace.lat != null) ? sessionPlace : placeAnchor();
+  }
+  /* Город, который уезжает в запись. Место назвали — город едет с ним. Места
+     нет вовсе — нет и города: в поле формы он стоит подсказкой геолокации
+     (решение «Родной город»), и записать его съёмке значило бы выдать город
+     телефона за город съёмки, у которой места нет. С опорой места это
+     расходилось прямо: координат у такой записи уже нет, а город был
+     (замер 16 сентября 2026 — съёмка без места сохранялась с «Томском»).
+     Набранный руками город остаётся: его назвал человек, а не прибор. */
+  function placeTownOut() {
+    var named = sessionPlace.lat != null || sessionPlace.townTyped
+      || !!(sessionPlace.name || "").trim();
+    return named ? (sessionPlace.town || "") : "";
   }
   /* Студия съёмки. Своего вопроса у неё в форме нет: она берётся у первой
      ячейки дня — та и есть место съёмки. Держим отдельно, потому что на неё
@@ -25523,7 +25558,10 @@
        в кафе отношения не имеет */
     var dur = meetMode() ? 60 : genreDur(shootType);
     if (dur === null || dur === undefined) {
-      var w = dayWindow(fDate);
+      /* Длина золотого часа у жанра без своей длительности — тоже величина
+         места: в Мурманске окно вдвое шире московского. Считалась по точке
+         приложения (найдено на заходе Д1, 16 сентября 2026). */
+      var w = windowAt(fDate, formAt());
       dur = nearestDur(w.q === "poor" ? 90 : Math.round(w.b - w.a));
     }
     fDur = dur;
@@ -25538,7 +25576,7 @@
     /* Свадьба длиннее светового окна: начинать её на закате бессмысленно.
        Двигаем начало назад, чтобы золотой час пришёлся на конец съёмки.
        Трогаем только подсказанное светом время — выставленное руками не переставляем */
-    var w = dayWindow(fDate);
+    var w = windowAt(fDate, formAt());
     /* ---------- Начало события дня — полдень ----------
        День-событие (свадьба, праздник) светом не назначается. Из месяца и
        недели фотограф называет день, а не время, и подставлять туда световое
@@ -26322,26 +26360,18 @@
   }
 
   function refreshForm() {
-    var keep = new Date(selDate);
     /* Окно света считаем по месту съёмки, а не по месту, где лежит телефон.
        Фотограф из Лобни назначает съёмку в Новосибирске — закат у неё
        новосибирский, и подпись формы обязана говорить его, а не свой.
        Карточка так считает давно (`cardSun`); форма считала по глобальным
-       координатам и расходилась с ней ровно на выезде. Погода осталась по
-       месту приложения: прогноз запрашивается на него одним разом, и
-       переносить его сюда — отдельная работа, а не строчка. */
+       координатам и расходилась с ней ровно на выезде. Погода с 16 сентября
+       2026 тоже по месту съёмки: `windowAt` берёт и солнце, и прогноз точки. */
     /* Место съёмки неизвестно — светить нечему. Прежде на это место молча
        вставало окно точки приложения, и «закат 17:58 – 19:10» читалось как
        ответ про съёмку, хотя было ответом про телефон. Теперь форма просит
        назвать место (Алексей, 16 сентября 2026). */
     var anchored = sessionPlace.lat != null;
-    var kLat = LAT, kLon = LON, kTz = TZ;
-    if (anchored) {
-      LAT = sessionPlace.lat; LON = sessionPlace.lon;
-      TZ = tzAt(sessionPlace.lat, sessionPlace.lon, fDate);
-    }
-    computeSun(fDate);
-    var w = dayWindow(fDate, anchored ? sessionPlace : null);
+    var w = windowAt(fDate, anchored ? sessionPlace : null);
     /* Дата у обеих капсул. Коротко — «8 авг»: рядом с временем длинная форма
        не помещается, а год в списке съёмок этого года лишний */
     /* Год стоит всегда, а не только у чужого года: договариваются в декабре
@@ -26374,8 +26404,6 @@
         : fMin + fDur === snapMin(w.b) || fMin + fDur === Math.round(w.b)
           ? LANG.t("form.subLongerThanLight", { tail: '<span class="t">' + esc(LANG.t("form.goldenAtEnd")) + "</span>" })
           : LANG.t("form.subWindow", { range: '<span class="t">' + esc(range(w.a, w.b)) + "</span>" });
-    LAT = kLat; LON = kLon; TZ = kTz;
-    computeSun(keep);
     /* Прогноз точки спрашиваем здесь же: `ptFetch` сам пропустит то, что уже
        лежит или летит, а пришедший ответ перерисует форму — но только пока
        она открыта. Закрытую перерисовывать незачем, а её поля к тому времени
@@ -26393,7 +26421,7 @@
     $("refNote").hidden = true;
     /* Наложение важнее погоды: пересечение времени — про то, где ты будешь,
        а прогноз — про то, каким будет свет. Показываем то, что тяжелее */
-    var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town }),
+    var clash = clashesFor(fDate, fMin, fMin + fDur, placeKey({ place: sessionPlace.name, placeTown: placeTownOut() }),
       editIdx, wishes, sessionPlace.lat, sessionPlace.lon, fTrip, fTripManual && !fTrip)[0];
     var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
@@ -29038,7 +29066,7 @@
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
       persons: formPersons(),
-      place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
+      place: sessionPlace.name, placeTown: placeTownOut(), placeAddr: sessionPlace.addr,
       placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       studioId: headStudio().studioId, hallId: headStudio().hallId,
       rentFrom: headStudio().rentFrom, rentTo: headStudio().rentTo,
@@ -29811,7 +29839,7 @@
     /* Наложения — у будущих копий, а не у формы: место, выезд и пожелания
        берём такими, какими их выставит `repCopy` по переключателям */
     var own = !!fRepOn.route;
-    var place = own ? placeKey({ place: sessionPlace.name, placeTown: sessionPlace.town })
+    var place = own ? placeKey({ place: sessionPlace.name, placeTown: placeTownOut() })
       : placeKey({ place: "", placeTown: myCity() || "" });
     var wants = fRepOn.wish ? wishes : [];
     dates.slice(1).forEach(function (d) {
@@ -30482,7 +30510,7 @@
       notes: $("fNotes").value.trim(),
       orgId: fOrgId, person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(),
       persons: formPersons(),
-      place: sessionPlace.name, placeTown: sessionPlace.town, placeAddr: sessionPlace.addr,
+      place: sessionPlace.name, placeTown: placeTownOut(), placeAddr: sessionPlace.addr,
       placeLat: sessionPlace.lat, placeLon: sessionPlace.lon, placeCity: sessionPlace.city,
       /* Студия, зал и её часы — свойства первой ячейки дня; в записи они
          остаются своими полями, потому что на них смотрят карточка и таймер
