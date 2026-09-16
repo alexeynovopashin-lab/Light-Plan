@@ -5681,7 +5681,6 @@
     align-items: center; text-align: center; }
   .lane.scroll { touch-action: pan-y; cursor: grab; -webkit-user-select: none; user-select: none; }
   .lane.scroll.grabbing { cursor: grabbing; }
-  .lane.scroll .lane-track { width: max-content; }
   .lane.scroll .lane-p { flex: 0 0 44px; }
   .lane-ic { height: 26px; display: flex; align-items: center; justify-content: center;
     width: 26px; border-radius: 50%; }
@@ -27553,6 +27552,14 @@
     var tr = laneTrack();
     if (tr) tr.style.transform = o ? "translateX(" + (-o).toFixed(1) + "px)" : "";
   }
+  /* Предел сдвига — по краю последней колонки, а не по ширине дорожки:
+     WebKit считает `max-content` флекс-дорожки по сорок пикселей на колонку
+     (444 вместо 484 у одиннадцати точек), и конец маршрута в PWA не
+     открывался вовсе — замер симулятором */
+  function laneEnd(tr, W) {
+    var last = tr.lastElementChild;
+    return last ? Math.max(0, last.offsetLeft + last.offsetWidth - W) : 0;
+  }
   function laneStop() { if (laneRAF) { cancelAnimationFrame(laneRAF); laneRAF = 0; } }
   function laneGo(to) {
     laneStop();
@@ -27601,7 +27608,7 @@
     el.classList.toggle("scroll", scroll);
     if (!scroll) { laneStop(); laneMax = 0; lanePlace(0); return; }
     var keep = laneOff;
-    laneMax = Math.max(0, tr.offsetWidth - W);
+    laneMax = laneEnd(tr, W);
     if (fresh) { laneStop(); lanePlace(laneAt(anchor)); return; }
     lanePlace(clamp(keep, 0, laneMax));
     if (!laneHand) laneGo(laneAt(anchor));
@@ -27612,7 +27619,7 @@
       if (!el.clientWidth) return;
       var scroll = el.clientWidth / tr.children.length < LANE_FIT;
       el.classList.toggle("scroll", scroll);
-      laneMax = scroll ? Math.max(0, tr.offsetWidth - el.clientWidth) : 0;
+      laneMax = scroll ? laneEnd(tr, el.clientWidth) : 0;
       laneStop(); lanePlace(clamp(laneOff, 0, laneMax));
     }
   });
