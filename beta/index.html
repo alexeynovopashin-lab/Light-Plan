@@ -25819,27 +25819,37 @@
     /* Занятое время спорит со съёмкой наравне с другой съёмкой — ради этого
        занятость и заводилась. Но запрета по-прежнему нет: выходной можно и
        отменить ради заказа, решает фотограф, а не приложение */
-    blocksOn(day).forEach(function (b) {
-      var name = blockLabel(b);
+    /* Соседние сутки считаются наравне со своими: перелёт в 23:00 по Томску
+       садится назавтра, а съёмка через полночь сама уходит в следующий день.
+       Занятость «весь день» остаётся у своего дня — иначе каждый вечерний
+       заказ спорил бы с завтрашним выходным, которого он не касается
+       (docs: DECISIONS, «Хвосты, заход А2») */
+    var around = [];
+    [-1, 0, 1].forEach(function (k) {
+      var d = new Date(day); d.setDate(d.getDate() + k);
+      blocksOn(d).forEach(function (b) { if (!k || !b.allDay) around.push({ b: b, k: k, d: d }); });
+    });
+    around.forEach(function (o) {
+      var b = o.b, name = blockLabel(b);
       if (b.allDay) {
         out.push({ n: name, w: 3, t: LANG.t("clash.dayBusyT"), m: LANG.t("clash.dayBusyM", { name: name }) });
         return;
       }
-      var bMin = b.min, bEnd = b.min + b.dur, busy;
+      var bMin = b.min + o.k * 1440, bEnd = bMin + b.dur, busy;
       if (b.tzFrom != null) {
         /* Дорога из формы помнит пояс вылета: её минуты — часы билета, а
            длительность — настоящее время в пути. Сравнивать их с минутами
            места съёмки нельзя: перелёт из Томска в 09:00 садится в Москве в
            09:00 и съёмке в 10:00 не мешает, а минуты говорили «занято».
            На экране — часы места съёмки, как у всего остального в карточке */
-        var d0 = new Date(day), base = Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate());
+        var d0 = o.d, base = Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate());
         var bFrom = base + b.min * 60000 - b.tzFrom * 3600000;
         busy = myFrom < bFrom + b.dur * 60000 && bFrom < myTo;
         bMin = min + Math.round((bFrom - myFrom) / 60000); bEnd = bMin + b.dur;
       } else {
         /* Занятость, записанная руками, поясов не знает. Её часы — часы места,
            где снимают в тот день (Алексей, 15 сентября 2026) */
-        busy = min < bEnd && b.min < end;
+        busy = min < bEnd && bMin < end;
       }
       if (busy) {
         out.push({ n: name, w: 3, t: LANG.t("clash.timeBusyT"),
