@@ -1898,7 +1898,10 @@
     "ago.justNow":     "только что",
     "ago.min":         "{n} назад",
     "ago.hour":        "{n} назад",
-    "ago.day":         "{n} назад"
+    "ago.day":         "{n} назад",
+    "form.whenNoPlace": "выберите место съёмки",
+    "form.subNoPlace":  "Свет считается по месту съёмки — назовите его, и время подскажет закат",
+    "loc.errNone":      "Выберите место — поиском, из своих мест или по геопозиции"
   };
 
   /* ---- Английский --------------------------------------------------------
@@ -3563,7 +3566,10 @@
     "ago.justNow":     "just now",
     "ago.min":         "{n} ago",
     "ago.hour":        "{n} ago",
-    "ago.day":         "{n} ago"
+    "ago.day":         "{n} ago",
+    "form.whenNoPlace": "choose the location",
+    "form.subNoPlace":  "Light is counted at the location — name it and sunset will suggest the time",
+    "loc.errNone":      "Pick a location — by search, from your places or by geolocation"
   };
 
 
@@ -5047,6 +5053,9 @@
     "ago.min": "hace {n}",
     "ago.hour": "hace {n}",
     "ago.day": "hace {n}",
+    "form.whenNoPlace": "elige el lugar",
+    "form.subNoPlace": "La luz se cuenta en el lugar de la sesión — indícalo y el atardecer sugerirá la hora",
+    "loc.errNone": "Elige un lugar — con la búsqueda, de tus lugares o por geolocalización",
   };
 
   /* ---- Японский --------------------------------------------------------
@@ -6510,7 +6519,10 @@
     "plan.planned": "已计划",
     "plan.meetSub": "讨论拍摄",
     "plan.block": "占用时间——休息日、路途、航班",
-    "deal.prepaid": "已支付{word}·余额待付"
+    "deal.prepaid": "已支付{word}·余额待付",
+    "form.whenNoPlace": "请选择拍摄地点",
+    "form.subNoPlace": "光线按拍摄地点计算——选定后，日落会给出时间建议",
+    "loc.errNone": "请选择地点——搜索、从我的地点中选择，或使用定位"
   };
 
   var STORE_KEY = "lp_lang";

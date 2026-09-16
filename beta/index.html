@@ -17114,10 +17114,23 @@
   /* ============================================================
      ЭКРАН «СЪЁМКИ»
      ============================================================ */
-  function dayWindow(d) {
+  /* Качество дня в названной точке. Общий прогноз (`wxReal`) качается один
+     на точку приложения и ключуется одной датой — для съёмки в другом городе
+     это чужая облачность. У точки свой прогноз уже есть: тот же, которым
+     живёт карточка (`ptAt`). Не пришёл — отвечает общий, как отвечал всегда:
+     без сети выдумка лучше прочерка. */
+  function qualityAt(at, d) {
+    if (at && at.lat != null && isFinite(at.lat)) {
+      var rec = ptAt(at, d);
+      if (rec && rec.day && rec.day.q) return rec.day.q;
+    }
+    return qualityOf(d);
+  }
+  /* `at` — точка, чью погоду спрашиваем. Не названа — общий прогноз */
+  function dayWindow(d, at) {
     var keep = new Date(selDate);
     computeSun(d);
-    var q = qualityOf(d);
+    var q = qualityAt(at, d);
     /* `t` — минута самого светила: восход у утреннего окна, закат у вечернего.
        Отметка на ленте стоит на ней, а не на краю окна. Раньше она вставала на
        `a` — на начале золотого часа, — и подписывалась «закат»: слово называло
@@ -23746,7 +23759,7 @@
     renderRouteHead();
     var tag = $("fTzTag");
     if (tag) {
-      var t = tzTag(sessionPlace.lat, sessionPlace.lon, fDate);
+      var t = sessionPlace.lat != null ? tzTag(sessionPlace.lat, sessionPlace.lon, fDate) : "";
       tag.textContent = t;
       tag.hidden = !t;
     }
@@ -23762,8 +23775,14 @@
     var r = (fRoute || [])[0], pl = r ? stopPlace(r) : null;
     sessionStudioId = (r && r.studioId && studioById(r.studioId)) ? r.studioId : null;
     if (!r || (!pl && !(r.p || "").trim())) {
+      /* Ячейку стёрли — место съёмки неизвестно. Прежде сюда садилась точка
+         приложения, и свет с поясом отвечали по Лобне из кода так же уверенно,
+         как по названному месту. Теперь отвечает опора, а нет опоры — нет и
+         координат: спросившие показывают просьбу назвать место
+         (Алексей, 16 сентября 2026). */
+      var a = placeAnchor();
       sessionPlace = { name: "", town: sessionPlace.town || "", townTyped: !!sessionPlace.townTyped,
-                       addr: "", lat: LAT, lon: LON, city: sessionPlace.city };
+                       addr: "", lat: a ? a.lat : null, lon: a ? a.lon : null, city: sessionPlace.city };
       renderSessionPlace();
       return;
     }
@@ -26311,13 +26330,18 @@
        координатам и расходилась с ней ровно на выезде. Погода осталась по
        месту приложения: прогноз запрашивается на него одним разом, и
        переносить его сюда — отдельная работа, а не строчка. */
+    /* Место съёмки неизвестно — светить нечему. Прежде на это место молча
+       вставало окно точки приложения, и «закат 17:58 – 19:10» читалось как
+       ответ про съёмку, хотя было ответом про телефон. Теперь форма просит
+       назвать место (Алексей, 16 сентября 2026). */
+    var anchored = sessionPlace.lat != null;
     var kLat = LAT, kLon = LON, kTz = TZ;
-    if (sessionPlace.lat != null) {
+    if (anchored) {
       LAT = sessionPlace.lat; LON = sessionPlace.lon;
       TZ = tzAt(sessionPlace.lat, sessionPlace.lon, fDate);
     }
     computeSun(fDate);
-    var w = dayWindow(fDate);
+    var w = dayWindow(fDate, anchored ? sessionPlace : null);
     /* Дата у обеих капсул. Коротко — «8 авг»: рядом с временем длинная форма
        не помещается, а год в списке съёмок этого года лишний */
     /* Год стоит всегда, а не только у чужого года: договариваются в декабре
@@ -26327,7 +26351,8 @@
     }
     $("fStartDate").textContent = capDate(fDate);
     $("fEndDate").textContent = capDate(endDate());
-    $("fWhenHint").textContent = w.q === "poor" ? LANG.t("day.noWindow")
+    $("fWhenHint").textContent = !anchored ? LANG.t("form.whenNoPlace")
+      : w.q === "poor" ? LANG.t("day.noWindow")
       : w.label + " " + range(w.a, w.b);
     $("fStartVal").textContent = fmt(fMin);
     $("fEndVal").textContent = fmt(fMin + fDur);
@@ -26339,6 +26364,7 @@
     /* Подзаголовок говорит, откуда взялось время, а не повторяет подсказку.
        Встрече он не нужен вовсе: она не про золотой час, а про разговор */
     if (meetMode()) $("formSub").textContent = LANG.t("form.subMeet");
+    else if (!anchored) $("formSub").textContent = LANG.t("form.subNoPlace");
     else $("formSub").innerHTML = w.q === "poor"
       ? esc(LANG.t("form.subNoWindow"))
       /* Светозависимое время больше не округляется, поэтому сравниваем и с
@@ -26350,6 +26376,15 @@
           : LANG.t("form.subWindow", { range: '<span class="t">' + esc(range(w.a, w.b)) + "</span>" });
     LAT = kLat; LON = kLon; TZ = kTz;
     computeSun(keep);
+    /* Прогноз точки спрашиваем здесь же: `ptFetch` сам пропустит то, что уже
+       лежит или летит, а пришедший ответ перерисует форму — но только пока
+       она открыта. Закрытую перерисовывать незачем, а её поля к тому времени
+       принадлежат уже другой съёмке. */
+    if (anchored) {
+      ptFetch([{ lat: +sessionPlace.lat, lon: +sessionPlace.lon }], fDate, function () {
+        if ($("formOverlay").classList.contains("open")) refreshForm();
+      });
+    }
 
     renderDelv();   // срок сдачи отсчитывается от даты съёмки
     // Поля оплаты отражают текущее состояние; доход почасовой зависит от длительности
@@ -29105,12 +29140,14 @@
     sessionStudioId = studioById(s.studioId) ? s.studioId : null;
     fBookingRef = s.bookingRef || null;
     fRentReq = s.rentReq || null;
+    fPlaceKnown = s.placeLat != null ? { lat: s.placeLat, lon: s.placeLon } : null;
+    var aRec = placeAnchor();
     sessionPlace = (s.placeLat != null)
       ? { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
           lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
       : { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
-          lat: LAT, lon: LON, city: true };   // старые записи знали только имя
-    fPlaceKnown = s.placeLat != null ? { lat: s.placeLat, lon: s.placeLon } : null;
+          lat: aRec ? aRec.lat : null, lon: aRec ? aRec.lon : null, city: true };
+          /* старые записи знали только имя — координаты им даёт опора */
     $("fContact").value = s.contact || "";
     $("fClientTel").value = s.clientTel || "";
     $("fNotes").value = s.notes || "";
@@ -29244,8 +29281,10 @@
          поправить одно поле, а не всем остальным каждый раз стирать
          подсказку геолокации. Города в профиле нет — остаётся прежнее
          поведение, город из-под ног (docs: DECISIONS, «Родной город»). */
-      sessionPlace = { name: "", town: myCity() || geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
       fPlaceKnown = null;
+      var aNew = placeAnchor();      // «Мой город» или ничего: места у новой съёмки ещё нет
+      sessionPlace = { name: "", town: myCity() || geoCity || "", addr: "",
+                       lat: aNew ? aNew.lat : null, lon: aNew ? aNew.lon : null, city: true };
       sessionStudioId = null;
       fBookingRef = null; fRentReq = null;
       fId = newId();
@@ -33889,8 +33928,11 @@
                     addr: stopPl ? stopPl.addr : "" }
       : { lat: LAT, lon: LON, name: "", addr: "" };
 
-    $("locLat").value = (+base.lat).toFixed(4);
-    $("locLon").value = (+base.lon).toFixed(4);
+    /* Опоры нет — поля пустые. Подставить сюда точку приложения значило бы
+       выдать её за место съёмки: «Готово» нажимают не глядя, и Лобня из кода
+       уехала бы в запись как ответ фотографа */
+    $("locLat").value = base.lat != null ? (+base.lat).toFixed(4) : "";
+    $("locLon").value = base.lon != null ? (+base.lon).toFixed(4) : "";
     $("locQuery").value = ""; $("locResults").innerHTML = "";
     locPickName = (isSession || locTarget === "stop") ? (base.name || "") : "";
 
@@ -35177,6 +35219,11 @@
          чём, полей этих на пути студии и нет. */
       la = studioDraft.lat; lo = studioDraft.lon;
     }
+    /* Оба поля пусты — места ещё не выбрали. Прежде так было нельзя: в них
+       стояла точка приложения, и «Готово» соглашалось с ней молча. Теперь
+       лист может открыться ни на чём, и отвечать на это придиркой к широте
+       нечестно: человек не набирал числа, он их не выбрал. */
+    if (!isFinite(la) && !isFinite(lo)) { $("locErr").textContent = LANG.t("loc.errNone"); return; }
     if (!isFinite(la) || la < -90 || la > 90) { $("locErr").textContent = LANG.t("loc.errLat"); return; }
     if (!isFinite(lo) || lo < -180 || lo > 180) { $("locErr").textContent = LANG.t("loc.errLon"); return; }
     /* Студия сохраняется всегда: сущность без списка не живёт, и второй раз
