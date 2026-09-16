@@ -23125,11 +23125,15 @@
      она касается помимо доли — прошедших месяцев и предоплат, внесённых по
      прежней доле. Число предоплаты не переписывается, меняется остаток */
   function repSumHint(mk, was) {
-    var start = fRepOf.start, edit = { k: mk, sum: fMonSum, at: Infinity }, yr = new Date().getFullYear();
+    /* «Сегодня» у подсказки — по часам места правимой карточки (Алексей,
+       16 сентября 2026): одного места у группы может не быть, а подсказка
+       стоит в форме одной съёмки и говорит про её месяц */
+    var now = nowAt(sessionPlace.lat, sessionPlace.lon);
+    var start = fRepOf.start, edit = { k: mk, sum: fMonSum, at: Infinity }, yr = now.getFullYear();
     function dm(d) { return d.getFullYear() === yr ? dMon(d) : dMonYear(d); }
     var text = LANG.t("rep.sumFrom", { d: dm(repPeriodStart(start, mk)),
       sum: money(fMonSum, fCurrency), was: money(was, fCurrency) });
-    if (repPeriodStart(start, mk + 1) <= dayOf(new Date())) text += " " + LANG.t("rep.sumPast");
+    if (repPeriodStart(start, mk + 1) <= dayOf(now)) text += " " + LANG.t("rep.sumPast");
     var paid = [];
     sessions.forEach(function (x) {
       var me = editIdx !== null && x === sessions[editIdx], p = me ? payProbe() : x;
