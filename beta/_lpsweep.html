@@ -1,0 +1,108 @@
+<!doctype html><meta charset="utf-8"><title>Уборка базы картинок корня</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ body{font:15px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:20px 18px 60px;background:#111;color:#eee}
+ h1{font-size:18px;margin:0 0 6px} h2{font-size:14px;margin:22px 0 8px;color:#9a9a9a;font-weight:600}
+ button{font:inherit;padding:11px 15px;border-radius:11px;border:0;background:#3a6df0;color:#fff;margin:5px 5px 5px 0}
+ button.g{background:#2a2a2a;color:#ddd} button.r{background:#5a2222;color:#f0d0d0}
+ button:disabled{opacity:.45}
+ pre{background:#1b1b1b;padding:12px;border-radius:10px;white-space:pre-wrap;font-size:12px;max-height:44vh;overflow:auto}
+ a{color:#7aa7ff} .n{color:#8d8d8d;font-size:13px} .w{color:#f0c98a}
+</style>
+<h1>Уборка базы картинок корня</h1>
+<p class="n">До 15 сентября 2026 бета и корень держали картинки в одной базе <code>lp</code>.
+Теперь бета живёт в <code>lp.beta</code>, а её прежние картинки так и остались в <code>lp</code>:
+корню они не нужны, но занимают место. Страница разовая — она считает их и удаляет по нажатию.
+Приложение в <code>lp</code> больше не пишет; писать туда вправе только корень.</p>
+
+<h2>Кого считаем живым</h2>
+<p class="n">Ссылки корня на картинки лежат в одном месте: <code>lightplan.v1</code>, список
+<code>shots</code>, поле <code>im</code> — у каждого кадра два ключа, <code>im:t</code> (превью) и
+<code>im:s</code> (экранная копия). Корзина хранит записи съёмок, черновик формы — поля формы,
+облако картинки не хранит, а докачивает по ссылке. Всё, чего нет в этом списке, — сирота.</p>
+<p class="w">Если корень когда-то восстанавливали в бету, общие с ним кадры лежат и в
+<code>lightplan.beta.v1</code>. Такие ключи считаются корневыми и не трогаются.</p>
+
+<h2>Что делаем</h2>
+<button id="scan">Посчитать</button>
+<button id="go" class="r" disabled>Удалить сирот</button>
+<p><a href="./">→ открыть бету</a> · <a href="../">→ открыть корень</a></p>
+<pre id="out">Нажмите «Посчитать» — до этого ничего не читается и не удаляется.</pre>
+
+<script>
+var DB = "lp", STORE = "blobs", orphans = null;
+function say(t){ document.getElementById("out").textContent = t; }
+function mb(n){ return (n / 1048576).toFixed(2).replace(".", ",") + " МБ"; }
+function open_(){
+  return new Promise(function(res, rej){
+    var q = indexedDB.open(DB);
+    q.onsuccess = function(){ res(q.result); };
+    q.onerror = function(){ rej(q.error); };
+  });
+}
+function tx(db, mode, fn){
+  return new Promise(function(res, rej){
+    var t = db.transaction(STORE, mode), r = fn(t.objectStore(STORE));
+    t.oncomplete = function(){ res(r && r.result); };
+    t.onerror = function(){ rej(t.error); };
+    t.onabort  = function(){ rej(t.error); };
+  });
+}
+/* Живые ключи собираем из снимков обоих каналов: кадр, пришедший в бету
+   вместе с копией корня, делит с ним `im` — такой ключ корневой. */
+function liveKeys(){
+  var live = {}, im = {};
+  ["lightplan.v1", "lightplan.beta.v1"].forEach(function(k){
+    var d = {}; try { d = JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch(e){ return; }
+    (d.shots || []).forEach(function(s){ if (s && s.im) { live[s.im + ":t"] = 1; live[s.im + ":s"] = 1; im[s.im] = 1; } });
+  });
+  return { set: live, shots: Object.keys(im).length };
+}
+/* «1 ключ, 2 ключа, 5 ключей» — отчёт читают глазами, и кривое число в нём
+   заставляет перечитывать строку вместо того, чтобы решать */
+function keysWord(n){
+  var t = n % 10, h = n % 100;
+  return n + (t === 1 && h !== 11 ? " ключ" : t >= 2 && t <= 4 && (h < 12 || h > 14) ? " ключа" : " ключей");
+}
+document.getElementById("scan").addEventListener("click", function(){
+  say("Считаю…");
+  open_().then(function(db){
+    if (!db.objectStoreNames.contains(STORE)) { db.close(); say("Базы lp с картинками нет — убирать нечего."); return; }
+    var live = liveKeys();
+    return tx(db, "readonly", function(st){ return st.getAllKeys(); }).then(function(keys){
+      var list = keys.filter(function(k){ return !live.set[k]; }), bytes = 0, i = 0;
+      function step(){
+        if (i >= list.length) {
+          orphans = list;
+          document.getElementById("go").disabled = !list.length;
+          db.close();
+          say("Ключей в lp: " + keys.length + "\nКадров со ссылками (корень и копия корня в бете): " + live.shots
+            + "\nСирот: " + list.length + ", " + mb(bytes)
+            + (list.length ? "\n\nУдалю " + keysWord(list.length) + ", " + mb(bytes) + ".\n" + list.join("\n")
+                           : "\n\nУбирать нечего."));
+          return;
+        }
+        var k = list[i++];
+        tx(db, "readonly", function(st){ return st.get(k); }).then(function(b){
+          bytes += (b && b.size) || 0; step();
+        });
+      }
+      step();
+    });
+  }).catch(function(e){ say("Не вышло: " + e); });
+});
+document.getElementById("go").addEventListener("click", function(){
+  if (!orphans || !orphans.length) return;
+  if (!confirm("Удалить " + keysWord(orphans.length) + " из lp? Картинки корня останутся на месте.")) return;
+  say("Удаляю…");
+  open_().then(function(db){
+    return tx(db, "readwrite", function(st){ orphans.forEach(function(k){ st.delete(k); }); })
+      .then(function(){ return tx(db, "readonly", function(st){ return st.getAllKeys(); }); })
+      .then(function(keys){
+        db.close(); orphans = null;
+        document.getElementById("go").disabled = true;
+        say("Готово. Ключей в lp осталось: " + keys.length + ".\nОткройте корень и убедитесь, что картинки на месте.");
+      });
+  }).catch(function(e){ say("Не вышло: " + e); });
+});
+</script>
