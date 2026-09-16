@@ -13571,7 +13571,10 @@
   function blocksOn(d) {
     return blocks.filter(function (b) { return blockCovers(b, d); });
   }
-  function blockLabel(b) { return b.note || blockKind(b.k).n; }
+  /* Занятость без заметки называется своим видом — теми же словами, что
+     кнопки в форме и лента дня: `blkKind.<вид>`. Поля `n` у `BLOCK_KINDS`
+     никогда не было, и предупреждение писало «„{name}“» */
+  function blockLabel(b) { return b.note || LANG.t("blkKind." + blockKind(b.k).k); }
   function newBlockId() { return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
   /* ---------- Сохранённые точки съёмки ----------
      Фотограф возвращается на одни и те же места, и набирать их заново — работа
