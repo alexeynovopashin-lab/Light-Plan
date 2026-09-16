@@ -23065,12 +23065,15 @@
     var mk = sumRow ? repPeriodIndex(fRepOf.start, fDate) : 0, sumWas = sumRow ? repSumAt(fRepOf, mk) : 0;
     var sumEdit = sumRow && fMonSum !== null && fMonSum !== sumWas ? { k: mk, sum: fMonSum, at: Infinity } : null;
     $("fMonSumRow").hidden = !sumRow;
-    $("fMonSumHint").hidden = !sumEdit;
+    /* Набранное число остаётся в поле всегда; без опоры пустеет только
+       подсказка под ним */
+    var sumHint = sumEdit ? repSumHint(mk, sumWas) : "";
+    $("fMonSumHint").hidden = !sumHint;
     if (sumRow) {
       $("fMonSumLbl").textContent = LANG.t("form.perMonth", { sign: cs });
       monShow("fMonSum", sumEdit ? fMonSum : sumWas);
     }
-    if (sumEdit) $("fMonSumHint").textContent = repSumHint(mk, sumWas);
+    if (sumHint) $("fMonSumHint").textContent = sumHint;
     $("fRate").placeholder = mon && !compose ? String(Math.round(extMon ? repExtShare() : repShare(payProbe(), sumEdit))) : "0";
     /* Гонорар копий продления не задаётся: они получают долю месяца. Число
        последней в поле не показываем, его вернёт `refreshForm` */
@@ -23125,11 +23128,22 @@
   /* Подсказка под новой суммой месяца: с какого дня, вместо какой, и чего
      она касается помимо доли — прошедших месяцев и предоплат, внесённых по
      прежней доле. Число предоплаты не переписывается, меняется остаток */
+  /* Опора «сегодня» у подсказки суммы (Алексей, 16 сентября 2026; DECISIONS,
+     «Место неизвестно — опора в „Моём городе“»): место формы, а стёрли
+     ячейку — прежнее место; места не было — «Мой город»; нет и его — `null`,
+     и подсказка молчит, пока опора не появится */
+  function sumHintPlace() {
+    if (fPlaceKnown) return fPlaceKnown;
+    if (me.cityLat != null && me.cityLon != null) return { lat: +me.cityLat, lon: +me.cityLon };
+    return null;
+  }
   function repSumHint(mk, was) {
     /* «Сегодня» у подсказки — по часам места правимой карточки (Алексей,
        16 сентября 2026): одного места у группы может не быть, а подсказка
        стоит в форме одной съёмки и говорит про её месяц */
-    var now = nowAt(sessionPlace.lat, sessionPlace.lon);
+    var at = sumHintPlace();
+    if (!at) return "";
+    var now = nowAt(at.lat, at.lon);
     var start = fRepOf.start, edit = { k: mk, sum: fMonSum, at: Infinity }, yr = now.getFullYear();
     function dm(d) { return d.getFullYear() === yr ? dMon(d) : dMonYear(d); }
     var text = LANG.t("rep.sumFrom", { d: dm(repPeriodStart(start, mk)),
@@ -23625,6 +23639,12 @@
   /* Место съёмки живёт в самой съёмке: имя, координаты и «в городе» для засветки.
      По умолчанию — текущее место приложения, дальше правится вручную. */
   var sessionPlace = { name: "", town: "", addr: "", lat: LAT, lon: LON, city: true };
+  /* Последнее место формы, за которое можно зацепиться: названное ячейкой или
+     записанное в самой съёмке. Пустая ячейка откатывает `sessionPlace` к точке,
+     где стоит приложение, — это геолокация, карта или Лобня из кода, и опорой
+     она не служит. Опора же держится, пока ячейку не назовут заново: стёртое
+     место могло быть опечаткой (Алексей, 16 сентября 2026) */
+  var fPlaceKnown = null;
   /* Студия съёмки. Своего вопроса у неё в форме нет: она берётся у первой
      ячейки дня — та и есть место съёмки. Держим отдельно, потому что на неё
      смотрят те, кто про маршрут ничего не знает: связь с бронью и запись. */
@@ -23646,6 +23666,7 @@
                      townTyped: !!sessionPlace.townTyped,
                      addr: addr != null ? addr : "",
                      lat: lat, lon: lon, city: sessionPlace.city, manual: !!manual };
+    fPlaceKnown = { lat: lat, lon: lon };
     renderSessionPlace();
     /* Город и признак засветки уточняем обратным геокодированием — теми же
        двумя источниками, что и имя места приложения. Один источник тут больше
@@ -28904,6 +28925,7 @@
           lat: s.placeLat, lon: s.placeLon, city: s.placeCity !== false }
       : { name: s.place || "", town: s.placeTown || geoCity || "", addr: s.placeAddr || "",
           lat: LAT, lon: LON, city: true };   // старые записи знали только имя
+    fPlaceKnown = s.placeLat != null ? { lat: s.placeLat, lon: s.placeLon } : null;
     $("fContact").value = s.contact || "";
     $("fClientTel").value = s.clientTel || "";
     $("fNotes").value = s.notes || "";
@@ -29038,6 +29060,7 @@
          подсказку геолокации. Города в профиле нет — остаётся прежнее
          поведение, город из-под ног (docs: DECISIONS, «Родной город»). */
       sessionPlace = { name: "", town: myCity() || geoCity || "", addr: "", lat: LAT, lon: LON, city: true };
+      fPlaceKnown = null;
       sessionStudioId = null;
       fBookingRef = null; fRentReq = null;
       fId = newId();
