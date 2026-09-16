@@ -5660,20 +5660,28 @@
      обводка вместо заливки, и зелёный — тот же, каким плитка говорит «идёт». */
 
   /* Лента точек: знаки сверху, латунная нить, время и подпись снизу */
-  .lane { display: flex; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+  /* Прорезь и дорожка — как у барабана суток на «Свете»: позицию ставит
+     `transform` на дорожке, нативной прокрутки нет (docs: DECISIONS, «Лента
+     без нативного скролла»). Прорезь обрезает дорожку сама, маски нет. */
+  .lane { margin-top: 12px; overflow: hidden; }
   .lane[hidden] { display: none; }
-  .lane::-webkit-scrollbar { display: none; }
-  /* Колонки умеют сжиматься. Прежде они держали 44 пикселя намертво, и шесть
-     точек не помещались в плитку: лента уезжала под правый край на пятнадцать
-     пикселей, а после того, как концы прижались к краям, последняя точка стала
-     обрезаться заметнее — её содержимое ушло в ту самую отрезанную полосу.
-     Полоса прокрутки внутри карточки — плохой ответ на телефоне, поэтому
-     колонки сжимаются до 32 пикселей: столько нужно часам («09:00» на
-     одиннадцатом кегле — двадцать девять), а подпись под ними и так с
-     многоточием. До семи точек лента укладывается целиком, дальше начинает
-     прокручиваться, как и прежде. */
-  .lane-p { flex: 1 1 44px; min-width: 32px; display: flex; flex-direction: column;
+  /* `position` — чтобы `offsetLeft` колонок считался от дорожки, а не от
+     листа карточки: по нему лента ищет середину точки */
+  .lane-track { display: flex; position: relative; }
+  /* Колонки сжимаются, пока часам хватает воздуха, — до сорока пикселей:
+     «09:00» на одиннадцатом кегле занимает тридцать один, девять остаются
+     зазором. Прежний предел в тридцать два пикселя ставил часы вплотную —
+     «06:5507:50» с зазором в 0,7 пикселя на свадьбе в одиннадцать точек
+     (Алексей, 16 сентября 2026: «время слипается»). Не хватает сорока —
+     лента перестаёт сжиматься и становится подвижной (`.scroll`, см.
+     `laneLay`): колонки встают в свои 44 пикселя, конец маршрута уходит за
+     край прорези и открывается пальцем. */
+  .lane-p { flex: 1 1 44px; min-width: 0; display: flex; flex-direction: column;
     align-items: center; text-align: center; }
+  .lane.scroll { touch-action: pan-y; cursor: grab; -webkit-user-select: none; user-select: none; }
+  .lane.scroll.grabbing { cursor: grabbing; }
+  .lane.scroll .lane-track { width: max-content; }
+  .lane.scroll .lane-p { flex: 0 0 44px; }
   .lane-ic { height: 26px; display: flex; align-items: center; justify-content: center;
     width: 26px; border-radius: 50%; }
   .lane-ic svg { width: 20px; height: 20px; fill: none; stroke: var(--ink-5b); stroke-width: 1.4;
@@ -27494,16 +27502,21 @@
     if (nowMin2 !== null && phase === "during")
       for (var j = 0; j < pts.length; j++) if (!pts[j].light && pts[j].t <= nowMin2) curP = j;
 
-    $("cdLane").innerHTML = pts.map(function (p, i) {
+    /* Опора ленты — где на ней стоит «сейчас»: идущая точка, иначе последняя
+       пройденная, иначе начало дня */
+    var anchor = curP;
+    $("cdLane").innerHTML = '<div class="lane-track">' + pts.map(function (p, i) {
       var cls = i === curP ? " now"
         : ((nowMin2 !== null && p.t <= nowMin2) || (phase === "after" && route.length) ? " past" : "");
+      if (curP < 0 && cls) anchor = i;
       if (p.light) cls += " light";
       return '<div class="lane-p' + cls + '">'
         + '<div class="lane-ic">' + laneIcon(p.n, p.r) + "</div>"
         + '<div class="lane-rail"><span class="lane-dot"></span></div>'
         + '<div class="lane-t">' + fmt(p.t) + "</div>"
         + '<div class="lane-n">' + esc(laneWord(p.n)) + "</div></div>";
-    }).join("");
+    }).join("") + "</div>";
+    if (pts.length) laneLay(s, Math.max(0, anchor));
 
     $("cdSay").hidden = !light;
     if (light) {
@@ -27513,6 +27526,150 @@
       $("cdSayT").innerHTML = light.text;
     }
   }
+  /* ---------- Подвижная лента точек ----------
+     Механика барабана суток со «Света», перенесённая в плитку дня: дорожка
+     едет `transform`-ом, палец ведёт её напрямую, отпущенная доворачивает до
+     ближайшей точки тем же кубическим спадом за 210 мс, тап по точке везёт
+     её к середине, переход точки через середину щёлкает детентом.
+     Отличие одно, и оно от предмета: у суток нет конца, у маршрута есть.
+     Поэтому «сейчас» стоит в середине прорези, пока лента может ехать:
+     в начале дня выделение идёт слева направо само, дойдя до середины —
+     останавливается, и дальше едет лента; когда показался конец маршрута,
+     лента встаёт, и выделение снова идёт — до последней точки (Алексей,
+     16 сентября 2026). Это одна формула — середина точки минус полпрорези,
+     зажатая краями ленты. За край палец тянет с сопротивлением, отпущенная
+     лента возвращается к краю, а не упирается в стену — тот же довод, что
+     у барабана часов точки (DECISIONS, «Точка маршрута знает свой день»):
+     обрезанное колесо выглядит сломанным. */
+  var LANE_FIT = 40, laneOff = 0, laneMax = 0, laneS = null, laneHand = false, laneRAF = 0;
+  function laneTrack() { return $("cdLane").firstElementChild; }
+  function lanePlace(o) {
+    laneOff = o;
+    var tr = laneTrack();
+    if (tr) tr.style.transform = o ? "translateX(" + (-o).toFixed(1) + "px)" : "";
+  }
+  function laneStop() { if (laneRAF) { cancelAnimationFrame(laneRAF); laneRAF = 0; } }
+  function laneGo(to) {
+    laneStop();
+    var from = laneOff, t0 = performance.now();
+    if (Math.abs(to - from) < 0.5) { lanePlace(to); return; }
+    laneRAF = requestAnimationFrame(function step(now) {
+      var p = Math.min((now - t0) / 210, 1);
+      lanePlace(to + (from - to) * Math.pow(1 - p, 3));
+      laneRAF = p < 1 ? requestAnimationFrame(step) : 0;
+    });
+  }
+  /* Позиция, при которой точка `i` стоит в середине прорези, — с поправкой
+     на края: дальше края ленту не везём. Край ближе полуколонки открываем
+     целиком: сдвиг в два пикселя ничего не показывает, а знак у края
+     срезает (замер: третья точка из одиннадцати давала ровно два) */
+  function laneAt(i) {
+    var el = $("cdLane"), c = laneTrack().children[i];
+    if (!c) return 0;
+    var o = clamp(c.offsetLeft + c.offsetWidth / 2 - el.clientWidth / 2, 0, laneMax);
+    return o < c.offsetWidth / 2 ? 0 : laneMax - o < c.offsetWidth / 2 ? laneMax : o;
+  }
+  /* Какая точка ближе всех к середине прорези при сдвиге `o` */
+  function laneColAt(o) {
+    var cols = laneTrack().children, mid = o + $("cdLane").clientWidth / 2, best = 0;
+    for (var i = 1; i < cols.length; i++)
+      if (Math.abs(cols[i].offsetLeft + cols[i].offsetWidth / 2 - mid)
+        < Math.abs(cols[best].offsetLeft + cols[best].offsetWidth / 2 - mid)) best = i;
+    return best;
+  }
+  /* Раскладка. Карточка рисуется до того, как её показали, и ширины у
+     прорези тогда нет — ждём раскладки, как `fitTitle`. Перерисовка в
+     открытой карточке (пришёл прогноз) ленту, сдвинутую рукой, не
+     отбирает: спорить с рукой незачем; иначе доезжает до новой опоры. */
+  function laneLay(s, anchor, tries) {
+    var el = $("cdLane"), tr = laneTrack();
+    if (el.hidden || !tr) return;
+    var W = el.clientWidth;
+    if (!W) {
+      if ((tries || 0) > 20) return;
+      requestAnimationFrame(function () { if (laneTrack() === tr) laneLay(s, anchor, (tries || 0) + 1); });
+      return;
+    }
+    var fresh = laneS !== s || !$("cardOverlay").classList.contains("open") || tries;
+    if (fresh) { laneS = s; laneHand = false; }
+    var n = tr.children.length, scroll = W / n < LANE_FIT;
+    el.classList.toggle("scroll", scroll);
+    if (!scroll) { laneStop(); laneMax = 0; lanePlace(0); return; }
+    var keep = laneOff;
+    laneMax = Math.max(0, tr.offsetWidth - W);
+    if (fresh) { laneStop(); lanePlace(laneAt(anchor)); return; }
+    lanePlace(clamp(keep, 0, laneMax));
+    if (!laneHand) laneGo(laneAt(anchor));
+  }
+  window.addEventListener("resize", function () {
+    if (laneS && $("cardOverlay").classList.contains("open") && laneTrack()) {
+      var el = $("cdLane"), tr = laneTrack();
+      if (!el.clientWidth) return;
+      var scroll = el.clientWidth / tr.children.length < LANE_FIT;
+      el.classList.toggle("scroll", scroll);
+      laneMax = scroll ? Math.max(0, tr.offsetWidth - el.clientWidth) : 0;
+      laneStop(); lanePlace(clamp(laneOff, 0, laneMax));
+    }
+  });
+  (function laneDrag() {
+    var el = $("cdLane"), pid = null, sx = 0, sy = 0, from = 0, on = false, col = -1;
+    el.addEventListener("pointerdown", function (e) {
+      if (!el.classList.contains("scroll") || ordMode || e.button > 0) return;
+      /* Подхватывают с того места, где лента стоит: доводку обрываем */
+      laneStop();
+      pid = e.pointerId; sx = e.clientX; sy = e.clientY; from = laneOff; on = false;
+      col = laneColAt(laneOff);
+      initAudio();
+    });
+    el.addEventListener("pointermove", function (e) {
+      if (e.pointerId !== pid) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!on) {
+        /* Вертикаль — это прокрутка карточки, лента её не забирает */
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { pid = null; return; }
+        if (Math.abs(dx) < 6) return;
+        on = true; laneHand = true; laneStop();
+        el.classList.add("grabbing");
+        try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      }
+      var o = from - dx;
+      if (o < 0) o *= 0.35;
+      else if (o > laneMax) o = laneMax + (o - laneMax) * 0.35;
+      lanePlace(o);
+      var c = laneColAt(clamp(o, 0, laneMax));
+      if (c !== col) { col = c; tickClick(); }
+    });
+    function end(e) {
+      if (e.pointerId !== pid) return;
+      var was = on;
+      pid = null; on = false; el.classList.remove("grabbing");
+      if (was) { laneGo(laneAt(laneColAt(clamp(laneOff, 0, laneMax)))); return; }
+      /* Тап, не жест — точку, по которой попали, везём к середине */
+      var cell = e.type === "pointerup" && e.target.closest && e.target.closest(".lane-p");
+      if (cell) {
+        laneHand = true;
+        laneGo(laneAt([].indexOf.call(laneTrack().children, cell)));
+      }
+    }
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    /* Ведомую ленту не делим ни с прокруткой карточки, ни с жестом стопки
+       листов (он слушает касания на листе и срабатывает от сдвига вниз) */
+    el.addEventListener("touchmove", function (e) {
+      if (!on) return;
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+    var wheelT = null;
+    el.addEventListener("wheel", function (e) {
+      if (!el.classList.contains("scroll") || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      laneStop(); laneHand = true;
+      lanePlace(clamp(laneOff + e.deltaX, 0, laneMax));
+      clearTimeout(wheelT);
+      wheelT = setTimeout(function () { laneGo(laneAt(laneColAt(laneOff))); }, 140);
+    }, { passive: false });
+  })();
   /* ---------- Студийный час ----------
      Считается по аренде студии, а не по точке маршрута. Прежняя редакция брала
      конец окна у следующей точки — и на свадьбе, где студия оплачена
