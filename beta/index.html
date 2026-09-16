@@ -6052,35 +6052,48 @@
     stroke-linecap: round; stroke-linejoin: round; }
   .say b { color: var(--brass); font-weight: 400; }
   /* ЯНТАРНОЕ СВЕЧЕНИЕ — общий вид предупреждений. Плитка обычная, как все
-     листы вокруг (`--sheet`, внутри карточки `--sheet-3`), а подсвечена она
-     из-под низу: свет стоит за нижней кромкой, выходит из-под плитки мягким
-     ореолом и поднимается по ней изнутри, гаснув к верху (Алексей,
-     16 сентября 2026: «заменим обводку на обычную плитку с янтарным
-     свечением, плашка подсвечивается из-под низу»). До того был контур в
-     1px цветами заката (стол макетов 2 сентября, `beta/warn_lab.html`,
-     вариант «Градиентная обводка»); зарево снизу слева жило там в запасе.
-     Свет рисуют две вещи: ореол снаружи — `box-shadow` со сдвигом вниз, свет
-     изнутри — псевдоэлемент под содержимым (`isolation` держит его над
-     заливкой плитки, `z-index: -1` — под текстом).
+     листы вокруг (`--sheet`, внутри карточки `--sheet-3`), а из-под неё
+     ровно по всему периметру выходит янтарный свет: ореол без сдвига, сама
+     плитка не тонирована (Алексей, 16 сентября 2026: «давай просто
+     равномерное свечение по периметру из-под плашки»).
+     Первая редакция того же дня светила только снизу — ореол со сдвигом
+     вниз и градиент от нижней кромки внутри плитки; на снимке с телефона
+     это читалось грязной заливкой низа, а не светом. До неё был контур в
+     1px цветами заката (стол макетов 2 сентября, `beta/warn_lab.html`).
+     Цвет света — тройка `--glow`, а не готовый цвет: тон задаёт степень
+     (терракота у тревоги ниже), плотность — тема.
      Светлая тема свечение не прячет и не меняет на тень: свет остаётся
      светом (правило «светлая тема — не инверсия»), просто янтарь на белом
      нужен плотнее, чтобы его было видно.
      Правило общее для реплик карточки, предупреждений формы (`.wish-warn`
-     ниже) и студийного часа, иначе они снова разойдутся на два вида. */
+     ниже) и студийного часа, иначе они снова разойдутся на два вида.
+     Свет не стоит мёртво: он медленно перетекает по периметру — центр
+     ореола обходит плитку по кругу радиусом в три пикселя за четырнадцать
+     секунд, и сторона, к которой он сместился, чуть светлее; плотность
+     дышит на ±15% дважды за оборот (Алексей, тем же днём: «слабую плавную
+     перетекающую анимацию, медленную»). Это движение света, а не сигнал:
+     поэтому без рывков и без вспышек, и при «уменьшении движения» его нет. */
   .say.warn, .say.bad, .wish-warn, .studio-tile.warn, .studio-tile.bad {
-    position: relative; isolation: isolate;
-    --glow: 226,164,76; --glow-in: 0.16; --glow-out: 0.55;
-    box-shadow: 0 9px 22px -11px rgba(var(--glow), var(--glow-out));
+    position: relative;
+    --glow: 226,164,76; --glow-a: 0.32;
+    box-shadow: 0 0 16px 1px rgba(var(--glow), var(--glow-a));
+    animation: glow-flow 14s linear infinite;
   }
   :root[data-theme="light"] .say.warn, :root[data-theme="light"] .say.bad,
   :root[data-theme="light"] .wish-warn, :root[data-theme="light"] .studio-tile.warn,
-  :root[data-theme="light"] .studio-tile.bad { --glow-in: 0.22; --glow-out: 0.8; }
-  .say.warn::before, .say.bad::before, .wish-warn::before,
-  .studio-tile.warn::before, .studio-tile.bad::before {
-    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-    border-radius: inherit; corner-shape: squircle;
-    background: radial-gradient(120% 85% at 50% 100%,
-      rgba(var(--glow), var(--glow-in)), rgba(var(--glow), 0) 72%);
+  :root[data-theme="light"] .studio-tile.bad { --glow-a: 0.55; }
+  @keyframes glow-flow {
+    0%, 100% { box-shadow: 3px 0 16px 1px rgba(var(--glow), var(--glow-a)); }
+    12.5% { box-shadow: 2.1px 2.1px 16px 1px rgba(var(--glow), calc(var(--glow-a) * 1.15)); }
+    25%   { box-shadow: 0 3px 16px 1px rgba(var(--glow), var(--glow-a)); }
+    37.5% { box-shadow: -2.1px 2.1px 16px 1px rgba(var(--glow), calc(var(--glow-a) * 0.85)); }
+    50%   { box-shadow: -3px 0 16px 1px rgba(var(--glow), var(--glow-a)); }
+    62.5% { box-shadow: -2.1px -2.1px 16px 1px rgba(var(--glow), calc(var(--glow-a) * 1.15)); }
+    75%   { box-shadow: 0 -3px 16px 1px rgba(var(--glow), var(--glow-a)); }
+    87.5% { box-shadow: 2.1px -2.1px 16px 1px rgba(var(--glow), calc(var(--glow-a) * 0.85)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .say.warn, .say.bad, .wish-warn, .studio-tile.warn, .studio-tile.bad { animation: none; }
   }
   /* Тревога — тот же свет другим концом палитры: янтарь уходит в терракоту.
      Степени различаются цветом света и знака, а не наличием плашки */
