@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<!-- Линейка верхней кромки. Разовый измерительный стенд, не часть продукта.
+     Повод: iOS 27 кладёт на верх экрана собственную вуаль — прогрессивное
+     размытие у кромки статус-бара. Только в standalone: в Safari-вкладке того
+     же адреса шапка чёткая, проверено 17 сентября 2026 на iPhone 15 Pro.
+     Вуаль съедает первую строку шапки — город и температуру.
+     Стенд отвечает на один вопрос: с какой высоты и по какой кривой она спадает,
+     чтобы отступ в `.header` встал по числу, а не на глаз.
+     Мета-теги и фон повторяют бету — иначе замер был бы не про нашу шапку. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Линейка">
+<meta name="theme-color" content="#0F0E0C">
+<link rel="manifest" href="edgeruler-manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Линейка кромки</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%; overflow: hidden;
+    background: #0F0E0C; color: #EDE8E0;
+    font: 400 13px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+    -webkit-user-select: none; user-select: none;
+  }
+  /* Обе полосы устроены одинаково: слева холст с узорами, справа образцы
+     текста. Разница только в высоте — верхняя стоит в кромке, нижняя заведомо
+     ниже её и служит эталоном «как выглядит неразмытое». */
+  .band { position: absolute; left: 0; right: 0; height: 180px; }
+  #band-edge { top: 0; }
+  #band-ref  { top: 420px; }
+  .band canvas { position: absolute; left: 0; top: 0; width: 55%; height: 180px; }
+  .smp-col { position: absolute; right: 0; top: 0; width: 45%; height: 100%; }
+  /* Образец = строка города из шапки: тот же кегль и вес, что у `.loc .name`.
+     Четыре штуки на разных отступах от safe-area — по скрину сразу видно,
+     какой из них вышел из-под вуали. Цвет — единственная метка, которую
+     размытие не отнимает: подпись рядом с образцом сама была бы размыта. */
+  .smp {
+    position: absolute; left: 0;
+    font: 600 16px/1 -apple-system, system-ui, sans-serif;
+    letter-spacing: -0.2px; white-space: nowrap;
+  }
+  .s1 { color: #FFFFFF; }
+  .s2 { color: #E2A44C; }
+  .s3 { color: #7FB3FF; }
+  .s4 { color: #8FD49A; }
+  #band-edge .s1 { top: calc(env(safe-area-inset-top, 0px) + 14px); }
+  #band-edge .s2 { top: calc(env(safe-area-inset-top, 0px) + 36px); }
+  #band-edge .s3 { top: calc(env(safe-area-inset-top, 0px) + 58px); }
+  #band-edge .s4 { top: calc(env(safe-area-inset-top, 0px) + 80px); }
+  #band-ref .s1 { top: 14px; }
+  #band-ref .s2 { top: 36px; }
+  #band-ref .s3 { top: 58px; }
+  #band-ref .s4 { top: 80px; }
+  /* Панель стоит заведомо вне кромки: её числа должны читаться на скрине
+     даже без файла, по одной картинке в переписке */
+  #panel { position: absolute; left: 0; right: 0; top: 616px; padding: 0 16px; }
+  #panel h1 { font: 600 15px/1.3 -apple-system, system-ui, sans-serif; letter-spacing: 0.3px; margin-bottom: 8px; color: #E2A44C; }
+  #panel div { font-size: 14px; color: #EDE8E0; margin-top: 3px; }
+  #panel .dim { color: #8A8378; }
+  #panel .note { margin-top: 12px; font-size: 12px; color: #8A8378; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="band" id="band-edge">
+  <canvas></canvas>
+  <div class="smp-col">
+    <div class="smp s1">Томск</div>
+    <div class="smp s2">Томск</div>
+    <div class="smp s3">Томск</div>
+    <div class="smp s4">Томск</div>
+  </div>
+</div>
+
+<div class="band" id="band-ref">
+  <canvas></canvas>
+  <div class="smp-col">
+    <div class="smp s1">Томск</div>
+    <div class="smp s2">Томск</div>
+    <div class="smp s3">Томск</div>
+    <div class="smp s4">Томск</div>
+  </div>
+</div>
+
+<div id="panel">
+  <h1>ЛИНЕЙКА КРОМКИ</h1>
+  <div>dpr <span id="v-dpr" class="dim">—</span></div>
+  <div>safe-area сверху <span id="v-safe" class="dim">—</span></div>
+  <div>окно <span id="v-win" class="dim">—</span></div>
+  <div>экран <span id="v-screen" class="dim">—</span></div>
+  <div>standalone <span id="v-mode" class="dim">—</span></div>
+  <div class="note">Верхняя полоса стоит в кромке, нижняя — эталон.
+  Узоры слева направо: шахматка в один пиксель, полосы через шесть,
+  поперечные линии через двенадцать. Штрихи слева — каждые 10 точек.</div>
+</div>
+
+<script>
+var dpr = window.devicePixelRatio || 1;
+
+/* Узор рисуется в физических пикселях, иначе мерить нечего: сглаживание
+   браузера само размоет картинку раньше системы. Отсюда putImageData, а не
+   fillRect по CSS-координатам. */
+function draw(cv) {
+  var cssW = cv.clientWidth, cssH = cv.clientHeight;
+  cv.width = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  var g = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  /* Жёлоб слева отдан шкале и остаётся чёрным: поверх шахматки янтарный штрих
+     не читается — половина её пикселей и так белая */
+  var gut = Math.round(16 * dpr);
+  var colW = Math.floor((W - gut) / 3);
+  var img = g.createImageData(W, H);
+  var d = img.data;
+  for (var y = 0; y < H; y++) {
+    for (var x = 0; x < W; x++) {
+      var v, u = x - gut;
+      if (x < gut) v = 0;                                  /* жёлоб шкалы */
+      else if (u < colW) v = ((x + y) & 1) ? 255 : 0;      /* шахматка 1 px */
+      else if (u < colW * 2) v = ((u % 6) < 3) ? 255 : 0;  /* полосы 6 px */
+      else v = ((y % 12) < 1) ? 255 : 0;                   /* линии поперёк */
+      var i = (y * W + x) * 4;
+      d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  /* Шкала: янтарный штрих каждые 10 точек, длинный — каждые 50 */
+  g.fillStyle = '#E2A44C';
+  for (var c = 0; c <= cssH; c += 10) {
+    var yy = Math.round(c * dpr);
+    var len = (c % 50 === 0) ? 14 : 7;
+    g.fillRect(0, yy, Math.round(len * dpr), Math.max(1, Math.round(dpr)));
+  }
+}
+
+function num(v) { return Math.round(v * 100) / 100; }
+
+function measure() {
+  var probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden';
+  document.body.appendChild(probe);
+  var safe = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+  probe.remove();
+
+  document.getElementById('v-dpr').textContent = num(dpr);
+  document.getElementById('v-safe').textContent = num(safe) + ' px';
+  document.getElementById('v-win').textContent = window.innerWidth + ' × ' + window.innerHeight;
+  document.getElementById('v-screen').textContent = screen.width + ' × ' + screen.height;
+  var standalone = (window.navigator.standalone === true) ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  document.getElementById('v-mode').textContent = standalone ? 'да' : 'нет (вкладка)';
+}
+
+function redraw() {
+  var list = document.querySelectorAll('canvas');
+  for (var i = 0; i < list.length; i++) draw(list[i]);
+  measure();
+}
+
+redraw();
+window.addEventListener('resize', redraw);
+window.addEventListener('orientationchange', function () { setTimeout(redraw, 300); });
+</script>
+</body>
+</html>
