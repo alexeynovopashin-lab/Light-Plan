@@ -24704,9 +24704,37 @@
      Лишнюю голову снимаем, а если она называет другую страну — переставляем
      и сам блок кода. Человек вставил `+7 701 …` — он вставил казахстанский
      номер, а не испортил русский. */
-  function telNatIn(str) {
+  /* ---------- Плюс, которого в поле уже нет ----------
+     Автозаполнение отдаёт номер по символу, и первым символом приходит плюс.
+     В поле без кода страны ему места нет, и он стирается тем же вводом, в
+     котором пришёл, — а вместе с ним пропадает единственный признак того,
+     что номер международный. Дальше десять шагов подряд `+7 923…` выглядит
+     как местный `792…`, и код снимается только на последней цифре, когда
+     длина наконец сходится. Номер при этом один раз прыгает под пальцем.
+
+     Поэтому плюс запоминается на всю серию ввода. Серия — это то, что
+     растёт: пришёл плюс — флаг поднят, цифр стало меньше или поле опустело —
+     флаг снят. Стирание рвёт серию нарочно: после него человек набирает
+     заново и уже руками, а в ручном наборе международной догадке не место —
+     она съела бы первую цифру казахстанскому мобильному, который начинается
+     с той же семёрки, что и код страны. */
+  /* Снять код второй раз нельзя, и это половина дела. Код уходит из поля
+     вместе с цифрами, которые его составляли: после `+7` поле снова пусто,
+     и следующая цифра выглядит точно так же, как первая. У казахстанского
+     `+7 701 …` такой же семёркой начинается и сам номер — без памяти о том,
+     что код в этой серии уже снят, она уходила бы следом за кодом, и номер
+     терял первую цифру. */
+  var telPlusRun = false, telPlusCut = false, telPlusLen = 0;
+  function telPlusWatch(raw) {
+    var len = telDigits(raw).length;
+    if (/^\s*\+/.test(raw)) { telPlusRun = true; telPlusCut = false; }
+    else if (!len || len < telPlusLen) { telPlusRun = false; telPlusCut = false; }
+    telPlusLen = len;
+    return telPlusRun && !telPlusCut;
+  }
+  function telNatIn(str, intl) {
     var raw = String(str || ""), d = telDigits(raw);
-    var plus = /^\s*\+/.test(raw) || d.slice(0, 2) === "00";
+    var plus = intl || /^\s*\+/.test(raw) || d.slice(0, 2) === "00";
     if (d.slice(0, 2) === "00") d = d.slice(2);
     var sp = telSpec();
     if (plus) {
@@ -24716,9 +24744,9 @@
          весь мир) — оставляем цифры как есть: приписать им чужой код было
          бы хуже, чем не разобрать вовсе. */
       if (d.slice(0, sp.cc.length) === sp.cc && telNsnFits(sp, d.slice(sp.cc.length)))
-        return { cc: null, nat: d.slice(sp.cc.length) };
+        return { cc: null, nat: d.slice(sp.cc.length), cut: true };
       var fit = telCcFit("+" + d);
-      if (fit.length) return { cc: fit[0], nat: d.slice(TEL_CC[fit[0]].cc.length) };
+      if (fit.length) return { cc: fit[0], nat: d.slice(TEL_CC[fit[0]].cc.length), cut: true };
       return { cc: null, nat: d };
     }
     /* Магистральный префикс своей страны — «8» у нас, «0» в Европе. Он
@@ -34430,7 +34458,8 @@
        выбирает. Теперь код стоит слева и всегда стоит: в поле любой номер
        местный, и подставлять нечего. */
     el.addEventListener("input", function () {
-      var got = telNatIn(this.value);
+      var got = telNatIn(this.value, telPlusWatch(this.value));
+      if (got.cut) telPlusCut = true;
       if (got.cc && got.cc !== telCountry) telCountry = got.cc;
       var end = this.selectionStart === this.value.length;
       this.value = telNatFmt(got.nat);
