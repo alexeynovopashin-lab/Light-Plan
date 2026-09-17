@@ -2875,6 +2875,45 @@
                 0 1px 2px var(--glass-cast),
                 0 2px 6px var(--glass-cast);
   }
+  /* В наборе маршрута головка меняет форму, оставаясь белой. Круг говорил «я
+     стою здесь» и молчал о том, что режим сменился (Алексей, 17 сентября
+     2026: «выглядит белым, и непонятно, что режим переключился»). А полоса
+     внизу в этот момент обещает «тап ставит точку в центре кадра» — то есть
+     головка тут уже не отметка места, а прицел. Прицел и рисуется тем, что он
+     ставит: булавкой. Белой, а не золотой: золотая значит «точка сохранена», и
+     две золотые булавки в одной точке читались бы как две точки.
+
+     Остриё приходится на (12, 21) холста 24 × 24 — при 22 пикселях это 11
+     вправо и 19,25 вниз от угла знака. Отсюда отрицательные поля: под остриём
+     должна оказаться ровно та точка, где стоял центр круга. Считать их от
+     `left/top: 50%` можно потому, что без круга коробка `.map-pin` нулевая, и
+     её середина — сама точка наблюдателя. */
+  .map-pin .mp-pin { display: none; }
+  body.routing .map-pin i { display: none; }
+  body.routing .map-pin .mp-pin {
+    display: block; position: absolute; left: 50%; top: 50%;
+    margin-left: -11px; margin-top: -19.25px; width: 22px; height: 22px;
+    transform-origin: 11px 19.25px;
+    animation: pin-sight 0.34s cubic-bezier(0.22, 0.9, 0.3, 1);
+  }
+  body.routing .map-pin .mp-pin svg {
+    width: 22px; height: 22px;
+    fill: var(--knob); stroke: var(--canvas); stroke-width: 1.4;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  /* На светлом холсте обводка цветом холста не отделяет знак ни от чего:
+     довод тот же, что у головки выше, — там кант заменён кромкой и тенью */
+  :root[data-theme="light"] body.routing .map-pin .mp-pin svg {
+    stroke: var(--knob-edge); stroke-width: 1.2;
+    filter: drop-shadow(0 2px 5px var(--glass-cast));
+  }
+  @keyframes pin-sight {
+    from { transform: scale(0.45); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.routing .map-pin .mp-pin { animation: none; }
+  }
   /* «Моё место» — единственный элемент управления, тихий кружок */
   /* Кружки стоят по краям свободного окна, а не кадра: кадр теперь весь
      экран, и «12 пикселей от низа» увело бы их под док. */
@@ -3217,6 +3256,67 @@
     background: var(--brass); color: var(--surface);
     font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Постановка точки ----------
+     Точка ложилась в маршрут без единого кадра движения: номер появлялся
+     через `textContent`, строка — пересборкой списка. Палец нажимал, и
+     ничего не происходило — просто менялась картинка (Алексей, 17 сентября
+     2026: «нет ощущения, что точка появилась»).
+
+     Булавка ставится так, как её ставят рукой: приходит крупной, качается и
+     садится в свой размер. Ось — остриё (9; 15,75 у знака в 18 пикселей), а
+     не середина знака: вокруг середины булавка ездила бы остриём по карте и
+     обещала бы, что точка встала не туда, куда встала.
+
+     Движение живёт на `<svg>`, а не на самом знаке: знак — якорь нулевого
+     размера, и его `transform` ставит проекция на каждом кадре карты
+     (`placeSpotMarks`). Своя анимация на нём стёрлась бы первым же движением
+     пальца по холсту. */
+  @keyframes spot-land {
+    0%   { transform: scale(2.2) rotate(-10deg); }
+    38%  { transform: scale(1.3) rotate(7deg); }
+    62%  { transform: scale(1.06) rotate(-4deg); }
+    82%  { transform: scale(0.97) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .spot-mark.land svg {
+    transform-origin: 9px 15.75px;
+    animation: spot-land 0.52s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+  /* Номер приходит следом, а не вместе: сначала встала булавка, потом на ней
+     появилось её место в порядке — два события, и глазу их так и видно */
+  @keyframes no-land {
+    from { transform: scale(0.2); opacity: 0; }
+    60%  { transform: scale(1.18); opacity: 1; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .spot-mark.land .sm-no {
+    animation: no-land 0.3s 0.16s backwards cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  /* ---------- Отклик под пальцем ----------
+     Кольцо рождается там, где палец коснулся холста, и расходится. Оно не
+     говорит, где встала точка — про это говорит булавка; оно говорит «нажатие
+     засчитано». Это важно именно здесь: новая точка родится в центре кадра, а
+     палец жмёт мимо центра, и без отклика касание остаётся без ответа вовсе.
+     Форма не новая — тем же тонким золотым кольцом обведена точка под
+     наблюдателем (`.spot-mark.here::after`).
+     Живёт вне ротора: палец касается экрана, а не карты, и поворот живого
+     компаса его касания крутить не должен. */
+  .map-tap {
+    position: absolute; width: 54px; height: 54px; margin: -27px 0 0 -27px;
+    border-radius: 50%; border: 1.4px solid var(--brass);
+    pointer-events: none; z-index: 455;
+    animation: map-tap 0.44s ease-out forwards;
+  }
+  @keyframes map-tap {
+    from { transform: scale(0.3); opacity: 0.6; }
+    to   { transform: scale(1); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spot-mark.land svg, .spot-mark.land .sm-no { animation: none; }
+    .map-tap { display: none; }
   }
 
 
@@ -7610,7 +7710,7 @@
         <div id="mapSpots" aria-hidden="true"></div>
 
         <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-        <div class="map-pin"><i></i></div>
+        <div class="map-pin"><i></i><span class="mp-pin" data-ic="pin"></span></div>
       </div>
       <!-- Условие бесплатного доступа к плиткам: атрибуция должна быть видна
            на самом холсте. Стоит снаружи ротора — со сноской, которая ездит
@@ -16332,6 +16432,47 @@
       if (i >= 0) no.textContent = String(i + 1);
     });
   }
+  /* Булавка, только что легшая в маршрут, ставится с движением (CSS,
+     `spot-land`). Зовётся после `paintRouteNos`: номер к этому времени уже
+     показан, и ему есть чем сыграть свою половину.
+
+     Класс снимается по концу движения — это метка одного события, а не
+     состояние. Останься он на знаке, та же точка не сыграла бы во второй раз:
+     повторное надевание уже надетого класса браузер сменой не считает. По той
+     же причине перед надеванием класс снимается и запрашивается раскладка —
+     иначе снятие и надевание в одном кадре схлопываются в ничто.
+
+     Конец слушаем у знака, а не у номера: движений два, и номер кончает
+     раньше (0,46 против 0,52). */
+  function markLand(id) {
+    var m = null, i;
+    for (i = 0; i < spotMarks.length; i++) if (spotMarks[i].sp.id === id) { m = spotMarks[i]; break; }
+    if (!m) return;
+    var el = m.el, sign = el.querySelector("svg");
+    el.classList.remove("land");
+    void el.offsetWidth;
+    el.classList.add("land");
+    el.addEventListener("animationend", function done(e) {
+      if (e.target !== sign) return;
+      el.classList.remove("land");
+      el.removeEventListener("animationend", done);
+    });
+  }
+  /* Кольцо касания. Координаты экранные, поэтому считаются от кадра карты, а
+     не от слоя отметок: слой ездит и крутится вместе с холстом, а касание
+     принадлежит экрану. */
+  function tapRipple(x, y) {
+    var frame = document.querySelector("#s-map .map-frame"); if (!frame) return;
+    var r = frame.getBoundingClientRect();
+    var el = document.createElement("div");
+    el.className = "map-tap";
+    el.style.left = (x - r.left) + "px";
+    el.style.top = (y - r.top) + "px";
+    frame.appendChild(el);
+    el.addEventListener("animationend", function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+  }
   /* ---------- Набор маршрута ----------
      Включённый режим меняет одно: тап по своей точке кладёт её в черновик, а
      не увозит карту на неё. Второй тап по той же точке — снимает её: своей
@@ -16573,14 +16714,19 @@
     saveAll();
     renderSpotMark(); renderSpots();
     paintRouteNos(); placeRoutePath(); renderRouteBar();
+    markLand(sp.id);
     if (i < 0) openSpotName(sp, false);
   }
   function routeToggle(sp) {
-    var i = mapRoute.indexOf(sp.id);
-    if (i >= 0) mapRoute.splice(i, 1); else mapRoute.push(sp.id);
+    var i = mapRoute.indexOf(sp.id), add = i < 0;
+    if (add) mapRoute.push(sp.id); else mapRoute.splice(i, 1);
     dropRouteUndo();
     saveAll();
     paintRouteNos(); placeRoutePath(); renderRouteBar(); routeReflow();
+    /* Движение — у постановки, не у снятия: снятая булавка не «уходит
+       покачиваясь», она перестаёт быть в маршруте, и об этом говорит
+       пропавший номер */
+    if (add) markLand(sp.id);
   }
   /* Итог черновика: сколько точек и сколько займёт дорога между ними. Оба
      числа приходят от маршрутизатора и говорят об одном пути: километры
@@ -17266,7 +17412,7 @@
          второе правило «где родится точка» развело бы два способа создания,
          которые человек считает одним. Палец здесь спусковой крючок, а прицел
          — головка в центре. */
-      if (!sp && routeMode) { routeNewSpot(); return; }
+      if (!sp && routeMode) { tapRipple(oe.clientX, oe.clientY); routeNewSpot(); return; }
       if (!sp) return;
       /* В режиме набора тап значит другое: точка ложится в черновик, а карта
          остаётся на месте. Уехать на точку посреди набора — потерять кадр, в
@@ -17281,7 +17427,7 @@
          Тихо: клавиатуру не поднимаем. Тап по булавке случается часто, и
          клавиатура на пол-экрана закрывала бы ровно ту карту, ради которой в
          булавку целились. Нужна правка — палец уже в поле, оно рядом. */
-      if (routeMode) { routeToggle(sp); openSpotName(sp, true, true); return; }
+      if (routeMode) { tapRipple(oe.clientX, oe.clientY); routeToggle(sp); openSpotName(sp, true, true); return; }
       gotoLocation(sp.lat, sp.lon);
       openSpotName(sp, true, true);
       saveNote(LANG.t("loc.saved", { name: sp.name || coordText(sp.lat, sp.lon) }));
