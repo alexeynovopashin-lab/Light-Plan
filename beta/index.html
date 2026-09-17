@@ -1476,8 +1476,15 @@
   }
   /* Место — кнопка: тап открывает выбор координат */
   .loc { background: none; border: none; padding: 0; margin: 0; font-family: inherit; text-align: left; cursor: pointer; color: inherit; }
-  .loc .name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; display: inline-flex; align-items: center; gap: 5px; }
-  .loc-pin { width: 13px; height: 13px; stroke: var(--ink-6); fill: none; stroke-width: 1.6; }
+  /* Булавка идёт в строке текста, а не отдельной колонкой рядом с ним.
+     Прежде `.name` был `inline-flex`, и у длинного названия («Fisheries
+     protection zone around Svalbard» — две строки) булавка выносилась вбок,
+     к середине блока, и подходила вплотную к иконке погоды. Теперь она
+     обычный знак в потоке: влезает — стоит за последним словом, не влезает —
+     переносится вместе с ним на следующую строку. */
+  .loc .name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+  .loc-pin { width: 13px; height: 13px; stroke: var(--ink-6); fill: none; stroke-width: 1.6;
+    display: inline-block; vertical-align: -1px; margin-left: 5px; }
   .loc:active .loc-pin { stroke: var(--brass); }
   /* Мелко — более точное место под крупным городом */
   .head-sub { font-size: 11px; color: var(--ink-4); margin-top: 1px; letter-spacing: 0.1px; }
@@ -7365,11 +7372,6 @@
             <stop id="sdOut" offset="1" stop-opacity="0"/>
           </radialGradient>
           <clipPath id="aboveHorizon"><rect x="0" y="0" width="390" height="196"/></clipPath>
-          <!-- Нижняя половина для полярных суток: в полярную ночь светило
-               ходит под линией и над ней не выныривает. Прямоугольник уходит
-               за низ viewBox — купол рисует призрака поверх строк под собой
-               (overflow видимый), и обрезать его там нечем и незачем. -->
-          <clipPath id="belowHorizon"><rect x="0" y="196" width="390" height="400"/></clipPath>
         </defs>
         <g clip-path="url(#aboveHorizon)"><g id="stars" opacity="0"></g><g id="meteors"></g></g>
         <ellipse id="glow" cx="309" cy="196" rx="130" ry="62" fill="url(#horizonGlow)" clip-path="url(#aboveHorizon)"/>
@@ -7386,9 +7388,15 @@
              солнце без дуги по траектории дуги смотрится хорошо». Путь всё
              равно читается: пятно идёт ровно по эллипсу, `posOn` продолжает
              его за закат сам, без единой правки. -->
-        <!-- Тело светила собрано в группу ради полярных суток: там же рядом
-             идёт его двойник (`sunTwin`), и он должен быть тем же предметом,
-             а не второй копией, которую надо помнить и красить отдельно. -->
+        <!-- Светило у входа в портал (полярные сутки). Рисуется ПЕРЕД телом,
+             чтобы уходящее всегда лежало под приходящим, а не поверх него.
+             Тот же набор кругов, что и у тела: у портала оба конца дуги
+             равноправны, и который из двух сейчас на куполе — решает не
+             порядок в разметке, а свет (`paintSun`). -->
+        <circle id="twinDeep" r="34" fill="url(#sunDeepGrad)" opacity="0"/>
+        <circle id="twinShade" class="lit-shade" r="14.5" fill="url(#sunShadeGrad)" opacity="0"/>
+        <circle id="twinGlow" r="16" stroke-width="1" opacity="0"/>
+        <circle id="twinCore" r="6.5" fill="#D9AC6B" stroke="var(--surface)" stroke-width="2.5" opacity="0"/>
         <g id="sunBody">
         <circle id="sunDeep" r="34" fill="url(#sunDeepGrad)" opacity="0"/>
         <circle id="sunShade" class="lit-shade" r="14.5" fill="url(#sunShadeGrad)" opacity="0"/>
@@ -7400,13 +7408,6 @@
         <circle id="sunGlow" r="16" stroke-width="1"/>
         <circle id="sunCore" r="6.5" fill="#D9AC6B" stroke="var(--surface)" stroke-width="2.5"/>
         </g>
-        <!-- Двойник светила: работает только в полярные сутки, когда обычного
-             восхода и заката нет. Стоит в точке, симметричной телу относительно
-             середины купола, поэтому пока тело уходит за один конец дуги,
-             двойник выходит из другого — и оба разрезаны линией горизонта:
-             пол солнышка за горизонт, пол солнышка над. В обычные сутки скрыт:
-             там ход замкнут сам на себя нижней половиной круга. -->
-        <use id="sunTwin" href="#sunBody" xlink:href="#sunBody" style="display:none"/>
         <!-- Диск луны: тёмная сторона всегда на месте, освещённая прирастает по фазе -->
         <g id="moonDisc" style="display:none">
           <!-- Та же тень, что у солнца: на светлом фоне лунный диск тоже
@@ -11789,6 +11790,12 @@
      до −6° работает прежний спад, с −6° его подхватывает пол, и ровно там
      пятно меняет смысл: выше это зарево сквозь землю, ниже — само тело. */
   var GHOST_FLOOR = 2 / 3;
+  /* Плотность просвечивающего пятна по высоте светила: разбор кривой — у места
+     вызова в `renderToday`. Вынесено сюда, потому что считается дважды — для
+     тела и для того, что сейчас у другого конца портала. */
+  function deepOf(e) {
+    return clamp(-e / 3, 0, 1) * Math.max(GHOST_FLOOR, clamp((12 + e) / 9, 0, 1));
+  }
   (function buildStars() {
     var g = $("stars"), rnd = mulberry32(20260715);
     for (var i = 0; i < 280; i++) {
@@ -14176,23 +14183,44 @@
      плавно появляться, как в игре „Портал“: пол солнышка за горизонт, пол
      солнышка над. А в полярную ночь так же, но ходит под горизонтом, над
      горизонтом не выныривает».
-     Отсюда: полярным днём светило держит верхнюю половину, полярной ночью —
-     нижнюю, а на концах дуги не прыгает, а перетекает. Перетекание даёт
-     двойник в точке, симметричной телу относительно середины купола: угол у
-     него ровно на 180° больше, поэтому пока тело опускается за один конец,
-     двойник ровно настолько же поднимается из другого. Разрезает обоих линия
-     горизонта — та самая половина диска. Порогов и особых случаев нет: лишний
-     из двух сам уходит целиком за обрез, потому что это одна и та же дуга. */
+     Первая редакция резала обоих линией горизонта и показывала две половинки
+     диска разом. Алексей: «зачем у нас два солнца?.. солнце не должно
+     обрезаться, оно должно уходить под стеклянную подложку и просвечиваться
+     под ней, справа угасает, слева появляется, но по куполу скользит всегда
+     только одно солнце». Значит обрезки нет вовсе, а вход в портал — это
+     обычный уход светила под стекло: диск гаснет и остаётся просвечивающим
+     пятном, тем же, каким светило идёт под интерфейсом всю ночь.
+     Отсюда устройство:
+     — тело держит свою половину купола, полярным днём верхнюю, ночью нижнюю;
+     — у другого конца дуги его встречает второе тело, `twin*`, на том же
+       пути; полярным днём оно стоит симметрично середине купола (тело ушло
+       под стекло на столько же, на сколько двойник поднялся над ним), а
+       полярной ночью — зеркально по горизонтали, чтобы над линией не
+       выныривать;
+     — свет между ними перетекает: `k` — вес тела, `1 − k` — вес двойника,
+       и сумма всегда единица. Оттого «солнце одно»: посреди дуги вес тела
+       равен единице и двойника не видно совсем (прежде он маячил под
+       интерфейсом весь день), а у концов один угасает ровно настолько,
+       насколько разгорается другой.
+     Ширина перехода `PORTAL` — в долях высоты купола: 0.12 это ≈18 px, около
+     часа полярных суток на каждый конец. */
+  var PORTAL = 0.12;
   function polarAt(t) {
-    var a = SUN.arcA, b = SUN.arcB;
+    var a = SUN.arcA, b = SUN.arcB, day = SUN.polar >= 0;
     var th = rad(180 - (t - a) / (b - a) * 180);
-    return SUN.polar >= 0
-      ? [cx + rx * Math.cos(th), cy - ry * Math.sin(th)]
-      : [cx + rx * Math.cos(th), cy + ry * nightAmp(a) * Math.sin(th)];
+    var s = Math.sin(th), h = day ? s : -nightAmp(a) * s;   // доля высоты над линией
+    var x = cx + rx * Math.cos(th);
+    return {
+      p: [x, cy - ry * h],
+      // Двойник идёт по той же дуге с другого её конца: днём — под стеклом,
+      // ночью — на той же глубине, только с зеркальной стороны купола
+      twin: [2 * cx - x, cy - ry * (day ? -h : h)],
+      k: clamp(0.5 + s / (2 * PORTAL), 0, 1)
+    };
   }
   function posAt(t) {
     var a = SUN.arcA, b = SUN.arcB, night = 1440 - (b - a);
-    if (night <= 0) return polarAt(t);
+    if (night <= 0) return polarAt(t).p;
     if (t >= a && t <= b) return posOn(t, a, b);
     var frac = t > b ? (t - b) / night : (a - t) / night;   // доля ночи: от заката вперёд, до восхода назад
     /* Ночь кончилась, а ползунок ещё идёт. Показанные сутки шире 24 часов
@@ -14290,45 +14318,42 @@
     var col = rgb(st.c);
 
     var moon = skyMode === "moon";
-    ["sunCore", "sunGlow", "sunShade", "sunDeep"].forEach(function (id) { $(id).style.display = moon ? "none" : ""; });
-    /* Полярные сутки: тело держится своей половины купола, а из другого конца
-       дуги выходит двойник — см. `polarAt`. Обрез по линии горизонта и есть та
-       половина диска: полярным днём светило не показывается из-под линии,
-       полярной ночью — из-за неё. В обычные сутки обрезать нечего: ход замкнут
-       нижней половиной круга, и призрак под землёй виден весь. */
+    ["sunCore", "sunGlow", "sunShade", "sunDeep",
+     "twinCore", "twinGlow", "twinShade", "twinDeep"].forEach(function (id) { $(id).style.display = moon ? "none" : ""; });
     var polar = !moon && SUN.polar !== 0;
-    var clip = !polar ? null : SUN.polar > 0 ? "url(#aboveHorizon)" : "url(#belowHorizon)";
-    var twin = $("sunTwin");
-    if (clip) $("sunBody").setAttribute("clip-path", clip);
-    else $("sunBody").removeAttribute("clip-path");
-    twin.style.display = polar ? "" : "none";
-    if (polar) {
-      twin.setAttribute("clip-path", clip);
-      // Двойник стоит симметрично телу относительно середины купола
-      twin.setAttribute("transform", "translate(" + (2 * (cx - p[0])).toFixed(1)
-        + " " + (2 * (cy - p[1])).toFixed(1) + ")");
-    }
     $("moonDisc").style.display = moon ? "" : "none";
     $("arcPath").setAttribute("stroke", moon ? "url(#moonLight)" : "url(#dayLight)");
 
-    var vis = e < 0 ? Math.max(0, 1 - (-e / 3)) : 1;
-    $("sunCore").setAttribute("cx", p[0].toFixed(1)); $("sunCore").setAttribute("cy", p[1].toFixed(1));
-    $("sunGlow").setAttribute("cx", p[0].toFixed(1)); $("sunGlow").setAttribute("cy", p[1].toFixed(1));
-    $("sunCore").setAttribute("fill", skyInk(st.c));
-    $("sunCore").setAttribute("opacity", vis.toFixed(2));
-    /* Тень нужна только там, где светлое лежит на светлом. Показывает её
+    /* Одно тело светила рисуется дважды: сам диск и то, что сейчас у другого
+       конца портала. `eD` — высота, по которой решается, чем светило показано:
+       над стеклом это диск с кромкой, под стеклом — просвечивающее пятно.
+       В обычные сутки это настоящая высота солнца; в полярные к ней
+       подмешивается геометрия купола (`Math.min` ниже), потому что там солнце
+       за сутки высоты почти не меняет, а под подложку уходит по-настоящему.
+       `k` — вес в портальном перетекании: у тела и двойника он в сумме даёт
+       единицу, поэтому света ровно на одно солнце.
+       Тень нужна только там, где светлое лежит на светлом. Показывает её
        класс, а не код: тема живёт в атрибуте документа, и завязка на
        переменную означала бы вторую правду о теме — при смене без перерисовки
        купола тень оставалась включённой.
        Сколько тени — считает `shadeNeed` по цвету светила: постоянная тень
        под золотым диском читалась как ошибка (см. там же) */
-    $("sunShade").setAttribute("cx", p[0].toFixed(1));
-    $("sunShade").setAttribute("cy", p[1].toFixed(1));
-    $("sunShade").setAttribute("opacity", (vis * shadeNeed(st.c)).toFixed(2));
-    // Диск: заливка держит массу, кромка её очерчивает. Обе гаснут со светилом
-    $("sunGlow").setAttribute("fill", rgba(st.c, (0.18 * vis).toFixed(3)));
-    $("sunGlow").setAttribute("stroke", rgb(st.c));
-    $("sunGlow").setAttribute("stroke-opacity", (0.34 * vis).toFixed(3));
+    function paintSun(sfx, pos, eD, k) {
+      var v = (eD < 0 ? Math.max(0, 1 - (-eD / 3)) : 1) * k;
+      var core = $(sfx + "Core"), glow = $(sfx + "Glow"), shade = $(sfx + "Shade"), dp = $(sfx + "Deep");
+      [core, glow, shade, dp].forEach(function (el) {
+        el.setAttribute("cx", pos[0].toFixed(1)); el.setAttribute("cy", pos[1].toFixed(1));
+      });
+      core.setAttribute("fill", skyInk(st.c));
+      core.setAttribute("opacity", v.toFixed(2));
+      shade.setAttribute("opacity", (v * shadeNeed(st.c)).toFixed(2));
+      // Диск: заливка держит массу, кромка её очерчивает. Обе гаснут со светилом
+      glow.setAttribute("fill", rgba(st.c, (0.18 * v).toFixed(3)));
+      glow.setAttribute("stroke", rgb(st.c));
+      glow.setAttribute("stroke-opacity", (0.34 * v).toFixed(3));
+      glow.setAttribute("opacity", k.toFixed(3));
+      dp.setAttribute("opacity", (deepOf(eD) * k).toFixed(3));
+    }
 
     /* Светило не исчезает на горизонте, а ныряет под него и идёт дальше по
        той же дуге — видимое насквозь. Раньше `vis` уводил его в ноль на −3°,
@@ -14354,10 +14379,31 @@
        1.29 : 1 против 1.42 : 1. Что изменилось числами: глубже −12° пятна не
        было вовсе (0), теперь 0.667; между −6° и −12° оно ярче прежнего вдвое
        (на −9°: 0.333 → 0.667); выше −6° не тронуто ничего. */
-    var deep = clamp(-e / 3, 0, 1) * Math.max(GHOST_FLOOR, clamp((12 + e) / 9, 0, 1));
-    $("sunDeep").setAttribute("cx", p[0].toFixed(1));
-    $("sunDeep").setAttribute("cy", p[1].toFixed(1));
-    $("sunDeep").setAttribute("opacity", deep.toFixed(3));
+    /* Кто где и насколько виден. В обычные сутки тело одно, высота настоящая,
+       вес полный, а второе тело погашено и стоит на месте первого — портала
+       здесь нет, ход замыкает нижняя половина круга.
+       В полярные сутки высота берётся как `min(настоящая, геометрическая)`:
+       посреди дуги правду говорит солнце (на полюсе оно и в полночь на +2°, и
+       диск не должен гаснуть), а у портала — купол, потому что уход под
+       стекло — это движение, а не убыль высоты. Для полярной ночи тот же
+       `min` не даёт пятну погаснуть у концов дуги, где геометрия выходит на
+       ноль, а солнце на своих −2° никуда не делось. */
+    var polP = polar ? polarAt(t) : null;
+    /* `GLASS` — толщина стеклянной подложки, выраженная в градусах купола:
+       3° это 7.7 px. Диск гаснет, уходя под неё, а не на самом краю дуги, —
+       иначе в стыке встречались два диска по половине света каждый, то есть
+       ровно те «два солнца», из-за которых первая редакция и не прижилась.
+       Со ступенью в стыке нет ни одного диска: с обеих сторон просвечивает
+       пятно, и вместе они дают света ровно на одно светило. */
+    var GLASS = 3;
+    function geoDeg(pos) { return (cy - pos[1]) / ry * 90 - GLASS; }
+    if (polP) {
+      paintSun("sun", polP.p, Math.min(e, geoDeg(polP.p)), polP.k);
+      paintSun("twin", polP.twin, Math.min(e, geoDeg(polP.twin)), 1 - polP.k);
+    } else {
+      paintSun("sun", p, e, 1);
+      paintSun("twin", p, e, 0);
+    }
     /* Цвет пятна. До −18° это наше небо, как и было: алый на закате, розовый
        в сумерках, синий в синий час. Глубже своё небо сказать больше ничего не
        может — астрономическая ночь, `NIGHT`, и так до рассвета, — а сказать
