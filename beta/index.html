@@ -2890,34 +2890,46 @@
      в пиксель (Алексей, 17 сентября 2026). Разными были 22 против 18, и
      обещание не выполнялось на глаз.
      Считать поля от `left/top: 50%` можно потому, что без круга коробка
-     `.map-pin` нулевая, и её середина — сама точка наблюдателя. */
+     `.map-pin` нулевая, и её середина — сама точка наблюдателя.
+
+     Состояние держит класс `.sight` на самой головке, а не `body.routing`, и
+     это не вкусовщина. Признак на теле поднимается ещё и когда на холсте
+     лежит маршрут записанной съёмки (`applyRouteMode`: `bar = routeMode ||
+     mapShoot`) — там точку класть некуда, и прицел обещал бы действие,
+     которого нет. Кроме того, морф переживает выход из режима: на обратном
+     пути фигура ещё булавка, когда `routing` уже снят.
+
+     Форму рисует `sightDraw`, она же ставит `transform` и толщину обводки:
+     между кругом и булавкой меняются и кривая, и якорь, и масштаб, и держать
+     это в двух местах — верный способ развести их на полкадра. */
   .map-pin .mp-pin { display: none; }
-  body.routing .map-pin i { display: none; }
-  body.routing .map-pin .mp-pin {
+  .map-pin.sight i { display: none; }
+  .map-pin.sight .mp-pin {
     display: block; position: absolute; left: 50%; top: 50%;
     margin-left: -9px; margin-top: -15.75px; width: 18px; height: 18px;
     transform-origin: 9px 15.75px;
-    animation: pin-sight 0.34s cubic-bezier(0.22, 0.9, 0.3, 1);
-  }
-  body.routing .map-pin .mp-pin svg {
-    width: 18px; height: 18px;
-    fill: var(--knob); stroke: var(--canvas); stroke-width: 1.6;
+    fill: var(--knob); stroke: var(--canvas);
     stroke-linecap: round; stroke-linejoin: round;
   }
   /* На светлом холсте обводка цветом холста не отделяет знак ни от чего:
      довод тот же, что у головки выше, — там кант заменён кромкой и тенью.
      Меняется цвет канта, но не его толщина: силуэт обязан остаться тем же,
      иначе булавка ляжет на прицел не пиксель в пиксель. */
-  :root[data-theme="light"] body.routing .map-pin .mp-pin svg {
+  :root[data-theme="light"] .map-pin.sight .mp-pin {
     stroke: var(--knob-edge);
     filter: drop-shadow(0 2px 5px var(--glass-cast));
   }
-  @keyframes pin-sight {
-    from { transform: scale(0.45); opacity: 0; }
-    to   { transform: scale(1); opacity: 1; }
-  }
+  /* ---------- Головка переезжает вместе с окном ----------
+     Свободное окно карты в наборе маршрута другое (уходят барабаны и читалка),
+     и его середина — а с нею головка и центр самой карты — съезжает вниз на
+     добрых семьдесят пикселей. Переезд был мгновенным и приходился на конец
+     подмены низа: карта подскакивала (Алексей, 17 сентября 2026). Теперь
+     `--optic-cy` и поле карты меняются вместе и с разгоном, а класс живёт
+     только на время переезда — постоянный `transition` на `top` мешал бы
+     замеру так же, как мешает он у дока. */
+  body.optic-glide .map-pin { transition: top 0.3s cubic-bezier(0.22, 0.61, 0.36, 1); }
   @media (prefers-reduced-motion: reduce) {
-    body.routing .map-pin .mp-pin { animation: none; }
+    body.optic-glide .map-pin { transition: none; }
   }
   /* «Моё место» — единственный элемент управления, тихий кружок */
   /* Кружки стоят по краям свободного окна, а не кадра: кадр теперь весь
@@ -7715,7 +7727,11 @@
         <div id="mapSpots" aria-hidden="true"></div>
 
         <svg id="mapLight" viewBox="0 0 358 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-        <div class="map-pin"><i></i><span class="mp-pin" data-ic="pin"></span></div>
+        <!-- Прицел набора маршрута. Не второй знак рядом с головкой, а та же
+             головка в другом состоянии: кривая рисуется числами (`sightDraw`),
+             и круг перетекает в булавку. Пустой `d` — состояние до первого
+             кадра морфа; рисовать здесь нечего, пока режим не включили. -->
+        <div class="map-pin"><i></i><svg class="mp-pin" id="mapPinSight" viewBox="0 0 24 24" aria-hidden="true"><path d=""/><circle cx="12" cy="10" r="0"/></svg></div>
       </div>
       <!-- Условие бесплатного доступа к плиткам: атрибуция должна быть видна
            на самом холсте. Стоит снаружи ротора — со сноской, которая ездит
@@ -15163,14 +15179,14 @@
      диагональ кадра). Меряем сам кадр, а не полагаемся на % от родителя: тот
      же довод, что и у --tabh/--dockh — верить измеренному, а не вычисленному
      каскадом, который на разных вьюпортах ведёт себя по-разному. */
-  function measureMapRotor() {
+  function measureMapRotor(mid) {
     var frame = document.querySelector(".map-frame");
     if (!frame) return;
     if (!frame.offsetWidth || !frame.offsetHeight) return;
     /* Сам квадрат считается в `measureMapOptic`: его сторона зависит от оси
        вращения, а ось — это `--optic-cy`, которую та и меряет. Считай мы
        здесь, сторона бралась бы по центру прошлого замера. */
-    measureMapOptic(frame);
+    measureMapOptic(frame, mid);
   }
   /* ---------- Свободное окно карты ----------
      Карта лежит во весь экран, но видно её не всю: сверху шапка, снизу
@@ -15186,12 +15202,19 @@
   /* Запомненный сдвиг — со знаком, и потому сторожевое значение не число:
      −1 стало законным сдвигом (поле сверху в один пиксель), и первый же
      замер с ним прошёл бы мимо камеры */
-  var opticPad = null, opticAgain = false;
-  function measureMapOptic(frame) {
+  var opticPad = null, opticAgain = false, opticGlideOff = 0;
+  function measureMapOptic(frame, mid) {
     /* Пока низ едет, мерить нечего: прямоугольник сдвинутого элемента говорит
        про его сдвиг, а не про раскладку, и стекло погналось бы за собственным
-       движением. Итоговый замер делает сама подмена, когда движение кончилось. */
-    if (document.body.classList.contains("dock-anim")) return;
+       движением. Итоговый замер делает сама подмена, когда движение кончилось.
+
+       `mid` — замер посреди подмены, из `applyRouteMode`: раскладка низа уже
+       сменилась, а низ ещё уехан. Он нужен, чтобы переезд окна шёл вместе с
+       возвращением дока, а не начинался после него. Врёт при сдвиге ровно
+       одно число — живой низ `--ctl-bot`, который считается по `top` уехавшей
+       полосы; его такой замер и не трогает. Всё остальное — высоты, а высоту
+       сдвиг не меняет. */
+    if (!mid && document.body.classList.contains("dock-anim")) return;
     var fr = frame.getBoundingClientRect();
     /* Экран в переходе — кадра ещё нет. Считать нечего, но и бросать нельзя:
        без повтора окно осталось бы с числами того мгновения, когда карту ещё
@@ -15239,7 +15262,7 @@
        свода и от полосы черновика, которая растёт с каждой точкой маршрута.
        Поэтому центр считается по свёрнутому низу, а кружки — по живому. */
     var live = bot;
-    [$("mapRouteBar"), $("mapRead")].some(function (el) {
+    if (!mid) [$("mapRouteBar"), $("mapRead")].some(function (el) {
       if (!el || el.hidden) return false;
       var r = el.getBoundingClientRect();
       if (!r.height) return false;
@@ -15249,6 +15272,17 @@
       return true;
     });
     var st = document.documentElement.style;
+    /* Ось окна поехала — головка едет за ней с разгоном, а не прыжком. Класс
+       ставится ДО того, как переменная сменится: `transition` читается в тот
+       кадр, когда меняется свойство, и опоздай он на строку — переезд опять
+       стал бы прыжком. Снимается по концу переезда, не раньше: живущий
+       постоянно `transition` на `top` врал бы замеру у всех остальных. */
+    var glide = opticPad !== null && Math.abs(parseFloat(st.getPropertyValue("--optic-cy")) - cy) > 1;
+    if (glide) {
+      document.body.classList.add("optic-glide");
+      clearTimeout(opticGlideOff);
+      opticGlideOff = setTimeout(function () { document.body.classList.remove("optic-glide"); }, 340);
+    }
     st.setProperty("--optic-top", Math.round(top) + "px");
     st.setProperty("--optic-bot", Math.round(bot) + "px");
     st.setProperty("--optic-cy", Math.round(cy) + "px");
@@ -15268,7 +15302,11 @@
     var R = Math.hypot(fr.width / 2, Math.max(cy, fr.height - cy));
     var off = Math.abs(fr.height / 2 - cy);
     st.setProperty("--rotor-d", Math.ceil(2 * (R + off)) + "px");
-    st.setProperty("--ctl-bot", live.toFixed(2) + "px");
+    /* Живой низ — единственное, что замер посреди подмены сказать не может:
+       он считается по верху уехавшей полосы. Оставляем прежний, его поставит
+       итоговый замер. Записать сюда `bot` значило бы уронить кружки карты на
+       место таб-бара и поднять их обратно через полсекунды. */
+    if (!mid) st.setProperty("--ctl-bot", live.toFixed(2) + "px");
     /* Потолок свода. У кадра прежде был пол — 370 px минимальной высоты, — а
        добиралась сводка прокруткой всего экрана. Подложка прокручиваться не
        может (она и есть фон), поэтому пол переносится в новое правило: стекло
@@ -15296,8 +15334,18 @@
     var shift = Math.round((fr.height / 2 - cy) * 2);
     var padB = Math.max(0, shift), padT = Math.max(0, -shift);
     if (lmap && lmap.setPadding && shift !== opticPad) {
+      var first = opticPad === null;
       opticPad = shift;
-      try { lmap.setPadding({ top: padT, bottom: padB, left: 0, right: 0 }); } catch (e) {}
+      var pad = { top: padT, bottom: padB, left: 0, right: 0 };
+      /* Поле двигает камеру, и до сих пор она переставлялась одним кадром.
+         На входе в набор маршрута окно съезжает на семьдесят с лишним
+         пикселей, и рывок был виден как подскок карты. Теперь камера едет
+         тем же разгоном и за то же время, что головка над нею и док под ней.
+         Первый замер — не переезд, а установка: ехать неоткуда. */
+      try {
+        if (first || !glide || !lmap.easeTo) lmap.setPadding(pad);
+        else lmap.easeTo({ padding: pad, duration: 300, easing: function (x) { return 1 - Math.pow(1 - x, 3); } });
+      } catch (e) {}
     }
   }
   /* ---------- Стекло идёт за сводом ----------
@@ -16526,6 +16574,81 @@
       });
     }, 240);
   }
+  /* ---------- Круг перетекает в булавку ----------
+     Головка и прицел — одна фигура в двух состояниях, а не два знака, которые
+     подменяют друг друга: «одна форма должна исказиться в другую» (Алексей,
+     17 сентября 2026).
+
+     Обе кривые записаны одним набором чисел при одинаковом порядке команд,
+     поэтому перетекание — простая линейная смесь. Голова у обоих состояний
+     одна и та же (дуга радиуса 7 в середине пути, числа её не меняются):
+     меняется хвост — остриё уезжает с 17-й точки холста на 21-ю, и обе
+     кривые, что к нему сходятся, тянутся следом.
+
+     Знак `pin` из `icons.js` разложен здесь в явные `c`: гладкое `s` берёт
+     первую ручку отражением предыдущей, и смешивать в нём нечего. Рисует он
+     то же самое точка в точку — в состоянии булавки числа дают ровно тот
+     контур, что стоит в библиотеке знаков.
+
+     Кроме кривой едут ещё две вещи, и обе в ту же долю `t`:
+     — якорь. Круг стоит на точке наблюдателя СЕРЕДИНОЙ, булавка — ОСТРИЁМ.
+       Расстояние между ними 11 единиц холста, и фигура на них приподнимается;
+     — масштаб. 13 пикселей круга — размер, на который настроена головка,
+       18 булавки — размер, которым она обязана лечь на поставленную точку
+       пиксель в пиксель. 14 единиц холста при знаке 18 px дают 10,5, отсюда
+       и множитель. Заодно он тянет обводку: 2 px канта у круга — тот самый
+       тёмный поясок, каким головка сидела в гнезде. */
+  var SIGHT_A = [12, 17, 3.866, 0, 7, -3.134, 7, -7, 0, 3.866, 3.134, 7, 7, 7];
+  var SIGHT_B = [12, 21, 0, 0, 7, -6.3, 7, -11, 0, 4.7, 7, 11, 7, 11];
+  var SIGHT_K = 13 / 10.5;
+  var sightT = 0, sightRun = 0;
+  function sightDraw(t) {
+    var el = $("mapPinSight"); if (!el) return;
+    var v = [], i;
+    for (i = 0; i < SIGHT_A.length; i++) v.push(+(SIGHT_A[i] + (SIGHT_B[i] - SIGHT_A[i]) * t).toFixed(3));
+    el.querySelector("path").setAttribute("d",
+      "M" + v[0] + " " + v[1]
+      + "c" + v[2] + " " + v[3] + " " + v[4] + " " + v[5] + " " + v[6] + " " + v[7]
+      + "a7 7 0 1 0-14 0"
+      + "c" + v[8] + " " + v[9] + " " + v[10] + " " + v[11] + " " + v[12] + " " + v[13] + "z");
+    /* Зрачок булавки раскрывается вместе с хвостом: в круге его нет вовсе */
+    el.querySelector("circle").setAttribute("r", (2.6 * t).toFixed(3));
+    var k = SIGHT_K + (1 - SIGHT_K) * t;
+    el.style.transform = "translateY(" + (8.25 * (1 - t) * k).toFixed(3) + "px) scale(" + k.toFixed(4) + ")";
+    el.style.strokeWidth = (2.154 + (1.6 - 2.154) * t).toFixed(3);
+    sightT = t;
+  }
+  /* Ход перетекания ведёт свой счётчик кадров, а не `transition`: за один
+     раз меняются кривая, якорь, масштаб и обводка, и разводить их по четырём
+     разным правилам значит дать им разойтись. Разгон тот же, что у переезда
+     окна карты ниже, — движение одно, и читаться должно одним. */
+  function sightMorph(on) {
+    var pin = document.querySelector(".map-pin"); if (!pin) return;
+    var to = on ? 1 : 0;
+    if (on) pin.classList.add("sight");
+    if (sightRun) { cancelAnimationFrame(sightRun); sightRun = 0; }
+    var slow = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (slow || sightT === to) {
+      sightDraw(to);
+      if (!on) pin.classList.remove("sight");
+      return;
+    }
+    var from = sightT, t0 = performance.now();
+    sightRun = requestAnimationFrame(function step(now) {
+      /* Нижняя граница не перестраховка: первый кадр приходит с меткой того
+         кадра, что уже начался до `performance.now()`, и разность бывает
+         отрицательной. Доля уходила в минус, за ней радиус зрачка, и браузер
+         ругался в консоль на отрицательный `r` (замер 17 сентября 2026). */
+      var x = Math.max(0, Math.min(1, (now - t0) / 380));
+      sightDraw(from + (to - from) * (1 - Math.pow(1 - x, 3)));
+      if (x < 1) { sightRun = requestAnimationFrame(step); return; }
+      sightRun = 0;
+      /* Круг вернулся — знак уходит, и на его место встаёт прежняя головка.
+         Подмена невидима: в нулевой доле обе фигуры — один и тот же белый
+         кружок в 13 пикселей. */
+      if (!on) pin.classList.remove("sight");
+    });
+  }
   function setRouteMode(on) {
     routeMode = !!on;
     /* Набор начался — чтение кончилось: холст один, и линия на нём одна */
@@ -16534,6 +16657,7 @@
        бы над барабанами времени */
     if (!routeMode) dropRouteUndo();
     $("mapRouteBtn").classList.toggle("on", routeMode);
+    sightMorph(routeMode);
     swapMapDock(function () { applyRouteMode(); });
   }
   /* Открыть маршрут записи или убрать его с холста. Зовут отсюда двое:
@@ -16544,6 +16668,9 @@
     if (!routeMode) dropRouteUndo();
     mapShootFit = !!mapShoot;
     $("mapRouteBtn").classList.toggle("on", routeMode);
+    /* Чтение чужого маршрута — не набор: класть точку некуда, и прицел тут
+       обещал бы действие, которого нет. Головка возвращается в круг. */
+    sightMorph(routeMode);
     buildSpotMarks();
     swapMapDock(function () { applyRouteMode(); });
   }
@@ -16559,6 +16686,12 @@
        каком порядке». Признак на `body`, потому что барабаны живут вне экрана
        карты, в закреплённом доке. */
     document.body.classList.toggle("routing", bar);
+    /* Окно карты у набора другое, и его середина — ось прибора, место головки
+       и центр самой карты — съезжает на десятки пикселей. Меряем здесь, посреди
+       подмены: раскладка низа уже сменилась, и переезд успевает пройти вместе
+       с возвращением дока. Раньше замер приходился на конец подмены, и карта
+       подскакивала уже после того, как всё встало (Алексей, 17 сентября 2026). */
+    measureMapRotor(true);
     /* Док стал ниже на всю полосу барабанов — распорка низа экрана считается
        от измеренного `--dockh`, и без пересчёта кадр остался бы прежним. */
     measureDockSoon();
