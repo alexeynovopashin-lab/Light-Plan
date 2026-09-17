@@ -4970,6 +4970,57 @@
     -webkit-text-fill-color: var(--ink); caret-color: var(--ink);
     transition: background-color 9999s ease-out 0s;
   }
+  /* ---------- Код страны отдельным блоком ----------
+     Код страны стоит слева от номера и в поле ввода не попадает: поле
+     принимает только национальную часть. Так номер набирают везде, где его
+     набирают всерьёз, и причина не в привычке. Код — не часть того, что
+     человек печатает: он выбирается один раз и дальше стоит на месте.
+     Держать его в поле значит отдать его на милость всякой правке: стереть
+     всё и начать заново, промахнуться курсором, получить его обратно от
+     автозаполнения, которое `+7` снимает и не возвращает.
+
+     Между блоком и полем — щель в два пикселя, сквозь неё виден фон
+     страницы. Линию не рисуем: разделитель в плашке это прорезь, а не
+     светлая черта (DESIGN_SYSTEM, «Разделители»). Скругления с внутренних
+     сторон подобраны меньше внешних — два блока читаются одной плашкой,
+     разрезанной надвое, а не двумя случайно соседями. */
+  .tel-row { display: flex; gap: 2px; margin: 12px 24px 0; }
+  .tel-cc {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+    background: var(--sheet); border: none;
+    border-radius: 12px 4px 4px 12px; corner-shape: squircle;
+    padding: 14px 13px 14px 15px; font-family: inherit; font-size: 16px;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+    cursor: pointer; -webkit-appearance: none; appearance: none;
+  }
+  /* Знак «раскрыть» тот же, что у сводки дня и у списков: треугольник вниз
+     говорит «здесь откроется список», а шеврон вправо сказал бы «здесь
+     откроется другой экран» — не то, что тут происходит */
+  .tel-cc .chev { font-size: 13px; color: var(--ink-6); transform: translateY(-1px); }
+  .tel-row .set-in {
+    width: auto; flex: 1 1 auto; margin: 0;
+    border-radius: 4px 12px 12px 4px;
+  }
+  /* Список стран. Двадцать семь строк — прокрутка, а не поиск ради поиска:
+     поле поиска стоит потому, что страну ищут по имени на своём языке, а
+     имена приходят от `Intl` и в алфавит словаря не уложены заранее. */
+  /* Шторка стоит поверх экрана профиля, а не под ним. Общий слой шторок
+     (70) ниже слоя экранов настроек (80): прочие шторки открываются с
+     первого экрана, эта — с четвёртого вглубь, и без своего слоя её
+     закрывал бы тот самый экран, с которого её позвали. */
+  #ccScrim { z-index: 88; }
+  #ccSheet { z-index: 89; }
+  .cc-list { max-height: 46vh; overflow-y: auto; margin-top: 12px; }
+  .cc-list::-webkit-scrollbar { display: none; }
+  .cc-row {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; background: none; border: none; cursor: pointer;
+    padding: 13px 2px; font-family: inherit; font-size: 16px; color: var(--ink);
+    text-align: left;
+  }
+  .cc-row + .cc-row { box-shadow: inset 0 1px 0 var(--edge); }
+  .cc-row .cc { color: var(--ink-5); font-variant-numeric: tabular-nums; }
+  .cc-row.on .cc, .cc-row.on { color: var(--brass); }
   /* ID показываем моноширинными цифрами и целиком: это строка, которую
      диктуют и сверяют по цифре, переносить или обрезать её нельзя */
   #appIdV.set { color: var(--ink); }
@@ -8032,7 +8083,17 @@
     <div class="loc-results city-hits" id="myCityHits"></div>
     <p class="seg-note" data-i18n="set.myCityNote">Город, где вы живёте или сейчас находитесь. В нём заводятся новые съёмки, съёмка в другом городе считается выездом.</p>
     <div class="sec-label" data-i18n="set.myPhone">Мой телефон</div>
-    <input class="set-in" type="tel" id="myTel" placeholder="Телефон"/>
+    <!-- Код страны вынесен из поля. Поле принимает только национальную
+         часть, и `autocomplete` просит у системы ровно её: iOS отдаёт номер
+         по цифре и `+7` при этом снимает — теперь это не потеря, а то самое,
+         что нужно (docs: DECISIONS, «Код страны отдельным блоком»). -->
+    <div class="tel-row">
+      <button class="tel-cc" id="myTelCc" type="button" aria-haspopup="dialog">
+        <span id="myTelCcV">+7</span><span class="chev">▾</span>
+      </button>
+      <input class="set-in" type="tel" id="myTel" inputmode="tel"
+             autocomplete="tel-national" placeholder="Телефон"/>
+    </div>
     <!-- Вопрос на месте вместо настройки. Страну номеров держали отдельным
          выбором в «Языке и регионе», и она не понималась ни с какого
          названия: три редакции имени, проверка на живом человеке — мимо все
@@ -9924,6 +9985,19 @@
        Три шага, а не один экран: копия, вопрос, передача. Каждый следующий
        появляется, только если предыдущий пройден. -->
   <div class="scrim" id="telScrim"></div>
+  <!-- Выбор кода страны. Отдельной настройкой страна уже стояла и была снята:
+       её не понимали ни с какого названия (DECISIONS). Здесь она не настройка,
+       а часть самого номера — стоит вплотную к полю и открывается тапом по
+       коду, то есть спрашивается там же, где отвечается. -->
+  <div class="scrim" id="ccScrim"></div>
+  <div class="sheet" id="ccSheet">
+    <div class="grip"></div>
+    <div class="sheet-title" data-i18n="tel.ccT">Код страны</div>
+    <input class="set-in" type="text" id="ccFind" style="width:100%;margin:12px 0 0"
+           data-i18n-ph="tel.ccFind" placeholder="Поиск" autocomplete="off"/>
+    <div class="cc-list" id="ccList"></div>
+  </div>
+
   <div class="sheet" id="telSheet">
     <div class="grip"></div>
 
@@ -24617,6 +24691,66 @@
     return out + d.slice(j);          // длиннее образца — хвост как есть
   }
 
+  /* ---------- Национальная часть отдельно от кода ----------
+     Своё поле номера показывает номер без кода страны: код стоит слева
+     отдельным блоком и в поле не попадает. Хранится номер по-прежнему
+     целиком, международной записью, — `telFull`, `appId`, `telKey` и все
+     связки читают ровно то же, что читали. Разделение живёт только на
+     экране, и это нарочно: ID обязан быть всемирным, а поле ввода —
+     местным, и это разные требования к одной строке.
+
+     Разбор входящего. В поле, где кода нет, номер всё равно приходит с
+     кодом: из буфера, из автозаполнения, из привычки набрать «8» первой.
+     Лишнюю голову снимаем, а если она называет другую страну — переставляем
+     и сам блок кода. Человек вставил `+7 701 …` — он вставил казахстанский
+     номер, а не испортил русский. */
+  function telNatIn(str) {
+    var raw = String(str || ""), d = telDigits(raw);
+    var plus = /^\s*\+/.test(raw) || d.slice(0, 2) === "00";
+    if (d.slice(0, 2) === "00") d = d.slice(2);
+    var sp = telSpec();
+    if (plus) {
+      /* Плюс назвал страну сам. Своей она быть не обязана: сходится с
+         текущей — просто снимаем код, не сходится — переставляем блок.
+         Ни одной не сходится (наш список из двадцати семи стран знает не
+         весь мир) — оставляем цифры как есть: приписать им чужой код было
+         бы хуже, чем не разобрать вовсе. */
+      if (d.slice(0, sp.cc.length) === sp.cc && telNsnFits(sp, d.slice(sp.cc.length)))
+        return { cc: null, nat: d.slice(sp.cc.length) };
+      var fit = telCcFit("+" + d);
+      if (fit.length) return { cc: fit[0], nat: d.slice(TEL_CC[fit[0]].cc.length) };
+      return { cc: null, nat: d };
+    }
+    /* Магистральный префикс своей страны — «8» у нас, «0» в Европе. Он
+       часть местной записи, а не номера, и в поле без кода ему делать
+       нечего. */
+    if (sp.trunk && d.length > sp.trunk.length && d.slice(0, sp.trunk.length) === sp.trunk
+        && telNsnFits(sp, d.slice(sp.trunk.length)))
+      return { cc: null, nat: d.slice(sp.trunk.length) };
+    /* Код страны написан, а плюс забыт. Здесь спрашиваем «сошлось ли», а
+       не «влезает ли»: пока номер набирается по цифре, снимать голову
+       рано — на второй цифре «79» приложение съело бы семёрку, которую
+       человек только что нажал, и вместо номера осталась бы девятка. */
+    if (d.slice(0, sp.cc.length) === sp.cc && telNsnOk(sp, d.slice(sp.cc.length)))
+      return { cc: null, nat: d.slice(sp.cc.length) };
+    return { cc: null, nat: d };
+  }
+  /* Национальная часть, разложенная по образцу страны. Ведущей части нет —
+     её место занял блок кода слева. */
+  function telNatFmt(d) { return telGroups(telDigits(d), telSpec().fmt); }
+  /* Обратный ход: из хранимой международной записи — то, что стоит в поле */
+  function telNatOf(v) {
+    var full = telFull(v);
+    if (!full) return "";
+    var sp = telSpec();
+    return telNatFmt(full.slice(0, sp.cc.length) === sp.cc ? full.slice(sp.cc.length) : full);
+  }
+  /* Собрать хранимый номер из блока кода и того, что в поле */
+  function telJoin(nat) {
+    var d = telDigits(nat);
+    return d ? formatTel("+" + telSpec().cc + d) : "";
+  }
+
   /* ---------- Номер как ключ ----------
      Номер телефона — готовый всемирный идентификатор: его уже выдали, он уже
      уникален, и человек уже носит его с собой. Заводить свой генератор ID
@@ -32217,9 +32351,9 @@
         var full = telFull(myPhone());
         if (full) {
           me.phone = formatTel("+" + full);
-          if ($("myTel")) $("myTel").value = me.phone;
+          if ($("myTel")) $("myTel").value = telNatOf(me.phone);
         }
-        telPlaceholder(); saveAll(); renderProfile(); renderCcAsk();
+        telCcPaint(); telPlaceholder(); saveAll(); renderProfile(); renderCcAsk();
       });
     });
   }
@@ -32229,9 +32363,16 @@
      поле всё равно чем-то заполнено, и «Телефон» там говорило меньше. */
   function telPlaceholder() {
     var el = $("myTel"); if (!el) return;
-    var sp = telSpec();
-    var nat = (sp.trunk && sp.trunk !== sp.cc) ? sp.trunk + sp.ex : sp.ex;
-    el.placeholder = formatTel(nat);
+    /* Образец местного номера и только он: магистральная «8» стояла здесь,
+       пока поле принимало номер целиком, — теперь слева стоит код, и «8»
+       рядом с «+7» означала бы два взаимоисключающих начала одного номера */
+    el.placeholder = telNatFmt(telSpec().ex);
+  }
+  /* Надпись на блоке кода. Своей памяти у блока нет — он показывает
+     `telCountry`, ту же переменную, по которой номер разбирается */
+  function telCcPaint() {
+    var el = $("myTelCcV"); if (!el) return;
+    el.textContent = "+" + telSpec().cc;
   }
 
   /* Перерисовать то, где уже нарисованы слова словаря и деньги. Полной
@@ -34278,23 +34419,29 @@
   (function () {
     var el = $("myTel");
     if (!el) return;
-    var lastLen = telDigits(myPhone()).length;
-    el.value = myPhone();
-    el.addEventListener("input", function (e) {
-      var digits = telDigits(this.value).length;
-      var pasted = digits - lastLen > 1
-        || (e && /paste|replacement|autofill/i.test(e.inputType || ""));
-      // то же правило, что в форме съёмки, и с той же оговоркой про плюс
-      if (digits > lastLen && !/^\s*\+/.test(this.value)) pasted = true;
+    el.value = telNatOf(myPhone());
+    telCcPaint();
+    /* Разницы «набрано» и «вставлено» здесь больше нет, и это главный
+       выигрыш вынесенного кода. Прежнее поле обязано было их различать:
+       номер без кода страны выглядел в нём одинаково с номером, который
+       только начали набирать, и код приходилось подставлять по догадке —
+       «цифр прибавилось разом, значит вставка». Догадка держалась на
+       поведении автозаполнения, то есть на том, чего приложение не
+       выбирает. Теперь код стоит слева и всегда стоит: в поле любой номер
+       местный, и подставлять нечего. */
+    el.addEventListener("input", function () {
+      var got = telNatIn(this.value);
+      if (got.cc && got.cc !== telCountry) telCountry = got.cc;
       var end = this.selectionStart === this.value.length;
-      this.value = formatTel(this.value, pasted);
-      lastLen = telDigits(this.value).length;
+      this.value = telNatFmt(got.nat);
       if (end) this.selectionStart = this.selectionEnd = this.value.length;
-      me.phone = this.value.trim();
-      /* Страна следует за номером: набрали казахстанский — приложение стало
-         казахстанским, и ID сложился сам. Порядок важен, `renderProfile`
-         считает ID уже по новой стране */
-      if (telCcFollow()) telPlaceholder();
+      me.phone = telJoin(this.value);
+      /* Страна следует за номером и теперь: набрали казахстанский —
+         приложение стало казахстанским, и ID сложился сам. Блок кода при
+         этом не прыгает, `telCcFollow` молчит везде, где коды разные.
+         Порядок важен, `renderProfile` считает ID уже по новой стране */
+      telCcFollow();
+      telCcPaint(); telPlaceholder();
       saveAll(); renderProfile(); renderCcAsk();
     });
     /* Смену номера фиксируем не в `input`: поле пишется с каждым нажатием
@@ -34375,7 +34522,8 @@
     telAsk = null;
     telSheetClose();
     me.phone = back;
-    if ($("myTel")) $("myTel").value = back;
+    if ($("myTel")) $("myTel").value = telNatOf(back);
+    telCcPaint();
     myTelSnap = back;
     saveAll(); renderProfile(); renderCcAsk();
   }
@@ -34412,11 +34560,62 @@
     askYes(LANG.t("tel.wipe"), LANG.t("tel.wipeAsk"), LANG.t("ask.wipe"), wipeAll);
   });
   $("telScrim").addEventListener("click", telCancel);
+
+  /* ---------- Список стран ----------
+     Открывается тапом по блоку кода. Цифры в поле при смене страны остаются
+     на месте: национальная часть номера — то, что человек набрал, и она не
+     становится другой оттого, что рядом переставили код. Меняется разбивка
+     по разрядам — у каждой страны своя — и хранимая запись целиком. */
+  function ccSheetOpen() {
+    ccRender("");
+    $("ccFind").value = "";
+    $("ccScrim").classList.add("open");
+    $("ccSheet").classList.add("open");
+  }
+  function ccSheetClose() {
+    $("ccScrim").classList.remove("open");
+    $("ccSheet").classList.remove("open");
+  }
+  function ccRender(q) {
+    var s = String(q || "").trim().toLowerCase();
+    var rows = Object.keys(TEL_CC).map(function (c) {
+      return { c: c, n: countryName(c), cc: TEL_CC[c].cc };
+    }).filter(function (r) {
+      return !s || r.n.toLowerCase().indexOf(s) >= 0
+        || ("+" + r.cc).indexOf(s) >= 0 || r.cc.indexOf(s) >= 0
+        || r.c.toLowerCase().indexOf(s) >= 0;
+    }).sort(function (a, b) { return a.n.localeCompare(b.n, LANG.code); });
+    $("ccList").innerHTML = rows.map(function (r) {
+      return '<button class="cc-row' + (r.c === telCountry ? " on" : "")
+        + '" data-cc="' + r.c + '"><span>' + esc(r.n)
+        + '</span><span class="cc">+' + esc(r.cc) + "</span></button>";
+    }).join("");
+  }
+  $("myTelCc").addEventListener("click", ccSheetOpen);
+  $("ccScrim").addEventListener("click", ccSheetClose);
+  $("ccFind").addEventListener("input", function () { ccRender(this.value); });
+  $("ccList").addEventListener("click", function (e) {
+    var b = e.target.closest(".cc-row"); if (!b) return;
+    telCountry = b.dataset.cc;
+    var el = $("myTel");
+    if (el) {
+      el.value = telNatFmt(el.value);
+      me.phone = telJoin(el.value);
+    }
+    telCcPaint(); telPlaceholder(); ccSheetClose();
+    saveAll(); renderProfile(); renderCcAsk();
+  });
+
   function renderProfile() {
     var id = myId();
     /* Город правится тут же, поэтому под пальцем поле не перебиваем — тот же
        приём, что у города в форме съёмки */
     if ($("myCity") && document.activeElement !== $("myCity")) $("myCity").value = myCity();
+    /* Та же оговорка про палец у поля номера: правка идёт вживую, и
+       переписывать строку под курсором нельзя. Блок кода курсора не держит
+       и обновляется всегда */
+    if ($("myTel") && document.activeElement !== $("myTel")) $("myTel").value = telNatOf(myPhone());
+    telCcPaint();
     /* Пока номера нет, строка не молчит прочерком, а говорит, чего не хватает:
        ID — не настройка на любителя, без него узел Event OS безымянный */
     /* Пустая строка ID теперь бывает по двум разным причинам, и сказать

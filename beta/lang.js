@@ -1737,6 +1737,8 @@
     "set.currency":     "Валюта",
     "set.practice":     "Ведение дел",
     "tel.ccAsk":        "Номер не похож на местный. Чей он?",
+    "tel.ccT":          "Код страны",
+    "tel.ccFind":       "Поиск",
     /* Имя страны в подпись не вставляем: `Intl` отдаёт его в именительном
        падеже, а фраза требует предложного — «в Россия». Своего списка
        склонений заводить незачем, довольно переписать фразу так, чтобы
@@ -3426,6 +3428,8 @@
     "set.currency":     "Currency",
     "set.practice":     "Business practice",
     "tel.ccAsk":        "This does not look like a local number. Where is it from?",
+    "tel.ccT":          "Country code",
+    "tel.ccFind":       "Search",
 
     "tel.copyD":       "Shoots, contacts, organisations and document links go into a file. Everything comes back from it.",
     "tel.mineD":       "Shoots, contacts and documents stay where they are. The old ID keeps working: whoever saved you under it will still find you.",
