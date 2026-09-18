@@ -108,7 +108,7 @@ lines.push('Generated from `beta/lang.js`. Do not hand-edit — corrections go i
   + 'column means the key is assembled by code at runtime — use the Screen and '
   + 'Russian/English columns to place it.');
 lines.push('');
-lines.push(`Ключей: ${order.length}. Пустые столбцы es/ja/zh ждут переводчика.`);
+lines.push(`Ключей: ${order.length}. Столбцы es/ja/zh заполнены черновиком и ждут вычитки носителем.`);
 lines.push('');
 lines.push('| Ключ | Экран | Русский | Английский | en-US | en-GB | Español | 日本語 | 中文 | Где встречается |');
 lines.push('|---|---|---|---|---|---|---|---|---|---|');
