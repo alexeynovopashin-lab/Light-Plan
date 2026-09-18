@@ -26203,7 +26203,7 @@
     if (!shown.fPrepayRow) { fPrepay = 0; $("fPrepay").value = ""; }
 
     if (sp.route && editIdx === null && !fRoute.length) {
-      fRoute = seedRoute(fMin);
+      fRoute = seedRoute();
       fRouteSeeded = true;             // точки наши, не фотографа
     }
     /* Перерисовываем всегда, а не только при засеве: подсказки точек идут от
@@ -26436,6 +26436,14 @@
              раскрытым колесом */
           if (!fRoute[i][w[2]]) {
             setCellMin(fRoute[i], w[2], stopTimeSeed(i, w[2]));
+            /* Время у безымянной строки — согласие с её подсказкой: «ЗАГС»
+               серым плюс 15:30 значит ЗАГС в 15:30. Без имени строка при
+               сохранении пропала бы молча — фильтр пускает только названные
+               точки со временем (засев подсказкой, 18 сентября 2026) */
+            if (!(fRoute[i].n || "").trim()) {
+              fRoute[i].n = hints[i % hints.length];
+              row.querySelector(".rt-in-n").value = fRoute[i].n;
+            }
             fRouteSeeded = false;
             paintStopTime(i);
             scheduleDraftSave();
@@ -26619,21 +26627,19 @@
   function sceneName(k) { var v = LANG.t("scene." + k); return v === "scene." + k ? k : v; }
   function sceneHints(g) { return (GENRE_SCENES[g] || SCENES_DEFAULT).map(sceneName); }
 
-  /* Свадьба почти всегда начинается с росписи и прогулки — предлагаем их сразу.
-     Шаг зависит от начала: утренняя съёмка разворачивается на весь день,
-     вечерняя укладывается в пару часов, иначе точки уезжают за полночь */
-  function seedRoute(startMin) {
-    var wide = startMin < 900;                       // начали до 15:00 — день впереди
-    var a = snapMin(startMin + (wide ? 120 : 30));
-    var b = snapMin(startMin + (wide ? 240 : 90));
-    var cap = function (v) { return hm24(Math.min(v, 1410)); };
-    /* Первый пункт — сборы: день начинается там, где начинается съёмка, и это
-       же место съёмки. Место у всех трёх пустое: его называет фотограф */
-    return [
-      { t: hm24(startMin), t2: cap(a), n: sceneName("gathering"), p: "" },
-      { t: cap(a), t2: cap(b), n: sceneName("registry"), p: "" },
-      { t: cap(b), t2: cap(snapMin(b + 90)), n: sceneName("walk"), p: "" }
-    ];
+  /* Свадьба почти всегда начинается со сборов, росписи и прогулки — и форма
+     показывает их сразу, но подсказкой, а не записью: три пустые строки, имя
+     этапа в каждой — серый плейсхолдер (`sceneHints`, тот же порядок).
+     Прежде засев писал точки с именами и часами от начала съёмки (2 августа
+     2026, «Reads the Mind»). С правилом «Событие — матрёшка» такие точки
+     стали якорями: новая свадьба рождалась непустой — на ленте не
+     переносилась, ручки упирались в ЗАГС, которого фотограф не назначал
+     (Алексей, 18 сентября 2026: «создать пустую свадьбу не удаётся»).
+     Пустая строка в запись не уходит (`routeFromEditor`), значит свадьба
+     пуста, пока фотограф сам не заполнит точку. Первая строка — по-прежнему
+     место всей съёмки (`syncHeadPlace`) */
+  function seedRoute() {
+    return [0, 1, 2].map(function () { return { t: null, t2: null, n: "", p: "" }; });
   }
   $("fRouteAdd").addEventListener("click", function () {
     if (fRoute.length >= 10) return;          // день из одиннадцати сцен планируют не здесь
@@ -30486,7 +30492,7 @@
       sessionStudioId = null;
       fBookingRef = null; fRentReq = null;
       fId = newId();
-      fRoute = hasRoute(shootType) ? seedRoute(fMin) : [];
+      fRoute = hasRoute(shootType) ? seedRoute() : [];
 
       /* Черновик поднимаем поверх только что собранной пустой формы — если
          он есть и в нём хоть что-то набрано руками. Дата в нём своя, из
