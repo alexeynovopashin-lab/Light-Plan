@@ -19417,7 +19417,9 @@
     function sn(m) { return Math.round(m / st) * st; }
     /* Полшага мёртвой зоны: дрогнувший палец не должен сдвинуть 19:38 на 19:45 */
     if (Math.abs(dMin) >= st / 2) {
-      if (g.mode === "move") { a = clamp(sn(g.a0 + dMin), 0, 1440 - st); b = a + (g.b0 - g.a0); }
+      /* Верхний предел — не раньше собственного начала: событие с 23:50 при
+         уводе вниз упиралось бы в 23:45 и ехало вверх, против пальца */
+      if (g.mode === "move") { a = clamp(sn(g.a0 + dMin), 0, Math.max(g.a0, 1440 - st)); b = a + (g.b0 - g.a0); }
       else if (g.mode === "a") a = clamp(sn(g.a0 + dMin), 0, Math.max(g.a0, g.b0 - st));
       else b = clamp(sn(g.b0 + dMin), Math.min(g.b0, g.a0 + st), 1440);
       /* Край непустой съёмки не заходит внутрь содержимого: ручка встаёт
@@ -19529,7 +19531,9 @@
      должны оставаться в досягаемости, а закрывается он любым касанием мимо.
      Встаёт на 14 пикселей ниже обычного, чтобы не лечь на нижнюю ручку */
   function dlOpenFan(el, idx) {
-    openEvFan(el, idx);
+    /* Удержание на ленте уже отозвалось щелчком, когда событие поднялось
+       (или встали ручки у непустой): веер открывается молча */
+    openEvFan(el, idx, true);
     $("spotScrim").hidden = true;
     dlFanOpen = true;
     var fan = $("evFan");
@@ -31067,7 +31071,13 @@
     c.bookingRef = null; c.rentReq = null;
     c.prepay = 0; c.delivered = false; c.deliveredAt = null; c.questSent = null;
     delete c.fromMeetOn; delete c.fromMeetId; delete c.grewOn; delete c.grewToId; delete c.telLog;
-    delete c.dayMoved;       // сдвигали эту карточку, а не её повторы
+    /* Сдвигали эту карточку, а не её повторы: и след, и его строка в
+       заметке остаются у неё одной */
+    var mvLine = c.dayMoved && c.dayMoved.line;
+    if (mvLine && String(c.notes || "").slice(-mvLine.length) === mvLine) {
+      c.notes = c.notes.slice(0, c.notes.length - mvLine.length).replace(/\n+$/, "");
+    }
+    delete c.dayMoved;
     if (!on.client) {
       c.contact = ""; c.clientTel = ""; c.orgId = null; c.person = ""; c.phone = "";
       c.persons = []; c.guests = 0; c.breed = "";
@@ -31630,6 +31640,11 @@
     }
     return n;
   }
+  function formDayMoved() {
+    var mv = editIdx !== null && sessions[editIdx] && sessions[editIdx].dayMoved;
+    if (!mv || (mv.a === fMin && mv.b === fMin + fDur)) return undefined;
+    return mv;
+  }
   $("fSave").addEventListener("click", function () {
     if (renderNestWarn(true)) {
       var ov = $("formOverlay"), box = $("fNestWarn");
@@ -31692,8 +31707,10 @@
       grewOn: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewOn) || undefined,
       grewToId: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewToId) || undefined,
       /* Строка «время сдвинуто на ленте» гаснет только от крестика, а не от
-         сохранения формы: иначе любая правка карточки стирала бы её молча */
-      dayMoved: (editIdx !== null && sessions[editIdx] && sessions[editIdx].dayMoved) || undefined,
+         сохранения формы: иначе любая правка карточки стирала бы её молча.
+         Кроме одного случая: формой вернули время, бывшее до сдвига, —
+         сдвига больше нет, и алерт «было X, стало X» говорил бы неправду */
+      dayMoved: formDayMoved(),
       route: routeFromEditor(),
       synced: syncTarget === "off" ? null : syncTarget
     };
@@ -35820,7 +35837,7 @@
      работает и на блоке ленты, и на строке месяца.
      Отклик на срабатывание — тот же щелчок, что у детентов ползунка: Taptic из
      веба недоступен, и второй механики отклика ради одного жеста не заводим. */
-  function openEvFan(anchor, idx) {
+  function openEvFan(anchor, idx, quiet) {
     var s = sessions[idx];
     if (!s) return;
     var fan = $("evFan"), scrim = $("spotScrim"), dev = document.querySelector(".device");
@@ -35854,7 +35871,7 @@
     if (top + h > dr.height - 10) top = Math.max(10, ar.top - dr.top - h - 6);
     fan.style.left = Math.round(left) + "px";
     fan.style.top = Math.round(top) + "px";
-    tickClick();
+    if (!quiet) tickClick();
   }
   function closeEvFan() { $("evFan").hidden = true; $("spotScrim").hidden = true; }
 
