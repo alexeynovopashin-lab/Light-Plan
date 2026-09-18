@@ -561,7 +561,10 @@
     chat:   '<path d="M4 5.5h16v11H9l-4 3.5v-3.5H4z"/>',
     /* Галочка: выбранный пункт в меню, закрытое звено сделки */
     check:  '<polyline points="5 12.5 10 17.5 19 6.5"/>',
-    chevron:'<path d="M9 4l8 8-8 8"/>',
+    /* Шеврон стоит по центру холста (x 8…16 вокруг 12): его поворачивают
+       на четверть и на половину — «вниз», «вверх», «назад», — и знак не
+       должен съезжать с места от поворота */
+    chevron:'<path d="M8 4l8 8-8 8"/>',
     arrow:  '<path d="M4 12h15M13 6l6 6-6 6"/>',
     close:  '<path d="M6 6l12 12M18 6L6 18"/>',
     plus:   '<path d="M12 5v14M5 12h14"/>',
@@ -1995,11 +1998,10 @@
        отступа подпись казалась прилипшей к самому верху кнопки */
     margin-top: 6px;
   }
-  .mr-chev { display: inline-flex; align-self: center; flex-shrink: 0; }
-  .mr-chev svg { width: 9px; height: 15px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
-    stroke-linecap: round; stroke-linejoin: round;
-    transform: rotate(90deg); transition: transform 0.35s ease; }
-  .map-read.shut .mr-chev svg { transform: rotate(-90deg); }
+  /* Панель прижата к низу экрана: раскрытая уходит вниз, и шеврон смотрит
+     туда же, куда поедет содержимое; свёрнутая поднимается — шеврон вверх */
+  .mr-chev { align-self: center; }
+  .map-read.shut .mr-chev { transform: rotate(180deg); }
   /* Собственного паддинга у обёртки нет: свёрнутый блок с max-height: 0 всё
      равно занял бы его высоту — эту граблю уже ловили */
   .map-fold { overflow: hidden; max-height: 1600px; transition: max-height 0.4s ease; }
@@ -2048,7 +2050,6 @@
      потоке, а достижимость обеспечивает потолок высоты кадра выше. */
   @media (prefers-reduced-motion: reduce) {
     .map-fold { transition: none; }
-    .mr-chev svg { transition: none; }
   }
 
   /* ---------- Сводка ---------- */
@@ -2107,10 +2108,8 @@
   }
   .spoiler:active { color: var(--ink); }
   .spoiler svg { width: 17px; height: 17px; stroke: var(--ink-4); fill: none; stroke-width: 1.6; }
-  /* Шевроны были набраны кеглем подписи и самым бледным тоном — знак, который
-     говорит «здесь разворачивается», читался хуже, чем текст рядом. Кегль
-     поднят до заметного, тон — на ступень контрастнее */
-  .spoiler .chev { transition: transform 0.35s ease; font-size: 17px; color: var(--ink-3); }
+  /* Знак разворота — общий шеврон (`.chv`, в конце стилей): раскрытие
+     переворачивает его вверх */
   .spoiler.open .chev { transform: rotate(180deg); }
   .pro-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.25,1,0.4,1); }
   .pro-body.open { max-height: 1600px; }
@@ -3406,8 +3405,8 @@
   #yTitle { cursor: pointer; }
   #year12Title.now { color: var(--brass); }
   .year-nav button {
-    background: none; border: none; color: var(--ink-4); font-family: inherit;
-    font-size: 22px; cursor: pointer; padding: 6px 14px; line-height: 1;
+    background: none; border: none; color: var(--ink-4); cursor: pointer;
+    display: inline-flex; padding: 9px 14px;
   }
   /* Строки-полосы уступили место мини-календарям: стандартный вид — чистая
      навигация («быстро перейти к дате»), не инфографика. Полоса занятости
@@ -3634,7 +3633,7 @@
   .dp-bar.shut .dp-bar-main { max-width: 0; opacity: 0; padding: 0; }
   /* Свёрнутая ручка ниже раскрытой плашки: сидя на черте, она смотрится на
      фоне календаря сверху и ленты снизу, и полновесная кнопка в 35px там
-     тяжела. Цель остаётся нажимаемой — 32 на 23 */
+     тяжела. Цель остаётся нажимаемой — 40 на 22 */
   .dp-bar.shut .dp-b-chev { padding: 3px 12px; }
   /* По базовой линии, а не по центру строки. У рассвета и заката линия
      горизонта проходит на 16.5 из 24 высоты, то есть под ней 31.25% пустоты.
@@ -3692,21 +3691,21 @@
   /* Черта делит панель на свет и погоду: слева то, чем управляет солнце,
      справа то, чем небо. Без неё пять показаний читались одним списком */
   .dp-b-sep { width: 1px; height: 12px; background: var(--hairline); }
-  /* Знак справа не про переход, а про сворачивание — тот же спойлерный «▾»,
-     что раскрывает «Подробно» на экране «Свет», и крутится он так же
-     (Алексей, 3 сентября 2026). Своя кнопка, а не значок внутри чужой: у
+  /* Знак справа не про переход, а про сворачивание — тот же шеврон
+     разворота, что раскрывает «Подробно» на экране «Свет», и крутится он так
+     же (Алексей, 3 сентября 2026). Своя кнопка, а не значок внутри чужой: у
      показаний своё дело — экран «Свет», — и палец не должен выбирать между
      ними наугад. Поле 12px по бокам добирает цель до 40px по ширине при
-     знаке в 17: меньше — и в неё промахиваются. */
+     знаке в 16: меньше — и в неё промахиваются. */
   .dp-b-chev {
     flex: 0 0 auto; border: none; background: none; cursor: pointer;
-    padding: 9px 12px; font-family: inherit;
-    font-size: 17px; line-height: 1; color: var(--ink-3);
+    display: inline-flex; padding: 9px 12px;
     transition: transform 0.35s ease;
   }
   .dp-b-chev:active { background: var(--press); }
-  /* Раскрытая панель показывает «▴», свёрнутая — «▾»: знак смотрит туда,
-     куда поедет содержимое, как у «Подробно» и у полосы мудборда */
+  /* Раскрытая панель показывает шеврон вверх, свёрнутая — вниз: знак
+     смотрит туда, куда поедет содержимое, как у «Подробно» и у полосы
+     мудборда */
   .dp-b-chev { transform: rotate(180deg); }
   .dp-bar.shut .dp-b-chev { transform: none; }
   /* Загрузка дня — заголовок списка съёмок (`.sec-label`, тот же капс, что у
@@ -3757,7 +3756,6 @@
   /* Тот же шеврон, что раскрывает «Подробно» на экране «Свет»: один знак
      разворота на всё приложение, не свой у каждой секции (Алексей,
      3 сентября 2026) */
-  .mb-strip-head .chev { flex: 0 0 auto; transition: transform 0.35s ease; font-size: 17px; color: var(--ink-3); }
   .mb-strip-head.open .chev { transform: rotate(180deg); }
   /* Раскрытый блок отдаёт место плиткам: от шапки остаётся тонкая полоса —
      имя и шеврон. Веер и сводка в ней повторяли то, что уже стоит ниже
@@ -4045,8 +4043,6 @@
     display: flex; align-items: center; justify-content: center; color: var(--ink-3);
     -webkit-touch-callout: none;
   }
-  .mb-jump svg { width: 19px; height: 19px; stroke: currentColor; fill: none;
-    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .mb-jump:active { color: var(--brass); }
   /* Лист выбора обложки — тот же `.ref-card`, что и сетка мудборда, плюс
      галочка на выбранном (тот же приём, что у плюса найденного кадра) и
@@ -4313,14 +4309,10 @@
      центру экрана стояло слово, а не «слово со стрелкой». Центровки не стало —
      компенсировать нечего, а 20px она забирала у текста, которого и так не
      хватало. Шеврон остаётся подсказкой, что заголовок — кнопка к году. */
-  .pt-chev { display: inline-flex; vertical-align: middle; margin-left: 5px; }
-  .pt-chev svg { width: 7px; height: 12px; fill: none; stroke: var(--ink-6); stroke-width: 2.4;
-    stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); }
   /* У «Съёмок» шеврон стоит слева и смотрит влево, а не вниз: кнопка ведёт
      на весь год целиком, а не разворачивает список под собой — вниз намекал
      на список, которого тут нет */
-  .plan-title .pt-chev { margin-left: 0; margin-right: 5px; }
-  .plan-title .pt-chev svg { transform: rotate(180deg); }
+  .plan-title .pt-chev { margin: 0 -3px 0 -5px; }
   /* Действия разрежены: три знака подряд без просвета читались одной кнопкой */
   .plan-acts { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
   .icon-btn {
@@ -5150,10 +5142,9 @@
     color: var(--ink); font-variant-numeric: tabular-nums;
     cursor: pointer; -webkit-appearance: none; appearance: none;
   }
-  /* Знак «раскрыть» тот же, что у сводки дня и у списков: треугольник вниз
+  /* Знак «раскрыть» тот же, что у сводки дня и у списков: шеврон вниз
      говорит «здесь откроется список», а шеврон вправо сказал бы «здесь
      откроется другой экран» — не то, что тут происходит */
-  .tel-cc .chev { font-size: 13px; color: var(--ink-6); transform: translateY(-1px); }
   .tel-row .set-in {
     width: auto; flex: 1 1 auto; margin: 0;
     border-radius: 4px 12px 12px 4px;
@@ -5268,10 +5259,9 @@
      ещё экран», как и шеврон в карточке. */
   /* Шеврон перехода — один знак на строку настроек и на строку формы:
      «дальше» выглядит одинаково, где бы за ним ни лежала дверь */
-  .item .v .go-chev, .row .rv .go-chev {
-    display: inline-block; margin-left: 7px; font-size: 22px; line-height: 1;
-    color: var(--ink-4); vertical-align: -2px;
-  }
+  /* Поле холста справа от галочки съедено отступом: знак встаёт у края
+     строки, где стоял прежний символ «›» */
+  .go-chev { margin: 0 -4px 0 2px; }
   /* Полоса кадров живёт под своей строкой и обрезается по краю группы:
      сколько поместилось, столько и видно — считает всё равно строка */
   #fMbStrip { padding: 0 15px 13px; overflow: hidden; }
@@ -5470,7 +5460,6 @@
   .lw-tx { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
   .lw-t { font-size: 16px; }
   .lw-s { font-size: 12px; color: var(--ink-5); }
-  .loc-way .go-chev { color: var(--ink-6); font-size: 22px; line-height: 1; flex-shrink: 0; }
   /* Возврат к развилке. Тот же вид, что у «назад» в разделах настроек:
      выход со второго экрана выглядит одинаково, где бы он ни стоял */
   .loc-back {
@@ -5479,8 +5468,6 @@
     display: inline-flex; align-items: center; gap: 6px;
   }
   .loc-back[hidden] { display: none; }
-  .loc-back svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;
-    stroke-linecap: round; stroke-linejoin: round; }
   /* «Новая студия» — приглашение, а не действие первой руки: тон латунный,
      как у всех «＋» приложения, вес обычный */
   .loc-add {
@@ -5785,8 +5772,6 @@
      откроется ещё экран» с расстояния вытянутой руки, иначе строка читается
      как надпись и в неё не тапают. */
   .chev { flex-shrink: 0; }
-  .chev svg { width: 10px; height: 17px; fill: none; stroke: var(--ink-6); stroke-width: 2.1;
-    stroke-linecap: round; stroke-linejoin: round; }
   .go-btn {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
     background: var(--press); border-radius: 11px; corner-shape: squircle; padding: 8px 10px;
@@ -6084,7 +6069,7 @@
     padding: 13px 14px; background: none; border: none; font-family: inherit; cursor: pointer; }
   .fold-body { display: none; padding: 0 14px 13px; }
   .fold.open .fold-body { display: block; }
-  .fold.open .chev svg { transform: rotate(90deg); transform-origin: center; }
+  .fold.open .chev { transform: rotate(180deg); }
   .strip { display: flex; gap: 6px; margin-top: 2px; }
   .strip img { width: 46px; height: 60px; object-fit: cover; border-radius: 9px; corner-shape: squircle; flex-shrink: 0; }
   .strip .ph { width: 46px; height: 60px; border-radius: 9px; corner-shape: squircle; flex-shrink: 0;
@@ -6948,13 +6933,10 @@
   .dp-title { flex: 1; display: flex; align-items: center; gap: 6px;
     background: none; border: none; padding: 4px 6px; border-radius: 9px; corner-shape: squircle;
     font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer; }
-  .dp-title .pt-chev { transition: transform 0.25s ease; }
-  .dp-title.open .pt-chev { transform: rotate(-90deg); }
+  .dp-title.open .pt-chev { transform: rotate(180deg); }
   .dp-arrow { width: 34px; height: 34px; border: none; border-radius: 10px; corner-shape: squircle;
     background: var(--field); color: var(--ink-3); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; }
-  .dp-arrow svg { width: 8px; height: 13px; fill: none; stroke: currentColor;
-    stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
   .dp-arrow:active { background: var(--field-press); }
   .dp-wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
     font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase;
@@ -7266,8 +7248,6 @@
   @media (prefers-reduced-motion: reduce) { .stepper .step-in { transition: none; } }
   .stepper .step-in:focus { background: var(--press); }
   .stepper .step-in::placeholder { color: var(--ink-8); font-weight: 400; }
-  #fPayFold .chev { display: inline-block; transition: transform 0.3s ease;
-    color: var(--ink-3); font-size: 17px; }
   #fPayFold.open .chev { transform: rotate(180deg); }
   #fPaySumm { font-size: 15px; }
   #fPaySumm b { color: var(--brass); font-weight: 650; font-variant-numeric: tabular-nums; }
@@ -7340,7 +7320,6 @@
     font-family: inherit; font-size: 15px; padding: 8px 0;
     display: inline-flex; align-items: center; gap: 7px;
   }
-  .back svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; }
   .gear {
     background: none; border: none; cursor: pointer; padding: 8px;
     color: var(--ink-4); display: flex;
@@ -7571,6 +7550,40 @@
   .upright-t { font-size: 15px; font-weight: 500; color: var(--ink-2); }
   @keyframes upright-rise { from { transform: rotate(-90deg); } to { transform: none; } }
   @media (prefers-reduced-motion: reduce) { .upright svg { animation: none; } }
+
+  /* ---------- Шеврон ----------
+     Один знак на всё приложение: «дальше», «назад», «развернуть» и
+     «листать» — одна галочка одного размера и одной толщины, различаются
+     только поворотом (Алексей, 18 сентября 2026: «привести значки к одному
+     виду… галочки мне нравятся больше мелких треугольников»). До этого знак
+     был нарисован четырнадцатью способами: треугольник «▾» и буквы «› ‹» в
+     потоке текста и пять SVG разного кегля — у мелких линия выходила тоньше
+     пикселя (0,7 px у «‹ Сентябрь», 0,9 px у стрелки панели карты).
+
+     Исходное направление задаёт сам рисунок (`dn`, `up`, `lt`; без
+     класса — вправо), состояние «раскрыто» крутит обёртку: два поворота
+     складываются, а не перебивают друг друга. Правило стоит последним в
+     стилях намеренно — оно перекрывает прежние `.back svg`, `.map-here svg`
+     и подобные, равные ему по весу.
+
+     В строке текста знак садится серединой на середину заглавных (0.35em
+     над строкой, половина знака — 8px), а не строчных: `middle` опускал его
+     на полтора-два пикселя под цифры значения и под имя месяца.
+
+     Тон — тон значения (`--ink-4`), как у знаков в строках настроек. Кнопка,
+     у которой шеврон единственный знак, красит его сама: у неё свой тон и
+     свой отклик на нажатие. */
+  .chv { display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 auto; width: 16px; height: 16px; vertical-align: calc(0.35em - 8px);
+    color: var(--ink-4); transition: transform 0.35s ease; }
+  .chv svg { display: block; width: 16px; height: 16px; fill: none; stroke: currentColor;
+    stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .chv.dn svg { transform: rotate(90deg); }
+  .chv.up svg { transform: rotate(-90deg); }
+  .chv.lt svg { transform: rotate(180deg); }
+  .back .chv, .loc-back .chv, .year-nav .chv, .dp-arrow .chv,
+  .mb-jump .chv, .map-bare-btn .chv { color: inherit; }
+  @media (prefers-reduced-motion: reduce) { .chv { transition: none; } }
 </style>
 </head>
 <body>
@@ -7749,7 +7762,7 @@
     </div>
 
     <div class="pro">
-      <button class="spoiler" id="spoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl" data-i18n="today.details">Подробно</span><span class="chev">▾</span></button>
+      <button class="spoiler" id="spoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl" data-i18n="today.details">Подробно</span><span class="chev chv dn" data-ic="chevron"></span></button>
       <div class="pro-body" id="proBody"></div>
     </div>
 
@@ -7870,7 +7883,7 @@
            говорила бы чужим языком. Стоит по центру — там, где панель была,
            и туда же возвращается. -->
       <button class="map-here map-bare-btn" id="mapBareBtn" aria-label="Показать время" data-i18n-aria="map.showDock">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+        <span class="chv up" data-ic="chevron"></span>
       </button>
       <button class="map-here map-route-btn" id="mapRouteBtn" aria-label="Маршрут" data-i18n-aria="map.route" data-ic="route" style="bottom:calc(var(--ctl-bot, 0px) + 54px);"></button>
     </div>
@@ -7942,7 +7955,7 @@
     <button class="map-read" id="mapRead" aria-expanded="true" aria-controls="mapFold">
       <span class="mr-time" id="mrTime">—</span>
       <span class="mr-phase" id="mrPhase">—</span>
-      <span class="mr-chev" data-ic="chevron"></span>
+      <span class="mr-chev chv dn" data-ic="chevron"></span>
     </button>
 
     <div class="map-fold" id="mapFold">
@@ -7999,7 +8012,7 @@
       </div>
 
       <div class="pro">
-        <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl" data-i18n="today.details">Подробно</span><span class="chev">▾</span></button>
+        <button class="spoiler" id="mSpoilerBtn"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V4M15 20v-6M20 20V8"/></svg><span class="lbl" data-i18n="today.details">Подробно</span><span class="chev chv dn" data-ic="chevron"></span></button>
         <div class="pro-body" id="mProBody"></div>
       </div>
     </div>
@@ -8020,7 +8033,7 @@
       <!-- Год из заголовка убран: он и так выбирается на экране года,
            а месяцу нужна ширина, чтобы не обрываться многоточием -->
       <button class="plan-title" id="planTitle">
-        <span class="pt-chev" data-ic="chevron"></span>
+        <span class="pt-chev chv lt" data-ic="chevron"></span>
         <span id="calMonth">—</span>
       </button>
       <div class="plan-acts">
@@ -8097,7 +8110,7 @@
        <span class="dp-b-sep"></span>
        <span class="dp-b dp-b-wx"><span id="dpIcon"></span><span id="dpTemp">—</span></span>
       </button>
-      <button class="dp-b-chev" id="dayToggle">▾</button>
+      <button class="dp-b-chev" id="dayToggle"><span class="chv dn" data-ic="chevron"></span></button>
      </div>
     </div>
     <!-- Закреплённое кончается здесь: дальше едет лента. Тег закрывался сам,
@@ -8157,7 +8170,7 @@
           <span class="sub" id="mbStripSub"></span>
           <span class="off" id="mbStripOff"></span>
         </span>
-        <span class="chev">▾</span>
+        <span class="chev chv dn" data-ic="chevron"></span>
       </button>
       <div class="mb-strip-body" id="mbStripBody">
         <div class="mb-lbl" id="mbStripShootsLbl" data-i18n="nav.shoots">Съёмки</div>
@@ -8241,20 +8254,20 @@
     </div>
 
     <div class="set-nav">
-      <div class="item" id="setNavProfile"><span class="ir"><span class="item-ic" data-ic="phone"></span><span class="k" data-i18n="set.grpProfile">Профиль</span></span><span class="v" id="setNavProfileV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavView"><span class="ir"><span class="item-ic" data-ic="sun_moon"></span><span class="k" data-i18n="set.grpView">Вид</span></span><span class="v" id="setNavViewV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavShoots"><span class="ir"><span class="item-ic" data-ic="camera"></span><span class="k" data-i18n="set.grpShoots">Съёмки</span></span><span class="v" id="setNavShootsV"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavProfile"><span class="ir"><span class="item-ic" data-ic="phone"></span><span class="k" data-i18n="set.grpProfile">Профиль</span></span><span class="v" id="setNavProfileV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
+      <div class="item" id="setNavView"><span class="ir"><span class="item-ic" data-ic="sun_moon"></span><span class="k" data-i18n="set.grpView">Вид</span></span><span class="v" id="setNavViewV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
+      <div class="item" id="setNavShoots"><span class="ir"><span class="item-ic" data-ic="camera"></span><span class="k" data-i18n="set.grpShoots">Съёмки</span></span><span class="v" id="setNavShootsV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
       <!-- Значение появляется только у молчания. Перечислять, сколько
            уведомлений из скольких включено, незачем: включённые — это
            норма, о ней не отчитываются. А выключенные все разом — то
            состояние, ради которого в раздел и возвращаются, когда
            приложение вдруг перестало предупреждать -->
-      <div class="item" id="setNavAlerts"><span class="ir"><span class="item-ic" data-ic="alarm"></span><span class="k" data-i18n="set.grpAlerts">Оповещения</span></span><span class="v" id="setNavAlertsV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavPlaces"><span class="ir"><span class="item-ic" data-ic="pin"></span><span class="k" data-i18n="set.grpPlaces">Карта и места</span></span><span class="v" id="setNavPlacesV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavStore"><span class="ir"><span class="item-ic" data-ic="briefcase"></span><span class="k" data-i18n="set.storage">Хранилище</span></span><span class="v" id="setNavStoreV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavData"><span class="ir"><span class="item-ic" data-ic="cloud"></span><span class="k" data-i18n="set.grpData">Данные и облако</span></span><span class="v" id="setNavDataV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavLocale"><span class="ir"><span class="item-ic" data-ic="chat"></span><span class="k" data-i18n="set.grpLocale">Язык и регион</span></span><span class="v" id="setNavLocaleV"><span class="go-chev">›</span></span></div>
-      <div class="item" id="setNavAbout"><span class="ir"><span class="item-ic" data-ic="aperture"></span><span class="k" data-i18n="set.grpAbout">О приложении</span></span><span class="v"><span class="go-chev">›</span></span></div>
+      <div class="item" id="setNavAlerts"><span class="ir"><span class="item-ic" data-ic="alarm"></span><span class="k" data-i18n="set.grpAlerts">Оповещения</span></span><span class="v" id="setNavAlertsV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
+      <div class="item" id="setNavPlaces"><span class="ir"><span class="item-ic" data-ic="pin"></span><span class="k" data-i18n="set.grpPlaces">Карта и места</span></span><span class="v" id="setNavPlacesV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
+      <div class="item" id="setNavStore"><span class="ir"><span class="item-ic" data-ic="briefcase"></span><span class="k" data-i18n="set.storage">Хранилище</span></span><span class="v" id="setNavStoreV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
+      <div class="item" id="setNavData"><span class="ir"><span class="item-ic" data-ic="cloud"></span><span class="k" data-i18n="set.grpData">Данные и облако</span></span><span class="v" id="setNavDataV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
+      <div class="item" id="setNavLocale"><span class="ir"><span class="item-ic" data-ic="chat"></span><span class="k" data-i18n="set.grpLocale">Язык и регион</span></span><span class="v" id="setNavLocaleV"><span class="go-chev chv" data-ic="chevron"></span></span></div>
+      <div class="item" id="setNavAbout"><span class="ir"><span class="item-ic" data-ic="aperture"></span><span class="k" data-i18n="set.grpAbout">О приложении</span></span><span class="v"><span class="go-chev chv" data-ic="chevron"></span></span></div>
     </div>
   </section>
 
@@ -8266,7 +8279,7 @@
        настроек несут свой 24px сами, и два отступа сложились бы вдвое. -->
   <div class="overlay pad flush" id="setOvProfile">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpProfile">Профиль</div>
     <!-- Профиль стоит первым и до сих пор его не было вовсе: приложение знало
@@ -8290,7 +8303,7 @@
          что нужно (docs: DECISIONS, «Код страны отдельным блоком»). -->
     <div class="tel-row">
       <button class="tel-cc" id="myTelCc" type="button" aria-haspopup="dialog">
-        <span id="myTelCcV">+7</span><span class="chev">▾</span>
+        <span id="myTelCcV">+7</span><span class="chev chv dn" data-ic="chevron"></span>
       </button>
       <input class="set-in" type="tel" id="myTel" inputmode="tel"
              autocomplete="tel-national" placeholder="Телефон"/>
@@ -8321,7 +8334,7 @@
 
   <div class="overlay pad flush" id="setOvView">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpView">Вид</div>
     <!-- Лента под слайдером — только в астро (docs: DECISIONS, «Барабан
@@ -8374,7 +8387,7 @@
 
   <div class="overlay pad flush" id="setOvShoots">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpShoots">Съёмки</div>
     <div class="sec-label" data-i18n="set.calendar">Календарь</div>
@@ -8462,7 +8475,7 @@
 
   <div class="overlay pad flush" id="setOvAlerts">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpAlerts">Оповещения</div>
     <div class="sec-label" data-i18n="set.feedback">Отклик</div>
@@ -8494,7 +8507,7 @@
 
   <div class="overlay pad flush" id="setOvPlaces">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpPlaces">Карта и места</div>
     <div class="sec-label" data-i18n="nav.map">Карта</div>
@@ -8508,12 +8521,12 @@
     <div class="sec-label" data-i18n="set.places">Места</div>
     <!-- Пункт был заглушкой с выдуманной тройкой. Теперь считает настоящие
          точки и открывает тот же лист, что закладка в шапке карты -->
-    <div class="item" id="spotsRow"><span class="ir"><span class="item-ic" data-ic="pin"></span><span class="k" data-i18n="loc.myPlaces">Мои места</span></span><span class="v" id="spotCount">нет <span class="go-chev">›</span></span></div>
+    <div class="item" id="spotsRow"><span class="ir"><span class="item-ic" data-ic="pin"></span><span class="k" data-i18n="loc.myPlaces">Мои места</span></span><span class="v" id="spotCount">нет <span class="go-chev chv" data-ic="chevron"></span></span></div>
   </div>
 
   <div class="overlay pad flush" id="setOvStore">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.storage">Хранилище</div>
     <!-- Хранилище — вход в мудборды: у съёмки и у жанра уже был свой набор
@@ -8522,12 +8535,12 @@
          через настройку карточки (Алексей: «тут это делать удобнее»).
          Раздел не заводит новых данных, только даёт разложить по полочкам
          то, что уже лежит в фонде кадров (docs: DECISIONS). -->
-    <div class="item" id="mbRow"><span class="ir"><span class="item-ic" data-ic="album"></span><span class="k" data-i18n="set.moodboards">Мудборды</span></span><span class="v" id="mbRowN">— <span class="go-chev">›</span></span></div>
+    <div class="item" id="mbRow"><span class="ir"><span class="item-ic" data-ic="album"></span><span class="k" data-i18n="set.moodboards">Мудборды</span></span><span class="v" id="mbRowN">— <span class="go-chev chv" data-ic="chevron"></span></span></div>
     <!-- Экран организаций живёт и здесь: раньше единственный путь был кнопкой
          в шапке «Съёмок», её место занял вход в статистику. Строка в форме
          съёмки («Заказчик») по-прежнему открывает тот же список для выбора,
          а этот пункт — для того, чтобы просто посмотреть архив без съёмки под рукой -->
-    <div class="item" id="orgsSetRow"><span class="ir"><span class="item-ic" data-ic="doc"></span><span class="k" data-i18n="set.orgsDocs">Организации и документы</span></span><span class="go-chev">›</span></div>
+    <div class="item" id="orgsSetRow"><span class="ir"><span class="item-ic" data-ic="doc"></span><span class="k" data-i18n="set.orgsDocs">Организации и документы</span></span><span class="go-chev chv" data-ic="chevron"></span></div>
     <!-- Корзина живёт и здесь: значок в карточке найдётся, только если открыта
          какая-то карточка, а искать удалённое приходится как раз тогда, когда
          открывать нечего. Строка стоит и при пустой корзине: место, где
@@ -8537,7 +8550,7 @@
 
   <div class="overlay pad flush" id="setOvData">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpData">Данные и облако</div>
     <!-- Данные живут на устройстве. Копия — единственная защита от очистки браузером -->
@@ -8623,7 +8636,7 @@
 
   <div class="overlay pad flush" id="setOvLocale">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpLocale">Язык и регион</div>
     <!-- Язык, единицы и валюта — три отдельные настройки, а не одна.
@@ -8664,12 +8677,12 @@
 
   <div class="overlay pad flush" id="setOvAbout">
     <button class="back" data-set-back>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <div class="grp-label" data-i18n="set.grpAbout">О приложении</div>
     <!-- Знакомство повторяется отсюда: тур перестал быть одноразовым экраном
          первого запуска, а вспоминают о нём обычно позже, чем показывают -->
-    <div class="item" id="tourSetRow"><span class="k" data-i18n="tour.row">Знакомство</span><span class="v" data-i18n="tour.rowV">Показать</span><span class="go-chev">›</span></div>
+    <div class="item" id="tourSetRow"><span class="k" data-i18n="tour.row">Знакомство</span><span class="v" data-i18n="tour.rowV">Показать</span><span class="go-chev chv" data-ic="chevron"></span></div>
 
     <!-- Обратная связь — выше лицензий, а не под ними: это то, что реально
          нажимают, а не читают один раз.
@@ -8999,7 +9012,7 @@
       <button type="button" class="fold-head" id="cdRouteHead">
         <span class="badge" data-ic="route"></span>
         <span class="pn-body"><span class="pn-t" id="cdRouteT" data-i18n="card.route">Маршрут дня</span><span class="pn-s" id="cdRouteS">—</span></span>
-        <span class="chev" data-ic="chevron"></span>
+        <span class="chev chv dn" data-ic="chevron"></span>
       </button>
       <div class="fold-body" id="cdRouteBody"></div>
     </div>
@@ -9009,7 +9022,7 @@
       <button type="button" class="fold-head" id="cdRefHead">
         <span class="badge" data-ic="camera"></span>
         <span class="pn-body"><span class="pn-t" id="cdRefT" data-i18n="card.refs">Референсы</span><span class="pn-s" id="cdRefS">—</span></span>
-        <span class="chev" data-ic="chevron"></span>
+        <span class="chev chv" data-ic="chevron"></span>
       </button>
       <div class="fold-body"><div class="strip" id="cdRefStrip"></div></div>
     </div>
@@ -9025,7 +9038,7 @@
       <button type="button" class="fold-head" id="cdDocHead">
         <span class="badge" data-ic="doc"></span>
         <span class="pn-body"><span class="pn-t" data-i18n="card.docs">Документы</span><span class="pn-s" id="cdDocS">—</span></span>
-        <span class="chev" data-ic="chevron"></span>
+        <span class="chev chv dn" data-ic="chevron"></span>
       </button>
       <div class="fold-body" id="cdDocBody"></div>
     </div>
@@ -9465,7 +9478,7 @@
       <!-- Спойлер: свёрнутая оплата показывает способ и итог одной строкой -->
       <button class="row" id="fPayFold">
         <span id="fPaySumm">—</span>
-        <span class="rv"><span class="chev" id="fPayChev">▾</span></span>
+        <span class="rv"><span class="chev chv dn" id="fPayChev" data-ic="chevron"></span></span>
       </button>
       <div id="fPayBody" hidden>
         <div class="g-chips sep">
@@ -9545,7 +9558,7 @@
     <div class="group" id="fRefsGroup">
       <button class="row" id="fMbRow">
         <span><span data-i18n="mb.stripTitle">Мудборд</span><span class="sub2" id="fMbSub">—</span></span>
-        <span class="rv"><span id="fMbN">—</span><span class="go-chev">›</span></span>
+        <span class="rv"><span id="fMbN">—</span><span class="go-chev chv" data-ic="chevron"></span></span>
       </button>
       <div class="strip" id="fMbStrip" hidden></div>
       <input type="file" id="refFile" accept="image/*" multiple hidden>
@@ -9569,7 +9582,7 @@
     <div class="year-sticky-head">
       <div class="form-top">
         <button class="back" id="yearClose">
-          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.shoots">Съёмки</span>
+          <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.shoots">Съёмки</span>
         </button>
         <!-- Справа от «‹ Август» пустовало место на всю высоту шапки — крутить
              весь год до кнопки внизу списка ради статистики было бы глупо
@@ -9626,15 +9639,15 @@
        предполагает (docs: DECISIONS). -->
   <div class="overlay pad" id="year12Overlay">
     <button class="back" id="year12Back">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="year.one">Год</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="year.one">Год</span>
     </button>
     <!-- Та же пара стрелок и тот же приём, что в ленте месяцев (.year-nav)
          этажом выше: год целиком тоже листается, а не только открывается
          заново с другим числом (Алексей: «года должны листаться так же») -->
     <div class="year-nav" style="margin-top:14px;">
-      <button id="year12Prev" aria-label="Прошлый год" data-i18n-aria="year.prev">‹</button>
+      <button id="year12Prev" aria-label="Прошлый год" data-i18n-aria="year.prev"><span class="chv lt" data-ic="chevron"></span></button>
       <span class="y" id="year12Title">2026</span>
-      <button id="year12Next" aria-label="Следующий год" data-i18n-aria="year.next">›</button>
+      <button id="year12Next" aria-label="Следующий год" data-i18n-aria="year.next"><span class="chv" data-ic="chevron"></span></button>
     </div>
     <div class="year12-grid" id="year12Grid"></div>
     <!-- Раз экран научился уходить с текущего года, ему нужен и путь
@@ -9650,7 +9663,7 @@
   <div class="overlay-right pad" id="statsOverlay">
     <div class="form-top">
       <button class="back" id="statsClose">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="year.one">Год</span>
+        <span class="chv lt" data-ic="chevron"></span> <span data-i18n="year.one">Год</span>
       </button>
     </div>
     <!-- Пустой год не должен встречать тишиной: экран открывается и по кнопке
@@ -9688,7 +9701,7 @@
   <!-- ============ ПОИСК ПО СЪЁМКАМ ============ -->
   <div class="overlay pad" id="searchOverlay">
     <button class="back" id="searchBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.back">Назад</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.back">Назад</span>
     </button>
     <div class="field" style="margin-top:14px;">
       <input type="text" id="searchInput" placeholder="Клиент, тип съёмки или место" data-i18n-ph="search.ph"/>
@@ -9705,7 +9718,7 @@
        (docs/12_CARD_ARCHITECTURE.md, «Организация как сущность») -->
   <div class="overlay pad" id="orgOverlay">
     <button class="back" id="orgBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.back">Назад</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.back">Назад</span>
     </button>
     <div class="org-seg" id="orgSeg">
       <button class="active" data-v="orgs" data-i18n="org.tabOrgs">Организации</button>
@@ -9730,7 +9743,7 @@
        Event OS, чтобы связать карточки разных исполнителей одного события. -->
   <div class="overlay pad" id="phoneOverlay">
     <button class="back" id="phoneBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.back">Назад</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.back">Назад</span>
     </button>
     <div class="g-label"><span data-i18n="set.contacts">Контакты</span><span id="phoneCount"></span></div>
     <div id="phoneList"></div>
@@ -9739,7 +9752,7 @@
   <!-- Карточка организации: реквизиты, документы, архив съёмок -->
   <div class="overlay pad" id="orgCard">
     <button class="back" id="orgCardBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="org.tabOrgs">Организации</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="org.tabOrgs">Организации</span>
     </button>
 
     <div class="g-label" data-i18n="org.one">Организация</div>
@@ -9795,7 +9808,7 @@
        в нескольких (docs/15_MOODBOARD.md). -->
   <div class="overlay pad" id="mbOverlay">
     <button class="back" id="mbBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="nav.settings">Настройки</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="nav.settings">Настройки</span>
     </button>
     <!-- Поиск ищет картинку, а не коробку, в которой она лежит: пустое поле
          и пустой тег показывают подборки, что-то в них — плоскую сетку
@@ -9841,7 +9854,7 @@
        платит тапом тот, у кого их одна (дерево Алексея, 30 августа 2026). -->
   <div class="overlay pad" id="mbShelfOverlay">
     <button class="back" id="mbShelfBack">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> <span data-i18n="set.moodboards">Мудборды</span>
+      <span class="chv lt" data-ic="chevron"></span> <span data-i18n="set.moodboards">Мудборды</span>
     </button>
     <h2 class="form-title" id="mbShelfTitle" style="font-size:22px;">—</h2>
     <p class="form-sub" id="mbShelfSub">—</p>
@@ -9855,7 +9868,7 @@
          которого пришли, и так помнят, а строка стоила высоты. -->
     <div class="mb-topbar">
       <button class="back" id="mbFolderBack" aria-label="Назад">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        <span class="chv lt" data-ic="chevron"></span>
       </button>
       <span class="mb-off-ic" id="mbFolderOffIc"></span>
       <span class="mb-off-ic" id="mbFolderCloudIc"></span>
@@ -10324,7 +10337,7 @@
     <!-- Возврат к трём путям. Лист стал глубиной в два экрана, и со второго
          обязан быть выход, не закрывающий лист целиком -->
     <button class="loc-back" id="locBack" hidden>
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span class="chv lt" data-ic="chevron"></span>
       <span data-i18n="loc.back">Где снимаем</span>
     </button>
     <div class="sheet-title" id="locTitle" data-i18n="loc.title">Где снимаем</div>
@@ -10344,19 +10357,19 @@
           <span class="lw-ic" data-ic="studio"></span>
           <span class="lw-tx"><span class="lw-t" data-i18n="loc.wayStudio">Фотостудия</span>
             <span class="lw-s" data-i18n="loc.wayStudioSub">зал, адрес и телефон</span></span>
-          <span class="go-chev">›</span>
+          <span class="go-chev chv" data-ic="chevron"></span>
         </button>
         <button type="button" class="loc-way" data-way="addr">
           <span class="lw-ic" data-ic="city"></span>
           <span class="lw-tx"><span class="lw-t" data-i18n="loc.wayAddr">Место</span>
             <span class="lw-s" data-i18n="loc.wayAddrSub">улица и дом, поиск по названию</span></span>
-          <span class="go-chev">›</span>
+          <span class="go-chev chv" data-ic="chevron"></span>
         </button>
         <button type="button" class="loc-way" data-way="geo">
           <span class="lw-ic" data-ic="route"></span>
           <span class="lw-tx"><span class="lw-t" data-i18n="loc.wayGeo">Геопозиция</span>
             <span class="lw-s" data-i18n="loc.wayGeoSub">там, где адресов нет</span></span>
-          <span class="go-chev">›</span>
+          <span class="go-chev chv" data-ic="chevron"></span>
         </button>
       </div>
     </div>
@@ -14081,7 +14094,7 @@
        закладка в тех же тридцати пикселях справа. Появление кнопки заодно и
        учит: сохранил — вот где оно теперь лежит. */
     if ($("mapList")) $("mapList").hidden = !spots.length;
-    if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' <span class="go-chev">\u203a</span>';
+    if ($("spotCount")) $("spotCount").innerHTML = esc(String(spots.length || LANG.t("card.none"))) + ' ' + chv("go-chev");
     /* \u041f\u043e\u043b\u043e\u0441\u0430 \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u0430 \u0441\u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435 \u0442\u043e\u0447\u043a\u0438: \u043e\u0442 \u0438\u0445 \u0447\u0438\u0441\u043b\u0430 \u0437\u0430\u0432\u0438\u0441\u0438\u0442, \u0435\u0441\u0442\u044c \u043b\u0438
        \u0432 \u043d\u0435\u0439 \uff0b \u0438 \u0447\u0442\u043e \u0441\u0442\u043e\u0438\u0442 \u0432\u043d\u0438\u0437\u0443 \u2014 \u00ab\u0421\u0434\u0435\u043b\u0430\u0442\u044c \u0441\u044a\u0451\u043c\u043a\u043e\u0439\u00bb \u0438\u043b\u0438 \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0430. \u041f\u0435\u0440\u0432\u0430\u044f
        \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u0430\u044f \u0442\u043e\u0447\u043a\u0430 \u043c\u0435\u043d\u044f\u0435\u0442 \u043f\u043e\u043b\u043e\u0441\u0443, \u0438 \u0443\u0437\u043d\u0430\u0442\u044c \u043e\u0431 \u044d\u0442\u043e\u043c \u0435\u0439 \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435\u043e\u0442\u043a\u0443\u0434\u0430. */
@@ -19716,7 +19729,7 @@
          \u0417\u043d\u0430\u043a\u043e\u043c\u0441\u0442\u0432\u043e \u043d\u0430 \u043f\u0435\u0440\u0432\u043e\u043c \u0437\u0430\u043f\u0443\u0441\u043a\u0435 \u0443\u043f\u0438\u0440\u0430\u0435\u0442\u0441\u044f \u0432 \u044d\u0442\u043e \u043f\u0435\u0440\u0432\u044b\u043c (DECISIONS). */
       row.hidden = false;
       $("binSetN").innerHTML = (trashed.length
-        ? trashed.length : LANG.t("bin.emptyShort")) + ' <span class="go-chev">\u203a</span>';
+        ? trashed.length : LANG.t("bin.emptyShort")) + ' ' + chv("go-chev");
     }
   }
   function renderBin() {
@@ -22729,7 +22742,7 @@
     $("mbStripHint").hidden = folders.length < 2;   // переставлять нечего, пока подборка одна
   }
   function renderMbCount() {
-    if ($("mbRowN")) $("mbRowN").innerHTML = esc(String(mbFolders().length || LANG.t("card.none"))) + ' <span class="go-chev">›</span>';
+    if ($("mbRowN")) $("mbRowN").innerHTML = esc(String(mbFolders().length || LANG.t("card.none"))) + ' ' + chv("go-chev");
   }
 
   var mbOpen = null;    // открытая папка: {kind, si|g}
@@ -22803,8 +22816,7 @@
      такой кнопке хватит одной строки. */
   var JUMP_MIN = 0.6;
   function jumpAttach(scroller, wrap, btn, content) {
-    var DOWN = '<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
-    var UP = '<svg viewBox="0 0 24 24"><polyline points="6 15 12 9 18 15"/></svg>';
+    var DOWN = chv("dn"), UP = chv("up");
     var shown = null;
     /* Куда вести — считаем от нынешнего положения, а не от нарисованной
        стрелки. Стрелка — подсказка, и она может отстать: положение меняют и
@@ -23479,7 +23491,7 @@
         + '<span class="badge">' + IC.svg("city") + "</span>"
         + '<span class="org-b"><span class="org-n">' + esc(o.name || LANG.t("org.noName")) + "</span>"
         + '<span class="org-s">' + esc(bits.join(" · ") || LANG.t("org.noReq")) + "</span></span>"
-        + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
+        + chv("chev") + "</button>";
     /* Пустой экран объясняет, что за сущность и зачем она, а не командует.
        «Заведите ту, что платит» читалось указанием и требовало догадаться,
        что имеется в виду юрлицо. Сначала называем предмет, потом пользу. */
@@ -23770,7 +23782,7 @@
         + '<span class="org-b"><span class="org-n">' + esc(typeName(p.s)) + " · "
         + dMon(p.s.date) + " " + p.s.date.getFullYear() + "</span>"
         + '<span class="org-s">' + esc(tail || LANG.t("org.noSum")) + "</span></span>"
-        + '<span class="chev">' + IC.svg("chevron") + "</span></button>";
+        + chv("chev") + "</button>";
     }).join("") || '<div class="org-empty">' + esc(LANG.t("org.noShoots")) + "</div>";
     $("oShoots").querySelectorAll(".org-item").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -24351,8 +24363,7 @@
   var dpMode = {};       // host.id -> "days" | "months"
   function dpArrow(dir) {
     return '<button type="button" class="dp-arrow" data-go="' + dir + '" aria-label="'
-      + esc(LANG.t(dir < 0 ? "nav.back" : "nav.fwd")) + '"><svg viewBox="0 0 24 24"><polyline points="'
-      + (dir < 0 ? "15 4 8 12 15 20" : "9 4 16 12 9 20") + '"/></svg></button>';
+      + esc(LANG.t(dir < 0 ? "nav.back" : "nav.fwd")) + '">' + chv(dir < 0 ? "lt" : "") + "</button>";
   }
   /* Границы: конец не бывает раньше начала и не уезжает на полгода — таких
      съёмок не бывает. Невозможные дни не гасятся молча после выбора, а просто
@@ -24369,7 +24380,7 @@
       + '<button type="button" class="dp-title' + (mode === "months" ? " open" : "") + '">'
       + (mode === "months" ? shown.getFullYear()
                            : monthTitle(shown) + " " + shown.getFullYear())
-      + '<span class="pt-chev" data-ic="chevron"></span></button>'
+      + chv("pt-chev dn") + "</button>"
       + dpArrow(1) + "</div>";
 
     var body;
@@ -27776,6 +27787,13 @@
      приложении кнопка оставалась пустым, но исправно нажимающимся квадратом
      (Алексей, 5 сентября 2026: «пропал флажок»). Вставляем знак первым
      ребёнком, а не заменяем содержимое: свитч должен остаться. */
+  /* Шеврон строкой — для разметки, которую собирает код. Рисунок один на
+     всё приложение (`.chv` в стилях); `cls` — место и направление:
+     "go-chev", "chev dn", "lt". Берёт словарь с окна, а не `IC`: строки
+     настроек собираются ещё до того, как `IC` получает значение */
+  function chv(cls) {
+    return '<span class="' + (cls ? cls + " " : "") + 'chv">' + window.ICONS.svg("chevron") + "</span>";
+  }
   function paintIcons(root) {
     (root || document).querySelectorAll("[data-ic]").forEach(function (el) {
       if (!el.querySelector("svg")) el.insertAdjacentHTML("afterbegin", IC.svg(el.dataset.ic));
@@ -35278,7 +35296,7 @@
      своих строк у списка нет ни одной. */
   function renderSetNav() {
     if (!$("setNavView")) return;
-    var chev = ' <span class="go-chev">\u203a</span>';
+    var chev = ' ' + chv("go-chev");
     function put(id, v) {
       var el = $(id); if (!el) return;
       el.innerHTML = esc(String(v)) + chev;
@@ -35536,7 +35554,7 @@
     }).join("");
     var n = phoneIndex().length;
     $("phonesN").innerHTML = (n ? n : esc(LANG.t("card.none")))
-      + ' <span class="go-chev">›</span>';
+      + ' ' + chv("go-chev");
   }
   /* ID копируется по тапу: его диктуют и вставляют, а перепечатывать
      двенадцать цифр с экрана — способ ошибиться. Подтверждение показываем в
