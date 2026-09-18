@@ -9147,6 +9147,10 @@
 
     <!-- Время отделено от жанра: между ними встал клиент. Съёмку называют
          жанром и именем, а «когда» — следующий вопрос, не первый -->
+    <!-- Съёмка уже своих точек не сохраняется («Событие — матрёшка»).
+         Пока форму правят, ограничений нет — это заготовка; сообщение
+         появляется при попытке сохранить и гаснет, когда время поправили -->
+    <div class="wish-warn" id="fNestWarn"><span class="ic" data-ic="warn"></span><b id="fnwTitle"></b><span id="fnwText"></span></div>
     <div class="g-label" data-i18n="form.time">Время</div>
     <div class="group">
       <!-- Дата стоит у начала и у конца: мероприятие начинается 8 августа и
@@ -18674,6 +18678,12 @@
   function shootWord(n) { return LANG.word("unit.shoot", n); }
 
   function renderDayPanel() {
+    /* Пока палец держит событие, лента не перерисовывается: замена узлов
+       сбивает счёт минуты (он идёт от слоя, а у снятого слоя прямоугольник
+       нулевой) и может унести отпускание в снятый узел. Просьба помнится и
+       исполняется, когда жест кончится (багревью ленты дня, 18.09.2026) */
+    if (dlG) { dlRedraw = true; return; }
+    dlRedraw = false;
     var w = dayWindow(calSel), q = w.q;
     /* Ось таймлайна красится фазами света — тем же движком, что рисует дугу
        на «Сегодня» и компас на карте. Полоса читается сверху вниз как сами
@@ -19292,6 +19302,7 @@
   var dlSwallowTill = 0;         // клик после жеста не открывает ни карточку, ни меню часа
   var dlArmedEnd = 0;            // когда кончился жест: свайп дней его не подхватывает
   var dlFanOpen = false;
+  var dlRedraw = false;          // ленту просили перерисовать посреди жеста
   function dlKey(s) { return s ? (s.id || s) : null; }
   function dlStep() { return timeStep === 30 ? 30 : 15; }
   function dlEndOf(s) { return s.end != null ? s.end : s.min + (s.dur || 90); }
@@ -19299,6 +19310,10 @@
   function dlGrip(el, idx, H) {
     el.addEventListener("pointerdown", function (e) {
       if (e.button || dlG || !sessions[idx]) return;
+      /* Непустую съёмку целиком не переносят («Событие — матрёшка»):
+         удержание сразу даёт веер и ручки, а касание выделенной листает
+         ленту или открывает карточку, как у всех */
+      if (nestSpan(sessions[idx])) { dlBegin(e, el, idx, H, "pin", true); return; }
       /* Выделенное тянется сразу, остальное — после удержания */
       dlBegin(e, el, idx, H, "move", !el.classList.contains("sel"));
     });
@@ -19351,7 +19366,7 @@
     var g = dlG = { el: el, idx: idx, s: s, H: H, mode: mode, hold: hold, pid: e.pointerId,
       sx: e.clientX, sy: e.clientY, lastY: e.clientY,
       y0: e.clientY - el.parentNode.getBoundingClientRect().top,
-      a0: s.min, b0: dlEndOf(s), na: s.min, nb: dlEndOf(s),
+      a0: s.min, b0: dlEndOf(s), na: s.min, nb: dlEndOf(s), nest: nestSpan(s),
       armed: false, moved: false, timer: null, raf: null, edgeOk: false };
     window.addEventListener("pointermove", dlMove);
     window.addEventListener("pointerup", dlUp);
@@ -19362,6 +19377,13 @@
   function dlArm() {
     var g = dlG;
     g.armed = true;
+    if (g.mode === "pin") {
+      /* Поднимать нечего: ручки и веер встают сразу, автопрокрутки нет */
+      dlSelect(g.el, g.idx, g.H);
+      tickClick();
+      dlOpenFan(g.el, g.idx);
+      return;
+    }
     if (g.hold) {
       /* Ручки встают сразу при подъёме: отпустит на месте — они уже там */
       dlSelect(g.el, g.idx, g.H);
@@ -19376,7 +19398,7 @@
     g.lastY = e.clientY;
     if (!g.armed) {
       // палец ушёл раньше удержания — это прокрутка или свайп, не наш жест
-      if (Math.abs(e.clientX - g.sx) > 8 || Math.abs(e.clientY - g.sy) > 8) dlEnd();
+      if (Math.abs(e.clientX - g.sx) > 8 || Math.abs(e.clientY - g.sy) > 8) { dlEnd(); dlFlush(); }
       return;
     }
     dlTrack();
@@ -19385,6 +19407,10 @@
      автопрокруткой, и палец, стоящий на месте, продолжает вести время */
   function dlTrack() {
     var g = dlG, st = dlStep();
+    /* Узел сняли с ленты мимо отложенной перерисовки — считать не от чего:
+       жест отменяется без записи */
+    if (!g.el.isConnected) { dlEnd(); renderDayPanel(); return; }
+    if (g.mode === "pin") return;
     var y = g.lastY - g.el.parentNode.getBoundingClientRect().top;
     var dMin = (y - g.y0) / g.H * 60;
     var a = g.a0, b = g.b0;
@@ -19394,6 +19420,10 @@
       if (g.mode === "move") { a = clamp(sn(g.a0 + dMin), 0, 1440 - st); b = a + (g.b0 - g.a0); }
       else if (g.mode === "a") a = clamp(sn(g.a0 + dMin), 0, Math.max(g.a0, g.b0 - st));
       else b = clamp(sn(g.b0 + dMin), Math.min(g.b0, g.a0 + st), 1440);
+      /* Край непустой съёмки не заходит внутрь содержимого: ручка встаёт
+         ровно на начало первой точки или конец последней, даже вне шага */
+      if (g.nest && g.mode === "a") a = Math.min(a, g.nest.a);
+      if (g.nest && g.mode === "b") b = Math.max(b, g.nest.b);
     }
     if (a === g.na && b === g.nb) return;
     if (!g.moved) {
@@ -19459,24 +19489,41 @@
     window.removeEventListener("pointercancel", dlUp);
     dlG = null;
   }
+  function dlFlush() { if (dlRedraw) renderDayPanel(); }
+  /* Жест, так и не получивший отпускания (касание отнято без
+     `pointercancel`), снимается следующим касанием. Перерисовка — не в этом
+     же обработчике: под новым пальцем узел, который она бы и сняла. Если
+     новое касание начнёт свой жест, она дождётся и его конца */
+  function dlDrop() {
+    var g = dlG;
+    dlEnd();
+    if (g.armed) { dlRedraw = true; setTimeout(dlFlush, 0); }
+  }
   function dlUp(e) {
     var g = dlG;
     if (!g || e.pointerId !== g.pid) return;
     dlEnd();
-    if (!g.armed) return;                        // обычный тап или прокрутка
+    if (!g.armed) { dlFlush(); return; }         // обычный тап или прокрутка
     g.el.classList.remove("lift");
     dlArmedEnd = Date.now();
     /* Тап по выделенному без движения — это «открыть карточку», его не глушим */
     if (g.hold || g.moved) dlSwallowTill = Date.now() + 450;
-    if (e.type === "pointercancel") {
-      // касание отняла система — ничего не записываем, возвращаем как было
-      if (g.moved) renderDayPanel();
+    /* Касание отняла система или узел ушёл с ленты — ничего не записываем,
+       возвращаем как было */
+    if (e.type === "pointercancel" || !g.el.isConnected) {
+      if (g.moved || dlRedraw) renderDayPanel();
       return;
     }
     if (g.moved) {
       if (dlCommit(g.s, g.na, g.nb)) { renderSessions(); renderCal(); }
       else renderDayPanel();
-    } else if (g.hold) dlOpenFan(g.el, g.idx);
+    } else if (g.mode === "pin") dlFlush();     // веер уже открыт удержанием
+    else if (g.hold) {
+      dlFlush();
+      var el = g.el.isConnected ? g.el
+        : $("dpSessions").querySelector('.dl-ev[data-i="' + sessions.indexOf(g.s) + '"]');
+      if (el) dlOpenFan(el, +el.dataset.i);
+    } else dlFlush();
   }
   /* Веер после удержания — прежний, но без затемнения: ручки под ним
      должны оставаться в досягаемости, а закрывается он любым касанием мимо.
@@ -19520,7 +19567,11 @@
   /* Касание мимо выделенного снимает выделение — и только: в ленте такой
      тап не открывает ни меню часа, ни чужую карточку */
   document.addEventListener("pointerdown", function (e) {
-    if (dlSel === null || dlG) return;
+    if (dlG) {
+      if (e.pointerId === dlG.pid) return;
+      dlDrop();
+    }
+    if (dlSel === null) return;
     var t = e.target && e.target.closest ? e.target : null;
     if (t && (t.closest(".dl-ev.sel") || t.closest(".dl-selbox") || t.closest("#evFan"))) {
       if (dlFanOpen && !t.closest("#evFan")) { closeEvFan(); dlFanOpen = false; }
@@ -27440,6 +27491,8 @@
     var warn = clash || wishesCheck(fDate);
     $("wishWarn").classList.toggle("show", !!warn);
     if (warn) { $("wwTitle").textContent = warn.t; $("wwText").textContent = warn.m; }
+    // ошибка сохранения следит за правкой: поправили время — гаснет
+    if ($("fNestWarn").classList.contains("show")) renderNestWarn(true);
     renderRep();
   }
   /* ============================================================
@@ -27512,6 +27565,25 @@
     return (Array.isArray(s.route) ? s.route : [])
       .filter(function (r) { return r && r.t != null && r.n; })
       .sort(function (a, b) { return a.t - b.t; });
+  }
+  /* «Событие — матрёшка» (DECISIONS, 18 сентября 2026): съёмка — оболочка,
+     точки маршрута со временем и часы студии — её подсущности, и стоят они на
+     своём времени. Отсюда — промежуток, который оболочка обязана накрывать:
+     от начала первой до конца последней. Держат его только якорные точки —
+     с часом; точка без часа не привязана к времени и оболочку не держит.
+     Нет таких — съёмка пустая (`null`) и двигается целиком, как встреча */
+  function nestSpan(s) {
+    var lo = null, hi = null;
+    function take(a, b) {
+      if (a == null) return;
+      if (b == null || b < a) b = a;
+      if (lo === null || a < lo) lo = a;
+      if (hi === null || b > hi) hi = b;
+    }
+    (Array.isArray(s.route) ? s.route : []).forEach(function (r) { if (r) take(r.t, r.t2); });
+    // запись старого вида держит часы студии своими полями, без ячейки
+    if (s.studioId && s.rentFrom != null) take(s.rentFrom, s.rentTo);
+    return lo === null ? null : { a: lo, b: hi };
   }
   /* Место точки маршрута. Своих координат точка не хранит и не должна: место
      живёт в «Моих местах» одной записью, а точка на неё ссылается (`placeId`).
@@ -30391,6 +30463,7 @@
     else applyGenrePreset();                     // новая съёмка начинается с обычной для жанра
     renderWishes(); renderDelv(); refreshForm();
     $("formOverlay").scrollTop = 0;
+    renderNestWarn(false);
     $("formOverlay").classList.add("open");
   }
   $("fDone").addEventListener("click", function () {
@@ -31534,7 +31607,35 @@
     return [o ? o.name : "", $("fPerson").value.trim(), $("fPhone").value.trim()]
       .filter(function (x) { return x; }).join(" · ");
   }
+  /* «Событие — матрёшка» в форме. Барабаны пускают любое время: в правке
+     съёмка — заготовка, и предел мешал бы (Алексей, 18 сентября 2026). Но
+     сохранить съёмку, которая не накрывает свои точки, нельзя */
+  function formNestBad() {
+    var hs = headStudio();
+    var n = nestSpan({ route: routeFromEditor(), studioId: hs.studioId, rentFrom: hs.rentFrom, rentTo: hs.rentTo });
+    return n && (n.a < fMin || n.b > fMin + fDur) ? n : null;
+  }
+  function nestWhen(m) {
+    var off = Math.floor(m / 1440);
+    if (!off) return fmt(m);
+    var d = new Date(fDate); d.setDate(d.getDate() + off);
+    return fmt(m) + " " + dMonShort(d);
+  }
+  function renderNestWarn(check) {
+    var n = check ? formNestBad() : null;
+    $("fNestWarn").classList.toggle("show", !!n);
+    if (n) {
+      $("fnwTitle").textContent = LANG.t("form.nestT");
+      $("fnwText").textContent = LANG.t("form.nestM", { a: nestWhen(n.a), b: nestWhen(n.b) });
+    }
+    return n;
+  }
   $("fSave").addEventListener("click", function () {
+    if (renderNestWarn(true)) {
+      var ov = $("formOverlay"), box = $("fNestWarn");
+      ov.scrollTop += box.getBoundingClientRect().top - ov.getBoundingClientRect().top - 80;
+      return;
+    }
     var warn = wishesCheck(fDate);
     var rec = {
       kind: formKind,
