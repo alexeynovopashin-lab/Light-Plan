@@ -3367,6 +3367,14 @@
      на слои этому экрану не нужно — он не листает контент под липкой
      шапкой, обычный .overlay.pad со своим отступом снизу достаточен. */
   #year12Overlay { z-index: 25; padding-bottom: calc(var(--tabh, 84px) + 16px); }
+  /* Зум «Год целиком» → лента (zoomYear12ToMonth): лента на время
+     перехода встаёт над годом и теряет фон — сжатая в плитку, она не
+     должна закрывать соседние месяцы непрозрачным прямоугольником. Фон
+     остаётся у года, гаснет только его содержимое. */
+  #yearOverlay.zoom-in { z-index: 26; background: transparent; }
+  #yearOverlay.zoom-in .year-sticky-head { background: transparent; }
+  #year12Overlay.zoom-out > * { transition: opacity 200ms linear 60ms; }
+  #year12Overlay.zoom-out.fading > * { opacity: 0; }
   .year-sticky-head {
     position: absolute; top: 0; left: 0; right: 0; z-index: 5; background: var(--surface);
     padding: 0 24px 4px;
@@ -18257,11 +18265,21 @@
      Вторая росла вокруг точки тапа в `k` раз «до ширины экрана» — и
      останавливалась там, где рост её застал: месяц в ленте стоит под
      шапкой, в другом месте и другого размера, и последний шаг 1.06 → 1
-     прыгал к нему. Теперь конец зума посчитан по цели: тронутое число
-     (или сетка месяца, если попали мимо чисел) едет по прямой из своей
-     точки в ту же дату ленты, а масштаб — отношение шагов колонок двух
-     сеток. Плитка приходит ровно на место месяца в ленте; последние кадры
-     «Год целиком» гаснет поверх уже совпавшей с ним ленты, склейки нет. */
+     прыгал к нему. Конец зума теперь посчитан по цели: тронутое число
+     (или сетка месяца, если попали мимо чисел) едет по прямой в ту же
+     дату ленты, масштаб — отношение ширин двух сеток.
+
+     Четвёртая (18.09, тем же днём, Алексей положил рядом ролик iOS:
+     «участок зумируется сильнее, чем нужно, потом через переход
+     уменьшается»). Лента проявлялась только в самом конце, поверх уже
+     раздутой плитки: у мелкого шрифта года цифры к концу крупнее, чем в
+     ленте, и стык читался перелётом с откатом. Как в iOS, лента
+     подставляется в зону зума с первого кадра: стоит поверх года,
+     сжатая ровно в плитку (обратное преобразование), и растёт вместе с
+     ним той же кривой — два слоя совпадают в тронутой дате на каждом
+     кадре. Лента проявляется в первой трети, у года гаснет содержимое, а
+     фон остаётся — под прозрачной на время зума лентой не просвечивает
+     экран приложения. */
   function zoomYear12ToMonth(yy, mm, originEl, tileEl) {
     var yo = $("year12Overlay"), target = $("yearOverlay");
     var srcGrid = tileEl.querySelector(".year12-days");
@@ -18279,27 +18297,41 @@
       var to = (dstEl || dstGrid || target).getBoundingClientRect();
       var sg = srcGrid.getBoundingClientRect(), dg = (dstGrid || target).getBoundingClientRect();
       var k = dg.width / Math.max(1, sg.width);
-      // Перенос считается от угла самого слоя: transform-origin 0 0
-      var o = yo.getBoundingClientRect();
-      var fx = from.left + from.width / 2 - o.left, fy = from.top + from.height / 2 - o.top;
-      var tx = to.left + to.width / 2 - o.left - fx * k, ty = to.top + to.height / 2 - o.top - fy * k;
-      var DUR = 380, FADE = 110;
-      yo.style.transition = "none";
-      yo.style.transformOrigin = "0 0";
+      /* Год: точка p экрана уходит в o + k·(p − o) + t, где o — угол слоя
+         (transform-origin 0 0), t — чтобы тронутая дата пришла в свою
+         клетку ленты. Лента — обратное: её клетка встаёт на плитку. */
+      var o = yo.getBoundingClientRect(), q = target.getBoundingClientRect();
+      var fx = from.left + from.width / 2, fy = from.top + from.height / 2;
+      var gx = to.left + to.width / 2, gy = to.top + to.height / 2;
+      var tx = gx - o.left - k * (fx - o.left), ty = gy - o.top - k * (fy - o.top);
+      var ux = o.left - q.left + (q.left - o.left - tx) / k, uy = o.top - q.top + (q.top - o.top - ty) / k;
+      var DUR = 460, EASE = "cubic-bezier(0.3,0.7,0.1,1)";
+      [yo, target].forEach(function (el) {
+        el.style.transition = "none";
+        el.style.transformOrigin = "0 0";
+      });
       yo.style.transform = "translate(0px, 0px) scale(1)";
-      yo.style.opacity = "1";
-      void yo.offsetWidth;                                     // фиксируем стартовый кадр
-      yo.style.transition = "transform " + DUR + "ms cubic-bezier(0.45,0,0.2,1), "
-        + "opacity " + FADE + "ms linear " + (DUR - FADE) + "ms";
+      target.style.transform = "translate(" + ux + "px, " + uy + "px) scale(" + (1 / k) + ")";
+      target.style.opacity = "0";
+      target.classList.add("zoom-in");
+      yo.classList.add("zoom-out");
+      void yo.offsetWidth; void target.offsetWidth;            // фиксируем стартовый кадр
+      yo.style.transition = "transform " + DUR + "ms " + EASE;
+      target.style.transition = "transform " + DUR + "ms " + EASE + ", opacity 160ms linear";
       yo.style.transform = "translate(" + tx + "px, " + ty + "px) scale(" + k + ")";
-      yo.style.opacity = "0";
+      target.style.transform = "translate(0px, 0px) scale(1)";
+      target.style.opacity = "1";
+      yo.classList.add("fading");
       setTimeout(function () {
-        yo.style.transition = "none";
-        yo.classList.remove("open");
-        yo.style.transform = "";
-        yo.style.transformOrigin = "";
-        yo.style.opacity = "";
-        requestAnimationFrame(function () { yo.style.transition = ""; });
+        [yo, target].forEach(function (el) {
+          el.style.transition = "none";
+          el.style.transform = "";
+          el.style.transformOrigin = "";
+          el.style.opacity = "";
+        });
+        yo.classList.remove("open", "zoom-out", "fading");
+        target.classList.remove("zoom-in");
+        requestAnimationFrame(function () { yo.style.transition = ""; target.style.transition = ""; });
       }, DUR + 20);
     });
   }
