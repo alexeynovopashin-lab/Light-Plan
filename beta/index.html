@@ -4657,6 +4657,34 @@
     background: linear-gradient(90deg, var(--ink-a08), rgba(0,0,0,0) 70%);
     border-top-color: var(--ink-a12); border-bottom-color: var(--ink-a08);
   }
+  /* Выделенное событие — то, чьё время сейчас правят рукой: обе кромки
+     доходят до полной латуни, заливка — та же, что под пальцем. Поднятое
+     (палец держит) — ещё и над соседями: непрозрачная подложка и тень, чтобы
+     было видно, что оно едет поверх сетки, а не прорастает сквозь неё. Тень
+     тёмная в обеих темах: это тень, а не свечение */
+  .dl-ev { -webkit-touch-callout: none; }
+  .dl-ev.sel { z-index: 2; border-top-color: var(--brass); border-bottom-color: var(--brass);
+    background: linear-gradient(90deg,
+      rgba(226,164,76,0.26), rgba(226,164,76,0.09) 58%, rgba(226,164,76,0) 92%); }
+  .dl-ev.meet.sel { border-top-color: var(--ink-a40); border-bottom-color: var(--ink-a40);
+    background: linear-gradient(90deg, var(--ink-a20), rgba(0,0,0,0) 78%); }
+  .dl-ev.sel.lift, .dl-ev.meet.sel.lift { z-index: 3; box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+    background-color: var(--surface); }
+  /* Ручки: начало — точка на верхней кромке справа, конец — на нижней
+     слева, как в календаре телефона (Алексей прислал снимок, 18 сентября
+     2026). Лежат отдельной рамкой поверх отрезка, потому что сам отрезок
+     режет всё, что выходит за его край (`overflow: hidden`), а точка
+     сидит на кромке половиной наружу. Попадать пальцем в девять пикселей
+     нельзя — ловит квадрат 36×36 вокруг точки. */
+  .dl-selbox { position: absolute; left: 70px; right: 0; z-index: 4; pointer-events: none !important; }
+  .dl-h { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px;
+    pointer-events: auto; touch-action: none; -webkit-touch-callout: none; }
+  .dl-h::after { content: ""; position: absolute; left: 13px; top: 13px; width: 10px; height: 10px;
+    box-sizing: border-box; border-radius: 50%; background: var(--surface);
+    border: 2px solid var(--brass); }
+  .dl-selbox.meet .dl-h::after { border-color: var(--ink-3); }
+  .dl-h.a { top: 0; left: calc(100% - 22px); }
+  .dl-h.b { top: 100%; left: 22px; }
   .dl-ev-b { min-width: 0; display: flex; flex-direction: column; }
   /* Короткому событию подпись кладётся вправо, а не под заголовок: по высоте
      места нет вовсе, по ширине его половина строки. Выравнивание по базовой
@@ -4774,6 +4802,10 @@
   .dl-mark.now { color: var(--brass); }
   .dl-mark.now .dl-mark-h { font-weight: 650; }
   .dl-mark.now::after { border-top-style: solid; opacity: 0.85; }
+  /* Капсула минуты, которую ведёт палец (`dlPaint`): только время, без линии
+     через ленту — линией служит кромка самого отрезка */
+  .dl-mark.drag { right: auto; z-index: 5; pointer-events: none !important; }
+  .dl-mark.drag::after { display: none; }
   /* Узел «сейчас» на оси — мельче событийного: девять пикселей у события,
      шесть здесь. Разница в размере и есть разница в роде: узел события — это
      запись в дне, а этот — положение стрелки на приборе, и спорить с записями
@@ -6276,6 +6308,14 @@
   .say .s-ic svg { width: 16px; height: 16px; fill: none; stroke: var(--brass); stroke-width: 1.5;
     stroke-linecap: round; stroke-linejoin: round; }
   .say b { color: var(--brass); font-weight: 400; }
+  /* Строка, которую убирают рукой: крестик справа, текст забирает остальное.
+     Поле касания шире знака — в 14 пикселей пальцем не попасть */
+  .say .say-t { flex: 1 1 auto; min-width: 0; }
+  .say .say-x { flex-shrink: 0; width: 32px; height: 32px; margin: -7px -10px -7px 0;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: 0; padding: 0; color: var(--ink-6); cursor: pointer; }
+  .say .say-x svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6;
+    stroke-linecap: round; }
   /* ЯНТАРНОЕ СВЕЧЕНИЕ — общий вид предупреждений. Плитка обычная, как все
      листы вокруг (`--sheet`, внутри карточки `--sheet-3`), а из-под неё
      ровно по всему периметру выходит янтарный свет: ореол без сдвига, сама
@@ -8858,6 +8898,15 @@
          администратору ниже, и место это верное: тревога читается
          первой, куда бы фотограф ни переставил остальное -->
     <div class="say warn" id="cdShift" hidden><span class="s-ic" data-ic="warn"></span><span id="cdShiftT"></span></div>
+
+    <!-- Время сдвинули рукой на ленте «День». Защита от случайного сдвига:
+         перетаскивание — жест, его можно сделать и не заметив, поэтому
+         карточка говорит об этом, пока фотограф сам не уберёт строку
+         крестиком. Правка из формы её не зажигает — там время меняют
+         нарочно. Живёт там же, где строка о прогнозе, и по той же причине:
+         тревога читается первой, куда бы ни переставили блоки -->
+    <div class="say warn" id="cdMoved" hidden><span class="s-ic" data-ic="clock"></span><span class="say-t" id="cdMovedT"></span>
+      <button type="button" class="say-x" id="cdMovedX" data-ic="close" aria-label="Убрать" data-i18n-aria="card.movedX"></button></div>
 
     <!-- Студийный час. Был строкой, зажигавшейся за пятнадцать минут до
          конца; стал кольцевым таймером на всю аренду (Алексей, 8 сентября
@@ -18776,6 +18825,7 @@
        поставить», и двадцать один час сетки был бы там свалкой пустых строк. */
     var html = "";
     if (calScope !== "day") {
+      dlSel = null;                        // ручки живут только на ленте часов
       /* В месяце и неделе день показывается простой строкой, а не сеткой:
          жёсткие колонки таймлайна на узком экране схлопывали текст в столбик
          по одному слову. Здесь время и название идут одной строкой и переносу
@@ -18842,7 +18892,7 @@
     var HOUR_H = 38;                       // высота часа в сетке
     function topOf(min) { return (min / 60) * HOUR_H; }
 
-    var grid = "", layer = "", knots = "";
+    var grid = "", layer = "", knots = "", selbox = "", selFound = false;
     /* Час, к которому подошла капсула «сейчас», молчит. Два числа в одной
        колонке спорили за одно место: «09:00» и «09:31» стояли вплотную и
        читались как одно число (Алексей, 7 сентября 2026). Ореол вокруг цифр
@@ -18962,9 +19012,22 @@
         ? "left:calc(70px + (100% - 70px) * " + col + " / " + cols + ");"
           + "width:calc((100% - 70px) / " + cols + " - " + LANE_GAP + "px);right:auto;"
         : "";
+      /* Выделенное событие несёт ручки. Продолжение ночной съёмки выделить
+         нельзя: оно начинается вчера, и тянуть его здесь значило бы двигать
+         чужие сутки. У съёмки, уходящей за полночь, нет нижней ручки — её
+         конец лежит на следующем дне */
+      var sel = !busy && !it.tail && dlSel !== null && dlKey(s2) === dlSel;
+      if (sel) {
+        selFound = true;
+        selbox = '<div class="dl-selbox' + (soft ? " meet" : "") + '" data-i="' + it.i + '"'
+          + ' style="' + span + "top:" + top.toFixed(1) + "px;height:" + hgt.toFixed(1) + 'px">'
+          + '<i class="dl-h a" data-h="a"></i>' + (it.cut ? "" : '<i class="dl-h b" data-h="b"></i>') + "</div>";
+      }
       layer += '<div class="dl-ev' + (soft ? " meet" : "") + (busy ? " busy" : "")
-        + (tight ? " tight" : "") + (cols > 1 ? " narrow" : "") + (cols > 2 ? " tiny" : "") + '"'
+        + (tight ? " tight" : "") + (cols > 1 ? " narrow" : "") + (cols > 2 ? " tiny" : "")
+        + (sel ? " sel" : "") + '"'
         + ' style="' + span + "top:" + top.toFixed(1) + "px;height:" + hgt.toFixed(1) + 'px"'
+        + (it.tail ? ' data-tail="1"' : "") + (it.cut ? ' data-cut="1"' : "")
         + (busy ? ' data-b="' + b.id + '"' : ' data-i="' + it.i + '"') + ">"
         + '<span class="dl-ic' + (soft ? " meet" : busy ? " busy" : "") + '">'
         + (busy ? IC.svg(blockKind(b.k).ic)
@@ -18979,9 +19042,10 @@
          Копится отдельно и ложится в слой после всех отрезков: иначе узел
          ранней съёмки уходил бы под заливку той, что началась позже. */
       knots += '<i class="dl-dot' + (soft ? " meet" : "") + (busy ? " busy" : "")
-        + '" style="top:' + top.toFixed(1) + 'px"></i>';
+        + '" style="top:' + top.toFixed(1) + 'px"' + (busy ? "" : ' data-i="' + it.i + '"') + "></i>";
     });
-    layer += knots;
+    layer += knots + selbox;
+    if (!selFound) dlSel = null;           // выделенное ушло с экрана — другой день или удалено
     /* Свет и «сейчас» — тоже поверх сетки и на своей минуте: теперь линия
        стоит там, где время, а не в начале часа.
        Время стоит слева, в колонке часов, а слово — справа, у края ленты:
@@ -19050,13 +19114,22 @@
     // Тап по событию открывает карточку — и в ленте дня, и в списке месяца
     box.querySelectorAll(".dl-ev, .plan-row").forEach(function (b) {
       b.addEventListener("click", function () {
+        /* Клик, долетевший после перетаскивания, может прийти в узел, который
+           сдвиг уже перерисовал и снял с ленты, — мимо сторожа на самой ленте */
+        if (Date.now() < dlSwallowTill) return;
         if (b.dataset.b) openBlock(b.dataset.b);
         else openCard(+b.dataset.i);
       });
       /* Удержание открывает веер действий. У занятости его нет: там нет ни
-         формы съёмки, ни сдачи материала — её правят своим листом */
-      if (!b.dataset.b) holdForFan(b, +b.dataset.i);
+         формы съёмки, ни сдачи материала — её правят своим листом.
+         На ленте часов удержание сперва поднимает событие: повёл пальцем —
+         время едет, отпустил на месте — прежний веер (`dlGrip`). Продолжению
+         ночной съёмки двигать нечего, у него остаётся только веер */
+      if (b.dataset.b) return;
+      if (calScope === "day" && b.classList.contains("dl-ev") && !b.dataset.tail) dlGrip(b, +b.dataset.i, HOUR_H);
+      else holdForFan(b, +b.dataset.i);
     });
+    if (calScope === "day") dlWireSel(box, HOUR_H);
 
     /* Три действия открываются там, где нажали. Кнопки «Запланировать съёмку»
        и «Встреча» жили в подвале и всегда предлагали одно время — подсказанное
@@ -19197,6 +19270,269 @@
        Прежняя пара подписей была нужна широкой кнопке, где слово стояло
        одно и обязано было договаривать за знак */
   }
+
+  /* ---------- Время события рукой на ленте дня ----------
+     Растянуть и передвинуть событие прямо на ленте, как в календаре
+     телефона (Алексей, 18 сентября 2026, снимок календаря iOS). Удержание
+     поднимает отрезок; повёл пальцем, не отпуская, — время едет следом;
+     отпустил на месте — открывается прежний веер, а у события остаются две
+     ручки: верхняя двигает начало, нижняя — конец. Выделенное событие
+     тянется и за тело, уже без удержания. Касание мимо снимает выделение.
+     Защита от случайного сдвига двойная. Жест: без удержания лента
+     листается как раньше, сдвинуть событие мимоходом нельзя. След: сдвиг
+     дописывает строку в заметку и зажигает в карточке строку «время
+     сдвинуто», которая гаснет только от крестика (`renderMoved`). Правка
+     формой их не зажигает: там время меняют нарочно.
+     Шаг — четверть часа (полчаса, если в настройках шаг 30): пальцем по 38
+     пикселям часа в пять минут не попасть, точные минуты правятся в форме.
+     Точки маршрута и часы аренды не трогаются — так же ведёт себя форма при
+     смене начала. */
+  var dlSel = null;              // выделенная запись: её id, а без id — сама запись
+  var dlG = null;                // идущий жест
+  var dlSwallowTill = 0;         // клик после жеста не открывает ни карточку, ни меню часа
+  var dlArmedEnd = 0;            // когда кончился жест: свайп дней его не подхватывает
+  var dlFanOpen = false;
+  function dlKey(s) { return s ? (s.id || s) : null; }
+  function dlStep() { return timeStep === 30 ? 30 : 15; }
+  function dlEndOf(s) { return s.end != null ? s.end : s.min + (s.dur || 90); }
+
+  function dlGrip(el, idx, H) {
+    el.addEventListener("pointerdown", function (e) {
+      if (e.button || dlG || !sessions[idx]) return;
+      /* Выделенное тянется сразу, остальное — после удержания */
+      dlBegin(e, el, idx, H, "move", !el.classList.contains("sel"));
+    });
+    /* Поднятое событие держит касание само: иначе iOS отдаёт его прокрутке
+       на первом же движении и шлёт `pointercancel` (та же беда и то же
+       лечение, что у плиток мудборда) */
+    el.addEventListener("touchmove", function (e) {
+      if (dlG && dlG.armed && dlG.el === el) e.preventDefault();
+    }, { passive: false });
+  }
+  function dlWireHandle(h, H) {
+    var sb = h.parentNode, idx = +sb.dataset.i;
+    h.addEventListener("pointerdown", function (e) {
+      if (e.button || dlG) return;
+      var el = sb.parentNode.querySelector('.dl-ev[data-i="' + idx + '"]');
+      if (el && sessions[idx]) dlBegin(e, el, idx, H, h.dataset.h, false);
+    });
+    h.addEventListener("touchmove", function (e) { if (dlG && dlG.armed) e.preventDefault(); }, { passive: false });
+  }
+  function dlWireSel(box, H) {
+    box.querySelectorAll(".dl-selbox .dl-h").forEach(function (h) { dlWireHandle(h, H); });
+  }
+  function dlDropSelDom(root) {
+    root.querySelectorAll(".dl-ev.sel").forEach(function (x) { x.classList.remove("sel", "lift"); });
+    root.querySelectorAll(".dl-selbox").forEach(function (x) { x.parentNode.removeChild(x); });
+  }
+  /* Выделение ставится в разметку сразу, без перерисовки ленты: палец ещё
+     лежит на отрезке, и замена узла под ним сняла бы с него касание */
+  function dlSelect(el, idx, H) {
+    var layer = el.parentNode;
+    dlDropSelDom(layer);
+    dlSel = dlKey(sessions[idx]);
+    el.classList.add("sel");
+    var sb = document.createElement("div");
+    sb.className = "dl-selbox" + (el.classList.contains("meet") ? " meet" : "");
+    sb.dataset.i = idx;
+    sb.style.cssText = el.style.cssText;
+    sb.innerHTML = '<i class="dl-h a" data-h="a"></i>' + (el.dataset.cut ? "" : '<i class="dl-h b" data-h="b"></i>');
+    layer.appendChild(sb);
+    sb.querySelectorAll(".dl-h").forEach(function (h) { dlWireHandle(h, H); });
+  }
+  function dlDeselect() {
+    dlSel = null;
+    dlDropSelDom($("dpSessions"));
+    if (dlFanOpen) { closeEvFan(); dlFanOpen = false; }
+  }
+
+  function dlBegin(e, el, idx, H, mode, hold) {
+    var s = sessions[idx];
+    var g = dlG = { el: el, idx: idx, s: s, H: H, mode: mode, hold: hold, pid: e.pointerId,
+      sx: e.clientX, sy: e.clientY, lastY: e.clientY,
+      y0: e.clientY - el.parentNode.getBoundingClientRect().top,
+      a0: s.min, b0: dlEndOf(s), na: s.min, nb: dlEndOf(s),
+      armed: false, moved: false, timer: null, raf: null, edgeOk: false };
+    window.addEventListener("pointermove", dlMove);
+    window.addEventListener("pointerup", dlUp);
+    window.addEventListener("pointercancel", dlUp);
+    if (hold) g.timer = setTimeout(function () { if (dlG === g) dlArm(); }, 450);
+    else dlArm();
+  }
+  function dlArm() {
+    var g = dlG;
+    g.armed = true;
+    if (g.hold) {
+      /* Ручки встают сразу при подъёме: отпустит на месте — они уже там */
+      dlSelect(g.el, g.idx, g.H);
+      g.el.classList.add("lift");
+      tickClick();
+    }
+    g.raf = requestAnimationFrame(dlAuto);
+  }
+  function dlMove(e) {
+    var g = dlG;
+    if (!g || e.pointerId !== g.pid) return;
+    g.lastY = e.clientY;
+    if (!g.armed) {
+      // палец ушёл раньше удержания — это прокрутка или свайп, не наш жест
+      if (Math.abs(e.clientX - g.sx) > 8 || Math.abs(e.clientY - g.sy) > 8) dlEnd();
+      return;
+    }
+    dlTrack();
+  }
+  /* Минута кромки считается от слоя, а не от экрана: слой уезжает вместе с
+     автопрокруткой, и палец, стоящий на месте, продолжает вести время */
+  function dlTrack() {
+    var g = dlG, st = dlStep();
+    var y = g.lastY - g.el.parentNode.getBoundingClientRect().top;
+    var dMin = (y - g.y0) / g.H * 60;
+    var a = g.a0, b = g.b0;
+    function sn(m) { return Math.round(m / st) * st; }
+    /* Полшага мёртвой зоны: дрогнувший палец не должен сдвинуть 19:38 на 19:45 */
+    if (Math.abs(dMin) >= st / 2) {
+      if (g.mode === "move") { a = clamp(sn(g.a0 + dMin), 0, 1440 - st); b = a + (g.b0 - g.a0); }
+      else if (g.mode === "a") a = clamp(sn(g.a0 + dMin), 0, Math.max(g.a0, g.b0 - st));
+      else b = clamp(sn(g.b0 + dMin), Math.min(g.b0, g.a0 + st), 1440);
+    }
+    if (a === g.na && b === g.nb) return;
+    if (!g.moved) {
+      g.moved = true;
+      g.el.classList.add("lift");
+      if (dlFanOpen) { closeEvFan(); dlFanOpen = false; }
+    }
+    g.na = a; g.nb = b;
+    dlPaint();
+    tickClick();
+  }
+  function dlPaint() {
+    var g = dlG, H = g.H, layer = g.el.parentNode;
+    var top = g.na / 60 * H, hgt = Math.max(34, (Math.min(1440, g.nb) - g.na) / 60 * H);
+    [g.el, layer.querySelector(".dl-selbox")].forEach(function (x) {
+      if (!x) return;
+      x.style.top = top.toFixed(1) + "px"; x.style.height = hgt.toFixed(1) + "px";
+    });
+    g.el.classList.toggle("tight", hgt < H);
+    var dot = layer.querySelector('.dl-dot[data-i="' + g.idx + '"]');
+    if (dot) dot.style.top = top.toFixed(1) + "px";
+    /* Пока тянут, подпись называет время — и у встречи, где обычно стоит
+       «встреча · жанр»: сейчас вопрос «когда», а не «что» */
+    var sub = g.el.querySelector(".dl-sub");
+    if (sub) sub.textContent = fmt(g.na) + " – " + fmt(g.nb);
+    /* Капсула на оси — минута той кромки, которую ведёт палец: та же форма,
+       что у «сейчас», только без линии через ленту */
+    var cap = layer.querySelector(".dl-mark.drag");
+    if (!cap) {
+      cap = document.createElement("div");
+      cap.className = "dl-mark drag";
+      cap.innerHTML = '<span class="dl-mark-h"></span>';
+      layer.appendChild(cap);
+    }
+    var at = g.mode === "b" ? g.nb : g.na;
+    cap.style.top = (Math.min(1440, at) / 60 * H).toFixed(1) + "px";
+    cap.firstChild.textContent = fmt(at);
+  }
+  /* У края видимой ленты она листается сама. Край включается не раньше,
+     чем палец из него выйдет, — как `edgeOk` у плиток мудборда: событие,
+     поднятое у нижней кромки, не должно само уехать вниз */
+  function dlAuto() {
+    var g = dlG;
+    if (!g || !g.armed) return;
+    var scr = $("s-plan"), top = $("daySticky").getBoundingClientRect().bottom;
+    var bot = scr.getBoundingClientRect().bottom;
+    var tb = document.querySelector(".tabbar"), tr = tb && tb.getBoundingClientRect();
+    if (tr && tr.height) bot = Math.min(bot, tr.top);
+    var edge = 48, was = scr.scrollTop, y = g.lastY;
+    if (!g.edgeOk) { if (y > top + edge && y < bot - edge) g.edgeOk = true; }
+    else if (y < top + edge) scr.scrollTop -= Math.min(12, Math.ceil((top + edge - y) / 4));
+    else if (y > bot - edge) scr.scrollTop += Math.min(12, Math.ceil((y - bot + edge) / 4));
+    if (scr.scrollTop !== was) dlTrack();
+    if (dlG === g) g.raf = requestAnimationFrame(dlAuto);
+  }
+  function dlEnd() {
+    var g = dlG;
+    if (!g) return;
+    clearTimeout(g.timer);
+    if (g.raf) cancelAnimationFrame(g.raf);
+    window.removeEventListener("pointermove", dlMove);
+    window.removeEventListener("pointerup", dlUp);
+    window.removeEventListener("pointercancel", dlUp);
+    dlG = null;
+  }
+  function dlUp(e) {
+    var g = dlG;
+    if (!g || e.pointerId !== g.pid) return;
+    dlEnd();
+    if (!g.armed) return;                        // обычный тап или прокрутка
+    g.el.classList.remove("lift");
+    dlArmedEnd = Date.now();
+    /* Тап по выделенному без движения — это «открыть карточку», его не глушим */
+    if (g.hold || g.moved) dlSwallowTill = Date.now() + 450;
+    if (e.type === "pointercancel") {
+      // касание отняла система — ничего не записываем, возвращаем как было
+      if (g.moved) renderDayPanel();
+      return;
+    }
+    if (g.moved) {
+      if (dlCommit(g.s, g.na, g.nb)) { renderSessions(); renderCal(); }
+      else renderDayPanel();
+    } else if (g.hold) dlOpenFan(g.el, g.idx);
+  }
+  /* Веер после удержания — прежний, но без затемнения: ручки под ним
+     должны оставаться в досягаемости, а закрывается он любым касанием мимо.
+     Встаёт на 14 пикселей ниже обычного, чтобы не лечь на нижнюю ручку */
+  function dlOpenFan(el, idx) {
+    openEvFan(el, idx);
+    $("spotScrim").hidden = true;
+    dlFanOpen = true;
+    var fan = $("evFan");
+    if (fan.getBoundingClientRect().top >= el.getBoundingClientRect().bottom) {
+      fan.style.top = (parseFloat(fan.style.top) + 14) + "px";
+    }
+  }
+  /* Сдвиг записывается в саму запись и оставляет след. Серия сдвигов подряд —
+     одна строка заметки, а не десяток: пока строка стоит последней и
+     карточка ещё не погасила предупреждение, она переписывается, и «было» в
+     ней остаётся временем до первого сдвига. Вернули как было — строка и
+     предупреждение снимаются: сдвига не случилось */
+  function dlCommit(s, a, b) {
+    var a0 = s.min, b0 = dlEndOf(s);
+    if (a === a0 && b === b0) return false;
+    var mv = s.dayMoved || { a: a0, b: b0 };
+    var notes = String(s.notes || "");
+    if (mv.line && notes.slice(-mv.line.length) === mv.line) {
+      notes = notes.slice(0, notes.length - mv.line.length).replace(/\n+$/, "");
+    }
+    s.min = a; s.end = b; s.dur = b - a;
+    if (a === mv.a && b === mv.b) delete s.dayMoved;
+    else {
+      var n = new Date();
+      var line = LANG.t("day.movedNote", {
+        when: dMonShort(n) + " " + fmt(n.getHours() * 60 + n.getMinutes()),
+        from: range(mv.a, mv.b), to: range(a, b) });
+      notes = notes ? notes + "\n" + line : line;
+      s.dayMoved = { a: mv.a, b: mv.b, line: line };
+    }
+    s.notes = notes;
+    saveAll();
+    return true;
+  }
+  /* Касание мимо выделенного снимает выделение — и только: в ленте такой
+     тап не открывает ни меню часа, ни чужую карточку */
+  document.addEventListener("pointerdown", function (e) {
+    if (dlSel === null || dlG) return;
+    var t = e.target && e.target.closest ? e.target : null;
+    if (t && (t.closest(".dl-ev.sel") || t.closest(".dl-selbox") || t.closest("#evFan"))) {
+      if (dlFanOpen && !t.closest("#evFan")) { closeEvFan(); dlFanOpen = false; }
+      return;
+    }
+    var inLane = !!(t && t.closest("#dpSessions"));
+    dlDeselect();
+    if (inLane) dlSwallowTill = Date.now() + 450;
+  }, true);
+  $("dpSessions").addEventListener("click", function (e) {
+    if (Date.now() < dlSwallowTill) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
 
   /* ---------- Удаление в корзину ----------
      Удаление перестало быть концом записи. Шести секунд «Вернуть» хватает на
@@ -27891,6 +28227,7 @@
     renderRefFold(s, route, phase);
     renderClash(s);
     renderShift(s);
+    renderMoved(s);
     renderDeal(s);
     renderOrderBlocks(s);
     renderStack(s);
@@ -29191,6 +29528,28 @@
     $("cdShiftT").innerHTML = "<b>" + esc(say.t) + ".</b> " + esc(say.m);
     paintIcons(el);
   }
+
+  /* Строка «время сдвинуто на ленте дня». Держится на `dayMoved` записи, а
+     не на показе: фотограф мог открыть карточку мельком и не прочесть, а
+     случайный сдвиг — ровно то, что пропускать нельзя. «Было» — время до
+     первого сдвига серии, «стало» — нынешнее, из самой записи: если потом
+     время правили формой, строка скажет правду, а не то, что было на ленте.
+     Гаснет только от крестика (Алексей, 18 сентября 2026) */
+  function renderMoved(s) {
+    var el = $("cdMoved"), mv = s && s.dayMoved;
+    if (!el) return;
+    el.hidden = !mv;
+    if (!mv) return;
+    var end = s.end != null ? s.end : s.min + (s.dur || 90);
+    $("cdMovedT").innerHTML = "<b>" + esc(LANG.t("card.movedT")) + ".</b> "
+      + esc(LANG.t("card.movedM", { from: range(mv.a, mv.b), to: range(s.min, end) }));
+    paintIcons(el);
+  }
+  $("cdMovedX").addEventListener("click", function () {
+    var s = cardIdx !== null ? sessions[cardIdx] : null;
+    if (s) { delete s.dayMoved; saveAll(); }
+    $("cdMoved").hidden = true;
+  });
 
   /* ---------- Состояние сделки ----------
      Пять звеньев в порядке работы: ТЗ, договор, счёт, оплата, акт. Каждое либо
@@ -30635,6 +30994,7 @@
     c.bookingRef = null; c.rentReq = null;
     c.prepay = 0; c.delivered = false; c.deliveredAt = null; c.questSent = null;
     delete c.fromMeetOn; delete c.fromMeetId; delete c.grewOn; delete c.grewToId; delete c.telLog;
+    delete c.dayMoved;       // сдвигали эту карточку, а не её повторы
     if (!on.client) {
       c.contact = ""; c.clientTel = ""; c.orgId = null; c.person = ""; c.phone = "";
       c.persons = []; c.guests = 0; c.breed = "";
@@ -31230,6 +31590,9 @@
       fromMeetId: (editIdx !== null && sessions[editIdx] && sessions[editIdx].fromMeetId) || undefined,
       grewOn: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewOn) || undefined,
       grewToId: (editIdx !== null && sessions[editIdx] && sessions[editIdx].grewToId) || undefined,
+      /* Строка «время сдвинуто на ленте» гаснет только от крестика, а не от
+         сохранения формы: иначе любая правка карточки стирала бы её молча */
+      dayMoved: (editIdx !== null && sessions[editIdx] && sessions[editIdx].dayMoved) || undefined,
       route: routeFromEditor(),
       synced: syncTarget === "off" ? null : syncTarget
     };
@@ -33845,6 +34208,10 @@
          через 420 мс после касания, и на `touchstart` его ещё нет. Замер на
          симуляторе: проверка только в начале месяц не удержала. */
       if (mbSorting || mbDrag) return;
+      /* Событие на ленте дня тянули — боковой увод пальца при этом не листает
+         день. Конец жеста приходит раньше `touchend`, поэтому смотрим и на
+         идущий жест, и на только что кончившийся */
+      if ((dlG && dlG.armed) || Date.now() - dlArmedEnd < 400) return;
       if (Math.abs(dx) < 60 || Math.abs(dy) > 40) return;   // вертикальную прокрутку не трогаем
       stepCal(dx < 0 ? 1 : -1);
     }, { passive: true });
