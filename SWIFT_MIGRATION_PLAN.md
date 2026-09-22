@@ -1300,7 +1300,7 @@ Escalate to Opus if:
 
 ---
 
-### Итерация 10 — Погода и закатный балл ∥
+### Итерация 10 — Погода и закатный балл ✔ закрыта ∥
 
 **Цель.** Прогноз, балл заката и честный мок.
 **Делаем.** `WeatherSource`, `OpenMeteoSource`, `buildWx` → `WeatherDay`,
@@ -1330,6 +1330,60 @@ Recommended: Sonnet
 Escalate to Opus if:
 - WeatherKit оказывается лучше по ярусам и встаёт вопрос смены источника.
 ```
+**Итог 22 сентября 2026.** Коммит `5a91abd` в `light_plan:native/`, ветка
+`wt/iter10` — не запушен (классификатор авто-режима отказал в push, как и у
+итерации 13; нужен ручной пуш Алексея: `git push origin wt/iter10:main`).
+`LightPlanCore/Sunset/`: `SunsetScore` (`score`, `category`, `deriveQuality`,
+`bell`), `AstroNight` (`has`, `next`), `WeatherDay`/`HourRecord`/`HourlyWeather`
+(`buildDays` — порт `buildWx`), `MilkyWaySky` (порт `mwSkyAt`), `MockWeather`
+(порт `mulberry32`, `qualityOf`, `dayWeather`, `real: false`), `AirSample` +
+`Weather.nearHour`/`airWord`. `CivilDate` получил `adding(days:)` (общая
+арифметика дней для `astroNight` и `mwSkyAt` — обратный алгоритм Хиннанта);
+`ZoneID` получил `init(fixedOffsetHours:)` — явное смещение без базы IANA, для
+входов, где пояс уже известен числом (стенд паритета и запасной путь без
+сети). `LightPlanData/Weather/`: `WeatherSource` (протокол) + `OpenMeteoSource`
+— те же переменные и то же окно прогноза, что у веба, воздух вторым запросом;
+`WeatherFetcher` (`actor`) кэширует по месту (три знака после запятой); `WeatherStore`
+(`@MainActor @Observable`) — дебаунс 500 мс (веб `wxTimer`), офлайн и отказ
+молча оставляют выдумку, ответ про место, откуда карту уже увели, отбрасывается
+сверкой места, как у `CurrentPlace` (не только отменой задачи).
+
+Стенд: `extract.js` режет восемь новых блоков (`astroNight`, `mockWx`,
+`wxState`, `airWord`, `buildWx`, `airState`, `airAt`, `mwSky`); четыре новые
+фикстуры — `astro_night.json` (672 точки), `mock_weather.json` (368),
+`weather_day.json` (9 суток, семь сценариев), `mwsky.json` (7 сценариев) — тот
+же отпечаток вырезки, что у остальных девяти. `weather_day.json` и `mwsky.json`
+несут синтетический почасовой вход целиком (без сети, без `Math.random`) —
+Swift кормится тем же, чем кормили `buildWx`/`mwSkyAt` в JS, а не второй копией
+генератора. Сверено строго: `sunsetScore` на всей сетке `sunset_score.json`
+(готовой ещё до этой итерации) — 0 расхождений; `hasAstroNight`/`nextAstroNight`
+на сетке широт § 5.2, включая полюса (там она не возвращается за 190 суток);
+`buildDays` и `MilkyWaySky.over` — на всех сценариях, включая полярный день
+(часа заката нет), дробный пояс (Катманду), только обязательные поля ответа
+(запасные значения), туман и дождь, отрезок окна через солнечную полночь в обе
+стороны. `swift test`: `LightPlanCore` 60 тестов/11 наборов, `LightPlanData`
+33 теста/9 наборов — зелёные; `xcodebuild test` через `LightPlan-iOS` —
+TEST SUCCEEDED; `Tools/check_boundaries.sh` — в порядке (5 пакетов, 48 файлов).
+
+Риск плана снят предсказанным способом: Open-Meteo больше не двигает часовой
+пояс как побочный эффект загрузки погоды — пояс остаётся свойством `Place`,
+источник его геокодер (итерация 13), не прогноз.
+
+**Не сделано.** Показ на экране (по плану — не в этой итерации). Проверка
+WeatherKit на ярусы облаков — заблокирована тем же измерением итерации 2:
+бесплатная команда `4A3PUKS9R9` не даёт WeatherKit («Personal development
+teams … do not support the … capability»); повторно проверять не на чем,
+пока команда не сменится.
+
+**Найдено, не исправлено** (вне объёма итерации; запись в SESSIONS_CHAT.md
+22 сентября 2026): `make parity` в `Makefile` сравнивает всю папку `Fixtures/`
+с временной, а та не содержит `lang.json`/`format.json`/`location.json` —
+файлы других генераторов (`make lang`, `location.js`). С тех пор, как эти
+файлы появились (итерация 14), `make parity` падает на последнем шаге
+(«Only in Fixtures: …»), хотя сама сверка фикстур повторяема — проверено
+отдельно, `cmp -s` побайтово совпал на всех тринадцати файлах, включая
+воспроизведённое поведение до правки этой итерации (`git stash`, тот же
+сбой на неизменённом `generate.js`).
 
 ---
 
