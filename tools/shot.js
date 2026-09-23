@@ -8,7 +8,10 @@
    всё, что про подложку, проверяется только на устройстве.
 
    Экраны (`--screen`):
-     map       — карта, как было до итерации 19б (по умолчанию);
+     map       — карта, как было до итерации 19б (по умолчанию); с `--at` —
+                 половина пары веб / натив (итерация 20а): прибор, шапка,
+                 строка показания, таймбар; `--svg f.svg` кладёт разметку
+                 прибора в файл;
      today     — «Свет»: шапка, купол, телеметрия, таймбар;
      settings  — «Настройки»: первая страница, главы; `--chapter view`
                  открывает главу кликом по её строке.
@@ -35,8 +38,8 @@ process.argv.slice(2).forEach((a, i, all) => {
 });
 const screen = args.screen || 'map';
 
-if (screen === 'map') mapShot().catch(fail);
-else if (screen === 'today' || screen === 'settings') screenShot().catch(fail);
+if (screen === 'map' && !args.at) mapShot().catch(fail);
+else if (screen === 'today' || screen === 'settings' || screen === 'map') screenShot().catch(fail);
 else fail(new Error('неизвестный экран: ' + screen + ' (map | today | settings)'));
 
 function fail(e) { console.error(String(e && e.stack || e)); process.exit(1); }
@@ -155,6 +158,28 @@ const NODES = {
     'ribbon': '#ribbonScroll', 'ribbon.frame': '#ribbonFrame', 'ribbon.day0': '#ribbonTrack .ribbon-day:nth-child(2)', 'track': '#timebar .track-wrap', 'scrub': '#scrub', 'ruler': '#ruler',
     'tabbar': '.tabbar', ...TABS
   },
+  /* Карта (итерация 20а). Узлы прибора — элементы SVG `#mapLight` без id:
+     берутся по признакам, которые ставит `renderMap` (радиус, цвет, кегль).
+     Числа, которых рамкой не сказать, идут текстом узла: прозрачность вуали
+     (`map.veil`, рамка — кадр карты), точки облака по пяти ярусам
+     (`map.optic`) и число часовых засечек (`map.rim`). */
+  map: {
+    'header.name': '#mLocName', 'header.sub': '#mLocSub', 'header.date': '#mDate',
+    'readout.time': '#mrTime', 'readout.phase': '#mrPhase',
+    'map.optic': '#mapLight', 'map.pin': '.map-pin i', 'map.credit': '.map-credit', 'map.veil': '.map-frame',
+    'map.horizon': '#mapLight circle[r="118"]', 'map.rim': '#mapLight circle[r="154"]',
+    'map.sun': '#mapLight circle[r="5.5"][stroke-width="2"]',
+    'map.sunGhost': '#mapLight circle[r="5.5"][stroke="#7C9CC4"]',
+    'map.moon': '#mapLight circle[r="4.5"]',
+    'map.core': '#mapLight circle[r="5.5"][fill="none"]:not([stroke="#7C9CC4"])',
+    'map.north': '#mapLight text[fill="#E2A44C"]',
+    'map.rise': '#mapLight text[text-anchor="start"][font-size="11"]',
+    'map.set': '#mapLight text[text-anchor="end"][font-size="11"]',
+    'timebar': '#timebar', 'edge.rise': '#edgeRise', 'edge.set': '#edgeSet', 'now': '#nowTick',
+    'ribbon': '#ribbonScroll', 'ribbon.frame': '#ribbonFrame', 'ribbon.day0': '#ribbonTrack .ribbon-day:nth-child(2)',
+    'track': '#timebar .track-wrap', 'scrub': '#scrub', 'ruler': '#ruler',
+    'tabbar': '.tabbar', ...TABS
+  },
   settings: {
     'header.name': '#s-set .header .name', 'header.date': '#s-set .header .date',
     'mode': '#modeSeg', 'mode.simple': '#modeSeg button[data-mode="simple"]',
@@ -246,7 +271,7 @@ async function screenShot() {
     const s = document.getElementById(go);
     if (s) s.scrollTop = 0;
     window.scrollTo(0, 0);
-  }, screen === 'today' ? 's-today' : 's-set');
+  }, screen === 'today' ? 's-today' : screen === 'map' ? 's-map' : 's-set');
   // Экран въезжает анимацией `rise` 0.45 с — снимать после неё.
   await page.waitForTimeout(800);
   /* Глава настроек (`--chapter view|shoots|locale|…`) — кликом по строке
@@ -274,6 +299,8 @@ async function screenShot() {
        сверки, список в коде инструмента отстал бы от беты */
     const nav = nodes._nav, chapter = nodes._chapter;
     delete nodes._nav; delete nodes._chapter;
+    const mapFlags = { _map: nodes._map, _mw: nodes._mw };
+    delete nodes._map; delete nodes._mw;
     /* Узлы главы — по порядку в разметке: назад, заголовок, подписи
        разделов, сегменты, пояснения, фишки, строки. Имя — вид и номер
        (`sec.0`, `seg.1`, `note.2`, `chips.0`, `item.3`); приложение
@@ -307,7 +334,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(header|readout|tele)\.|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
+      const textual = /^(header|readout|tele)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -328,14 +355,38 @@ async function screenShot() {
         bg: bg(el)
       };
     }
+    if (mapFlags._map) {
+      const svg = document.getElementById('mapLight');
+      const veil = document.getElementById('mapNight');
+      if (out['map.veil'] && veil) out['map.veil'].text = (+getComputedStyle(veil).opacity).toFixed(3);
+      // Текст самого SVG — все его подписи подряд; сверяется только облако.
+      if (out['map.optic']) out['map.optic'].text = undefined;
+      if (svg && out['map.optic'] && mapFlags._mw) {
+        const count = w => {
+          const p = [...svg.querySelectorAll('path[stroke="#C6AAE8"]')].find(e => e.getAttribute('stroke-width') === w);
+          return p ? (p.getAttribute('d').match(/M/g) || []).length : 0;
+        };
+        out['map.optic'].text = ['1.5', '1.1', '0.85', '0.62', '0.45'].map(count).join(' ');
+      }
+      if (svg && out['map.rim']) out['map.rim'].text =
+        String(svg.querySelectorAll('circle[r="1.9"], circle[r="1.5"][fill-opacity="0.55"]').length);
+    }
     return {
       theme: document.documentElement.getAttribute('data-theme'),
       body: getComputedStyle(document.body).backgroundColor,
       nodes: out
     };
-  }, screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter } : NODES.today);
+  }, screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
+    : screen === 'map' ? { ...NODES.map, _map: true, _mw: !!(seed && seed.mapLayers && seed.mapLayers.mw) }
+    : NODES.today);
 
   await page.screenshot({ path: out });
+  // Разметка прибора карты целиком — эталон снимка сцены в нативе
+  // (native/Tools/map_ref.js): числа и порядок узлов, а не рамки.
+  if (args.svg && screen === 'map') {
+    const svg = await page.evaluate(() => { const s = document.getElementById('mapLight'); return s && s.outerHTML; });
+    if (svg) fs.writeFileSync(args.svg, svg);
+  }
   const meta = {
     снимок: out, экран: screen, движок: engine, момент: args.at || null, пояс: tz,
     ошибки: errors, отказано: [...new Set(blocked)], ...report
