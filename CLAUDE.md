@@ -54,7 +54,9 @@ re-sent with every subsequent request.
    documentation, taking inventory of files. What returns to the main context
    should be the conclusion, not the raw material.
 10. Pick the subagent model by task: `haiku` for mechanical work and search,
-    `sonnet` for analysis and edits. Opus only if I asked for it.
+    `sonnet` for analysis and edits, `opus` where a wrong verdict is costly
+    (audit, second opinion). Migration iterations: the table in
+    `SWIFT_MIGRATION_PLAN.md` decides.
 
 ## What you cannot do yourself — warn me instead of trying
 
