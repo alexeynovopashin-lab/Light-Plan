@@ -132,6 +132,13 @@ function instant(at, tz) {
 /* Узлы отчёта. Имя — общий язык с приложением: Debug-сборка пишет рамки под
    теми же именами, сверка идёт по ним. Узел, которого нет или который скрыт,
    попадает в отчёт с `visible: false` — отсутствие тоже расхождение. */
+/* Панель вкладок — на обоих экранах: знак и подпись каждой вкладки
+   (после 19б натив перенёс панель веба вместо системной). */
+const TABS = {};
+[['light', 's-today'], ['map', 's-map'], ['shoots', 's-plan'], ['settings', 's-set']].forEach(([n, go]) => {
+  TABS['tab.' + n] = `.tabbar .tab[data-go="${go}"] svg`;
+  TABS['tab.' + n + '.label'] = `.tabbar .tab[data-go="${go}"] span`;
+});
 const NODES = {
   today: {
     'header.name': '#hLocName', 'header.sub': '#hLocSub', 'header.date': '#hDate', 'header.note': '#hNote',
@@ -146,14 +153,14 @@ const NODES = {
     'spoiler': '#spoilerBtn', 'action': '#planToday', 'action.sub': '#actionSub',
     'timebar': '#timebar', 'edge.rise': '#edgeRise', 'edge.set': '#edgeSet', 'now': '#nowTick',
     'ribbon': '#ribbonScroll', 'ribbon.frame': '#ribbonFrame', 'ribbon.day0': '#ribbonTrack .ribbon-day:nth-child(2)', 'track': '#timebar .track-wrap', 'scrub': '#scrub', 'ruler': '#ruler',
-    'tabbar': '.tabbar'
+    'tabbar': '.tabbar', ...TABS
   },
   settings: {
     'header.name': '#s-set .header .name', 'header.date': '#s-set .header .date',
     'mode': '#modeSeg', 'mode.simple': '#modeSeg button[data-mode="simple"]',
     'mode.pro': '#modeSeg button[data-mode="pro"]', 'mode.note': '#s-set .set-mode .seg-note',
     'nav': '#s-set .set-nav',
-    'tabbar': '.tabbar'
+    'tabbar': '.tabbar', ...TABS
   }
 };
 
@@ -300,7 +307,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(header|readout|tele)\.|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\./.test(name) || name === 'title';
+      const textual = /^(header|readout|tele)\.|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
