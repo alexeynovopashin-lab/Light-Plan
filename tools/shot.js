@@ -169,7 +169,18 @@ const NODES = {
      (`map.optic`) и число часовых засечек (`map.rim`). */
   map: {
     'header.name': '#mLocName', 'header.sub': '#mLocSub', 'header.date': '#mDate',
-    'readout.time': '#mrTime', 'readout.phase': '#mrPhase',
+    'readout.time': '#mrTime', 'readout.phase': '#mrPhase', 'readout.chev': '.mr-chev',
+    /* Свод (итерация 20б): значения строк; строка, которой нечего сказать,
+       скрыта и в паре отсутствует с обеих сторон. */
+    'map.fold': '#mapFold', 'spoiler': '#mSpoilerBtn',
+    'map.layersBtn': '#mapLayersBtn', 'map.layers': '#mapLayersMenu',
+    ...Object.fromEntries(['sun', 'moon', 'mw', 'compass', 'spots'].map(k =>
+      ['layer.' + k, `#mapLayersMenu [data-layer="${k}"] [data-i18n]`])),
+    'fold.lightFrom': '#mDir', 'fold.sunElev': '#mElev', 'fold.shadow': '#mShadow',
+    'fold.golden': '#mGolden', 'fold.blue': '#mBlue', 'fold.moon': '#mMoon', 'fold.spot': '#mPoint',
+    'fold.next': '#mNext', 'fold.twilight': '#mTwi', 'fold.eclipse': '#mEcl',
+    'fold.night': '#mwNight', 'fold.moonGlare': '#mwGlare', 'fold.glow': '#mwGlow', 'fold.sky': '#mwSky',
+    'fold.verdict': '#mwVerdict',
     'map.optic': '#mapLight', 'map.pin': '.map-pin i', 'map.credit': '.map-credit', 'map.veil': '.map-frame',
     'map.horizon': '#mapLight circle[r="118"]', 'map.rim': '#mapLight circle[r="154"]',
     'map.sun': '#mapLight circle[r="5.5"][stroke-width="2"]',
@@ -301,6 +312,11 @@ async function screenShot() {
     }, chapter);
     await page.waitForTimeout(700);
   }
+  /* Меню слоёв карты (`--chapter layers`, итерация 20б) — кликом по кружку. */
+  if (screen === 'map' && args.chapter === 'layers') {
+    await page.evaluate(() => document.getElementById('mapLayersBtn').click());
+    await page.waitForTimeout(400);
+  }
 
   /* Вид «Съёмок» — веером, как пальцем: месяц → день идёт через разрез
      недели (`partMonthIntoDay`), он длится ~0,6 с */
@@ -383,7 +399,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
+      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -392,6 +408,8 @@ async function screenShot() {
       }
       const cs = getComputedStyle(el);
       let hidden = b.width === 0 || b.height === 0 || cs.visibility === 'hidden' || cs.display === 'none';
+      // Свёрнутый свод карты режет строки `max-height: 0`, а не прячет их.
+      if (el.closest('.map-fold.shut')) hidden = true;
       for (let e = el; e && !hidden; e = e.parentElement) {
         if (e.hidden || getComputedStyle(e).display === 'none' || +getComputedStyle(e).opacity === 0) hidden = true;
       }
