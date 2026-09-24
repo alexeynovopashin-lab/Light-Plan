@@ -14,7 +14,11 @@
                  прибора в файл;
      today     — «Свет»: шапка, купол, телеметрия, таймбар;
      settings  — «Настройки»: первая страница, главы; `--chapter view`
-                 открывает главу кликом по её строке.
+                 открывает главу кликом по её строке;
+     plan      — «Съёмки» (итерация 21): `--scope month|week|day` выбирается
+                 веером видов, как пальцем; клетки месяца, строки недели,
+                 даты, события ленты и отметки идут узлами по порядку;
+                 `--pick N` — дата недели дня (0 — понедельник).
    Для today и settings снимок — половина пары веб / натив (миграция, § 5.4
    плана): момент, место, погода и настройки прибиты, чтобы приложение
    открылось в той же минуте с тем же небом. Отчёт — рамки ключевых узлов в
@@ -39,7 +43,7 @@ process.argv.slice(2).forEach((a, i, all) => {
 const screen = args.screen || 'map';
 
 if (screen === 'map' && !args.at) mapShot().catch(fail);
-else if (screen === 'today' || screen === 'settings' || screen === 'map') screenShot().catch(fail);
+else if (screen === 'today' || screen === 'settings' || screen === 'map' || screen === 'plan') screenShot().catch(fail);
 else fail(new Error('неизвестный экран: ' + screen + ' (map | today | settings)'));
 
 function fail(e) { console.error(String(e && e.stack || e)); process.exit(1); }
@@ -180,6 +184,19 @@ const NODES = {
     'track': '#timebar .track-wrap', 'scrub': '#scrub', 'ruler': '#ruler',
     'tabbar': '.tabbar', ...TABS
   },
+  /* «Съёмки» (итерация 21). Шапка, веер видов и то, что стоит под ней;
+     клетки месяца (`cal.N`), строки недели (`wk.N`), даты дня (`dd.N`),
+     события ленты (`ev.N`) и отметки ленты (`mark.N`) нумеруются по разметке
+     — приложение нумерует свои так же. */
+  plan: {
+    'plan.scope': '#scopeBtn', 'plan.title': '#calMonth', 'plan.chev': '#planTitle .pt-chev',
+    'plan.add': '#planAdd', 'plan.stats': '#planStats', 'plan.search': '#planSearch', 'plan.now': '#calNow',
+    'cal.head': '#calHead', 'cal': '#cal', 'week': '#week', 'legend': '#s-plan .legend',
+    'dates': '#dayDates', 'dp.bar': '#dpBar', 'dp.rise': '#dpRise', 'dp.set': '#dpSet', 'dp.gold': '#dpGoldVal',
+    'dp.temp': '#dpTemp', 'dp.chev': '#dayToggle', 'dp.load': '#dpLoad', 'line': '#dpSessions',
+    'st.shoot': '#planDay', 'st.meet': '#planMeet', 'st.block': '#planBlock',
+    'tabbar': '.tabbar', ...TABS
+  },
   settings: {
     'header.name': '#s-set .header .name', 'header.date': '#s-set .header .date',
     'mode': '#modeSeg', 'mode.simple': '#modeSeg button[data-mode="simple"]',
@@ -271,7 +288,7 @@ async function screenShot() {
     const s = document.getElementById(go);
     if (s) s.scrollTop = 0;
     window.scrollTo(0, 0);
-  }, screen === 'today' ? 's-today' : screen === 'map' ? 's-map' : 's-set');
+  }, screen === 'today' ? 's-today' : screen === 'map' ? 's-map' : screen === 'plan' ? 's-plan' : 's-set');
   // Экран въезжает анимацией `rise` 0.45 с — снимать после неё.
   await page.waitForTimeout(800);
   /* Глава настроек (`--chapter view|shoots|locale|…`) — кликом по строке
@@ -282,6 +299,22 @@ async function screenShot() {
       const row = document.getElementById('setNav' + ch[0].toUpperCase() + ch.slice(1));
       if (row) row.click();
     }, chapter);
+    await page.waitForTimeout(700);
+  }
+
+  /* Вид «Съёмок» — веером, как пальцем: месяц → день идёт через разрез
+     недели (`partMonthIntoDay`), он длится ~0,6 с */
+  const scope = screen === 'plan' ? (args.scope || 'month') : null;
+  if (scope && scope !== 'month') {
+    await page.click('#scopeBtn');
+    await page.waitForTimeout(400);
+    await page.click(`#scopeMenu button[data-scope="${scope}"]`);
+    // День сам наводится на 09:00 (`dayScrollDay`) — прокрутку не трогаем.
+    await page.waitForTimeout(1200);
+  }
+  /* `--pick N` — дата закреплённой недели дня (0 — понедельник), тапом */
+  if (scope === 'day' && args.pick != null) {
+    await page.click(`#dayDates .dd-day:nth-child(${+args.pick + 1})`);
     await page.waitForTimeout(700);
   }
 
@@ -301,6 +334,22 @@ async function screenShot() {
     delete nodes._nav; delete nodes._chapter;
     const mapFlags = { _map: nodes._map, _mw: nodes._mw };
     delete nodes._map; delete nodes._mw;
+    /* «Съёмки»: повторяющиеся части — по порядку в разметке */
+    if (nodes._plan) {
+      const tag = (el, n) => { if (!el.id) el.id = '__shot_' + n; return '#' + el.id; };
+      let k = 0;
+      const each = (sel, name) => document.querySelectorAll(sel).forEach((el, i) => { nodes[name + '.' + i] = tag(el, 'p' + k++); });
+      each('#cal > .d', 'cal');
+      each('#calHead > span', 'head');
+      each('#week .wk-day-row', 'wk');
+      each('#dayDates .dd-day', 'dd');
+      each('#dpSessions .dl-ev', 'ev');
+      // Отметка ленты нулевой высоты — рамкой служит её подпись или капсула.
+      each('#dpSessions .dl-mark-t, #dpSessions .dl-mark-h', 'mark');
+      each('#dpSessions .plan-row', 'row');
+      each('#dpSessions .dl-slot', 'slot');
+    }
+    delete nodes._plan;
     /* Узлы главы — по порядку в разметке: назад, заголовок, подписи
        разделов, сегменты, пояснения, фишки, строки. Имя — вид и номер
        (`sec.0`, `seg.1`, `note.2`, `chips.0`, `item.3`); приложение
@@ -334,7 +383,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(header|readout|tele)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
+      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -378,6 +427,7 @@ async function screenShot() {
     };
   }, screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
     : screen === 'map' ? { ...NODES.map, _map: true, _mw: !!(seed && seed.mapLayers && seed.mapLayers.mw) }
+    : screen === 'plan' ? { ...NODES.plan, _plan: true }
     : NODES.today);
 
   await page.screenshot({ path: out });
@@ -388,7 +438,7 @@ async function screenShot() {
     if (svg) fs.writeFileSync(args.svg, svg);
   }
   const meta = {
-    снимок: out, экран: screen, движок: engine, момент: args.at || null, пояс: tz,
+    снимок: out, экран: screen, вид: scope, движок: engine, момент: args.at || null, пояс: tz,
     ошибки: errors, отказано: [...new Set(blocked)], ...report
   };
   if (args.report) fs.writeFileSync(args.report, JSON.stringify(meta, null, 1));
