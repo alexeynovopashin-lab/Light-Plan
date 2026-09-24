@@ -173,7 +173,10 @@ const NODES = {
     /* Свод (итерация 20б): значения строк; строка, которой нечего сказать,
        скрыта и в паре отсутствует с обеих сторон. */
     'map.fold': '#mapFold', 'spoiler': '#mSpoilerBtn',
-    'map.layersBtn': '#mapLayersBtn', 'map.layers': '#mapLayersMenu',
+    'map.layersBtn': '#mapLayersBtn', 'map.layers': '#mapLayersMenu', 'map.headingBtn': '#mapHeadingBtn',
+    /* Сохранённая точка (20б): закладка шапки и полоса имени (`--chapter spot`). */
+    'map.save': '#mapSave', 'spot.bar': '#spotNameBar', 'spot.name': '#spotNameIn',
+    'spot.coord': '#spotNameCoord', 'spot.del': '#spotNameDel', 'spot.ok': '#spotNameOk',
     ...Object.fromEntries(['sun', 'moon', 'mw', 'compass', 'spots'].map(k =>
       ['layer.' + k, `#mapLayersMenu [data-layer="${k}"] [data-i18n]`])),
     'fold.lightFrom': '#mDir', 'fold.sunElev': '#mElev', 'fold.shadow': '#mShadow',
@@ -311,6 +314,12 @@ async function screenShot() {
       if (row) row.click();
     }, chapter);
     await page.waitForTimeout(700);
+  }
+  /* Закладка шапки (`--chapter spot`, 20б) — кликом, как палец: точка под
+     головкой сохраняется, открывается полоса имени. */
+  if (screen === 'map' && args.chapter === 'spot') {
+    await page.evaluate(() => document.getElementById('mapSave').click());
+    await page.waitForTimeout(400);
   }
   /* Меню слоёв карты (`--chapter layers`, итерация 20б) — кликом по кружку. */
   if (screen === 'map' && args.chapter === 'layers') {
