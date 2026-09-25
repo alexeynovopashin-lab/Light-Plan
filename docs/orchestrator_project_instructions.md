@@ -25,10 +25,12 @@ photographer, code talk is opaque to him).
 6. `Light_Plan/SESSIONS_CHAT.md` — hand-off channel between live chats; not in
    git, local only; closed topics go to `SESSIONS_CHAT_archive/<date>.md`.
 
-Stale, do not plan from: `docs/PROMPT_*.md`, «волны хвостов» of the web,
-EventOS/BroniOS integration (Light Plan is standalone; the only link for the
-future is a stable id per shoot). The web (`beta/`) is FROZEN as the
-reference: no web work unless Alexey asks.
+Stale, do not plan from: `docs/PROMPT_*.md`, «волны хвостов» of the web.
+The web (`beta/`) is FROZEN as the reference: no web work unless Alexey asks.
+EventOS and BroniOS are the long-term platform (Light Plan will live inside
+Event OS), but NOT the current work: the current stage is the iPhone app per
+SWIFT_MIGRATION_PLAN. Touch those repos only when Alexey asks; bridges are
+`event_os:BRIDGE_LIGHT_PLAN.md`, `broni_os:TASK_LIGHT_PLAN_BRIDGE.md`.
 
 ## Per iteration report
 
