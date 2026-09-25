@@ -19,6 +19,9 @@
                  веером видов, как пальцем; клетки месяца, строки недели,
                  даты, события ленты и отметки идут узлами по порядку;
                  `--pick N` — дата недели дня (0 — понедельник).
+   Лист «Где снимаем» (итерация 21в): `--sheet loc` на `today` или `map`
+   открывает его кнопкой места в шапке, как пальцем; `--way addr|geo` —
+   путь, тапом по строке развилки. Узлы — только листа (`loc.*`).
    Для today и settings снимок — половина пары веб / натив (миграция, § 5.4
    плана): момент, место, погода и настройки прибиты, чтобы приложение
    открылось в той же минуте с тем же небом. Отчёт — рамки ключевых узлов в
@@ -218,6 +221,20 @@ const NODES = {
     'st.shoot': '#planDay', 'st.meet': '#planMeet', 'st.block': '#planBlock',
     'tabbar': '.tabbar', ...TABS
   },
+  /* Лист «Где снимаем» (итерация 21в). Строки «Моих мест» — по порядку
+     (`loc.spot.N`); приложение нумерует свои так же. */
+  loc: {
+    'loc.sheet': '#locSheet', 'loc.grip': '#locSheet .grip', 'loc.back': '#locBack',
+    'loc.title': '#locTitle', 'loc.sub': '#locSub',
+    'loc.way.studio': '.loc-way[data-way="studio"]', 'loc.way.addr': '.loc-way[data-way="addr"]',
+    'loc.way.geo': '.loc-way[data-way="geo"]',
+    'loc.search': '#wayAddr .loc-search', 'loc.spots': '#spotLabel', 'loc.empty': '#spotList .spot-empty',
+    'loc.here': '#locHere', 'loc.lat': '#locLat', 'loc.lon': '#locLon',
+    'loc.latLabel': '#wayGeo .loc-fields label:nth-child(1) span',
+    'loc.lonLabel': '#wayGeo .loc-fields label:nth-child(2) span', 'loc.note': '#wayGeo .seg-note',
+    'loc.group': '#locPlaceGroup', 'loc.name': '#locName', 'loc.addr': '#locAddress', 'loc.save': '#locSaveRow',
+    'loc.done': '#locDone'
+  },
   settings: {
     'header.name': '#s-set .header .name', 'header.date': '#s-set .header .date',
     'mode': '#modeSeg', 'mode.simple': '#modeSeg button[data-mode="simple"]',
@@ -301,6 +318,17 @@ async function screenShot() {
     }, JSON.stringify(seed));
   }
 
+  /* Лист места при первом открытии сам уводит на путь координат, если
+     разрешение на геоданные ещё не спрашивали (`openLocSheet`). В паре
+     разрешение считается данным раньше — развилка стоит, как у приложения. */
+  if (args.sheet === 'loc') {
+    await page.addInitScript(() => {
+      const q = navigator.permissions && navigator.permissions.query;
+      if (q) navigator.permissions.query = d => d && d.name === 'geolocation'
+        ? Promise.resolve({ state: 'denied' }) : q.call(navigator.permissions, d);
+    });
+  }
+
   await page.goto('http://lp.test/' + path.relative(root, path.resolve(target)).split(path.sep).join('/'));
   await page.waitForTimeout(900);
   await page.evaluate(go => {
@@ -312,6 +340,17 @@ async function screenShot() {
   }, screen === 'today' ? 's-today' : screen === 'map' ? 's-map' : screen === 'plan' ? 's-plan' : 's-set');
   // Экран въезжает анимацией `rise` 0.45 с — снимать после неё.
   await page.waitForTimeout(800);
+  /* Лист места (`--sheet loc`, 21в) — кнопкой в шапке экрана, путь
+     (`--way addr|geo`) — строкой развилки. Лист въезжает 0,38 с. */
+  const sheet = args.sheet === 'loc' && (screen === 'today' || screen === 'map');
+  if (sheet) {
+    await page.click(screen === 'map' ? '#mapLoc' : '#todayLoc');
+    await page.waitForTimeout(600);
+    if (args.way) {
+      await page.click(`.loc-way[data-way="${args.way}"]`);
+      await page.waitForTimeout(300);
+    }
+  }
   /* Глава настроек (`--chapter view|shoots|locale|…`) — кликом по строке
      корня, как палец: так проверяется и то, что строка открывает свою главу */
   const chapter = screen === 'settings' && args.chapter ? args.chapter : null;
@@ -388,6 +427,18 @@ async function screenShot() {
       each('#dpSessions .dl-slot', 'slot');
     }
     delete nodes._plan;
+    if (nodes._loc) {
+      let k = 0;
+      document.querySelectorAll('#spotList .spot-row').forEach((el, i) => {
+        const tag = (e, n) => { if (!e.id) e.id = '__shot_l' + n; return '#' + e.id; };
+        nodes['loc.spot.' + i] = tag(el, k++);
+        const nm = el.querySelector('.spot-name'); if (nm) nodes['loc.spot.' + i + '.name'] = tag(nm, k++);
+        const ad = el.querySelector('.spot-address'); if (ad) nodes['loc.spot.' + i + '.addr'] = tag(ad, k++);
+        const ed = el.querySelector('.spot-edit'); if (ed) nodes['loc.spot.' + i + '.edit'] = tag(ed, k++);
+        const dl = el.querySelector('.spot-del'); if (dl) nodes['loc.spot.' + i + '.del'] = tag(dl, k++);
+      });
+    }
+    delete nodes._loc;
     /* Узлы главы — по порядку в разметке: назад, заголовок, подписи
        разделов, сегменты, пояснения, фишки, строки. Имя — вид и номер
        (`sec.0`, `seg.1`, `note.2`, `chips.0`, `item.3`); приложение
@@ -421,7 +472,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$/.test(name) || name === 'title';
+      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$/.test(name) || /^loc\.(title|sub|spots|empty|note|latLabel|lonLabel)$|^loc\.spot\.\d+\.(name|addr)$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -471,7 +522,8 @@ async function screenShot() {
       body: getComputedStyle(document.body).backgroundColor,
       nodes: out
     };
-  }, screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
+  }, sheet ? { ...NODES.loc, _loc: true }
+    : screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
     : screen === 'map' ? { ...NODES.map, _map: true, _mw: !!(seed && seed.mapLayers && seed.mapLayers.mw) }
     : screen === 'plan' ? { ...NODES.plan, _plan: true }
     : NODES.today);
