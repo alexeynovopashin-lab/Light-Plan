@@ -32,6 +32,17 @@ Event OS), but NOT the current work: the current stage is the iPhone app per
 SWIFT_MIGRATION_PLAN. Touch those repos only when Alexey asks; bridges are
 `event_os:BRIDGE_LIGHT_PLAN.md`, `broni_os:TASK_LIGHT_PLAN_BRIDGE.md`.
 
+## Where you run
+
+You (the coordinator) run in the cloud; iteration threads run on Alexey's Mac
+in `light_plan` (Remote Control server, see `native/CLAUDE.md`). So:
+- read state from GitHub (`LightPlan` = native, `Light-Plan` = web): every
+  iteration pushes; unpushed work does not exist for you — ask the thread;
+- `SESSIONS_CHAT.md` is local (not in git): you can't read it; threads
+  report to you directly, and write there only for each other;
+- your doc edits go to GitHub; before pushing, fetch — local threads push
+  too. Never force-push.
+
 ## Per iteration report
 
 1. Git: commits exist and are pushed; worktrees removed or still needed; no
