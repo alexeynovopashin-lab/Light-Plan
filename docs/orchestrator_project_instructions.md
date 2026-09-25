@@ -61,7 +61,9 @@ SWIFT_MIGRATION_PLAN. Touch those repos only when Alexey asks; bridges are
   the prototype, NOT system components/menus. `check_glass.sh` guards it.
 - Session size: at ~300k tokens — write interim results to the plan and
   SESSIONS_CHAT, start a fresh thread.
-- Models: Opus 5.5 — 24, 25, 29, 32, 35, 36; Sonnet — the rest.
+- Models: until Sonnet 5.5 ships (~2 Oct 2026) — Opus 5.5 for every thread
+  (Alexey's deliberate choice, 25 Sep: Sonnet makes too many mistakes). After
+  that: Opus for 24, 25, 29, 32, 35, 36; Sonnet 5.5 for the rest.
 - Promotion of the web beta to root, pushes of anything public: only on
   Alexey's word.
 
