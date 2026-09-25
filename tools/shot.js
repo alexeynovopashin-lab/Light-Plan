@@ -153,6 +153,13 @@ const NODES = {
     'dome': '#s-today .dome > svg', 'dome.arc': '#arcPath', 'dome.horizon': '#s-today .horizon-line',
     'dome.sun': '#sunCore', 'dome.sunGlow': '#sunGlow', 'dome.ring': '#nowRing', 'dome.moon': '#moonDisc',
     'dome.swap': '#skySwap',
+    /* Лист «Когда смотрим» (`--chapter pick`, итерация 19в): тап по
+       показаниям купола. Барабаны — рамками колонок, выбранное значение —
+       текстом узла (строка под полосой выбора). */
+    'pick.sheet': '#sheet', 'pick.grip': '#sheet .grip', 'pick.title': '#sheetTitle', 'pick.sub': '#sheetSub',
+    'pick.band': '#sheet .pick-band', 'pick.date': '#wDate', 'pick.hour': '#wHour', 'pick.min': '#wMin',
+    'pick.chip.0': '#chips .chip:nth-child(1)', 'pick.chip.1': '#chips .chip:nth-child(2)',
+    'pick.chip.2': '#chips .chip:nth-child(3)', 'pick.done': '#pDone',
     'readout.time': '#drTime', 'readout.phase': '#drPhase', 'readout.sense': '#drSense',
     'next.label': '#nlLabel', 'next.value': '#nlValue', 'next.spark': '#nlSpark', 'next.word': '#nlWord',
     'tele.rec': '#tRec', 'tele.sunset': '#tSunset', 'tele.golden': '#tGolden', 'tele.light': '#tLight',
@@ -315,6 +322,12 @@ async function screenShot() {
     }, chapter);
     await page.waitForTimeout(700);
   }
+  /* Лист «Когда смотрим» (`--chapter pick`, 19в) — тапом по показаниям
+     купола, как палец; лист въезжает 0,38 с. */
+  if (screen === 'today' && args.chapter === 'pick') {
+    await page.evaluate(() => document.getElementById('readout').click());
+    await page.waitForTimeout(700);
+  }
   /* Закладка шапки (`--chapter spot`, 20б) — кликом, как палец: точка под
      головкой сохраняется, открывается полоса имени. */
   if (screen === 'map' && args.chapter === 'spot') {
@@ -408,7 +421,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$/.test(name) || name === 'title';
+      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -422,7 +435,13 @@ async function screenShot() {
       for (let e = el; e && !hidden; e = e.parentElement) {
         if (e.hidden || getComputedStyle(e).display === 'none' || +getComputedStyle(e).opacity === 0) hidden = true;
       }
-      const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      let text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      /* Барабан листа (19в): текст узла — строка под полосой выбора, не
+         весь список (строка 34, `wheelIndex` беты). */
+      if (el.classList.contains('wheel') && el.children.length) {
+        const row = el.children[Math.max(0, Math.min(el.children.length - 1, Math.round(el.scrollTop / 34)))];
+        text = (row.textContent || '').trim();
+      }
       out[name] = {
         visible: !hidden,
         x: r1(b.left), y: r1(b.top), w: r1(b.width), h: r1(b.height),
