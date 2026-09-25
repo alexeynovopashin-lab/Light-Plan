@@ -52,6 +52,7 @@ SWIFT_MIGRATION_PLAN. Touch those repos only when Alexey asks; bridges are
 
 - iOS work needs THIS Mac: Xcode, iOS simulators, Alexey's iPhone
   («iPhone ALno», paired). A thread without them can do docs only.
+  How to put a build on his phone: `native/CLAUDE.md`, «Build on Alexey's iPhone».
 - Each iteration in its own git worktree and branch `wt/<task>`; pairs on its
   own simulator `LP <branch>` (created by `make shots`); base iPhone 17 Pro Max
   stays free. Hand-off only of committed work (`wip:` commit in the branch).
