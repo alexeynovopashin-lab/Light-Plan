@@ -174,6 +174,8 @@ const NODES = {
        скрыта и в паре отсутствует с обеих сторон. */
     'map.fold': '#mapFold', 'spoiler': '#mSpoilerBtn',
     'map.layersBtn': '#mapLayersBtn', 'map.layers': '#mapLayersMenu', 'map.headingBtn': '#mapHeadingBtn',
+    /* Голый холст (21б, `--chapter bare`): низ убран, кружок возврата по центру. */
+    'map.bareBtn': '#mapBareBtn',
     /* Сохранённая точка (20б): закладка шапки и полоса имени (`--chapter spot`). */
     'map.save': '#mapSave', 'spot.bar': '#spotNameBar', 'spot.name': '#spotNameIn',
     'spot.coord': '#spotNameCoord', 'spot.del': '#spotNameDel', 'spot.ok': '#spotNameOk',
@@ -320,6 +322,18 @@ async function screenShot() {
   if (screen === 'map' && args.chapter === 'spot') {
     await page.evaluate(() => document.getElementById('mapSave').click());
     await page.waitForTimeout(400);
+  }
+  /* Голый холст (`--chapter bare`, 21б) — свайпом вниз по строке часов, как
+     пальцем: 60 px вниз, вбок ноль. Подмена низа — 240 + 260 мс, переезд
+     головки — 300 мс. */
+  if (screen === 'map' && args.chapter === 'bare') {
+    await page.evaluate(() => {
+      const row = document.getElementById('mapRead'), r = row.getBoundingClientRect();
+      const x = r.left + r.width / 2, y = r.top + r.height / 2;
+      const ev = (t, dy) => row.dispatchEvent(new PointerEvent(t, { clientX: x, clientY: y + dy, bubbles: true }));
+      ev('pointerdown', 0); ev('pointermove', 30); ev('pointermove', 60); ev('pointerup', 60);
+    });
+    await page.waitForTimeout(900);
   }
   /* Меню слоёв карты (`--chapter layers`, итерация 20б) — кликом по кружку. */
   if (screen === 'map' && args.chapter === 'layers') {
