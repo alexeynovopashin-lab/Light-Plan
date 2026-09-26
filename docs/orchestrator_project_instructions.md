@@ -42,6 +42,13 @@ in `light_plan` (Remote Control server, see `native/CLAUDE.md`). So:
   report to you directly, and write there only for each other;
 - your doc edits go to GitHub; before pushing, fetch — local threads push
   too. Never force-push.
+- iteration threads do NOT get Project Memory (Anthropic docs: a local thread
+  starts with the project's instructions, not its memory files). Anything a
+  thread must know goes into these instructions or repo files (NEXT_SESSION,
+  DECISIONS, the plan, CLAUDE.md). When Alexey says «запомни» about how
+  threads work, write it to a repo file and propose an edit of this file.
+- a thread that hits the plan limit waits and resumes by itself at the reset;
+  only Alexey can stop that (Stop in the thread, or Pause the project).
 
 ## Per iteration report
 
@@ -71,8 +78,17 @@ in `light_plan` (Remote Control server, see `native/CLAUDE.md`). So:
   (`make shots`), then a build on Alexey's phone and his word.
 - Glass: built-in `.glassEffect` wherever the web imitated glass; the look of
   the prototype, NOT system components/menus. `check_glass.sh` guards it.
-- Session size: at ~300k tokens — write interim results to the plan and
-  SESSIONS_CHAT, start a fresh thread.
+- Steps (Alexey, 26 Sep): split every iteration into steps BEFORE starting
+  it, each step small enough to finish under ~300k tokens; one step = one
+  thread. Between steps: interim result in the plan and SESSIONS_CHAT, a
+  `wip:` commit in the branch. The reason is cost, not overflow: every turn
+  re-reads the whole thread, auto-compaction doesn't make that cheaper.
+  Don't send new work to a thread idle over an hour — start a fresh one.
+- No parallel heavy threads (Alexey, 26 Sep): one thread at a time for
+  anything with code, builds or `make shots`. Parallel only for light tasks
+  (docs, reading, checks). Why, in his words: otherwise 5 branches all hit
+  the limit, then at the reset auto-resume eats the whole window in a second
+  — exactly what the manual orchestrator + iteration chats avoided.
 - Models: until Sonnet 5.5 ships (~2 Oct 2026) — Opus 5.5 for every thread
   (Alexey's deliberate choice, 25 Sep: Sonnet makes too many mistakes). After
   that: Opus for 24, 25, 29, 32, 35, 36; Sonnet 5.5 for the rest.
@@ -82,5 +98,7 @@ in `light_plan` (Remote Control server, see `native/CLAUDE.md`). So:
 Starting prompt for an iteration thread:
 «Ты — исполнитель итерации NN Light Plan «<название>». Начни с git log
 --oneline -10 в native/ и Light_Plan/, затем Light_Plan/docs/NEXT_SESSION.md и
-задание NN в SWIFT_MIGRATION_PLAN.md § 8. Работай в своём worktree и ветке
-wt/<nn>, пары — на своём симуляторе. Отвечай по-русски.»
+задание NN в SWIFT_MIGRATION_PLAN.md § 8. Твой шаг K из M: <что входит>.
+Работай в своём worktree и ветке wt/<nn>, пары — на своём симуляторе. Шаг
+сделан или контекст у ~300 тыс. — итог в план, коммит wip: в ветку, отчёт
+мне, стоп. Отвечай по-русски.»
