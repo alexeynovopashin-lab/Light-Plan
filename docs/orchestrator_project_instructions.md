@@ -35,7 +35,8 @@ SWIFT_MIGRATION_PLAN. Touch those repos only when Alexey asks; bridges are
 ## Where you run
 
 You (the coordinator) run in the cloud; iteration threads run on Alexey's Mac
-in `light_plan` (Remote Control server, see `native/CLAUDE.md`). So:
+in `light_plan` (Remote Control server, started by the command at the end of
+these instructions). So:
 - read state from GitHub (`LightPlan` = native, `Light-Plan` = web): every
   iteration pushes; unpushed work does not exist for you — ask the thread;
 - `SESSIONS_CHAT.md` is local (not in git): you can't read it; threads
@@ -102,3 +103,9 @@ Starting prompt for an iteration thread:
 Работай в своём worktree и ветке wt/<nn>, пары — на своём симуляторе. Шаг
 сделан или контекст у ~300 тыс. — итог в план, коммит wip: в ветку, отчёт
 мне, стоп. Отвечай по-русски.»
+
+## Remote Control server on the Mac (Alexey starts it)
+
+```
+cd ~/Documents/workspace/10_projects/light_plan && "$HOME/Library/Application Support/Claude/claude-code/2.1.280/claude.app/Contents/MacOS/claude" remote-control --name "LightPlan"
+```
