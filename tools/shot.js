@@ -223,6 +223,13 @@ const NODES = {
     'st.shoot': '#planDay', 'st.meet': '#planMeet', 'st.block': '#planBlock',
     'tabbar': '.tabbar', ...TABS
   },
+  /* Форма записи (итерация 23): `--screen plan --sheet form [--way <жанр>]`. */
+  form: {
+    'form.close': '#formBack', 'form.save': '#fSave', 'form.title': '#formTitle', 'form.sub': '#formSub',
+    'form.genre': '#fType', 'form.who': '#fWhoGroup',
+    'form.startDate': '#fStartDate', 'form.startVal': '#fStartVal',
+    'form.endDate': '#fEndDate', 'form.endVal': '#fEndVal'
+  },
   /* Лист «Где снимаем» (итерация 21в). Строки «Моих мест» — по порядку
      (`loc.spot.N`); приложение нумерует свои так же. */
   loc: {
@@ -351,6 +358,19 @@ async function screenShot() {
     if (args.way) {
       await page.click(`.loc-way[data-way="${args.way}"]`);
       await page.waitForTimeout(300);
+    }
+  }
+  /* Форма записи (`--sheet form`, 23) — кнопкой «＋» «Съёмок»; жанр (`--way`) —
+     плиткой, как палец. Форма въезжает 0,42 с. */
+  const formSheet = args.sheet === 'form' && screen === 'plan';
+  if (formSheet) {
+    await page.click('#planAdd');
+    await page.waitForTimeout(700);
+    /* Плитка выбранного жанра открывает его уточнения, а не выбирает —
+       на нём форма и стоит; кликаем, только если жанр другой. */
+    if (args.way && !(await page.$(`#fType .tool.active[data-v="${args.way}"]`))) {
+      await page.click(`#fType [data-v="${args.way}"]`);
+      await page.waitForTimeout(400);
     }
   }
   /* Глава настроек (`--chapter view|shoots|locale|…`) — кликом по строке
@@ -536,7 +556,8 @@ async function screenShot() {
       body: getComputedStyle(document.body).backgroundColor,
       nodes: out
     };
-  }, sheet ? { ...NODES.loc, _loc: true }
+  }, formSheet ? { ...NODES.form }
+    : sheet ? { ...NODES.loc, _loc: true }
     : screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
     : screen === 'map' ? { ...NODES.map, _map: true, _mw: !!(seed && seed.mapLayers && seed.mapLayers.mw) }
     : screen === 'plan' ? { ...NODES.plan, _plan: true }
