@@ -230,7 +230,7 @@ const NODES = {
   /* Форма записи (итерация 23): `--screen plan --sheet form [--way <жанр>]`. */
   form: {
     'form.close': '#formBack', 'form.save': '#fSave', 'form.title': '#formTitle', 'form.sub': '#formSub',
-    'form.genre': '#fType', 'form.who': '#fWhoGroup',
+    'form.genre': '#fType', 'form.who': '#fWhoGroup', 'form.gear': '#fGear', 'form.repVal': '#fRepVal',
     'form.startDate': '#fStartDate', 'form.startVal': '#fStartVal',
     'form.endDate': '#fEndDate', 'form.endVal': '#fEndVal'
   },
