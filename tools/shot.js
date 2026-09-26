@@ -22,6 +22,10 @@
    Лист «Где снимаем» (итерация 21в): `--sheet loc` на `today` или `map`
    открывает его кнопкой места в шапке, как пальцем; `--way addr|geo` —
    путь, тапом по строке развилки. Узлы — только листа (`loc.*`).
+   Слои и листы «Съёмок» (итерация 22): `--screen plan --sheet year|year12|
+   stats|search|bin|blk` — лента года (тап по заголовку), «Год целиком»
+   (ещё тап по году), статистика и поиск (кнопки шапки), корзина (строка
+   «Корзина» хранилища), «Занять время» (кнопка дня). Узлы — только слоя.
    Для today и settings снимок — половина пары веб / натив (миграция, § 5.4
    плана): момент, место, погода и настройки прибиты, чтобы приложение
    открылось в той же минуте с тем же небом. Отчёт — рамки ключевых узлов в
@@ -230,6 +234,40 @@ const NODES = {
     'form.startDate': '#fStartDate', 'form.startVal': '#fStartVal',
     'form.endDate': '#fEndDate', 'form.endVal': '#fEndVal'
   },
+  /* Слои «Съёмок» (итерация 22): месяцы ленты (`ym.name.N`, `ym.grid.N` —
+     только первого года), плитки «Года целиком», полосы месяцев и строки
+     сроков статистики, строки поиска и корзины, виды занятости — по порядку
+     в разметке, как нумерует приложение. */
+  year: {
+    'year.back': '#yearClose', 'year.add': '#yearAdd', 'year.stats': '#statsBtn', 'year.search': '#yearSearchBtn',
+    'year.title': '#yTitle', 'year.divider': '#yearGrid .year-divider', 'year.sum': '#yearSum', 'year.now': '#yearNow',
+    'tabbar': '.tabbar', ...TABS
+  },
+  year12: {
+    'y12.back': '#year12Back', 'y12.prev': '#year12Prev', 'y12.title': '#year12Title', 'y12.next': '#year12Next',
+    'y12.now': '#year12Now', 'tabbar': '.tabbar', ...TABS
+  },
+  stats: {
+    'stat.back': '#statsClose', 'stat.empty': '#statsEmpty', 'stat.overload': '#yearOverload',
+    'stat.months': '#monthsLabel', 'stat.monthsNote': '#monthsNote', 'stat.profit': '#profitLabel',
+    'stat.plate': '#yearProfitVal', 'stat.profitNum': '#yearProfitVal .year-profit-num', 'stat.delv': '#delvLabel',
+    'tabbar': '.tabbar', ...TABS
+  },
+  search: {
+    'se.back': '#searchBack', 'se.field': '#searchInput', 'se.empty': '#searchResults .plan-empty',
+    'se.jump': '#searchJump', 'tabbar': '.tabbar', ...TABS
+  },
+  bin: {
+    'bin.sheet': '#binSheet', 'bin.title': '#binSheet .sheet-title', 'bin.empty': '#binList .bin-empty',
+    'bin.clear': '#binClear'
+  },
+  blk: {
+    'blk.sheet': '#blkSheet', 'blk.title': '#blkTitle', 'blk.group': '#blkSheet .group',
+    'blk.fromDate': '#blkFromDate', 'blk.fromTime': '#blkFromTime', 'blk.toDate': '#blkToDate',
+    'blk.toTime': '#blkToTime', 'blk.span': '#blkSpan', 'blk.done': '#blkDone', 'blk.del': '#blkDel',
+    'blk.allDay': '#blkSheet .group > .row:first-child', 'blk.from': '#blkFromRow', 'blk.to': '#blkToRow',
+    'blk.note': '#blkNote'
+  },
   /* Лист «Где снимаем» (итерация 21в). Строки «Моих мест» — по порядку
      (`loc.spot.N`); приложение нумерует свои так же. */
   loc: {
@@ -373,6 +411,18 @@ async function screenShot() {
       await page.waitForTimeout(400);
     }
   }
+  /* Слои и листы «Съёмок» (`--sheet year|…`, 22) — кликом, как палец. Слои
+     въезжают 0,36–0,42 с, листы 0,38 с. Корзина открывается строкой
+     хранилища: `click()` доходит и до строки в закрытой главе. */
+  const LAYERS = { year: ['#planTitle'], year12: ['#planTitle', '#yTitle'], stats: ['#planStats'],
+    search: ['#planSearch'], bin: ['#binSetRow'], blk: ['#planBlock'] };
+  const layer = screen === 'plan' && LAYERS[args.sheet] ? args.sheet : null;
+  if (layer) {
+    for (const sel of LAYERS[layer]) {
+      await page.evaluate(q => document.querySelector(q).click(), sel);
+      await page.waitForTimeout(800);
+    }
+  }
   /* Глава настроек (`--chapter view|shoots|locale|…`) — кликом по строке
      корня, как палец: так проверяется и то, что строка открывает свою главу */
   const chapter = screen === 'settings' && args.chapter ? args.chapter : null;
@@ -461,6 +511,35 @@ async function screenShot() {
       each('#dpSessions .dl-slot', 'slot');
     }
     delete nodes._plan;
+    if (nodes._layer) {
+      const tag = (el, n) => { if (!el.id) el.id = '__shot_y' + n; return '#' + el.id; };
+      let k = 0;
+      const each = (sel, name, key) => document.querySelectorAll(sel).forEach((el, i) => {
+        nodes[name + '.' + (key ? key(el) : i)] = tag(el, k++);
+      });
+      const L = nodes._layer;
+      if (L === 'year') {
+        each('#yearGrid .year-block:first-child .year-cal-name', 'ym.name');
+        each('#yearGrid .year-block:first-child .year-cal-grid', 'ym.grid');
+      }
+      if (L === 'year12') {
+        each('#year12Grid .year12-name', 'y12.name');
+        each('#year12Grid .year12-days', 'y12.grid');
+      }
+      if (L === 'stats') {
+        each('#yearMonthBars .ym-row', 'stat.bar');
+        each('#yearDelvVal .delv-row', 'stat.late');
+        // Строки жанров: «Отснято» и «Предстоит» — каждая может отсутствовать.
+        document.querySelectorAll('#yearStat > div').forEach(el => {
+          const kk = el.querySelector('.ys-k');
+          nodes[kk && /отснят/i.test(kk.textContent) ? 'stat.shot' : 'stat.todo'] = tag(el, k++);
+        });
+      }
+      if (L === 'search') each('#searchResults .plan-row', 'se.row');
+      if (L === 'bin') each('#binList .bin-row', 'bin.row');
+      if (L === 'blk') each('#blkKind .tool', 'blk.kind', el => el.dataset.k);
+    }
+    delete nodes._layer;
     if (nodes._loc) {
       let k = 0;
       document.querySelectorAll('#spotList .spot-row').forEach((el, i) => {
@@ -506,7 +585,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$/.test(name) || /^loc\.(title|sub|spots|empty|note|latLabel|lonLabel)$|^loc\.spot\.\d+\.(name|addr)$/.test(name) || name === 'title';
+      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$|^(year|y12)\.title$|^y12\.name\.\d+$|^stat\.(months|profit|delv)$|^bin\.title$|^blk\.title$/.test(name) || /^loc\.(title|sub|spots|empty|note|latLabel|lonLabel)$|^loc\.spot\.\d+\.(name|addr)$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -556,7 +635,8 @@ async function screenShot() {
       body: getComputedStyle(document.body).backgroundColor,
       nodes: out
     };
-  }, formSheet ? { ...NODES.form }
+  }, layer ? { ...NODES[layer], _layer: layer }
+    : formSheet ? { ...NODES.form }
     : sheet ? { ...NODES.loc, _loc: true }
     : screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
     : screen === 'map' ? { ...NODES.map, _map: true, _mw: !!(seed && seed.mapLayers && seed.mapLayers.mw) }
