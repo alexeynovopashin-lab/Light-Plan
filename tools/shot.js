@@ -238,6 +238,12 @@ const NODES = {
     'form.place': '#fPlaceGroup', 'form.city': '#fCity',
     'form.ways': '#fPlaceWays', 'form.addStop': '#fRouteAdd', 'form.wish': '#fWishGroup',
     'form.wishWarn': '#wishWarn.show',
+    // 24 шаг 3: оплата и сдача
+    'form.payGear': '#fPayGear', 'form.pay': '#fPayGroup', 'form.payFold': '#fPayFold',
+    'form.payType': '#fPayType', 'form.rate': '#fRateRow', 'form.prepay': '#fPrepayRow',
+    'form.expense': '.pay-row:has(#fExpense)', 'form.payTotal': '#fPayTotal',
+    'form.delv': '#fDelvGroup', 'form.delvDial': '#fDelvGroup .dial-wrap', 'form.delvHint': '#fDelvHint',
+    'form.done': '#fDoneRow',
     ...Object.fromEntries(['addr', 'studio', 'geo'].map(w => ['form.way.' + w, `#fPlaceWays [data-way="${w}"]`])),
     ...Object.fromEntries(['any', 'clear', 'sunset', 'cloudy', 'fog', 'rain', 'moon', 'stars']
       .map(w => ['form.wish.' + w, `#fWish [data-v="${w}"]`])),
