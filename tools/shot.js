@@ -244,6 +244,9 @@ const NODES = {
     'form.expense': '.pay-row:has(#fExpense)', 'form.payTotal': '#fPayTotal',
     'form.delv': '#fDelvGroup', 'form.delvDial': '#fDelvGroup .dial-wrap', 'form.delvHint': '#fDelvHint',
     'form.done': '#fDoneRow',
+    // 24 шаг 4а: оборудование и документы заказа
+    'form.kit': '#fKitRow', 'form.kitSum': '#fKitSummary', 'form.docKinds': '#docKinds',
+    'form.docFile': '#docFileBtn', 'form.docLink': '#docLink', 'form.order': '#fOrderGroup',
     ...Object.fromEntries(['addr', 'studio', 'geo'].map(w => ['form.way.' + w, `#fPlaceWays [data-way="${w}"]`])),
     ...Object.fromEntries(['any', 'clear', 'sunset', 'cloudy', 'fog', 'rain', 'moon', 'stars']
       .map(w => ['form.wish.' + w, `#fWish [data-v="${w}"]`])),
