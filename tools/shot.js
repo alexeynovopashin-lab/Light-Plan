@@ -232,7 +232,22 @@ const NODES = {
     'form.close': '#formBack', 'form.save': '#fSave', 'form.title': '#formTitle', 'form.sub': '#formSub',
     'form.genre': '#fType', 'form.who': '#fWhoGroup', 'form.gear': '#fGear', 'form.repVal': '#fRepVal',
     'form.startDate': '#fStartDate', 'form.startVal': '#fStartVal',
-    'form.endDate': '#fEndDate', 'form.endVal': '#fEndVal'
+    'form.endDate': '#fEndDate', 'form.endVal': '#fEndVal',
+    /* Место, точки дня и пожелания (итерация 24, шаг 2): точки — по номеру
+       строки, пути — по `data-way`, пожелания — по `data-v`. */
+    'form.place': '#fPlaceGroup', 'form.city': '#fCity',
+    'form.ways': '#fPlaceWays', 'form.addStop': '#fRouteAdd', 'form.wish': '#fWishGroup',
+    'form.wishWarn': '#wishWarn.show',
+    ...Object.fromEntries(['addr', 'studio', 'geo'].map(w => ['form.way.' + w, `#fPlaceWays [data-way="${w}"]`])),
+    ...Object.fromEntries(['any', 'clear', 'sunset', 'cloudy', 'fog', 'rain', 'moon', 'stars']
+      .map(w => ['form.wish.' + w, `#fWish [data-v="${w}"]`])),
+    ...Object.fromEntries([0, 1, 2].flatMap(i => {
+      const r = `#fRouteList .rt-row[data-i="${i}"]`;
+      return [['form.stop.' + i, r], ['form.stop.' + i + '.name', r + ' .rt-in-n'],
+        ['form.stop.' + i + '.t1', r + ' .rt-t1'], ['form.stop.' + i + '.t2', r + ' .rt-t2'],
+        ['form.stop.' + i + '.x', r + ' .rt-x'], ['form.stop.' + i + '.pin', r + ' .rt-pick'],
+        ['form.stop.' + i + '.place', r + ' .rt-in-p']];
+    }))
   },
   /* Слои «Съёмок» (итерация 22): месяцы ленты (`ym.name.N`, `ym.grid.N` —
      только первого года), плитки «Года целиком», полосы месяцев и строки
