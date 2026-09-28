@@ -194,6 +194,11 @@ const NODES = {
     'map.save': '#mapSave', 'spot.bar': '#spotNameBar', 'spot.name': '#spotNameIn',
     /* «Мои места» в шапке и их веер (шаг 5 итерации 24, `--chapter fan`). */
     'map.list': '#mapList', 'map.fan': '#spotFan',
+    /* Режим маршрута и полоса черновика (24а, `--chapter route`); строки —
+       `route.row.N` и их части, собираются по списку. */
+    'map.routeBtn': '#mapRouteBtn', 'map.here': '#mapHere', 'map.routeBar': '#mapRouteBar',
+    'route.sum': '#rbSum', 'route.add': '#rbAdd', 'route.clear': '#rbClear',
+    'route.list': '#rbList', 'route.make': '#rbMake', 'route.save': '#rbSave',
     'spot.coord': '#spotNameCoord', 'spot.del': '#spotNameDel', 'spot.ok': '#spotNameOk',
     ...Object.fromEntries(['sun', 'moon', 'mw', 'compass', 'spots'].map(k =>
       ['layer.' + k, `#mapLayersMenu [data-layer="${k}"] [data-i18n]`])),
@@ -489,6 +494,12 @@ async function screenShot() {
     await page.evaluate(() => document.getElementById('mapList').click());
     await page.waitForTimeout(400);
   }
+  /* Режим маршрута (`--chapter route`, 24а) — кликом по кнопке «Маршрут»;
+     подмена низа ~0,6 с. Черновик — `mapRoute` засева. */
+  if (screen === 'map' && args.chapter === 'route') {
+    await page.evaluate(() => document.getElementById('mapRouteBtn').click());
+    await page.waitForTimeout(900);
+  }
   /* Меню слоёв карты (`--chapter layers`, итерация 20б) — кликом по кружку. */
   if (screen === 'map' && args.chapter === 'layers') {
     await page.evaluate(() => document.getElementById('mapLayersBtn').click());
@@ -584,6 +595,14 @@ async function screenShot() {
       });
     }
     delete nodes._loc;
+    /* Строки черновика (24а): номер строки с единицы, как у приложения. */
+    document.querySelectorAll('#rbList .rb-row').forEach((el, i) => {
+      const tag = (e, n) => { if (!e.id) e.id = '__shot_r' + i + '_' + n; return '#' + e.id; };
+      const n = i + 1;
+      nodes['route.row.' + n] = tag(el, 0);
+      const no = el.querySelector('.rb-no'); if (no) nodes['route.no.' + n] = tag(no, 1);
+      const way = el.querySelector('.rb-way'); if (way) nodes['route.way.' + n] = tag(way, 2);
+    });
     /* Узлы главы — по порядку в разметке: назад, заголовок, подписи
        разделов, сегменты, пояснения, фишки, строки. Имя — вид и номер
        (`sec.0`, `seg.1`, `note.2`, `chips.0`, `item.3`); приложение
