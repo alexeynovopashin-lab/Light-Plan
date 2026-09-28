@@ -192,6 +192,8 @@ const NODES = {
     'map.bareBtn': '#mapBareBtn',
     /* Сохранённая точка (20б): закладка шапки и полоса имени (`--chapter spot`). */
     'map.save': '#mapSave', 'spot.bar': '#spotNameBar', 'spot.name': '#spotNameIn',
+    /* «Мои места» в шапке и их веер (шаг 5 итерации 24, `--chapter fan`). */
+    'map.list': '#mapList', 'map.fan': '#spotFan',
     'spot.coord': '#spotNameCoord', 'spot.del': '#spotNameDel', 'spot.ok': '#spotNameOk',
     ...Object.fromEntries(['sun', 'moon', 'mw', 'compass', 'spots'].map(k =>
       ['layer.' + k, `#mapLayersMenu [data-layer="${k}"] [data-i18n]`])),
@@ -480,6 +482,12 @@ async function screenShot() {
       ev('pointerdown', 0); ev('pointermove', 30); ev('pointermove', 60); ev('pointerup', 60);
     });
     await page.waitForTimeout(900);
+  }
+  /* Веер «Мои места» (`--chapter fan`, шаг 5 итерации 24) — кликом по кнопке
+     шапки; появление веера — 0,16 с. */
+  if (screen === 'map' && args.chapter === 'fan') {
+    await page.evaluate(() => document.getElementById('mapList').click());
+    await page.waitForTimeout(400);
   }
   /* Меню слоёв карты (`--chapter layers`, итерация 20б) — кликом по кружку. */
   if (screen === 'map' && args.chapter === 'layers') {
