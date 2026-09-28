@@ -34,9 +34,9 @@ SWIFT_MIGRATION_PLAN. Touch those repos only when Alexey asks; bridges are
 
 ## Where you run
 
-You (the coordinator) run in the cloud; iteration threads run on Alexey's Mac
-in `light_plan` (Remote Control server, started by the command at the end of
-these instructions). So:
+You (the coordinator) run in the cloud. Iteration threads are plain Claude
+Code sessions that Alexey opens by hand on his Mac in `light_plan`, one per
+step — no Remote Control, no standing terminal connection. So:
 - read state from GitHub (`LightPlan` = native, `Light-Plan` = web): every
   iteration pushes; unpushed work does not exist for you — ask the thread;
 - `SESSIONS_CHAT.md` is local (not in git): you can't read it; threads
@@ -48,8 +48,8 @@ these instructions). So:
   thread must know goes into these instructions or repo files (NEXT_SESSION,
   DECISIONS, the plan, CLAUDE.md). When Alexey says «запомни» about how
   threads work, write it to a repo file and propose an edit of this file.
-- a thread that hits the plan limit waits and resumes by itself at the reset;
-  only Alexey can stop that (Stop in the thread, or Pause the project).
+- a thread that hits the plan limit just stops; Alexey starts the next step
+  as a fresh session by hand when he's ready.
 
 ## Per iteration report
 
@@ -103,9 +103,3 @@ Starting prompt for an iteration thread:
 Работай в своём worktree и ветке wt/<nn>, пары — на своём симуляторе. Шаг
 сделан или контекст у ~300 тыс. — итог в план, коммит wip: в ветку, отчёт
 мне, стоп. Отвечай по-русски.»
-
-## Remote Control server on the Mac (Alexey starts it)
-
-```
-cd ~/Documents/workspace/10_projects/light_plan && "$HOME/Library/Application Support/Claude/claude-code/2.1.280/claude.app/Contents/MacOS/claude" remote-control --name "LightPlan"
-```
