@@ -309,7 +309,27 @@ const NODES = {
     'card.dayLeft': '#cdDayLeft', 'card.dayClock': '#cdDayClock', 'card.lane': '#cdLane',
     'card.studio': '#cdStudio', 'card.studioNum': '#cdStudioNum', 'card.studioName': '#cdStudioName',
     'card.studioTel': '#cdStudioTel', 'card.finish': '#cdDayDone', 'card.delete': '#cdDelete',
-    'card.clash': '#cdClash', 'card.clashText': '#cdClashT'
+    'card.clash': '#cdClash', 'card.clashText': '#cdClashT', 'card.tune': '#cardOrder',
+    /* Блоки (итерация 26) — те же имена, что у приложения. */
+    'card.block.deal': '#cdDeal', 'card.block.light': '#cdSay', 'card.block.place': '#cdPanes',
+    'card.block.weather': '#cdWx', 'card.block.route': '#cdRouteFold', 'card.block.refs': '#cdRefFold',
+    'card.block.brief': '#cdBriefBlk', 'card.block.models': '#cdModelsBlk', 'card.block.docs': '#cdDocFold',
+    'card.block.notes': '#cdNotesBlk', 'card.block.delivery': '#cdDelvBlk', 'card.block.money': '#cdMoneyBlk',
+    /* Перестановка (26): строка — сам свёрнутый блок. */
+    'card.order.list': '#cdEventBlocks.ord', 'card.order.reset': '#cdOrderFoot button:nth-child(1)', 'card.order.done': '#cdOrderFoot button:nth-child(2)',
+    'card.order.row.deal': '#cdEventBlocks.ord > #cdDeal', 'card.order.toggle.deal': '#cdEventBlocks.ord > #cdDeal > .ord-cap > .toggle', 'card.order.handle.deal': '#cdEventBlocks.ord > #cdDeal > .ord-cap > .ord-grip',
+    'card.order.row.day': '#cdEventBlocks.ord > #cdDay', 'card.order.toggle.day': '#cdEventBlocks.ord > #cdDay > .ord-cap > .toggle', 'card.order.handle.day': '#cdEventBlocks.ord > #cdDay > .ord-cap > .ord-grip',
+    'card.order.row.place': '#cdEventBlocks.ord > #cdPanes', 'card.order.toggle.place': '#cdEventBlocks.ord > #cdPanes > .ord-cap > .toggle', 'card.order.handle.place': '#cdEventBlocks.ord > #cdPanes > .ord-cap > .ord-grip',
+    'card.order.row.weather': '#cdEventBlocks.ord > #cdWx', 'card.order.toggle.weather': '#cdEventBlocks.ord > #cdWx > .ord-cap > .toggle', 'card.order.handle.weather': '#cdEventBlocks.ord > #cdWx > .ord-cap > .ord-grip',
+    'card.order.row.brief': '#cdEventBlocks.ord > #cdBriefBlk', 'card.order.toggle.brief': '#cdEventBlocks.ord > #cdBriefBlk > .ord-cap > .toggle', 'card.order.handle.brief': '#cdEventBlocks.ord > #cdBriefBlk > .ord-cap > .ord-grip',
+    'card.order.row.docs': '#cdEventBlocks.ord > #cdDocFold', 'card.order.toggle.docs': '#cdEventBlocks.ord > #cdDocFold > .ord-cap > .toggle', 'card.order.handle.docs': '#cdEventBlocks.ord > #cdDocFold > .ord-cap > .ord-grip',
+    'card.order.row.notes': '#cdEventBlocks.ord > #cdNotesBlk', 'card.order.toggle.notes': '#cdEventBlocks.ord > #cdNotesBlk > .ord-cap > .toggle', 'card.order.handle.notes': '#cdEventBlocks.ord > #cdNotesBlk > .ord-cap > .ord-grip',
+    'card.order.row.delivery': '#cdEventBlocks.ord > #cdDelvBlk', 'card.order.toggle.delivery': '#cdEventBlocks.ord > #cdDelvBlk > .ord-cap > .toggle', 'card.order.handle.delivery': '#cdEventBlocks.ord > #cdDelvBlk > .ord-cap > .ord-grip',
+    'card.order.row.money': '#cdEventBlocks.ord > #cdMoneyBlk', 'card.order.toggle.money': '#cdEventBlocks.ord > #cdMoneyBlk > .ord-cap > .toggle', 'card.order.handle.money': '#cdEventBlocks.ord > #cdMoneyBlk > .ord-cap > .ord-grip',
+    'card.order.row.light': '#cdEventBlocks.ord > #cdSay', 'card.order.toggle.light': '#cdEventBlocks.ord > #cdSay > .ord-cap > .toggle', 'card.order.handle.light': '#cdEventBlocks.ord > #cdSay > .ord-cap > .ord-grip',
+    'card.order.row.route': '#cdEventBlocks.ord > #cdRouteFold', 'card.order.toggle.route': '#cdEventBlocks.ord > #cdRouteFold > .ord-cap > .toggle', 'card.order.handle.route': '#cdEventBlocks.ord > #cdRouteFold > .ord-cap > .ord-grip',
+    'card.order.row.refs': '#cdEventBlocks.ord > #cdRefFold', 'card.order.toggle.refs': '#cdEventBlocks.ord > #cdRefFold > .ord-cap > .toggle', 'card.order.handle.refs': '#cdEventBlocks.ord > #cdRefFold > .ord-cap > .ord-grip',
+    'card.order.row.models': '#cdEventBlocks.ord > #cdModelsBlk', 'card.order.toggle.models': '#cdEventBlocks.ord > #cdModelsBlk > .ord-cap > .toggle', 'card.order.handle.models': '#cdEventBlocks.ord > #cdModelsBlk > .ord-cap > .ord-grip'
   },
   /* Лист «Где снимаем» (итерация 21в). Строки «Моих мест» — по порядку
      (`loc.spot.N`); приложение нумерует свои так же. */
@@ -549,6 +569,8 @@ async function screenShot() {
     await page.waitForTimeout(500);
     await page.evaluate(n => document.querySelector(`#dpSessions [data-i="${n}"]`).click(), i);
     await page.waitForTimeout(900);
+    // Лист перестановки (26): `--tune` — тап по «ползункам», ждём свёртку блоков.
+    if (args.tune) { await page.click('#cardOrder'); await page.waitForTimeout(900); }
   }
 
   const report = await page.evaluate(nodes => {
