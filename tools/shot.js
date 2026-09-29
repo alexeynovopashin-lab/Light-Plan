@@ -299,6 +299,18 @@ const NODES = {
     'blk.allDay': '#blkSheet .group > .row:first-child', 'blk.from': '#blkFromRow', 'blk.to': '#blkToRow',
     'blk.note': '#blkNote'
   },
+  /* Карточка (итерация 25): полоса, лист, шапка, плитка дня, студийный час,
+     нижний ряд. Края стопки (`card.peek.K`, `card.peekTime.K`,
+     `card.peekName.K`, K — `data-k`, 0 — ближний к листу) — по разметке. */
+  card: {
+    'card.back': '#cardBack', 'card.add': '#cardAdd', 'card.edit': '#cardEdit', 'card.sheet': '#cdSheet',
+    'card.sign': '#cdEvSign svg', 'card.name': '#cdEvNames', 'card.person': '#cdEvPerson', 'card.when': '#cdEvWhen',
+    'card.tel': '#cdEvTel', 'card.day': '#cdDay', 'card.dayDate': '#cdDay .dt-date', 'card.dayNow': '#cdDayNow',
+    'card.dayLeft': '#cdDayLeft', 'card.dayClock': '#cdDayClock', 'card.lane': '#cdLane',
+    'card.studio': '#cdStudio', 'card.studioNum': '#cdStudioNum', 'card.studioName': '#cdStudioName',
+    'card.studioTel': '#cdStudioTel', 'card.finish': '#cdDayDone', 'card.delete': '#cdDelete',
+    'card.clash': '#cdClash', 'card.clashText': '#cdClashT'
+  },
   /* Лист «Где снимаем» (итерация 21в). Строки «Моих мест» — по порядку
      (`loc.spot.N`); приложение нумерует свои так же. */
   loc: {
@@ -521,6 +533,23 @@ async function screenShot() {
     await page.click(`#dayDates .dd-day:nth-child(${+args.pick + 1})`);
     await page.waitForTimeout(700);
   }
+  /* Карточка (`--sheet card --way <id>`, итерация 25) — как пальцем: клетка
+     дня в месяце, потом строка записи в списке дня. Номер строки (`data-i`) —
+     место записи в засеве: веб `sessions` не пересортировывает. Лист въезжает
+     0,42 с. */
+  const cardSheet = args.sheet === 'card' && screen === 'plan';
+  if (cardSheet) {
+    const i = ((seed && seed.sessions) || []).findIndex(x => x.id === args.way);
+    if (i < 0) throw new Error('--way: в засеве нет записи ' + args.way);
+    const day = +new Intl.DateTimeFormat('en-US', { timeZone: tz, day: 'numeric' }).format(new Date(seed.sessions[i].date));
+    await page.evaluate(d => {
+      const c = [...document.querySelectorAll('#cal > .d:not(.out)')].find(e => +e.querySelector('.d-n').textContent === d);
+      c.click();
+    }, day);
+    await page.waitForTimeout(500);
+    await page.evaluate(n => document.querySelector(`#dpSessions [data-i="${n}"]`).click(), i);
+    await page.waitForTimeout(900);
+  }
 
   const report = await page.evaluate(nodes => {
     const r1 = v => Math.round(v * 2) / 2;
@@ -595,6 +624,14 @@ async function screenShot() {
       });
     }
     delete nodes._loc;
+    if (nodes._card) document.querySelectorAll('#cdPeeks .peek').forEach(el => {
+      const k = el.dataset.k;
+      const tag = (e, n) => { if (!e.id) e.id = '__shot_c' + k + '_' + n; return '#' + e.id; };
+      nodes['card.peek.' + k] = tag(el, 0);
+      const t = el.querySelector('.peek-t'); if (t) nodes['card.peekTime.' + k] = tag(t, 1);
+      const b = el.querySelector('.peek-in b'); if (b) nodes['card.peekName.' + k] = tag(b, 2);
+    });
+    delete nodes._card;
     /* Строки черновика (24а): номер строки с единицы, как у приложения. */
     document.querySelectorAll('#rbList .rb-row').forEach((el, i) => {
       const tag = (e, n) => { if (!e.id) e.id = '__shot_r' + i + '_' + n; return '#' + e.id; };
@@ -636,7 +673,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$|^(year|y12)\.title$|^y12\.name\.\d+$|^stat\.(months|profit|delv)$|^bin\.title$|^blk\.title$/.test(name) || /^loc\.(title|sub|spots|empty|note|latLabel|lonLabel)$|^loc\.spot\.\d+\.(name|addr)$/.test(name) || name === 'title';
+      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$|^(year|y12)\.title$|^y12\.name\.\d+$|^stat\.(months|profit|delv)$|^bin\.title$|^blk\.title$|^card\.(name|person|when|dayNow|dayLeft|dayClock|studioNum|studioName|clashText)$/.test(name) || /^loc\.(title|sub|spots|empty|note|latLabel|lonLabel)$|^loc\.spot\.\d+\.(name|addr)$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -687,6 +724,7 @@ async function screenShot() {
       nodes: out
     };
   }, layer ? { ...NODES[layer], _layer: layer }
+    : cardSheet ? { ...NODES.card, _card: true }
     : formSheet ? { ...NODES.form }
     : sheet ? { ...NODES.loc, _loc: true }
     : screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
