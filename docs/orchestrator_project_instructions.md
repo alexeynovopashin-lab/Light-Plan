@@ -118,8 +118,9 @@ step — no Remote Control, no standing terminal connection. So:
 Starting prompt — fill EVERY field; an empty field is a bug of the prompt:
 ```
 ШАГ: K из M, итерация NN «<название>»
-МОДЕЛЬ: <Sonnet 5.5 | Opus 5.5>. Сверь со своей моделью до первого действия;
-  не совпадает — скажи Алексею и остановись.
+МОДЕЛЬ: <Sonnet 5.5 | Opus 5.5>. Сверь со своей моделью до первого действия.
+  Не совпадает или поле пустое — ничего не делай, скажи Алексею и остановись.
+ТИП: <код | данные | документы> (жёлтое ревью на шаге «код» = «нет»)
 РАЗМЕР: ~N файлов, M экранов (оценка; вышло больше — скажи в отчёте)
 ЧИТАТЬ: git log --oneline -10 в native/ и Light_Plan/; Light_Plan/docs/NEXT_SESSION.md;
   задание NN в SWIFT_MIGRATION_PLAN.md § 8; <справка>; заголовки ws:40_instructions/TRAPS.md
@@ -145,4 +146,8 @@ only then):
   не проверено: …
   Алексею: развилки
   лимит (get_usage): неделя X → Y %, 5 часов X → Y %; контекст ~N тыс.; параллельно тяжёлого: нет/что
+  качество: находок ревью GPT, принятых — N; возвратов к закрытому — N
 ```
+After every report and after every phone check the orchestrator adds a row to
+`docs/method_metrics.md` (cost and quality side by side; phone fixes are
+counted there, in the row of the step that built it).
