@@ -90,9 +90,9 @@ step — no Remote Control, no standing terminal connection. So:
   (docs, reading, checks). Why, in his words: otherwise 5 branches all hit
   the limit, then at the reset auto-resume eats the whole window in a second
   — exactly what the manual orchestrator + iteration chats avoided.
-- Models: until Sonnet 5.5 ships (~2 Oct 2026) — Opus 5.5 for every thread
-  (Alexey's deliberate choice, 25 Sep: Sonnet makes too many mistakes). After
-  that: Opus for 24, 25, 29, 32, 35, 36; Sonnet 5.5 for the rest.
+- Models: Sonnet 5.5 shipped (29 Sep 2026). Opus 5.5 for 29, 32, 35, 36 (24,
+  25 closed); Sonnet 5.5 for the rest, 26–28 included. If a Sonnet thread
+  makes repeated mistakes, report it — the thread goes back to Opus.
 - Promotion of the web beta to root, pushes of anything public: only on
   Alexey's word.
 
