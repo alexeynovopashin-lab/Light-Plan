@@ -571,6 +571,14 @@ async function screenShot() {
     await page.waitForTimeout(900);
     // Лист перестановки (26): `--tune` — тап по «ползункам», ждём свёртку блоков.
     if (args.tune) { await page.click('#cardOrder'); await page.waitForTimeout(900); }
+    // Свёртка маршрута (27): `--fold route` — тап по строке «Маршрут дня».
+    if (args.fold === 'route') { await page.click('#cdRouteHead'); await page.waitForTimeout(400); }
+    /* Референсы (27): `--refs full` — тап по строке «Референсы» (полный экран
+       въезжает); `--refs view` — ещё и тап по первой плитке (просмотрщик). */
+    if (args.refs) {
+      await page.click('#cdRefHead'); await page.waitForTimeout(900);
+      if (args.refs === 'view') { await page.click('#rfGrid .ref-card'); await page.waitForTimeout(900); }
+    }
   }
 
   const report = await page.evaluate(nodes => {
@@ -654,6 +662,22 @@ async function screenShot() {
       const b = el.querySelector('.peek-in b'); if (b) nodes['card.peekName.' + k] = tag(b, 2);
     });
     delete nodes._card;
+    /* Маршрут и референсы (27): строки ленты и плитки сетки — по порядку в
+       разметке, как приложение (`card.routeRow.N`, `refs.tile.N`). */
+    if (nodes._route) document.querySelectorAll('#cdRouteBody .sc-item').forEach((el, i) => {
+      if (!el.id) el.id = '__shot_rt' + i; nodes['card.routeRow.' + i] = '#' + el.id;
+    });
+    delete nodes._route;
+    if (nodes._refs) {
+      nodes['refs.full'] = '#refsFull'; nodes['refs.close'] = '#rfClose';
+      document.querySelectorAll('#rfGrid .ref-card').forEach((el, i) => {
+        if (!el.id) el.id = '__shot_rf' + i; nodes['refs.tile.' + i] = '#' + el.id;
+      });
+      if (document.getElementById('refView').classList.contains('open')) {
+        nodes['refs.viewer.close'] = '#rvClose'; nodes['refs.viewer.counter'] = '#rvCounter';
+      }
+    }
+    delete nodes._refs;
     /* Строки черновика (24а): номер строки с единицы, как у приложения. */
     document.querySelectorAll('#rbList .rb-row').forEach((el, i) => {
       const tag = (e, n) => { if (!e.id) e.id = '__shot_r' + i + '_' + n; return '#' + e.id; };
@@ -746,7 +770,7 @@ async function screenShot() {
       nodes: out
     };
   }, layer ? { ...NODES[layer], _layer: layer }
-    : cardSheet ? { ...NODES.card, _card: true }
+    : cardSheet ? { ...NODES.card, _card: true, _route: args.fold === 'route', _refs: !!args.refs }
     : formSheet ? { ...NODES.form }
     : sheet ? { ...NODES.loc, _loc: true }
     : screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
