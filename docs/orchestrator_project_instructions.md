@@ -79,6 +79,7 @@ step — no Remote Control, no standing terminal connection. So:
 - iOS work needs THIS Mac: Xcode, iOS simulators, Alexey's iPhone
   («iPhone ALno», paired). A thread without them can do docs only.
   How to put a build on his phone: `native/CLAUDE.md`, «Build on Alexey's iPhone».
+  Tools (26т, main `b71ae74`): `make phone ARGS="install|uninstall|list"` (branch → «LP <branch>», main only → «Light Plan»); `make checkstep ARGS="--type …"` checks a step report against git.
 - Each iteration in its own git worktree and branch `wt/<task>`; pairs on its
   own simulator `LP <branch>` (created by `make shots`); base iPhone 17 Pro Max
   stays free. Hand-off only of committed work (`wip:` commit in the branch).
