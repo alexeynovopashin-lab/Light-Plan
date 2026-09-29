@@ -66,6 +66,13 @@ step — no Remote Control, no standing terminal connection. So:
 5. Rewrite NEXT_SESSION.md; archive closed SESSIONS_CHAT topics.
 6. Phone bugs from Alexey → a bug iteration, one item per bug: measure the
    cause first, fix by cause, a test/tool that catches it, then his word.
+   Each phone-found defect also adds one permanent check (time-dependent →
+   two shots with a faked clock; hit area → frame size; safe area → shots
+   with the Dynamic Island and a small screen; long states → long text, big
+   type), so the phone catches less over time.
+7. OpenAI review run red = the review was lost (empty diff, code already in
+   main). Order is branch → review comment → main; a red run means review the
+   push some other way before accepting.
 
 ## Rules for iteration threads you start
 
@@ -96,10 +103,46 @@ step — no Remote Control, no standing terminal connection. So:
 - Promotion of the web beta to root, pushes of anything public: only on
   Alexey's word.
 
-Starting prompt for an iteration thread:
-«Ты — исполнитель итерации NN Light Plan «<название>». Начни с git log
---oneline -10 в native/ и Light_Plan/, затем Light_Plan/docs/NEXT_SESSION.md и
-задание NN в SWIFT_MIGRATION_PLAN.md § 8. Твой шаг K из M: <что входит>.
-Работай в своём worktree и ветке wt/<nn>, пары — на своём симуляторе. Шаг
-сделан или контекст у ~300 тыс. — итог в план, коммит wip: в ветку, отчёт
-мне, стоп. Отвечай по-русски.»
+- Phone checks: Alexey's remarks after a phone check go to a SEPARATE step
+  as one numbered list, never into the thread that built it (25: that thread
+  grew to 561k against a 300k limit).
+- Small reversible product choices: give a default and a deadline («не
+  ответишь — иду с Б, обратимо»). Irreversible ones wait for his word, marked.
+- Step size is estimated in the plan BEFORE start (files, screens); the report
+  gives the real limit %, so estimates can be checked after 10–15 steps of
+  the same kind (new logic vs fixes). Measure only with nothing heavy running.
+- Every incident ends as a 3-line entry in `ws:40_instructions/TRAPS.md`
+  «Incidents»: what happened / rule / what checks it. «Nothing checks it» =
+  the rule still rests on memory — propose a script or hook.
+
+Starting prompt — fill EVERY field; an empty field is a bug of the prompt:
+```
+ШАГ: K из M, итерация NN «<название>»
+МОДЕЛЬ: <Sonnet 5.5 | Opus 5.5>. Сверь со своей моделью до первого действия;
+  не совпадает — скажи Алексею и остановись.
+РАЗМЕР: ~N файлов, M экранов (оценка; вышло больше — скажи в отчёте)
+ЧИТАТЬ: git log --oneline -10 в native/ и Light_Plan/; Light_Plan/docs/NEXT_SESSION.md;
+  задание NN в SWIFT_MIGRATION_PLAN.md § 8; <справка>; заголовки ws:40_instructions/TRAPS.md
+ВЕТКА: native/.claude/worktrees/<nn>, wt/<nn> @ <sha>; симулятор «LP wt-<nn>»,
+  других не поднимай; телефон — «LP <nn>» (native/CLAUDE.md)
+ДЕЛАЕМ: …
+НЕ ДЕЛАЕМ: …
+ГОТОВО, КОГДА: <проверка с ответом да/нет — команда, тест, слово Алексея>
+Развилки: технические — сам, в DECISIONS; продуктовые — Алексею, 2–3 варианта,
+  свой выбор. Шаг сделан или контекст у ~300 тыс. — итог в план и
+  SESSIONS_CHAT.md, коммит wip:, отчёт по форме ниже, стоп. В GitHub — <да/нет>.
+  По-русски, про экран, не про код.
+```
+Report form (the thread fills it; any «нет» = step not accepted, read the rest
+only then):
+```
+ОТЧЁТ: шаг K из M, итерация NN
+  коммит: wt/<nn> @ <sha>; в GitHub: да/нет
+  тесты: было N → стало M, упавших 0; новые падают на старом коде: да/нет
+  «готово, когда»: да/нет
+  ревью GPT: замечание → вердикт → тест (нет ревью — почему)
+  на экране: что увидит Алексей
+  не проверено: …
+  Алексею: развилки
+  лимит (get_usage): неделя X → Y %, 5 часов X → Y %; контекст ~N тыс.; параллельно тяжёлого: нет/что
+```
