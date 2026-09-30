@@ -153,6 +153,8 @@ only then):
   лимит (get_usage): неделя X → Y %, 5 часов X → Y %; контекст ~N тыс.; параллельно тяжёлого: нет/что
   качество: находок ревью GPT, принятых — N; возвратов к закрытому — N
 ```
+Web (PWA) defects found by a step (its «ошибки веба» list) are copied by the orchestrator into
+`docs/web_defects.md` (one row each; the file feeds later PWA fixes and the Android version).
 After every report and after every phone check the orchestrator adds a row to
 `docs/method_metrics.md` (cost and quality side by side; phone fixes are
 counted there, in the row of the step that built it).
