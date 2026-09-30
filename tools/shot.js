@@ -22,6 +22,10 @@
    Лист «Где снимаем» (итерация 21в): `--sheet loc` на `today` или `map`
    открывает его кнопкой места в шапке, как пальцем; `--way addr|geo` —
    путь, тапом по строке развилки. Узлы — только листа (`loc.*`).
+   Экраны итерации 28 (`--screen plan --sheet mbgallery|mbshelf|mbfolder|orgs|orgcard|contacts|
+   quest|meet [--way <жанр | знак подборки | знак организации | знак записи>] [--shelf <жанр>]`):
+   строки «Настроек» и плитки галереи нажимаются, как пальцем; повторы (плитки, чипы, строки) —
+   узлами по порядку, имена те же, что у приложения.
    Слои и листы «Съёмок» (итерация 22): `--screen plan --sheet year|year12|
    stats|search|bin|blk` — лента года (тап по заголовку), «Год целиком»
    (ещё тап по году), статистика и поиск (кнопки шапки), корзина (строка
@@ -345,6 +349,40 @@ const NODES = {
     'loc.group': '#locPlaceGroup', 'loc.name': '#locName', 'loc.addr': '#locAddress', 'loc.save': '#locSaveRow',
     'loc.done': '#locDone'
   },
+  /* Итерация 28 (шаг 10б): мудборды, организации, «Контакты», опросник. Узлы-повторы
+     (плитки, строки, чипы) добавляются по порядку в разметке в самом замере
+     (`_new`), имена — те же, что у приложения. */
+  mbgallery: {
+    'mb.back': '#mbBack', 'mb.search': '#mbSearchInput', 'mb.tags': '#mbTagRail', 'mb.gallery': '#mbOverlay',
+    'mb.gadd': '#mbAddBoard', 'mb.jump': '#mbGalJump'
+  },
+  mbshelf: {
+    'mb.shelfBack': '#mbShelfBack', 'mb.shelfTitle': '#mbShelfTitle', 'mb.shelfSub': '#mbShelfSub',
+    'mb.shelf': '#mbShelfTiles', 'mb.shelfAdd': '#mbShelfAdd'
+  },
+  mbfolder: {
+    'mb.folder': '#mbFolderOverlay', 'mb.folderBack': '#mbFolderBack', 'mb.folderCog': '#mbFolderCog',
+    'mb.folderHero': '#mbFolderHero', 'mb.folderTitle': '#mbFolderTitle', 'mb.folderSub': '#mbFolderSub',
+    'mb.folderLens': '#mbSearchBtn', 'mb.ftags': '#mbTags', 'mb.gridLabel': '#mbGridLabel', 'mb.fgrid': '#mbGrid',
+    'mb.addPhoto': '#mbAddPhoto', 'mb.addLink': '#mbAddLink', 'mb.fjump': '#mbJump'
+  },
+  orgs: {
+    'org.list': '#orgOverlay', 'org.seg.orgs': '#orgSeg button[data-v="orgs"]', 'org.seg.docs': '#orgSeg button[data-v="docs"]',
+    'org.back': '#orgBack', 'org.add': '#orgAdd', 'org.empty': '#orgList .org-empty'
+  },
+  orgcard: {
+    'org.card': '#orgCard', 'orgc.back': '#orgCardBack', 'orgc.label': '#orgCard .g-label', 'orgc.group': '#orgCard .group', 'orgc.reqFile': '#oReqFileBtn', 'orgc.reqShot': '#oReqShotBtn',
+    'orgc.docKinds': '#oDocKinds', 'orgc.docFile': '#oDocFileBtn', 'orgc.docLink': '#oDocLinkBtn',
+    'orgc.docsEmpty': '#oDocs > .org-empty:only-child', 'orgc.noShoots': '#oShoots .org-empty', 'orgc.delete': '#oDelete'
+  },
+  contacts: {
+    'contacts.list': '#phoneOverlay', 'contacts.back': '#phoneBack', 'contacts.title': '#phoneOverlay .g-label > span:first-child',
+    'contacts.count': '#phoneCount', 'contacts.empty': '#phoneList .org-empty'
+  },
+  quest: {
+    'quest.sheet': '#qSheet', 'quest.title': '#qSheet .sheet-title', 'quest.qr': '#qrBox', 'quest.send': '#qSend',
+    'quest.paste': '#qPaste', 'quest.apply': '#qPasteBtn', 'quest.done': '#qDone'
+  },
   settings: {
     'header.name': '#s-set .header .name', 'header.date': '#s-set .header .date',
     'mode': '#modeSeg', 'mode.simple': '#modeSeg button[data-mode="simple"]',
@@ -557,7 +595,7 @@ async function screenShot() {
      дня в месяце, потом строка записи в списке дня. Номер строки (`data-i`) —
      место записи в засеве: веб `sessions` не пересортировывает. Лист въезжает
      0,42 с. */
-  const cardSheet = args.sheet === 'card' && screen === 'plan';
+  const cardSheet = (args.sheet === 'card' || args.sheet === 'quest') && screen === 'plan';
   if (cardSheet) {
     const i = ((seed && seed.sessions) || []).findIndex(x => x.id === args.way);
     if (i < 0) throw new Error('--way: в засеве нет записи ' + args.way);
@@ -571,6 +609,8 @@ async function screenShot() {
     await page.waitForTimeout(900);
     // Лист перестановки (26): `--tune` — тап по «ползункам», ждём свёртку блоков.
     if (args.tune) { await page.click('#cardOrder'); await page.waitForTimeout(900); }
+    // Опросник (28): тап по строке «Опросник клиенту» — лист с QR.
+    if (args.sheet === 'quest') { await page.click('#cdQuest'); await page.waitForTimeout(900); }
     // Свёртка маршрута (27): `--fold route` — тап по строке «Маршрут дня».
     if (args.fold === 'route') { await page.click('#cdRouteHead'); await page.waitForTimeout(400); }
     /* Референсы (27): `--refs full` — тап по строке «Референсы» (полный экран
@@ -579,6 +619,49 @@ async function screenShot() {
       await page.click('#cdRefHead'); await page.waitForTimeout(900);
       if (args.refs === 'view') { await page.click('#rfGrid .ref-card'); await page.waitForTimeout(900); }
     }
+  }
+
+  /* Мудборды, организации, «Контакты», встреча (`--sheet mbgallery|mbshelf|mbfolder|orgs|orgcard|
+     contacts|meet`, итерация 28) — кликом, как палец: строки настроек открывают экраны, плитки
+     галереи — полку и папку. `--way`: жанр полки, знак подборки или организации. Экраны
+     въезжают 0,42 с; строку настроек `click()` достаёт и в закрытой главе. */
+  const NEW_SHEETS = ['mbgallery', 'mbshelf', 'mbfolder', 'orgs', 'orgcard', 'contacts', 'meet'];
+  const newSheet = screen === 'plan' && NEW_SHEETS.includes(args.sheet) ? args.sheet : null;
+  if (newSheet) {
+    const click = async (sel, ms = 800) => {
+      await page.evaluate(q => { const e = document.querySelector(q); if (!e) throw new Error('нет узла ' + q); e.click(); }, sel);
+      await page.waitForTimeout(ms);
+    };
+    // Плитка подборки: тап по ней открывает папку или полку — без драга не сработает `click()`, нужны указатели.
+    const tap = async sel => {
+      const box = await page.evaluate(q => { const e = document.querySelector(q); if (!e) return null;
+        const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }, sel);
+      if (!box) throw new Error('нет плитки ' + sel);
+      await page.mouse.click(box.x, box.y); await page.waitForTimeout(900);
+    };
+    if (['mbgallery', 'mbshelf', 'mbfolder'].includes(newSheet)) {
+      await click('#mbRow');
+      if (newSheet === 'mbshelf') await tap(`#mbGallery .mb-tile[data-rk="${args.way || 'wedding'}"]`);
+      if (newSheet === 'mbfolder') {
+        // Знак подборки: у жанра с одной папкой плитка ведёт сразу в папку, у полки — через неё.
+        const b = args.way;
+        if (await page.$(`#mbGallery .mb-tile[data-bid="${b}"]`)) await tap(`#mbGallery .mb-tile[data-bid="${b}"]`);
+        else {
+          await tap(`#mbGallery .mb-tile[data-rk="${args.shelf || 'wedding'}"]`);
+          await tap(`#mbShelfTiles .mb-tile[data-bid="${b}"]`);
+        }
+      }
+    }
+    if (newSheet === 'orgs') await click('#orgsSetRow');
+    if (newSheet === 'orgcard') {
+      await click('#orgsSetRow');
+      // `--way` — знак организации из засева; строки списка идут в порядке засева.
+      const i = args.way ? ((seed && seed.orgs) || []).findIndex(o => o.id === args.way) : 0;
+      if (i < 0) throw new Error('--way: в засеве нет организации ' + args.way);
+      await click(`#orgList .org-item[data-i="${i}"]`);
+    }
+    if (newSheet === 'contacts') await click('#phonesRow');
+    if (newSheet === 'meet') { await click('#planMeet', 900); }
   }
 
   const report = await page.evaluate(nodes => {
@@ -678,6 +761,42 @@ async function screenShot() {
       }
     }
     delete nodes._refs;
+    /* Итерация 28: повторы — по порядку в разметке, имена приложения. */
+    if (nodes._new) {
+      const tag = (el, n) => { if (!el.id) el.id = '__shot_n' + n; return '#' + el.id; };
+      let k = 0;
+      const each = (sel, name) => document.querySelectorAll(sel).forEach((el, i) => { nodes[name + '.' + i] = tag(el, k++); });
+      const kind = nodes._new;
+      if (kind === 'mbgallery') {
+        document.querySelectorAll('#mbTagRail .rf-tag').forEach(el => { nodes['mb.chip.' + el.dataset.t] = tag(el, k++); });
+        each('#mbGallery .mb-tile[data-list="s"]', 'mb.gs');
+        each('#mbGallery .mb-tile[data-list="g"]', 'mb.gg');
+      }
+      if (kind === 'mbshelf') each('#mbShelfTiles .mb-tile:not(.add)', 'mb.folder');
+      if (kind === 'mbfolder') {
+        document.querySelectorAll('#mbTags .rf-tag').forEach((el, i) => { nodes['mb.fchip.' + (i === 0 ? 'all' : el.dataset.t)] = tag(el, k++); });
+        let n = 0;
+        [...document.getElementById('mbGrid').children].forEach(el => {
+          nodes[el.classList.contains('add') ? 'mb.addTile' : 'mb.ftile.' + n++] = tag(el, k++);
+        });
+      }
+      if (kind === 'orgs') each('#orgList .org-item', 'org.row');
+      if (kind === 'orgcard') {
+        const req = document.getElementById('oReq').closest('.group'); nodes['orgc.req'] = tag(req, k++);
+        document.querySelectorAll('#oDocKinds .rf-tag').forEach(el => { nodes['orgc.kind.' + el.dataset.k] = tag(el, k++); });
+        each('#oDocs .doc-row', 'orgc.docRow');
+        each('#oDocs [data-kill]', 'orgc.docDel');
+        each('#oShoots .org-item', 'orgc.shoot');
+      }
+      if (kind === 'contacts') {
+        document.querySelectorAll('#phoneList .ph-row').forEach((row, g) => {
+          nodes['contacts.group.' + g] = tag(row, k++);
+          const c = row.querySelector('.ph-call'); if (c) nodes['contacts.call.' + g] = tag(c, k++);
+          row.querySelectorAll('.ph-card').forEach((el, i) => { nodes['contacts.row.' + g + '.' + i] = tag(el, k++); });
+        });
+      }
+    }
+    delete nodes._new;
     /* Строки черновика (24а): номер строки с единицы, как у приложения. */
     document.querySelectorAll('#rbList .rb-row').forEach((el, i) => {
       const tag = (e, n) => { if (!e.id) e.id = '__shot_r' + i + '_' + n; return '#' + e.id; };
@@ -719,7 +838,7 @@ async function screenShot() {
       /* У текста мерится строка, а не блок: блок подписи тянется на всю
          ширину колонки (`#nlLabel` — 392 при слове в 130), и сравнивать с ним
          рамку текста приложения бессмысленно. Контейнеры — по блоку. */
-      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$|^(year|y12)\.title$|^y12\.name\.\d+$|^stat\.(months|profit|delv)$|^bin\.title$|^blk\.title$|^card\.(name|person|when|dayNow|dayLeft|dayClock|studioNum|studioName|clashText)$/.test(name) || /^loc\.(title|sub|spots|empty|note|latLabel|lonLabel)$|^loc\.spot\.\d+\.(name|addr)$/.test(name) || name === 'title';
+      const textual = /^(plan\.title|dp\.(rise|set|gold|temp|load)|head\.\d+)$/.test(name) || /^(header|readout|tele|fold|layer)\.|^map\.(north|rise|set)$|^next\.(label|value|word)$|^wx\.(temp|cond|lo|hi)$|^action\.sub$|^edge\.|^now$|^mode\.note$|^(sec|note|title)\.|^tab\.\w+\.label$|^pick\.(title|sub)$|^(year|y12)\.title$|^y12\.name\.\d+$|^stat\.(months|profit|delv)$|^bin\.title$|^blk\.title$|^card\.(name|person|when|dayNow|dayLeft|dayClock|studioNum|studioName|clashText)$|^mb\.(shelfTitle|shelfSub|folderTitle|folderSub|gridLabel)$|^contacts\.(title|count)$|^quest\.title$/.test(name) || /^loc\.(title|sub|spots|empty|note|latLabel|lonLabel)$|^loc\.spot\.\d+\.(name|addr)$/.test(name) || name === 'title';
       let b = el.getBoundingClientRect();
       if (textual && el.textContent.trim()) {
         const rg = document.createRange(); rg.selectNodeContents(el);
@@ -770,6 +889,9 @@ async function screenShot() {
       nodes: out
     };
   }, layer ? { ...NODES[layer], _layer: layer }
+    : newSheet && NODES[newSheet] ? { ...NODES[newSheet], _new: newSheet }
+    : args.sheet === 'quest' && cardSheet ? { ...NODES.quest, _new: 'quest' }
+    : newSheet === 'meet' ? { ...NODES.form }
     : cardSheet ? { ...NODES.card, _card: true, _route: args.fold === 'route', _refs: !!args.refs }
     : formSheet ? { ...NODES.form }
     : sheet ? { ...NODES.loc, _loc: true }
