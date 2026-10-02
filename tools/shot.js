@@ -175,7 +175,7 @@ const NODES = {
     'next.label': '#nlLabel', 'next.value': '#nlValue', 'next.spark': '#nlSpark', 'next.word': '#nlWord',
     'tele.rec': '#tRec', 'tele.sunset': '#tSunset', 'tele.golden': '#tGolden', 'tele.light': '#tLight',
     'tele.shadow': '#tShadow', 'tele.sky': '#tSky', 'tele.wind': '#tWind', 'tele.air': '#tAir',
-    'spoiler': '#spoilerBtn', 'action': '#planToday', 'action.sub': '#actionSub',
+    'spoiler': '#spoilerBtn', 'spoiler.swatch': '.sky-swatch', 'action': '#planToday', 'action.sub': '#actionSub',
     'timebar': '#timebar', 'edge.rise': '#edgeRise', 'edge.set': '#edgeSet', 'now': '#nowTick',
     'ribbon': '#ribbonScroll', 'ribbon.frame': '#ribbonFrame', 'ribbon.day0': '#ribbonTrack .ribbon-day:nth-child(2)', 'track': '#timebar .track-wrap', 'scrub': '#scrub', 'ruler': '#ruler',
     'tabbar': '.tabbar', ...TABS
@@ -533,6 +533,14 @@ async function screenShot() {
       if (row) row.click();
     }, chapter);
     await page.waitForTimeout(700);
+  }
+  /* «Подробно» раскрыт (`--chapter spoiler`, 28е) — кликом, как палец, и плашка
+     палитры неба прокручена на середину экрана. */
+  if (screen === 'today' && args.chapter === 'spoiler') {
+    await page.click('#spoilerBtn');
+    await page.waitForTimeout(900);
+    await page.evaluate(() => { const e = document.querySelector('.sky-swatch'); if (e) e.scrollIntoView({ block: 'center' }); });
+    await page.waitForTimeout(300);
   }
   /* Лист «Когда смотрим» (`--chapter pick`, 19в) — тапом по показаниям
      купола, как палец; лист въезжает 0,38 с. */
