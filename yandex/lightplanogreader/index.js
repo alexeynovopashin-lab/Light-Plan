@@ -153,7 +153,8 @@ async function getImage(href, now) {
   const hit = imgCache.get(key);
   if (fresh(hit, IMG_TTL, now)) return { buf: hit.buf, type: hit.type, state: 'hit' };
   const { res } = await safeFetch(href, { accept: 'image/*' });
-  if (res.status === 404 || res.status === 410) throw new Fail(404, 'not found');
+  // i.pinimg.com answers 403 (not 404) for a picture that does not exist (measured 2026-10-03): the client must see 404, not 502.
+  if (res.status === 404 || res.status === 410 || res.status === 403) { try { res.body.cancel(); } catch (e) {} throw new Fail(404, 'not found'); }
   if (!res.ok || !res.body) throw new Fail(502, 'upstream');
   const type = res.headers.get('content-type') || 'image/jpeg';
   if (!/^image\//.test(type)) throw new Fail(404, 'not an image');
