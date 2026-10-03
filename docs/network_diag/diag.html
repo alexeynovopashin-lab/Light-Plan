@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light Plan — проверка сети</title>
+<style>
+  :root { color-scheme: light dark; --ok:#2e9e5b; --slow:#d19a12; --bad:#d6453d; --mut:#8a8a8f; }
+  body { font: 15px/1.35 -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; max-width: 720px; margin-inline: auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.n { color: var(--mut); margin: 0 0 12px; font-size: 13px; }
+  button { font: inherit; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--mut); background: transparent; color: inherit; margin: 0 8px 8px 0; }
+  button.main { background: #1b6ef3; border-color: #1b6ef3; color: #fff; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--mut); margin: 18px 0 6px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 7px 4px; border-bottom: 1px solid #8884; vertical-align: top; }
+  td.t { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .host { word-break: break-all; font-size: 13px; }
+  .what { color: var(--mut); font-size: 12px; }
+  .st { font-weight: 600; white-space: nowrap; }
+  .ok { color: var(--ok); } .slow { color: var(--slow); } .bad { color: var(--bad); } .wait { color: var(--mut); }
+  #sum { margin: 10px 0; font-weight: 600; }
+  #env { font-size: 12px; color: var(--mut); }
+</style>
+</head>
+<body>
+<h1>Проверка сети Light Plan</h1>
+<p class="n">Открой на телефоне <b>без VPN</b>, на мобильном интернете (и отдельно на Wi-Fi), нажми «Проверить», потом «Скопировать результат» и пришли текст.
+«Доступен» — сервер ответил быстрее 3 с; «медленно» — 3–6 с; «нет» — ошибка или молчание 6 с.</p>
+<button class="main" id="go">Проверить</button><button id="copy">Скопировать результат</button>
+<div id="sum"></div>
+<div id="out"></div>
+<p id="env"></p>
+
+<script>
+"use strict";
+var TIMEOUT = 6000, SLOW = 3000, PARALLEL = 5;
+var T = "?_=";
+/* группа, имя, адрес, что делает в приложении. get=true — GET и сразу abort по заголовкам. */
+var HOSTS = [
+ ["Контроль (должны открываться)", "ya.ru", "https://ya.ru/", "эталон: интернет вообще есть"],
+ ["Контроль (должны открываться)", "lightplan.website.yandexcloud.net", "https://lightplan.website.yandexcloud.net/", "наш бакет Yandex (может ответить 404 — это нормально)"],
+ ["Погода", "api.open-meteo.com", "https://api.open-meteo.com/v1/forecast?latitude=56.5&longitude=84.9&hourly=temperature_2m&forecast_days=1", "прогноз (прямой путь)"],
+ ["Погода", "air-quality-api.open-meteo.com", "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=56.5&longitude=84.9&hourly=dust&forecast_days=1", "воздух (прямой путь)"],
+ ["Погода", "functions.yandexcloud.net", "https://functions.yandexcloud.net/d4ed8g9iaj0to6t9dne7", "наш прокси погоды (без ключа ответит 403 — для проверки достаточно)"],
+ ["Карта: OpenStreetMap (CARTO)", "tiles-a.basemaps.cartocdn.com", "https://tiles-a.basemaps.cartocdn.com/vectortiles/carto.streets/v1/14/10950/5190.mvt", "плитки карты"],
+ ["Карта: OpenStreetMap (CARTO)", "tiles-b.basemaps.cartocdn.com", "https://tiles-b.basemaps.cartocdn.com/vectortiles/carto.streets/v1/14/10950/5190.mvt", "плитки карты"],
+ ["Карта: OpenStreetMap (CARTO)", "tiles-c.basemaps.cartocdn.com", "https://tiles-c.basemaps.cartocdn.com/vectortiles/carto.streets/v1/14/10950/5190.mvt", "плитки карты"],
+ ["Карта: OpenStreetMap (CARTO)", "tiles-d.basemaps.cartocdn.com", "https://tiles-d.basemaps.cartocdn.com/vectortiles/carto.streets/v1/14/10950/5190.mvt", "плитки карты"],
+ ["Карта: OpenStreetMap (CARTO)", "tiles.basemaps.cartocdn.com", "https://tiles.basemaps.cartocdn.com/gl/voyager-gl-style/sprite.json", "значки и шрифты карты"],
+ ["Карта: Apple (пробные адреса, ненадёжны — «нет» здесь ничего не доказывает)", "maps.apple.com", "https://maps.apple.com/", "карты Apple (сайт)"],
+ ["Карта: Apple (пробные адреса, ненадёжны — «нет» здесь ничего не доказывает)", "cdn.apple-mapkit.com", "https://cdn.apple-mapkit.com/", "MapKit (кандидат)"],
+ ["Карта: Apple (пробные адреса, ненадёжны — «нет» здесь ничего не доказывает)", "gspe1-ssl.ls.apple.com", "https://gspe1-ssl.ls.apple.com/", "геослужбы Apple (кандидат)"],
+ ["Маршруты", "router.project-osrm.org", "https://router.project-osrm.org/route/v1/driving/84.947,56.488;84.99,56.50?overview=false", "дорога машиной"],
+ ["Маршруты", "valhalla1.openstreetmap.de", "https://valhalla1.openstreetmap.de/status", "дорога пешком"],
+ ["Засветка", "djlorenz.github.io", "https://djlorenz.github.io/astronomy/binary_tiles/2025/binary_tile_53_25.dat.gz", "атлас засветки (плитка ~60 КБ, тело не качаем)"],
+ ["Студия", "tomson-auth.alexeynovopashin.workers.dev", "https://tomson-auth.alexeynovopashin.workers.dev/", "связь съёмки с бронью (Cloudflare)"],
+ ["Опросник (открывает клиент)", "alexeynovopashin-lab.github.io", "https://alexeynovopashin-lab.github.io/Light-Plan/quest/wedding.html", "страница анкеты (GitHub Pages)"],
+ ["Pinterest", "www.pinterest.com", "https://www.pinterest.com/", "ссылки мудборда"],
+ ["Pinterest", "ru.pinterest.com", "https://ru.pinterest.com/", "ссылки мудборда (рос. адрес)"],
+ ["Pinterest", "pin.it", "https://pin.it/", "короткие ссылки «Поделиться»"],
+ ["Pinterest", "i.pinimg.com", "https://i.pinimg.com/", "картинки пинов"],
+ ["Документы и связь", "disk.yandex.ru", "https://disk.yandex.ru/", "ссылки на документы"],
+ ["Документы и связь", "t.me", "https://t.me/", "ссылка на Telegram в настройках"]
+];
+
+var out = document.getElementById("out"), rows = [];
+
+function build() {
+  out.innerHTML = ""; rows = [];
+  var group = null, tbl = null;
+  HOSTS.forEach(function (h, i) {
+    if (h[0] !== group) {
+      group = h[0];
+      var t = document.createElement("h2"); t.textContent = group; out.appendChild(t);
+      tbl = document.createElement("table"); out.appendChild(tbl);
+    }
+    var tr = document.createElement("tr");
+    tr.innerHTML = '<td><div class="host"></div><div class="what"></div></td><td class="st wait">—</td><td class="t"></td>';
+    tr.querySelector(".host").textContent = h[1];
+    tr.querySelector(".what").textContent = h[3];
+    tbl.appendChild(tr);
+    rows.push({ h: h, st: tr.querySelector(".st"), tm: tr.querySelector(".t"), res: null });
+  });
+}
+
+function setRow(r, kind, ms, note) {
+  var label = { ok: "доступен", slow: "медленно", bad: "нет", wait: "…" }[kind];
+  r.st.className = "st " + kind; r.st.textContent = label;
+  r.tm.textContent = ms == null ? "" : (ms / 1000).toFixed(2) + " с";
+  r.res = { kind: kind, ms: ms, note: note || "" };
+}
+
+function probe(r) {
+  setRow(r, "wait", null);
+  return new Promise(function (done) {
+    var ctl = new AbortController(), t0 = performance.now(), fin = false;
+    var timer = setTimeout(function () { if (fin) return; fin = true; ctl.abort(); setRow(r, "bad", TIMEOUT, "таймаут"); done(); }, TIMEOUT);
+    var url = r.h[2] + (r.h[2].indexOf("?") < 0 ? "?" : "&") + "_=" + Date.now();
+    fetch(url, { mode: "no-cors", cache: "no-store", signal: ctl.signal }).then(function () {
+      if (fin) return; fin = true; clearTimeout(timer);
+      var ms = performance.now() - t0; ctl.abort();   /* тело не нужно: заголовки пришли */
+      setRow(r, ms < SLOW ? "ok" : "slow", ms); done();
+    }, function (e) {
+      if (fin) return; fin = true; clearTimeout(timer);
+      setRow(r, "bad", performance.now() - t0, "ошибка: " + (e && e.name || "сеть")); done();
+    });
+  });
+}
+
+function env() {
+  var c = navigator.connection || {};
+  return "Время: " + new Date().toISOString() + " · сеть: " + (c.effectiveType || "?") + (c.type ? "/" + c.type : "") +
+    (c.downlink ? " · ~" + c.downlink + " Мбит/с" : "") + " · онлайн: " + navigator.onLine + " · " + navigator.userAgent;
+}
+
+function summary() {
+  var n = { ok: 0, slow: 0, bad: 0 }, done = 0;
+  rows.forEach(function (r) { if (r.res && r.res.kind !== "wait") { n[r.res.kind]++; done++; } });
+  document.getElementById("sum").textContent = done + " из " + rows.length + ": доступно " + n.ok + ", медленно " + n.slow + ", нет " + n.bad;
+}
+
+function run() {
+  var go = document.getElementById("go"); go.disabled = true;
+  build(); document.getElementById("env").textContent = env();
+  var idx = 0, active = 0;
+  return new Promise(function (resolve) {
+    (function next() {
+      while (active < PARALLEL && idx < rows.length) {
+        active++;
+        probe(rows[idx++]).then(function () { active--; summary(); if (idx >= rows.length && active === 0) resolve(); else next(); });
+      }
+    })();
+  }).then(function () { go.disabled = false; });
+}
+
+function report() {
+  var lines = ["Light Plan — проверка сети", env(), ""];
+  rows.forEach(function (r) {
+    var res = r.res || { kind: "wait", ms: null };
+    lines.push([{ ok: "ДОСТУПЕН", slow: "МЕДЛЕННО", bad: "НЕТ", wait: "не проверен" }[res.kind],
+      res.ms == null ? "" : (res.ms / 1000).toFixed(2) + " с", r.h[1], res.note].filter(Boolean).join(" · "));
+  });
+  return lines.join("\n");
+}
+
+document.getElementById("go").onclick = run;
+document.getElementById("copy").onclick = function () {
+  var text = report(), b = this;
+  function mark(s) { b.textContent = s; setTimeout(function () { b.textContent = "Скопировать результат"; }, 1800); }
+  function fallback() {
+    var a = document.createElement("textarea"); a.value = text; document.body.appendChild(a); a.select();
+    var ok = false; try { ok = document.execCommand("copy"); } catch (e) {} a.remove(); mark(ok ? "Скопировано" : "Не вышло — выдели текст вручную");
+  }
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { mark("Скопировано"); }, fallback);
+  else fallback();
+};
+build();
+</script>
+</body>
+</html>
