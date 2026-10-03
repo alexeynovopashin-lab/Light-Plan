@@ -71,6 +71,7 @@ var HOSTS = [
  ["Опросник (открывает клиент)", "alexeynovopashin-lab.github.io", {k:"fetch", u:"https://alexeynovopashin-lab.github.io/Light-Plan/quest/wedding.html", how:"страница анкеты, GET с чтением тела (~27 КБ)"}],
  ["Pinterest", "www.pinterest.com · доска", {k:"nocors", u:"https://www.pinterest.com/pinterest/", how:"публичная страница-пример, fetch no-cors: дошли ли; тело не читается"}],
  ["Pinterest", "ru.pinterest.com · доска", {k:"nocors", u:"https://ru.pinterest.com/pinterest/", how:"то же на российском адресе"}],
+ ["Погода: Apple WeatherKit", "weatherkit.apple.com", {k:"nocors", u:"https://weatherkit.apple.com/", how:"корень, fetch no-cors; без токена ответит 4xx — это «дошли» (запасной источник погоды, 03.10)"}],
  ["Pinterest", "pin.it", {k:"nocors", u:"https://pin.it/", how:"короткая ссылка «Поделиться», корень (302), fetch no-cors"}],
  ["Pinterest", "i.pinimg.com · обложка", {k:"img", solo:1, u:"https://i.pinimg.com/236x/01/39/73/013973e7c1aaa25c2049bb452bd7d2d3.jpg", size:17559, how:"публичная картинка-пример 236 пикс. (17,6 КБ) через new Image(); скорость по известному размеру"}]
 ];
