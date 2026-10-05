@@ -7,21 +7,25 @@
 //   GET <function url>?board=<board link or pin.it link>  → JSON { name, pinCount, truncated, pins:[{ id, permalink, image }] }
 //   GET <function url>?url=<pin page / pin.it link>       → bytes of the og:image of the page
 //   GET <function url>?img=<https://i.pinimg.com/...>     → bytes of the picture
+//   GET <function url>?pic=<https://any.host/photo.jpg>   → bytes of a picture at ANY public https address (28n.1, picfetch.js:
+//                                                           internal addresses refused at connect time, ≤ 3 redirects, ≤ 2.5 MB, JPEG/PNG/WebP/HEIC by bytes)
 //   header X-LP-Key: <app key>
 //
 // Errors are JSON { error: "<reason>", reason: "<reason>" }:
 //   400 bad request | bad url | not a board url | host not allowed   403 forbidden (no/wrong key, not GET)
-//   404 board not found | no og:image | not found | not an image     413 too large
+//   404 board not found | no og:image | not found | not an image     413 too large (?pic= : over 2.5 MB)
 //   429 rate (per IP) | daily ceiling                                 502 upstream (Pinterest did not answer / refused)
 //   500 internal
 //
 // Settings (function environment variables, never in the repository):
 //   LP_KEY     — the app key (own key of this function, not the weather one)
 //   DAILY_CAP  — optional, ceiling of upstream requests per UTC day for one instance (default 3000)
+//   PIC_DAILY_CAP — optional, the same for ?pic= (default 1500; separate, so a flood of direct pictures cannot eat the Pinterest budget)
 //
 // Caches live in the memory of the running instance (no bucket, nothing is stored outside it): a cold instance starts empty.
 // Nothing is logged except mode, status and time — no links, no IPs.
 const crypto = require('node:crypto');
+const { Fail, fetchPicture } = require('./picfetch');
 
 const UA = 'LightPlanLinkPreview/1.0 (+https://alexeynovopashin-lab.github.io/Light-Plan/)';
 const PWS_HANDLER = 'www/[username]/[slug].js';
@@ -31,15 +35,15 @@ const IMG_MAX = 2.5 * 1024 * 1024; // raw bytes; the answer goes out base64 (+33
 const HTML_MAX = 3 * 1024 * 1024; // a Pinterest pin page is ~1.2 MB and its og:image sits at ~1.1 MB, after </head> (measured 2026-10-03)
 const PIN_CAP = 100;
 const DAILY_CAP = Number(process.env.DAILY_CAP) || 3000;
+const PIC_DAILY_CAP = Number(process.env.PIC_DAILY_CAP) || 1500;
 const PER_IP_PER_MINUTE = 240;
+const PIC_PER_IP_PER_MINUTE = 30;
 
 const BOARD_TTL = 10 * 60 * 1000;
 const SHORT_TTL = 60 * 60 * 1000;
 const OG_TTL = 60 * 60 * 1000;
 const IMG_TTL = 60 * 60 * 1000;
 const IMG_CACHE_BYTES = 40 * 1024 * 1024;
-
-class Fail extends Error { constructor(status, reason, extra) { super(reason); this.status = status; this.reason = reason; this.extra = extra; } }
 
 // ---------- host allow-list ----------
 // pinterest.<tld> and subdomains, pin.it, pinimg.com and subdomains. https, default port, no credentials.
@@ -63,6 +67,7 @@ const imgCache = new Map(); // sha(image url) → { buf, type, at }
 let imgBytes = 0;
 let day = '';
 let spent = 0; // upstream requests used today by this instance
+let picSpent = 0; // the same for ?pic=
 const ipHits = new Map();
 
 const fresh = (e, ttl, now) => e && now - e.at < ttl;
@@ -253,6 +258,14 @@ async function modeUrl(page, now) {
   return getImage(iu.href, now);
 }
 
+// Any public https picture. Nothing is cached or stored: the instance forgets it as soon as the answer is out.
+async function modePic(href, _now, deps) {
+  if (picSpent >= PIC_DAILY_CAP) throw new Fail(429, 'daily ceiling');
+  picSpent += 1;
+  const r = await fetchPicture(href, deps);
+  return { buf: r.buf, type: r.type, state: 'none', nosniff: true };
+}
+
 async function modeImg(href, now) {
   const u = parse(href);
   if (!u) throw new Fail(400, 'bad url');
@@ -278,7 +291,7 @@ exports.handler = async (event) => {
 
   const now = Date.now();
   const today = new Date(now).toISOString().slice(0, 10);
-  if (today !== day) { day = today; spent = 0; }
+  if (today !== day) { day = today; spent = 0; picSpent = 0; }
   const ip = (event.requestContext && event.requestContext.identity && event.requestContext.identity.sourceIp) || h['x-forwarded-for'] || '';
   const minute = Math.floor(now / 60000);
   const hit = ipHits.get(ip) || { minute, n: 0 };
@@ -295,6 +308,17 @@ exports.handler = async (event) => {
       mode = 'board';
       const r = await modeBoard(q.board, now);
       result = json(200, r.body, { 'Cache-Control': 'no-store', 'X-LP-Cache': r.state });
+    } else if (q.pic) {
+      mode = 'pic';
+      if (hit.picN === undefined || hit.picMinute !== minute) { hit.picN = 0; hit.picMinute = minute; }
+      if (++hit.picN > PIC_PER_IP_PER_MINUTE) throw new Fail(429, 'rate', { 'Retry-After': '60' });
+      const r = await modePic(q.pic, now);
+      result = {
+        statusCode: 200,
+        headers: { 'Content-Type': r.type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
+        isBase64Encoded: true,
+        body: r.buf.toString('base64'),
+      };
     } else if (q.img || q.url) {
       mode = q.img ? 'img' : 'url';
       const r = q.img ? await modeImg(q.img, now) : await modeUrl(q.url, now);
