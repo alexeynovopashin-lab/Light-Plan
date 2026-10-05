@@ -26,6 +26,9 @@
    quest|meet [--way <жанр | знак подборки | знак организации | знак записи>] [--shelf <жанр>]`):
    строки «Настроек» и плитки галереи нажимаются, как пальцем; повторы (плитки, чипы, строки) —
    узлами по порядку, имена те же, что у приложения.
+   Время рукой (29а): `--screen plan --scope day --pick N --sheet grip --way <знак
+   записи>` — запись поднята и сдвинута на час, палец держит; узлы `grip.a`,
+   `grip.b` (поле ручек), `grip.mark` (капсула минуты).
    Слои и листы «Съёмок» (итерация 22): `--screen plan --sheet year|year12|
    stats|search|bin|blk` — лента года (тап по заголовку), «Год целиком»
    (ещё тап по году), статистика и поиск (кнопки шапки), корзина (строка
@@ -599,6 +602,23 @@ async function screenShot() {
     await page.click(`#dayDates .dd-day:nth-child(${+args.pick + 1})`);
     await page.waitForTimeout(700);
   }
+  /* Время рукой на ленте дня (29а): `--sheet grip --way <id>` — запись поднята
+     удержанием (0,6 с) и сдвинута пальцем на 38 px (час), палец не отпущен:
+     выделение, ручки, тень, капсула минуты. Номер отрезка (`data-i`) — место
+     записи в засеве, как у карточки ниже. */
+  if (screen === 'plan' && args.sheet === 'grip') {
+    const i = ((seed && seed.sessions) || []).findIndex(x => x.id === args.way);
+    if (i < 0) throw new Error('--way: в засеве нет записи ' + args.way);
+    const el = await page.$(`#dpSessions .dl-ev[data-i="${i}"]`);
+    if (!el) throw new Error('--sheet grip: записи ' + args.way + ' нет на ленте дня');
+    const b = await el.boundingBox();
+    const x = b.x + b.width / 2, y = b.y + b.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.waitForTimeout(600);
+    await page.mouse.move(x, y + 38, { steps: 6 });
+    await page.waitForTimeout(400);
+  }
   /* Карточка (`--sheet card --way <id>`, итерация 25) — как пальцем: клетка
      дня в месяце, потом строка записи в списке дня. Номер строки (`data-i`) —
      место записи в засеве: веб `sessions` не пересортировывает. Лист въезжает
@@ -699,7 +719,12 @@ async function screenShot() {
       each('#dayDates .dd-day', 'dd');
       each('#dpSessions .dl-ev', 'ev');
       // Отметка ленты нулевой высоты — рамкой служит её подпись или капсула.
-      each('#dpSessions .dl-mark-t, #dpSessions .dl-mark-h', 'mark');
+      each('#dpSessions .dl-mark:not(.drag) .dl-mark-t, #dpSessions .dl-mark:not(.drag) .dl-mark-h', 'mark');
+      /* Время рукой (29а): поле касания ручек 36×36 и капсула минуты под пальцем */
+      const one = (sel, name) => { const el = document.querySelector(sel); if (el) nodes[name] = tag(el, 'p' + k++); };
+      one('#dpSessions .dl-selbox .dl-h.a', 'grip.a');
+      one('#dpSessions .dl-selbox .dl-h.b', 'grip.b');
+      one('#dpSessions .dl-mark.drag .dl-mark-h', 'grip.mark');
       each('#dpSessions .plan-row', 'row');
       each('#dpSessions .dl-slot', 'slot');
     }
