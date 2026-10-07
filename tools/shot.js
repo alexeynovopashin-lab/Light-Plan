@@ -241,6 +241,11 @@ const NODES = {
     'st.shoot': '#planDay', 'st.meet': '#planMeet', 'st.block': '#planBlock',
     'tabbar': '.tabbar', ...TABS
   },
+  /* Разрез месяца (натив 29.2а, `--sheet part`): метки ставит сам сценарий. */
+  part: {
+    'part.up': '#__part_up', 'part.down': '#__part_down',
+    ...Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map(i => ['part.c.' + i, '#__part_c' + i]))
+  },
   /* Форма записи (итерация 23): `--screen plan --sheet form [--way <жанр>]`. */
   form: {
     'form.close': '#formBack', 'form.save': '#fSave', 'form.title': '#formTitle', 'form.sub': '#formSub',
@@ -602,6 +607,33 @@ async function screenShot() {
     await page.click(`#dayDates .dd-day:nth-child(${+args.pick + 1})`);
     await page.waitForTimeout(700);
   }
+  /* Разрез месяца при входе в день (натив 29.2а): `--sheet part --way <мс>` — второй тап по выбранному числу
+     месяца (`partMonthIntoDay`), кадр на <мс> от старта. Таймеры разреза (280 мс — лента дат, 400 мс — снимки
+     сняты) перехватываются и вызываются вручную, если мс до них дошла; переходы CSS — на паузе на той же мс.
+     Узлы: `part.up` / `part.down` — видимая часть половины (рамка клона минус `clip-path`), `part.c.N` — ячейки. */
+  if (screen === 'plan' && args.sheet === 'part') {
+    await page.evaluate(async ms => {
+      const held = [], st = window.setTimeout;
+      window.setTimeout = (fn, t, ...a) => (t === 280 || t === 400) ? (held.push([t, fn]), 0) : st(fn, t, ...a);
+      document.querySelector('#cal .sel').click();
+      window.setTimeout = st;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      document.getAnimations().forEach(a => { a.pause(); a.currentTime = ms; });
+      held.filter(([t]) => t <= ms).forEach(([, fn]) => fn());
+      const dev = document.querySelector('.device'), d = dev.getBoundingClientRect();
+      const kids = [...dev.children];
+      kids.filter(e => e.style.zIndex === '28').forEach((g, i) => {
+        const v = ((/inset\(([^)]*)\)/.exec(g.style.clipPath) || [])[1] || '0').split(/\s+/).map(parseFloat);
+        const b = g.getBoundingClientRect(), top = b.top + v[0], bot = b.bottom - (v.length > 2 ? v[2] : v[0]);
+        const m = document.createElement('div');
+        m.id = i ? '__part_down' : '__part_up';
+        m.style.cssText = 'position:absolute; pointer-events:none; z-index:40; left:' + (b.left - d.left) + 'px; top:'
+          + (top - d.top) + 'px; width:' + b.width + 'px; height:' + Math.max(0, bot - top) + 'px;';
+        dev.appendChild(m);
+      });
+      kids.filter(e => e.style.zIndex === '29').forEach((w, i) => { w.id = '__part_c' + i; });
+    }, +(args.way || 170));
+  }
   /* Время рукой на ленте дня (29а): `--sheet grip --way <id>` — запись поднята
      удержанием (0,6 с) и сдвинута пальцем на 38 px (час), палец не отпущен:
      выделение, ручки, тень, капсула минуты. Номер отрезка (`data-i`) — место
@@ -930,7 +962,7 @@ async function screenShot() {
     : sheet ? { ...NODES.loc, _loc: true }
     : screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
     : screen === 'map' ? { ...NODES.map, _map: true, _mw: !!(seed && seed.mapLayers && seed.mapLayers.mw) }
-    : screen === 'plan' ? { ...NODES.plan, _plan: true }
+    : screen === 'plan' ? { ...NODES.plan, ...(args.sheet === 'part' ? NODES.part : {}), _plan: true }
     : NODES.today);
 
   await page.screenshot({ path: out });
