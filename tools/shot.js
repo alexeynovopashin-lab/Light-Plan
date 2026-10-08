@@ -241,7 +241,7 @@ const NODES = {
     'st.shoot': '#planDay', 'st.meet': '#planMeet', 'st.block': '#planBlock',
     'tabbar': '.tabbar', ...TABS
   },
-  /* Разрез месяца (натив 29.2а, `--sheet part`): метки ставит сам сценарий. */
+  /* Разрез месяца (натив 29.2а, `--sheet part`; из ленты года — 29.2б, `--sheet partyear`): метки ставит сам сценарий. */
   part: {
     'part.up': '#__part_up', 'part.down': '#__part_down',
     ...Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map(i => ['part.c.' + i, '#__part_c' + i]))
@@ -610,12 +610,18 @@ async function screenShot() {
   /* Разрез месяца при входе в день (натив 29.2а): `--sheet part --way <мс>` — второй тап по выбранному числу
      месяца (`partMonthIntoDay`), кадр на <мс> от старта. Таймеры разреза (280 мс — лента дат, 400 мс — снимки
      сняты) перехватываются и вызываются вручную, если мс до них дошла; переходы CSS — на паузе на той же мс.
-     Узлы: `part.up` / `part.down` — видимая часть половины (рамка клона минус `clip-path`), `part.c.N` — ячейки. */
-  if (screen === 'plan' && args.sheet === 'part') {
-    await page.evaluate(async ms => {
+     Узлы: `part.up` / `part.down` — видимая часть половины (рамка клона минус `clip-path`), `part.c.N` — ячейки.
+     `--sheet partyear` (натив 29.2б) — то же из ленты года: тап по сегодняшнему числу в `#yearOverlay`. */
+  if (screen === 'plan' && (args.sheet === 'part' || args.sheet === 'partyear')) {
+    const year = args.sheet === 'partyear';
+    if (year) {
+      await page.evaluate(() => document.querySelector('#planTitle').click());
+      await page.waitForTimeout(800);
+    }
+    await page.evaluate(async ([ms, tap]) => {
       const held = [], st = window.setTimeout;
       window.setTimeout = (fn, t, ...a) => (t === 280 || t === 400) ? (held.push([t, fn]), 0) : st(fn, t, ...a);
-      document.querySelector('#cal .sel').click();
+      document.querySelector(tap).click();
       window.setTimeout = st;
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       document.getAnimations().forEach(a => { a.pause(); a.currentTime = ms; });
@@ -632,7 +638,7 @@ async function screenShot() {
         dev.appendChild(m);
       });
       kids.filter(e => e.style.zIndex === '29').forEach((w, i) => { w.id = '__part_c' + i; });
-    }, +(args.way || 170));
+    }, [+(args.way || 170), year ? '#yearOverlay .year-cal-grid button.today' : '#cal .sel']);
   }
   /* Время рукой на ленте дня (29а): `--sheet grip --way <id>` — запись поднята
      удержанием (0,6 с) и сдвинута пальцем на 38 px (час), палец не отпущен:
@@ -962,7 +968,7 @@ async function screenShot() {
     : sheet ? { ...NODES.loc, _loc: true }
     : screen === 'settings' ? { ...NODES.settings, _nav: !chapter, _chapter: chapter }
     : screen === 'map' ? { ...NODES.map, _map: true, _mw: !!(seed && seed.mapLayers && seed.mapLayers.mw) }
-    : screen === 'plan' ? { ...NODES.plan, ...(args.sheet === 'part' ? NODES.part : {}), _plan: true }
+    : screen === 'plan' ? { ...NODES.plan, ...(args.sheet === 'part' || args.sheet === 'partyear' ? NODES.part : {}), _plan: true }
     : NODES.today);
 
   await page.screenshot({ path: out });
