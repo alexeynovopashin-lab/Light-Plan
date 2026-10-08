@@ -1,5 +1,8 @@
 # Сейчас — состояние миграции для новой сессии
 
+**Хаб платформы (с 08.10):** вопросы между Light Plan, ядром (Event OS) и BroniOS — в `platform_hub:` (`~/Documents/workspace/10_projects/platform_hub`). В начале сессии: `~/Documents/workspace/10_projects/platform_hub/hub.sh lightplan`; ответы — в `QUEUE/lightplan.md`, вопросы другим — `hub.sh new lightplan <кому> "…"`.
+
+
 Хозяин — **координатор проекта «LightPlan» в Claude** (инструкции —
 `docs/orchestrator_project_instructions.md`). Файл **переписывается, а не
 дописывается**, до ~100 строк. Решения целиком — `DECISIONS.md`, задания —
