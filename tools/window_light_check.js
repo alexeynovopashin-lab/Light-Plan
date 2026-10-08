@@ -29,10 +29,7 @@ const WL = require(libPath);
 const shown = [];
 let total = 0, bad = 0;
 function miss(msg) { bad++; if (shown.length < 12) shown.push(msg); }
-function code(r) {
-  if (r.kind === "golden") return r.half === "morning" ? 2 : 3;
-  return fx.meta.codes[r.kind];
-}
+function code(r) { return fx.meta.codes[r.kind]; }
 function ask(p, ms, az, windows) {
   return WL.at({ instant: ms, lat: p.lat, lon: p.lon, timezone: p.zone, windowsAzimuth: az, hasWindows: windows });
 }
@@ -41,6 +38,12 @@ function ask(p, ms, az, windows) {
 for (const k of Object.keys(fx.meta.thresholds)) {
   total++;
   if (WL.THRESHOLDS[k] !== fx.meta.thresholds[k]) miss("порог " + k + ": в копии " + WL.THRESHOLDS[k] + ", в эталоне " + fx.meta.thresholds[k]);
+}
+
+/* Диапазон принимаемых моментов */
+total++;
+if (!WL.INSTANT_RANGE_MS || WL.INSTANT_RANGE_MS.from !== fx.meta.range.from || WL.INSTANT_RANGE_MS.to !== fx.meta.range.to) {
+  miss("диапазон моментов: в копии " + JSON.stringify(WL.INSTANT_RANGE_MS) + ", в эталоне " + JSON.stringify(fx.meta.range));
 }
 
 /* Сетка */
@@ -57,7 +60,7 @@ for (const day of fx.days) for (const row of day.rows) {
 }
 
 /* Пробы порога угла и приведение азимута */
-for (const key of ["edge", "norm"]) for (const r of fx[key]) {
+for (const key of ["edge", "norm", "far"]) for (const r of fx[key]) {
   total++;
   const a = ask(r, r.ms, r.windowsAzimuth, true);
   if (code(a) !== r.code || Math.abs(a.offsetFromWindow - r.offset) > 1e-9) miss(key + ": " + r.why + " в " + r.place);

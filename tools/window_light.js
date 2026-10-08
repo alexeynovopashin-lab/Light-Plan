@@ -1,4 +1,5 @@
-/* Свет в окнах зала: «прямой», «закатный», «рассеянный» — по солнцу, без погоды.
+/* Свет в окнах зала: «прямой», «рассветный», «закатный», «рассеянный» — по
+   солнцу, без погоды.
 
    Один самодостаточный файл для BroniOS и сайта студии: ни DOM, ни браузерных
    API, ни зависимостей (только стандартный `Intl` для пояса — он есть и в
@@ -10,7 +11,9 @@
      instant         момент: `Date`, миллисекунды с 1970 (число) или строка ISO
                      с явным сдвигом ("2026-10-08T14:00:00+07:00" или "…Z");
                      строка без сдвига отвергается — её читают по поясу машины,
-                     и ответ зависел бы от того, где запущен код
+                     и ответ зависел бы от того, где запущен код. Принимаются
+                     моменты с 1970-01-01 до 2100-01-01 (UTC); остальные —
+                     "unknown" / "moment_out_of_range"
      lat, lon        координаты студии, градусы (север и восток положительны)
      timezone        имя пояса зала ("Asia/Tomsk")
      hasWindows      есть ли в зале окна: строго true или false
@@ -20,8 +23,10 @@
 
    Выход: { kind, reason, half, sunElevation, sunAzimuth, offsetFromWindow }
      kind  "direct"   прямой: солнце над горизонтом и светит в окна
-           "golden"   закатный: то же, но солнце низкое и тёплое (золотой час);
-                      half — "evening" (закат) или "morning" (рассвет)
+           "sunrise"  рассветный: то же, но солнце низкое и тёплое утром
+                      (утренний золотой час); half = "morning"
+           "sunset"   закатный: то же вечером (вечерний золотой час);
+                      half = "evening"
            "diffuse"  рассеянный: солнце в окна не светит (за стеной, у самого
                       горизонта, ниже горизонта, ночью)
            "none"     в зале нет окон
@@ -29,7 +34,7 @@
                       не выдумывается
      sunElevation, sunAzimuth, offsetFromWindow — градусы; offsetFromWindow —
      угол между азимутом солнца и азимутом окон, 0…180. У "none" и "unknown"
-     все три null.
+     все три null. half заполнен только у "sunrise" и "sunset".
 
    Что НЕ учтено (честно): погода (облака не смотрим — «по солнцу, без
    погоды»), размер окна, преграды (дом напротив, деревья, козырёк), глубина
@@ -57,6 +62,12 @@
      более чем на столько. 90° — плоскость стены (луч идёт вдоль неё), 85° —
      с запасом в 5°: на таком скосе луч лишь скользит по откосу окна. */
   var MAX_OFFSET = 85;
+  /* Какие моменты считаем: с 1970-01-01 до 2100-01-01 UTC (мс, правая граница не
+     входит). Дальше — нечего ждать от пояса (правила часов известны не дальше
+     этого) и от солнечной модели; а очень большое число ломает календарь
+     (`Date` кончается на ±8.64e15 мс, Intl бросает исключение). */
+  var MIN_INSTANT_MS = 0;
+  var MAX_INSTANT_MS = 4102444800000;
 
   var REASONS = {
     no_windows_flag: "hasWindows не true и не false",
@@ -64,12 +75,14 @@
     no_coordinates: "нет координат студии или они вне диапазона",
     no_zone: "нет пояса зала (timezone)",
     bad_zone: "пояс зала не найден в базе (имя вида Asia/Tomsk)",
-    bad_moment: "момент не распознан (нужен Date, число мс или ISO со сдвигом)"
+    bad_moment: "момент не распознан (нужен Date, число мс или ISO со сдвигом)",
+    moment_out_of_range: "момент вне 1970-01-01 … 2100-01-01 (UTC)"
   };
 
   var LABELS_RU = {
     direct: "прямой",
-    golden: "закатный",
+    sunrise: "рассветный",
+    sunset: "закатный",
     diffuse: "рассеянный",
     none: "нет окон",
     unknown: "нет данных"
@@ -175,6 +188,7 @@
     if (typeof p.timezone !== "string" || p.timezone === "") return unknown("no_zone");
     var ms = toMs(p.instant);
     if (!isNum(ms)) return unknown("bad_moment");
+    if (ms < MIN_INSTANT_MS || ms >= MAX_INSTANT_MS) return unknown("moment_out_of_range");
     var offMs = zoneOffsetMs(ms, p.timezone);
     if (offMs === null) return unknown("bad_zone");
 
@@ -193,7 +207,8 @@
       return answer("diffuse", null, null, sun.elevation, sun.azimuth, d);
     }
     if (sun.elevation <= GOLD_ELEVATION) {
-      return answer("golden", null, sun.afterNoon ? "evening" : "morning", sun.elevation, sun.azimuth, d);
+      return answer(sun.afterNoon ? "sunset" : "sunrise", null, sun.afterNoon ? "evening" : "morning",
+        sun.elevation, sun.azimuth, d);
     }
     return answer("direct", null, null, sun.elevation, sun.azimuth, d);
   }
@@ -201,6 +216,7 @@
   var api = {
     at: at,
     THRESHOLDS: { minElevation: MIN_ELEVATION, goldElevation: GOLD_ELEVATION, maxOffset: MAX_OFFSET },
+    INSTANT_RANGE_MS: { from: MIN_INSTANT_MS, to: MAX_INSTANT_MS },
     REASONS: REASONS,
     LABELS_RU: LABELS_RU,
     NOTE: NOTE,
