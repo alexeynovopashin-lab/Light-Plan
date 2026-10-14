@@ -272,8 +272,40 @@
      Слово может вести к знаку, который ещё не нарисован: такое правило
      уступает следующему (`pick`), и знак загорается сам, когда появится. */
   var POINT_WORDS = [];
+  /* Граница слова для кириллицы ставится здесь, на всех правилах сразу
+     (14 октября 2026, замечание Алексея с телефона): `\b` русских букв не видит, и
+     корень `тост` ловил «Фотостудию», `елк` — «сделку», `ступен` —
+     «недоступен», `танц` — «британца». Перед каждой кириллической веткой
+     встаёт «начало или не-буква», после — по-прежнему список окончаний,
+     который правило пишет само. Составное слово берётся только с приставкой
+     из короткого списка: «фотопрогулка», «аквапарк», «горнолыжный» —
+     иначе они потеряли бы знак, а «фотостудия» получила бы его по `студи`. */
+  var CYR_BOUND = "(?:^|[^а-яё])";
+  var CYR_JOIN = "(?:фото|видео|авто|мото|вело|аква|эко|кино|агро|горно|лесо|зоо)?";
+  function splitTop(src) {
+    var parts = [], depth = 0, cur = "", inClass = false;
+    for (var i = 0; i < src.length; i++) {
+      var c = src.charAt(i);
+      if (c === "\\") { cur += c + src.charAt(i + 1); i++; continue; }
+      if (inClass) { if (c === "]") inClass = false; }
+      else if (c === "[") inClass = true;
+      else if (c === "(") depth++;
+      else if (c === ")") depth--;
+      if (c === "|" && depth === 0 && !inClass) { parts.push(cur); cur = ""; continue; }
+      cur += c;
+    }
+    parts.push(cur);
+    return parts;
+  }
+  function bound(re) {
+    var parts = splitTop(re.source);
+    for (var i = 0; i < parts.length; i++) {
+      if (/^[а-яё]/.test(parts[i])) parts[i] = CYR_BOUND + CYR_JOIN + parts[i];
+    }
+    return new RegExp(parts.join("|"), re.flags);
+  }
   function tier(n, rules) {
-    for (var i = 0; i < rules.length; i++) POINT_WORDS.push([rules[i][0], rules[i][1], n]);
+    for (var i = 0; i < rules.length; i++) POINT_WORDS.push([bound(rules[i][0]), rules[i][1], n]);
   }
 
   /* ---- Ярус 1. Событие ---- */
