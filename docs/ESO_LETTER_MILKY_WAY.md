@@ -1,9 +1,10 @@
 # Letter to ESO — Milky Way panorama eso0932a (draft, 2026-10-21)
 
 To: information@eso.org
+Cc: serge.brunier@wanadoo.fr (address from the eso0932a page; not verified, may be outdated)
 Subject: Question about using eso0932a (Milky Way panorama, ESO/S. Brunier) in a mobile app, including commercial use
 
-Hello,
+Hello, and dear Mr. Brunier,
 
 I am developing Light Plan, an iPhone app for photographers. It helps plan a shoot around natural light: the position of the Sun, Moon, planets, stars and the Milky Way at a chosen place and time, shown in augmented reality over the camera view.
 
@@ -13,7 +14,7 @@ Your usage page says ESO images are available under Creative Commons Attribution
 
 1. Does CC BY 4.0 apply to eso0932a, so that I may use a cropped and modified version inside a mobile app with the credit above?
 2. Does this also cover commercial use (the app is free now; later it may be paid, include in-app purchases or donations)?
-3. Is any additional permission needed from Serge Brunier, and if so, could you tell me how to contact him?
+3. Mr. Brunier (in copy): as the author, do you agree to this use, including a possible commercial one, and is any additional permission or licence needed from you?
 
 Thank you for your time and for making this image available.
 
