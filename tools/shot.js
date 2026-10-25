@@ -265,6 +265,8 @@ const NODES = {
     'form.done': '#fDoneRow',
     // 24 шаг 4а: оборудование и документы заказа
     'form.kit': '#fKitRow', 'form.kitSum': '#fKitSummary', 'form.docKinds': '#docKinds',
+    // шаг «Музыка» (25.10): строка «Плейлист» формы, её капсула и тумблер
+    'form.music': '#fMusicRow', 'form.musicVal': '#fMusicVal', 'form.musicToggle': '#fMusicToggle',
     'form.docFile': '#docFileBtn', 'form.docLink': '#docLink', 'form.order': '#fOrderGroup',
     ...Object.fromEntries(['addr', 'studio', 'geo'].map(w => ['form.way.' + w, `#fPlaceWays [data-way="${w}"]`])),
     ...Object.fromEntries(['any', 'clear', 'sunset', 'cloudy', 'fog', 'rain', 'moon', 'stars']
@@ -321,6 +323,7 @@ const NODES = {
     'card.dayLeft': '#cdDayLeft', 'card.dayClock': '#cdDayClock', 'card.lane': '#cdLane',
     'card.studio': '#cdStudio', 'card.studioNum': '#cdStudioNum', 'card.studioName': '#cdStudioName',
     'card.studioTel': '#cdStudioTel', 'card.finish': '#cdDayDone', 'card.delete': '#cdDelete',
+    'card.music': '#cdMusic',
     'card.clash': '#cdClash', 'card.clashText': '#cdClashT', 'card.tune': '#cardOrder',
     /* Блоки (итерация 26) — те же имена, что у приложения. */
     'card.block.deal': '#cdDeal', 'card.block.light': '#cdSay', 'card.block.place': '#cdPanes',
@@ -392,6 +395,8 @@ const NODES = {
     'quest.paste': '#qPaste', 'quest.apply': '#qPasteBtn', 'quest.done': '#qDone'
   },
   settings: {
+    // шаг «Музыка»: список плейлистов в «Съёмках» настроек (первая строка, строка нового, «＋», пустой список)
+    'pl.item': '#plList .pl-item', 'pl.new': '#plList + .pl-item', 'pl.add': '#plAdd', 'pl.empty': '#plList .pl-empty',
     'header.name': '#s-set .header .name', 'header.date': '#s-set .header .date',
     'mode': '#modeSeg', 'mode.simple': '#modeSeg button[data-mode="simple"]',
     'mode.pro': '#modeSeg button[data-mode="pro"]', 'mode.note': '#s-set .set-mode .seg-note',
