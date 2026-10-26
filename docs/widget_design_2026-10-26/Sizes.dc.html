@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Два размера среднего виджета</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 822px; height: 290px; box-sizing: border-box; padding: 40px; background: #2a2d29; display: flex; gap: 40px; align-items: flex-start; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 12px; font-weight: 600; color: #f2efe8">iPhone Pro Max · 364 × 170 pt · скругление 22</div>
+<dc-import name="Widget" scenario="longNames" theme="dark" size="pro" hint-size="364px,170px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 12px; font-weight: 600; color: #f2efe8">iPhone · 338 × 158 pt · скругление 20,5</div>
+<dc-import name="Widget" scenario="longNames" theme="dark" size="regular" hint-size="338px,158px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":822,"height":290}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

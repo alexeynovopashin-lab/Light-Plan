@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Малый виджет</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 658px; height: 274px; box-sizing: border-box; padding: 40px; background: #2a2d29; display: flex; gap: 40px; align-items: flex-start; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">170 × 170</span> · тёмная</div>
+<dc-import name="Widget" scenario="lunch" theme="dark" size="small" hint-size="170px,170px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">170 × 170</span> · светлая</div>
+<dc-import name="Widget" scenario="lunch" theme="light" size="small" hint-size="170px,170px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">158 × 158</span> · длинные имена</div>
+<dc-import name="Widget" scenario="longNames" theme="dark" size="smallRegular" hint-size="158px,158px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":658,"height":274}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

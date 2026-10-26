@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Крайние случаи виджета</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 848px; height: 952px; box-sizing: border-box; padding: 40px; background: #2a2d29; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; row-gap: 32px; align-content: start; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">Длинные имена</span> · 13:48</div>
+<dc-import name="Widget" scenario="longNames" theme="dark" size="pro" hint-size="364px,170px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">Длинное название точки</span> · 15:41, точка 15:00–16:00</div>
+<dc-import name="Widget" scenario="longPoint" theme="dark" size="pro" hint-size="364px,170px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #e0a85a">А · круг = последний час</span> · 2 ч 30 мин, 15:18</div>
+<dc-import name="Widget" scenario="long" theme="dark" size="pro" dial-mode="hour" hint-size="364px,170px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">Б · круг = вся точка</span> · 2 ч 30 мин, 15:18</div>
+<dc-import name="Widget" scenario="long" theme="dark" size="pro" dial-mode="whole" hint-size="364px,170px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">Первая точка</span> · 12:20, над ней пусто</div>
+<dc-import name="Widget" scenario="first" theme="dark" size="pro" hint-size="364px,170px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">Последняя точка</span> · 23:50, под ней пусто</div>
+<dc-import name="Widget" scenario="last" theme="dark" size="pro" hint-size="364px,170px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">Студийный час</span> · 13:48, аренда до 13:54</div>
+<dc-import name="Widget" scenario="studio" theme="dark" size="pro" hint-size="364px,170px"></dc-import>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; line-height: 16px; color: #9a968c"><span style="font-weight: 600; color: #f2efe8">Студийный час</span> · 13:57, аренда кончилась, дальше 14:00</div>
+<dc-import name="Widget" scenario="studioAfter" theme="dark" size="pro" hint-size="364px,170px"></dc-import>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":848,"height":952}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

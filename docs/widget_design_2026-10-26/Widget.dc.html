@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Виджет Light Plan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.tn{font-variant-numeric:tabular-nums}
+.ic{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+.cl{position:relative}
+.rg{fill:none;stroke-width:2;stroke-linecap:round}
+</style>
+</helmet>
+<div style="position: relative; width: {{W}}px; height: {{H}}px; border-radius: {{R}}px; background: {{c.bg}}; overflow: hidden; font-family: -apple-system, 'SF Pro Text', 'SF Pro', system-ui, sans-serif; color: {{c.text}}; -webkit-font-smoothing: antialiased">
+
+<sc-for list="{{ticks}}" as="t" hint-placeholder-count="150">
+<div style="position: absolute; left: {{t.x}}px; top: {{t.y}}px; width: {{t.w}}px; height: {{t.h}}px; border-radius: {{t.r}}px; background: {{t.c}}; transform-origin: 50% 0; transform: rotate({{t.a}}deg)"></div>
+</sc-for>
+
+<div style="position: absolute; left: {{hd.x}}px; top: {{hd.y}}px; width: {{hd.w}}px; height: {{hd.h}}px; display: flex; align-items: center; gap: 6px">
+<sc-if value="{{g.wedding}}" hint-placeholder-val="{{true}}">
+<svg class="ic" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="9.2" cy="13.4" r="4.9"></circle><circle cx="14.8" cy="13.4" r="4.9"></circle><path d="M10.2 5.2h3.6L12 7.4z"></path></svg>
+</sc-if>
+<sc-if value="{{g.portrait}}" hint-placeholder-val="{{false}}">
+<svg class="ic" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="8.3" r="3.4"></circle><path d="M5.6 20a6.4 6.4 0 0 1 12.8 0"></path></svg>
+</sc-if>
+<span style="font-size: {{hd.fs}}px; line-height: {{hd.lh}}px; font-weight: 600; white-space: {{hd.ws}}; letter-spacing: -0.1px">{{names}}</span>
+</div>
+
+<sc-if value="{{showLabel}}" hint-placeholder-val="{{true}}">
+<div class="tn" style="position: absolute; right: 16px; top: 16px; height: 18px; box-sizing: border-box; padding: 0 {{box.px}}px; border-radius: 4px; background: {{box.bg}}; box-shadow: {{box.sh}}; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: {{c.muted}}; white-space: nowrap">
+<sc-if value="{{box.flag}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 50%; top: -4.5px; width: 6px; height: 3.5px; margin-left: -3px; background: {{c.flag}}; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 55%, 0 100%)"></div>
+</sc-if>
+<sc-if value="{{ev.isTime}}" hint-placeholder-val="{{false}}"><span>до {{ev.hh}}<span class="cl" style="top: -{{lift}}em">:</span>{{ev.mm}}</span></sc-if>
+<sc-if value="{{ev.isText}}" hint-placeholder-val="{{true}}"><span>{{ev.text}}</span></sc-if>
+<sc-if value="{{ev.ring}}" hint-placeholder-val="{{false}}">
+<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" style="display: block; flex: none; margin-right: 1px"><circle class="rg" cx="7" cy="7" r="5.5" style="stroke: {{c.tickOff}}"></circle><circle class="rg" cx="7" cy="7" r="5.5" style="stroke: {{c.text}}; stroke-dasharray: {{ev.arc}} 100; transform: rotate(-90deg); transform-origin: 7px 7px"></circle></svg>
+</sc-if>
+<sc-if value="{{ev.isParts}}" hint-placeholder-val="{{false}}">
+<sc-for list="{{ev.parts}}" as="p" hint-placeholder-count="2">
+<span style="display: flex; align-items: baseline; gap: 2px"><span style="font-size: 13px; font-weight: 600; color: {{c.text}}">{{p.n}}</span><span style="font-size: 11px; font-weight: 500; color: {{c.muted}}">{{p.u}}</span></span>
+</sc-for>
+</sc-if>
+<sc-if value="{{ev.isTimer}}" hint-placeholder-val="{{false}}">
+<svg class="ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="color: {{c.muted}}"><circle cx="12" cy="13.5" r="7.5"></circle><path d="M12 13.5V9.5M10 2.5h4M12 2.5V6M18.2 6.8l1.4-1.4"></path></svg>
+<span style="font-size: 13px; font-weight: 600; color: {{c.text}}">−{{ev.th}}<span class="cl" style="top: -{{lift}}em">:</span>{{ev.tm}}</span>
+</sc-if>
+<sc-if value="{{ev.isSec}}" hint-placeholder-val="{{false}}">
+<span style="font-size: 13px; font-weight: 600; color: {{c.text}}"><sc-for list="{{ev.groups}}" as="q" hint-placeholder-count="3"><span><sc-if value="{{q.c}}" hint-placeholder-val="{{true}}"><span>:</span></sc-if>{{q.v}}</span></sc-for></span>
+</sc-if>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: {{dial.x}}px; top: {{dial.y}}px; width: {{dial.d}}px; height: {{dial.d}}px; border-radius: 50%; background: {{c.dial}}; box-shadow: inset 0 0 0 0.5px {{c.dialEdge}}"></div>
+
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="60">
+<div style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; width: {{d.s}}px; height: {{d.s}}px; border-radius: 50%; background: {{d.c}}"></div>
+</sc-for>
+
+<div style="position: absolute; left: {{cn.x}}px; top: {{cn.y}}px; width: {{cn.w}}px; height: {{cn.h}}px; display: flex; align-items: center; justify-content: center; gap: 3px; color: {{c.amber}}; font-size: {{cn.fs}}px; line-height: {{cn.lh}}px; font-weight: 600; text-align: center">
+<sc-if value="{{cn.icon}}" hint-placeholder-val="{{true}}">
+<span style="display: flex; width: {{cn.is}}px; height: {{cn.is}}px">
+<sc-if value="{{ik.feast}}" hint-placeholder-val="{{true}}"><svg class="ic" viewBox="0 0 24 24" width="{{cn.is}}" height="{{cn.is}}" aria-hidden="true"><path d="M3.5 17h17M5 17a7 7 0 0 1 14 0M12 6.5V4.5"></path></svg></sc-if>
+<sc-if value="{{ik.makeup}}" hint-placeholder-val="{{false}}"><svg class="ic" viewBox="0 0 24 24" width="{{cn.is}}" height="{{cn.is}}" aria-hidden="true"><path d="M6.6 3.4a2.6 2.6 0 0 1 2.2 4l-.9 1.4H5.3l-.9-1.4a2.6 2.6 0 0 1 2.2-4z"></path><path d="M5.3 8.8h2.6v10.4a1.3 1.3 0 0 1-2.6 0z"></path><path d="M5.3 12h2.6"></path><path d="M20.6 3.6l-3.8 5.2h-2.4l-1.6-3z"></path><path d="M14.4 8.8H17v10.4a1.3 1.3 0 0 1-2.6 0z"></path><path d="M14.4 12H17"></path></svg></sc-if>
+<sc-if value="{{ik.park}}" hint-placeholder-val="{{false}}"><svg class="ic" viewBox="0 0 24 24" width="{{cn.is}}" height="{{cn.is}}" aria-hidden="true"><path d="M12 2.6c2.7 0 4.6 2.2 4.6 5s-1.9 5.2-4.6 5.2-4.6-2.4-4.6-5.2 1.9-5 4.6-5z"></path><path d="M12 8.4v12M12 11.4l2.3-2.3M12 13.8l-2.3-2.3"></path><circle cx="5" cy="9.6" r="2.7"></circle><path d="M5 12.3v8.1M5 14.6l1.7-1.7"></path><circle cx="19" cy="11" r="2.5"></circle><path d="M19 13.5v6.9M19 15.6l-1.6-1.6"></path><path d="M2.4 20.4h19.2"></path></svg></sc-if>
+<sc-if value="{{ik.camera}}" hint-placeholder-val="{{false}}"><svg class="ic" viewBox="0 0 24 24" width="{{cn.is}}" height="{{cn.is}}" aria-hidden="true"><rect x="3" y="6.5" width="18" height="13" rx="2.5"></rect><circle cx="12" cy="13" r="3.8"></circle><path d="M8.5 6.5l1.4-2.2h4.2l1.4 2.2"></path></svg></sc-if>
+<sc-if value="{{ik.dance}}" hint-placeholder-val="{{false}}"><svg class="ic" viewBox="0 0 24 24" width="{{cn.is}}" height="{{cn.is}}" aria-hidden="true"><circle cx="7.8" cy="4.4" r="1.8"></circle><path d="M7.8 6.2v5.4M7.8 11.6l-2.2 6.6M7.8 11.6l2.1 3.6-.7 3"></path><path d="M7.8 8.4l4.6 1.4"></path><circle cx="15.8" cy="5.4" r="1.7"></circle><path d="M15.8 7.1v3.6M15.8 8.6l-3.4 1.2"></path><path d="M13 18.4l2.8-7.7 2.8 7.7z"></path></svg></sc-if>
+<sc-if value="{{ik.studio}}" hint-placeholder-val="{{false}}"><svg class="ic" viewBox="0 0 24 24" width="{{cn.is}}" height="{{cn.is}}" aria-hidden="true"><rect x="1" y="8.6" width="9.4" height="6" rx="1.7"></rect><circle cx="5.7" cy="11.6" r="1.6"></circle><path d="M5.7 14.6v1.8M2.6 21L5.7 16.4 8.8 21"></path><path d="M13.4 4l6.8-2.2v7.4l-6.8-2.2z"></path><path d="M16.8 9.2v7.8M14.6 21l2.2-4 2.2 4"></path><path d="M21.2 2.8l2-1.2M21.6 5.6h1.8M21.2 8.4l2 1.2"></path></svg></sc-if>
+</span>
+</sc-if>
+</div>
+
+<div style="position: absolute; left: {{cd.x}}px; top: {{cd.y}}px; width: {{cd.w}}px; height: 26px; display: flex; align-items: baseline; justify-content: center; gap: 4px">
+<sc-for list="{{cd.parts}}" as="p" hint-placeholder-count="1">
+<span style="display: flex; align-items: baseline; gap: 2px"><span class="tn" style="font-size: {{cd.fs}}px; line-height: 26px; font-weight: 600; color: {{cd.color}}; letter-spacing: -0.3px">{{p.n}}</span><span style="font-size: {{cd.us}}px; font-weight: 500; color: {{c.muted}}">{{p.u}}</span></span>
+</sc-for>
+</div>
+
+<sc-if value="{{dw.show}}" hint-placeholder-val="{{false}}">
+<div class="tn" style="position: absolute; left: {{dw.x}}px; top: {{dw.y}}px; width: {{dw.w}}px; height: {{dw.h}}px; border-radius: 3px; background: {{c.win}}; box-shadow: {{c.winShadow}}; display: flex; align-items: center; justify-content: center; font-size: {{dw.fs}}px; font-weight: 600; color: {{c.text}}; letter-spacing: 0.2px; white-space: nowrap">{{dw.text}}</div>
+</sc-if>
+
+<sc-if value="{{med}}" hint-placeholder-val="{{true}}">
+<div style="position: absolute; left: {{dr.x}}px; top: {{dr.y}}px; width: {{dr.w}}px; height: {{dr.h}}px; overflow: hidden">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<sc-if value="{{r.has}}" hint-placeholder-val="{{true}}">
+<div style="position: absolute; left: 0; top: {{r.y}}px; width: {{dr.w}}px; height: {{r.h}}px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 8px; border-radius: 9px; background: {{r.bg}}; color: {{r.color}}; font-weight: {{r.fw}}">
+<span class="tn" style="flex: none; width: 46px; text-align: right; font-size: {{r.fs}}px; line-height: 20px; white-space: nowrap">{{r.hh}}<span class="cl" style="top: -{{lift}}em">:</span>{{r.mm}}</span>
+<span style="min-width: 0; font-size: {{r.nfs}}px; line-height: {{r.nlh}}px; white-space: {{r.ws}}">{{r.name}}</span>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scenario":{"editor":"enum","options":["lunch","longNames","longPoint","long","first","last","studio","studioAfter"],"default":"lunch"},"theme":{"editor":"enum","options":["dark","light","braunDark"],"default":"dark"},"size":{"editor":"enum","options":["pro","regular","small","smallRegular"],"default":"pro"},"dialMode":{"editor":"enum","options":["hour","whole"],"default":"hour"},"eventLabel":{"editor":"enum","options":["left","until","count","ring","timer","seconds","ringSeconds"],"default":"seconds"},"eventBox":{"editor":"boolean","default":true},"eventInDial":{"editor":"boolean","default":false},"colonLift":{"editor":"range","min":0,"max":0.2,"step":0.01,"unit":"em","default":0},"$preview":{"width":364,"height":170}}'>
+class Component extends DCLogic {
+  measure(text, size, weight) {
+    try {
+      if (!this._ctx) this._ctx = document.createElement('canvas').getContext('2d');
+      this._ctx.font = weight + ' ' + size + 'px -apple-system, "SF Pro Text", "SF Pro", system-ui, sans-serif';
+      return this._ctx.measureText(text).width;
+    } catch (e) { return text.length * size * 0.58; }
+  }
+  fit(text, avail, chain, weight) {
+    for (var i = 0; i < chain.length; i++) {
+      if (chain[i].lines > 1 || this.measure(text, chain[i].size, weight) <= avail) return chain[i];
+    }
+    return chain[chain.length - 1];
+  }
+  hm(t) {
+    var h = Math.floor(t / 60) % 24, m = t % 60;
+    return { hh: (h < 10 ? '0' : '') + h, mm: (m < 10 ? '0' : '') + m };
+  }
+  scen(key) {
+    var T = function (h, m) { return h * 60 + m; };
+    var wed = [
+      { t: T(12, 0), n: 'Сборы', ic: 'makeup' },
+      { t: T(13, 0), e: T(14, 0), n: 'Обед', ic: 'feast' },
+      { t: T(15, 0), n: 'Прогулка', ic: 'park' },
+      { t: T(16, 0), n: 'Фотозона', ic: 'camera' },
+      { t: T(16, 40), n: 'Банкет', ic: 'feast' },
+      { t: T(19, 0), n: 'Танцы', ic: 'dance' }
+    ];
+    var base = { names: 'Анна и Игорь', genre: 'wedding', start: T(12, 0), end: T(24, 30), now: T(13, 48), route: wed };
+    var studio = { names: 'Ольга Ветрова', genre: 'portrait', start: T(12, 0), end: T(16, 0), now: T(13, 48), route: [
+      { t: T(12, 0), n: 'Грим', ic: 'makeup' },
+      { t: T(13, 0), e: T(13, 54), n: 'Зал «Лофт»', ic: 'studio' },
+      { t: T(14, 0), e: T(14, 54), n: 'Зал «Белый»', ic: 'studio' },
+      { t: T(15, 0), n: 'Отбор кадров', ic: 'camera' }
+    ] };
+    var S = {
+      lunch: base,
+      longNames: Object.assign({}, base, { names: 'Анна-Мария и Константин' }),
+      longPoint: Object.assign({}, base, { now: T(15, 41), route: [wed[0], wed[1], { t: T(15, 0), e: T(16, 0), n: 'Фотосессия в парке', ic: 'park' }, wed[3], wed[4], wed[5]] }),
+      long: Object.assign({}, base, { now: T(15, 18), route: [wed[0], wed[1], { t: T(14, 30), e: T(17, 0), n: 'Прогулка', ic: 'park' }, { t: T(17, 0), n: 'Банкет', ic: 'feast' }, wed[5]] }),
+      first: Object.assign({}, base, { now: T(12, 20) }),
+      last: Object.assign({}, base, { now: T(23, 50) }),
+      studio: studio,
+      studioAfter: Object.assign({}, studio, { now: T(13, 57) })
+    };
+    return S[key] || S.lunch;
+  }
+  ticks(W, H, R, c, sc) {
+    var o = 3, rp = R - o, x0 = o, y0 = o, x1 = W - o, y1 = H - o;
+    var sw = (x1 - x0) - 2 * rp, sh = (y1 - y0) - 2 * rp, arc = Math.PI * rp / 2;
+    var arcAt = function (cx, cy, p0) {
+      return function (s) { var p = p0 + s / rp; return [cx + rp * Math.cos(p), cy + rp * Math.sin(p), -Math.cos(p), -Math.sin(p)]; };
+    };
+    var segs = [
+      { L: sw / 2, f: function (s) { return [W / 2 + s, y0, 0, 1]; } },
+      { L: arc, f: arcAt(x1 - rp, y0 + rp, -Math.PI / 2) },
+      { L: sh, f: function (s) { return [x1, y0 + rp + s, -1, 0]; } },
+      { L: arc, f: arcAt(x1 - rp, y1 - rp, 0) },
+      { L: sw, f: function (s) { return [x1 - rp - s, y1, 0, -1]; } },
+      { L: arc, f: arcAt(x0 + rp, y1 - rp, Math.PI / 2) },
+      { L: sh, f: function (s) { return [x0, y1 - rp - s, 1, 0]; } },
+      { L: arc, f: arcAt(x0 + rp, y0 + rp, Math.PI) },
+      { L: sw / 2, f: function (s) { return [x0 + rp + s, y0, 0, 1]; } }
+    ];
+    var P = 0; segs.forEach(function (g) { P += g.L; });
+    var N = 150, dur = sc.end - sc.start, el = sc.now - sc.start, hours = {};
+    for (var h = Math.ceil(sc.start / 60) * 60; h <= sc.end; h += 60) hours[Math.round((h - sc.start) / dur * N) % N] = true;
+    var out = [];
+    for (var i = 0; i < N; i++) {
+      var s = i / N * P, k = 0;
+      while (k < segs.length - 1 && s > segs[k].L) { s -= segs[k].L; k++; }
+      var q = segs[k].f(s), hr = !!hours[i], past = i / N * dur < el;
+      var w = hr ? 1.75 : 1.25;
+      out.push({
+        x: +(q[0] - w / 2).toFixed(2), y: +q[1].toFixed(2), w: w, h: hr ? 7.5 : 4, r: w / 2,
+        a: +(Math.atan2(-q[2], q[3]) * 180 / Math.PI).toFixed(2),
+        c: past ? c.tickOff : (hr ? c.tickHour : c.tickMinor)
+      });
+    }
+    return out;
+  }
+  renderVals() {
+    var TH = {
+      dark: { bg: '#1f1e1b', text: '#f2efe8', muted: '#9a968c', dim: '#6f6b63', amber: '#e0a85a', dot: '#e0a85a', dotOff: '#393125', tickOff: '#3b3834', tickMinor: '#9a968c', tickHour: '#f2efe8', hand: '#f1c232', dial: '#181715', dialEdge: 'rgba(255,255,255,0.07)', pill: 'rgba(255,255,255,0.065)',
+        win: '#151412', winShadow: 'inset 0 1px 2px rgba(0,0,0,0.55), inset 0 0 0 0.5px rgba(255,255,255,0.10), inset 0 -0.5px 0 rgba(255,255,255,0.08)' },
+      // Light = white Braun: neutral greys sampled from the watch photos, yellow of the seconds hand, red date flag.
+      light: { bg: '#e4e4e2', text: '#111111', muted: '#5b5b5b', dim: '#7a7a7a', amber: '#111111', dot: '#111111', dotOff: '#dcdcda', tickOff: '#cbcbc9', tickMinor: '#6e6e6e', tickHour: '#111111', hand: '#f4b400', dial: '#fafafa', dialEdge: 'rgba(0,0,0,0.08)', pill: '#f4b400',
+        win: '#d3d3d1', winShadow: 'inset 0 1px 2px rgba(0,0,0,0.25), inset 0 -0.5px 0 rgba(255,255,255,0.8)', flag: '#ad0a15' },
+      braunDark: { bg: '#161616', text: '#ececea', muted: '#9b9b9b', dim: '#6b6b6b', amber: '#f4b400', dot: '#ececea', dotOff: '#2e2e2e', tickOff: '#303030', tickMinor: '#8c8c8c', tickHour: '#ececea', hand: '#f4b400', dial: '#0d0d0d', dialEdge: 'rgba(255,255,255,0.08)', pill: 'rgba(255,255,255,0.07)',
+        win: '#0a0a0a', winShadow: 'inset 0 1px 2px rgba(0,0,0,0.7), inset 0 0 0 0.5px rgba(255,255,255,0.12), inset 0 -0.5px 0 rgba(255,255,255,0.08)', flag: '#c8102e' }
+    };
+    var SZ = { pro: { W: 364, H: 170, R: 22, m: true }, regular: { W: 338, H: 158, R: 20.5, m: true }, small: { W: 170, H: 170, R: 22, m: false }, smallRegular: { W: 158, H: 158, R: 20.5, m: false } };
+    var p = this.props, self = this;
+    var c = TH[p.theme] || TH.dark, z = SZ[p.size] || SZ.pro, sc = this.scen(p.scenario || 'lunch');
+    var W = z.W, H = z.H, pad = 16, med = z.m, lift = p.colonLift ?? 0, mode = p.dialMode || 'hour';
+
+    var r = sc.route, ci = 0;
+    for (var i = 0; i < r.length; i++) if (r[i].t <= sc.now) ci = i;
+    var cur = r[ci], curEnd = cur.e ?? (r[ci + 1] ? r[ci + 1].t : sc.end);
+    var rem = Math.max(0, curEnd - sc.now), el = sc.now - cur.t, dur = curEnd - cur.t;
+
+    var evRem = sc.end - sc.now, evMode = p.eventLabel || 'seconds', eh = Math.floor(evRem / 60), em = evRem % 60;
+    var ev = { isTime: false, isText: false, isParts: false, isTimer: false, isSec: false, ring: false, parts: [], groups: [], text: '',
+      arc: +(evRem / (sc.end - sc.start) * 34.56).toFixed(2) };
+    if (evMode === 'until') {
+      var e = this.hm(sc.end);
+      Object.assign(ev, { isTime: true, hh: e.hh, mm: e.mm, text: 'до ' + e.hh + ':' + e.mm });
+    } else if (evMode === 'count' || evMode === 'ring') {
+      // Same type as the dial countdown: bold number, small muted unit; ring = share of the event left.
+      ev.parts = (eh ? [{ n: String(eh), u: 'ч' }] : []).concat(em || !eh ? [{ n: String(em), u: 'мин' }] : []);
+      Object.assign(ev, { isParts: true, ring: evMode === 'ring', text: ev.parts.map(function (x) { return x.n + ' ' + x.u; }).join(' ') });
+    } else if (evMode === 'seconds' || evMode === 'ringSeconds') {
+      // iOS timer style: H:MM:SS from an hour up, M:SS below. In Swift it ticks by itself (Text(timerInterval:)).
+      var mm2 = (em < 10 ? '0' : '') + em, vals = eh ? [String(eh), mm2, '00'] : [String(em), '00'];
+      ev.groups = vals.map(function (v, i) { return { v: v, c: i > 0 }; });
+      Object.assign(ev, { isSec: true, ring: evMode === 'ringSeconds', text: vals.join(':') });
+    } else if (evMode === 'timer') {
+      var tm = (em < 10 ? '0' : '') + em;
+      Object.assign(ev, { isTimer: true, th: String(eh), tm: tm, text: '−' + eh + ':' + tm });
+    } else {
+      ev.isText = true;
+      if (evRem >= 120) ev.text = 'ещё ' + eh + ' ч';
+      else if (evRem >= 60) ev.text = 'ещё 1 ч' + (em ? ' ' + em + ' мин' : '');
+      else ev.text = 'ещё ' + evRem + ' мин';
+    }
+
+    // Braun date window: a recess, shadow on the inner top edge, a hairline of light at the bottom.
+    var box = (p.eventBox ?? true) ? { px: 6, bg: c.win, sh: c.winShadow, flag: !!c.flag } : { px: 0, bg: 'transparent', sh: 'none', flag: false };
+    var labelW = (!med || p.eventInDial) ? 0 : ((ev.isText || ev.isTime)
+      ? this.measure(ev.text, 12, 500) + 2
+      : this.measure(ev.text, 13, 600) + (ev.ring || ev.isTimer ? 18 : 0) + 2) + 2 * box.px;
+    var namesAvail = W - 2 * pad - 22 - (med ? labelW + 10 : 0);
+    var hf = this.fit(sc.names, namesAvail, med
+      ? [{ size: 15, lines: 1, lh: 18 }, { size: 13, lines: 1, lh: 18 }, { size: 12, lines: 1, lh: 18 }]
+      : [{ size: 15, lines: 1, lh: 18 }, { size: 13, lines: 1, lh: 18 }, { size: 13, lines: 2, lh: 16 }], 600);
+    var headH = hf.lines > 1 ? 32 : 18;
+    var hd = { x: pad, y: pad, w: W - 2 * pad - (med ? labelW + 10 : 0), h: headH, fs: hf.size, lh: hf.lh, ws: hf.lines > 1 ? 'normal' : 'nowrap' };
+
+    var D = H - 2 * pad - headH - 4, rad = D / 2, rd = rad - 6;
+    var cx = med ? pad + rad : W / 2, cy = pad + headH + 4 + rad;
+
+    var litFrom;
+    if (mode === 'whole') {
+      var fr = dur > 0 ? Math.min(1, Math.max(0, el / dur)) : 1;
+      litFrom = Math.round(fr * 60);
+    } else {
+      litFrom = 60 - Math.min(60, rem);
+    }
+    var dots = [];
+    for (var k = 0; k < 60; k++) {
+      var a = k * 6 * Math.PI / 180, s = k % 5 === 0 ? 3.2 : 2;
+      dots.push({ x: +(cx + rd * Math.sin(a) - s / 2).toFixed(2), y: +(cy - rd * Math.cos(a) - s / 2).toFixed(2), s: s, c: k >= litFrom ? c.dot : c.dotOff });
+    }
+    var boxW = 2 * (rd - 8);
+    // The dial shows only the point's sign; the name lives on the drum.
+    var cn = { x: cx - boxW / 2, y: cy - 25, w: boxW, h: 20, fs: 14, lh: 17, icon: true, is: 20 };
+    var ik = { feast: cur.ic === 'feast', makeup: cur.ic === 'makeup', park: cur.ic === 'park', camera: cur.ic === 'camera', dance: cur.ic === 'dance', studio: cur.ic === 'studio' };
+
+    var parts = rem >= 60
+      ? [{ n: String(Math.floor(rem / 60)), u: 'ч' }].concat(rem % 60 ? [{ n: String(rem % 60), u: 'мин' }] : [])
+      : [{ n: String(rem), u: 'мин' }];
+    var big = D >= 112;
+    var cd = { x: cx - rd, y: cy - 1, w: 2 * rd, fs: big ? 22 : 20, us: big ? 13 : 12, parts: parts, color: rem === 0 ? c.muted : c.text };
+
+    // Braun analog-digital: the event countdown in a recessed window under the point countdown.
+    var dwText = eh ? eh + ':' + (em < 10 ? '0' : '') + em + ':00' : em + ':00';
+    var dwFs = big ? 10 : 9.5, dwW = Math.ceil(this.measure(dwText, dwFs, 600)) + 10;
+    var dw = { show: !!p.eventInDial, x: cx - dwW / 2, y: cy + (big ? 24 : 22), w: dwW, h: big ? 14 : 13, fs: dwFs, text: dwText };
+
+    var dr = { x: pad + D + 14, y: cy - rad, h: D };
+    dr.w = W - pad - dr.x;
+    var rows = [];
+    if (med) {
+      var avail = dr.w - 10 - 46 - 8 - 10;
+      var cf = this.fit(cur.n, avail, [{ size: 16, lines: 1, lh: 20 }, { size: 14, lines: 1, lh: 18 }, { size: 13, lines: 2, lh: 16 }], 600);
+      var h1 = big ? 22 : 21, h2 = big ? 17 : 16, hc = cf.lines > 1 ? 42 : 28, pt = D / 2 - hc / 2;
+      var slots = [{ o: -2, y: pt - h1 - h2, h: h2 }, { o: -1, y: pt - h1, h: h1 }, { o: 0, y: pt, h: hc }, { o: 1, y: pt + hc, h: h1 }, { o: 2, y: pt + hc + h1, h: h2 }];
+      rows = slots.map(function (sl) {
+        var it = r[ci + sl.o];
+        if (!it) return { has: false };
+        var t = self.hm(it.t), row = { has: true, y: sl.y, h: sl.h, hh: t.hh, mm: t.mm, name: it.n, ws: 'nowrap', bg: 'transparent' };
+        if (sl.o === 0) {
+          return Object.assign(row, { fs: 16, fw: 600, color: c.amber, bg: c.pill, nfs: cf.size, nlh: cf.lh, ws: cf.lines > 1 ? 'normal' : 'nowrap' });
+        }
+        var near = Math.abs(sl.o) === 1;
+        var f = self.fit(it.n, avail, near ? [{ size: 13, lines: 1 }, { size: 12, lines: 1 }, { size: 11, lines: 1 }] : [{ size: 11, lines: 1 }, { size: 10, lines: 1 }], 500);
+        return Object.assign(row, { fs: near ? 13 : 11, fw: 500, color: near ? c.muted : c.dim, nfs: f.size, nlh: 18 });
+      });
+    }
+
+    return {
+      W: W, H: H, R: z.R, c: c, med: med, lift: lift, names: sc.names,
+      g: { wedding: sc.genre === 'wedding', portrait: sc.genre === 'portrait' },
+      ticks: this.ticks(W, H, z.R, c, sc), hd: hd, ev: ev,
+      dial: { x: cx - rad, y: cy - rad, d: D }, dots: dots,
+      cn: cn, ik: ik, cd: cd, dr: dr, rows: rows, box: box, dw: dw, showLabel: med && !p.eventInDial
+    };
+  }
+}
+</script>
+</body>
+</html>

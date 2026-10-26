@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Размеры и цвета виджета</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.k{color:#9a968c}
+.v{font-variant-numeric:tabular-nums;color:#f2efe8}
+</style>
+</helmet>
+<div style="width: 960px; height: 1120px; box-sizing: border-box; padding: 48px; background: #1f1e1b; color: #f2efe8; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif; font-size: 13px; line-height: 19px; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.4px">Средний и малый виджет: что переносить</h1>
+<p style="margin: 0; color: #9a968c; max-width: 760px">Все числа в pt, 1 px демо = 1 pt. Кадр статичный, пересчёт раз в минуту. Числа ниже берутся из компонента «Компонент виджета», там же формулы в коде.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; row-gap: 28px">
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Плашка</h2>
+<div><span class="k">Pro Max:</span> <span class="v">364 × 170, радиус 22</span></div>
+<div><span class="k">Обычный:</span> <span class="v">338 × 158, радиус 20,5</span></div>
+<div><span class="k">Малый:</span> <span class="v">170 × 170 / 158 × 158</span></div>
+<div><span class="k">Поля содержимого:</span> <span class="v">16 со всех сторон</span></div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Риски по периметру = вся свадьба</h2>
+<div><span class="k">Число:</span> <span class="v">150</span>, шаг = длительность / 150 (12:00–00:30 → 5 мин)</div>
+<div><span class="k">Путь:</span> скруглённый прямоугольник, внешний конец риски в <span class="v">3</span> от края, радиус <span class="v">R − 3</span></div>
+<div><span class="k">Старт:</span> сверху по центру, по часовой, шаг по длине пути, риска по нормали внутрь</div>
+<div><span class="k">Обычная:</span> <span class="v">4 × 1,25</span> · <span class="k">часовая:</span> <span class="v">7,5 × 1,75</span>, концы скруглены</div>
+<div><span class="k">Часовая</span> = ближайшая к каждому ровному часу риска</div>
+<div><span class="k">Пройдено:</span> минута риски &lt; прошло с начала → погасшая</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Шапка</h2>
+<div><span class="k">Знак жанра:</span> <span class="v">16</span>, линия <span class="v">1,5</span>, отступ до имён <span class="v">6</span>; знаки из tools/icons.html</div>
+<div><span class="k">Имена:</span> <span class="v">15 semibold</span>, высота строки <span class="v">18</span>; не влезли → 13 → 12</div>
+<div><span class="k">В малом:</span> 15 → 13 → 13 в две строки (шапка <span class="v">32</span>, круг уменьшается)</div>
+<div><span class="k">Справа (только средний) — окошко Braun:</span> высота <span class="v">18</span>, поля <span class="v">6</span>, радиус <span class="v">4</span>, правый край на поле 16. Утоплено: тень <span class="v">inset 0 1 2</span> (чёрный 55 % / 25 % в светлой), снизу светлая кромка <span class="v">0,5</span> (белый 8 % / 80 %); в тёмной ещё обводка <span class="v">0,5</span> белый 10 %. В светлой над окошком красный флажок Braun: <span class="v">6 × 3,5</span>, верх на <span class="v">4,5</span> выше окна, по центру</div>
+<div><span class="k">В окошке:</span> обратный отсчёт свадьбы <span class="v">13 semibold</span>, текст, моноширинные: от часа «10:42:00», меньше часа «42:00». В Swift — Text(timerInterval: сейчас…конец, countsDown: true): тикает сам, без обновления виджета. Ширину окна задать по «00:00:00», чтобы рамка не прыгала</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Часы точки</h2>
+<div><span class="k">Диаметр D:</span> H − 32 − шапка − 4 → <span class="v">116</span> (Pro Max) / <span class="v">104</span> (обычный)</div>
+<div><span class="k">Центр:</span> x = 16 + D/2 (в малом — середина), y = 16 + шапка + 4 + D/2</div>
+<div><span class="k">Диск:</span> заливка + обводка <span class="v">0,5</span> внутрь</div>
+<div><span class="k">Точки:</span> <span class="v">60</span> на радиусе <span class="v">D/2 − 6</span>, <span class="v">2</span>, каждая пятая <span class="v">3,2</span></div>
+<div><span class="k">Знак точки:</span> <span class="v">20</span>, янтарь, по центру по горизонтали, верх на <span class="v">25</span> выше центра. Названия в круге нет ни в среднем, ни в малом</div>
+<div><span class="k">Отсчёт:</span> верх строки (высота <span class="v">26</span>) на <span class="v">1</span> выше центра</div>
+<div><span class="k">Отсчёт:</span> число <span class="v">22 semibold</span>, «мин» <span class="v">13 medium</span> (при D &lt; 112: 20/12). 0 мин — приглушённый</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Правило круга (вариант А)</h2>
+<div>Циферблат — 60 минут, как таймер. Горят <span class="v">min(60, осталось)</span> точек, считая против часовой от 60.</div>
+<div>Обед 13:48 → горят 12 точек, с 48-й по 59-ю (0-я — сверху).</div>
+<div>Больше часа: горят все, в центре «1 ч 42 мин».</div>
+<div>Точка кончилась раньше следующей (студия 13:54 → 14:00): «0 мин», все погасли до старта следующей точки.</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Барабан маршрута</h2>
+<div><span class="k">Колонка:</span> x = 16 + D + 14, до правого поля; высота D, центр на уровне центра часов, лишнее обрезано</div>
+<div><span class="k">Центр:</span> высота <span class="v">28</span> (две строки — <span class="v">42</span>), подложка радиус <span class="v">9</span>, <span class="v">16 semibold</span> янтарь (в светлой — чёрный на жёлтой подложке)</div>
+<div><span class="k">±1:</span> высота <span class="v">22</span> (обычный 21), <span class="v">13 medium</span>, приглушённый</div>
+<div><span class="k">±2:</span> высота <span class="v">17</span> (обычный 16), <span class="v">11 medium</span>, тусклый</div>
+<div><span class="k">Строка:</span> поля <span class="v">10</span>, время в колонке <span class="v">46</span> по правому краю (крупное время центра выступает влево, мелкое ±1/±2 отступает), зазор <span class="v">8</span>, имена с одного x</div>
+<div><span class="k">Названия не режем:</span> ViewThatFits — центр 16 → 14 → 13 в две строки; ±1 13 → 12 → 11; ±2 11 → 10</div>
+<div>Нет соседа → пустая строка, остальные стоят на своих местах</div>
+</section>
+
+</div>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Цвета</h2>
+<div style="display: grid; grid-template-columns: 220px repeat(2, minmax(0, 1fr)); column-gap: 24px; row-gap: 6px; font-variant-numeric: tabular-nums">
+<div class="k">Роль</div><div class="k">Тёмная</div><div class="k">Светлая (Braun белый)</div>
+<div>Фон</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #1f1e1b; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2)"></span>#1f1e1b</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #e4e4e2"></span>#e4e4e2</div>
+<div>Текст, часовая риска</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #f2efe8"></span>#f2efe8</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #111111; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2)"></span>#111111</div>
+<div>Приглушённый, обычная риска</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #9a968c"></span>#9a968c</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #5b5b5b"></span>#5b5b5b (риска #6e6e6e)</div>
+<div>Тусклый (±2 барабана)</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #6f6b63"></span>#6f6b63</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #7a7a7a"></span>#7a7a7a</div>
+<div>Текущая точка: текст, знак</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #e0a85a"></span>#e0a85a</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #111111; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2)"></span>#111111 на жёлтой подложке</div>
+<div>Горящие точки</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #e0a85a"></span>#e0a85a</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #111111; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2)"></span>#111111</div>
+<div>Погасшие точки</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #393125"></span>#393125</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #dcdcda"></span>#dcdcda</div>
+<div>Погасшие риски</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #3b3834"></span>#3b3834</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #cbcbc9"></span>#cbcbc9</div>
+<div>Диск часов</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #181715; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2)"></span>#181715, обводка белый 7 %</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #fafafa"></span>#fafafa, обводка чёрный 8 %</div>
+<div>Окошко свадьбы</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #151412; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2)"></span>#151412</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #d3d3d1"></span>#d3d3d1</div>
+<div>Флажок над окошком</div><div>нет</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #ad0a15"></span>#ad0a15, 6 × 3,5, вырез снизу</div>
+<div>Подложка центра барабана</div><div>белый 6,5 %</div><div style="display: flex; gap: 8px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: #f4b400"></span>#f4b400 (жёлтый стрелки Braun)</div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Шрифт и время</h2>
+<div>SF Pro (system), цифры моноширинные (<span class="v">.monospacedDigit()</span>). Двоеточие в «13:00» не сдвигаем: SF между цифрами сам ставит его по середине. Ручной подъём на 0,08 em задирал его к верху строки — убран. В Swift время одной строкой Text("13:00"), без отдельного двоеточия. На телефоне не мерено.</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-26T12:00:00Z"},
+  "title": "Виджет Light Plan",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 444, "h": 250, "title": "Средний · тёмная · 13:48"},
+    "Light.dc.html": {"x": 524, "y": 0, "w": 444, "h": 250, "title": "Средний · светлая"},
+    "Sizes.dc.html": {"x": 1048, "y": 0, "w": 822, "h": 290, "title": "Pro Max 364×170 и обычный 338×158"},
+    "Edges.dc.html": {"x": 0, "y": 410, "w": 848, "h": 952, "title": "Крайние случаи"},
+    "SmallSet.dc.html": {"x": 928, "y": 410, "w": 658, "h": 274, "title": "Малый 170×170 и 158×158"},
+    "Spec.dc.html": {"x": 928, "y": 804, "w": 960, "h": 1120, "title": "Размеры, цвета, правила"},
+    "Widget.dc.html": {"x": 0, "y": 1482, "w": 364, "h": 170, "title": "Компонент виджета"},
+    "Header.dc.html": {"x": 1950, "y": 0, "w": 848, "h": 1178, "title": "Сколько осталось свадьбы: варианты"},
+    "Braun.dc.html": {"x": 1950, "y": 1298, "w": 848, "h": 500, "title": "Цвета настоящих Braun"}
+  },
+  "order": ["Main.dc.html", "Light.dc.html", "Sizes.dc.html", "Edges.dc.html", "SmallSet.dc.html", "Spec.dc.html", "Widget.dc.html", "Header.dc.html", "Braun.dc.html"],
+  "notes": {},
+  "designSystems": []
+}
