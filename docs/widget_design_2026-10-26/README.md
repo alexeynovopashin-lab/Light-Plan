@@ -1,6 +1,6 @@
 # Medium and small widget — Claude Design demo (2026-10-26)
 
-Source of Alexey's Claude Design canvas «Виджет Light Plan»:
+Source of Alexey's design (his decisions; Claude Design only drew it), canvas «Виджет Light Plan»:
 https://claude.ai/artifact/Me6areEztgbrsWYDMnm9Xh (version 1793012741-a435).
 Copied here because artifacts live in one account (workspace rule 24).
 
@@ -12,6 +12,7 @@ Copied here because artifacts live in one account (workspace rule 24).
   first / last point, studio 13:54 and 13:57.
 - `SmallSet` — small 170×170 / 158×158.
 - `Header` — wedding-countdown variants; **6 «окошко Braun» is marked chosen**.
-- `Braun` — colours sampled from real Braun watches; `braunDark` theme is exploration only.
+- `Braun` — colours sampled from real Braun watches: `light` = Braun white, `braunDark` = Braun black.
+  Alexey 2026-10-26: the widget palette is the Braun one (dark theme = `braunDark`, not the warm `dark`).
 
 `.dc.html` files need the Design type's `support.js`, which is not copied: read them as source.
