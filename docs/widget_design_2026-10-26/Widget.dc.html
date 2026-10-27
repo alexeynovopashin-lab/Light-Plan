@@ -33,9 +33,9 @@ body{margin:0}
 </div>
 
 <sc-if value="{{showLabel}}" hint-placeholder-val="{{true}}">
-<div class="tn" style="position: absolute; right: 16px; top: 16px; height: 18px; box-sizing: border-box; padding: 0 {{box.px}}px; border-radius: 4px; background: {{box.bg}}; box-shadow: {{box.sh}}; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: {{c.muted}}; white-space: nowrap">
+<div class="tn" style="position: absolute; right: 16px; top: 16px; height: 18px; box-sizing: border-box; padding: 0 {{box.px}}px 0 {{box.pl}}px; border-radius: {{box.rad}}; clip-path: {{box.clip}}; background: {{box.bg}}; box-shadow: {{box.sh}}; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: {{c.muted}}; white-space: nowrap">
 <sc-if value="{{box.flag}}" hint-placeholder-val="{{false}}">
-<div style="position: absolute; left: 50%; top: -4.5px; width: 6px; height: 3.5px; margin-left: -3px; background: {{c.flag}}; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 55%, 0 100%)"></div>
+<div style="position: absolute; left: 0; top: 0; width: 9px; height: 18px; background: {{c.flag}}; clip-path: polygon(0 0, 4px 0, 9px 50%, 4px 100%, 0 100%, 5px 50%)"></div>
 </sc-if>
 <sc-if value="{{ev.isTime}}" hint-placeholder-val="{{false}}"><span>до {{ev.hh}}<span class="cl" style="top: -{{lift}}em">:</span>{{ev.mm}}</span></sc-if>
 <sc-if value="{{ev.isText}}" hint-placeholder-val="{{true}}"><span>{{ev.text}}</span></sc-if>
@@ -87,11 +87,11 @@ body{margin:0}
 </sc-if>
 
 <sc-if value="{{med}}" hint-placeholder-val="{{true}}">
-<div style="position: absolute; left: {{dr.x}}px; top: {{dr.y}}px; width: {{dr.w}}px; height: {{dr.h}}px; overflow: hidden">
+<div style="position: absolute; left: {{dr.x}}px; top: {{dr.y}}px; width: {{dr.w}}px; height: {{dr.h}}px; overflow: hidden; -webkit-mask-image: {{sl.mask}}; mask-image: {{sl.mask}}">
 <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
 <sc-if value="{{r.has}}" hint-placeholder-val="{{true}}">
-<div style="position: absolute; left: 0; top: {{r.y}}px; width: {{dr.w}}px; height: {{r.h}}px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 8px; border-radius: 9px; background: {{r.bg}}; color: {{r.color}}; font-weight: {{r.fw}}">
-<span class="tn" style="flex: none; width: 46px; text-align: right; font-size: {{r.fs}}px; line-height: 20px; white-space: nowrap">{{r.hh}}<span class="cl" style="top: -{{lift}}em">:</span>{{r.mm}}</span>
+<div style="position: absolute; left: {{r.x}}px; top: {{r.y}}px; width: {{r.w}}px; height: {{r.h}}px; box-sizing: border-box; padding: 0 {{r.pad}}px; display: flex; align-items: center; gap: 8px; border-radius: 9px; background: {{r.bg}}; color: {{r.color}}; font-weight: {{r.fw}}">
+<span class="tn" style="flex: none; width: 46px; display: flex; font-size: {{r.fs}}px; line-height: 20px; white-space: nowrap"><span style="flex: none; width: 21px; display: flex; justify-content: flex-end">{{r.hh}}</span><span style="flex: none; width: 4px; display: flex; justify-content: center"><span class="cl" style="top: -{{lift}}em">:</span></span><span style="flex: none; width: 21px">{{r.mm}}</span></span>
 <span style="min-width: 0; font-size: {{r.nfs}}px; line-height: {{r.nlh}}px; white-space: {{r.ws}}">{{r.name}}</span>
 </div>
 </sc-if>
@@ -230,9 +230,12 @@ class Component extends DCLogic {
 
     // Braun date window: a recess, shadow on the inner top edge, a hairline of light at the bottom.
     var box = (p.eventBox ?? true) ? { px: 6, bg: c.win, sh: c.winShadow, flag: !!c.flag } : { px: 0, bg: 'transparent', sh: 'none', flag: false };
+    // Red date flag = the window's own left edge, as on the Braun watch: a V-notch cut into the window, the 4 pt band behind it painted red.
+    box.pl = box.px + (box.flag ? 9 : 0); box.rad = box.flag ? '0 4px 4px 0' : '4px'; box.clip = box.flag ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 5px 50%)' : 'none';
     var labelW = (!med || p.eventInDial) ? 0 : ((ev.isText || ev.isTime)
       ? this.measure(ev.text, 12, 500) + 2
       : this.measure(ev.text, 13, 600) + (ev.ring || ev.isTimer ? 18 : 0) + 2) + 2 * box.px;
+    if (labelW && box.flag) labelW += 9;
     var namesAvail = W - 2 * pad - 22 - (med ? labelW + 10 : 0);
     var hf = this.fit(sc.names, namesAvail, med
       ? [{ size: 15, lines: 1, lh: 18 }, { size: 13, lines: 1, lh: 18 }, { size: 12, lines: 1, lh: 18 }]
@@ -272,23 +275,25 @@ class Component extends DCLogic {
     var dw = { show: !!p.eventInDial, x: cx - dwW / 2, y: cy + (big ? 24 : 22), w: dwW, h: big ? 14 : 13, fs: dwFs, text: dwText };
 
     var dr = { x: pad + D + 14, y: cy - rad, h: D };
+    // Far rows fade out at the top and bottom edges (an opacity mask, no window): on white they go pale, on black they go dark.
+    var slot = { mask: 'linear-gradient(180deg, transparent 0, rgba(0,0,0,0.3) 4px, rgba(0,0,0,0.55) 9px, rgba(0,0,0,0.8) 15px, rgba(0,0,0,0.95) 20px, #000 26px, #000 calc(100% - 26px), rgba(0,0,0,0.95) calc(100% - 20px), rgba(0,0,0,0.8) calc(100% - 15px), rgba(0,0,0,0.55) calc(100% - 9px), rgba(0,0,0,0.3) calc(100% - 4px), transparent 100%)' };
     dr.w = W - pad - dr.x;
     var rows = [];
     if (med) {
       var avail = dr.w - 10 - 46 - 8 - 10;
       var cf = this.fit(cur.n, avail, [{ size: 16, lines: 1, lh: 20 }, { size: 14, lines: 1, lh: 18 }, { size: 13, lines: 2, lh: 16 }], 600);
-      var h1 = big ? 22 : 21, h2 = big ? 17 : 16, hc = cf.lines > 1 ? 42 : 28, pt = D / 2 - hc / 2;
-      var slots = [{ o: -2, y: pt - h1 - h2, h: h2 }, { o: -1, y: pt - h1, h: h1 }, { o: 0, y: pt, h: hc }, { o: 1, y: pt + hc, h: h1 }, { o: 2, y: pt + hc + h1, h: h2 }];
+      // Rows of one height: the drum no longer tapers into a rhombus; far rows fade under the edge mask instead.
+      var hc = cf.lines > 1 ? 42 : 28, hs = (D - hc) / 4, pt = D / 2 - hc / 2;
+      var slots = [{ o: -2, y: pt - 2 * hs, h: hs }, { o: -1, y: pt - hs, h: hs }, { o: 0, y: pt, h: hc }, { o: 1, y: pt + hc, h: hs }, { o: 2, y: pt + hc + hs, h: hs }];
       rows = slots.map(function (sl) {
         var it = r[ci + sl.o];
         if (!it) return { has: false };
-        var t = self.hm(it.t), row = { has: true, y: sl.y, h: sl.h, hh: t.hh, mm: t.mm, name: it.n, ws: 'nowrap', bg: 'transparent' };
+        var t = self.hm(it.t), row = { has: true, x: 0, w: dr.w, pad: 10, y: sl.y, h: sl.h, hh: t.hh, mm: t.mm, name: it.n, ws: 'nowrap', bg: 'transparent' };
         if (sl.o === 0) {
           return Object.assign(row, { fs: 16, fw: 600, color: c.amber, bg: c.pill, nfs: cf.size, nlh: cf.lh, ws: cf.lines > 1 ? 'normal' : 'nowrap' });
         }
-        var near = Math.abs(sl.o) === 1;
-        var f = self.fit(it.n, avail, near ? [{ size: 13, lines: 1 }, { size: 12, lines: 1 }, { size: 11, lines: 1 }] : [{ size: 11, lines: 1 }, { size: 10, lines: 1 }], 500);
-        return Object.assign(row, { fs: near ? 13 : 11, fw: 500, color: near ? c.muted : c.dim, nfs: f.size, nlh: 18 });
+        var f = self.fit(it.n, avail, [{ size: 13, lines: 1 }, { size: 12, lines: 1 }, { size: 11, lines: 1 }], 500);
+        return Object.assign(row, { fs: 13, fw: 500, color: c.muted, nfs: f.size, nlh: 18 });
       });
     }
 
@@ -297,7 +302,7 @@ class Component extends DCLogic {
       g: { wedding: sc.genre === 'wedding', portrait: sc.genre === 'portrait' },
       ticks: this.ticks(W, H, z.R, c, sc), hd: hd, ev: ev,
       dial: { x: cx - rad, y: cy - rad, d: D }, dots: dots,
-      cn: cn, ik: ik, cd: cd, dr: dr, rows: rows, box: box, dw: dw, showLabel: med && !p.eventInDial
+      cn: cn, ik: ik, cd: cd, dr: dr, sl: slot, rows: rows, box: box, dw: dw, showLabel: med && !p.eventInDial
     };
   }
 }

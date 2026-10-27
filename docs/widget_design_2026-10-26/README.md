@@ -16,3 +16,10 @@ Copied here because artifacts live in one account (workspace rule 24).
   Alexey 2026-10-26: the widget palette is the Braun one (dark theme = `braunDark`, not the warm `dark`).
 
 `.dc.html` files need the Design type's `support.js`, which is not copied: read them as source.
+
+## «Семья виджетов» (2026-10-27)
+
+All forms × all states, two themes. Boards `Family` (Braun black), `FamilyLight` (Braun white), `FamilySizes` (numbers of the new forms).
+The three files are GENERATED: `node _gen/family.js <outDir>` (reads icons from `Light_Plan/tools/icons.html`); edit the generator, not the output.
+Rows А/В small and medium are the existing `Widget` component (dc-import); everything else is drawn by the generator.
+Assumptions are listed at the end of `FamilySizes`. Lock-screen sizes come from Apple's table, not measured on the phone.

@@ -46,7 +46,7 @@ body{margin:0}
 <div><span class="k">Знак жанра:</span> <span class="v">16</span>, линия <span class="v">1,5</span>, отступ до имён <span class="v">6</span>; знаки из tools/icons.html</div>
 <div><span class="k">Имена:</span> <span class="v">15 semibold</span>, высота строки <span class="v">18</span>; не влезли → 13 → 12</div>
 <div><span class="k">В малом:</span> 15 → 13 → 13 в две строки (шапка <span class="v">32</span>, круг уменьшается)</div>
-<div><span class="k">Справа (только средний) — окошко Braun:</span> высота <span class="v">18</span>, поля <span class="v">6</span>, радиус <span class="v">4</span>, правый край на поле 16. Утоплено: тень <span class="v">inset 0 1 2</span> (чёрный 55 % / 25 % в светлой), снизу светлая кромка <span class="v">0,5</span> (белый 8 % / 80 %); в тёмной ещё обводка <span class="v">0,5</span> белый 10 %. В светлой над окошком красный флажок Braun: <span class="v">6 × 3,5</span>, верх на <span class="v">4,5</span> выше окна, по центру</div>
+<div><span class="k">Справа (только средний) — окошко Braun:</span> высота <span class="v">18</span>, поля <span class="v">6</span>, радиус <span class="v">4</span>, правый край на поле 16. Утоплено: тень <span class="v">inset 0 1 2</span> (чёрный 55 % / 25 % в светлой), снизу светлая кромка <span class="v">0,5</span> (белый 8 % / 80 %); в тёмной ещё обводка <span class="v">0,5</span> белый 10 %. Левый край окошка — красный флажок, как у даты на часах Braun: в край врезан треугольный вырез глубиной <span class="v">5</span> на всю высоту окна, полоса <span class="v">4</span> вдоль выреза красная, её острие смотрит в окно; левые углы острые, правые скруглены <span class="v">4</span>. Окошко шире на <span class="v">9</span>, текст стоит после полосы</div>
 <div><span class="k">В окошке:</span> обратный отсчёт свадьбы <span class="v">13 semibold</span>, текст, моноширинные: от часа «10:42:00», меньше часа «42:00». В Swift — Text(timerInterval: сейчас…конец, countsDown: true): тикает сам, без обновления виджета. Ширину окна задать по «00:00:00», чтобы рамка не прыгала</div>
 </section>
 
@@ -73,10 +73,10 @@ body{margin:0}
 <h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #e0a85a">Барабан маршрута</h2>
 <div><span class="k">Колонка:</span> x = 16 + D + 14, до правого поля; высота D, центр на уровне центра часов, лишнее обрезано</div>
 <div><span class="k">Центр:</span> высота <span class="v">28</span> (две строки — <span class="v">42</span>), подложка радиус <span class="v">9</span>, <span class="v">16 semibold</span> янтарь (в светлой — чёрный на жёлтой подложке)</div>
-<div><span class="k">±1:</span> высота <span class="v">22</span> (обычный 21), <span class="v">13 medium</span>, приглушённый</div>
-<div><span class="k">±2:</span> высота <span class="v">17</span> (обычный 16), <span class="v">11 medium</span>, тусклый</div>
+<div><span class="k">±1 и ±2:</span> строки одной высоты <span class="v">(D − центр) / 4</span> = <span class="v">22</span> у большого круга, <span class="v">13 medium</span>, приглушённые. Ромба больше нет: дальние строки не мельчают, а гаснут маской прозрачности у верхнего и нижнего края колонки (27.10): прозрачность 0 / 0,3 / 0,55 / 0,8 / 0,95 / 1 на 0 / 4 / 9 / 15 / 20 / 26 от края. Окошка и тени нет — на белом строки бледнеют, на чёрном темнеют</div>
 <div><span class="k">Строка:</span> поля <span class="v">10</span>, время в колонке <span class="v">46</span> по правому краю (крупное время центра выступает влево, мелкое ±1/±2 отступает), зазор <span class="v">8</span>, имена с одного x</div>
-<div><span class="k">Названия не режем:</span> ViewThatFits — центр 16 → 14 → 13 в две строки; ±1 13 → 12 → 11; ±2 11 → 10</div>
+<div><span class="k">Время по двоеточию (27.10):</span> у всех строк двоеточие на одной вертикали, хоть центр и крупнее: часы прижаты вправо в поле <span class="v">21</span>, двоеточие по центру поля <span class="v">4</span>, минуты влево в поле <span class="v">21</span></div>
+<div><span class="k">Названия не режем:</span> ViewThatFits — центр 16 → 14 → 13 в две строки; ±1 и ±2 13 → 12 → 11</div>
 <div>Нет соседа → пустая строка, остальные стоят на своих местах</div>
 </section>
 
