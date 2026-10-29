@@ -1,0 +1,532 @@
+<title>Плитки погоды</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one board of 8 glass weather tiles (4 columns wide, 2 on a phone), a control row above, a measurement table below. */
+:root {
+  --page: #eceae4; --ink: #18160f; --ink-2: rgba(24,22,15,.72); --ink-3: rgba(24,22,15,.52);
+  --chip: rgba(24,22,15,.06); --chip-on: #18160f; --chip-on-ink: #f6f4ee; --rule: rgba(24,22,15,.12);
+  --tile-shadow: 0 10px 24px rgba(120,85,40,.18), 0 1px 2px rgba(120,85,40,.12);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #0b0a09; --ink: #f2eee6; --ink-2: rgba(242,238,230,.74); --ink-3: rgba(242,238,230,.5);
+  --chip: rgba(255,255,255,.07); --chip-on: #f2eee6; --chip-on-ink: #0b0a09; --rule: rgba(255,255,255,.12);
+  --tile-shadow: 0 10px 28px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --page: #0b0a09; --ink: #f2eee6; --ink-2: rgba(242,238,230,.74); --ink-3: rgba(242,238,230,.5);
+  --chip: rgba(255,255,255,.07); --chip-on: #f2eee6; --chip-on-ink: #0b0a09; --rule: rgba(255,255,255,.12);
+  --tile-shadow: 0 10px 28px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; }
+body { background: var(--page); color: var(--ink); font-family: var(--font); }
+.page { max-width: 1520px; margin: 0 auto; box-sizing: border-box; padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px; }
+h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -.3px; text-wrap: balance; }
+.lede { margin: 6px 0 0; max-width: 66ch; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 13px; color: var(--ink-3); }
+.seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 10px; background: var(--chip); }
+.seg button, .run { font: inherit; font-size: 13px; color: var(--ink-2); background: transparent; border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); }
+.run { background: var(--chip-on); color: var(--chip-on-ink); padding: 8px 14px; }
+.run:disabled { opacity: .5; cursor: progress; }
+button:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px 18px; }
+@media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 10px; } }
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+figcaption { font-size: 13px; line-height: 1.4; color: var(--ink-3); }
+figcaption b { display: block; color: var(--ink); font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+
+/* the tile: sky + effects in one canvas, glass and text above it */
+.wx { position: relative; aspect-ratio: 178 / 128; max-width: 100%; border-radius: 24px; overflow: hidden; isolation: isolate;
+  box-shadow: var(--tile-shadow); color: #fff; background: var(--sky); }
+.wx canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.wx-glass { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(150deg, rgba(255,255,255,.13), rgba(255,255,255,0) 42%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.17), inset 0 1px 0 rgba(255,255,255,.32); }
+.wx-txt { position: relative; height: 100%; box-sizing: border-box; padding: 13px 15px 12px; display: flex; flex-direction: column;
+  text-shadow: 0 1px 3px rgba(0,0,0,.3), 0 0 14px rgba(0,0,0,.14); }
+.wx-h { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,.86); }
+.wx-h svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+.wx-t { font-size: 34px; font-weight: 300; letter-spacing: -.6px; line-height: 1.05; margin-top: auto; font-variant-numeric: tabular-nums; }
+.wx-w { font-size: 13px; font-weight: 500; margin-top: 3px; }
+.wx-r { font-size: 13px; color: rgba(255,255,255,.88); margin-top: 1px; font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) { .wx-t { font-size: 30px; } .wx-txt { padding: 11px 13px 10px; } }
+
+.perf { font-size: 13px; color: var(--ink-2); display: flex; flex-direction: column; gap: 8px; }
+.perf p { margin: 0; max-width: 80ch; line-height: 1.45; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 560px; }
+th, td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; color: var(--ink); }
+</style>
+
+<div class="page">
+  <header>
+    <h1>Плитки погоды</h1>
+    <p class="lede">Восемь состояний на стеклянных карточках. Всё рисует Canvas 2D, без WebGL и без внешних файлов. Плитка вне экрана стоит на паузе; если в системе включено «Уменьшение движения», каждая плитка рисуется одним неподвижным кадром.</p>
+  </header>
+  <div class="ctl">
+    <span>Фон</span>
+    <span class="seg" id="theme-seg"><button type="button" id="th-sys" data-v="system" aria-pressed="true">Система</button><button type="button" id="th-dark" data-v="dark" aria-pressed="false">Тёмный</button><button type="button" id="th-light" data-v="light" aria-pressed="false">Светлый</button></span>
+    <span>Движение</span>
+    <span class="seg" id="motion-seg"><button type="button" id="mo-auto" data-v="auto" aria-pressed="true">Как в системе</button><button type="button" id="mo-off" data-v="off" aria-pressed="false">Выключено</button></span>
+    <button type="button" class="run" id="run-measure">Замерить 5 с</button>
+  </div>
+  <div class="board" id="board"></div>
+  <section class="perf" id="perf" aria-live="polite">
+    <p>Замер гоняет все 8 плиток одновременно (даже те, что вне экрана) 5 секунд и показывает время отрисовки каждой. Откройте страницу на iPhone и нажмите «Замерить 5 с», чтобы получить цифры именно для телефона.</p>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- data ---------- */
+const TILES = [
+  { kind: 'clear-day',  t: '18°',  w: 'Ясно',      lo: '9°',   hi: '19°',  sky: 'linear-gradient(#1f6dcc,#86bff0)',
+    title: 'Ясно · день', note: 'Солнце пересвечено, ореол плавно гаснет; неровные лучи медленно вращаются, три блика объектива.' },
+  { kind: 'clear-night', t: '4°',  w: 'Ясно',      lo: '1°',   hi: '8°',   sky: 'linear-gradient(#040817,#22345f)',
+    title: 'Ясно · ночь', note: 'Луна с фазой и морями, звёзды трёх яркостей и оттенков; у горизонта мерцают сильнее. Редкая дымка у луны.' },
+  { kind: 'partly',     t: '12°',  w: 'Переменно', lo: '6°',   hi: '13°',  sky: 'linear-gradient(#2e70ba,#86b3da)',
+    title: 'Переменная облачность', note: 'Кучевые облака в три слоя с параллаксом: светлая кромка к солнцу, плоское тёмное основание. Солнце тускнеет, когда облако заходит на него.' },
+  { kind: 'overcast',   t: '9°',   w: 'Пасмурно',  lo: '6°',   hi: '10°',  sky: 'linear-gradient(#58646f,#8a959f)',
+    title: 'Пасмурно', note: 'Слоистые облака в три слоя, вытянутые по горизонтали, медленный дрейф, тёмный низ у ближнего слоя.' },
+  { kind: 'rain',       t: '7°',   w: 'Дождь',     lo: '−3°',  hi: '7°',   sky: 'linear-gradient(#2c3745,#56657a)',
+    title: 'Дождь', note: 'Струи в трёх планах глубины. На стекле капли с перевёрнутым небом внутри; крупные стекают, собирают мелкие и оставляют след.' },
+  { kind: 'storm',      t: '15°',  w: 'Гроза',     lo: '12°',  hi: '17°',  sky: 'linear-gradient(#18171f,#423e55)',
+    title: 'Ливень и гроза', note: 'Ливень гуще и косее. Ветвистая молния за ближним слоем облаков, облако подсвечено изнутри. Две вспышки на разряд, не чаще раза в 5 с.' },
+  { kind: 'snow',       t: '−3°',  w: 'Снег',      lo: '−7°',  hi: '−2°',  sky: 'linear-gradient(#55677b,#8d9cac)',
+    title: 'Снег', note: 'Хлопья в трёх планах: дальние мелкие и резкие, ближние крупные и размытые. Покачивание, снег налип на нижнюю кромку стекла.' },
+  { kind: 'frost',      t: '−18°', w: 'Ясно',      lo: '−24°', hi: '−15°', sky: 'linear-gradient(#225d9c,#7dafdb)',
+    title: 'Мороз, ясно', note: 'Холодное низкое солнце. Иней растёт от краёв, в углах гуще, центр чистый; редкие искры на кристаллах.' },
+];
+const FPS = { 'clear-day': 30, 'clear-night': 30, partly: 30, overcast: 30, rain: 60, storm: 60, snow: 60, frost: 30 };
+const DPR_CAP = 2, STATIC_T = 7, TAU = Math.PI * 2;
+
+/* ---------- small helpers ---------- */
+const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function rngOf(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rr = (rng, a, b) => a + (b - a) * rng();
+function mk(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+function mkCss(W, H, dpr) { const c = mk(W * dpr, H * dpr); const g = c.getContext('2d'); g.setTransform(c.width / W, 0, 0, c.height / H, 0, 0); return [c, g]; }
+function radial(g, x, y, r, stops) { const gr = g.createRadialGradient(x, y, 0, x, y, r); for (const [o, c] of stops) gr.addColorStop(o, c); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); }
+
+/* value noise, periodic along x with period px lattice cells (seamless horizontal scrolling) */
+function hash2(x, y, s) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
+function vnoise(x, y, px, s) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const x0 = ((xi % px) + px) % px, x1 = (x0 + 1) % px;
+  const a = hash2(x0, yi, s), b = hash2(x1, yi, s), c = hash2(x0, yi + 1, s), d = hash2(x1, yi + 1, s);
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
+function fbm(x, y, px, s, oct) { let sum = 0, amp = .5, n = 0;
+  for (let o = 0; o < oct; o++) { sum += amp * vnoise(x + o * 31.7, y + o * 17.3, px, s + o * 17); n += amp; x *= 2; y *= 2; px *= 2; amp *= .5; } return sum / n; }
+
+/* ---------- sky ---------- */
+function sky(W, H, dpr, stops, extra) { const [c, g] = mkCss(W, H, dpr); const lg = g.createLinearGradient(0, 0, 0, H);
+  for (const [o, col] of stops) lg.addColorStop(o, col); g.fillStyle = lg; g.fillRect(0, 0, W, H); if (extra) extra(g); return c; }
+
+/* ---------- clouds: fbm density, lit edge toward the light, darker base; one sprite 2W wide that tiles ---------- */
+function cloudLayer(W, H, o, seed) {
+  const res = Math.min(1, 220 / W), SW = Math.round(2 * W * res), SH = Math.round(H * res), P = o.cells * 2, unit = SW / P;
+  const N = new Float32Array(SW * SH), R = new Float32Array(SW * SH).fill(-1);
+  for (let y = 0; y < SH; y++) { const f = y / SH;
+    const m = smooth(o.top, o.top + o.fadeTop, f) * (1 - smooth(o.base - o.baseSoft, o.base, f)), v = y / unit * o.stretch;
+    if (m <= 0) continue;
+    for (let x = 0; x < SW; x++) { const u = x / unit, wx = fbm(u, v, P, seed + 91, 3) - .5, wy = fbm(u, v, P, seed + 57, 3) - .5;
+      const n = fbm(u + wx * o.warp, v + wy * o.warp, P, seed, o.oct), r = (n * m - o.thr) / o.soft, i = y * SW + x;
+      R[i] = r; N[i] = r <= 0 ? 0 : r >= 1 ? 1 : r; } }
+  const c = mk(SW, SH), g = c.getContext('2d'), img = g.createImageData(SW, SH), px = img.data;
+  const lx = Math.round(o.lx * res), ly = Math.round(o.ly * res), li = o.lit, sh = o.shade;
+  for (let y = 0; y < SH; y++) { const f = y / SH, vert = 1 - smooth(o.top, o.base, f), yy = clamp(y + ly, 0, SH - 1) * SW;
+    for (let x = 0; x < SW; x++) { const i = y * SW + x, D = N[i]; if (D <= 0) continue;
+      const Dl = clamp(R[i] - R[yy + (x + lx + SW) % SW], -1, 1);
+      const L = clamp(.55 + Dl * o.edge + (vert - .5) * o.vgain - o.dark * D, 0, 1), k = i * 4;
+      px[k] = sh[0] + (li[0] - sh[0]) * L; px[k + 1] = sh[1] + (li[1] - sh[1]) * L; px[k + 2] = sh[2] + (li[2] - sh[2]) * L;
+      px[k + 3] = D * D * (3 - 2 * D) * o.alpha * 255; } }
+  g.putImageData(img, 0, 0);
+  return { cv: c, N, SW, SH, res, W, H, speed: o.speed, alpha: o.alpha,
+    off(t) { return (t * this.speed) % (2 * this.W); },
+    draw(ctx, t) { const x = -this.off(t); ctx.drawImage(this.cv, x, 0, 2 * this.W, this.H); ctx.drawImage(this.cv, x + 2 * this.W, 0, 2 * this.W, this.H); },
+    densityAt(x, y, t) { const sx = Math.floor(((x + this.off(t)) % (2 * this.W)) * this.res), sy = clamp(Math.floor(y * this.res), 0, this.SH - 1);
+      const D = this.N[sy * this.SW + clamp(sx, 0, this.SW - 1)]; return D * D * (3 - 2 * D) * this.alpha; } };
+}
+const CL = (o) => Object.assign({ cells: 3, oct: 5, stretch: 1.4, top: 0, fadeTop: .2, base: 1, baseSoft: .1, thr: .5, soft: .12,
+  lx: 5, ly: -6, edge: 1.3, warp: .9, vgain: .35, dark: .15, alpha: 1, speed: 3 }, o);
+
+/* ---------- sun: overexposed core, smooth falloff, irregular rays, lens ghosts ---------- */
+function makeSun(W, H, dpr, rng, cold) {
+  const R = H * (cold ? 1.05 : 1.4), rd = H * (cold ? .06 : .075), q = rd / R;
+  const [bloom, bg] = mkCss(2 * R, 2 * R, dpr);
+  const tint = cold ? ['255,255,255', '235,245,255', '215,232,255', '200,222,255'] : ['255,253,240', '255,240,200', '255,222,165', '255,205,145'];
+  radial(bg, R, R, R, [[0, 'rgba(255,255,253,1)'], [q * .9, `rgba(${tint[0]},1)`], [q * 1.3, `rgba(${tint[1]},.78)`], [q * 2.6, `rgba(${tint[2]},.34)`],
+    [.3, `rgba(${tint[3]},.13)`], [.62, `rgba(${tint[3]},.04)`], [1, `rgba(${tint[3]},0)`]]);
+  const [rays, rg] = mkCss(2 * R, 2 * R, dpr); const nr = cold ? 16 : 26;
+  for (let i = 0; i < nr; i++) { const a = rng() * TAU, len = R * rr(rng, .35, 1), w = rr(rng, .005, .035), al = rr(rng, .03, cold ? .07 : .1);
+    const gr = rg.createRadialGradient(R, R, rd, R, R, len); gr.addColorStop(0, `rgba(${tint[1]},${al})`); gr.addColorStop(1, `rgba(${tint[1]},0)`);
+    rg.fillStyle = gr; rg.beginPath(); rg.moveTo(R, R); rg.arc(R, R, len, a - w, a + w); rg.closePath(); rg.fill(); }
+  const ghosts = cold ? [] : [[.75, 6, '190,255,210', .07], [1.2, 12, '200,180,255', .055], [1.65, 3.5, '255,210,160', .09]];
+  return { R, bloom, rays, ghosts,
+    draw(ctx, x, y, t, k) { ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const br = 1 + .02 * Math.sin(t * TAU / 6);
+      ctx.globalAlpha = k; ctx.drawImage(bloom, x - R * br, y - R * br, 2 * R * br, 2 * R * br);
+      ctx.translate(x, y); ctx.rotate(t * .012); ctx.globalAlpha = k * .9; ctx.drawImage(rays, -R, -R, 2 * R, 2 * R);
+      ctx.rotate(-t * .031); ctx.globalAlpha = k * .55; ctx.drawImage(rays, -R * .8, -R * .8, 1.6 * R, 1.6 * R);
+      ctx.restore(); ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const cx = W / 2, cy = H / 2;
+      for (const [f, r, c, a] of this.ghosts) { const gx = x + (cx - x) * f, gy = y + (cy - y) * f; ctx.globalAlpha = k;
+        radial(ctx, gx, gy, r, [[0, `rgba(${c},${a})`], [.7, `rgba(${c},${a * .8})`], [1, `rgba(${c},0)`]]); }
+      ctx.restore(); } };
+}
+
+/* ---------- stars and moon ---------- */
+function makeStars(W, H, rng, avoid) {
+  const out = [], tints = ['223,232,255', '223,232,255', '223,232,255', '255,236,206', '200,216,255'];
+  const spec = [[70, .3, .55, .25, .55], [22, .6, .9, .5, .85], [5, 1, 1.35, .85, 1]];
+  spec.forEach(([n, r0, r1, a0, a1], layer) => { for (let i = 0; i < n; i++) { const x = rng() * W, y = rng() * H * .9;
+    if (Math.hypot(x - avoid[0], y - avoid[1]) < avoid[2]) { i--; continue; }
+    const fade = 1 - .8 * smooth(.5, .95, y / H);
+    out.push({ x, y, r: rr(rng, r0, r1), a: rr(rng, a0, a1) * fade, c: tints[Math.floor(rng() * tints.length)], layer,
+      amp: .15 + .55 * (y / H), per: rr(rng, 1.4, 5), ph: rng() * TAU }); } });
+  const spr = mk(16, 16), g = spr.getContext('2d'); radial(g, 8, 8, 8, [[0, 'rgba(255,255,255,1)'], [.25, 'rgba(255,255,255,.85)'], [.6, 'rgba(255,255,255,.18)'], [1, 'rgba(255,255,255,0)']]);
+  return { list: out, spr,
+    draw(ctx, t) { for (const s of this.list) { const tw = 1 - s.amp * (.5 + .5 * Math.sin(t * TAU / s.per + s.ph));
+      ctx.globalAlpha = s.a * tw; const d = s.r * 4; ctx.drawImage(this.spr, s.x - d / 2, s.y - d / 2, d, d);
+      if (s.layer === 2) { ctx.fillStyle = `rgba(${s.c},.35)`; ctx.fillRect(s.x - s.r * 4, s.y - .25, s.r * 8, .5); ctx.fillRect(s.x - .25, s.y - s.r * 4, .5, s.r * 8); } }
+      ctx.globalAlpha = 1; } };
+}
+function moonSprite(r, dpr, k, seed) {
+  const R = Math.ceil(r * dpr), S = 2 * R + 4, c = mk(S, S), g = c.getContext('2d'), img = g.createImageData(S, S), px = img.data;
+  const al = Math.acos(2 * k - 1), Lx = Math.sin(al), Lz = Math.cos(al), cx = S / 2;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const nx = (x + .5 - cx) / R, ny = (y + .5 - cx) / R, q = nx * nx + ny * ny, edge = clamp((1 - Math.sqrt(q)) * R + .5, 0, 1);
+    if (edge <= 0) continue; const nz = Math.sqrt(Math.max(0, 1 - q)), lit = smooth(-.05, .12, nx * Lx + nz * Lz);
+    const mar = smooth(.47, .6, fbm(nx * 2.2 + 5, ny * 2.2 + 9, 1e4, seed, 4)), crat = smooth(.66, .72, fbm(nx * 7 + 1, ny * 7 + 3, 1e4, seed + 5, 3));
+    const alb = .95 - .22 * mar + .05 * crat, b = alb * (.84 + .16 * nz), i = (y * S + x) * 4;
+    px[i] = 22 + (246 * b - 22) * lit; px[i + 1] = 30 + (242 * b - 30) * lit; px[i + 2] = 52 + (230 * b - 52) * lit;
+    px[i + 3] = edge * (lit + (1 - lit) * .7) * 255; }
+  g.putImageData(img, 0, 0); return c;
+}
+
+/* ---------- rain in the air: three depth layers, one stroked path per layer ---------- */
+function makeRain(W, H, rng, heavy) {
+  const slant = heavy ? .3 : .17, m = heavy ? 1.15 : 1;
+  const L = [[heavy ? 130 : 70, .6, 7, 11, 380, 480, .22], [heavy ? 60 : 34, .9, 13, 19, 620, 760, .32], [heavy ? 16 : 9, 1.3, 24, 34, 950, 1150, .42]]
+    .map(([n, w, l0, l1, v0, v1, a]) => ({ w, a: a + (heavy ? .05 : 0), drops: Array.from({ length: n }, () => ({
+      x: rng() * (W + H * slant), y: rng() * H, len: rr(rng, l0, l1), v: rr(rng, v0, v1) * m })) }));
+  return { layers: L, count: L.reduce((s, l) => s + l.drops.length, 0),
+    step(dt) { for (const l of L) for (const d of l.drops) { d.y += d.v * dt; d.x -= d.v * slant * dt;
+      if (d.y - d.len > H) { d.y = -rng() * 30; d.x = rng() * (W + H * slant); } } },
+    draw(ctx) { ctx.lineCap = 'round'; for (const l of L) { ctx.strokeStyle = `rgba(214,226,240,${l.a})`; ctx.lineWidth = l.w; ctx.beginPath();
+      for (const d of l.drops) { ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + d.len * slant, d.y - d.len); } ctx.stroke(); } } };
+}
+
+/* ---------- drops on the glass: each big drop is a tiny lens showing the scene behind it upside down ---------- */
+function dropSprite() { const c = mk(64, 64), g = c.getContext('2d');
+  radial(g, 32, 32, 32, [[0, 'rgba(0,12,24,0)'], [.66, 'rgba(0,12,24,0)'], [.86, 'rgba(0,12,24,.26)'], [.96, 'rgba(0,12,24,.5)'], [1, 'rgba(0,12,24,0)']]);
+  g.save(); g.translate(32, 38); g.scale(1, .55); radial(g, 0, 22, 18, [[0, 'rgba(255,255,255,.22)'], [1, 'rgba(255,255,255,0)']]); g.restore();
+  radial(g, 21, 19, 9, [[0, 'rgba(255,255,255,.95)'], [.35, 'rgba(255,255,255,.55)'], [1, 'rgba(255,255,255,0)']]);
+  return c; }
+function makeGlass(W, H, rng, heavy) {
+  const spr = dropSprite(), M = heavy ? 6 : 5, cap = heavy ? 70 : 60, rate = heavy ? 8 : 5;
+  const small = [], big = [];
+  const addSmall = (x, y, r, life) => { small.push({ x, y, r, life, age: 0 }); if (small.length > cap) small.shift(); };
+  const addBig = (top) => big.push({ x: rr(rng, 6, W - 6), y: top ? rr(rng, -6, H * .3) : rr(rng, 6, H * .85), r: rr(rng, 2.2, 4.2),
+    vy: 0, hold: rr(rng, .5, 5), ph: rng() * TAU, trail: 0, slide: false });
+  for (let i = 0; i < cap * .8; i++) addSmall(rng() * W, rng() * H, rr(rng, .5, 1.7), Infinity);
+  for (let i = 0; i < M; i++) addBig(false);
+  let spawn = 0;
+  return { small, big, get count() { return small.length + big.length; },
+    step(dt, t) {
+      spawn += dt * rate; while (spawn >= 1) { spawn--; addSmall(rng() * W, rng() * H, rr(rng, .5, 1.7), Infinity); }
+      for (let i = small.length - 1; i >= 0; i--) { const s = small[i]; s.age += dt; if (s.age > s.life) small.splice(i, 1); }
+      for (let i = big.length - 1; i >= 0; i--) { const b = big[i];
+        if (!b.slide) { b.hold -= dt; if (b.hold <= 0) { b.slide = true; b.vmax = rr(rng, 25, heavy ? 110 : 80); } }
+        else { b.vy += (b.vmax - b.vy) * Math.min(1, dt * 3); const dy = b.vy * dt; b.y += dy; b.x += Math.sin(t * 6 + b.ph) * .12; b.trail += dy;
+          if (b.trail > rr(rng, 4, 9)) { b.trail = 0; addSmall(b.x + rr(rng, -.6, .6), b.y - b.r * 1.3, rr(rng, .35, .85), rr(rng, 2.5, 5)); }
+          if (rng() < dt * .35) { b.slide = false; b.vy = 0; b.hold = rr(rng, .4, 2.5); } }
+        for (let j = small.length - 1; j >= 0; j--) { const s = small[j]; if (Math.abs(s.x - b.x) < b.r && Math.abs(s.y - b.y) < b.r * 1.2 && s.life === Infinity) {
+          b.r = Math.min(5.5, Math.cbrt(b.r ** 3 + s.r ** 3)); small.splice(j, 1); } }
+        if (b.y - b.r > H) { big.splice(i, 1); addBig(true); } } },
+    draw(ctx, scene, dpr) {
+      for (const s of small) { const a = s.life === Infinity ? .9 : .9 * (1 - s.age / s.life), d = s.r * 2; ctx.globalAlpha = a; ctx.drawImage(spr, s.x - s.r, s.y - s.r, d, d); }
+      ctx.globalAlpha = 1;
+      const sw = scene.width, sh = scene.height;
+      for (const b of big) { const ry = b.r * (1 + Math.min(.28, b.vy / 160)), s = b.r * 8 * dpr;
+        const sx = clamp(b.x * dpr - s / 2, 0, sw - s), sy = clamp(b.y * dpr - s / 2, 0, sh - s);
+        ctx.save(); ctx.beginPath(); ctx.ellipse(b.x, b.y, b.r, ry, 0, 0, TAU); ctx.clip();
+        ctx.translate(b.x, b.y); ctx.scale(-1, -1); ctx.drawImage(scene, sx, sy, s, s, -b.r, -ry, 2 * b.r, 2 * ry); ctx.restore();
+        ctx.drawImage(spr, b.x - b.r, b.y - ry, 2 * b.r, 2 * ry); } } };
+}
+
+/* ---------- lightning: midpoint-displacement bolt with branches, double pulse + afterglow ---------- */
+function boltPts(x0, y0, x1, y1, disp, depth, rng, out) {
+  if (depth === 0) { out.push([x1, y1]); return; }
+  const mx = (x0 + x1) / 2 + (rng() - .5) * disp, my = (y0 + y1) / 2 + (rng() - .5) * disp * .2;
+  boltPts(x0, y0, mx, my, disp * .55, depth - 1, rng, out); boltPts(mx, my, x1, y1, disp * .55, depth - 1, rng, out); }
+function makeBolt(W, H, dpr, rng) {
+  const [c, g] = mkCss(W, H, dpr), x0 = rr(rng, .3, .8) * W, y0 = H * .12, x1 = x0 + rr(rng, -.25, .25) * W, y1 = H * rr(rng, .85, 1.05);
+  const main = [[x0, y0]]; boltPts(x0, y0, x1, y1, W * .3, 7, rng, main);
+  const paths = [[main, 1]];
+  const nb = 2 + Math.floor(rng() * 3);
+  for (let i = 0; i < nb; i++) { const p = main[Math.floor(rr(rng, .1, .7) * main.length)], ang = Math.PI / 2 + (rng() < .5 ? -1 : 1) * rr(rng, .45, .9), len = H * rr(rng, .2, .4);
+    const br = [[p[0], p[1]]]; boltPts(p[0], p[1], p[0] + Math.cos(ang) * len, p[1] + Math.sin(ang) * len, len * .45, 5, rng, br); paths.push([br, .5]); }
+  g.globalCompositeOperation = 'lighter'; g.lineCap = g.lineJoin = 'round';
+  for (const [w, col] of [[7, 'rgba(160,170,255,.16)'], [2.6, 'rgba(205,212,255,.55)'], [1.1, 'rgba(255,255,255,1)']])
+    for (const [pts, s] of paths) { g.lineWidth = w * s; g.strokeStyle = col; g.globalAlpha = s < 1 ? .7 : 1; g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+      for (const p of pts) g.lineTo(p[0], p[1]); g.stroke(); }
+  return { cv: c, x: x0, y: y0 };
+}
+const pulse = (dt, t0, amp, tau) => dt < t0 ? 0 : dt < t0 + .015 ? amp * (dt - t0) / .015 : amp * Math.exp(-(dt - t0 - .015) / tau);
+function flashEnv(dt) { return Math.max(pulse(dt, 0, 1, .03), pulse(dt, .14, .8, .03), pulse(dt, .2, .45, .16)); }
+
+/* ---------- snow ---------- */
+function flakeSprites() { return [[[0, 1], [.45, 1], [1, 0]], [[0, .95], [.25, .8], [1, 0]], [[0, .4], [.7, .34], [.88, .18], [1, 0]]].map(st => {
+  const c = mk(32, 32), g = c.getContext('2d'); radial(g, 16, 16, 16, st.map(([o, a]) => [o, `rgba(255,255,255,${a})`])); return c; }); }
+function makeSnow(W, H, rng) {
+  const spr = flakeSprites(), wind = 6, L = [];
+  [[80, .7, 1.3, 10, 18, 3, 8, .6, .85], [34, 1.6, 2.7, 22, 34, 6, 14, .85, 1], [5, 4.5, 8, 40, 60, 10, 20, .35, .55]].forEach(([n, r0, r1, v0, v1, a0, a1, al0, al1], layer) => {
+    for (let i = 0; i < n; i++) L.push({ layer, x0: rng() * W, y: rng() * H, r: rr(rng, r0, r1), v: rr(rng, v0, v1), A: rr(rng, a0, a1), f: rr(rng, .25, .6), ph: rng() * TAU, a: rr(rng, al0, al1) }); });
+  return { flakes: L, count: L.length,
+    step(dt) { for (const f of L) { f.y += f.v * dt; f.x0 += wind * (.4 + f.layer * .3) * dt; if (f.y - f.r > H) { f.y = -f.r - rng() * 10; f.x0 = rng() * W; } } },
+    draw(ctx, t) { for (const f of L) { const x = ((f.x0 + f.A * Math.sin(t * TAU * f.f + f.ph)) % (W + 20) + W + 20) % (W + 20) - 10;
+      ctx.globalAlpha = f.a; ctx.drawImage(spr[f.layer], x - f.r, f.y - f.r, 2 * f.r, 2 * f.r); } ctx.globalAlpha = 1; } };
+}
+function snowLedge(W, H, dpr, seed) { const [c, g] = mkCss(W, H, dpr); g.beginPath(); g.moveTo(0, H);
+  for (let x = 0; x <= W; x += 2) g.lineTo(x, H - 2 - 6 * fbm(x / 22, .5, 1e4, seed, 3) - 3 * smooth(.6, 1, Math.abs(x / W - .5) * 2)); g.lineTo(W, H); g.closePath();
+  const lg = g.createLinearGradient(0, H - 10, 0, H); lg.addColorStop(0, 'rgba(250,252,255,.95)'); lg.addColorStop(1, 'rgba(214,226,238,.95)'); g.fillStyle = lg;
+  g.shadowColor = 'rgba(30,45,60,.35)'; g.shadowBlur = 4 * dpr; g.shadowOffsetY = -1 * dpr; g.fill(); return c; }
+
+/* ---------- frost: haze from the edges + crystals growing inward with 60° side branches ---------- */
+function makeFrost(W, H, dpr, rng, seed) {
+  const hw = Math.round(W / 2), hh = Math.round(H / 2), haze = mk(hw, hh), hg = haze.getContext('2d'), img = hg.createImageData(hw, hh), px = img.data;
+  for (let y = 0; y < hh; y++) for (let x = 0; x < hw; x++) { const X = x * 2, Y = y * 2, dE = Math.min(X, W - X, Y, H - Y) / H;
+    const dC = Math.min(Math.hypot(X, Y), Math.hypot(W - X, Y), Math.hypot(X, H - Y), Math.hypot(W - X, H - Y)) / H;
+    const f = Math.min(1, Math.pow(clamp(1 - dE / .2, 0, 1), 1.6) + .8 * Math.pow(clamp(1 - dC / .6, 0, 1), 2)) * (X < W * .55 && Y > H * .35 ? .6 : 1), i = (y * hw + x) * 4;
+    px[i] = 228; px[i + 1] = 241; px[i + 2] = 255; px[i + 3] = 255 * .62 * f * (.4 + .6 * fbm(x / 6, y / 6, 1e4, seed, 4)); }
+  hg.putImageData(img, 0, 0);
+  const segs = [], seeds = [];
+  const perim = 2 * (W + H), ns = Math.round(perim / 9);
+  for (let i = 0; i < ns; i++) { let p = rng() * perim, x, y, a;
+    if (p < W) { x = p; y = 0; a = Math.PI / 2; } else if ((p -= W) < H) { x = W; y = p; a = Math.PI; } else if ((p -= H) < W) { x = W - p; y = H; a = -Math.PI / 2; } else { p -= W; x = 0; y = H - p; a = 0; }
+    seeds.push([x, y, a]); }
+  for (const [cx, cy, a] of [[0, 0, Math.PI / 4], [W, 0, Math.PI * .75], [W, H, -Math.PI * .75], [0, H, -Math.PI / 4]])
+    for (let k = 0; k < 7; k++) seeds.push([cx, cy, a + rr(rng, -.7, .7)]);
+  const step = 1.5, alph = [.55, .42, .3, .22], wid = [1, .75, .55, .4];
+  function grow(x, y, ang, len, depth, dist) {
+    let side = rng() < .5 ? 1 : -1, next = Math.floor(rr(rng, 2, 5));
+    for (let s = 0; s * step < len; s++) { ang += (rng() - .5) * .3;
+      const nx = x + Math.cos(ang) * step, ny = y + Math.sin(ang) * step;
+      if (nx < -2 || ny < -2 || nx > W + 2 || ny > H + 2 || segs.length > 9000) return;
+      segs.push([x, y, nx, ny, depth, dist + s * step]); x = nx; y = ny;
+      if (depth < 3 && --next <= 0) { next = Math.floor(rr(rng, 2, 5)); const rem = len - s * step;
+        grow(x, y, ang + side * Math.PI / 3, rem * (depth < 1 ? .5 : .38), depth + 1, dist + s * step); side = -side; } } }
+  for (const [x, y, a] of seeds) { const dC = Math.min(Math.hypot(x, y), Math.hypot(W - x, y), Math.hypot(x, H - y), Math.hypot(W - x, H - y)) / H;
+    const boost = (1 + 1.6 * clamp(1 - dC / .6, 0, 1)) * (x < W * .55 && y > H * .35 ? .6 : 1); grow(x, y, a + rr(rng, -.6, .6), H * .16 * rr(rng, .5, 1.15) * boost, 0, 0); }
+  segs.sort((p, q) => p[5] - q[5]);
+  const [cry, cg] = mkCss(W, H, dpr); cg.lineCap = 'round'; let shown = 0;
+  const glintSpr = mk(24, 24), gg = glintSpr.getContext('2d'); radial(gg, 12, 12, 12, [[0, 'rgba(255,255,255,1)'], [.15, 'rgba(255,255,255,.6)'], [.4, 'rgba(220,235,255,.08)'], [1, 'rgba(220,235,255,0)']]);
+  gg.fillStyle = 'rgba(255,255,255,.8)'; gg.fillRect(0, 11.5, 24, 1); gg.fillRect(11.5, 0, 1, 24);
+  const cand = segs.filter(s => s[4] <= 1), glints = Array.from({ length: 16 }, () => { const s = cand[Math.floor(rng() * cand.length)] || [W / 2, H / 2, W / 2, H / 2];
+    return { x: s[2], y: s[3], per: rr(rng, 3, 7), ph: rng(), sz: rr(rng, 5, 9) }; });
+  const SPEED = 24, maxD = segs.length ? segs[segs.length - 1][5] : 0;
+  return { haze, cry, glints, segs, grownAt: maxD / SPEED,
+    reveal(t) { const lim = t * SPEED; if (shown >= segs.length) return; const P = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
+      while (shown < segs.length && segs[shown][5] <= lim) { const s = segs[shown++]; P[s[4]].moveTo(s[0], s[1]); P[s[4]].lineTo(s[2], s[3]); }
+      for (let d = 0; d < 4; d++) { cg.lineWidth = wid[d]; cg.strokeStyle = `rgba(236,246,255,${alph[d]})`; cg.stroke(P[d]); } },
+    draw(ctx, t) { this.reveal(t); ctx.globalAlpha = Math.min(1, t / (this.grownAt * .8 + .01)); ctx.drawImage(haze, 0, 0, W, H); ctx.globalAlpha = 1; ctx.drawImage(cry, 0, 0, W, H);
+      if (t < this.grownAt) return; ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (const g of glints) { const f = ((t / g.per + g.ph) % 1); if (f > .08) continue; ctx.globalAlpha = Math.sin(Math.PI * f / .08); ctx.drawImage(glintSpr, g.x - g.sz / 2, g.y - g.sz / 2, g.sz, g.sz); }
+      ctx.restore(); } };
+}
+
+/* ---------- per-kind scenes ---------- */
+const SCENES = {
+  'clear-day'(W, H, dpr, rng) { const sx = W * .82, sy = H * .2;
+    const bg = sky(W, H, dpr, [[0, '#1b63c2'], [.55, '#4c97e3'], [1, '#8fc6f2']], g => {
+      radial(g, sx, sy, W * 1.05, [[0, 'rgba(255,248,226,.55)'], [.3, 'rgba(200,226,250,.22)'], [1, 'rgba(200,226,250,0)']]);
+      radial(g, 0, 0, W * .7, [[0, 'rgba(10,40,110,.25)'], [1, 'rgba(10,40,110,0)']]); });
+    const sun = makeSun(W, H, dpr, rng, false);
+    return { count: () => ({ sprites: 3, rays: 2, ghosts: 3, total: 1 + 2 + 3 }),
+      draw(ctx, t) { ctx.drawImage(bg, 0, 0, W, H); sun.draw(ctx, sx, sy, t, 1); } }; },
+
+  'clear-night'(W, H, dpr, rng, seed) { const mx = W * .8, my = H * .26, mr = H * .13;
+    const bg = sky(W, H, dpr, [[0, '#040817'], [.6, '#0e1b3d'], [1, '#24365f']], g => {
+      radial(g, W * .5, H * 1.25, W * .9, [[0, 'rgba(255,170,110,.12)'], [1, 'rgba(255,170,110,0)']]); });
+    const halo = mkCss(W, H, dpr); radial(halo[1], mx, my, mr * 9, [[0, 'rgba(190,205,255,.22)'], [.12, 'rgba(170,190,250,.12)'], [.4, 'rgba(120,140,210,.05)'], [1, 'rgba(120,140,210,0)']]);
+    const moon = moonSprite(mr, dpr, .72, seed), stars = makeStars(W, H, rng, [mx, my, mr * 2.2]);
+    const wisp = cloudLayer(W, H, CL({ cells: 3, stretch: 2.6, thr: .56, soft: .12, top: .05, base: .55, lit: [150, 162, 196], shade: [36, 46, 78], alpha: .4, speed: 2.2, lx: -6, ly: -3 }), seed + 3);
+    return { count: () => ({ stars: stars.list.length, moon: 1, layers: 1, total: stars.list.length + 2 }),
+      draw(ctx, t) { ctx.drawImage(bg, 0, 0, W, H); stars.draw(ctx, t); ctx.drawImage(halo[0], 0, 0, W, H); ctx.drawImage(moon, mx - mr - 2 / dpr, my - mr - 2 / dpr, (moon.width) / dpr, (moon.height) / dpr); wisp.draw(ctx, t); } }; },
+
+  partly(W, H, dpr, rng, seed) { const sx = W * .78, sy = H * .22;
+    const bg = sky(W, H, dpr, [[0, '#2a6cb8'], [.6, '#5b95cf'], [1, '#8db8dc']], g => {
+      radial(g, sx, sy, W, [[0, 'rgba(255,246,222,.45)'], [.35, 'rgba(210,228,248,.18)'], [1, 'rgba(210,228,248,0)']]); });
+    const sun = makeSun(W, H, dpr, rng, false);
+    const L = [CL({ cells: 4, stretch: 1.6, thr: .5, soft: .16, top: 0, base: .5, baseSoft: .06, lit: [250, 251, 253], shade: [150, 170, 196], alpha: .7, speed: 1.8 }),
+      CL({ cells: 3, stretch: 1.3, thr: .52, soft: .14, top: .05, base: .72, baseSoft: .06, lit: [252, 250, 246], shade: [118, 138, 166], alpha: .95, speed: 3.2 }),
+      CL({ cells: 2, stretch: 1.15, thr: .55, soft: .12, top: .3, base: 1.02, baseSoft: .05, lit: [246, 247, 249], shade: [100, 118, 146], alpha: 1, speed: 5.5 })].map((o, i) => cloudLayer(W, H, o, seed + i * 11));
+    return { count: () => ({ layers: 3, sun: 1, total: 4 }),
+      draw(ctx, t) { let clear = 1; for (const l of L) clear *= 1 - l.densityAt(sx, sy, t); const k = .25 + .75 * clear;
+        ctx.drawImage(bg, 0, 0, W, H); sun.draw(ctx, sx, sy, t, k); for (const l of L) l.draw(ctx, t);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .35 * k; ctx.drawImage(sun.bloom, sx - sun.R * .6, sy - sun.R * .6, sun.R * 1.2, sun.R * 1.2); ctx.restore(); } }; },
+
+  overcast(W, H, dpr, rng, seed) {
+    const bg = sky(W, H, dpr, [[0, '#56626d'], [1, '#8a959f']]);
+    const L = [CL({ cells: 3, stretch: 2.2, thr: .3, soft: .25, top: -.2, base: 1.3, lit: [206, 212, 220], shade: [118, 128, 140], alpha: .92, speed: 1.2, edge: 1.2 }),
+      CL({ cells: 3, stretch: 2, thr: .4, soft: .22, top: -.1, base: .95, lit: [194, 201, 210], shade: [96, 106, 119], alpha: .9, speed: 2.4 }),
+      CL({ cells: 2, stretch: 1.6, thr: .47, soft: .18, top: .15, base: 1.15, lit: [176, 184, 194], shade: [78, 87, 100], alpha: .95, speed: 4 })].map((o, i) => cloudLayer(W, H, o, seed + i * 11));
+    return { count: () => ({ layers: 3, total: 3 }), draw(ctx, t) { ctx.drawImage(bg, 0, 0, W, H); for (const l of L) l.draw(ctx, t); } }; },
+
+  rain(W, H, dpr, rng, seed) { return wetScene(W, H, dpr, rng, seed, false); },
+  storm(W, H, dpr, rng, seed) { return wetScene(W, H, dpr, rng, seed, true); },
+
+  snow(W, H, dpr, rng, seed) {
+    const bg = sky(W, H, dpr, [[0, '#46576c'], [1, '#8796a7']]);
+    const L = [CL({ cells: 3, stretch: 2.2, thr: .34, soft: .3, top: -.2, base: .9, lit: [222, 228, 235], shade: [140, 152, 166], alpha: .7, speed: 1.4, edge: 1 }),
+      CL({ cells: 2, stretch: 1.8, thr: .5, soft: .15, top: 0, base: .6, lit: [212, 219, 227], shade: [120, 132, 147], alpha: .6, speed: 2.6 })].map((o, i) => cloudLayer(W, H, o, seed + i * 11));
+    const snow = makeSnow(W, H, rng), ledge = snowLedge(W, H, dpr, seed);
+    return { count: () => ({ flakes: snow.count, layers: 2, total: snow.count + 2 }), step: dt => snow.step(dt),
+      draw(ctx, t) { ctx.drawImage(bg, 0, 0, W, H); for (const l of L) l.draw(ctx, t); snow.draw(ctx, t); ctx.drawImage(ledge, 0, 0, W, H); } }; },
+
+  frost(W, H, dpr, rng, seed) { const sx = W * .86, sy = H * .13;
+    const bg = sky(W, H, dpr, [[0, '#1f5a98'], [.6, '#4c88c2'], [1, '#7fb0da']], g => {
+      radial(g, sx, sy, W * .9, [[0, 'rgba(236,244,255,.5)'], [.35, 'rgba(200,224,250,.16)'], [1, 'rgba(200,224,250,0)']]); });
+    const sun = makeSun(W, H, dpr, rng, true), frost = makeFrost(W, H, dpr, rng, seed);
+    return { count: () => ({ sun: 1, glints: frost.glints.length, crystalSegments: frost.segs.length, total: 1 + frost.glints.length + 2 }),
+      draw(ctx, t) { ctx.drawImage(bg, 0, 0, W, H); sun.draw(ctx, sx, sy, t, .9); frost.draw(ctx, t); } }; },
+};
+
+function wetScene(W, H, dpr, rng, seed, heavy) {
+  const bg = heavy ? sky(W, H, dpr, [[0, '#17161f'], [.6, '#2c2a3c'], [1, '#433e56']])
+    : sky(W, H, dpr, [[0, '#2b3644'], [.65, '#45536a'], [1, '#5a6a7f']], g => { const lg = g.createLinearGradient(0, H * .6, 0, H); lg.addColorStop(0, 'rgba(190,205,222,0)'); lg.addColorStop(1, 'rgba(190,205,222,.18)'); g.fillStyle = lg; g.fillRect(0, 0, W, H); });
+  const C = heavy ? [[110, 106, 130], [26, 24, 36], [102, 98, 122], [22, 20, 30], [92, 88, 112], [16, 15, 22]] : [[124, 136, 150], [64, 74, 88], [128, 138, 152], [48, 56, 68], [112, 122, 136], [36, 42, 52]];
+  const sp = heavy ? 1.7 : 1;
+  const L = [CL({ cells: 3, stretch: 2, thr: .3, soft: .25, top: -.2, base: 1.2, lit: C[0], shade: C[1], alpha: .9, speed: 3 * sp, edge: 1.2 }),
+    CL({ cells: 3, stretch: 1.8, thr: .42, soft: .16, top: -.1, base: .85, lit: C[2], shade: C[3], alpha: .9, speed: 5 * sp, dark: .3 }),
+    CL({ cells: 2, stretch: 1.5, thr: .5, soft: .12, top: 0, base: .55, baseSoft: .15, lit: C[4], shade: C[5], alpha: .95, speed: 8 * sp, dark: .3 })].map((o, i) => cloudLayer(W, H, o, seed + i * 11));
+  const rain = makeRain(W, H, rng, heavy), glass = makeGlass(W, H, rng, heavy);
+  const [scene, sg] = mkCss(W, H, dpr); let sceneAt = -1;
+  let strike = null, next = rr(rng, 2, 4), hold = false;
+  const api = {
+    count: () => ({ rainStreaks: rain.count, glassDrops: glass.count, layers: 3, lightning: heavy ? 1 : 0, total: rain.count + glass.count + 3 + (heavy ? 1 : 0) }),
+    step(dt, t) { rain.step(dt); glass.step(dt, t);
+      if (heavy && !hold) { if (!strike && t >= next) { strike = { t0: t, b: makeBolt(W, H, dpr, rng) }; next = t + rr(rng, 5, 10); }
+        if (strike && t - strike.t0 > .9) strike = null; } },
+    strike(h, t) { hold = !!h; strike = { t0: t, b: makeBolt(W, H, dpr, rng), fixed: h ? .9 : 0 }; },
+    draw(ctx, t, motion) {
+      const e = heavy && strike && motion !== false ? (strike.fixed || flashEnv(t - strike.t0)) : 0;
+      ctx.drawImage(bg, 0, 0, W, H); L[0].draw(ctx, t); L[1].draw(ctx, t);
+      if (e > .01) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = e;
+        radial(ctx, strike.b.x, strike.b.y, W * .6, [[0, 'rgba(200,205,255,.55)'], [.4, 'rgba(160,165,230,.18)'], [1, 'rgba(160,165,230,0)']]);
+        ctx.drawImage(strike.b.cv, 0, 0, W, H); ctx.restore(); }
+      L[2].draw(ctx, t);
+      if (sceneAt < 0 || Math.abs(t - sceneAt) > 1) { sceneAt = t; sg.drawImage(bg, 0, 0, W, H); for (const l of L) l.draw(sg, t); }
+      rain.draw(ctx);
+      if (e > .01) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(190,198,255,${.14 * e})`; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+      glass.draw(ctx, scene, dpr); } };
+  return api;
+}
+
+/* ---------- tiles, loop, visibility ---------- */
+const board = document.getElementById('board');
+const ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.5a4 4 0 0 0 .4-7.98A6 6 0 0 0 6.3 11 3.75 3.75 0 0 0 7 18.5z"/></svg>';
+const tiles = [];
+let motionPref = 'auto', raf = 0, forceAll = false, rec = null;
+/* governor: if frames run long, every tile drops to 1/2 or 1/3 of its frame-rate cap; it recovers when frames are fast again */
+let slow = 1, gSum = 0, gN = 0, gLast = 0;
+const mqReduce = matchMedia('(prefers-reduced-motion: reduce)');
+const motionOn = () => motionPref === 'auto' && !mqReduce.matches;
+
+TILES.forEach((d, i) => {
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<div class="wx" data-kind="${d.kind}" style="--sky:${d.sky}" role="img" aria-label="${d.title}: ${d.t}, ${d.w}, от ${d.lo} до ${d.hi}">
+    <canvas aria-hidden="true"></canvas><div class="wx-glass"></div>
+    <div class="wx-txt" aria-hidden="true"><span class="wx-h">${ICON}<span>Погода</span></span><span class="wx-t">${d.t}</span><span class="wx-w">${d.w}</span><span class="wx-r">↓ ${d.lo} ↑ ${d.hi}</span></div></div>
+    <figcaption><b>${d.title}</b>${d.note}</figcaption>`;
+  board.appendChild(fig);
+  const el = fig.querySelector('.wx'), cv = el.querySelector('canvas');
+  tiles.push({ d, el, cv, ctx: cv.getContext('2d'), seed: 101 + i * 37, time: 0, last: 0, visible: false, W: 0, H: 0, fx: null, setupMs: 0, minDt: 1000 / FPS[d.kind] - 3 });
+});
+
+function setup(tile) {
+  const r = tile.el.getBoundingClientRect(), W = Math.round(r.width), H = Math.round(r.height);
+  if (!W || !H || (W === tile.W && H === tile.H && tile.fx)) return;
+  const dpr = Math.min(DPR_CAP, window.devicePixelRatio || 1), t0 = performance.now();
+  tile.W = W; tile.H = H; tile.dpr = dpr; tile.cv.width = Math.round(W * dpr); tile.cv.height = Math.round(H * dpr);
+  tile.fx = SCENES[tile.d.kind](W, H, dpr, rngOf(tile.seed), tile.seed);
+  tile.setupMs = performance.now() - t0;
+  if (!motionOn()) drawStatic(tile);
+}
+function render(tile, t, motion) { const c = tile.ctx; c.setTransform(tile.dpr, 0, 0, tile.dpr, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; tile.fx.draw(c, t, motion); }
+function drawStatic(tile) { if (tile.fx) render(tile, STATIC_T, false); }
+
+function frame(now) {
+  raf = 0; let any = false;
+  if (rec) rec.frames.push(now);
+  if (gLast) { gSum += now - gLast; if (++gN === 30) { const m = gSum / gN; if (m > 24 && slow < 3) slow++; else if (m < 18 && slow > 1) slow--; gSum = gN = 0; } }
+  gLast = now;
+  for (const tile of tiles) {
+    if (!tile.fx || !(tile.visible || forceAll)) continue;
+    if (rec && rec.only && rec.only !== 'visible' && tile.d.kind !== rec.only) continue; any = true;
+    if (tile.last && now - tile.last < (tile.minDt + 3) * slow - 3) continue;
+    const dt = tile.last ? Math.min(.1, (now - tile.last) / 1000) : 0; tile.last = now; tile.time += dt;
+    const a = performance.now(); if (tile.fx.step) tile.fx.step(dt, tile.time); render(tile, tile.time, true);
+    if (rec) { rec.tiles[tiles.indexOf(tile)].push(performance.now() - a); rec.slow.push(slow); }
+  }
+  if (any && motionOn() && !document.hidden) raf = requestAnimationFrame(frame);
+  else { gLast = 0; for (const t of tiles) t.last = 0; }
+}
+function kick() { if (!raf && motionOn() && !document.hidden) raf = requestAnimationFrame(frame); }
+function applyMotion() { if (motionOn()) kick(); else { if (raf) cancelAnimationFrame(raf); raf = 0; for (const t of tiles) { t.last = 0; drawStatic(t); } } }
+
+const io = new IntersectionObserver(es => { for (const e of es) { const t = tiles.find(x => x.el === e.target); t.visible = e.isIntersecting; if (!t.visible) t.last = 0; } kick(); }, { rootMargin: '60px' });
+let rsz = 0;
+const ro = new ResizeObserver(() => { clearTimeout(rsz); rsz = setTimeout(() => { tiles.forEach(setup); }, 150); });
+tiles.forEach(t => { setup(t); io.observe(t.el); ro.observe(t.el); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+mqReduce.addEventListener ? mqReduce.addEventListener('change', applyMotion) : mqReduce.addListener(applyMotion);
+applyMotion();
+
+/* ---------- controls ---------- */
+function seg(id, fn) { const el = document.getElementById(id); el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+  el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset.v); }); }
+seg('theme-seg', v => { if (v === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', v); });
+seg('motion-seg', v => { motionPref = v; applyMotion(); });
+
+/* ---------- measurement ---------- */
+const q = (arr, p) => { if (!arr.length) return 0; const s = arr.slice().sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
+function measure(ms = 5000, only = null) {
+  return new Promise(res => {
+    if (!motionOn()) { res({ error: 'motion is off (reduced motion or toggle); nothing animates, nothing to measure' }); return; }
+    rec = { frames: [], tiles: tiles.map(() => []), only, slow: [] }; forceAll = only !== 'visible'; tiles.forEach(t => t.last = 0); kick();
+    setTimeout(() => { const R = rec; rec = null; forceAll = false;
+      const deltas = R.frames.slice(1).map((f, i) => f - R.frames[i]);
+      const out = { ms, only, slowMax: Math.max(...R.slow, 1), ua: navigator.userAgent, dpr: Math.min(DPR_CAP, window.devicePixelRatio || 1),
+        frames: { n: R.frames.length, meanMs: deltas.reduce((a, b) => a + b, 0) / (deltas.length || 1), p95Ms: q(deltas, .95), maxMs: Math.max(0, ...deltas),
+          over20: deltas.filter(d => d > 20).length, over33: deltas.filter(d => d > 33.4).length },
+        tiles: tiles.map((t, i) => { const a = R.tiles[i]; return { kind: t.d.kind, size: `${t.W}×${t.H}`, fpsCap: FPS[t.d.kind], draws: a.length, drawsPerSec: a.length / (ms / 1000),
+          meanMs: a.reduce((x, y) => x + y, 0) / (a.length || 1), p95Ms: q(a, .95), maxMs: Math.max(0, ...a), setupMs: t.setupMs, elements: t.fx.count() }; }) };
+      out.sumMeanMsPerSec = out.tiles.reduce((s, t) => s + t.meanMs * t.drawsPerSec, 0);
+      res(out); }, ms);
+  });
+}
+const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
+function showPerf(r) {
+  const box = document.getElementById('perf');
+  if (r.error) { box.innerHTML = `<p>${r.error}</p>`; return; }
+  box.innerHTML = `<p>Кадров за ${r.ms / 1000} с: ${r.frames.n}; интервал между кадрами в среднем ${f1(r.frames.meanMs)} мс, 95-й процентиль ${f1(r.frames.p95Ms)} мс, худший ${f1(r.frames.maxMs)} мс; кадров дольше 20 мс: ${r.frames.over20}, дольше 33 мс: ${r.frames.over33}. Все 8 плиток занимают ${f1(r.sumMeanMsPerSec)} мс работы в секунду. Плотность пикселей холста: ${r.dpr}.</p>
+  <div class="tbl"><table><thead><tr><th>Плитка</th><th>Размер, pt</th><th>Предел, к/с</th><th>Отрисовок/с</th><th>мс сред.</th><th>мс p95</th><th>мс макс</th><th>Подготовка, мс</th><th>Анимируемых элементов</th></tr></thead><tbody>
+  ${r.tiles.map(t => `<tr><td>${t.kind}</td><td>${t.size}</td><td>${t.fpsCap}</td><td>${f1(t.drawsPerSec)}</td><td>${f2(t.meanMs)}</td><td>${f2(t.p95Ms)}</td><td>${f2(t.maxMs)}</td><td>${f1(t.setupMs)}</td><td>${t.elements.total}</td></tr>`).join('')}
+  </tbody></table></div><p>${r.ua}</p>`;
+}
+const btn = document.getElementById('run-measure');
+btn.addEventListener('click', async () => { btn.disabled = true; btn.textContent = 'Идёт замер…'; showPerf(await measure(5000)); btn.disabled = false; btn.textContent = 'Замерить 5 с'; });
+
+window.wxLab = { tiles, measure, setMotion: v => { motionPref = v; applyMotion(); },
+  strike: hold => { const t = tiles.find(x => x.d.kind === 'storm'); t.fx.strike(hold, t.time); render(t, t.time, true); },
+  redrawAt: s => tiles.forEach(t => render(t, s, true)) };
+})();
+</script>
