@@ -1,8 +1,3 @@
-# Снимок луны — файл Алексея (Desktop/Luna.png), происхождение не проверено; репозиторий публичный.
-# Кадры, где он виден, тоже не публикуем.
-build/assets/
-renders/Glass_Moon.png
-renders/Glass_Scroll.png
-renders/Glass_Evening_moon.png
+# Снимок луны (build/assets/moon_full.png) — собственный снимок Алексея, подтверждено 29.10; коммитить можно.
 .DS_Store
 __pycache__/
