@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Плитка «Закат»</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.st-mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div role="group" aria-label="Закат: оценка {{score}} из 100, {{word}}" style="position: relative; overflow: hidden; box-sizing: border-box; width: 361px; height: 196px; padding: 14px 16px; border-radius: 24px; background: var(--tile, #161618); box-shadow: inset 0 1px 0 var(--hi, rgba(255,255,255,.09)), var(--sh, 0 10px 28px rgba(0,0,0,.55)); color: var(--ink, #f5f3ee); font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif">
+<svg width="0" height="0" style="position: absolute" aria-hidden="true"><filter id="stg"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter></svg>
+
+<div style="display: flex; justify-content: space-between; align-items: center; height: 18px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3, rgba(245,243,238,.56))"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9 6.5l3 3 3-3"></path></svg>Закат</span>
+<span style="display: flex; align-items: center; gap: 4px; font-size: 15px; line-height: 18px"><span class="st-mono">17:47</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" style="opacity: .5"><path d="M9 5l7 7-7 7"></path></svg></span>
+</div>
+
+<div style="display: flex; gap: 12px; margin-top: 10px; height: 140px">
+
+<div aria-hidden="true" style="position: relative; width: 34px; height: 140px; flex: none">
+<div style="position: absolute; left: 0; top: 0; width: 34px; height: 140px; border-radius: 17px; overflow: hidden; background: var(--tick, rgba(245,243,238,.17)); box-shadow: inset 0 2px 4px rgba(0,0,0,.35)">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{fillH}}px; background: linear-gradient(to top, rgb(64,92,140) 0%, rgb(150,110,170) 38%, rgb(226,164,76) 72%, rgb(244,180,0) 100%); background-size: 100% 140px; background-position: bottom"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 28px; height: 0; border-top: 1.5px solid rgba(127,127,127,.55); clip-path: inset(0 0 0 0); margin: 0 3px; background: transparent; width: auto; mask: linear-gradient(90deg, #000 0 7px, transparent 7px calc(100% - 7px), #000 calc(100% - 7px))"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 56px; height: 0; border-top: 1.5px solid rgba(127,127,127,.55); margin: 0 3px; mask: linear-gradient(90deg, #000 0 7px, transparent 7px calc(100% - 7px), #000 calc(100% - 7px))"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 84px; height: 0; border-top: 1.5px solid rgba(127,127,127,.55); margin: 0 3px; mask: linear-gradient(90deg, #000 0 7px, transparent 7px calc(100% - 7px), #000 calc(100% - 7px))"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 112px; height: 0; border-top: 1.5px solid rgba(127,127,127,.55); margin: 0 3px; mask: linear-gradient(90deg, #000 0 7px, transparent 7px calc(100% - 7px), #000 calc(100% - 7px))"></div>
+</div>
+<div class="st-mono" style="position: absolute; left: -2px; bottom: {{lensBottom}}px; width: 38px; height: 38px; border-radius: 19px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; background: rgba(16,16,18,.46); -webkit-backdrop-filter: blur(5px) saturate(1.8) brightness(1.1); backdrop-filter: blur(5px) saturate(1.8) brightness(1.1); box-shadow: inset 0 1.5px 0 rgba(255,255,255,.75), inset 0 -2px 3px rgba(0,0,0,.35), 0 3px 8px rgba(0,0,0,.5)">{{score}}</div>
+</div>
+
+<div aria-hidden="true" style="position: relative; width: 116px; height: 140px; flex: none; border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, rgba(64,92,140,{{skyA}}) 0%, rgba(150,110,170,{{skyA}}) 40%, rgba(226,164,76,{{glowA}}) 61%, rgba(20,20,24,.0) 61.5%), linear-gradient(180deg, rgba(127,127,127,.10), rgba(127,127,127,.04))">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 86px; overflow: hidden">
+<div style="position: absolute; left: 35px; top: 52px; width: 46px; height: 46px; border-radius: 23px; background: radial-gradient(circle at 50% 42%, {{ballCore}} 0%, {{ballBody}} 68%, {{ballEdge}} 100%); box-shadow: 0 0 {{haloBlur}}px {{haloSpread}}px rgba(244,150,40,{{haloA}})"></div>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 86px; height: 1px; background: rgba(127,127,127,.45)"></div>
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="4">
+<div style="position: absolute; top: {{b.top}}px; left: {{b.left}}px; width: {{b.w}}px; height: 3px; border-radius: 2px; background: {{ballBody}}; opacity: {{b.o}}; filter: blur(1.2px)"></div>
+</sc-for>
+</div>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 22px; line-height: 26px; font-weight: 600">{{word}}</span>
+<span style="font-size: 15px; line-height: 20px; color: var(--ink2, rgba(245,243,238,.68))">{{epithet}}</span>
+<span style="font-size: 13px; line-height: 17px; color: var(--ink2, rgba(245,243,238,.68)); margin-top: auto">{{reason}}</span>
+</div>
+</div>
+
+<svg aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: var(--grain, .09); mix-blend-mode: overlay; pointer-events: none"><rect width="100%" height="100%" filter="url(#stg)"></rect></svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"score":{"editor":"range","min":0,"max":100,"step":1,"default":34},"$preview":{"width":361,"height":196}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const raw = Number(this.props.score ?? 34);
+    const s = Math.max(0, Math.min(100, Math.round(isNaN(raw) ? 34 : raw)));
+    const t = s / 100;
+    const H = 140, L = 38;
+    const fillH = Math.round(H * t);
+    const center = Math.max(L / 2, Math.min(H - L / 2, fillH));
+    const mix = (a, b, k) => 'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',') + ')';
+    const ballCore = mix([128, 128, 132], [255, 236, 190], t);
+    const ballBody = mix([92, 92, 96], [246, 168, 58], t);
+    const ballEdge = mix([70, 70, 74], [214, 96, 40], t);
+    const n = 1 + Math.round(t * 6);
+    const bars = [];
+    for (let i = 0; i < n; i++) {
+      const w = Math.round((44 - i * 4.5) * (0.45 + 0.55 * t));
+      bars.push({ top: 90 + i * 7, left: Math.round(58 - w / 2), w, o: Math.round((0.18 + 0.62 * t) * (1 - i / (n + 1)) * 100) / 100 });
+    }
+    let word, epithet, reason;
+    if (s === 0) { word = 'туман'; epithet = 'солнца не будет'; reason = 'горизонт закрыт, цвета не будет'; }
+    else if (s < 30) { word = 'плохо'; epithet = 'серый'; reason = 'плотные низкие облака гасят цвет'; }
+    else if (s < 40) { word = 'обычно'; epithet = 'спокойный'; reason = 'нижние облака 70 % закрывают горизонт'; }
+    else if (s < 60) { word = 'обычно'; epithet = 'спокойный'; reason = 'горизонт приоткрыт, цвет будет недолго'; }
+    else if (s < 80) { word = 'хорошо'; epithet = 'яркий'; reason = 'чистый горизонт, облака подхватят цвет'; }
+    else { word = 'отлично'; epithet = 'огненный'; reason = 'чистый горизонт и высокие облака: зарево надолго'; }
+    return {
+      score: s, fillH, lensBottom: Math.round(center - L / 2),
+      ballCore, ballBody, ballEdge,
+      haloBlur: Math.round(4 + t * 26), haloSpread: Math.round(t * 6), haloA: Math.round(t * 70) / 100,
+      skyA: Math.round((0.06 + t * 0.30) * 100) / 100, glowA: Math.round((0.04 + t * 0.5) * 100) / 100,
+      bars, word, epithet, reason
+    };
+  }
+}
+</script>
+</body>
+</html>

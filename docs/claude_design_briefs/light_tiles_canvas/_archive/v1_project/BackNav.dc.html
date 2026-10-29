@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Назад жестом от края</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000}
+</style>
+</helmet>
+<div style="position: relative; width: 393px; height: 852px; overflow: hidden; background: #000">
+<div style="position: absolute; left: -65px; top: 0; width: 393px; height: 852px; overflow: hidden">
+<dc-import name="Main" theme="dark" phase="evening" frame="screen" hint-size="393px,852px"></dc-import>
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,.38)"></div>
+</div>
+<div style="position: absolute; left: 177px; top: 0; width: 393px; height: 852px; overflow: hidden; box-shadow: -18px 0 40px rgba(0,0,0,.6)">
+<dc-import name="SunsetDetail" hint-size="393px,2240px"></dc-import>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 175px; top: 452px; width: 48px; height: 48px; border-radius: 24px; background: rgba(255,255,255,.28); box-shadow: 0 0 0 1.5px rgba(255,255,255,.55), 0 4px 14px rgba(0,0,0,.4)"></div>
+<svg width="110" height="20" viewBox="0 0 110 20" aria-hidden="true" style="position: absolute; left: 60px; top: 466px">
+<path d="M2 10h96M90 3l8 7-8 7" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 5"></path>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

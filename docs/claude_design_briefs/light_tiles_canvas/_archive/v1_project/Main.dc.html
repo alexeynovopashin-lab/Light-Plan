@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Свет — плитки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0a0a0b}
+.lp{--bg:#0a0a0b;--tile:#161618;--hi:rgba(255,255,255,.09);--sh:0 10px 28px rgba(0,0,0,.55);--ink:#f5f3ee;--ink2:rgba(245,243,238,.68);--ink3:rgba(245,243,238,.56);--tick:rgba(245,243,238,.17);--accent:#f4b400;--glass:rgba(24,24,27,.64);--glassHi:rgba(255,255,255,.13);--grain:.09;--day:rgba(120,150,190,.42);--night:#141a2a;font-family:-apple-system,"SF Pro Text","SF Pro Display",system-ui,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+.lp[data-theme="light"]{--bg:#ecebe6;--tile:#fbfaf7;--hi:#ffffff;--sh:0 8px 22px rgba(30,25,15,.13);--ink:#141414;--ink2:rgba(20,20,20,.70);--ink3:rgba(20,20,20,.62);--tick:rgba(20,20,20,.15);--accent:#9c6600;--glass:rgba(251,250,247,.74);--glassHi:rgba(255,255,255,.95);--grain:.12;--day:rgba(120,160,210,.45);--night:#2a3350}
+.t{position:relative;overflow:hidden;box-sizing:border-box;display:block;background:var(--tile);border-radius:24px;box-shadow:inset 0 1px 0 var(--hi),var(--sh);color:var(--ink);text-decoration:none;text-align:left;border:0;font:inherit;cursor:pointer;width:100%}
+.grain{position:absolute;left:0;top:0;width:100%;height:100%;opacity:var(--grain);mix-blend-mode:overlay;pointer-events:none}
+.tl{display:flex;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 var(--glassHi),0 8px 24px rgba(0,0,0,.28)}
+.ticks{background:repeating-linear-gradient(90deg,var(--tick) 0 3px,transparent 3px 7px)}
+.ticks-on{background:repeating-linear-gradient(90deg,var(--ink) 0 3px,transparent 3px 7px)}
+.slit{width:2px;background:var(--bg);flex:none}
+.t:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</helmet>
+<div class="lp" data-theme="{{theme}}" style="position: relative; width: 393px; overflow: hidden; {{rootSize}}">
+<svg width="0" height="0" style="position: absolute" aria-hidden="true"><filter id="lpg"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter></svg>
+
+<sc-if value="{{collapsed}}" hint-placeholder-val="{{ false }}">
+<div class="glass" style="position: absolute; left: 0; right: 0; top: 0; z-index: 4; box-sizing: border-box; padding: 54px 16px 12px; display: flex; align-items: center; gap: 12px; border-radius: 0 0 24px 24px">
+<span aria-hidden="true" style="position: relative; display: block; width: 56px; height: 30px; border-radius: 15px; overflow: hidden; flex: none; background: {{cap}}; box-shadow: inset 0 1px 0 rgba(255,255,255,.35)"><span style="position: absolute; left: 39px; top: 15px; width: 12px; height: 12px; border-radius: 6px; background: radial-gradient(circle, #fffaf0 0 30%, #ffd27a 55%, rgba(255,190,80,0) 75%)"></span></span>
+<span style="display: block; flex: 1; min-width: 0">
+<span style="display: block; font-size: 13px; line-height: 16px; color: var(--ink2)">Томск · <span class="mono">{{now}}</span></span>
+<span style="display: block; font-size: 17px; line-height: 22px; font-weight: 600">{{label}} · <span style="color: var(--accent)">{{nextShort}}</span></span>
+</span>
+<span class="num" style="font-size: 22px; font-weight: 300">{{temp}}</span>
+</div>
+</sc-if>
+
+<div style="position: relative; {{scrollStyle}}">
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 560px; pointer-events: none">
+<div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; opacity: {{skyOp}}; background: {{sky}}"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; opacity: {{greyOp}}; background: {{grey}}"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 300px; opacity: {{starOp}}; background: {{stars}}; -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent)"></div>
+</div>
+
+<sc-if value="{{notCollapsed}}" hint-placeholder-val="{{ true }}">
+<header style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; padding: 58px 16px 0">
+<div>
+<h1 style="margin: 0; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.01em">Томск</h1>
+<p style="margin: 2px 0 0; font-size: 15px; line-height: 20px; color: var(--ink2)">Ср, 28 октября · сегодня</p>
+</div>
+<div style="text-align: right">
+<div class="num" style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 30px; line-height: 36px; font-weight: 300"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 9.5 4.25 4.25 0 0 0 7 18z"></path></svg>{{temp}}</div>
+<p class="num" style="margin: 2px 0 0; font-size: 15px; line-height: 20px; color: var(--ink2)">облачно · +4° / −3°</p>
+</div>
+</header>
+
+<section aria-label="Свет сейчас" style="position: relative; margin: 8px 16px 0; height: 236px">
+<svg width="361" height="216" viewBox="0 0 361 216" role="img" aria-label="{{domeLabel}}" style="position: absolute; left: 0; top: 0">
+<defs>
+<radialGradient id="halo"><stop offset="0" stop-color="#ffd27a" stop-opacity=".8"></stop><stop offset=".45" stop-color="#f4b400" stop-opacity=".28"></stop><stop offset="1" stop-color="#f4b400" stop-opacity="0"></stop></radialGradient>
+<radialGradient id="moonhalo"><stop offset="0" stop-color="#efe9da" stop-opacity=".45"></stop><stop offset="1" stop-color="#efe9da" stop-opacity="0"></stop></radialGradient>
+</defs>
+<rect x="0" y="168" width="361" height="48" style="fill: var(--bg)" opacity=".5"></rect>
+<path d="M20.5 168A160 128 0 0 1 340.5 168" fill="none" style="stroke: var(--tick)" stroke-width="1.5"></path>
+<path d="{{tickPath}}" fill="none" style="stroke: var(--ink3)" stroke-width="1.5" stroke-linecap="round"></path>
+<path d="{{donePath}}" fill="none" style="stroke: var(--accent)" stroke-width="2.5" stroke-linecap="round" opacity="{{doneOp}}"></path>
+<path d="M340.5 168A160 34 0 0 1 20.5 168" fill="none" style="stroke: var(--tick)" stroke-width="1.2" stroke-dasharray="2 5"></path>
+<line x1="0" y1="168" x2="361" y2="168" style="stroke: var(--ink3)" stroke-width="1"></line>
+<circle cx="{{sunX}}" cy="{{sunY}}" r="34" fill="url(#halo)" opacity="{{haloOp}}"></circle>
+<circle cx="{{sunX}}" cy="{{sunY}}" r="9" fill="#ffd27a" opacity="{{sunOp}}"></circle>
+<circle cx="{{sunX}}" cy="{{sunY}}" r="8" fill="none" style="stroke: var(--ink3)" stroke-width="1.5" stroke-dasharray="2 3" opacity="{{ghostOp}}"></circle>
+<g opacity="{{moonOp}}">
+<circle cx="{{moonX}}" cy="{{moonY}}" r="24" fill="url(#moonhalo)"></circle>
+<circle cx="{{moonX}}" cy="{{moonY}}" r="8" fill="#2a2c33"></circle>
+<path d="{{moonLit}}" fill="#efe9da"></path>
+</g>
+</svg>
+<div style="position: absolute; left: 0; right: 0; top: 60px; text-align: center">
+<div class="mono" style="font-size: 15px; line-height: 18px; color: var(--ink2)">{{now}}</div>
+<div style="font-size: 30px; line-height: 36px; font-weight: 700; color: {{phaseColor}}">{{label}}</div>
+<div style="font-size: 15px; line-height: 20px; color: var(--ink2); margin-top: 2px">{{caption}}</div>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 178px; display: flex; justify-content: space-between; font-size: 13px; line-height: 16px; color: var(--ink2)">
+<span style="display: flex; align-items: center; gap: 5px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9 6.5l3-3 3 3"></path></svg><span class="mono">08:19</span> восход</span>
+<span style="display: flex; align-items: center; gap: 5px">закат <span class="mono">17:47</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9 6.5l3 3 3-3"></path></svg></span>
+</div>
+</section>
+
+<div class="t" style="display: flex; align-items: stretch; margin: 4px 16px 0; width: auto; cursor: default">
+<div style="flex: 1; padding: 12px 16px">
+<div class="tl">{{next}}</div>
+<div class="num" style="font-size: 28px; line-height: 34px; font-weight: 600; margin-top: 2px">{{nextVal}}</div>
+</div>
+<div class="slit"></div>
+<div style="flex: 1; padding: 12px 16px">
+<div class="tl">небо</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px">
+<span style="font-size: 17px; line-height: 22px; font-weight: 600">{{trend}}</span>
+<svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true"><path d="{{trendPath}}" fill="none" style="stroke: var(--accent)" stroke-width="2" stroke-linecap="round"></path></svg>
+</div>
+</div>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</div>
+</sc-if>
+
+<div style="position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 16px 0">
+
+<a href="SunsetDetail.dc.html" aria-label="Закат: подробности" style="grid-column: span 2; display: block; border-radius: 24px; color: inherit; text-decoration: none">
+<dc-import name="SunsetTile" score="34" hint-size="361px,196px"></dc-import>
+</a>
+
+<a href="GoldenDetail.dc.html" class="t" style="grid-column: span 2; padding: 14px 16px">
+<span style="display: flex; justify-content: space-between; align-items: center">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 16h18M7 16a5 5 0 0 1 10 0M12 6v2M5.6 9.6l1.4 1.4M18.4 9.6 17 11"></path></svg>Золотой час</span>
+<span style="font-size: 12px; line-height: 18px; font-weight: 600; border-radius: 9px; padding: 0 8px; {{gBadgeStyle}}">{{gBadge}}</span>
+</span>
+<span class="mono" style="display: block; font-size: 30px; line-height: 36px; font-weight: 500; margin-top: 6px">{{gWindow}}</span>
+<span style="position: relative; display: block; height: 14px; margin-top: 10px">
+<span class="ticks" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0"></span>
+<span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{gProg}}%; background: repeating-linear-gradient(90deg, #f4b400 0 3px, transparent 3px 7px)"></span>
+</span>
+<span style="display: block; font-size: 15px; line-height: 20px; font-weight: 600; margin-top: 8px; color: {{gNoteColor}}">{{gNote}}</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; line-height: 18px; color: var(--ink2)">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9 6.5l3-3 3 3"></path></svg>
+<span class="mono">08:19</span>
+<span style="flex: 1; height: 6px; background: repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 5px)"></span>
+<span class="num" style="color: var(--ink)">9 ч 28 мин</span>
+<span style="flex: 1; height: 6px; background: repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 5px)"></span>
+<span class="mono">17:47</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9 6.5l3 3 3-3"></path></svg>
+</span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</a>
+
+<button type="button" class="t" style="padding: 14px; height: 174px">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M4 12h16"></path></svg>Свет</span>
+<span style="position: relative; display: block; height: 64px; border-radius: 32px; margin-top: 12px; overflow: hidden; background: {{cap}}; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -10px 18px rgba(0,0,0,.22)">
+<svg width="100%" height="64" viewBox="0 0 146 64" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; left: 0; top: 0">
+<path d="M14 54A59 40 0 0 1 132 54" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.2" stroke-dasharray="2 3"></path>
+<line x1="0" y1="54" x2="146" y2="54" stroke="rgba(255,255,255,.45)" stroke-width="1"></line>
+</svg>
+<span style="position: absolute; border-radius: 50%; {{capDot}}"></span>
+</span>
+<span style="display: block; font-size: 17px; line-height: 22px; font-weight: 600; margin-top: 12px">{{label}}</span>
+<span style="display: block; font-size: 13px; line-height: 18px; color: var(--ink2); margin-top: 2px">{{lightNote}}</span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</button>
+
+<a href="SkyDetail.dc.html" class="t" style="padding: 14px; height: 174px">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 9.5 4.25 4.25 0 0 0 7 18z"></path></svg>Небо</span>
+<span style="display: flex; align-items: center; gap: 6px; margin-top: 14px">
+<span style="width: 32px; font-size: 12px; line-height: 18px; color: var(--ink2)">верх</span>
+<span style="position: relative; display: block; width: 67px; height: 16px"><span class="ticks" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0"></span><span class="ticks-on" style="position: absolute; left: 0; top: 0; bottom: 0; width: 28px"></span></span>
+<span class="mono" style="margin-left: auto; font-size: 13px; line-height: 18px">40 %</span>
+</span>
+<span style="display: flex; align-items: center; gap: 6px; margin-top: 12px">
+<span style="width: 32px; font-size: 12px; line-height: 18px; color: var(--ink2)">сред</span>
+<span style="position: relative; display: block; width: 67px; height: 16px"><span class="ticks" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0"></span><span class="ticks-on" style="position: absolute; left: 0; top: 0; bottom: 0; width: 14px"></span></span>
+<span class="mono" style="margin-left: auto; font-size: 13px; line-height: 18px">20 %</span>
+</span>
+<span style="display: flex; align-items: center; gap: 6px; margin-top: 12px">
+<span style="width: 32px; font-size: 12px; line-height: 18px; color: var(--ink2)">низ</span>
+<span style="position: relative; display: block; width: 67px; height: 16px"><span class="ticks" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0"></span><span class="ticks-on" style="position: absolute; left: 0; top: 0; bottom: 0; width: 49px"></span></span>
+<span class="mono" style="margin-left: auto; font-size: 13px; line-height: 18px">70 %</span>
+</span>
+<span style="display: block; font-size: 13px; line-height: 18px; color: var(--ink2); margin-top: 14px">влажность <span class="mono">81 %</span></span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</a>
+
+<button type="button" class="t" style="padding: 14px; height: 174px">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 4v14h13"></path><path d="M7 18 20 9" stroke-dasharray="2 3"></path></svg>Тени</span>
+<span class="mono" style="display: block; font-size: 38px; line-height: 44px; font-weight: 500; margin-top: 6px">{{shadowX}}</span>
+<span style="display: block; font-size: 13px; line-height: 18px; color: var(--ink2)">{{shadowNote}}</span>
+<svg width="146" height="14" viewBox="0 0 146 14" aria-hidden="true" style="display: block; margin-top: 6px">
+<line x1="3" y1="1" x2="3" y2="12" style="stroke: var(--ink)" stroke-width="2" stroke-linecap="round"></line>
+<line x1="3" y1="12" x2="{{shadowEnd}}" y2="12" style="stroke: var(--ink3)" stroke-width="3" stroke-linecap="round"></line>
+</svg>
+<span style="display: flex; margin-top: 8px; height: 30px; border-radius: 10px; overflow: hidden">
+<span class="mono" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--tick); font-size: 13px"><span style="font-size: 10px; color: var(--ink2)">ВЫС</span>{{alt}}</span>
+<span class="slit"></span>
+<span class="mono" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--tick); font-size: 13px"><span style="font-size: 10px; color: var(--ink2)">АЗ</span>{{az}}</span>
+</span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</button>
+
+<button type="button" class="t" style="padding: 14px; height: 174px">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7"></path></svg>Ветер</span>
+<span style="display: flex; align-items: center; gap: 10px; margin-top: 10px">
+<svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Ветер с севера" style="flex: none">
+<circle cx="32" cy="32" r="29" fill="none" style="stroke: var(--tick)" stroke-width="1"></circle>
+<path d="{{windTicks}}" style="stroke: var(--ink3)" stroke-width="1.5" stroke-linecap="round"></path>
+<text x="32" y="12" text-anchor="middle" font-size="9" font-weight="700" style="fill: var(--ink)">С</text>
+<path d="M32 16v30M26.5 40.5 32 47l5.5-6.5" fill="none" style="stroke: var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span style="display: block">
+<span class="num" style="display: block; font-size: 34px; line-height: 38px; font-weight: 500">2<span style="font-size: 13px; font-weight: 500; color: var(--ink2)"> м/с</span></span>
+<span style="display: block; font-size: 15px; line-height: 20px">слабый</span>
+</span>
+</span>
+<span style="display: block; font-size: 13px; line-height: 18px; color: var(--ink2); margin-top: 10px">с севера · порывы <span class="mono">7</span></span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</button>
+
+<button type="button" class="t" style="padding: 14px; height: 174px">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>Солнце</span>
+<svg width="146" height="64" viewBox="0 0 146 64" role="img" aria-label="Путь солнца за день" style="display: block; margin-top: 8px">
+<path d="M6 50A67 40 0 0 1 140 50" fill="none" style="stroke: var(--ink3)" stroke-width="1.2" stroke-dasharray="2 3"></path>
+<path d="M140 50A67 12 0 0 1 6 50" fill="none" style="stroke: var(--tick)" stroke-width="1" stroke-dasharray="2 4"></path>
+<line x1="73" y1="6" x2="73" y2="50" style="stroke: var(--tick)" stroke-width="1"></line>
+<line x1="0" y1="50" x2="146" y2="50" style="stroke: var(--ink3)" stroke-width="1"></line>
+<circle cx="{{miniX}}" cy="{{miniY}}" r="11" fill="url(#halo)" opacity="{{haloOp}}"></circle>
+<circle cx="{{miniX}}" cy="{{miniY}}" r="4.5" fill="#ffd27a" opacity="{{sunOp}}"></circle>
+<circle cx="{{miniX}}" cy="{{miniY}}" r="4" fill="none" style="stroke: var(--ink3)" stroke-width="1.2" stroke-dasharray="1.5 2" opacity="{{ghostOp}}"></circle>
+</svg>
+<span style="display: block; font-size: 15px; line-height: 20px; font-weight: 600; margin-top: 6px">в зените <span class="mono">13:03</span></span>
+<span class="mono" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: var(--ink2); margin-top: 2px"><span>↑ 08:19</span><span>↓ 17:47</span></span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</button>
+
+<button type="button" class="t" style="padding: 14px; height: 174px">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>Луна</span>
+<span style="display: flex; align-items: center; gap: 12px; margin-top: 12px">
+<svg width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="Растущая луна, 38 процентов" style="flex: none">
+<circle cx="28" cy="28" r="27" fill="#2a2c33"></circle>
+<path d="{{moonBig}}" fill="#efe9da"></path>
+</svg>
+<span style="display: block">
+<span class="mono" style="display: block; font-size: 26px; line-height: 30px; font-weight: 500">38 %</span>
+<span style="display: block; font-size: 15px; line-height: 20px">растущая</span>
+</span>
+</span>
+<span style="display: block; font-size: 13px; line-height: 18px; color: var(--ink2); margin-top: 14px">восход <span class="mono">13:05</span></span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</button>
+
+<button type="button" class="t" style="grid-column: span 2; padding: 14px 16px">
+<span class="tl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"></path></svg>Условия</span>
+<span style="display: flex; align-items: center; gap: 16px; margin-top: 8px">
+<span style="display: block; flex: none">
+<span class="num" style="display: block; font-size: 44px; line-height: 48px; font-weight: 300">{{temp}}</span>
+<span style="display: block; font-size: 15px; line-height: 20px; color: var(--ink2)">облачно</span>
+</span>
+<span style="display: block; flex: 1">
+<span style="display: flex; align-items: center; gap: 8px">
+<span class="mono" style="font-size: 13px; color: var(--ink2)">−3°</span>
+<span style="position: relative; flex: 1; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgb(64,92,140), rgb(150,110,170) 50%, rgb(226,164,76))">
+<span style="position: absolute; top: -3px; left: calc({{tempDot}}% - 6px); width: 8px; height: 8px; border-radius: 6px; background: var(--ink); border: 2px solid var(--tile)"></span>
+</span>
+<span class="mono" style="font-size: 13px; color: var(--ink2)">+4°</span>
+</span>
+<span style="display: block; font-size: 13px; line-height: 18px; color: var(--ink2); margin-top: 12px">влажность <span class="mono">81 %</span> · ветер <span class="mono">2</span> м/с</span>
+</span>
+</span>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</button>
+</div>
+</div>
+
+<div class="glass" style="{{barPos}} z-index: 3; box-sizing: border-box; padding: 14px 16px 22px; border-radius: 28px 28px 0 0">
+<div style="position: relative; height: 64px" role="img" aria-label="Лента дня: восход 08:19, закат 17:47, сейчас {{now}}">
+<span class="mono" style="position: absolute; top: 0; left: {{nowPct}}%; transform: translateX(-50%); font-size: 12px; line-height: 16px; font-weight: 600; color: #1a1300; background: #f4b400; padding: 0 6px; border-radius: 8px">{{now}}</span>
+<span style="position: absolute; left: 0; right: 0; top: 22px; height: 24px; border-radius: 8px; overflow: hidden; background: linear-gradient(90deg, var(--night) 0%, var(--night) 30.5%, rgb(64,92,140) 32.4%, rgb(150,110,170) 33.6%, rgb(244,180,0) 34.7%, rgb(226,164,76) 37%, var(--day) 40%, var(--day) 68.5%, rgb(226,164,76) 71%, rgb(244,180,0) 74.1%, rgb(150,110,170) 75.2%, rgb(64,92,140) 76.4%, var(--night) 78.5%, var(--night) 100%)">
+<span style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: repeating-linear-gradient(90deg, rgba(0,0,0,.3) 0 1px, transparent 1px 15.08px)"></span>
+</span>
+<span style="position: absolute; top: 18px; height: 32px; width: 2px; left: calc({{nowPct}}% - 1px); background: var(--ink); border-radius: 1px"></span>
+<span class="mono" style="position: absolute; top: 49px; left: 34.7%; transform: translateX(-50%); font-size: 11px; line-height: 14px; color: var(--ink2)">08:19</span>
+<span class="mono" style="position: absolute; top: 49px; left: 74.1%; transform: translateX(-50%); font-size: 11px; line-height: 14px; color: var(--ink2)">17:47</span>
+</div>
+<button type="button" class="btn" style="display: flex; width: 100%; height: 50px; margin-top: 10px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 25px; background: #f4b400; color: #1a1300; font: inherit; font-size: 17px; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 6px 16px rgba(0,0,0,.3); cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Запланировать съёмку</button>
+<div aria-label="Место 1 из 1" style="display: flex; justify-content: center; align-items: center; gap: 8px; height: 16px; margin-top: 10px; color: var(--ink)">
+<svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 3 10.5l7.5 3 3 7.5z" fill="currentColor"></path></svg>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"phase":{"editor":"enum","options":["dawn","day","evening","night"],"default":"evening"},"clouds":{"editor":"range","min":0,"max":100,"step":5,"unit":"%"},"frame":{"editor":"enum","options":["full","screen"],"default":"full"},"collapsed":{"editor":"boolean","default":false},"$preview":{"width":393,"height":1760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'light' ? 'light' : 'dark';
+    const phase = ['dawn', 'day', 'evening', 'night'].indexOf(this.props.phase) >= 0 ? this.props.phase : 'evening';
+    const full = (this.props.frame ?? 'full') !== 'screen';
+    const collapsed = !full && (this.props.collapsed === true || this.props.collapsed === 'true');
+    const PH = {
+      dawn: {
+        now: '08:10', label: 'Рассвет', caption: 'холодный рассеянный свет, небо светлеет', phaseColor: 'var(--ink)',
+        sunF: null, ghostF: 0.97, moonF: null, clouds: 40, next: 'до восхода', nextVal: '9 мин', nextShort: 'восход через 9 мин',
+        trend: 'без перемен', trendPath: 'M2 12 C14 13 22 11 32 12 S52 13 62 12',
+        temp: '−3°', tempDot: 0, gBadge: 'в 08:19', gWindow: '08:19 – 09:16', gProg: 0, gNote: 'начнётся через 9 мин',
+        lightNote: 'холодный, рассеянный', shadowX: '—', shadowNote: 'солнце под горизонтом', shadowEnd: 3, alt: '−2°', az: '118°',
+        cap: 'linear-gradient(180deg, #3a4a7c 0%, #8a7aa8 55%, #d9a0a0 100%)', nowPct: 33.7,
+        skyDark: 'radial-gradient(120% 64% at 8% 56%, rgba(230,150,140,.36) 0%, rgba(150,110,170,.28) 34%, rgba(64,92,140,.26) 62%, rgba(10,10,11,0) 100%)',
+        skyLight: 'radial-gradient(120% 64% at 8% 56%, rgba(230,150,140,.46) 0%, rgba(150,110,170,.32) 34%, rgba(64,92,140,.26) 62%, rgba(236,235,230,0) 100%)'
+      },
+      evening: {
+        now: '17:41', label: 'Золотой час', caption: 'тёплый мягкий свет, длинные тени', phaseColor: 'var(--accent)',
+        sunF: 0.989, moonF: null, clouds: 70, next: 'до заката', nextVal: '6 мин', nextShort: 'до заката 6 мин',
+        trend: 'без перемен', trendPath: 'M2 13 C14 11 22 14 32 12 S52 11 62 12',
+        temp: '+2°', tempDot: 71.4, gBadge: 'идёт', gWindow: '16:50 – 17:47', gProg: 89, gNote: 'до заката 6 мин',
+        lightNote: 'тёплый, мягкий, сбоку', shadowX: '×14', shadowNote: 'тень длиннее предмета', shadowEnd: 140, alt: '4°', az: '247°',
+        cap: 'linear-gradient(180deg, #4a5a8c 0%, #9a7397 52%, #eaa957 100%)', nowPct: 73.7,
+        skyDark: 'radial-gradient(120% 64% at 88% 54%, rgba(226,164,76,.40) 0%, rgba(150,110,170,.24) 36%, rgba(64,92,140,.20) 62%, rgba(10,10,11,0) 100%)',
+        skyLight: 'radial-gradient(120% 64% at 88% 54%, rgba(226,164,76,.50) 0%, rgba(150,110,170,.30) 36%, rgba(64,92,140,.22) 62%, rgba(236,235,230,0) 100%)'
+      },
+      day: {
+        now: '12:30', label: 'Дневной свет', caption: 'высокий ровный свет, короткие тени', phaseColor: 'var(--ink)',
+        sunF: 0.44, moonF: null, clouds: 70, next: 'до золотого часа', nextVal: '4 ч 20 мин', nextShort: 'золотой через 4 ч 20 мин',
+        trend: 'затягивает', trendPath: 'M2 18 C14 17 24 14 34 11 S54 6 62 5',
+        temp: '+4°', tempDot: 100, gBadge: 'в 16:50', gWindow: '16:50 – 17:47', gProg: 0, gNote: 'начнётся через 4 ч 20 мин',
+        lightNote: 'высокий, контрастный', shadowX: '×2,7', shadowNote: 'тень длиннее предмета', shadowEnd: 70, alt: '20°', az: '186°',
+        cap: 'linear-gradient(180deg, #3f7cc4 0%, #8fc0ea 100%)', nowPct: 52.1,
+        skyDark: 'linear-gradient(180deg, rgba(86,140,210,.42) 0%, rgba(120,170,220,.16) 55%, rgba(120,170,220,0) 100%)',
+        skyLight: 'linear-gradient(180deg, rgba(86,140,210,.50) 0%, rgba(140,185,230,.22) 55%, rgba(236,235,230,0) 100%)'
+      },
+      night: {
+        now: '22:10', label: 'Ночь', caption: 'луна 38 %, низко на западе', phaseColor: 'var(--ink)',
+        sunF: null, ghostF: 0.30, moonF: 0.91, clouds: 20, next: 'до рассвета', nextVal: '10 ч 09 мин', nextShort: 'рассвет в 08:19',
+        trend: 'проясняется', trendPath: 'M2 5 C14 6 24 9 34 12 S54 17 62 18',
+        temp: '−1°', tempDot: 28.6, gBadge: 'завтра', gWindow: '08:19 – 09:16', gProg: 0, gNote: 'утренний, завтра',
+        lightNote: 'луна, солнца нет', shadowX: '—', shadowNote: 'солнце под горизонтом', shadowEnd: 3, alt: '−31°', az: '318°',
+        cap: 'linear-gradient(180deg, #070a16 0%, #1d2643 100%)', nowPct: 92.4,
+        skyDark: 'radial-gradient(90% 56% at 90% 46%, rgba(150,160,200,.16) 0%, rgba(40,50,90,.30) 45%, rgba(10,10,20,0) 100%)',
+        skyLight: 'linear-gradient(180deg, rgba(30,38,70,.55) 0%, rgba(60,70,110,.22) 55%, rgba(236,235,230,0) 100%)'
+      }
+    };
+    const P = PH[phase];
+    const r1 = (v) => Math.round(v * 10) / 10;
+    const onArc = (f, cx, hy, rx, ry) => { const a = Math.PI * f; return { x: r1(cx - rx * Math.cos(a)), y: r1(hy - ry * Math.sin(a)) }; };
+    const underArc = (f, cx, hy, rx, ry) => { const a = Math.PI * f; return { x: r1(cx + rx * Math.cos(a)), y: r1(hy + ry * Math.sin(a)) }; };
+    const moonPath = (cx, cy, r, k) => {
+      const rx = r1(r * Math.abs(1 - 2 * k));
+      const sweep = k < 0.5 ? 0 : 1;
+      return 'M' + cx + ' ' + r1(cy - r) + 'A' + r + ' ' + r + ' 0 0 1 ' + cx + ' ' + r1(cy + r) + 'A' + rx + ' ' + r + ' 0 0 ' + sweep + ' ' + cx + ' ' + r1(cy - r) + 'Z';
+    };
+    const hasSun = P.sunF != null;
+    const sun = hasSun ? onArc(P.sunF, 180.5, 168, 160, 128) : underArc(P.ghostF, 180.5, 168, 160, 34);
+    let tickPath = '';
+    for (let h = 9; h <= 17; h++) {
+      const a = Math.PI * (h - 8.317) / 9.467;
+      tickPath += 'M' + r1(180.5 - 160 * Math.cos(a)) + ' ' + r1(168 - 128 * Math.sin(a)) + 'L' + r1(180.5 - 171 * Math.cos(a)) + ' ' + r1(168 - 139 * Math.sin(a));
+    }
+    const moon = onArc(P.moonF ?? 0.5, 180.5, 168, 160, 128);
+    const mini = hasSun ? onArc(P.sunF, 73, 50, 67, 40) : underArc(P.ghostF, 73, 50, 67, 12);
+    const hasMoon = P.moonF != null;
+    const capPt = onArc(hasSun ? P.sunF : hasMoon ? P.moonF : 0.02, 73, 54, 59, 40);
+    const capLeft = r1(capPt.x / 146 * 100);
+    const capDot = hasSun
+      ? 'left: calc(' + capLeft + '% - 11px); top: ' + r1(capPt.y - 11) + 'px; width: 22px; height: 22px; background: radial-gradient(circle, #fffaf0 0 28%, #ffd27a 46%, rgba(255,190,80,0) 72%)'
+      : hasMoon
+        ? 'left: calc(' + capLeft + '% - 6px); top: ' + r1(capPt.y - 6) + 'px; width: 12px; height: 12px; background: #efe9da; box-shadow: 0 0 10px rgba(239,233,218,.6)'
+        : 'left: calc(' + capLeft + '% - 14px); top: ' + r1(capPt.y - 8) + 'px; width: 28px; height: 28px; background: radial-gradient(circle, rgba(255,214,190,.9) 0 18%, rgba(240,160,150,.45) 45%, rgba(240,160,150,0) 72%)';
+    const rawC = Number(this.props.clouds);
+    const c = Math.max(0, Math.min(100, this.props.clouds == null || this.props.clouds === '' || isNaN(rawC) ? P.clouds : rawC)) / 100;
+    let seed = 7;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const starList = [];
+    for (let i = 0; i < 70; i++) {
+      const x = Math.round(rnd() * 393), y = Math.round(10 + rnd() * 280), s = r1(0.7 + rnd() * 1.1), a = Math.round((0.35 + rnd() * 0.65) * 100) / 100;
+      starList.push('radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,255,255,' + a + ') 0 ' + s + 'px, rgba(255,255,255,0) ' + r1(s + 0.8) + 'px)');
+    }
+    const greyNight = phase === 'night' || phase === 'dawn';
+    const grey = theme === 'light'
+      ? (greyNight ? 'linear-gradient(180deg, rgba(90,94,106,.55) 0%, rgba(140,142,150,.25) 55%, rgba(236,235,230,0) 100%)' : 'linear-gradient(180deg, rgba(150,152,158,.55) 0%, rgba(170,172,176,.25) 55%, rgba(236,235,230,0) 100%)')
+      : (greyNight ? 'linear-gradient(180deg, rgba(64,68,80,.45) 0%, rgba(50,52,62,.22) 55%, rgba(10,10,11,0) 100%)' : 'linear-gradient(180deg, rgba(128,130,138,.42) 0%, rgba(100,102,110,.20) 55%, rgba(10,10,11,0) 100%)');
+    const starBase = phase === 'night' ? 1 : phase === 'dawn' ? 0.35 : 0;
+    let windTicks = '';
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6;
+      windTicks += 'M' + r1(32 + 25 * Math.sin(a)) + ' ' + r1(32 - 25 * Math.cos(a)) + 'L' + r1(32 + 29 * Math.sin(a)) + ' ' + r1(32 - 29 * Math.cos(a));
+    }
+    return {
+      theme, collapsed, notCollapsed: !collapsed,
+      rootSize: full ? 'min-height: 1760px' : 'height: 852px',
+      scrollStyle: full ? '' : ('height: 852px; overflow-y: auto; box-sizing: border-box; padding-bottom: 210px;' + (collapsed ? ' padding-top: 104px;' : '')),
+      barPos: full ? 'position: relative; margin-top: 16px;' : 'position: absolute; left: 0; right: 0; bottom: 0;',
+      sky: theme === 'light' ? P.skyLight : P.skyDark,
+      skyOp: Math.round((1 - 0.85 * c) * 100) / 100, grey, greyOp: Math.round(c * 100) / 100,
+      stars: starList.join(', '), starOp: Math.round(starBase * Math.pow(1 - c, 1.5) * 100) / 100,
+      now: P.now, label: P.label, caption: P.caption, phaseColor: P.phaseColor,
+      next: P.next, nextVal: P.nextVal, nextShort: P.nextShort, trend: P.trend, trendPath: P.trendPath,
+      temp: P.temp, tempDot: P.tempDot,
+      gBadge: P.gBadge, gWindow: P.gWindow, gProg: P.gProg, gNote: P.gNote,
+      gBadgeStyle: phase === 'evening' ? 'background: #f4b400; color: #1a1300' : 'color: var(--ink2); box-shadow: inset 0 0 0 1px var(--tick)',
+      gNoteColor: phase === 'evening' ? 'var(--accent)' : 'var(--ink2)',
+      lightNote: P.lightNote, shadowX: P.shadowX, shadowNote: P.shadowNote, shadowEnd: P.shadowEnd, alt: P.alt, az: P.az,
+      cap: P.cap, capDot, nowPct: P.nowPct,
+      domeLabel: (hasSun ? 'Солнце на дуге дня, ' : 'Солнце под горизонтом, луна на дуге, ') + P.label + ', ' + P.now,
+      sunX: sun.x, sunY: sun.y, tickPath,
+      donePath: hasSun ? 'M20.5 168A160 128 0 0 1 ' + sun.x + ' ' + sun.y : 'M20.5 168A160 128 0 0 1 340.5 168',
+      doneOp: hasSun ? 1 : phase === 'dawn' ? 0 : 0.25,
+      haloOp: hasSun ? 1 : 0, sunOp: hasSun ? 1 : 0, ghostOp: hasSun ? 0 : 1,
+      moonOp: P.moonF != null ? 1 : 0, moonX: moon.x, moonY: moon.y, moonLit: moonPath(moon.x, moon.y, 8, 0.38),
+      moonBig: moonPath(28, 28, 27, 0.38),
+      miniX: mini.x, miniY: mini.y, windTicks
+    };
+  }
+}
+</script>
+</body>
+</html>

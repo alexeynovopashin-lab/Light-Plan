@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Закат — подробности</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0a0a0b}
+.lp{--bg:#0a0a0b;--tile:#161618;--hi:rgba(255,255,255,.09);--sh:0 10px 28px rgba(0,0,0,.55);--ink:#f5f3ee;--ink2:rgba(245,243,238,.68);--ink3:rgba(245,243,238,.56);--tick:rgba(245,243,238,.17);--accent:#f4b400;--glass:rgba(24,24,27,.64);--glassHi:rgba(255,255,255,.13);--grain:.09;--day:rgba(120,150,190,.42);--night:#141a2a;font-family:-apple-system,"SF Pro Text","SF Pro Display",system-ui,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+.lp[data-theme="light"]{--bg:#ecebe6;--tile:#fbfaf7;--hi:#ffffff;--sh:0 8px 22px rgba(30,25,15,.13);--ink:#141414;--ink2:rgba(20,20,20,.70);--ink3:rgba(20,20,20,.62);--tick:rgba(20,20,20,.15);--accent:#9c6600;--glass:rgba(251,250,247,.74);--glassHi:rgba(255,255,255,.95);--grain:.12;--day:rgba(120,160,210,.45);--night:#2a3350}
+.t{position:relative;overflow:hidden;box-sizing:border-box;display:block;background:var(--tile);border-radius:24px;box-shadow:inset 0 1px 0 var(--hi),var(--sh);color:var(--ink)}
+.grain{position:absolute;left:0;top:0;width:100%;height:100%;opacity:var(--grain);mix-blend-mode:overlay;pointer-events:none}
+.tl{display:flex;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 var(--glassHi),0 8px 24px rgba(0,0,0,.28)}
+.ticks{background:repeating-linear-gradient(90deg,var(--tick) 0 3px,transparent 3px 7px)}
+.ticks-on{background:repeating-linear-gradient(90deg,var(--ink) 0 3px,transparent 3px 7px)}
+.hslit{height:2px;background:var(--bg);margin:0 -16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;font-size:15px;line-height:20px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:5px;margin-right:10px;vertical-align:-1px}
+.wk{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:15px;text-align:left;cursor:pointer}
+.ib{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:22px;border:0;color:var(--ink);font:inherit;cursor:pointer}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</helmet>
+<div class="lp" data-theme="dark" style="position: relative; width: 393px; min-height: 2240px; overflow: hidden; padding-bottom: 40px; box-sizing: border-box">
+<svg width="0" height="0" style="position: absolute" aria-hidden="true"><filter id="lpg"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter></svg>
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 520px; pointer-events: none; background: radial-gradient(120% 70% at 70% 40%, rgba(226,164,76,.30) 0%, rgba(150,110,170,.18) 40%, rgba(64,92,140,.14) 64%, rgba(10,10,11,0) 100%)"></div>
+
+<nav style="position: relative; display: flex; align-items: center; justify-content: space-between; padding: 54px 16px 0">
+<a href="Main.dc.html" class="glass" aria-label="Назад, к экрану «Свет»" style="display: flex; align-items: center; gap: 2px; height: 44px; padding: 0 16px 0 10px; border-radius: 22px; color: var(--ink); text-decoration: none; font-size: 17px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Свет</a>
+<button type="button" class="ib glass" aria-label="Поделиться"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"></path></svg></button>
+</nav>
+
+<header style="position: relative; padding: 8px 16px 0">
+<h1 style="margin: 0; font-size: 34px; line-height: 40px; font-weight: 700">Закат</h1>
+<p style="margin: 0; font-size: 15px; line-height: 20px; color: var(--ink2)">Ср, 28 октября · Томск</p>
+</header>
+
+<section class="t" aria-label="Оценка заката" style="margin: 16px 16px 0; padding: 16px">
+<div style="display: flex; gap: 14px; height: 236px">
+<div aria-hidden="true" style="position: relative; width: 48px; height: 236px; flex: none">
+<div style="position: absolute; left: 0; top: 0; width: 48px; height: 236px; border-radius: 24px; overflow: hidden; background: var(--tick); box-shadow: inset 0 2px 5px rgba(0,0,0,.35)">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{fillH}}px; background: linear-gradient(to top, rgb(64,92,140) 0%, rgb(150,110,170) 38%, rgb(226,164,76) 72%, rgb(244,180,0) 100%); background-size: 100% 236px; background-position: bottom"></div>
+<div style="position: absolute; left: 4px; bottom: 47px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+<div style="position: absolute; right: 4px; bottom: 47px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+<div style="position: absolute; left: 4px; bottom: 94px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+<div style="position: absolute; right: 4px; bottom: 94px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+<div style="position: absolute; left: 4px; bottom: 142px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+<div style="position: absolute; right: 4px; bottom: 142px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+<div style="position: absolute; left: 4px; bottom: 189px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+<div style="position: absolute; right: 4px; bottom: 189px; width: 9px; height: 1.5px; background: rgba(127,127,127,.6)"></div>
+</div>
+<div class="mono" style="position: absolute; left: -3px; bottom: {{lensBottom}}px; width: 54px; height: 54px; border-radius: 27px; display: flex; align-items: center; justify-content: center; font-size: 21px; font-weight: 700; color: #fff; background: rgba(16,16,18,.46); -webkit-backdrop-filter: blur(6px) saturate(1.8) brightness(1.1); backdrop-filter: blur(6px) saturate(1.8) brightness(1.1); box-shadow: inset 0 2px 0 rgba(255,255,255,.75), inset 0 -2px 4px rgba(0,0,0,.35), 0 4px 10px rgba(0,0,0,.5)">34</div>
+</div>
+
+<div aria-hidden="true" style="position: relative; width: 150px; height: 236px; flex: none; border-radius: 18px; overflow: hidden; background: linear-gradient(180deg, rgba(64,92,140,.16) 0%, rgba(150,110,170,.18) 40%, rgba(226,164,76,.22) 63.5%, rgba(20,20,24,0) 64%), linear-gradient(180deg, rgba(127,127,127,.10), rgba(127,127,127,.04))">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 150px; overflow: hidden">
+<div style="position: absolute; left: 39px; top: 98px; width: 72px; height: 72px; border-radius: 36px; background: radial-gradient(circle at 50% 42%, {{ballCore}} 0%, {{ballBody}} 68%, {{ballEdge}} 100%); box-shadow: 0 0 16px 2px rgba(244,150,40,.24)"></div>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 150px; height: 1px; background: rgba(127,127,127,.45)"></div>
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="3">
+<div style="position: absolute; top: {{b.top}}px; left: {{b.left}}px; width: {{b.w}}px; height: 4px; border-radius: 2px; background: {{ballBody}}; opacity: {{b.o}}; filter: blur(1.5px)"></div>
+</sc-for>
+</div>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 13px; line-height: 18px; color: var(--ink2)">из 100</span>
+<span style="font-size: 24px; line-height: 30px; font-weight: 600; margin-top: 2px">обычно</span>
+<span style="font-size: 15px; line-height: 20px; color: var(--ink2)">спокойный</span>
+<span style="margin-top: auto; font-size: 13px; line-height: 18px; color: var(--ink2)">закат</span>
+<span class="mono" style="font-size: 24px; line-height: 30px; font-weight: 500">17:47</span>
+</div>
+</div>
+
+<div style="margin-top: 18px" role="img" aria-label="Шкала: туман, плохо, обычно, хорошо, отлично. Сегодня обычно, 34">
+<div style="position: relative; display: flex; gap: 2px; height: 10px">
+<span style="flex: 0 0 22px; border-radius: 5px 0 0 5px; background: rgba(127,127,127,.45)"></span>
+<span style="flex: 29 1 0; background: rgb(64,92,140)"></span>
+<span style="flex: 30 1 0; background: rgb(150,110,170)"></span>
+<span style="flex: 20 1 0; background: rgb(226,164,76)"></span>
+<span style="flex: 21 1 0; border-radius: 0 5px 5px 0; background: rgb(244,180,0)"></span>
+<span style="position: absolute; top: -4px; left: calc(24px + 34% - 10px); width: 3px; height: 18px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--tile)"></span>
+</div>
+<div style="display: flex; gap: 2px; margin-top: 8px; font-size: 12px; line-height: 16px; color: var(--ink3)">
+<span style="flex: 0 0 38px">туман</span>
+<span style="flex: 29 1 0; text-align: center">плохо</span>
+<span style="flex: 30 1 0; text-align: center; color: var(--ink); font-weight: 700">обычно</span>
+<span style="flex: 20 1 0; text-align: center">хорошо</span>
+<span style="flex: 21 1 0; text-align: right">отлично</span>
+</div>
+</div>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</section>
+
+<section class="t" aria-label="Время" style="margin: 16px 16px 0; padding: 16px 16px 4px">
+<div class="tl">Время</div>
+<div style="position: relative; height: 62px; margin-top: 12px" role="img" aria-label="Вечер с 16:00 до 20:00: золотой час, закат, синий час, сумерки">
+<span class="mono" style="position: absolute; left: 0; top: 0; font-size: 11px; line-height: 14px; color: var(--ink2)">16:00</span>
+<span class="mono" style="position: absolute; left: 42.1%; top: 0; transform: translateX(-50%); font-size: 11px; line-height: 14px; font-weight: 600; color: #1a1300; background: #f4b400; padding: 0 5px; border-radius: 7px">17:41</span>
+<span class="mono" style="position: absolute; right: 0; top: 0; font-size: 11px; line-height: 14px; color: var(--ink2)">20:00</span>
+<span style="position: absolute; left: 0; right: 0; top: 20px; height: 28px; border-radius: 8px; background: linear-gradient(90deg, var(--day) 0%, var(--day) 18%, rgb(226,164,76) 20.8%, rgb(244,180,0) 44.6%, rgb(150,110,170) 47.5%, rgb(64,92,140) 58.3%, #1d2848 74.2%, #121729 90%, var(--night) 100%)"></span>
+<span style="position: absolute; left: calc(42.1% - 1px); top: 16px; width: 2px; height: 36px; border-radius: 1px; background: var(--ink)"></span>
+<span style="position: absolute; left: 20.8%; top: 50px; width: 1px; height: 8px; background: var(--ink3)"></span>
+<span style="position: absolute; left: 44.6%; top: 50px; width: 1px; height: 8px; background: var(--ink3)"></span>
+<span style="position: absolute; left: 58.3%; top: 50px; width: 1px; height: 8px; background: var(--ink3)"></span>
+<span style="position: absolute; left: 74.2%; top: 50px; width: 1px; height: 8px; background: var(--ink3)"></span>
+<span style="position: absolute; left: 90%; top: 50px; width: 1px; height: 8px; background: var(--ink3)"></span>
+</div>
+<div style="margin-top: 8px">
+<div class="row"><span><span class="sw" style="background: rgb(226,164,76)"></span>Золотой час</span><span class="mono">16:50 – 17:47</span></div>
+<div class="hslit"></div>
+<div class="row" style="font-weight: 600"><span><span class="sw" style="background: rgb(244,180,0)"></span>Закат</span><span class="mono" style="color: var(--accent)">17:47</span></div>
+<div class="hslit"></div>
+<div class="row"><span><span class="sw" style="background: linear-gradient(90deg, rgb(150,110,170), rgb(64,92,140))"></span>Синий час</span><span class="mono">17:47 – 18:20</span></div>
+<div class="hslit"></div>
+<div class="row"><span><span class="sw" style="background: rgb(64,92,140)"></span>Гражданские сумерки</span><span class="mono">до 18:20</span></div>
+<div class="hslit"></div>
+<div class="row"><span><span class="sw" style="background: #1d2848; box-shadow: inset 0 0 0 1px var(--tick)"></span>Навигационные</span><span class="mono">до 18:58</span></div>
+<div class="hslit"></div>
+<div class="row"><span><span class="sw" style="background: #121729; box-shadow: inset 0 0 0 1px var(--tick)"></span>Астрономические</span><span class="mono">до 19:36</span></div>
+</div>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</section>
+
+<section class="t" aria-label="Облака по ярусам" style="margin: 16px 16px 0; padding: 16px">
+<div class="tl">Облака по ярусам</div>
+<sc-for list="{{tiers}}" as="tr" hint-placeholder-count="3">
+<div style="padding: 14px 0 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+<span style="font-size: 17px; line-height: 22px; font-weight: 600">{{tr.name}} <span style="font-size: 13px; font-weight: 500; color: var(--accent)">«{{tr.role}}»</span></span>
+<span class="mono" style="font-size: 17px; line-height: 22px">{{tr.pct}} %</span>
+</div>
+<div style="position: relative; height: 18px; margin-top: 8px"><div class="ticks" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0"></div><div class="ticks-on" style="position: absolute; left: 0; top: 0; bottom: 0; width: {{tr.pct}}%"></div></div>
+<p style="margin: 8px 0 0; font-size: 13px; line-height: 18px; color: var(--ink2)">{{tr.desc}}</p>
+</div>
+<div class="hslit"></div>
+</sc-for>
+<div style="padding: 14px 0 0">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 17px; line-height: 22px; font-weight: 600">Влажность</span>
+<span class="mono" style="font-size: 17px; line-height: 22px">81 %</span>
+</div>
+<p style="margin: 6px 0 0; font-size: 13px; line-height: 18px; color: var(--ink2)">дымка смягчает свет и приглушает насыщенность</p>
+</div>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</section>
+
+<section class="t" aria-label="Неделя" style="margin: 16px 16px 0; padding: 16px 16px 8px">
+<div class="tl">Неделя</div>
+<div style="margin-top: 6px">
+<sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+<button type="button" class="wk" aria-expanded="{{d.open}}" onClick="{{d.toggle}}">
+<span style="width: 104px; flex: none; font-weight: {{d.weight}}">{{d.name}}</span>
+<span style="position: relative; flex: 1; height: 12px; border-radius: 6px; background: var(--tick); overflow: hidden"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{d.bar}}%; border-radius: 6px; background: {{d.color}}"></span></span>
+<span class="mono" style="width: 28px; text-align: right">{{d.score}}</span>
+</button>
+<sc-if value="{{d.open}}" hint-placeholder-val="{{ false }}">
+<div style="margin: 0 0 10px 0; padding: 10px 12px; border-radius: 14px; background: var(--tick); font-size: 13px; line-height: 18px">
+<div style="display: flex; justify-content: space-between"><span style="font-weight: 600">{{d.word}}</span><span>закат <span class="mono">{{d.time}}</span></span></div>
+<div class="mono" style="margin-top: 4px; color: var(--ink2)">низ {{d.low}} % · сред {{d.mid}} % · верх {{d.high}} %</div>
+</div>
+</sc-if>
+</sc-for>
+</div>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</section>
+
+<section class="t" aria-label="Дата съёмки и соседние дни" style="margin: 16px 16px 0; padding: 16px">
+<div class="tl">Дата съёмки</div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px">
+<button type="button" class="ib" aria-label="На день раньше" onClick="{{prevDay}}" style="background: var(--tick)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<span style="font-size: 20px; line-height: 26px; font-weight: 600">{{shootLong}}</span>
+<button type="button" class="ib" aria-label="На день позже" onClick="{{nextDay}}" style="background: var(--tick)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px">
+<sc-for list="{{trio}}" as="c" hint-placeholder-count="3">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.sel}}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 0; border: 0; border-radius: 16px; font: inherit; color: var(--ink); cursor: pointer; {{c.box}}">
+<span style="position: relative; display: block; width: 16px; height: 64px; border-radius: 8px; overflow: hidden; background: var(--tick)"><span style="position: absolute; left: 0; right: 0; bottom: 0; height: {{c.fill}}px; background: linear-gradient(to top, rgb(64,92,140) 0%, rgb(150,110,170) 38%, rgb(226,164,76) 72%, rgb(244,180,0) 100%); background-size: 100% 64px; background-position: bottom"></span></span>
+<span class="mono" style="font-size: 22px; line-height: 26px; font-weight: 600">{{c.score}}</span>
+<span style="font-size: 13px; line-height: 16px; color: var(--ink2)">{{c.short}}</span>
+</button>
+</sc-for>
+</div>
+<p style="margin: 14px 0 0; font-size: 13px; line-height: 18px; color: var(--ink2)">{{trioNote}}</p>
+<svg class="grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#lpg)"></rect></svg>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":2240}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: 2, shoot: 3 };
+  }
+  renderVals() {
+    const t = 0.34;
+    const mixA = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+    const rgb = (c) => 'rgb(' + c.join(',') + ')';
+    const scoreColor = (s) => {
+      if (s === 0) return 'rgba(127,127,127,.45)';
+      const stops = [[0, [64, 92, 140]], [0.4, [150, 110, 170]], [0.72, [226, 164, 76]], [1, [244, 180, 0]]];
+      const k = s / 100;
+      for (let i = 1; i < stops.length; i++) {
+        if (k <= stops[i][0]) {
+          const a = stops[i - 1], b = stops[i];
+          return rgb(mixA(a[1], b[1], (k - a[0]) / (b[0] - a[0])));
+        }
+      }
+      return rgb(stops[3][1]);
+    };
+    const wordOf = (s) => s === 0 ? 'туман' : s < 30 ? 'плохо' : s < 60 ? 'обычно' : s < 80 ? 'хорошо' : 'отлично';
+    const days = [
+      { name: 'Сегодня', short: 'Ср 28', long: 'Ср, 28 октября', score: 34, time: '17:47', low: 70, mid: 20, high: 40 },
+      { name: 'Завтра', short: 'Чт 29', long: 'Чт, 29 октября', score: 52, time: '17:45', low: 55, mid: 30, high: 35 },
+      { name: 'Пятница', short: 'Пт 30', long: 'Пт, 30 октября', score: 78, time: '17:42', low: 20, mid: 40, high: 50 },
+      { name: 'Суббота', short: 'Сб 31', long: 'Сб, 31 октября', score: 61, time: '17:40', low: 35, mid: 30, high: 45 },
+      { name: 'Воскресенье', short: 'Вс 1', long: 'Вс, 1 ноября', score: 40, time: '17:38', low: 60, mid: 20, high: 30 },
+      { name: 'Понедельник', short: 'Пн 2', long: 'Пн, 2 ноября', score: 12, time: '17:35', low: 90, mid: 10, high: 10 },
+      { name: 'Вторник', short: 'Вт 3', long: 'Вт, 3 ноября', score: 0, time: '17:33', low: 100, mid: 0, high: 0 }
+    ];
+    const week = days.map((d, i) => ({
+      name: d.name, score: d.score, time: d.time, low: d.low, mid: d.mid, high: d.high,
+      word: wordOf(d.score), color: scoreColor(d.score), bar: Math.max(4, d.score),
+      open: this.state.open === i, weight: i === 0 ? 700 : 400,
+      toggle: () => this.setState({ open: this.state.open === i ? -1 : i })
+    }));
+    const idx = Math.max(1, Math.min(5, this.state.shoot));
+    const trio = [idx - 1, idx, idx + 1].map((j) => ({
+      score: days[j].score, short: days[j].short, fill: Math.round(64 * days[j].score / 100), sel: j === idx,
+      box: j === idx ? 'background: var(--tick); box-shadow: inset 0 0 0 2px var(--accent)' : 'background: transparent; box-shadow: inset 0 0 0 1px var(--tick)',
+      pick: () => this.setState({ shoot: j })
+    }));
+    const cur = days[idx], best = [days[idx - 1], days[idx + 1]].sort((a, b) => b.score - a.score)[0];
+    const trioNote = best.score - cur.score >= 10
+      ? best.long.split(',')[0] + ' закат лучше: ' + best.score + ' против ' + cur.score
+      : 'соседние дни не лучше выбранного';
+    const n = 1 + Math.round(t * 6), bars = [];
+    for (let i = 0; i < n; i++) {
+      const w = Math.round((66 - i * 7) * (0.45 + 0.55 * t));
+      bars.push({ top: 156 + i * 10, left: Math.round(75 - w / 2), w, o: Math.round((0.18 + 0.62 * t) * (1 - i / (n + 1)) * 100) / 100 });
+    }
+    return {
+      fillH: Math.round(236 * t), lensBottom: Math.round(236 * t - 27),
+      ballCore: rgb(mixA([128, 128, 132], [255, 236, 190], t)),
+      ballBody: rgb(mixA([92, 92, 96], [246, 168, 58], t)),
+      ballEdge: rgb(mixA([70, 70, 74], [214, 96, 40], t)),
+      bars,
+      tiers: [
+        { name: 'Верхние', role: 'догорание зари', pct: 40, desc: 'перистые облака подсвечиваются после захода и держат цвет, когда солнце уже село' },
+        { name: 'Средние', role: 'текстура', pct: 20, desc: 'дают рисунок, на котором загорается цвет; при 20 % небо будет почти ровным' },
+        { name: 'Нижние', role: 'экран горизонта', pct: 70, desc: 'закрывают солнце у горизонта: свету трудно пробиться под облака' }
+      ],
+      week, trio, trioNote, shootLong: cur.long,
+      prevDay: () => this.setState({ shoot: Math.max(1, idx - 1) }),
+      nextDay: () => this.setState({ shoot: Math.min(5, idx + 1) })
+    };
+  }
+}
+</script>
+</body>
+</html>

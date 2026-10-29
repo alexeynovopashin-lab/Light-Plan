@@ -1,0 +1,266 @@
+/* «Свет» стеклом — направление Алексея от 28.10.2026 (стеклянные плитки, герой-карточка с куполом,
+   парящий таббар, лист подробностей на фоне неба). Цвета — токены беты (--ink-*, --brass, --blue)
+   и --g-* кадра, которые считает gen_glass.py из прогноза; в самих плитках ничего не зашито. */
+.lp-html[data-theme="dark"] .gl {
+  --g-glass-a: rgba(255,255,255,.11); --g-glass-b: rgba(255,255,255,.035); --g-edge: rgba(255,255,255,.15);
+  --g-hi: rgba(255,255,255,.2); --g-shadow: rgba(0,0,0,.38); --g-track: rgba(255,255,255,.14);
+  --g-tick: rgba(255,255,255,.3); --g-chip: rgba(255,255,255,.1); --g-tab-on: rgba(255,255,255,.12);
+  --g-lens: rgba(20,18,16,.5); --g-scrim: rgba(0,0,0,.28); --g-scrim-c: rgba(0,0,0,.42); --g-pill: rgba(24,21,19,.86); --g-pillscrim: rgba(8,6,5,.46); --g-cardtint: rgba(12,10,9,.5);
+}
+.lp-html[data-theme="light"] .gl {
+  --g-glass-a: rgba(255,255,255,.8); --g-glass-b: rgba(255,255,255,.5); --g-edge: rgba(255,255,255,.95);
+  --g-hi: #fff; --g-shadow: rgba(120,85,40,.16); --g-track: rgba(23,21,15,.12);
+  --g-tick: rgba(23,21,15,.28); --g-chip: rgba(255,255,255,.7); --g-tab-on: rgba(255,255,255,.8);
+  --g-lens: rgba(255,255,255,.6); --g-scrim: rgba(255,255,255,.0); --g-scrim-c: rgba(255,255,255,0); --g-pill: rgba(255,255,255,.92); --g-pillscrim: rgba(255,255,255,.55); --g-cardtint: rgba(255,255,255,0);
+}
+.gl { position: relative; flex: none; width: 393px; height: var(--lp-h); overflow: hidden; box-sizing: border-box; color: var(--ink); background: var(--g-page); }
+.gl a { color: inherit; text-decoration: none; }
+.gl-main { position: relative; padding: 0 12px 300px; }
+.gl-main .next-light { margin-top: 6px; }
+.gl .header { padding-top: 56px; position: relative; z-index: 2; }
+
+/* стекло */
+.gl-glass {
+  position: relative; box-sizing: border-box; border-radius: 24px; corner-shape: squircle; overflow: hidden;
+  background: radial-gradient(130% 120% at 100% 100%, var(--g-tile-glow), transparent 62%),
+    linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b) 62%);
+  border: 1px solid var(--g-edge);
+  box-shadow: inset 0 1px 0 var(--g-hi), 0 10px 28px var(--g-shadow);
+  backdrop-filter: blur(22px) saturate(1.35); -webkit-backdrop-filter: blur(22px) saturate(1.35);
+}
+
+/* герой: небо над дугой */
+.gh { display: block; margin-top: 12px; padding: 8px 0 4px; border-radius: 26px; background: var(--g-hero); }
+.gh-t { flex: 1; min-width: 0; }
+.gh-dome { position: relative; }
+.gh-dome .dome { height: auto; aspect-ratio: 390 / 190; cursor: default; }
+.gh-dome .dome-readout { top: 47%; cursor: default; z-index: 2; }
+.gh .dr-sense { color: var(--ink); }
+.lp-html[data-theme="dark"] .gh .dome-readout * { text-shadow: 0 1px 8px rgba(0,0,0,.5); }
+.lp-html[data-theme="dark"] .gh .dr-phase { color: var(--brass-soft) !important; }
+.lp-html[data-theme="light"] .gh .dr-phase { color: var(--brass-dark) !important; }
+.gh-dome .dr-time { text-shadow: 0 1px 16px var(--g-scrim); }
+
+/* плитки */
+.gl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.gl-tile { display: flex; flex-direction: column; gap: 3px; padding: 14px 15px 13px; min-height: 112px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.gl-tile.wide { grid-column: 1 / -1; min-height: 0; }
+.gt-h { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.gt-h .ic { width: 18px; height: 18px; stroke: var(--ink-3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.gt-h .go { margin-left: auto; width: 12px; height: 12px; stroke: var(--ink-5); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.gt-v { font-size: 28px; font-weight: 300; letter-spacing: -.4px; line-height: 1.1; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.gt-v small { font-size: 15px; font-weight: 400; color: var(--ink-3); margin-left: 3px; letter-spacing: 0; }
+.gt-s { font-size: 12.5px; color: var(--ink-3); line-height: 1.35; }
+.gt-s b { font-weight: 500; color: var(--ink-2); }
+.gt-cap { position: relative; height: 8px; border-radius: 4px; margin-top: auto; background: var(--g-track);
+  background-image: linear-gradient(var(--g-tick), var(--g-tick)), linear-gradient(var(--g-tick), var(--g-tick)), linear-gradient(var(--g-tick), var(--g-tick)), linear-gradient(var(--g-tick), var(--g-tick));
+  background-size: 1px 100%; background-repeat: no-repeat; background-position: 20% 0, 40% 0, 60% 0, 80% 0; }
+.gt-cap i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.gt-bar { position: relative; height: 4px; border-radius: 2px; background: var(--g-track); margin-top: auto; }
+.gt-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--ink-3); }
+.gt-sun { display: block; width: 100%; height: 44px; margin-top: auto; }
+.gt-sun .arc { fill: none; stroke: var(--ink-a24); stroke-width: 1.4; stroke-linecap: round; }
+.gt-sun .hz { stroke: var(--ink-a12); stroke-width: 1; }
+
+/* время и место */
+.gt-rib { display: block; position: relative; height: 34px; margin-top: 10px; }
+.gt-rib .rb { position: absolute; left: 0; right: 0; top: 5px; height: 8px; border-radius: 4px; }
+.gt-rib .kn { position: absolute; top: 0; width: 18px; height: 18px; margin-left: -9px; border-radius: 9px; box-sizing: border-box;
+  background: var(--g-lens); border: 1.5px solid var(--ink); box-shadow: 0 2px 8px var(--g-shadow); backdrop-filter: blur(6px); }
+.gt-rib em { position: absolute; top: 20px; font-style: normal; font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; transform: translateX(-50%); white-space: nowrap; }
+
+/* луна */
+.gt-moon { display: flex; align-items: center; gap: 14px; }
+.gt-moon svg { flex: none; width: 52px; height: 52px; }
+.gt-moon .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gt-moon .gt-v { font-size: 22px; margin-top: 2px; }
+
+/* закреплённое снизу */
+.gl-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 340px; background: linear-gradient(180deg, transparent, var(--g-base) 62%); pointer-events: none; z-index: 4; }
+.gl-dock { position: absolute; left: 12px; right: 12px; bottom: 84px; z-index: 5; border-radius: 26px; }
+.gl-plan { display: flex; align-items: center; gap: 12px; width: 100%; height: 50px; padding: 0 18px; box-sizing: border-box; color: inherit; font: inherit; background: none; border: 0; text-align: left; cursor: pointer; }
+.gl-glass.gl-dock, .gl-glass.gl-tabs { background: var(--g-pill); }
+.gl-dock .timebar { position: static; background: none; border: 0; padding: 12px 16px 12px; }
+.gl-next { margin-top: 8px; }
+.gl-plan .ic { width: 22px; height: 22px; stroke: var(--brass); fill: none; stroke-width: 1.6; flex: none; }
+.gl-plan b { flex: 1; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.gl-plan i { font-style: normal; font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gl-tabs { position: absolute; left: 12px; right: 12px; bottom: 14px; height: 62px; z-index: 5; display: flex; align-items: stretch; padding: 4px; border-radius: 31px; }
+.gl-tabs .tab { border-radius: 27px; padding: 5px 0; }
+.gl-tabs .tab.active { background: var(--g-tab-on); }
+
+/* лист «Закат» на небе */
+.gd { background: var(--g-detail); }
+.gd-sky { position: absolute; left: 0; right: 0; top: 0; height: 400px; pointer-events: none; }
+.gd-sky svg { display: block; width: 100%; height: 100%; }
+.gd-sky .path { fill: none; stroke: rgba(255,255,255,.62); stroke-width: 1.6; stroke-dasharray: 5 6; stroke-linecap: round; }
+.gd-back { position: absolute; left: 16px; top: 58px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px 0 10px; border-radius: 20px; font-size: 15px; font-weight: 500; }
+.gd-back svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform: rotate(180deg); }
+.gd-body { position: relative; z-index: 2; padding: 352px 12px 40px; display: flex; flex-direction: column; gap: 12px; }
+.gd-card { padding: 18px 18px 18px; border-radius: 26px;
+  background: linear-gradient(var(--g-cardtint), var(--g-cardtint)), radial-gradient(130% 120% at 100% 100%, var(--g-tile-glow), transparent 62%), linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b) 62%); }
+.gd-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.gd-hd b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -.1px; }
+.gd-hd i { display: block; font-style: normal; font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+.gd-date { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.gd-time { font-size: 64px; font-weight: 300; letter-spacing: -1.4px; line-height: 1; margin: 18px 0 14px; font-variant-numeric: tabular-nums; }
+.gd-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.gd-stats .k { font-size: 13px; color: var(--ink-2); }
+.gd-stats .v { font-size: 20px; font-weight: 500; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.gd-stats .v small { font-size: 13px; font-weight: 400; color: var(--ink-3); margin-left: 4px; }
+.gd-stats .gt-bar { margin-top: 8px; }
+.gd-ch { font-size: 13px; color: var(--ink-2); margin: 18px 0 8px; }
+.gd-cap { position: relative; height: 52px; border-radius: 26px; background: var(--g-track);
+  background-image: linear-gradient(var(--g-tick), var(--g-tick)), linear-gradient(var(--g-tick), var(--g-tick)), linear-gradient(var(--g-tick), var(--g-tick)), linear-gradient(var(--g-tick), var(--g-tick));
+  background-size: 1px 14px; background-repeat: no-repeat; background-position: 20% 100%, 40% 100%, 60% 100%, 80% 100%; }
+.gd-cap .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 26px; }
+.gd-cap .lens { position: absolute; top: 4px; width: 44px; height: 44px; border-radius: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; background: var(--g-lens); border: 1px solid var(--g-edge);
+  box-shadow: inset 0 1px 0 var(--g-hi), 0 3px 10px var(--g-shadow); backdrop-filter: blur(10px); }
+.gd-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+.gd-tier { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 11px 0; }
+.gd-tier + .gd-tier { border-top: 2px solid transparent; box-shadow: 0 -1px 0 var(--ink-a10); }
+.gd-tier b { font-size: 15px; font-weight: 500; }
+.gd-tier span { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.gd-tier i { font-style: normal; font-size: 12.5px; color: var(--ink-2); }
+.gd-tier .gt-bar { grid-column: 1 / -1; margin-top: 8px; }
+.gd-rows .r { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; font-size: 14px; }
+.gd-rows .r + .r { box-shadow: 0 -1px 0 var(--ink-a10); }
+.gd-rows .r .k { color: var(--ink-2); }
+.gd-rows .r .v { font-weight: 500; font-variant-numeric: tabular-nums; }
+.gd-rows .r.hl .k, .gd-rows .r.hl .v { color: var(--brass); }
+.gd-loc { align-self: center; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 20px; font-size: 14px; font-weight: 500; }
+.gd-loc svg { width: 16px; height: 16px; stroke: var(--ink-3); fill: none; stroke-width: 1.6; }
+
+/* сравнение небес */
+.gx { display: flex; flex-direction: column; gap: 6px; }
+.gx-cap { font-size: 13px; line-height: 1.35; color: var(--ink-3); padding: 0 4px; }
+.gx-cap b { color: var(--ink); font-weight: 600; }
+
+/* листы «Золотой час» и «Небо» */
+.gl-nl { display: block; color: inherit; }
+.gd-compass { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.gd-compass svg { flex: none; }
+.gd-compass svg text { fill: var(--ink-3); font-size: 11px; font-weight: 500; }
+.sk-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.sk-row { display: grid; grid-template-columns: 118px 1fr 40px; align-items: center; gap: 10px; }
+.sk-l b { display: block; font-size: 14px; font-weight: 500; }
+.sk-l i { display: block; font-style: normal; font-size: 11.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.3; }
+.sk-band { position: relative; border-radius: 12px; overflow: hidden; background: var(--g-track); }
+.sk-band span { position: absolute; inset: 0; }
+.sk-v { font-size: 15px; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* листы «Солнце» и «Луна» */
+.gd-curve { display: block; width: 100%; height: auto; margin-top: 16px; overflow: visible; }
+.gd-curve text { fill: var(--ink-3); font-size: 11px; }
+.md-hero { display: flex; align-items: center; gap: 18px; margin-top: 16px; }
+.md-glyph svg { display: block; width: 112px; height: 112px; margin: -8px; }
+.md-pct { font-size: 52px; font-weight: 300; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.md-w { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+
+/* мини-шкалы в листах: бледно-голубой градиент вместо серой полосы */
+.gd-card .gt-bar i { background: linear-gradient(90deg, rgb(104,128,172), rgb(205,212,228)); }
+
+/* без скевоморфизма: плоский ряд дат вместо барабана, плоская ручка бегунка */
+.gl-dock .dd { display: flex; gap: 4px; margin: 10px 0 4px; }
+.gl-dock .dd .d { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0 5px; border: 0; border-radius: 12px; background: none; color: var(--ink-4); font: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.gl-dock .dd .d .ic { display: flex; }
+.gl-dock .dd .d svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+.gl-dock .dd .d.on { background: var(--g-tab-on); color: var(--ink); }
+.gl-dock .dd .d.on svg { color: var(--brass); }
+.gl-dock .scrub::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+.gl-dock .scrub::-webkit-slider-thumb { width: 22px; height: 22px; background: var(--ink); border: 3px solid var(--g-pill); box-shadow: none; backdrop-filter: none; margin-top: -8px; }
+.gl-dock .rail-heat { display: none; }
+.gt-rib .kn { width: 14px; height: 14px; margin-left: -7px; top: 2px; background: var(--ink); border: 0; box-shadow: none; backdrop-filter: none; }
+.lp-html[data-theme="light"] .gl-dock .dd .d.on { background: rgba(23,21,15,.07); }
+
+/* верх: две плитки (город — он же вход в города; погода), «до заката» — плитка сетки */
+.gl-top { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; position: relative; z-index: 2; }
+.gh.top { margin-top: 58px; }
+.gl-top .gl-tile { min-height: 128px; }
+.gt-name { font-size: 24px; font-weight: 600; letter-spacing: -.2px; line-height: 1.15; overflow-wrap: anywhere; }
+.gt-date { margin-top: auto; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-3); }
+.gt-tr { display: flex; align-items: center; gap: 8px; }
+.gt-tr .nl-spark { width: 42px; height: 14px; flex: none; color: var(--ink-4); }
+
+/* плитка «Погода»: слои картинки за текстом (CSS и SVG, медленная анимация) */
+.wxt .go { display: none; }
+.wxt > .gt-h, .wxt > .gt-v, .wxt > .gt-s { position: relative; z-index: 1; }
+.wxt .gt-s { color: var(--ink-2); }
+.wxa { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0; }
+.wxa > * { position: absolute; display: block; }
+.wxa-sun { right: -50px; top: -52px; width: 124px; height: 124px; border-radius: 50%; background: radial-gradient(circle, rgba(255,243,200,.92) 0 14%, rgba(255,208,112,.5) 26%, rgba(255,170,60,.16) 50%, transparent 68%); animation: wxa-breathe 7s ease-in-out infinite alternate; }
+.wxa-rays { right: -84px; top: -86px; width: 190px; height: 190px; border-radius: 50%; background: repeating-conic-gradient(rgba(255,222,150,.11) 0 5deg, transparent 5deg 15deg); -webkit-mask: radial-gradient(circle, transparent 20%, #000 34%, transparent 70%); mask: radial-gradient(circle, transparent 20%, #000 34%, transparent 70%); animation: wxa-spin 90s linear infinite; }
+.wxa-moon { right: 20px; top: 14px; width: 24px; height: 24px; border-radius: 50%; box-shadow: inset -8px -3px 0 0 rgba(236,241,255,.92), 0 0 18px 2px rgba(150,175,255,.35); transform: rotate(-18deg); }
+.wxa-star { border-radius: 50%; background: #dfe8ff; animation: wxa-twinkle ease-in-out infinite alternate; }
+.wxa-cl { border-radius: 50%; filter: blur(1.5px); animation: wxa-drift ease-in-out infinite alternate; }
+.wxa-shade { inset: 0; background: linear-gradient(180deg, rgba(40,48,66,0) 35%, rgba(40,48,66,.28)); }
+.wxa-band { left: -30px; right: -30px; height: 30px; background: linear-gradient(90deg, transparent, rgba(215,220,230,.55), transparent); filter: blur(6px); animation: wxa-drift 14s ease-in-out infinite alternate; }
+.wxa-fog { inset: 0; background: linear-gradient(180deg, rgba(190,205,230,.08), rgba(190,205,230,.02) 60%, rgba(190,205,230,.07)); backdrop-filter: blur(2.5px); -webkit-backdrop-filter: blur(2.5px); }
+.wxa-dr { border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%; background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.88) 0 14%, rgba(235,245,255,.28) 38%, rgba(235,245,255,.06) 72%); box-shadow: inset 0 -1px 1.5px rgba(10,20,40,.38), 0 1px 0 rgba(255,255,255,.2); }
+.wxa-run { animation: wxa-slide linear infinite; }
+.wxa-run::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 2px; margin-left: -1px; height: var(--tr, 34px); border-radius: 1px; background: linear-gradient(0deg, rgba(235,245,255,.34), transparent); }
+.wxa-flash { inset: 0; background: rgba(210,220,255,.55); opacity: 0; animation: wxa-flash 9s ease-out infinite; }
+.wxa-fl { top: 0; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 0 3px rgba(255,255,255,.6); animation: wxa-fall linear infinite; }
+.wxa-frost { inset: 0; width: 100%; height: 100%; opacity: .9; }
+.wxa-rime { inset: 0; background: radial-gradient(120% 90% at 50% 120%, rgba(225,240,255,.22), transparent 55%), radial-gradient(70% 60% at 0% 0%, rgba(225,240,255,.16), transparent 70%), radial-gradient(70% 60% at 100% 100%, rgba(225,240,255,.16), transparent 70%); }
+.wxa-glint { width: 9px; height: 9px; background: radial-gradient(circle, #fff 0 12%, transparent 14%), linear-gradient(90deg, transparent 40%, rgba(255,255,255,.9) 50%, transparent 60%), linear-gradient(0deg, transparent 40%, rgba(255,255,255,.9) 50%, transparent 60%); animation: wxa-twinkle 3s ease-in-out infinite alternate; }
+@keyframes wxa-breathe { from { transform: scale(1); opacity: .88; } to { transform: scale(1.08); opacity: 1; } }
+@keyframes wxa-spin { to { transform: rotate(360deg); } }
+@keyframes wxa-twinkle { from { opacity: .25; } to { opacity: 1; } }
+@keyframes wxa-drift { from { transform: translateX(-9px); } to { transform: translateX(9px); } }
+@keyframes wxa-slide { 0% { transform: translateY(0); opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { transform: translateY(var(--run, 100px)); opacity: 0; } }
+@keyframes wxa-fall { 0% { transform: translate(0, -12px); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(var(--sw, 8px), 150px); opacity: .9; } }
+@keyframes wxa-flash { 0%, 91%, 100% { opacity: 0; } 92% { opacity: .75; } 94% { opacity: .1; } 96% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .wxa * { animation: none !important; } }
+/* светлая тема: белое на белом не видно — капли, облака и хлопья берут синеватый тон */
+.lp-html[data-theme="light"] .wxa-dr { background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.95) 0 14%, rgba(120,150,190,.22) 40%, rgba(120,150,190,.06) 72%); box-shadow: inset 0 -1px 1.5px rgba(40,70,110,.35), 0 1px 0 rgba(255,255,255,.8), 0 0 0 .5px rgba(70,100,140,.25); }
+.lp-html[data-theme="light"] .wxa-run::before { background: linear-gradient(0deg, rgba(90,120,160,.30), transparent); }
+.lp-html[data-theme="light"] .wxa-fl { background: rgba(110,140,185,.85); box-shadow: none; }
+.lp-html[data-theme="light"] .wxa-fog { background: linear-gradient(180deg, rgba(120,150,190,.14), rgba(120,150,190,.04) 60%, rgba(120,150,190,.10)); }
+
+/* переключатель солнце ↔ луна в правом верхнем углу купола */
+.gh-sw { position: absolute; top: 12px; right: 12px; z-index: 3; width: 36px; height: 36px; border: 0; border-radius: 18px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--g-chip); color: var(--ink-2); cursor: pointer; }
+.gh-sw svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+/* дождь по образцу Apple: полосы облаков, тонкие штрихи в воздухе, мелкие бусинки на стекле */
+.wxa-wisp { border-radius: 50%; filter: blur(5px); animation: wxa-wdrift ease-in-out infinite alternate; }
+.wxa-rs { width: 1px; border-radius: 1px; background: linear-gradient(180deg, transparent, rgba(205,220,245,.75)); animation: wxa-rain linear infinite; }
+.wxa-bead { background: radial-gradient(ellipse at 38% 30%, rgba(255,255,255,.5) 0 12%, rgba(190,210,240,.12) 46%, transparent 74%); box-shadow: 0 0 0 .5px rgba(210,225,250,.15), inset 0 -.5px 1px rgba(5,10,25,.3); }
+@keyframes wxa-wdrift { from { transform: translateX(-18px); } to { transform: translateX(18px); } }
+@keyframes wxa-rain { 0% { transform: translateY(-40px); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(170px); opacity: 0; } }
+.lp-html[data-theme="light"] .wxa-rs { background: linear-gradient(180deg, transparent, rgba(80,105,150,.6)); }
+.lp-html[data-theme="light"] .wxa-bead { background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.95) 0 16%, rgba(120,150,190,.22) 46%, transparent 72%); box-shadow: 0 0 0 .5px rgba(70,100,140,.3), inset 0 -.5px 1px rgba(40,70,110,.35); }
+
+/* стекающая капля: извилистый след и голова, едущая по тому же пути */
+.wxa-riv { left: 0; top: 0; width: 180px; height: 180px; overflow: visible; }
+.wxa-rivp { fill: none; stroke: rgba(205,222,248,.12); stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: wxa-draw linear infinite; }
+.wxa-rivp.hi { stroke: rgba(255,255,255,.17); stroke-width: .7; transform: translate(.9px, -.4px); }
+.wxa-head { left: 0; top: 0; width: 4.8px; height: 7px; offset-rotate: 0deg; animation: wxa-ride linear infinite; opacity: .7; }
+@keyframes wxa-draw { 0% { stroke-dashoffset: 100; opacity: 0; } 8% { opacity: 1; } 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes wxa-ride { 0% { offset-distance: 0%; opacity: 0; } 8% { opacity: .75; } 90% { offset-distance: 100%; opacity: .75; } 100% { offset-distance: 100%; opacity: 0; } }
+
+/* купол-кольцо: день сверху, ночь снизу, матовое стекло ровно по горизонту */
+.lp-html[data-theme="dark"] .gl { --g-ring: rgba(255,255,255,.92); }
+.lp-html[data-theme="light"] .gl { --g-ring: rgba(23,21,15,.72); }
+.hero2 { position: relative; height: 296px; margin-top: 50px; }
+.hero2 .ring { position: absolute; left: 50%; top: 0; margin-left: -170px; width: 340px; height: 340px; overflow: visible; }
+.hero2 .hp { position: absolute; left: 0; right: 0; top: 170px; height: 128px; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center;
+  backdrop-filter: blur(26px) saturate(1.25); -webkit-backdrop-filter: blur(26px) saturate(1.25); }
+.hero2 .gh-sw { top: 4px; right: 4px; }
+.hp-grain { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: overlay; }
+.hp-t { font-size: 52px; font-weight: 200; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.hp-p { font-size: 11px; font-weight: 600; letter-spacing: 2.4px; text-transform: uppercase; margin-top: 4px; }
+.lp-html[data-theme="dark"] .hp-p { color: var(--brass-soft); }
+.lp-html[data-theme="light"] .hp-p { color: var(--brass-dark); }
+.hp-s { font-size: 13px; color: var(--ink); }
+.lp-html[data-theme="light"] .hero2 .hp { background: linear-gradient(150deg, rgba(255,255,255,.92), rgba(255,255,255,.8)); }
+.hero2 .sky { position: absolute; left: -12px; right: -12px; top: -50px; height: 560px; pointer-events: none; }
+.lp-html[data-theme="dark"] .hero2 .hp { background: linear-gradient(rgba(10,8,8,.30), rgba(10,8,8,.30)), radial-gradient(130% 120% at 100% 100%, var(--g-tile-glow), transparent 62%), linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b) 62%); }
+
+/* «+ Съёмка» слева в куполе; шеврон сворачивания дат по центру верхней строки слайдера */
+.hero2 .gh-add { position: absolute; top: 4px; left: 4px; z-index: 3; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: var(--g-chip); color: var(--ink); cursor: pointer; }
+.hero2 .gh-add svg { width: 20px; height: 20px; stroke: var(--brass); fill: none; stroke-width: 1.6; }
+.gl-dock .dd-chev { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: 0; padding: 0; color: var(--ink-3); cursor: pointer; }
+.gl-dock .dd-chev svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform .2s; }
+.lp-html[data-theme="dark"] .hero2 .gh-add, .lp-html[data-theme="dark"] .hero2 .gh-sw { background: rgba(14,11,10,.46); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
