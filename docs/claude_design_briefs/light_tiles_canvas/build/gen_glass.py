@@ -506,6 +506,31 @@ def _rivulet(R, x0, y1=172):
     return d
 
 
+def wx_clouds(u, cover, tone, seed):
+    """Облака из шума (приём CSS-Tricks): размытые овалы, края которых рвёт feTurbulence + feDisplacementMap.
+    Три слоя — дальний мельче и бледнее, средний, ближний крупнее; у каждого своя «октавность» и сила искажения.
+    cover 0..1 — сколько неба закрыто; tone — (свет, тень) облака, rgb через запятую. Каждый слой — отдельный svg, дрейфует сам."""
+    R = random.Random(seed * 31 + 7)
+    lit, shade = tone
+    out = []
+    for i, (oct_, scale, op, rmin, rmax, y0, y1, dur) in enumerate(((4, 30, .6, 12, 22, 18, 50, 52), (3, 36, .78, 16, 30, 22, 58, 41), (2, 40, .95, 20, 36, 28, 70, 33))):
+        n = max(1, int(round((2 + 5 * cover) * (0.7 + 0.3 * i))))
+        sh, li = [], []
+        for _ in range(n):
+            cx, cy = R.uniform(10, 210), R.uniform(y0, y1 if cover > .6 else y0 + (y1 - y0) * .6)
+            rx = R.uniform(rmin, rmax) * (0.7 + 0.5 * cover); ry = rx * R.uniform(.34, .5)
+            sh.append('<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f"></ellipse>' % (cx, cy + ry * .55, rx, ry))
+            li.append('<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f"></ellipse>' % (cx, cy, rx * .94, ry * .86))
+        fid = 'cf%s%d' % (u, i)
+        out.append(('<svg class="wxa-cs" viewBox="0 0 220 140" width="220" height="140" style="opacity:%.2f;animation-duration:%ds;animation-delay:-%ds"><defs>'
+                    '<filter id="%s" x="-25%%" y="-60%%" width="150%%" height="220%%"><feGaussianBlur stdDeviation="2.6" result="b"></feGaussianBlur>'
+                    '<feTurbulence type="fractalNoise" baseFrequency=".021 .034" numOctaves="%d" seed="%d" result="n"></feTurbulence>'
+                    '<feDisplacementMap in="b" in2="n" scale="%d" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></defs>'
+                    '<g filter="url(#%s)"><g fill="rgba(%s,.85)">%s</g><g fill="rgba(%s,.92)">%s</g></g></svg>') % (
+            op * (.45 + .4 * cover), dur, R.randint(0, dur), fid, oct_, seed + i * 5, scale, fid, shade, ''.join(sh), lit, ''.join(li)))
+    return ''.join(out)
+
+
 def wx_art(kind, u, night=False, frost=False, heavy=False, seed=1):
     """Слои картинки за текстом плитки: солнце, звёзды, облака, запотевшее стекло с каплями, снег, изморозь. Только CSS и SVG, без скриптов."""
     R = random.Random(seed)
@@ -520,22 +545,18 @@ def wx_art(kind, u, night=False, frost=False, heavy=False, seed=1):
             L.append('<i class="wxa-star" style="left:%dpx;top:%dpx;width:%.1fpx;height:%.1fpx;animation-delay:-%.1fs;animation-duration:%.1fs"></i>' % (
                 R.randint(6, 172), R.randint(6, 100), 1 + R.random() * 1.6, 1 + R.random() * 1.6, R.random() * 5, 3 + R.random() * 3))
     if kind == 'part':
-        cl(70, 34, 86, 40, .85, 15, 3)
-        cl(104, 8, 70, 34, .7, 19, 9)
-        cl(40, 60, 70, 30, .5, 17, 5)
+        L.append(wx_clouds(u, .3, ('150,162,190', '58,68,94') if night else ('176,188,210', '70,82,108'), seed))
     wisp = lambda l, t, w, h, op, dur, dl, col: L.append(
         '<i class="wxa-wisp" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;opacity:%.2f;background:linear-gradient(90deg, rgba(%s,0), rgba(%s,.6) 28%%, rgba(%s,.5) 72%%, rgba(%s,0));animation-duration:%ds;animation-delay:-%ds"></i>' % (
             l, t, w, h, op, col, col, col, col, dur, dl))
     if kind == 'cloud':
-        for (l, t, w, h, op, dur, dl) in ((-50, -8, 210, 30, .7, 38, 4), (0, 20, 230, 26, .6, 44, 13), (-30, 46, 200, 22, .45, 33, 21), (50, -16, 180, 28, .55, 40, 9)):
-            wisp(l, t, w, h, op, dur, dl, '176,186,206')
+        L.append(wx_clouds(u, .9, ('138,150,178', '50,60,86') if night else ('164,176,200', '62,74,100'), seed))
         L.append('<i class="wxa-shade"></i>')
     if kind == 'fog':
         for i, (t, op) in enumerate(((10, .5), (44, .42), (80, .36))):
             L.append('<i class="wxa-band" style="top:%dpx;opacity:%.2f;animation-delay:-%ds"></i>' % (t, op, i * 6))
     if kind in ('rain', 'storm'):
-        for (l, t, w, h, op, dur, dl) in ((-40, -6, 200, 26, .55, 34, 4), (10, 18, 220, 22, .45, 40, 12), (-20, 40, 190, 20, .35, 30, 20), (40, -14, 170, 24, .4, 36, 8)):
-            wisp(l, t, w, h, op, dur, dl, '112,126,160')
+        L.append(wx_clouds(u, 1.0, ('110,124,156', '40,50,76'), seed))
         L.append('<i class="wxa-fog"></i>')
         # дождь в воздухе: тонкие штрихи разной длины и чёткости
         for _ in range(26 if heavy else 15):
@@ -1053,8 +1074,8 @@ def weather_board():
     cases = [('Ясно · день', 'clear', False, False, False, '18°', 'Ясно', '↓ 9° ↑ 19°', 'солнце, лучи медленно вращаются'),
              ('Ясно · ночь', 'clear', True, False, False, '4°', 'Ясно', '↓ 1° ↑ 8°', 'луна и мерцающие звёзды'),
              ('Переменная облачность', 'part', False, False, False, '12°', 'Переменно', '↓ 6° ↑ 13°', 'солнце за плывущими облаками'),
-             ('Пасмурно', 'cloud', False, False, False, '9°', 'Пасмурно', '↓ 6° ↑ 10°', 'длинные размытые полосы облаков'),
-             ('Дождь', 'rain', False, False, False, '7°', 'Дождь', '↓ −3° ↑ 7°', 'полосы облаков, тонкий дождь, мелкие бусинки на стекле и пара стекающих капель (по образцу Apple)'),
+             ('Пасмурно', 'cloud', False, False, False, '9°', 'Пасмурно', '↓ 6° ↑ 10°', 'сплошные облака с рваными краями, три слоя'),
+             ('Дождь', 'rain', False, False, False, '7°', 'Дождь', '↓ −3° ↑ 7°', 'тёмные облака, тонкий дождь, мелкие бусинки на стекле и пара стекающих капель (по образцу Apple)'),
              ('Ливень и гроза', 'storm', False, False, True, '15°', 'Гроза', '↓ 12° ↑ 17°', 'то же гуще, редкая вспышка'),
              ('Снег', 'snow', False, True, False, '−3°', 'Снег', '↓ −7° ↑ −2°', 'хлопья и лёгкая изморозь по краям'),
              ('Мороз, ясно', 'clear', False, True, False, '−18°', 'Ясно', '↓ −24° ↑ −15°', 'изморозь по краям, искры на стекле')]
