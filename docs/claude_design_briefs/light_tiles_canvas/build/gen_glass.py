@@ -176,7 +176,7 @@ class Frame:
         k = .55 if dark else .82
         hero = ('linear-gradient(180deg, %s 0%%, %s 38%%, %s 72%%, %s 100%%), %s') % (
             rgba(p['zenith'], k), rgba(p['high'], k - .05), rgba(p['mid'], k - .08), rgba(p['horizon'], k), base)
-        detail = ('linear-gradient(180deg, %s 0px, %s 110px, %s 230px, %s 346px, %s 560px, %s 100%%)') % (
+        detail = ('linear-gradient(180deg, %s 0px, %s 80px, %s 165px, %s 255px, %s 442px, %s 100%%)') % (
             rgb(p['zenith']), rgb(p['high']), rgb(p['mid']), rgb(p['horizon']), base, base)
         glow = rgba(p['horizon'], .16 + .22 * p['life'])
         land = 'rgba(10,8,8,.78)' if dark else 'rgba(130,108,92,.30)'
@@ -789,41 +789,52 @@ def sun_model(fr):
     return alt, hmax
 
 
+HZD = 252   # горизонт на листах «на небе»: верхняя пустота сжата, карточка начинается сразу под ним
+
+
 def sky_back(fr, back, moon=None):
-    """Шапка листов: небо, траектория светила пунктиром, под ней светящийся «холм» цветом заката; стеклянная «назад».
+    """Шапка листов: небо, траектория светила пунктиром с хвостами за горизонт, под ней светящийся «холм» цветом заката; стеклянная «назад».
     moon = (u, lens_fn): дуга луны по доле пути u и функция, рисующая диск в точке (x, y); без неё — солнце по настоящей кривой высоты."""
     p = fr.view
     if moon:
         u, lens_fn = moon
-        pts = [(24 + 345 * s / 60.0, 330 - 135 * math.sin(math.pi * s / 60.0)) for s in range(0, 61)]
-        lx, ly = 24 + 345 * u, 330 - 135 * math.sin(math.pi * u)
+        pt = lambda s: (24 + 345 * s / 60.0, HZD - 128 * math.sin(math.pi * s / 60.0))
+        pts = [pt(s) for s in range(0, 61)]
+        tl = [pt(s / 4.0) for s in range(-20, 1)]
+        tr = [pt(60 + s / 4.0) for s in range(0, 21)]
+        lx, ly = pt(60 * u)
         c1, c2, a1, a2 = (205, 218, 245), (120, 146, 205), .55, .32
         lens = lens_fn(lx, ly)
     else:
         alt, hmax = sun_model(fr)
         ra, st, now = mins(fr.rise), mins(fr.set), mins(fr.at)
-        k = 150.0 / hmax
+        k = 130.0 / hmax
         X = lambda t: 24 + (t - ra) / float(st - ra) * 345
-        Y = lambda t: 330 - max(alt(t), 0) * k
+        Y = lambda t: HZD - max(alt(t), 0) * k
         pts = [(X(t), Y(t)) for t in list(range(ra, st, 5)) + [st]]
+        # хвосты: та же кривая продолжается под горизонт (сдвинута так, чтобы пройти через точки восхода и заката)
+        tl = [(X(t), HZD - (alt(t) - alt(ra)) * k) for t in range(ra - 48, ra + 1, 3)]
+        tr = [(X(t), HZD - (alt(t) - alt(st)) * k) for t in range(st, st + 49, 3)]
         tn = clamp(now, ra, st)
         lx, ly = X(tn), Y(tn)
-        # холм светлее неба вокруг: тот же цвет, осветлённый, и режим screen — иначе он тонет в цвете заката
+        # холм светлее неба вокруг: тот же цвет, осветлённый, и режим plus-lighter — иначе он тонет в цвете заката
         warm1, warm2 = lerp((255, 255, 255), (255, 238, 195), p['life']), lerp((255, 255, 255), (255, 190, 120), p['life'])
         c1, c2 = lerp(p['horizon'], warm1, .45), lerp(p['mid'], warm2, .40)
         a1, a2 = .26 + .42 * p['life'], .16 + .34 * p['life']
         lens = ('<circle cx="%.1f" cy="%.1f" r="28" fill="%s" opacity="%.2f" filter="url(#mb)"></circle>'
                 '<circle cx="%.1f" cy="%.1f" r="15" fill="url(#ln)" stroke="rgba(255,255,255,.75)" stroke-width="1"></circle>') % (lx, ly, rgb(p['horizon']), .35 + .4 * p['life'], lx, ly)
-    d_line = 'M ' + ' L '.join('%.1f %.1f' % q for q in pts)
-    d_fill = d_line + ' L %.1f 330 L %.1f 330 Z' % (pts[-1][0], pts[0][0])
-    sky = ('<div class="gd-sky"><svg viewBox="0 0 393 400" aria-hidden="true"><defs>'
-           '<radialGradient id="mg" cx="50%%" cy="62%%" r="64%%"><stop offset="0" stop-color="%s" stop-opacity="%.2f"></stop><stop offset=".5" stop-color="%s" stop-opacity="%.2f"></stop><stop offset="1" stop-color="%s" stop-opacity="0"></stop></radialGradient>'
+    line = lambda q: 'M ' + ' L '.join('%.1f %.1f' % c for c in q)
+    d_line = line(pts)
+    d_fill = d_line + ' L %.1f %d L %.1f %d Z' % (pts[-1][0], HZD, pts[0][0], HZD)
+    sky = ('<div class="gd-sky"><svg viewBox="0 0 393 %d" aria-hidden="true"><defs>'
+           '<radialGradient id="mg" cx="50%%" cy="100%%" r="80%%"><stop offset="0" stop-color="%s" stop-opacity="%.2f"></stop><stop offset=".5" stop-color="%s" stop-opacity="%.2f"></stop><stop offset="1" stop-color="%s" stop-opacity="0"></stop></radialGradient>'
            '<filter id="mb" x="-30%%" y="-40%%" width="160%%" height="180%%"><feGaussianBlur stdDeviation="12"></feGaussianBlur></filter>'
-           '<radialGradient id="ln" cx="35%%" cy="30%%" r="80%%"><stop offset="0" stop-color="#fff" stop-opacity=".55"></stop><stop offset="1" stop-color="#fff" stop-opacity=".12"></stop></radialGradient></defs>'
+           '<radialGradient id="ln" cx="35%%" cy="30%%" r="80%%"><stop offset="0" stop-color="#fff" stop-opacity=".55"></stop><stop offset="1" stop-color="#fff" stop-opacity=".12"></stop></radialGradient>'
+           '<linearGradient id="tg" x1="0" y1="%d" x2="0" y2="%d" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".62"></stop><stop offset="1" stop-color="#fff" stop-opacity="0"></stop></linearGradient></defs>'
            '<path d="%s" fill="url(#mg)" filter="url(#mb)" style="mix-blend-mode: plus-lighter"></path><path d="%s" fill="url(#mg)" opacity="1" style="mix-blend-mode: plus-lighter"></path>'
-           '<path class="path" d="%s"></path>'
-           '<line x1="0" y1="330" x2="16" y2="330" stroke="rgba(255,255,255,.5)"></line><line x1="377" y1="330" x2="393" y2="330" stroke="rgba(255,255,255,.5)"></line>'
-           '%s</svg></div>') % (rgb(c1), a1, rgb(c2), a2, rgb(c2), d_fill, d_fill, d_line, lens)
+           '<path class="path" d="%s"></path><path class="path" d="%s" style="stroke: url(#tg)"></path><path class="path" d="%s" style="stroke: url(#tg)"></path>'
+           '<line x1="0" y1="%d" x2="16" y2="%d" stroke="rgba(255,255,255,.5)"></line><line x1="377" y1="%d" x2="393" y2="%d" stroke="rgba(255,255,255,.5)"></line>'
+           '%s</svg></div>') % (HZD + 40, rgb(c1), a1, rgb(c2), a2, rgb(c2), HZD, HZD + 44, d_fill, d_fill, d_line, line(tl), line(tr), HZD, HZD, HZD, HZD, lens)
     back_html = '<a class="gl-glass gd-back" href="%s"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4l8 8-8 8"></path></svg>Свет</a>' % back
     return sky + back_html
 
@@ -1013,15 +1024,15 @@ add('Glass_Day', 'Стекло · день', home(fd, 'c', 852, False, LINK), 39
 add('Glass_Night', 'Стекло · ночь', home(fn, 'd', 852, False, LINK), 393, 852, True)
 add('Glass_Light', 'Стекло · светлая тема', home(fl, 'e', 852, False, LINK), 393, 852, True)
 add('Glass_Scroll', 'Стекло · вечер, вся прокрутка', home(fe, 'f', 1292, True, LINK), 393, 1292, True)
-add('Glass_Sunset', 'Закат — лист подробностей, сегодня (0 / 100)', wrap(detail(fe, 'Glass_Evening.dc.html'), fe, 1445, 'gl gd'), 393, 1445)
-add('Glass_Golden', 'Золотой час — лист на небе', wrap(golden_detail(fe, 'Glass_Evening.dc.html'), fe, 1560, 'gl gd'), 393, 1560)
-add('Glass_Sky', 'Небо — лист на небе', wrap(sky_detail(fe, 'Glass_Evening.dc.html'), fe, 1230, 'gl gd'), 393, 1230)
+add('Glass_Sunset', 'Закат — лист подробностей, сегодня (0 / 100)', wrap(detail(fe, 'Glass_Evening.dc.html'), fe, 1363, 'gl gd'), 393, 1363)
+add('Glass_Golden', 'Золотой час — лист на небе', wrap(golden_detail(fe, 'Glass_Evening.dc.html'), fe, 1478, 'gl gd'), 393, 1478)
+add('Glass_Sky', 'Небо — лист на небе', wrap(sky_detail(fe, 'Glass_Evening.dc.html'), fe, 1151, 'gl gd'), 393, 1151)
 fm = EVE()
 fm.pal = night_palette(fm.clouds)
 fm.view = fm.pal
-add('Glass_Sun', 'Солнце — лист на небе', wrap(sun_detail(fe, 'Glass_Evening.dc.html'), fe, 1570, 'gl gd'), 393, 1570)
-add('Glass_Moon', 'Луна — лист на небе', wrap(moon_detail(fm, 'Glass_Evening.dc.html'), fm, 1260, 'gl gd'), 393, 1260)
-add('Glass_SunsetExample', 'Закат — лист подробностей, пример (78)', wrap(detail(fx, 'Glass_Example.dc.html', 'пример: цифры придуманы, чтобы показать цвет'), fx, 1475, 'gl gd'), 393, 1475)
+add('Glass_Sun', 'Солнце — лист на небе', wrap(sun_detail(fe, 'Glass_Evening.dc.html'), fe, 1488, 'gl gd'), 393, 1488)
+add('Glass_Moon', 'Луна — лист на небе', wrap(moon_detail(fm, 'Glass_Evening.dc.html'), fm, 1176, 'gl gd'), 393, 1176)
+add('Glass_SunsetExample', 'Закат — лист подробностей, пример (78)', wrap(detail(fx, 'Glass_Example.dc.html', 'пример: цифры придуманы, чтобы показать цвет'), fx, 1393, 'gl gd'), 393, 1393)
 
 # сравнение неба над дугой
 cases = [('сегодня · 0 / 100', fe.score, fe.layers, fe.hum, 'реальный прогноз беты: нижний ярус закрыл горизонт, цвет «свинец»'),

@@ -91,12 +91,13 @@
 
 /* лист «Закат» на небе */
 .gd { background: var(--g-detail); }
-.gd-sky { position: absolute; left: 0; right: 0; top: 0; height: 400px; pointer-events: none; }
+.gd-sky { position: absolute; left: 0; right: 0; top: 0; height: 292px; pointer-events: none; }
 .gd-sky svg { display: block; width: 100%; height: 100%; }
 .gd-sky .path { fill: none; stroke: rgba(255,255,255,.62); stroke-width: 1.6; stroke-dasharray: 5 6; stroke-linecap: round; }
-.gd-back { position: absolute; left: 16px; top: 58px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px 0 10px; border-radius: 20px; font-size: 15px; font-weight: 500; }
+.gd-back { position: absolute; left: 16px; top: 58px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px 0 10px; border-radius: 20px; font-size: 15px; font-weight: 500;
+  background: linear-gradient(rgba(8,12,22,.34), rgba(8,12,22,.34)), linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b)); }
 .gd-back svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform: rotate(180deg); }
-.gd-body { position: relative; z-index: 2; padding: 352px 12px 40px; display: flex; flex-direction: column; gap: 12px; }
+.gd-body { position: relative; z-index: 2; padding: 274px 12px 40px; display: flex; flex-direction: column; gap: 12px; }
 .gd-card { padding: 18px 18px 18px; border-radius: 26px;
   background: linear-gradient(var(--g-cardtint), var(--g-cardtint)), radial-gradient(130% 120% at 100% 100%, var(--g-tile-glow), transparent 62%), linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b) 62%); }
 .gd-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
