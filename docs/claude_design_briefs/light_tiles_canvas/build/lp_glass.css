@@ -189,59 +189,16 @@
 .wxt > .gt-h, .wxt > .gt-v, .wxt > .gt-s { position: relative; z-index: 1; }
 .wxt .gt-s { color: var(--ink-2); }
 .wxa { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0; }
-.wxa > * { position: absolute; display: block; }
-.wxa-sun { right: -50px; top: -52px; width: 124px; height: 124px; border-radius: 50%; background: radial-gradient(circle, rgba(255,243,200,.92) 0 14%, rgba(255,208,112,.5) 26%, rgba(255,170,60,.16) 50%, transparent 68%); animation: wxa-breathe 7s ease-in-out infinite alternate; }
-.wxa-rays { right: -84px; top: -86px; width: 190px; height: 190px; border-radius: 50%; background: repeating-conic-gradient(rgba(255,222,150,.11) 0 5deg, transparent 5deg 15deg); -webkit-mask: radial-gradient(circle, transparent 20%, #000 34%, transparent 70%); mask: radial-gradient(circle, transparent 20%, #000 34%, transparent 70%); animation: wxa-spin 90s linear infinite; }
-.wxa-moon { right: 20px; top: 14px; width: 24px; height: 24px; border-radius: 50%; box-shadow: inset -8px -3px 0 0 rgba(236,241,255,.92), 0 0 18px 2px rgba(150,175,255,.35); transform: rotate(-18deg); }
-.wxa-star { border-radius: 50%; background: #dfe8ff; animation: wxa-twinkle ease-in-out infinite alternate; }
-.wxa-cl { border-radius: 50%; filter: blur(1.5px); animation: wxa-drift ease-in-out infinite alternate; }
-.wxa-shade { inset: 0; background: linear-gradient(180deg, rgba(40,48,66,0) 35%, rgba(40,48,66,.28)); }
-.wxa-band { left: -30px; right: -30px; height: 30px; background: linear-gradient(90deg, transparent, rgba(215,220,230,.55), transparent); filter: blur(6px); animation: wxa-drift 14s ease-in-out infinite alternate; }
-.wxa-fog { inset: 0; background: linear-gradient(180deg, rgba(190,205,230,.08), rgba(190,205,230,.02) 60%, rgba(190,205,230,.07)); backdrop-filter: blur(2.5px); -webkit-backdrop-filter: blur(2.5px); }
-.wxa-dr { border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%; background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.88) 0 14%, rgba(235,245,255,.28) 38%, rgba(235,245,255,.06) 72%); box-shadow: inset 0 -1px 1.5px rgba(10,20,40,.38), 0 1px 0 rgba(255,255,255,.2); }
-.wxa-run { animation: wxa-slide linear infinite; }
-.wxa-run::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 2px; margin-left: -1px; height: var(--tr, 34px); border-radius: 1px; background: linear-gradient(0deg, rgba(235,245,255,.34), transparent); }
-.wxa-flash { inset: 0; background: rgba(210,220,255,.55); opacity: 0; animation: wxa-flash 9s ease-out infinite; }
-.wxa-fl { top: 0; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 0 3px rgba(255,255,255,.6); animation: wxa-fall linear infinite; }
-.wxa-frost { inset: 0; width: 100%; height: 100%; opacity: .9; }
-.wxa-rime { inset: 0; background: radial-gradient(120% 90% at 50% 120%, rgba(225,240,255,.22), transparent 55%), radial-gradient(70% 60% at 0% 0%, rgba(225,240,255,.16), transparent 70%), radial-gradient(70% 60% at 100% 100%, rgba(225,240,255,.16), transparent 70%); }
-.wxa-glint { width: 9px; height: 9px; background: radial-gradient(circle, #fff 0 12%, transparent 14%), linear-gradient(90deg, transparent 40%, rgba(255,255,255,.9) 50%, transparent 60%), linear-gradient(0deg, transparent 40%, rgba(255,255,255,.9) 50%, transparent 60%); animation: wxa-twinkle 3s ease-in-out infinite alternate; }
-@keyframes wxa-breathe { from { transform: scale(1); opacity: .88; } to { transform: scale(1.08); opacity: 1; } }
-@keyframes wxa-spin { to { transform: rotate(360deg); } }
-@keyframes wxa-twinkle { from { opacity: .25; } to { opacity: 1; } }
-@keyframes wxa-drift { from { transform: translateX(-9px); } to { transform: translateX(9px); } }
-@keyframes wxa-slide { 0% { transform: translateY(0); opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { transform: translateY(var(--run, 100px)); opacity: 0; } }
-@keyframes wxa-fall { 0% { transform: translate(0, -12px); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(var(--sw, 8px), 150px); opacity: .9; } }
-@keyframes wxa-flash { 0%, 91%, 100% { opacity: 0; } 92% { opacity: .75; } 94% { opacity: .1; } 96% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .wxa * { animation: none !important; } }
 /* светлая тема: белое на белом не видно — капли, облака и хлопья берут синеватый тон */
-.lp-html[data-theme="light"] .wxa-dr { background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.95) 0 14%, rgba(120,150,190,.22) 40%, rgba(120,150,190,.06) 72%); box-shadow: inset 0 -1px 1.5px rgba(40,70,110,.35), 0 1px 0 rgba(255,255,255,.8), 0 0 0 .5px rgba(70,100,140,.25); }
-.lp-html[data-theme="light"] .wxa-run::before { background: linear-gradient(0deg, rgba(90,120,160,.30), transparent); }
-.lp-html[data-theme="light"] .wxa-fl { background: rgba(110,140,185,.85); box-shadow: none; }
-.lp-html[data-theme="light"] .wxa-fog { background: linear-gradient(180deg, rgba(120,150,190,.14), rgba(120,150,190,.04) 60%, rgba(120,150,190,.10)); }
 
 /* переключатель солнце ↔ луна в правом верхнем углу купола */
 .gh-sw { position: absolute; top: 12px; right: 12px; z-index: 3; width: 36px; height: 36px; border: 0; border-radius: 18px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--g-chip); color: var(--ink-2); cursor: pointer; }
 .gh-sw svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.6; }
 
 /* дождь по образцу Apple: полосы облаков, тонкие штрихи в воздухе, мелкие бусинки на стекле */
-.wxa-cs { position: absolute; left: -20px; top: 0; animation: wxa-wdrift ease-in-out infinite alternate;
-  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.16) 0, rgba(0,0,0,.16) 50px, #000 80px); mask-image: linear-gradient(180deg, rgba(0,0,0,.16) 0, rgba(0,0,0,.16) 50px, #000 80px); }
-.wxa-wisp { border-radius: 50%; filter: blur(5px); animation: wxa-wdrift ease-in-out infinite alternate; }
-.wxa-rs { width: 1px; border-radius: 1px; background: linear-gradient(180deg, transparent, rgba(205,220,245,.75)); animation: wxa-rain linear infinite; }
-.wxa-bead { background: radial-gradient(ellipse at 38% 30%, rgba(255,255,255,.5) 0 12%, rgba(190,210,240,.12) 46%, transparent 74%); box-shadow: 0 0 0 .5px rgba(210,225,250,.15), inset 0 -.5px 1px rgba(5,10,25,.3); }
-@keyframes wxa-wdrift { from { transform: translateX(-18px); } to { transform: translateX(18px); } }
-@keyframes wxa-rain { 0% { transform: translateY(-40px); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(170px); opacity: 0; } }
-.lp-html[data-theme="light"] .wxa-rs { background: linear-gradient(180deg, transparent, rgba(80,105,150,.6)); }
-.lp-html[data-theme="light"] .wxa-bead { background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.95) 0 16%, rgba(120,150,190,.22) 46%, transparent 72%); box-shadow: 0 0 0 .5px rgba(70,100,140,.3), inset 0 -.5px 1px rgba(40,70,110,.35); }
 
 /* стекающая капля: извилистый след и голова, едущая по тому же пути */
-.wxa-riv { left: 0; top: 0; width: 180px; height: 180px; overflow: visible; }
-.wxa-rivp { fill: none; stroke: rgba(205,222,248,.12); stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: wxa-draw linear infinite; }
-.wxa-rivp.hi { stroke: rgba(255,255,255,.17); stroke-width: .7; transform: translate(.9px, -.4px); }
-.wxa-head { left: 0; top: 0; width: 4.8px; height: 7px; offset-rotate: 0deg; animation: wxa-ride linear infinite; opacity: .7; }
-@keyframes wxa-draw { 0% { stroke-dashoffset: 100; opacity: 0; } 8% { opacity: 1; } 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
-@keyframes wxa-ride { 0% { offset-distance: 0%; opacity: 0; } 8% { opacity: .75; } 90% { offset-distance: 100%; opacity: .75; } 100% { offset-distance: 100%; opacity: 0; } }
 
 /* купол-кольцо: день сверху, ночь снизу, матовое стекло ровно по горизонту */
 .lp-html[data-theme="dark"] .gl { --g-ring: rgba(255,255,255,.92); }
@@ -259,7 +216,7 @@
 .hp-s { font-size: 13px; color: var(--ink); }
 .lp-html[data-theme="light"] .hero2 .hp { background: linear-gradient(150deg, rgba(255,255,255,.92), rgba(255,255,255,.8)); }
 .hero2 .sky { position: absolute; left: -12px; right: -12px; top: -50px; height: 560px; pointer-events: none; }
-.lp-html[data-theme="dark"] .hero2 .hp { background: linear-gradient(rgba(10,8,8,.30), rgba(10,8,8,.30)), radial-gradient(130% 120% at 100% 100%, var(--g-tile-glow), transparent 62%), linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b) 62%); }
+.lp-html[data-theme="dark"] .hero2 .hp { background: linear-gradient(rgba(10,8,8,.66), rgba(10,8,8,.66)), radial-gradient(130% 120% at 100% 100%, var(--g-tile-glow), transparent 62%), linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b) 62%); }
 
 /* «+ Съёмка» слева в куполе; шеврон сворачивания дат по центру верхней строки слайдера */
 .hero2 .gh-add { position: absolute; top: 4px; left: 4px; z-index: 3; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: var(--g-chip); color: var(--ink); cursor: pointer; }
@@ -267,3 +224,65 @@
 .gl-dock .dd-chev { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: 0; padding: 0; color: var(--ink-3); cursor: pointer; }
 .gl-dock .dd-chev svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform .2s; }
 .lp-html[data-theme="dark"] .hero2 .gh-add, .lp-html[data-theme="dark"] .hero2 .gh-sw { background: rgba(14,11,10,.46); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+/* Диск времени: два кольца (часы внутри, сутки снаружи) вместо нижней панели слайдера */
+.dl { position: absolute; left: 0; right: 0; bottom: 0; height: 330px; z-index: 5; transition: transform .5s cubic-bezier(.3,.7,.2,1); }
+.dl-bg { position: absolute; inset: 0; clip-path: circle(311px at 196.5px 333px); -webkit-backdrop-filter: blur(22px) saturate(1.15); backdrop-filter: blur(22px) saturate(1.15); background: linear-gradient(180deg, rgba(10,12,18,.34), rgba(10,12,18,.58)); }
+.dl-svg { position: absolute; left: 0; top: 0; overflow: hidden; }
+.dl-ring { fill: none; stroke: rgba(255,255,255,.07); }
+.dl-edge-c { fill: none; stroke: var(--g-edge); stroke-width: 1; }
+.dl-hubc { fill: rgba(8,10,16,.62); stroke: var(--g-edge); stroke-width: 1; }
+.dl-tk { fill: none; stroke: var(--ink-4); stroke-width: .9; }
+.dl-tk.m { stroke: var(--ink-3); stroke-width: 1.2; }
+.dl-tk.b { stroke: var(--ink-2); stroke-width: 2; }
+.dl-num { fill: var(--ink-2); font-size: 12.5px; font-weight: 600; text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.dl-sun { stroke: #fff; stroke-width: 1.8; stroke-linecap: round; opacity: .95; }
+.dl-div { stroke: rgba(255,255,255,.16); stroke-width: 1; }
+.dl-cell { fill: #fff; }
+.dl-num.q { font-size: 14px; fill: var(--ink); }
+.dl-day { fill: var(--ink-2); font-size: 11px; font-weight: 600; letter-spacing: .6px; text-anchor: middle; dominant-baseline: central; }
+.dl-wx { stroke: var(--ink-2); fill: none; stroke-width: 1.5; }
+.dl-window { fill: rgba(255,255,255,.1); stroke: rgba(255,255,255,.3); stroke-width: 1; }
+.dl-index { stroke: var(--brass); stroke-width: 2.2; stroke-linecap: round; }
+.dl-hubtxt { position: absolute; left: 50%; top: 168px; transform: translateX(-50%); width: 200px; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.dl-date { font-size: 11px; font-weight: 600; letter-spacing: 1.1px; color: var(--ink-2); }
+.dl-time { font-size: 44px; font-weight: 300; letter-spacing: -1px; line-height: 46px; font-variant-numeric: tabular-nums; }
+.dl-eds { display: flex; gap: 16px; margin-top: 2px; }
+.dl-ed { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.dl-ed svg { width: 16px; height: 16px; stroke: var(--brass); fill: none; stroke-width: 1.5; }
+.dl-hit { position: absolute; left: 0; top: 0; width: 393px; height: 330px; padding: 0; border: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.dl-chev { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 46px; height: 22px; padding: 0; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--ink-2); cursor: pointer; }
+.dl-chev svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform .4s; }
+.dl-mk { position: absolute; left: 0; top: 0; overflow: hidden; pointer-events: none; }
+
+/* Экран с диском: сложный медленный градиент неба, кольцо траектории под плитками, верх — плиткам */
+.gl.dx { background: var(--g-base); }
+.dx-scene { display: contents; }
+.dx-sky { position: absolute; left: 0; right: 0; top: 0; height: 560px; z-index: 0; overflow: hidden; pointer-events: none; }
+.sky-m { position: absolute; inset: 0; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 52%, transparent 82%); mask-image: linear-gradient(180deg, #000 52%, transparent 82%); }
+.dx-b { position: absolute; border-radius: 50%; will-change: transform; }
+.hero2 .ring-over { position: absolute; left: 50%; top: 0; margin-left: -170px; width: 340px; height: 340px; z-index: 3; pointer-events: none; opacity: .3; mix-blend-mode: screen; clip-path: inset(170px 0 0 0); }
+.ring-over .ring { width: 340px; height: 340px; overflow: visible; }
+@keyframes dx-f1 { from { transform: translate(-50px, 0) scale(1); } to { transform: translate(60px, 26px) scale(1.16); } }
+@keyframes dx-f2 { from { transform: translate(50px, 10px) scale(1.04); } to { transform: translate(-70px, -20px) scale(1.1); } }
+@keyframes dx-f3 { from { transform: translate(-40px, 16px) scale(1.1); } to { transform: translate(64px, -22px) scale(1); } }
+@keyframes dx-f4 { from { transform: translate(40px, -12px) scale(1); } to { transform: translate(-60px, 24px) scale(1.14); } }
+.dx-scene .gh-add { position: absolute; top: 54px; left: 16px; z-index: 7; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: rgba(14,11,10,.46); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--ink); cursor: pointer; }
+.dx-scene .gh-add svg { width: 20px; height: 20px; stroke: var(--brass); fill: none; stroke-width: 1.6; }
+.dx-scene .gh-sw { top: 54px; right: 16px; z-index: 7; background: rgba(14,11,10,.46); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.dx-main { padding-top: 96px; z-index: 2; }
+.dx .gl-glass { -webkit-backdrop-filter: blur(7px) saturate(1.3); backdrop-filter: blur(7px) saturate(1.3); }
+.dx .gl-tile { background: linear-gradient(rgba(12,10,9,.72), rgba(12,10,9,.72)), radial-gradient(130% 120% at 100% 100%, var(--g-tile-glow), transparent 62%), linear-gradient(150deg, var(--g-glass-a), var(--g-glass-b) 62%); }
+
+/* Плитка «Погода»: только градиенты — основа и плывущие мягкие пятна */
+.wxg-base { position: absolute; inset: 0; }
+.wxg { position: absolute; border-radius: 50%; will-change: transform; }
+@keyframes wxg-f1 { from { transform: translate(-12px, 0) scale(1); } to { transform: translate(14px, 8px) scale(1.14); } }
+@keyframes wxg-f2 { from { transform: translate(12px, 4px) scale(1.04); } to { transform: translate(-16px, -6px) scale(1.1); } }
+@keyframes wxg-f3 { from { transform: translate(-10px, 6px) scale(1.1); } to { transform: translate(16px, -8px) scale(1); } }
+@keyframes wxg-f4 { from { transform: translate(10px, -4px) scale(1); } to { transform: translate(-14px, 8px) scale(1.12); } }
+@keyframes wxg-flash { 0%, 90%, 100% { opacity: 0; } 92% { opacity: .8; } 94% { opacity: .15; } 96% { opacity: .55; } }
+.wxa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,10,16,.62), rgba(8,10,16,.28) 62%, transparent), linear-gradient(0deg, rgba(8,10,16,.36), transparent 45%); }
+/* светлая тема: чернила тёмные, значит под текстом светлее, а не темнее */
+.lp-html[data-theme="light"] .wxa { filter: brightness(1.7) saturate(.85); }
+.lp-html[data-theme="light"] .wxa::after { background: linear-gradient(90deg, rgba(255,255,255,.72), rgba(255,255,255,.34) 62%, transparent), linear-gradient(0deg, rgba(255,255,255,.4), transparent 45%); }

@@ -217,6 +217,22 @@
       "w": 820,
       "h": 460,
       "title": "Плитка «Погода» в состояниях (примеры)"
+    },
+    "Glass_Dial.dc.html": {
+      "x": 0,
+      "y": 7820,
+      "w": 393,
+      "h": 852,
+      "title": "Диск времени · сегодня (оценка 0). Нажми слева/справа на кольцо: внутреннее — час, внешнее — сутки",
+      "is_interactive": true
+    },
+    "Glass_DialExample.dc.html": {
+      "x": 473,
+      "y": 7820,
+      "w": 393,
+      "h": 852,
+      "title": "Диск времени · пример (78): цвет заката придуман, чтобы показать градиент",
+      "is_interactive": true
     }
   },
   "order": [
@@ -246,7 +262,9 @@
     "Glass_Sky.dc.html",
     "Glass_Sun.dc.html",
     "Glass_Moon.dc.html",
-    "Glass_Weather.dc.html"
+    "Glass_Weather.dc.html",
+    "Glass_Dial.dc.html",
+    "Glass_DialExample.dc.html"
   ],
   "notes": {
     "t1": {
@@ -276,6 +294,13 @@
       "text": "Листы на небе: закат, золотой час, небо, солнце, луна",
       "kind": "title1",
       "maxW": 2758
+    },
+    "t5": {
+      "x": 0,
+      "y": 7560,
+      "text": "Эксперимент, заморожен 30.10: диск вместо слайдера — часы и сутки",
+      "kind": "title1",
+      "maxW": 1200
     }
   },
   "designSystems": []

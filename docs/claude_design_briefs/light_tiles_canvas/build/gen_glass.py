@@ -276,39 +276,103 @@ def ring_pos_moon(now, rise, set_):
     return ('down', (now - set_) / float(rise - set_))
 
 
-def sky_bg(fr, pal):
+def sky_bg(fr, pal, hz=None):
     """Небо на весь верх экрана, не только внутри кольца: зенит → розовые облака → алый → горизонт ровно на линии стекла (y = 215),
     ниже горизонта цвет уходит в фон страницы."""
     base = hexc('#0b0908') if fr.theme == 'dark' else hexc('#eee8de')
-    hz = 50 + RC   # верх кольца стоит на 50 px от края кадра, горизонт — на уровне его центра
+    hz = hz or 50 + RC   # верх кольца стоит на 50 px от края кадра, горизонт — на уровне его центра
     stops = [(0, pal['zenith']), (90, pal['high']), (hz - 45, pal['mid']), (hz, pal['horizon']), (hz + 85, lerp(pal['mid'], base, .62)), (hz + 215, base)]
     return 'linear-gradient(180deg, %s)' % ', '.join('%s %dpx' % (rgb(c), y) for y, c in stops)
 
 
-def ring_svg(uid, pal, pos, knob, warm=True):
-    """Кольцо с градиентом дуги беты: у горизонта янтарь и краснее, к зениту светлеет до цвета дуги; ночная половина уходит в холодный тон.
-    Градиент вертикальный, поэтому обе стороны теплеют у горизонта одинаково. Луна — тот же ход, но серебристо-голубой."""
+def sky_mesh(pal, warm, hz=None, sun_x=.5):
+    """Живое небо поверх ровного градиента: большие мягкие пятна цветов палитры, и небо несимметрично. Со стороны светила (sun_x: 0 — слева,
+    1 — справа, по месту светила на кольце) тёплый свет: ярче и крупнее, пятна цвета горизонта и самого светила; с противоположной стороны —
+    холодный тёмный зенит и сумрак. Пятна наклонены под разными углами, разного размера и силы, каждое очень медленно плывёт и дышит
+    (88–140 с на ход туда и обратно), ходы и фазы не совпадают. Снизу пятна растворяются, как и сам градиент."""
+    hz = hz or 50 + RC
+    life = pal.get('life', 0)
+    W = 417.0
+
+    def sat(c, k):
+        mean = sum(c) / 3.0
+        return tuple(int(clamp(mean + (v - mean) * k, 0, 255)) for v in c)
+    z, h, m, hzc = (sat(pal[k], 1.35) for k in ('zenith', 'high', 'mid', 'horizon'))
+    cool = lerp(z, (40, 52, 100), .5)
+    dusk = lerp(h, (46, 54, 96), .55)
+    rose = lerp(h, (196, 112, 150), .35 * life)
+    ember = lerp(hzc, (232, 104, 58), .4 * life)
+    wa = .5 + .3 * life
+    right = sun_x >= .5
+    # (x от левого края стороны светила = «холодный» край, y, ширина, высота, наклон°, цвет, сила, ход 1..4, период с, фаза с)
+    blobs = [
+        (-150, hz - 330, 560, 400, 22, z, .95, 1, 118, 0),          # холодный зенит с дальней стороны
+        (-110, hz - 200, 480, 320, -16, dusk, .85, 3, 96, 40),      # сумрак слева, на уровне облаков
+        (-130, hz - 80, 460, 280, 12, cool, .70, 4, 126, 57),       # холодный низ с дальней стороны
+        (60, hz - 300, 420, 300, 28, h, .78, 2, 104, 31),           # облака сверху, ближе к центру
+        (120, hz - 220, 460, 320, -24, rose, .82, 1, 92, 14),       # розовая полоса наискосок к светилу
+        (80, hz - 120, 520, 300, 10, m, .85, 3, 110, 70),           # середина, тёплеет к светилу
+        (190, hz - 150, 560, 340, -14, ember, .95, 2, 100, 22),     # главный тёплый размыв у светила
+        (150, hz - 40, 560, 260, 6, hzc, .92, 4, 88, 9),            # горизонт, ярче со стороны светила
+        (250, hz - 110, 340, 260, 0, warm, wa, 1, 134, 77),         # сам свет светила
+        (60, hz + 40, 560, 240, 4, lerp(m, hzc, .5), .55, 3, 120, 51)]  # отсвет под горизонтом
+    out = ''
+    for x, y, w, hh, rot, c, al, k, dur, dl in blobs:
+        left = x if right else W - x - w
+        out += ('<b class="dx-b" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;rotate:%ddeg;background: radial-gradient(closest-side, %s, %s);'
+                'animation: dx-f%d %ds ease-in-out -%ds infinite alternate"></b>') % (
+            left, y, w, hh, rot if right else -rot, rgba(c, al), rgba(c, 0), k, dur, dl)
+    return '<span class="sky-m">%s</span>' % out
+
+
+def ring_svg(uid, pal, pos, knob, warm=True, halo=True):
+    """Светящееся кольцо траектории. Сердцевина — раскалённая тонкая линия на градиентной дуге беты (у горизонта янтарь и краснее,
+    к зениту светлеет, ночная половина уходит в холодный тон); вокруг — ореол: широкое размытое свечение тем же градиентом, свечение
+    поуже, внутренний отсвет по краю и мелкие радиальные риски снаружи, как волосяная кромка. Луна — тот же ход, но серебристо-голубой.
+    halo=False — только сердцевина и риски (копия поверх стекла плиток, чтобы кольцо просвечивало)."""
     th = math.pi * (1 - pos[1]) if pos[0] == 'up' else -math.pi * pos[1]
     kx, ky = RC + RR * math.cos(th), RC - RR * math.sin(th)
     hz = (232, 104, 58) if warm else (150, 176, 226)
     mid = (226, 164, 76) if warm else (190, 206, 240)
+    hot = lerp((255, 250, 236), mid, .25)
     x0, x1 = RC - RR, RC + RR
     up = 'M %d %d A %d %d 0 0 1 %d %d' % (x0, RC, RR, RR, x1, RC)
     dn = 'M %d %d A %d %d 0 0 0 %d %d' % (x0, RC, RR, RR, x1, RC)
+    tu, td = [], []
+    for i in range(0, 180):
+        t = math.radians(i * 2.0)
+        r0, r1 = RR + 8, RR + 8 + (6.5 if i % 5 == 0 else 3.6)
+        seg = 'M%.1f %.1fL%.1f %.1f' % (RC + r0 * math.cos(t), RC - r0 * math.sin(t), RC + r1 * math.cos(t), RC - r1 * math.sin(t))
+        (tu if math.sin(t) > 0 else td).append(seg)
+
+    def both(w, extra):
+        return ('<path d="%s" fill="none" stroke="url(#rgu%s)" stroke-width="%s" %s></path>'
+                '<path d="%s" fill="none" stroke="url(#rgd%s)" stroke-width="%s" %s></path>') % (up, uid, w, extra, dn, uid, w, extra)
+    layers = ''
+    if halo:
+        layers += '<circle cx="%d" cy="%d" r="%d" fill="url(#rin%s)"></circle>' % (RC, RC, RR, uid)
+        layers += both(34, 'opacity=".5" filter="url(#rh%s)"' % uid)
+        layers += both(11, 'opacity=".85" filter="url(#rg%s)"' % uid)
+    layers += ('<path d="%s" fill="none" stroke="url(#rgu%s)" stroke-width="1" opacity=".55"></path>'
+               '<path d="%s" fill="none" stroke="url(#rgd%s)" stroke-width="1" opacity=".55"></path>') % (''.join(tu), uid, ''.join(td), uid)
+    layers += both(3.2, '')
+    layers += ('<path d="%s" fill="none" stroke="%s" stroke-width="1.2" stroke-linecap="round" opacity=".85"></path>'
+               '<path d="%s" fill="none" stroke="%s" stroke-width="1.2" stroke-linecap="round" opacity=".6"></path>') % (up, rgb(hot), dn, rgb(hot))
     return ('<svg class="ring" viewBox="0 0 %d %d" width="%d" height="%d" aria-hidden="true"><defs>'
             '<linearGradient id="rgu%s" x1="0" y1="%d" x2="0" y2="%d" gradientUnits="userSpaceOnUse">'
             '<stop offset="0" style="stop-color: var(--arc-mid); stop-opacity: .78"></stop><stop offset=".45" style="stop-color: var(--arc-mid); stop-opacity: .5"></stop>'
             '<stop offset=".76" stop-color="%s" stop-opacity=".95"></stop><stop offset="1" stop-color="%s"></stop></linearGradient>'
             '<linearGradient id="rgd%s" x1="0" y1="%d" x2="0" y2="%d" gradientUnits="userSpaceOnUse">'
             '<stop offset="0" stop-color="%s" stop-opacity=".9"></stop><stop offset=".3" stop-color="%s" stop-opacity=".45"></stop><stop offset="1" stop-color="rgb(110,126,162)" stop-opacity=".4"></stop></linearGradient>'
+            '<radialGradient id="rin%s" cx="50%%" cy="50%%" r="50%%"><stop offset=".6" stop-color="%s" stop-opacity="0"></stop><stop offset=".86" stop-color="%s" stop-opacity=".12"></stop>'
+            '<stop offset="1" stop-color="%s" stop-opacity=".36"></stop></radialGradient>'
             '<linearGradient id="rk%s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0bd"></stop><stop offset="1" stop-color="#d8b36c"></stop></linearGradient>'
             '<filter id="rb%s" x="-80%%" y="-80%%" width="260%%" height="260%%"><feGaussianBlur stdDeviation="9"></feGaussianBlur></filter>'
             '<filter id="rs%s" x="-80%%" y="-80%%" width="260%%" height="260%%"><feGaussianBlur stdDeviation="2.6"></feGaussianBlur></filter>'
-            '<filter id="rl%s" x="-20%%" y="-20%%" width="140%%" height="140%%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter></defs>'
-            '<path d="%s" fill="none" stroke="url(#rgd%s)" stroke-width="14" opacity=".34" filter="url(#rl%s)"></path>'
-            '<path d="%s" fill="none" stroke="url(#rgu%s)" stroke-width="3"></path><path d="%s" fill="none" stroke="url(#rgd%s)" stroke-width="3"></path>%s</svg>') % (
-        RS, RS, RS, RS, uid, RC - RR, RC, rgb(mid), rgb(hz), uid, RC, RC + RR, rgb(hz), rgb(mid), uid, uid, uid, uid,
-        dn, uid, uid, up, uid, dn, uid, knob(kx, ky, uid, pal, pos[0] == 'down'))
+            '<filter id="rh%s" x="-30%%" y="-60%%" width="160%%" height="220%%"><feGaussianBlur stdDeviation="13"></feGaussianBlur></filter>'
+            '<filter id="rg%s" x="-30%%" y="-60%%" width="160%%" height="220%%"><feGaussianBlur stdDeviation="3.6"></feGaussianBlur></filter></defs>%s%s</svg>') % (
+        RS, RS, RS, RS, uid, RC - RR, RC, rgb(mid), rgb(hz), uid, RC, RC + RR, rgb(hz), rgb(mid), uid, rgb(mid), rgb(mid), rgb(hz),
+        uid, uid, uid, uid, uid, layers, knob(kx, ky, uid, pal, pos[0] == 'down'))
 
 
 def knob_sun(x, y, uid, e, theme):
@@ -328,10 +392,15 @@ def knob_sun(x, y, uid, e, theme):
     return ('<defs><radialGradient id="rg%s" cx="50%%" cy="50%%" r="50%%"><stop offset="0" stop-color="%s" stop-opacity="%.3f"></stop>'
             '<stop offset=".42" stop-color="%s" stop-opacity="%.3f"></stop><stop offset="1" stop-color="%s" stop-opacity="0"></stop></radialGradient></defs>'
             '<circle cx="%.1f" cy="%.1f" r="58" fill="url(#rg%s)" opacity="%.3f"></circle>'
-            '<circle cx="%.1f" cy="%.1f" r="19" fill="%s" fill-opacity="%.3f" stroke="%s" stroke-opacity="%.3f" stroke-width="1.2"></circle>'
-            '<circle cx="%.1f" cy="%.1f" r="8.5" fill="%s" opacity="%.2f" stroke="var(--surface)" stroke-width="2.5"></circle>') % (
+            '<defs><radialGradient id="lf%s" cx="38%%" cy="32%%" r="78%%"><stop offset="0" stop-color="#fff" stop-opacity=".5"></stop><stop offset=".55" stop-color="%s" stop-opacity=".3"></stop><stop offset="1" stop-color="%s" stop-opacity=".14"></stop></radialGradient>'
+            '<radialGradient id="lc%s" cx="50%%" cy="50%%" r="50%%"><stop offset="0" stop-color="#fff" stop-opacity=".95"></stop><stop offset=".35" stop-color="%s" stop-opacity=".8"></stop><stop offset="1" stop-color="%s" stop-opacity="0"></stop></radialGradient>'
+            '<linearGradient id="lr%s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".85"></stop><stop offset=".5" stop-color="#fff" stop-opacity=".14"></stop><stop offset="1" stop-color="%s" stop-opacity=".75"></stop></linearGradient></defs>'
+            '<g opacity="%.2f"><circle cx="%.1f" cy="%.1f" r="24" fill="url(#lc%s)"></circle>'
+            '<circle cx="%.1f" cy="%.1f" r="13.5" fill="url(#lf%s)" stroke="url(#lr%s)" stroke-width="1.3"></circle>'
+            '<ellipse cx="%.1f" cy="%.1f" rx="5.6" ry="2.7" transform="rotate(-38 %.1f %.1f)" fill="#fff" opacity=".6"></ellipse>'
+            '<circle cx="%.1f" cy="%.1f" r="4.6" fill="url(#lc%s)"></circle></g>') % (
         uid, rgb(deep_c), min(.34 * k, .9), rgb(deep_c), min(.13 * k, .55), rgb(deep_c), x, y, uid, deep,
-        x, y, rgb(c), .18 * v, rgb(c), .34 * v, x, y, rgb(ink), v)
+        uid, rgb(c), rgb(c), uid, rgb(c), rgb(c), uid, rgb(c), v, x, y, uid, x, y, uid, uid, x - 4.2, y - 5.2, x - 4.2, y - 5.2, x, y, uid)
 
 
 def _panel(time_, phase, sense, uid):
@@ -346,8 +415,9 @@ def ring_hero(fr, uid, mode='sun'):
     now = mins(fr.at)
     sun_pos = ring_pos_sun(now, mins(fr.rise), mins(fr.set))
     sun_e = sun_model(fr)[0](now)
-    sun = ('<div class="hero2"><i class="sky" style="background: %s"></i>%s%s%s%s</div>') % (
-        sky_bg(fr, fr.view), ring_svg(uid, fr.view, sun_pos, lambda x, y, u_, pal, down: knob_sun(x, y, u_, sun_e, fr.theme)), _panel(by_id(f, 'drTime'), by_id(f, 'drPhase'), by_id(f, 'drSense'), uid), _add(), _sw('moon', 'Показать луну'))
+    nokn = lambda x, y, u_, pal, down=False: ''
+    sun = ('<div class="hero2"><i class="sky" style="background: %s">%s</i>%s<div class="ring-over">%s</div>%s%s%s</div>') % (
+        sky_bg(fr, fr.view), sky_mesh(fr.view, sky_color(sun_e), None, sun_pos[1] if sun_pos[0] == 'up' else 1 - sun_pos[1]), ring_svg(uid, fr.view, sun_pos, lambda x, y, u_, pal, down: knob_sun(x, y, u_, sun_e, fr.theme)), ring_svg(uid + 'o', fr.view, sun_pos, nokn, True, False), _panel(by_id(f, 'drTime'), by_id(f, 'drPhase'), by_id(f, 'drSense'), uid), _add(), _sw('moon', 'Показать луну'))
     mo, mv, md = fr.moon, moon_view(fr), MOONDOME[fr.mk]
     mpos = ring_pos_moon(now, mins(mo['rise']), mins(mo['set']))
     waxing = mo['phase'].startswith('Раст')
@@ -359,8 +429,8 @@ def ring_hero(fr, uid, mode='sun'):
             return body
         return ('<circle cx=\"%.1f\" cy=\"%.1f\" r=\"34\" fill=\"rgb(168,189,216)\" opacity=\".35\" filter=\"url(#rb%s)\"></circle><g opacity=\".85\">%s</g>') % (x, y, u_, body)
 
-    moon = ('<div class="hero2"><i class="sky" style="background: %s"></i>%s%s%s%s</div>') % (
-        sky_bg(fr, mv), ring_svg(uid + 'm', mv, mpos, knob_moon, False), _panel(by_id(md, 'drTime'), by_id(md, 'drPhase'), by_id(md, 'drSense'), uid + 'm'), _add(), _sw('sun', 'Показать солнце'))
+    moon = ('<div class="hero2"><i class="sky" style="background: %s">%s</i>%s<div class="ring-over">%s</div>%s%s%s</div>') % (
+        sky_bg(fr, mv), sky_mesh(mv, (150, 176, 226), None, mpos[1] if mpos[0] == 'up' else 1 - mpos[1]), ring_svg(uid + 'm', mv, mpos, knob_moon, False), ring_svg(uid + 'mo', mv, mpos, nokn, False, False), _panel(by_id(md, 'drTime'), by_id(md, 'drPhase'), by_id(md, 'drSense'), uid + 'm'), _add(), _sw('sun', 'Показать солнце'))
     if mode == 'sun':
         return sun
     if mode == 'moon':
@@ -485,118 +555,73 @@ WX_GLOW = {'clear': 'rgba(255,190,80,.34)', 'clear_n': 'rgba(90,120,230,.32)', '
            'rain': 'rgba(100,145,200,.32)', 'storm': 'rgba(125,110,180,.34)', 'snow': 'rgba(200,225,255,.32)', 'fog': 'rgba(190,196,208,.24)', 'frost': 'rgba(170,215,255,.32)'}
 
 
-def _blob(R, tear=False):
-    """Неправильная форма капли: у стекающей — яйцо, шире снизу; у сидящей — овал с лёгким перекосом."""
-    h1, h3 = R.randint(42, 58), R.randint(42, 58)
-    # большой вертикальный радиус у верхних углов = сужение кверху, у нижних поменьше = толстый низ (стекает, тяжелеет внизу)
-    v1, v2 = (R.randint(56, 68), R.randint(56, 68)) if tear else (R.randint(46, 58), R.randint(46, 58))
-    return '%d%% %d%% %d%% %d%% / %d%% %d%% %d%% %d%%' % (h1, 100 - h1, h3, 100 - h3, v1, v2, 100 - v2, 100 - v1)
-
-
-def _rivulet(R, x0, y1=172):
-    """Извилистая дорожка вниз: S-образные отрезки с вертикальными касательными."""
-    pts, x, y = [], x0, -6.0
-    while y < y1 + 6:
-        pts.append((x, y))
-        x += R.uniform(-6, 6)
-        y += R.uniform(18, 30)
-    d = 'M %.1f %.1f' % pts[0]
-    for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
-        d += ' C %.1f %.1f, %.1f %.1f, %.1f %.1f' % (xa, ya + (yb - ya) / 2, xb, yb - (yb - ya) / 2, xb, yb)
-    return d
-
-
-def wx_clouds(u, cover, tone, seed):
-    """Облака из шума (приём CSS-Tricks): размытые овалы, края которых рвёт feTurbulence + feDisplacementMap.
-    Три слоя — дальний мельче и бледнее, средний, ближний крупнее; у каждого своя «октавность» и сила искажения.
-    cover 0..1 — сколько неба закрыто; tone — (свет, тень) облака, rgb через запятую. Каждый слой — отдельный svg, дрейфует сам."""
-    R = random.Random(seed * 31 + 7)
-    lit, shade = tone
-    out = []
-    for i, (oct_, scale, op, rmin, rmax, y0, y1, dur) in enumerate(((4, 30, .6, 12, 22, 18, 50, 52), (3, 36, .78, 16, 30, 22, 58, 41), (2, 40, .95, 20, 36, 28, 70, 33))):
-        n = max(1, int(round((2 + 5 * cover) * (0.7 + 0.3 * i))))
-        sh, li = [], []
-        for _ in range(n):
-            cx, cy = R.uniform(10, 210), R.uniform(y0, y1 if cover > .6 else y0 + (y1 - y0) * .6)
-            rx = R.uniform(rmin, rmax) * (0.7 + 0.5 * cover); ry = rx * R.uniform(.34, .5)
-            sh.append('<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f"></ellipse>' % (cx, cy + ry * .55, rx, ry))
-            li.append('<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f"></ellipse>' % (cx, cy, rx * .94, ry * .86))
-        fid = 'cf%s%d' % (u, i)
-        out.append(('<svg class="wxa-cs" viewBox="0 0 220 140" width="220" height="140" style="opacity:%.2f;animation-duration:%ds;animation-delay:-%ds"><defs>'
-                    '<filter id="%s" x="-25%%" y="-60%%" width="150%%" height="220%%"><feGaussianBlur stdDeviation="2.6" result="b"></feGaussianBlur>'
-                    '<feTurbulence type="fractalNoise" baseFrequency=".021 .034" numOctaves="%d" seed="%d" result="n"></feTurbulence>'
-                    '<feDisplacementMap in="b" in2="n" scale="%d" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></defs>'
-                    '<g filter="url(#%s)"><g fill="rgba(%s,.85)">%s</g><g fill="rgba(%s,.92)">%s</g></g></svg>') % (
-            op * (.45 + .4 * cover), dur, R.randint(0, dur), fid, oct_, seed + i * 5, scale, fid, shade, ''.join(sh), lit, ''.join(li)))
-    return ''.join(out)
-
-
 def wx_art(kind, u, night=False, frost=False, heavy=False, seed=1):
-    """Слои картинки за текстом плитки: солнце, звёзды, облака, запотевшее стекло с каплями, снег, изморозь. Только CSS и SVG, без скриптов."""
-    R = random.Random(seed)
+    """Картинка плитки «Погода» — только градиенты, без предметов (ни лучей, ни капель, ни облаков-силуэтов): на плитке цвет и свет состояния.
+    Основа — линейный градиент, поверх него 3–4 больших мягких радиальных пятна; светлые у верхнего правого угла (солнце, луна), тёмные и
+    холодные внизу слева, где текст. Пятна очень медленно плывут (54–92 с на ход). Вид — из слова погоды и облачности беты (`wx_kind`),
+    ночь — по фазе, изморозь — по температуре: ледяной градиент от углов."""
     L = []
-    cl = lambda l, t, w, h, op, dur, dl, col='235,240,250': L.append(
-        '<i class="wxa-cl" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;opacity:%.2f;background:radial-gradient(closest-side, rgba(%s,.8), rgba(%s,0));animation-duration:%ds;animation-delay:-%ds"></i>' % (l, t, w, h, op, col, col, dur, dl))
-    if kind in ('clear', 'part') and not night:
-        L.append('<i class="wxa-rays"></i><i class="wxa-sun"></i>')
-    if kind in ('clear', 'part') and night:
-        L.append('<i class="wxa-moon"></i>')
-        for _ in range(11):
-            L.append('<i class="wxa-star" style="left:%dpx;top:%dpx;width:%.1fpx;height:%.1fpx;animation-delay:-%.1fs;animation-duration:%.1fs"></i>' % (
-                R.randint(6, 172), R.randint(6, 100), 1 + R.random() * 1.6, 1 + R.random() * 1.6, R.random() * 5, 3 + R.random() * 3))
-    if kind == 'part':
-        L.append(wx_clouds(u, .3, ('150,162,190', '58,68,94') if night else ('176,188,210', '70,82,108'), seed))
-    wisp = lambda l, t, w, h, op, dur, dl, col: L.append(
-        '<i class="wxa-wisp" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;opacity:%.2f;background:linear-gradient(90deg, rgba(%s,0), rgba(%s,.6) 28%%, rgba(%s,.5) 72%%, rgba(%s,0));animation-duration:%ds;animation-delay:-%ds"></i>' % (
-            l, t, w, h, op, col, col, col, col, dur, dl))
-    if kind == 'cloud':
-        L.append(wx_clouds(u, .9, ('138,150,178', '50,60,86') if night else ('164,176,200', '62,74,100'), seed))
-        L.append('<i class="wxa-shade"></i>')
-    if kind == 'fog':
-        for i, (t, op) in enumerate(((10, .5), (44, .42), (80, .36))):
-            L.append('<i class="wxa-band" style="top:%dpx;opacity:%.2f;animation-delay:-%ds"></i>' % (t, op, i * 6))
-    if kind in ('rain', 'storm'):
-        L.append(wx_clouds(u, 1.0, ('110,124,156', '40,50,76'), seed))
-        L.append('<i class="wxa-fog"></i>')
-        # дождь в воздухе: тонкие штрихи разной длины и чёткости
-        for _ in range(26 if heavy else 15):
-            ln = 8 + R.random() * 20
-            L.append('<i class="wxa-rs" style="left:%d%%;top:%dpx;height:%dpx;opacity:%.2f;animation-duration:%.2fs;animation-delay:-%.2fs"></i>' % (
-                R.randint(2, 98), R.randint(-30, 20), ln, .25 + R.random() * .45, 0.9 + R.random() * 0.8, R.random() * 2))
-        # на самом стекле: мелкие неровные бусинки (овалы, повёрнутые по-разному), чуть крупнее — яйцевидные капли
-        for _ in range(38):
-            s = 1 + R.random() * 1.8
-            L.append('<i class="wxa-bead" style="left:%.1f%%;top:%.1f%%;width:%.1fpx;height:%.1fpx;border-radius:%s;transform:rotate(%ddeg);opacity:%.2f"></i>' % (
-                R.random() * 98, R.random() * 94, s, s * R.uniform(.75, 1.5), _blob(R), R.randint(-35, 35), .3 + R.random() * .4))
-        for _ in range(6 if heavy else 4):
-            s = 2.6 + R.random() * 1.8
-            L.append('<i class="wxa-bead" style="left:%.1f%%;top:%.1f%%;width:%.1fpx;height:%.1fpx;border-radius:%s;transform:rotate(%ddeg);opacity:.55"></i>' % (
-                R.random() * 96, 8 + R.random() * 84, s, s * R.uniform(1.15, 1.6), _blob(R, True), R.randint(-14, 14)))
-        # стекающие капли оставляют извилистый след; голова едет по тому же пути, след дорисовывается за ней
-        for i in range(3 if heavy else 2):
-            x0 = R.randint(22, 160)
-            dur, dl = 9 + R.random() * 6, R.random() * 10
-            d = _rivulet(R, x0)
-            L.append('<svg class="wxa-riv" viewBox="0 0 180 180" width="180" height="180"><path class="wxa-rivp" pathLength="100" d="%s" style="animation-duration:%.1fs;animation-delay:-%.1fs"></path>'
-                     '<path class="wxa-rivp hi" pathLength="100" d="%s" style="animation-duration:%.1fs;animation-delay:-%.1fs"></path></svg>' % (d, dur, dl, d, dur, dl))
-            L.append('<i class="wxa-bead wxa-head" style="offset-path:path(\'%s\');border-radius:%s;animation-duration:%.1fs;animation-delay:-%.1fs"></i>' % (d, _blob(R, True), dur, dl))
+    n = [0]
+    dim = (lambda c: ','.join(str(int(int(v) * .72)) for v in c.split(','))) if night else (lambda c: c)
+
+    def base(c1, c2, ang):
+        L.append('<i class="wxg-base" style="background: linear-gradient(%ddeg, %s, %s)"></i>' % (ang, c1, c2))
+
+    def bl(x, y, w, h, col, al, dur, flash=False):
+        n[0] += 1
+        k = 1 + (n[0] + seed) % 4
+        L.append('<i class="wxg%s" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;background: radial-gradient(closest-side, rgba(%s,%.2f), rgba(%s,0));animation: %s"></i>' % (
+            ' wxg-flash' if flash else '', x, y, w, h, col, min(al, .95), col,
+            'wxg-flash 9s ease-out infinite' if flash else 'wxg-f%d %ds ease-in-out -%ds infinite alternate' % (k, dur, (n[0] * 13 + seed * 7) % dur)))
+    hv = 1.25 if heavy else 1.0
+    if kind == 'clear' and not night:
+        base('rgba(255,184,84,.34)', 'rgba(255,120,50,.06)', 200)
+        bl(105, -48, 210, 200, '255,216,128', .80, 52)
+        bl(40, -10, 220, 160, '255,160,72', .36, 64)
+        bl(-50, 64, 230, 130, '214,100,56', .20, 76)
+    elif kind == 'clear':
+        base('rgba(34,46,120,.40)', 'rgba(10,14,44,.10)', 200)
+        bl(110, -50, 200, 190, '190,206,255', .34, 58)
+        bl(-20, 30, 230, 150, '60,84,196', .38, 70)
+        bl(70, 70, 190, 110, '118,86,186', .22, 82)
+    elif kind == 'part' and not night:
+        base('rgba(190,170,130,.20)', 'rgba(60,70,96,.18)', 190)
+        bl(110, -40, 190, 170, '255,208,124', .50, 56)
+        bl(-10, 10, 200, 110, '170,186,214', .22, 66)
+        bl(60, 60, 210, 110, '92,106,140', .34, 78)
+    elif kind == 'part':
+        base('rgba(40,52,110,.30)', 'rgba(16,20,48,.16)', 190)
+        bl(112, -40, 170, 160, '190,206,255', .28, 60)
+        bl(-10, 20, 210, 120, '110,124,170', .34, 70)
+        bl(70, 66, 200, 100, '62,76,128', .34, 82)
+    elif kind == 'cloud':
+        base('rgba(%s,.34)' % dim('120,134,168'), 'rgba(%s,.22)' % dim('44,54,82'), 170)
+        bl(-30, -30, 230, 120, dim('196,208,230'), .30, 56)
+        bl(60, 10, 200, 110, dim('138,152,184'), .45, 68)
+        bl(-20, 70, 230, 110, dim('70,82,114'), .50, 80)
+        bl(100, 56, 150, 90, dim('160,174,204'), .26, 92)
+    elif kind in ('rain', 'storm'):
+        base('rgba(70,88,128,.46)', 'rgba(26,36,66,.34)', 180)
+        bl(-20, -30, 240, 110, '116,134,176', .42 * hv, 54)
+        bl(40, 24, 200, 110, '62,80,122', .55 * hv, 66)
+        bl(-30, 76, 240, 100, '32,50,92', .55 * hv, 78)
+        bl(110, 60, 140, 90, '130,164,214', .26, 90)
         if kind == 'storm':
-            L.append('<i class="wxa-flash"></i>')
-    if kind == 'snow':
-        for _ in range(26 if heavy else 17):
-            s = 1.6 + R.random() * 2.4
-            L.append('<i class="wxa-fl" style="left:%dpx;width:%.1fpx;height:%.1fpx;--sw:%dpx;animation-duration:%.1fs;animation-delay:-%.1fs"></i>' % (
-                R.randint(0, 176), s, s, R.randint(-12, 12), 6 + R.random() * 6, R.random() * 10))
+            bl(60, 0, 200, 140, '120,90,186', .40, 60)
+            bl(20, -20, 200, 130, '200,210,255', .60, 9, True)
+    elif kind == 'snow':
+        base('rgba(170,200,240,.28)', 'rgba(70,96,150,.18)', 190)
+        bl(60, -50, 220, 120, '228,240,255', .34, 56)
+        bl(70, 10, 190, 120, '168,198,240', .34, 68)
+        bl(-30, 70, 230, 110, '104,134,190', .26, 80)
+    elif kind == 'fog':
+        base('rgba(176,184,198,.26)', 'rgba(120,128,144,.18)', 180)
+        bl(-40, -10, 260, 90, '208,214,226', .38, 60)
+        bl(-20, 50, 260, 90, '168,176,192', .34, 72)
     if frost:
-        L.append(('<svg class="wxa-frost" viewBox="0 0 180 130" preserveAspectRatio="none"><defs>'
-                  '<filter id="fF%s" x="0" y="0" width="100%%" height="100%%"><feTurbulence type="fractalNoise" baseFrequency=".5 .95" numOctaves="3" seed="7" result="n"></feTurbulence>'
-                  '<feColorMatrix in="n" type="matrix" values="0 0 0 0 .93  0 0 0 0 .97  0 0 0 0 1  0 0 0 1.7 -.95"></feColorMatrix></filter>'
-                  '<radialGradient id="fG%s" cx="50%%" cy="50%%" r="78%%"><stop offset=".5" stop-color="#000"></stop><stop offset="1" stop-color="#fff"></stop></radialGradient>'
-                  '<mask id="fM%s"><rect width="180" height="130" fill="url(#fG%s)"></rect></mask></defs>'
-                  '<rect width="180" height="130" filter="url(#fF%s)" mask="url(#fM%s)"></rect></svg><i class="wxa-rime"></i>') % (u, u, u, u, u, u))
-        if kind in ('clear',):
-            for _ in range(3):
-                L.append('<i class="wxa-glint" style="left:%dpx;top:%dpx;animation-delay:-%.1fs"></i>' % (R.randint(14, 160), R.randint(10, 108), R.random() * 4))
+        L.append('<i class="wxg-base" style="background: radial-gradient(90% 70% at 0% 0%, rgba(200,236,255,.20), transparent 55%), radial-gradient(110% 90% at 100% 100%, rgba(170,220,255,.34), transparent 55%)"></i>')
+        bl(-60, -50, 150, 120, '170,224,255', .18, 62)
+        bl(80, 60, 170, 110, '190,232,255', .24, 74)
     return '<span class="wxa" aria-hidden="true">%s</span>' % ''.join(L)
 
 
@@ -694,7 +719,149 @@ def sunset_long(s):
     return ('закат обещает быть красивым' if s >= 75 else 'закат с цветом' if s >= 50 else 'спокойный закат' if s >= 28 else 'цвета почти не будет')
 
 
-def home(fr, uid, h, scroll, link_to):
+# ── Диск времени: два кольца вместо нижней панели слайдера ───────────────────────────────────────────────
+DL_CX, DL_CY, DL_H = 196.5, 333, 330
+DL_D1, DL_D0 = 311, 267          # внешнее кольцо — сутки (компактное, 44 px)
+DL_H1, DL_H0 = 262, 190          # внутреннее кольцо — часы
+DL_HUB = 184
+DL_DEG_PER_DAY = 15.0            # на сколько градусов внешнее кольцо уходит за сутки: 24 часа внутреннего (360°) = 15° внешнего
+
+
+def dl_pt(r, a):
+    ar = math.radians(a)
+    return DL_CX + r * math.sin(ar), DL_CY - r * math.cos(ar)
+
+
+def dl_sector(r0, r1, a0, a1):
+    q = lambda p: '%.1f %.1f' % p
+    big = 1 if abs(a1 - a0) > 180 else 0
+    return 'M %s L %s A %d %d 0 %d 1 %s L %s A %d %d 0 %d 0 %s Z' % (
+        q(dl_pt(r0, a0)), q(dl_pt(r1, a0)), r1, r1, big, q(dl_pt(r1, a1)), q(dl_pt(r0, a1)), r0, r0, big, q(dl_pt(r0, a0)))
+
+
+def dl_rot(a):
+    return 'rotate(%.2f %.1f %d)' % (a, DL_CX, DL_CY)
+
+
+def dial(fr, f, timebar):
+    """Диск времени. Одно общее время T (минуты от 00:00 сегодняшнего дня): внутреннее кольцо — часы, оборот = сутки; внешнее — сутки,
+    15° на день. Передача 24:1: час на внутреннем кольце сдвигает внешнее чуть-чуть, сутки на внешнем прокручивают внутреннее на целый оборот.
+    Цвета часового кольца — шкала света беты (--rail-img) на сегодня; дни и значки погоды — те же пять дней, что в панели дат.
+    Солнце (или луна) стоит на дуге у указателя и меняет цвет по лестнице неба беты вместе с временем."""
+    now = mins(fr.at)
+    e_now = sun_model(fr)[0](now)
+    B = lambda name, val: str(val) if TEST else '{{%s}}' % name
+    rail = re.search(r'--rail-img:\s*linear-gradient\(90deg,(.*?)\)\s*;', timebar, re.S) or re.search(r'--rail-img:\s*linear-gradient\(90deg,(.*?)\)"', timebar, re.S)
+    stops = [(float(p), 'rgba(%s,%s,%s,%s)' % (r_, g_, b_, a_)) for r_, g_, b_, a_, p in re.findall(r'rgba\(([\d.]+),([\d.]+),([\d.]+),([\d.]+)\) ([\d.]+)%', rail.group(1))]
+
+    def rail_at(m):
+        pct = ((m - 64) % 1440) * 100.0 / 1440
+        return min(stops, key=lambda s: abs(s[0] - pct))[1]
+    wedges = ''.join('<path d="%s" fill="%s" stroke="%s" stroke-width=".5"></path>' % (
+        dl_sector(DL_H1 - 17, DL_H1, m / 4.0, (m + 15) / 4.0), rail_at(m + 7), rail_at(m + 7)) for m in range(0, 1440, 15))
+    # риски как на часах: каждые 5 минут, длиннее на получасе, самые длинные и толстые — на часе
+    t5, t30, t60 = [], [], []
+    for m in range(0, 1440, 5):
+        a = m / 4.0
+        r0, bucket = (DL_H1 - 34, t60) if m % 60 == 0 else (DL_H1 - 27, t30) if m % 30 == 0 else (DL_H1 - 22, t5)
+        bucket.append('M%.1f %.1fL%.1f %.1f' % (*dl_pt(r0, a), *dl_pt(DL_H1 - 19, a)))
+    ticks = ('<path d="%s" class="dl-tk"></path><path d="%s" class="dl-tk m"></path><path d="%s" class="dl-tk b"></path>') % (''.join(t5), ''.join(t30), ''.join(t60))
+    nums = []
+    for h in range(24):
+        x, y = dl_pt(DL_H1 - 50, 0)
+        nums.append('<text x="%.1f" y="%.1f" class="dl-num%s" transform="%s">%02d</text>' % (x, y, ' q' if h % 3 == 0 else '', dl_rot(h * 15), h))
+    marks = ''.join('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="dl-sun"></line>' % (*dl_pt(DL_H1 - 19, m / 4.0), *dl_pt(DL_H1 + 3, m / 4.0))
+                    for m in (mins(fr.rise), mins(fr.set)))
+    hours_g = ('<g style="transform-box: view-box; transform-origin: %.1fpx %dpx; transform: rotate(%sdeg); transition: transform %ss cubic-bezier(.22,.8,.25,1)">%s%s%s%s</g>' % (
+        DL_CX, DL_CY, B('hoursDeg', '%.2f' % (-now / 4.0)), B('hDur', '0.6'), wedges, ticks, ''.join(nums), marks))
+    cells = re.findall(r'<div class="drum-cell( center)?"[^>]*><span class="dc-num">(.*?)</span><span class="dc-ic">(.*?)</span></div>', timebar, re.S)
+    ci = [i for i, c in enumerate(cells) if c[0]][0]
+    row5 = cells[ci - 2:ci + 3]
+    dows = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС']
+    day_parts = []
+    for k in range(-8, 11):
+        a = k * DL_DEG_PER_DAY
+        day_parts.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="dl-div"></line>' % (*dl_pt(DL_D0, a), *dl_pt(DL_D1, a)))
+    for i, (_, num, ic_) in enumerate(row5):
+        k = i - 2
+        a = k * DL_DEG_PER_DAY
+        on = ('%.2f' % (.2 if k == 0 else 0)) if TEST else '{{c%d}}' % i
+        day_parts.append('<path d="%s" class="dl-cell" style="fill-opacity: %s; transition: fill-opacity .4s"></path>' % (dl_sector(DL_D0, DL_D1, a, a + DL_DEG_PER_DAY), on))
+        mid = a + DL_DEG_PER_DAY / 2
+        x, y = dl_pt(DL_D1 - 13, 0)
+        day_parts.append('<text x="%.1f" y="%.1f" class="dl-day" transform="%s">%s</text>' % (x, y, dl_rot(mid), text(num)))
+        vb = re.search(r'viewBox="([^"]+)"', ic_)
+        inner = re.sub(r'^<svg[^>]*>|</svg>$', '', ic_.strip())
+        x, y = dl_pt(DL_D1 - 31, 0)
+        day_parts.append('<g transform="%s"><svg x="%.1f" y="%.1f" width="16" height="16" viewBox="%s" class="dl-wx" stroke-linecap="round" stroke-linejoin="round">%s</svg></g>' % (
+            dl_rot(mid), x - 8, y - 8, vb.group(1) if vb else '0 0 24 24', inner))
+    days_g = ('<g style="transform-box: view-box; transform-origin: %.1fpx %dpx; transform: rotate(%sdeg); transition: transform %ss cubic-bezier(.22,.8,.25,1)">%s</g>' % (
+        DL_CX, DL_CY, B('daysDeg', '%.2f' % (-now / 96.0)), B('dDur', '0.6'), ''.join(day_parts)))
+    ring = lambda r0, r1: '<circle cx="%.1f" cy="%d" r="%.1f" class="dl-ring" style="stroke-width: %d"></circle>' % (DL_CX, DL_CY, (r0 + r1) / 2.0, r1 - r0)
+    edge = lambda r: '<circle cx="%.1f" cy="%d" r="%d" class="dl-edge-c"></circle>' % (DL_CX, DL_CY, r)
+    fixed_under = ring(DL_D0, DL_D1) + ring(DL_H0, DL_H1) + edge(DL_D1) + edge(DL_D0) + edge(DL_H1) + edge(DL_H0)
+    window = '<path d="%s" class="dl-window"></path>' % dl_sector(DL_H0, DL_H1, -7.5, 7.5)
+    hub = '<circle cx="%.1f" cy="%d" r="%d" class="dl-hubc"></circle>' % (DL_CX, DL_CY, DL_HUB)
+    svg = '<svg class="dl-svg" viewBox="0 0 393 %d" width="393" height="%d" aria-hidden="true">%s%s%s%s%s</svg>' % (DL_H, DL_H, fixed_under, hours_g, days_g, window, hub)
+    # светило на дуге: у указателя, на цветной полосе часов; цвет — лестница неба беты от высоты солнца, под горизонтом не исчезает
+    mx, my = dl_pt(DL_H1 - 8.5, 0)
+    sc = rgb(sky_color(e_now))
+    sun_mk = ('<svg class="dl-mk" viewBox="0 0 393 %d" width="393" height="%d" aria-hidden="true"><defs><radialGradient id="dlg" cx="50%%" cy="50%%" r="50%%">'
+              '<stop offset="0" style="stop-color: %s" stop-opacity=".7"></stop><stop offset=".45" style="stop-color: %s" stop-opacity=".28"></stop><stop offset="1" style="stop-color: %s" stop-opacity="0"></stop></radialGradient></defs>'
+              '<radialGradient id="dlf" cx="38%%" cy="32%%" r="78%%"><stop offset="0" stop-color="#fff" stop-opacity=".5"></stop><stop offset=".55" style="stop-color: %s" stop-opacity=".3"></stop><stop offset="1" style="stop-color: %s" stop-opacity=".14"></stop></radialGradient>'
+              '<radialGradient id="dlc" cx="50%%" cy="50%%" r="50%%"><stop offset="0" stop-color="#fff" stop-opacity=".95"></stop><stop offset=".35" style="stop-color: %s" stop-opacity=".8"></stop><stop offset="1" style="stop-color: %s" stop-opacity="0"></stop></radialGradient>'
+              '<linearGradient id="dlr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".85"></stop><stop offset=".5" stop-color="#fff" stop-opacity=".14"></stop><stop offset="1" style="stop-color: %s" stop-opacity=".75"></stop></linearGradient>'
+              '<circle cx="%.1f" cy="%.1f" r="30" fill="url(#dlg)" style="opacity: %s"></circle>'
+              '<circle cx="%.1f" cy="%.1f" r="12" fill="url(#dlf)" stroke="url(#dlr)" stroke-width="1.2"></circle>'
+              '<ellipse cx="%.1f" cy="%.1f" rx="4.6" ry="2.2" transform="rotate(-38 %.1f %.1f)" fill="#fff" opacity=".6"></ellipse>'
+              '<circle cx="%.1f" cy="%.1f" r="4" fill="url(#dlc)"></circle></svg>') % (
+        DL_H, DL_H, B('sunCol', sc), B('sunCol', sc), B('sunCol', sc), B('sunCol', sc), B('sunCol', sc), B('sunCol', sc), B('sunCol', sc), B('sunCol', sc),
+        mx, my, B('sunGlow', '%.2f' % clamp(1 + e_now / 8.0, .2, 1)), mx, my, mx - 3.6, my - 4.4, mx - 3.6, my - 4.4, mx, my)
+    mo = fr.moon
+    waxing = mo['phase'].startswith('Раст')
+    mglyph = moon_glyph(mo['pct'], waxing, 'dmk', 24).replace('<svg ', '<svg x="%.1f" y="%.1f" ' % (mx - 12, my - 12), 1)
+    moon_mk = ('<svg class="dl-mk" viewBox="0 0 393 %d" width="393" height="%d" aria-hidden="true"><circle cx="%.1f" cy="%.1f" r="14" fill="none" stroke="#fff" stroke-width="2.4"></circle>%s</svg>') % (
+        DL_H, DL_H, mx, my, mglyph)
+    markers = sun_mk if TEST else '<sc-if value="{{sun}}" hint-placeholder-val="{{ true }}">%s</sc-if><sc-if value="{{moon}}" hint-placeholder-val="{{ false }}">%s</sc-if>' % (sun_mk, moon_mk)
+
+    def hit(r0, r1, a0, a1, fn, label):
+        path = dl_sector(r0, r1, a0, a1)
+        return '<button type="button" class="dl-hit" aria-label="%s"%s style="clip-path: path(\'%s\')"></button>' % (
+            label, '' if TEST else ' onClick="{{%s}}"' % fn, path)
+    hits = (hit(DL_D0, DL_D1, -90, 0, 'dayMinus', 'На сутки назад') + hit(DL_D0, DL_D1, 0, 90, 'dayPlus', 'На сутки вперёд') +
+            hit(DL_H0, DL_H1, -90, 0, 'hrMinus', 'На час назад') + hit(DL_H0, DL_H1, 0, 90, 'hrPlus', 'На час вперёд'))
+    edges_src = re.findall(r'<span class="edge" id="(edge(?:Rise|Set))">(<svg.*?</svg>)<span>([\d:]+)</span></span>', timebar, re.S)
+    edges = ''.join('<span class="dl-ed">%s<span>%s</span></span>' % (s, t) for _, s, t in edges_src)
+    hubtxt = ('<div class="dl-hubtxt"><span class="dl-date">%s</span><span class="dl-time">%s</span><span class="dl-eds">%s</span></div>') % (
+        B('dateText', '%s · 28 ОКТЯБРЯ' % dows[2]), B('timeText', fr.at), edges)
+    chev = ('<button type="button" class="gl-glass dl-chev" aria-label="Свернуть или развернуть диск"%s><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(%sdeg)"><path d="M6 9l6 6 6-6"></path></svg></button>') % (
+        '' if TEST else ' onClick="{{toggleDial}}"', B('chevRot', '0'))
+    return ('<div class="dl" style="transform: translateY(%spx)"><div class="dl-bg"></div>%s%s%s%s%s</div>') % (B('dialY', '0'), svg, markers, hubtxt, hits, chev)
+
+
+def dial_scene(fr, uid):
+    """Фон экрана с диском: то же живое небо, что у кадров с куполом; кольца траектории здесь нет (светило стоит на диске)."""
+    now = mins(fr.at)
+    e_now = sun_model(fr)[0](now)
+    hzp = 300
+    sp = ring_pos_sun(now, mins(fr.rise), mins(fr.set))
+    sx = sp[1] if sp[0] == 'up' else 1 - sp[1]
+    mo = fr.moon
+    mp = ring_pos_moon(now, mins(mo['rise']), mins(mo['set']))
+    mx = mp[1] if mp[0] == 'up' else 1 - mp[1]
+    sun = '<div class="dx-scene"><i class="dx-sky" style="background: %s">%s</i>%s%s</div>' % (
+        sky_bg(fr, fr.view, hzp), sky_mesh(fr.view, sky_color(e_now), hzp, sx), _add(), _sw('moon', 'Показать луну'))
+    mv = moon_view(fr)
+    moon = '<div class="dx-scene"><i class="dx-sky" style="background: %s">%s</i>%s%s</div>' % (
+        sky_bg(fr, mv, hzp), sky_mesh(mv, (150, 176, 226), hzp, mx), _add(), _sw('sun', 'Показать солнце'))
+    if HERO_MODE == 'sun':
+        return sun
+    if HERO_MODE == 'moon':
+        return moon
+    return '<sc-if value="{{sun}}" hint-placeholder-val="{{ true }}">%s</sc-if><sc-if value="{{moon}}" hint-placeholder-val="{{ false }}">%s</sc-if>' % (sun, moon)
+
+
+def home(fr, uid, h, scroll, link_to, dial_mode=False):
     f = fr.f
     temp, cond = by_id(f, 'hwTemp'), by_id(f, 'hwCond')
     lo, hi = by_id(f, 'hwLo'), by_id(f, 'hwHi')
@@ -737,6 +904,10 @@ def home(fr, uid, h, scroll, link_to):
     plan_sub = text(re.search(r'id="actionSub">(.*?)</span>', f, re.S).group(1))
     plan_ic = re.search(r'id="planToday".*?(<svg class="ic".*?</svg>)', f, re.S).group(1)
     tabs = ''.join(re.findall(r'<button class="tab[^"]*" data-go="[^"]*">.*?</button>', f, re.S)[:4])
+    if dial_mode:
+        body = '%s<div class="gl-main dx-main">%s<div class="gl-grid">%s</div></div>' % (dial_scene(fr, uid), header, ''.join(tiles))
+        body += '<div class="gl-fade"></div>%s<nav class="gl-glass gl-tabs">%s</nav>' % (dial(fr, f, block(f, '<div class="timebar" id="timebar">')), tabs)
+        return wrap(body, fr, h, 'gl dx')
     body = ('%s%s<div class="gl-grid">%s</div>') % (ring_hero(fr, uid, HERO_MODE), header, ''.join(tiles))
     body = '<div class="gl-main">%s</div>' % body
     timebar = flat_dates(block(f, '<div class="timebar" id="timebar">'))
@@ -829,13 +1000,15 @@ def sky_back(fr, back, moon=None):
     else:
         alt, hmax = sun_model(fr)
         ra, st, now = mins(fr.rise), mins(fr.set), mins(fr.at)
-        k = 130.0 / hmax
+        # одна гладкая кривая через весь путь: высота в момент восхода (≈ −0,8° с рефракцией) ложится на линию горизонта,
+        # без среза в ноль — иначе у горизонта основная дуга идёт ровно, а хвост уходит вниз, и на стыке излом
+        a0 = alt(ra)
+        k = 130.0 / (hmax - a0)
         X = lambda t: 24 + (t - ra) / float(st - ra) * 345
-        Y = lambda t: HZD - max(alt(t), 0) * k
+        Y = lambda t: HZD - (alt(t) - a0) * k
         pts = [(X(t), Y(t)) for t in list(range(ra, st, 5)) + [st]]
-        # хвосты: та же кривая продолжается под горизонт (сдвинута так, чтобы пройти через точки восхода и заката)
-        tl = [(X(t), HZD - (alt(t) - alt(ra)) * k) for t in range(ra - 48, ra + 1, 3)]
-        tr = [(X(t), HZD - (alt(t) - alt(st)) * k) for t in range(st, st + 49, 3)]
+        tl = [(X(t), Y(t)) for t in range(ra - 48, ra + 1, 3)]
+        tr = [(X(t), Y(t)) for t in range(st, st + 49, 3)]
         tn = clamp(now, ra, st)
         lx, ly = X(tn), Y(tn)
         # холм светлее неба вокруг: тот же цвет, осветлённый, и режим plus-lighter — иначе он тонет в цвете заката
@@ -1071,14 +1244,14 @@ add('Glass_Domes', 'Небо над дугой · от «свинца» до п�
 
 
 def weather_board():
-    cases = [('Ясно · день', 'clear', False, False, False, '18°', 'Ясно', '↓ 9° ↑ 19°', 'солнце, лучи медленно вращаются'),
-             ('Ясно · ночь', 'clear', True, False, False, '4°', 'Ясно', '↓ 1° ↑ 8°', 'луна и мерцающие звёзды'),
-             ('Переменная облачность', 'part', False, False, False, '12°', 'Переменно', '↓ 6° ↑ 13°', 'солнце за плывущими облаками'),
-             ('Пасмурно', 'cloud', False, False, False, '9°', 'Пасмурно', '↓ 6° ↑ 10°', 'сплошные облака с рваными краями, три слоя'),
-             ('Дождь', 'rain', False, False, False, '7°', 'Дождь', '↓ −3° ↑ 7°', 'тёмные облака, тонкий дождь, мелкие бусинки на стекле и пара стекающих капель (по образцу Apple)'),
-             ('Ливень и гроза', 'storm', False, False, True, '15°', 'Гроза', '↓ 12° ↑ 17°', 'то же гуще, редкая вспышка'),
-             ('Снег', 'snow', False, True, False, '−3°', 'Снег', '↓ −7° ↑ −2°', 'хлопья и лёгкая изморозь по краям'),
-             ('Мороз, ясно', 'clear', False, True, False, '−18°', 'Ясно', '↓ −24° ↑ −15°', 'изморозь по краям, искры на стекле')]
+    cases = [('Ясно · день', 'clear', False, False, False, '18°', 'Ясно', '↓ 9° ↑ 19°', 'тёплый градиент, яркий у солнца справа'),
+             ('Ясно · ночь', 'clear', True, False, False, '4°', 'Ясно', '↓ 1° ↑ 8°', 'индиго и фиолет, лунный свет справа'),
+             ('Переменная облачность', 'part', False, False, False, '12°', 'Переменно', '↓ 6° ↑ 13°', 'тёплый и серо-голубой, пятна плывут'),
+             ('Пасмурно', 'cloud', False, False, False, '9°', 'Пасмурно', '↓ 6° ↑ 10°', 'серо-голубые слои, без просветов'),
+             ('Дождь', 'rain', False, False, False, '7°', 'Дождь', '↓ −3° ↑ 7°', 'тёмный сине-серый, тяжелее к низу'),
+             ('Ливень и гроза', 'storm', False, False, True, '15°', 'Гроза', '↓ 12° ↑ 17°', 'то же гуще, фиолетовая нота и редкая вспышка'),
+             ('Снег', 'snow', False, True, False, '−3°', 'Снег', '↓ −7° ↑ −2°', 'холодный светлый, ледяной по углам'),
+             ('Мороз, ясно', 'clear', False, True, False, '−18°', 'Ясно', '↓ −24° ↑ −15°', 'ледяной цвет от углов поверх тёплого')]
     cells = ''
     for i, (title, kind, night, frost, heavy, temp, word, hilo, note) in enumerate(cases):
         lo, _, hi = hilo.partition(' ')
@@ -1091,6 +1264,8 @@ def weather_board():
             '<div style="display: grid; grid-template-columns: repeat(4, 179px); gap: 18px 16px; padding: 24px">%s</div></div></div></div>') % (fe.tokens(), cells)
 
 
+add('Glass_Dial', 'Диск времени · сегодня (оценка 0). Нажми слева/справа на кольцо: внутреннее — час, внешнее — сутки', home(fe, 'dl', 852, False, LINK, True), 393, 852, 'dial')
+add('Glass_DialExample', 'Диск времени · пример (78): цвет заката придуман, чтобы показать градиент', home(fx, 'dx', 852, False, LINK, True), 393, 852, 'dial')
 add('Glass_Weather', 'Плитка «Погода» в состояниях (примеры)', weather_board(), 820, 460)
 
 
@@ -1117,8 +1292,64 @@ STATE_JS = '''class Component extends DCLogic {
 }'''
 
 
+DIAL_JS = '''class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { moon: false, T: __T0__, hDur: 0.6, dDur: 0.6, open: true };
+  }
+  renderVals() {
+    const T = this.state.T;
+    const DOW = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+    const two = (n) => (n < 10 ? '0' : '') + n;
+    const clampT = (v) => Math.max(-2880, Math.min(4319, v));
+    const di = Math.floor(T / 1440);
+    const mod = T - di * 1440;
+    const on = (k) => (di === k ? 0.2 : 0);
+    const RAD = Math.PI / 180, phi = __LAT__ * RAD, decl = (__HMAX__ - 90 + __LAT__) * RAD;
+    const e = Math.asin(Math.sin(phi) * Math.sin(decl) + Math.cos(phi) * Math.cos(decl) * Math.cos(15 * (mod - __NOON__) / 60 * RAD)) / RAD;
+    const C = { GOLD: [226, 164, 76], AMBER: [217, 172, 107], SILVER: [239, 234, 224], SCARLET: [216, 80, 47], PINK: [201, 105, 143], BLUE: [91, 119, 160], DEEP: [61, 88, 120], NIGHT: [104, 126, 168] };
+    const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+    const ladder = (h) => {
+      if (h >= -0.833) { if (h > 40) return C.SILVER; if (h > 20) return mix(C.AMBER, C.SILVER, 0.6); if (h > 6.05) return C.AMBER; return C.GOLD; }
+      const d = -h;
+      if (d < 1.8) return mix(C.GOLD, C.SCARLET, d / 1.8);
+      if (d < 4) return mix(C.SCARLET, C.PINK, (d - 1.8) / 2.2);
+      if (d < 6) return mix(C.PINK, C.BLUE, (d - 4) / 2);
+      if (d < 12) return mix(C.BLUE, C.DEEP, (d - 6) / 6);
+      if (d < 18) return mix(C.DEEP, C.NIGHT, (d - 12) / 6);
+      return C.NIGHT;
+    };
+    return {
+      sunCol: 'rgb(' + ladder(e).join(',') + ')',
+      sunGlow: Math.max(0.2, Math.min(1, 1 + e / 8)).toFixed(2),
+      sun: !this.state.moon,
+      moon: this.state.moon,
+      toggle: () => this.setState({ moon: !this.state.moon }),
+      timeText: two(Math.floor(mod / 60)) + ':' + two(mod % 60),
+      dateText: DOW[(2 + di + 70) % 7] + ' · ' + (28 + di) + ' ОКТЯБРЯ',
+      hoursDeg: (-T / 4).toFixed(2),
+      daysDeg: (-T / 96).toFixed(2),
+      hDur: this.state.hDur,
+      dDur: this.state.dDur,
+      c0: on(-2), c1: on(-1), c2: on(0), c3: on(1), c4: on(2),
+      hrMinus: () => this.setState({ T: clampT(Math.ceil(T / 60) * 60 - 60), hDur: 0.45, dDur: 1.3 }),
+      hrPlus: () => this.setState({ T: clampT(Math.floor(T / 60) * 60 + 60), hDur: 0.45, dDur: 1.3 }),
+      dayMinus: () => this.setState({ T: clampT(T - 1440), hDur: 1.1, dDur: 0.9 }),
+      dayPlus: () => this.setState({ T: clampT(T + 1440), hDur: 1.1, dDur: 0.9 }),
+      dialY: this.state.open ? 0 : 232,
+      chevRot: this.state.open ? 0 : 180,
+      toggleDial: () => this.setState({ open: !this.state.open })
+    };
+  }
+}'''
+
+
 def dc(title, body, w, h, inter=False):
-    script = STATE_JS if inter else PLAIN_JS
+    script = DIAL_JS if inter == 'dial' else STATE_JS if inter else PLAIN_JS
+    if inter == 'dial':
+        noon_t, noon_a = row(fe.rows, 'Ход дня', 'Солнечный полдень').split(' · ')
+        script = (script.replace('__T0__', str(mins(fe.at))).replace('__LAT__', str(LAT))
+                  .replace('__HMAX__', str(float(noon_a.strip('°')))).replace('__NOON__', str(mins(noon_t))))
     return '''<!doctype html>
 <html lang="ru">
 <head>
