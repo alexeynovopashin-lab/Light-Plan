@@ -189,3 +189,20 @@ same SceneParams render static frames (SwiftUI) per timeline entry, in the nativ
 - Blocked hosts for licence/compat checks: developer.mozilla.org, shadertoy.com,
   thebookofshaders.com, css-tricks.com, api.github.com.
 - WidgetKit and Metal-in-widget limits: from general knowledge, not verified in this session.
+
+## 8. Direction update (2026-10-30)
+
+Alexey rejected the photoreal-effects look (clouds "like crumpled sheets", frost "like
+twigs") and set the direction: Apple Liquid Glass app design, matte glass first, weather
+shown as gradients behind the blur. Consequences for this plan:
+
+- The scene model in §5 stays; its renderer changes: everything behind the glass is
+  blurred (downsample chain, 3.5–6 px), only on-glass layers (drops, rivulets, frost,
+  stuck snow, rim highlight) are sharp. Details: `WEATHER_FX_GUIDE.md` (v2).
+- `backdrop-filter` remains the natural tool for glass over real page content (the dome,
+  the screen background); inside a tile the demo blurs in Canvas 2D so the result is the
+  same on every engine and measurable.
+- Stage B prototype ("sunset after rain") should be built in the v2 style: warm cumulus
+  base (`base` colour gold), low sun behind matte glass, drops with sharp inverted sky.
+- v2 cost (headless Chromium, no GPU): 321 ms of JS per second for 8 tiles at once vs 71 ms
+  in v1; 61 ms/s for the 4 tiles visible at load. iPhone not measured.
