@@ -80,6 +80,16 @@ step — no Remote Control, no standing terminal connection. So:
   («iPhone ALno», paired). A thread without them can do docs only.
   How to put a build on his phone: `native/CLAUDE.md`, «Build on Alexey's iPhone».
   Tools (26т, main `b71ae74`): `make phone ARGS="install|uninstall|list"` (branch → «LP <branch>», main only → «Light Plan»); `make checkstep ARGS="--type …"` checks a step report against git.
+- **Names carry the step number (Alexey, 31.10: «раньше было 30а имя, 30б имя»).**
+  Every step gets a number in the plan BEFORE its session starts: iteration
+  number + Cyrillic letter + `.n` (`30в.4`). Session title: `<number> <short
+  Russian name>` («30в.4 Кнопка «Наверх» парящая»). Branch and worktree folder:
+  the number transliterated (а a, б b, в v, г g, д d, е e, ж zh, з z, и i, к k,
+  л l, м m, н n, п p), dots → hyphens, then a short Latin name:
+  `wt/30v-4-jump-floating`, folder `.claude/worktrees/30v-4-jump-floating`,
+  phone slot «LP 30v-4-…». Merge branches: `wt/<number>-merge-<MMDD>`. No
+  session or branch without a number; branches pushed before 31.10 keep their
+  names (renaming = deleting remote branches, only by Alexey's word).
 - Each iteration in its own git worktree and branch `wt/<task>`; pairs on its
   own simulator `LP <branch>` (created by `make shots`); base iPhone 17 Pro Max
   stays free. Hand-off only of committed work (`wip:` commit in the branch).
