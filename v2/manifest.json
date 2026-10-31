@@ -1,0 +1,19 @@
+{
+  "name": "Light Plan 2.0",
+  "short_name": "Plan 2.0",
+  "description": "Light Plan 2.0: the web base for Android, ported from the iPhone app",
+  "lang": "en",
+  "id": "/Light-Plan/v2/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0F0E0C",
+  "background_color": "#0F0E0C",
+  "categories": ["photo", "productivity", "utilities"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
