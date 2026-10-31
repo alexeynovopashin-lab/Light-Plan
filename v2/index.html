@@ -4214,6 +4214,10 @@
   .plan-row.busy { align-items: center; color: var(--ink-3); }
   .plan-row.busy .pr-time { color: var(--ink-4); font-size: 14px; }
   .plan-row.busy .pr-who { font-size: 15px; }
+  /* Пометка «сдвинуто» — своей строкой под блоком, с отступом под знак */
+  .plan-row.busy.moved { flex-wrap: wrap; row-gap: 2px; }
+  .pr-moved { flex-basis: 100%; padding-left: 32px; font-size: 12px; line-height: 1.35; color: var(--brass-deep); }
+  .dl-moved { color: var(--brass-deep); }
   .pr-ic { display: inline-flex; flex-shrink: 0; }
   /* Знак повтора держится за имя, а не за край строки: имя перестаёт
      растягиваться, хвост строки уходит вправо сам (у него margin-left: auto) */
@@ -4405,7 +4409,15 @@
   }
   /* Суббота и воскресенье светлее: съёмки чаще всего в них, колонку надо
      находить глазом, а не читать подпись */
-  .cal-head span:nth-child(6), .cal-head span:nth-child(7) { color: var(--ink-4); }
+  /* С шага 1 «Веба 2.0» неделя начинается с выбранного дня, и выходные
+     больше не шестая-седьмая колонка: их метит класс `we`. Цвет — янтарь
+     натива (`Palette.weekend` = brassDeep, WeekStart.swift): суббота и
+     воскресенье в цвете всегда, с какого бы дня ни шла неделя */
+  .cal-head span.we, .year-cal-wd span.we, .dp-wk span.we,
+  .wk-wd.we, .dd-wd.we { color: var(--brass-deep); }
+  .cal .d.we:not(.today) { color: var(--brass-deep); }
+  .cal .d.we.past:not(.today) { color: color-mix(in srgb, var(--brass-deep) 75%, transparent); }
+  .dp-cell.we:not(.out):not(.today):not(.on) { color: var(--brass-deep); }
   /* `minmax(0,1fr)`, а не `1fr`: колонка по умолчанию не уже своего содержимого,
      и подпись в одну строку («Выходные с семьёй») раздувала её, а вместе с ней
      и всю сетку — календарь уезжал за правый край экрана, вместо семи колонок
@@ -8728,6 +8740,17 @@
     </div>
     <p class="seg-note" id="clockNote"></p>
 
+    <!-- С какого дня начинается неделя (натив 28.10, WeekStart.swift).
+         Чипы, а не сегмент: четыре слова на узком экране не помещаются -->
+    <div class="sec-label" data-i18n="set.weekStart">Неделя начинается</div>
+    <div class="chips" id="wsChips" style="padding: 12px 24px 0;">
+      <button class="chip active" data-ws="mon" data-i18n="set.weekStartMon">Понедельник</button>
+      <button class="chip" data-ws="sun" data-i18n="set.weekStartSun">Воскресенье</button>
+      <button class="chip" data-ws="sat" data-i18n="set.weekStartSat">Суббота</button>
+      <button class="chip" data-ws="auto" data-i18n="set.weekStartAuto">Как в системе</button>
+    </div>
+    <p class="seg-note" id="wsNote" data-i18n="set.weekStartNote">С этого дня считаются недели в месяце, неделе и выборе даты. Суббота и воскресенье в цвете всегда.</p>
+
     <div class="sec-label" data-i18n="set.units">Единицы</div>
     <div class="seg" id="unitSeg" style="margin-top:4px;">
       <button class="active" data-unit="c">°C</button>
@@ -10147,6 +10170,10 @@
     <div class="grip"></div>
     <div class="sheet-title" id="blkTitle" data-i18n="blk.title">Занять время</div>
     <div class="sheet-sub" data-i18n="blk.sub">День не для съёмки — но день занятый: календарь должен об этом знать</div>
+    <!-- Время блока подвинули в Календаре iPhone (натив, ключ `mvd`): та же
+         строка, что у карточки съёмки, и гаснет она так же — крестиком -->
+    <div class="say warn" id="blkMoved" hidden><span class="s-ic" data-ic="clock"></span><span class="say-t" id="blkMovedT"></span>
+      <button type="button" class="say-x" id="blkMovedX" data-ic="close" aria-label="Убрать" data-i18n-aria="card.movedX"></button></div>
 
     <div class="g-chips" style="padding:0;"><div class="chips" id="blkKind"></div></div>
 
@@ -10834,13 +10861,15 @@
   function monthTitles() {
     var out = []; for (var m = 0; m < 12; m++) out.push(monthTitleN(m)); return out;
   }
-  /* Шапка календаря: семь дней с понедельника. Неделя у нас начинается с
-     понедельника во всех языках — это свойство наших сеток, а не языка,
-     и менять его на воскресенье значило бы перестраивать вёрстку месяца.
-     От языка тут только слова. 2001-01-01 — понедельник. */
+  /* Шапка календаря: семь дней с выбранного начала недели (`weekFirstDow`).
+     От языка тут только слова. 2000-12-31 — воскресенье, отсчёт от него. */
   function wdRowCells() {
-    var out = "";
-    for (var i = 0; i < 7; i++) out += "<span>" + dCap(abbr3(dtf(O_WD_S).format(new Date(2001, 0, 1 + i)))) + "</span>";
+    var out = "", f = weekFirstDow();
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(2000, 11, 31 + f + i);
+      out += "<span" + (isWeekendDay(d) ? ' class="we"' : "") + ">"
+        + dCap(abbr3(dtf(O_WD_S).format(d))) + "</span>";
+    }
     return out;
   }
 
@@ -10857,6 +10886,33 @@
      ещё не прочитан, а `fmt` нужен раньше — до первой отрисовки. */
   var CLOCKS = ["auto", "24", "12"];
   var clockPref = "auto";
+  /* ---------- С какого дня начинается неделя ----------
+     Правило натива (Rules/WeekStart.swift, решение 28.10): понедельник,
+     воскресенье, суббота или «как в системе». Ключ снимка `weekStart`
+     (`mon|sun|sat|auto`); нет ключа — понедельник, так что старые файлы не
+     меняются. «Как в системе» читает первый день недели региона устройства
+     (`Intl.Locale.weekInfo`), а не языка приложения — как iOS читает
+     `Calendar.firstWeekday`; другой первый день, чем эти три, даёт
+     понедельник. Выходные — суббота и воскресенье всегда. Каждая сетка
+     берёт начало отсюда: понедельник по умолчанию в новом коде не писать. */
+  var WEEK_STARTS = ["mon", "sun", "sat", "auto"];
+  var weekStartPref = "mon";
+  function weekFirstDow() {                       // 0 — воскресенье, как getDay()
+    var p = weekStartPref;
+    if (p === "auto") {
+      p = "mon";
+      try {
+        var loc = new Intl.Locale((navigator.languages && navigator.languages[0]) || navigator.language || "ru");
+        var wi = typeof loc.getWeekInfo === "function" ? loc.getWeekInfo() : loc.weekInfo;
+        var f = wi && wi.firstDay;                 // 1 — понедельник … 7 — воскресенье
+        p = f === 7 ? "sun" : f === 6 ? "sat" : "mon";
+      } catch (e) {}
+    }
+    return p === "sun" ? 0 : p === "sat" ? 6 : 1;
+  }
+  /* Сколько клеток недели стоит перед этим днём: 0 — он и есть начало */
+  function weekOffset(d) { return (d.getDay() - weekFirstDow() + 7) % 7; }
+  function isWeekendDay(d) { var g = d.getDay(); return g === 0 || g === 6; }
   function localeIs12() {
     try {
       return new Intl.DateTimeFormat(LANG.code, { hour: "numeric" }).resolvedOptions().hour12 === true;
@@ -12438,7 +12494,7 @@
           return { rec: r, at: t.at, del: t.del };
         }),
         travelMin: travelMin, musicApp: musicApp, playlists: playlists,
-        tempUnit: tempUnit, currency: currency, clock: clockPref, dayFold: !dayPanelOpen,
+        tempUnit: tempUnit, currency: currency, clock: clockPref, weekStart: weekStartPref, dayFold: !dayPanelOpen,
         mbStripFold: !mbStripOpen, mbSeen: mbSeen, mbSeeded: mbSeeded,
         telCountry: telCountry,
         blocks: blocks.map(function (b) {
@@ -12453,6 +12509,7 @@
            одинаково на всех устройствах, а не по-разному на каждом */
         dev: deviceId
       };
+      keepNative(data);
       stampSettings(data, now);
       localStorage.setItem(STORE, JSON.stringify(data));
       if (typeof renderStorageInfo === "function") renderStorageInfo();
@@ -13158,6 +13215,7 @@
      CLOUD_TOKEN_KEY, CLOUD_KIND_KEY, CLOUD_SYNC_KEY, CLOUD_PKCE_KEY,
      "lightplan.ya.token", "lightplan.ya.synced", "lightplan.beta.ya.synced", "lightplan.v2.ya.synced"
     ].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+    nativeKeep = null;
     location.reload();
   }
 
@@ -13620,6 +13678,30 @@
   }
 
   var saved = loadAll();
+  /* ---------- Ключи натива переживают запись ----------
+     2.0 собирает снимок из своих переменных, и всё, чего она не знает, —
+     клиенты (`clients`), «Неделя начинается» до шага 1, документы натива —
+     пропадало бы при первой же записи. Файл с телефона должен открываться
+     здесь и уезжать обратно без потерь, поэтому незнакомые ключи верхнего
+     уровня лежат как прочитаны и дописываются в каждый снимок. Натив делает
+     то же со словарём `extra` (Snapshot.swift). Снимок `saved` всегда
+     свежий: восстановление из копии и облако перезагружают страницу. */
+  var nativeKeep = saved;
+  function keepNative(data) {
+    if (!nativeKeep) return;
+    for (var k in nativeKeep) if (!(k in data)) data[k] = nativeKeep[k];
+  }
+  /* Поля записей, которые знает только натив, а 2.0 не показывает и не
+     правит. Форма и лист блока собирают запись заново из своих полей, и без
+     переноса правка в 2.0 отрывала бы съёмку от клиента (`clientId`), от
+     «на связи через» (`via`), черновик — от его события (`calTitle`), а
+     блок — от пометки «сдвинуто» (`mvd`). Когда 2.0 научится их править
+     (шаги 2–3), поле уходит из списка в саму форму. */
+  var SESSION_NATIVE = ["clientId", "via", "calTitle"], BLOCK_NATIVE = ["mvd"];
+  function keepNativeFields(old, rec, keys) {
+    if (!old) return;
+    keys.forEach(function (k) { if (old[k] != null && !(k in rec)) rec[k] = old[k]; });
+  }
   /* Лента мудборда — то же правило свёрнутости, что у сводки дня: кто убрал
      плитки с глаз, тот убрал их и на следующий день. Читается здесь, а не
      рядом с `dayPanelOpen`: там `saved` ещё не присвоен (`var` поднимается
@@ -13840,6 +13922,9 @@
   var NOTIF_DEF = { all: true, wx: true, clash: true, srv: true, studio: true };
   var notifPrefs = (function (o) {
     var p = {};
+    /* Подключи, которых 2.0 не знает (нативное `remind` — «за N минут»),
+       лежат как прочитаны и уходят обратно при записи */
+    if (o && typeof o === "object") for (var x in o) if (!(x in NOTIF_DEF)) p[x] = o[x];
     for (var k in NOTIF_DEF) p[k] = (o && typeof o[k] === "boolean") ? o[k] : NOTIF_DEF[k];
     return p;
   })(saved && saved.notif);
@@ -13976,6 +14061,7 @@
   var tempUnit = (saved && saved.tempUnit === "f") ? "f" : "c";
   // Часы: сама функция `is12` объявлена выше, у `fmt` — здесь только выбор
   if (saved && CLOCKS.indexOf(saved.clock) >= 0) clockPref = saved.clock;
+  if (saved && WEEK_STARTS.indexOf(saved.weekStart) >= 0) weekStartPref = saved.weekStart;
 
   /* Тема меняет интерфейс, но не содержание: модель света, палитра неба и вода
      на карте живут своими цветами в этом файле и темой не управляются */
@@ -14051,6 +14137,34 @@
      кнопки в форме и лента дня: `blkKind.<вид>`. Поля `n` у `BLOCK_KINDS`
      никогда не было, и предупреждение писало «„{name}“» */
   function blockLabel(b) { return b.note || LANG.t("blkKind." + blockKind(b.k).k); }
+  /* Пометка «время сдвинуто в календаре» у блока (натив 30.4, ключ `mvd`:
+     каким блок был до сдвига — `from`, `allDay`, `days`, `min`, `dur`).
+     Ставит её натив, когда занятое время подвинули в Календаре iPhone; 2.0
+     её показывает и стирает крестиком. Сдвиг вернули руками — блок снова
+     такой, каким был, и сказать нечего: строки нет (`BlockMoved.matches`).
+     Текст — тот же, что у карточки съёмки: «Время сдвинуто в календаре.
+     Было …, стало …» (`blockMovedText` натива). */
+  function blockMovedText(b) {
+    var m = b && b.mvd;
+    if (!m || !m.from) return null;
+    var mf = dayOf(m.from), mAll = !!m.allDay, mDays = m.days || 1;
+    var mMin = m.min != null ? m.min : null, mDur = m.dur != null ? m.dur : null;
+    var bAll = !!b.allDay, bDays = b.days || 1;
+    var bMin = bAll || b.min == null ? null : b.min, bDur = bAll || b.dur == null ? null : b.dur;
+    if (sameDay(mf, b.from) && mAll === bAll && mDays === bDays && mMin === bMin && mDur === bDur) return null;
+    function text(from, allDay, days, start, dur, other) {
+      if (allDay || start == null) {
+        return days > 1 ? dMonShort(from) + " – " + dMonShort(addDays(from, days - 1)) : dMonShort(from);
+      }
+      return (sameDay(from, other) ? "" : dMonShort(from) + " ") + range(start, start + (dur || 120));
+    }
+    return {
+      t: LANG.t("card.movedT"),
+      m: LANG.t("card.movedM", {
+        from: text(mf, mAll, mDays, mMin, mDur, b.from),
+        to: text(b.from, bAll, bDays, bMin, bDur, mf) })
+    };
+  }
   function newBlockId() { return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
   /* ---------- Сохранённые точки съёмки ----------
      Фотограф возвращается на одни и те же места, и набирать их заново — работа
@@ -18002,7 +18116,7 @@
     var grid = $("cal"); grid.innerHTML = "";
 
     var first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
-    var offset = (first.getDay() + 6) % 7;               // неделя с понедельника
+    var offset = weekOffset(first);                      // неделя с выбранного дня
     var days = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
     var today = new Date(); today.setHours(0,0,0,0);
     var monthHasShoots = false;
@@ -18014,6 +18128,7 @@
       var b = document.createElement("button");
       var inMonth = !out;
       b.className = "d" + (out ? " out" : "")
+        + (isWeekendDay(d) ? " we" : "")
         + (d < today ? " past" : "")
         + (sameDay(d, today) ? " today" : "")
         + (sameDay(d, calSel) ? " sel" : "");
@@ -18091,7 +18206,7 @@
 
   /* ---------- Неделя: семь световых лент ---------- */
   function addDays(d, n) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
-  function weekStart(d) { return addDays(d, -(((d.getDay() + 6) % 7))); }   // понедельник
+  function weekStart(d) { return addDays(d, -weekOffset(d)); }   // первый день недели по настройке
   /* Свет дня без порчи текущего состояния купола */
   function daySky(d) {
     var keep = new Date(selDate);
@@ -18136,7 +18251,7 @@
       var q = qualityOf(d), wx = dayWeather(d), sky = daySky(d);
       var head = '<button type="button" class="wk-head">'
         + '<span class="wk-num">' + d.getDate() + "</span>"
-        + '<span class="wk-wd">' + wdShort(d) + "</span>"
+        + '<span class="wk-wd' + (isWeekendDay(d) ? " we" : "") + '">' + wdShort(d) + "</span>"
         + '<span class="wk-wx">' + wxSign(q) + "<i>" + tempOut(wx.tempBase, 900) + "°</i></span></button>";
 
       var body = "";
@@ -18329,7 +18444,7 @@
   function buildMonthEl(y, m, now) {
     var isNow = y === now.getFullYear() && m === now.getMonth();
     var first = new Date(y, m, 1);
-    var offset = (first.getDay() + 6) % 7;
+    var offset = weekOffset(first);
     var daysN = new Date(y, m + 1, 0).getDate();
     var wrap = document.createElement("div"); wrap.className = "year-cal-month";
     var nameBtn = document.createElement("button");
@@ -18385,7 +18500,7 @@
   function buildMiniMonth12(y, m, now) {
     var isNow = y === now.getFullYear() && m === now.getMonth();
     var first = new Date(y, m, 1);
-    var offset = (first.getDay() + 6) % 7;
+    var offset = weekOffset(first);
     var daysN = new Date(y, m + 1, 0).getDate();
     /* Считаем съёмки на день — встречи в счёт не идут, тот же фильтр, что
        у остальной статистики года (isMeet) */
@@ -18866,7 +18981,7 @@
         var b = document.createElement("button");
         b.type = "button";
         b.className = "dd-day" + (sameDay(dd, calSel) ? " sel" : "") + (sameDay(dd, today0) ? " today" : "");
-        b.innerHTML = '<span class="dd-wd">' + wdShort(dd) + "</span>"
+        b.innerHTML = '<span class="dd-wd' + (isWeekendDay(dd) ? " we" : "") + '">' + wdShort(dd) + "</span>"
           + '<span class="dd-num">' + dd.getDate() + "</span>"
           + '<span class="dd-marks">' + mk + "</span>";
         (function (day) {
@@ -18973,10 +19088,13 @@
         if (it.kind === "busy") {
           var b = it.blk;
           var when = b.allDay ? LANG.t("day.allDay") : range(b.min, b.min + b.dur);
-          return '<button type="button" class="plan-row busy" data-b="' + b.id + '">'
+          var mv = blockMovedText(b);
+          return '<button type="button" class="plan-row busy' + (mv ? " moved" : "") + '" data-b="' + b.id + '">'
             + '<span class="pr-ic">' + IC.svg(blockKind(b.k).ic) + "</span>"
             + '<span class="pr-time">' + esc(when) + "</span>"
-            + '<span class="pr-who">' + esc(blockLabel(b)) + "</span></button>";
+            + '<span class="pr-who">' + esc(blockLabel(b)) + "</span>"
+            + (mv ? '<span class="pr-moved">' + esc(mv.t + ". " + mv.m) + "</span>" : "")
+            + "</button>";
         }
         var s3 = it.s, ds3 = deliveryState(s3), meet3 = it.kind === "meet", ev3 = it.kind === "event";
         var nm = clientName(s3) || (meet3 ? LANG.t("day.meet") : ev3 ? LANG.t("day.event") : typeName(s3));
@@ -19174,6 +19292,8 @@
         + "</span>"
         + '<span class="dl-ev-b"><span class="dl-title">' + esc(name) + "</span>"
         + '<span class="dl-sub">' + esc(sub) + "</span>"
+        + (room && busy && blockMovedText(b)
+            ? '<span class="dl-due dl-moved">' + esc(LANG.t("card.movedT")) + "</span>" : "")
         + (room && ds && ds.rank >= 2
             ? '<span class="dl-due" style="color:' + ds.color + '">' + ds.label + "</span>" : "")
         + "</span></div>";
@@ -24469,7 +24589,7 @@
       }).join("") + "</div>";
     } else {
       var first = new Date(shown.getFullYear(), shown.getMonth(), 1);
-      var off = (first.getDay() + 6) % 7;                    // неделя с понедельника
+      var off = weekOffset(first);                           // неделя с выбранного дня
       var days = new Date(shown.getFullYear(), shown.getMonth() + 1, 0).getDate();
       var cells = "";
       for (var i = off; i > 0; i--) {
@@ -24511,7 +24631,7 @@
   }
   function dpCell(d, cur, today, out, lim) {
     var off = (lim.min && dayDiff(d, lim.min) < 0) || (lim.max && dayDiff(d, lim.max) > 0);
-    var cls = "dp-cell" + (out ? " out" : "") + (off ? " off" : "")
+    var cls = "dp-cell" + (out ? " out" : "") + (off ? " off" : "") + (isWeekendDay(d) ? " we" : "")
       + (sameDay(d, today) ? " today" : "") + (sameDay(d, cur) ? " on" : "");
     return '<button type="button" class="' + cls + '"'
       + (off ? " disabled" : ' data-d="' + d.getTime() + '"') + ">" + d.getDate() + "</button>";
@@ -25269,10 +25389,15 @@
   var SUBGENRE = {
     portrait:     { newborn: "infant", pregnancy: "pregnant", kids: "child", boudoir: "boudoir", business: "briefcase" },
     wedding:      { engagement: "ring_stone", registry: "hall", church: "church" },
+    /* Девичник и мальчишник — подвиды натива (Поле-1, SubGenre.nativeAdditions):
+       стоят последними, как там */
     party:        { birthday: "cake_bd", jubilee: "feast", newyear: "tree",
-                    graduation: "graduation", christening: "chapel", barmitzvah: "star_david" },
+                    graduation: "graduation", christening: "chapel", barmitzvah: "star_david",
+                    bachelorette: "toast", bachelor: "dj" },
     lovestory:    { anniversary: "rings" },
-    family:       { baby: "stroller", pregnancy: "pregnant", generations: "generations" },
+    /* День рождения в семье — подвид натива: детский праздник снимают
+       семейные фотографы, а не только репортажные */
+    family:       { baby: "stroller", pregnancy: "pregnant", generations: "generations", birthday: "cake_bd" },
     animals:      { dogs: "dog", cats: "cat", horses: "horse" },
     landscape:    { stars: "stars" },
     architecture: { interior: "interior", realty: "home" },
@@ -25301,8 +25426,19 @@
   /* Имя и знак съёмки: спрашивают запись целиком, а не её жанр, — потому что
      ответ зависит от обоих полей. Ниже те же три вопроса в узких местах:
      короткое имя для клетки календаря и имя события для встречи */
-  function typeName(x) { return x && subOk(x.type, x.sub) ? subName(x.sub) : genreName(x && x.type); }
-  function shortType(x) { return x && subOk(x.type, x.sub) ? subName(x.sub) : shortGenre(x && x.type); }
+  /* Съёмка без жанра зовётся «Фотосъёмка», как в нативе (PlannerWords,
+     30.4): жанра с таким кодом в данных нет — иначе код уехал бы в файл и
+     показался бы голым, — а правила у записи без жанра и так как у людей.
+     Встреча и чужое событие без жанра остаются без слова, как там */
+  function untyped(x) { return !!x && !x.type && !notWork(x); }
+  function typeName(x) {
+    if (untyped(x)) return LANG.t("genre.photoshoot");
+    return x && subOk(x.type, x.sub) ? subName(x.sub) : genreName(x && x.type);
+  }
+  function shortType(x) {
+    if (untyped(x)) return LANG.t("genre.photoshoot");
+    return x && subOk(x.type, x.sub) ? subName(x.sub) : shortGenre(x && x.type);
+  }
   function evTypeName(x) { return x && subOk(x.type, x.sub) ? subName(x.sub) : evName(x && x.type); }
   function typeSvg(x, cls, box) {
     return x && subOk(x.type, x.sub)
@@ -26396,14 +26532,26 @@
   function renderGuests() {
     if (document.activeElement !== $("fGuestsVal")) $("fGuestsVal").value = guestsText(fGuests);
   }
-  /* Шаг в десять человек: свадьбу считают десятками, а не по головам.
-     Точное число вписывается в поле — на банкете их бывает и триста */
-  function stepGuests(d) {
-    fGuests = Math.max(0, Math.min(GUESTS_MAX, (fGuests || 0) + d));
+  /* Шаг как в нативе (Rules/Guests.swift, Поле-1): до десяти — по одному,
+     камерную съёмку считают по головам; дальше — десятками, свадьбу по
+     головам не считают. «−» выше десяти идёт десятками, но не ниже десяти,
+     иначе с 15 одним нажатием попадали бы в 5. Точное число вписывается в
+     поле — на банкете их бывает и триста */
+  var GUESTS_SINGLES = 10;
+  function moreGuests(n) {
+    n = Math.max(0, n || 0);
+    return n < GUESTS_SINGLES ? n + 1 : Math.min(GUESTS_MAX, n + 10);
+  }
+  function fewerGuests(n) {
+    n = Math.min(GUESTS_MAX, Math.max(0, n || 0));
+    return n <= GUESTS_SINGLES ? Math.max(0, n - 1) : Math.max(GUESTS_SINGLES, n - 10);
+  }
+  function stepGuests(f) {
+    fGuests = f(fGuests);
     $("fGuestsVal").value = guestsText(fGuests);
   }
-  $("fGuestsMinus").addEventListener("click", function () { stepGuests(-10); });
-  $("fGuestsPlus").addEventListener("click", function () { stepGuests(10); });
+  $("fGuestsMinus").addEventListener("click", function () { stepGuests(fewerGuests); });
+  $("fGuestsPlus").addEventListener("click", function () { stepGuests(moreGuests); });
   $("fGuestsVal").addEventListener("input", function () {
     var d = this.value.replace(/\D/g, "").slice(0, 4);
     if (this.value !== d) this.value = d;
@@ -31866,6 +32014,7 @@
     /* Правка карточки из группы хранит её сведения: форма собирает запись
        заново, и без этой строки карточка молча выпала бы из группы */
     if (fRepOf) rec.rep = fRepOf;
+    keepNativeFields(prevRec, rec, SESSION_NATIVE);
     if (editIdx !== null) sessions[editIdx] = rec; else sessions.push(rec);
     /* Новая сумма месяца — смена у всей группы с месяца этой карточки.
        Пишется и карточкам в корзине: возвращённая понесёт её сама */
@@ -33257,6 +33406,19 @@
     });
   });
 
+  /* Неделя: перестраиваются все сетки — месяц, неделя, лента дня, год и
+     выбор даты, — поэтому та же полная перерисовка, что у часов */
+  function renderWeekStartChips() {
+    document.querySelectorAll("#wsChips button").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.ws === weekStartPref);
+    });
+  }
+  document.querySelectorAll("#wsChips button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      weekStartPref = b.dataset.ws; renderWeekStartChips(); relangUI(); saveAll();
+    });
+  });
+
   /* ---------- Язык и валюта ----------
      Языки названы на себе самих: «Русский», «English» — так их узнают, не
      умея читать текущий язык интерфейса. Незаполненный словарь помечен
@@ -33958,6 +34120,7 @@
   renderLangChips();
   renderCurChips();
   renderClockSeg();
+  renderWeekStartChips();
   relangMarkup();        // разметка знает язык с первой отрисовки
   renderMoneyLabels();   // подписи полей знают валюту с первой отрисовки
 
@@ -35009,9 +35172,24 @@
                 days: 1, min: at == null ? ((pre && pre.min) || 600) : at,
                 dur: (pre && pre.dur) || 120,
                 tzFrom: pre ? pre.tzFrom : null, tzTo: pre ? pre.tzTo : null };
-    blkCloseRows(); renderBlk();
+    blkCloseRows(); renderBlk(); renderBlkMoved(b);
     $("blkSheet").classList.add("open"); $("blkScrim").classList.add("open");
   }
+  function renderBlkMoved(b) {
+    var el = $("blkMoved"), mv = blockMovedText(b);
+    el.hidden = !mv;
+    if (!mv) return;
+    $("blkMovedT").innerHTML = "<b>" + esc(mv.t) + ".</b> " + esc(mv.m);
+    paintIcons(el);
+  }
+  $("blkMovedX").addEventListener("click", function () {
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].id === blkEditId && blocks[i].mvd) {
+        delete blocks[i].mvd; saveAll(); renderCal(); renderDayPanel();
+      }
+    }
+    $("blkMoved").hidden = true;
+  });
   function closeBlockSheet() {
     $("blkSheet").classList.remove("open"); $("blkScrim").classList.remove("open");
     blkCloseRows();
@@ -35038,7 +35216,11 @@
                 /* Пояса — снимок на момент записи, как адрес студии: правила
                    перехода на летнее время меняются, а запись остаётся */
                 tzFrom: blk.allDay ? null : blk.tzFrom, tzTo: blk.allDay ? null : blk.tzTo };
-    if (blkEditId) blocks = blocks.map(function (b) { return b.id === blkEditId ? rec : b; });
+    if (blkEditId) blocks = blocks.map(function (b) {
+      if (b.id !== blkEditId) return b;
+      keepNativeFields(b, rec, BLOCK_NATIVE);
+      return rec;
+    });
     else blocks.push(rec);
     saveAll(); closeBlockSheet(); renderCal(); renderDayPanel();
     /* Форма могла ждать под листом: дорогу отмечали из неё, и строка обязана
