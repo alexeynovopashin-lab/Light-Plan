@@ -369,7 +369,7 @@
      адрес через параметр нельзя — приложение всегда своё */
   function appUrl(code) {
     var q = new URLSearchParams(location.search);
-    var chan = (q.get("c") === "main") ? "" : "beta/";
+    var chan = (q.get("c") === "main") ? "" : (q.get("c") === "v2") ? "v2/" : "beta/";
     var base = location.pathname.replace(/quest\/[^/]*$/, "");
     var u = location.origin + base + chan + "?ans=" + code;
     /* Знак записи возвращаем как получили, ничего с ним не делая: он ничего
