@@ -80,6 +80,19 @@ step — no Remote Control, no standing terminal connection. So:
   («iPhone ALno», paired). A thread without them can do docs only.
   How to put a build on his phone: `native/CLAUDE.md`, «Build on Alexey's iPhone».
   Tools (26т, main `b71ae74`): `make phone ARGS="install|uninstall|list"` (branch → «LP <branch>», main only → «Light Plan»); `make checkstep ARGS="--type …"` checks a step report against git.
+- **Idle-time rule for the gate (Alexey, 01.11: «4 часовая проверка — аномалия»).**
+  `make checkstep --full` normally takes minutes (full run ≈ 1–15 min; measured
+  57 s per run on an idle machine). The orchestrator starts it in the background
+  and writes the start time. At 30 min: look at `/tmp/cc-checkstep-full-*.log`
+  (last write time, `Restarting after unexpected exit`) and `ps` for other
+  `xcodebuild`/`checkstep` processes. At 60 min without line 5: stop the run by
+  plain `kill` of the `make` process (never `-9`), write in the report «ворота
+  не закончились за 60 мин: причина <замер>», rerun ONCE when the machine is
+  idle. Two such reports in a row = fix the instrument (guard in
+  `Tools/check_step.sh`), not another rerun. Never run `--full` while a
+  session is in its own series of full runs: they share one simulator and slow
+  each other. The 31.10 case (4 h 0 min, no line 5, `Restarting after
+  unexpected exit` in the branch log) is not yet explained — cause unmeasured.
 - **Names carry the step number (Alexey, 31.10: «раньше было 30а имя, 30б имя»).**
   Every step gets a number in the plan BEFORE its session starts: iteration
   number + Cyrillic letter + `.n` (`30в.4`). Session title: `<number> <short
