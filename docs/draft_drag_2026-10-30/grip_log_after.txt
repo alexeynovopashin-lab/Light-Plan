@@ -1,0 +1,50 @@
+457369.349 down x=287 y=635 slot 990
+457369.366 failed scroll=-1
+457383.285 down x=107 y=677 draft 990
+457383.287 scroll found h=956 inset=251,84
+457383.287 began scroll=124
+457383.287 draft take 990
+457383.777 draft move dy=14.0 -> 1005
+457383.815 draft move dy=38.0 -> 1050
+457384.736 swipe blocked dx=0
+457384.736 ended scroll=124 auto=0
+457384.736 draft end 1050
+457402.954 down x=107 y=714 draft 1050
+457402.957 began scroll=124
+457402.957 draft take 1050
+457403.055 draft move dy=-8.0 -> 1035
+457403.218 draft move dy=-21.0 -> 1020
+457403.385 draft move dy=-33.0 -> 1005
+457404.470 draft move dy=-35.0 -> 990
+457404.472 swipe blocked dx=0
+457404.473 ended scroll=124 auto=0
+457404.473 draft end 990
+457418.957 down x=107 y=679 draft 990
+457418.959 began scroll=124
+457418.959 draft take 990
+457419.252 draft move dy=14.0 -> 1005
+457419.419 draft move dy=26.0 -> 1035
+457424.855 swipe blocked dx=0
+457424.857 ended scroll=124 auto=0
+457424.857 draft end 1035
+457436.341 down x=287 y=381 slot 600
+457436.794 began scroll=124
+457436.795 slot hold 600
+457437.251 draft move dy=10.0 -> 615
+457437.418 draft move dy=22.0 -> 630
+457437.585 draft move dy=38.0 -> 660
+457438.034 swipe blocked dx=0
+457438.035 ended scroll=124 auto=0
+457438.035 draft end 660
+457450.454 down x=183 y=461 menu
+457450.465 slot menu shoot at=660
+457463.789 down x=300 y=781 slot 1230
+457464.636 failed scroll=364
+457475.955 take sd_sep_meet move hold x=250 y=749 1140-1200
+457476.413 began scroll=472
+457476.894 move dy=10.0 -> 1155-1215
+457477.068 move dy=25.0 -> 1185-1245
+457477.236 move dy=38.0 -> 1200-1260
+457477.684 swipe blocked dx=0
+457477.685 ended scroll=472 auto=0
+457477.686 commit sd_sep_meet 1140-1200 -> 1200-1260 true
