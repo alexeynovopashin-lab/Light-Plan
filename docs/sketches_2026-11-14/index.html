@@ -1,0 +1,379 @@
+<title>Схемы семи улучшений</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column of boards; each board = «было» next to «станет» (variants А/Б), phone-sized mock-ups drawn at 1:1 app points.
+   Page colours follow the theme; app colours are the app's own (depicted, not themed). */
+:root {
+  --page-bg: #F4F4F2; --page-fg: #1D1D1F; --muted: #6B6B70; --rule: #D9D9D6; --card: #FFFFFF; --pick: #B5470A;
+  --app-bg: #121110; --app-old: #0F0E0C; --app-new: #2E2A26; --brass: #E2A44C; --ink: #EDE8DF; --ink2: #9A948A; --faint: #5E594F;
+  --d-bg: #E6E6E7; --d-block: #F3F3F5; --d-orange: #F29230; --sky1: #86BAEC; --sky2: #DCEBF9; --d-ink: #000000; --d-ink2: #5C5C62;
+  --font: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --head: "Space Grotesk", "Inter", -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page-bg: #17171A; --page-fg: #EDEDEA; --muted: #9A9AA0; --rule: #33333A; --card: #1F1F24; --pick: #F0A060; color-scheme: dark; } }
+:root[data-theme="dark"] { --page-bg: #17171A; --page-fg: #EDEDEA; --muted: #9A9AA0; --rule: #33333A; --card: #1F1F24; --pick: #F0A060; color-scheme: dark; }
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--font); font-size: 15px; line-height: 1.5;
+  padding-block: 24px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 980px; margin: 0 auto; }
+h1 { font-family: var(--head); font-size: 28px; line-height: 1.15; margin: 0 0 8px; text-wrap: balance; }
+h2 { font-family: var(--head); font-size: 21px; margin: 0 0 4px; text-wrap: balance; }
+h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+p { margin: 0 0 10px; max-width: 66ch; }
+.lead { color: var(--muted); max-width: 66ch; margin-bottom: 28px; }
+section { border-top: 1px solid var(--rule); padding-top: 22px; margin-top: 34px; }
+.words { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+.words q { color: var(--page-fg); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px 20px; align-items: start; }
+.col { min-width: 0; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background: var(--card); border: 1px solid var(--rule); margin-bottom: 8px; }
+.tag.pick { color: var(--pick); border-color: var(--pick); }
+.note { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.note b { color: var(--page-fg); font-weight: 600; }
+.pros { font-size: 13px; margin: 8px 0 0; padding: 0; list-style: none; }
+.pros li { padding-left: 16px; position: relative; margin-bottom: 2px; }
+.pros li::before { position: absolute; left: 0; font-weight: 700; }
+.pros .p::before { content: "+"; color: #2E8B57; } .pros .m::before { content: "−"; color: #C0392B; }
+
+/* ——— app mock-ups ——— */
+.shot { width: 100%; max-width: 340px; border-radius: 26px; overflow: hidden; position: relative; font-family: -apple-system, "Inter", sans-serif; }
+.lockbg { background: linear-gradient(#3A4238, #1F261F); padding: 14px 10px; }
+.plate { border-radius: 22px; padding: 12px 14px 10px; color: var(--ink); }
+.plate.old { background: color-mix(in srgb, var(--app-old) 92%, transparent); }
+.plate.new { background: color-mix(in srgb, var(--app-new) 90%, transparent); box-shadow: inset 0 1px 0 rgba(255,255,255,.10); }
+.prow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+.prow b { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #A8B49B; margin-right: 6px; vertical-align: 2px; }
+.sub { font-size: 12px; color: var(--ink2); margin-top: 1px; display: flex; justify-content: space-between; }
+.lane { position: relative; margin-top: 10px; display: flex; justify-content: space-between; }
+.lane::before { content: ""; position: absolute; left: 10px; right: 10px; top: 14px; height: 3px; background: rgba(237,232,223,.16); border-radius: 2px; }
+.lane.pr::after { content: ""; position: absolute; left: 10px; top: 14px; height: 3px; width: var(--w); background: var(--brass); border-radius: 2px; }
+.stop { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.ring { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--brass); background: var(--app-bg); display: grid; place-items: center; }
+.ring i { width: 10px; height: 10px; border: 1.5px solid var(--brass); border-radius: 3px; display: block; }
+.ring.now { background: var(--brass); } .ring.now i { border-color: var(--app-bg); }
+.ring.past { opacity: .38; }
+.ring.mini { width: 16px; height: 16px; border-width: 1px; } .ring.mini i { width: 6px; height: 6px; border-width: 1px; }
+.stop small { display: block; font-size: 11px; color: var(--ink2); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.stop span { display: block; font-size: 11.5px; color: var(--ink); max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stop.past small, .stop.past span { opacity: .45; }
+.stop.now span { font-weight: 600; }
+.stop.more .ring { border-style: dashed; border-color: var(--faint); background: transparent; color: var(--ink2); font-size: 11px; }
+.old .stop small, .old .stop span { font-size: 8.5px; max-width: 28px; }
+.old .lane::before { top: 8px; } .old .lane.pr::after { top: 8px; }
+.island { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #000; color: #fff; border-radius: 22px; height: 38px; padding: 0 14px 0 10px; width: 190px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.island .ring { width: 22px; height: 22px; background: transparent; } .island .ring i { width: 8px; height: 8px; }
+.islands { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin-top: 10px; }
+.islands small { font-size: 12px; color: var(--ink2); font-weight: 400; }
+
+.cal { background: var(--d-bg); height: 470px; position: relative; color: var(--d-ink); }
+.cal .hd { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 6px; font-size: 22px; font-weight: 700; }
+.cal .ic { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--d-ink); display: grid; place-items: center; }
+.cal .ic.o { border-color: var(--d-orange); }
+.cal .row { margin: 8px 12px; background: var(--d-block); border-radius: 14px; padding: 10px 12px; font-size: 14px; display: flex; gap: 10px; align-items: baseline; box-shadow: 0 1px 0 #fff inset, 0 1px 4px rgba(0,0,0,.08); }
+.cal .row em { font-style: normal; color: #B8470A; font-variant-numeric: tabular-nums; }
+.cal .dim { opacity: .35; }
+.kb { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: #CFD1D6; }
+.kb::before { content: ""; position: absolute; inset: 10px 8px; background: repeating-linear-gradient(90deg, #F5F5F7 0 24px, transparent 24px 28px); border-radius: 6px; opacity: .9; height: 100px; }
+.pill { position: absolute; display: flex; align-items: center; gap: 8px; background: #F7F7F9; border-radius: 22px; height: 44px; padding: 0 14px; font-size: 14px; color: var(--d-ink2); box-shadow: 0 2px 12px rgba(0,0,0,.14), 0 0 0 .5px rgba(0,0,0,.08); }
+.mag { width: 14px; height: 14px; border: 2px solid currentColor; border-radius: 50%; position: relative; flex: none; }
+.mag::after { content: ""; position: absolute; width: 2px; height: 7px; background: currentColor; right: -3px; bottom: -6px; transform: rotate(-45deg); }
+.results { position: absolute; background: #F7F7F9; border-radius: 18px; padding: 6px 12px; font-size: 13px; box-shadow: 0 2px 12px rgba(0,0,0,.12); }
+.results div { padding: 7px 0; border-bottom: .5px solid #D8D8DC; display: flex; justify-content: space-between; } .results div:last-child { border: 0; }
+.results em { font-style: normal; color: var(--d-ink2); }
+.arrowtxt { position: absolute; font-size: 11.5px; color: #B8470A; font-weight: 600; }
+
+.frames { display: flex; gap: 10px; align-items: flex-start; overflow-x: auto; padding-bottom: 4px; }
+.frame { flex: none; width: 150px; height: 300px; background: var(--d-bg); border-radius: 16px; position: relative; overflow: hidden; color: var(--d-ink); font-size: 11px; font-family: -apple-system, "Inter", sans-serif; }
+.frame .cap { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 10.5px; color: var(--d-ink2); }
+.shoot { position: absolute; background: var(--d-block); border-radius: 10px; box-shadow: 0 1px 0 #fff inset, 0 1px 4px rgba(0,0,0,.10); padding: 6px 8px; font-size: 11px; }
+.shoot b { font-weight: 600; } .shoot em { font-style: normal; color: #B8470A; margin-right: 4px; }
+.arrow { align-self: center; color: var(--muted); font-size: 18px; flex: none; }
+
+.sheetmock { background: var(--d-block); color: var(--d-ink); max-width: 340px; border-radius: 26px; padding: 18px 18px 20px; position: relative; font-family: -apple-system, "Inter", sans-serif; }
+.sheetmock h4 { margin: 14px 0 4px; font-size: 20px; } .sheetmock p { font-size: 13px; color: var(--d-ink2); margin: 0 0 12px; }
+.field { background: var(--d-bg); border-radius: 12px; padding: 11px 12px; font-size: 15px; color: var(--d-ink); }
+.city svg { display: block; width: 100%; height: 70px; }
+.city path.line { fill: none; stroke: var(--d-orange); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.city.anim path.line { animation: draw 2.2s ease-out infinite; }
+@keyframes draw { 0% { stroke-dashoffset: 1; } 55%, 100% { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .city.anim path.line { animation: none; } }
+
+.skybox { border-radius: 20px; overflow: hidden; background: linear-gradient(var(--sky1), var(--sky2)); position: relative; height: 150px; }
+.skybox svg { width: 100%; height: 100%; display: block; }
+.moons { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.moons .mc { min-width: 0; }
+.mc .name { font-size: 13px; font-weight: 600; margin: 6px 0 0; } .mc .why { font-size: 12.5px; color: var(--muted); }
+.table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
+.table td, .table th { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.table th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.q { background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; margin-top: 26px; }
+.q h2 { font-size: 17px; }
+</style>
+
+<main>
+<h1>Схемы семи улучшений</h1>
+<p class="lead">14.11. Рисую только то, что меняет устройство экрана: пункты 2, 5, 6, 7 из твоего списка, луну (4) и большой виджет, который ты прислал позже. Пункты 1 и 3 — обычные правки, они уже у исполнителя. Размеры на схемах — настоящие размеры приложения. Каждое «станет» — предложение, выбираешь ты; мой выбор помечен.</p>
+
+<!-- ============ 2–3: экран активности ============ -->
+<section id="activity">
+<h2>Экран активности: компактнее и светлее</h2>
+<p class="words">Твои слова: <q>виджет надо сделать менее черным, события мы договаривались сделать компактнее, не высыпать весь маршрут а помещать так, чтобы видно было следующие шаги, время и подписи</q>; <q>в динамик исланд… иконку и таймер точки</q>.</p>
+<div class="grid">
+  <div class="col">
+    <h3>Было · 12 точек, подписи через одну</h3>
+    <div class="shot lockbg"><div class="plate old">
+      <div class="prow"><span><i class="dot"></i>Сейчас: Обед</span><b>1:20</b></div>
+      <div class="sub"><span>08:00 – 22:00 · 14 ч</span><span>до Фотосессии</span></div>
+      <div class="lane pr" style="--w:36%">
+        <div class="stop"><div class="ring mini"><i></i></div><small>08:…</small><span>Сборы</span></div>
+        <div class="stop"><div class="ring mini"><i></i></div></div>
+        <div class="stop"><div class="ring mini"><i></i></div><small>11:…</small><span>Выезд</span></div>
+        <div class="stop"><div class="ring mini"><i></i></div></div>
+        <div class="stop"><div class="ring mini"><i></i></div><small>14:…</small><span>Обед</span></div>
+        <div class="stop"><div class="ring mini"><i></i></div></div>
+        <div class="stop"><div class="ring mini"><i></i></div><small>16:…</small><span>Фото…</span></div>
+        <div class="stop"><div class="ring mini"><i></i></div></div>
+        <div class="stop"><div class="ring mini"><i></i></div><small>18:…</small><span>Первый</span></div>
+        <div class="stop"><div class="ring mini"><i></i></div></div>
+        <div class="stop"><div class="ring mini"><i></i></div><small>19:…</small><span>Букет</span></div>
+        <div class="stop"><div class="ring mini"><i></i></div></div>
+      </div>
+    </div></div>
+    <p class="note">Фон <b>#0F0E0C</b>, прозрачность 0,92 (почти чёрный). Время обрезано («08:…»), названия по восемь пикселей.</p>
+  </div>
+  <div class="col">
+    <span class="tag pick">Станет · окно из четырёх точек</span>
+    <div class="shot lockbg"><div class="plate new">
+      <div class="prow"><span><i class="dot"></i>Сейчас: Обед</span><b>1 ч 20 м</b></div>
+      <div class="sub"><span>12:00 – 22:00 · до «Фотосессии»</span></div>
+      <div class="lane pr" style="--w:27%">
+        <div class="stop past"><div class="ring past"><i></i></div><small>11:00</small><span>Выезд</span></div>
+        <div class="stop now"><div class="ring now"><i></i></div><small>14:00</small><span>Обед</span></div>
+        <div class="stop"><div class="ring"><i></i></div><small>16:00</small><span>Фотосессия</span></div>
+        <div class="stop"><div class="ring"><i></i></div><small>18:30</small><span>Первый танец</span></div>
+        <div class="stop more"><div class="ring">+4</div><small>&nbsp;</small><span>ещё</span></div>
+      </div>
+    </div></div>
+    <ul class="pros">
+      <li class="p">видно сейчас, две следующие точки и сколько ещё впереди; время и название целиком</li>
+      <li class="p">прошедшая точка одна, бледная — понятно, где был</li>
+      <li class="m">весь маршрут целиком на плашке больше не виден — он есть в карточке</li>
+    </ul>
+    <p class="note">Фон светлее: <b>#2E2A26</b>, прозрачность 0,90, тонкий верхний блик (было #0F0E0C). Высота плашки ≈ 120 pt вместо 143. Остров и студийный режим остаются как договорено 28.10.</p>
+  </div>
+  <div class="col">
+    <h3>Свёрнутый остров</h3>
+    <div class="islands">
+      <div class="island"><div class="ring"><i></i></div><span>1 ч 20 м</span></div>
+      <small>в пути: знак текущей точки и часы до следующей</small>
+      <div class="island"><div class="ring"><i></i></div><span>44:25</span></div>
+      <small>на последней точке: часы до конца свадьбы (эту правку делает 30и.2)</small>
+    </div>
+    <p class="note">Два острова на твоём снимке — это два тестовых приложения. На телефоне должно остаться одно.</p>
+  </div>
+</div>
+</section>
+
+<!-- ============ 5: поиск ============ -->
+<section id="search">
+<h2>Поиск «Съёмок» разворачивается в плашку</h2>
+<p class="words">Твои слова: <q>пусть Поиск — разворачивается в плашку, не надо открывать окно. возьмем визуал у Apple</q> (образцы: Настройки iOS и Telegram — поиск внизу, плашка над клавиатурой).</p>
+<div class="grid">
+  <div class="col">
+    <h3>Было</h3>
+    <div class="shot cal">
+      <div class="hd"><span>Ноябрь</span><span style="display:flex;gap:8px"><span class="ic o">+</span><span class="ic"><i class="mag"></i></span></span></div>
+      <div class="row"><em>12:00</em><b>Анна и Игорь</b></div>
+      <div class="row dim"><em>15:00</em>Лавстори</div>
+      <div class="arrowtxt" style="right:14px;top:56px">нажатие → отдельное окно</div>
+    </div>
+  </div>
+  <div class="col">
+    <span class="tag pick">А · плашка внизу, как у Apple</span>
+    <div class="shot cal">
+      <div class="hd dim"><span>Ноябрь</span><span class="ic"></span></div>
+      <div class="row"><em>12:00</em><b>Анна и Игорь</b></div>
+      <div class="row"><em>15:00</em>Лавстори</div>
+      <div class="results" style="left:12px;right:12px;bottom:244px">
+        <div><span>Анна и Игорь</span><em>13 ноя · свадьба</em></div>
+        <div><span>Анна Корнилова</span><em>клиент</em></div>
+        <div><span>Анкета · Анна</span><em>документ</em></div>
+      </div>
+      <div class="kb"></div>
+      <div class="pill" style="left:12px;right:68px;bottom:162px;color:#000"><i class="mag"></i>Анна<span style="margin-left:auto;opacity:.5">✕</span></div>
+      <div class="pill" style="right:12px;bottom:162px;width:44px;padding:0;justify-content:center">✕</div>
+    </div>
+    <ul class="pros">
+      <li class="p">как в Настройках iOS: палец рядом, результаты над плашкой, календарь не пропадает</li>
+      <li class="m">поиск уезжает вниз: кнопку-лупу надо перенести из шапки в нижнюю панель</li>
+    </ul>
+  </div>
+  <div class="col">
+    <span class="tag">Б · плашка вырастает из лупы вверху</span>
+    <div class="shot cal">
+      <div class="hd"><span class="pill" style="position:static;flex:1;margin-right:8px;color:#000"><i class="mag"></i>Анна<span style="margin-left:auto;opacity:.5">✕</span></span><span class="ic o">+</span></div>
+      <div class="results" style="left:12px;right:12px;top:66px">
+        <div><span>Анна и Игорь</span><em>13 ноя · свадьба</em></div>
+        <div><span>Анна Корнилова</span><em>клиент</em></div>
+        <div><span>Анкета · Анна</span><em>документ</em></div>
+      </div>
+      <div class="row dim" style="margin-top:160px"><em>15:00</em>Лавстори</div>
+      <div class="kb"></div>
+    </div>
+    <ul class="pros">
+      <li class="p">лупа остаётся там, где привычно; плашка растёт влево по шапке, остальные значки уходят</li>
+      <li class="m">ввод сверху, клавиатура снизу — тянуться дальше</li>
+    </ul>
+  </div>
+</div>
+<p class="note"><b>Мой выбор — А</b>: твои образцы оба с поиском внизу. Движение: лупа/кнопка расширяется в плашку 0,3 с, клавиатура поднимает её, ✕ сворачивает обратно в круг.</p>
+</section>
+
+<!-- ============ 6: развёртывание и стопки ============ -->
+<section id="expand">
+<h2>Строка съёмки разворачивается в карточку, несколько съёмок — стопкой</h2>
+<p class="words">Твои слова: <q>Анна и Игорь — добавить анимацию развертывания в карточку, много съемок пусть будут стопками. Получится приемственность</q>.</p>
+<div class="col" style="margin-bottom:22px">
+  <span class="tag pick">А · одна съёмка: строка вырастает в карточку (≈ 0,35 с)</span>
+  <div class="frames">
+    <div class="frame"><div class="shoot" style="left:8px;right:8px;top:70px"><em>12:00</em><b>Анна и Игорь</b></div><div class="cap">строка</div></div>
+    <div class="arrow">→</div>
+    <div class="frame"><div class="shoot" style="left:5px;right:5px;top:40px;height:150px;border-radius:14px"><em>12:00</em><b>Анна и Игорь</b><div style="margin-top:8px;opacity:.55">Свадьба · Томск</div></div><div class="cap">растёт, остальные строки уходят</div></div>
+    <div class="arrow">→</div>
+    <div class="frame"><div class="shoot" style="left:0;right:0;top:14px;bottom:0;border-radius:16px 16px 0 0;padding:12px"><em>12:00</em><b>Анна и Игорь</b><div style="margin-top:8px">Свадьба · Томск</div><div style="margin-top:6px;opacity:.55">маршрут · свет · платёж…</div></div><div class="cap">карточка</div></div>
+  </div>
+  <p class="note">Время и имя остаются на месте и не прыгают — растёт плашка вокруг них, остальное проявляется. Закрытие — тем же движением назад, в свою строку.</p>
+</div>
+<div class="col">
+  <span class="tag pick">Б · несколько съёмок в дне: стопка</span>
+  <div class="frames">
+    <div class="frame"><div class="shoot" style="left:16px;right:16px;top:86px;height:40px;opacity:.55"></div><div class="shoot" style="left:11px;right:11px;top:76px;height:40px;opacity:.8"></div><div class="shoot" style="left:6px;right:6px;top:62px"><em>12:00</em><b>Анна и Игорь</b><div style="opacity:.55;margin-top:2px">ещё 2 съёмки дня</div></div><div class="cap">день стопкой</div></div>
+    <div class="arrow">→</div>
+    <div class="frame"><div class="shoot" style="left:6px;right:6px;top:40px"><em>12:00</em><b>Анна и Игорь</b></div><div class="shoot" style="left:6px;right:6px;top:84px"><em>15:30</em>Лавстори</div><div class="shoot" style="left:6px;right:6px;top:128px"><em>19:00</em>Портрет</div><div class="cap">нажатие — веер</div></div>
+    <div class="arrow">→</div>
+    <div class="frame"><div class="shoot" style="left:10px;right:10px;bottom:-4px;height:30px;opacity:.55"></div><div class="shoot" style="left:5px;right:5px;bottom:-2px;height:36px;opacity:.8"></div><div class="shoot" style="left:0;right:0;top:14px;bottom:20px;border-radius:16px;padding:12px"><em>12:00</em><b>Анна и Игорь</b><div style="margin-top:8px">Свадьба · Томск</div></div><div class="cap">карточка, края съёмок внизу</div></div>
+  </div>
+  <ul class="pros">
+    <li class="p">та же стопка, что уже есть в карточке дня и у долгов («как в Wallet»): список и карточка говорят одним языком</li>
+    <li class="p">день с одной съёмкой остаётся строкой, стопка появляется только от двух</li>
+    <li class="m">чтобы увидеть все съёмки дня, нужно одно нажатие на стопку (в месяце и неделе — без изменений)</li>
+  </ul>
+</div>
+</section>
+
+<!-- ============ 7: контур города ============ -->
+<section id="city">
+<h2>Контур города одной линией на листе «Откуда вы работаете»</h2>
+<p class="words">Твои слова: <q>добавить SVG очертание города одной линией</q>.</p>
+<div class="grid">
+  <div class="col">
+    <span class="tag pick">Станет · общий силуэт, рисуется при выборе города</span>
+    <div class="sheetmock">
+      <div class="city anim"><svg viewBox="0 0 320 70" aria-label="Силуэт города одной линией"><path class="line" pathLength="1" d="M4 62 H30 V44 H44 V30 H52 V22 L56 12 L60 22 V30 H68 V50 H84 V36 H98 V24 Q112 6 126 24 V50 H140 V28 H152 V16 H164 V28 H176 V48 H192 V38 H204 V20 L212 10 L220 20 V38 H232 V52 H250 V34 H262 V44 H278 V56 H300 V62 H316"/></svg></div>
+      <h4>Откуда вы работаете?</h4>
+      <p>Город нужен для света и погоды.</p>
+      <div class="field">Томск</div>
+    </div>
+    <p class="note">Линия одна, не обрывается: идёт по крышам слева направо. Цвет — знак приложения (оранжевый светлой темы / латунь тёмной). Рисуется за 1,2 с, когда город найден; без движения — показывается сразу.</p>
+  </div>
+  <div class="col">
+    <h3>Как набирается набор</h3>
+    <table class="table">
+      <tr><th>Вариант</th><th>Что получится</th></tr>
+      <tr><td><b>1. Только общий силуэт</b></td><td>у всех городов одно и то же; дёшево, без ошибок</td></tr>
+      <tr><td><b>2. Общий + свои для крупных</b> (мой выбор)</td><td>общий силуэт по умолчанию; для Москвы, Петербурга, Новосибирска, Томска и ещё нескольких — своя линия с узнаваемой башней или куполом; остальные города получают общий</td></tr>
+      <tr><td><b>3. Свой для каждого</b></td><td>нереально вручную; нужен генератор по карте, а он даст похожие кляксы</td></tr>
+    </table>
+    <p class="note">Всё рисуем сами, чужих картинок в репозиторий не кладём. Для варианта 2 мне нужно от тебя только одно: какие города тебе важны в первую очередь (кроме Томска).</p>
+  </div>
+</div>
+</section>
+
+<!-- ============ 4: луна ============ -->
+<section id="moon">
+<h2>Луна на светлом небе</h2>
+<p class="words">Твои слова: <q>Луна черная и слишком маленькая, в светлой теме</q>. Фаза на схемах — молодой месяц, как на твоём снимке; ниже — половина. Дневное небо — из палитры Д.</p>
+<div class="moons">
+  <div class="mc"><div class="skybox"><svg viewBox="0 0 200 150"><path d="M20 140 Q100 0 180 140" fill="none" stroke="#F09329" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+    <circle cx="70" cy="62" r="15" fill="#16161A"/><path d="M70 47 A15 15 0 0 1 70 77 A9 15 0 0 0 70 47" fill="#CFD6DE"/></svg></div>
+    <div class="name">Сейчас</div><div class="why">диск 15 pt, чёрный; светится только серп</div></div>
+  <div class="mc"><div class="skybox"><svg viewBox="0 0 200 150"><path d="M20 140 Q100 0 180 140" fill="none" stroke="#F09329" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+    <circle cx="70" cy="62" r="32" fill="#fff" opacity=".35"/><circle cx="70" cy="62" r="22" fill="#6F86A8" opacity=".5"/><path d="M70 40 A22 22 0 0 1 70 84 A13 22 0 0 0 70 40" fill="#FFFFFF"/>
+    <circle cx="150" cy="95" r="22" fill="#6F86A8" opacity=".5"/><path d="M150 73 A22 22 0 0 1 150 117 Z" fill="#fff"/></svg></div>
+    <div class="name">М1 · тёмная сторона — синяя дымка</div><div class="why">диск 22 pt: светлая часть белая, тёмная — полупрозрачный голубой, как земной свет</div></div>
+  <div class="mc"><div class="skybox"><svg viewBox="0 0 200 150"><path d="M20 140 Q100 0 180 140" fill="none" stroke="#F09329" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+    <circle cx="70" cy="62" r="22" fill="#34476B"/><path d="M70 40 A22 22 0 0 1 70 84 A13 22 0 0 0 70 40" fill="#FFFFFF"/><circle cx="70" cy="62" r="22" fill="none" stroke="#fff" stroke-width="1.6"/>
+    <circle cx="150" cy="95" r="22" fill="#34476B"/><path d="M150 73 A22 22 0 0 1 150 117 Z" fill="#fff"/><circle cx="150" cy="95" r="22" fill="none" stroke="#fff" stroke-width="1.6"/></svg></div>
+    <div class="name">М2 · ночно-синий диск, белая кромка</div><div class="why">тёмная сторона — цвет ночного неба, не чёрный; белый ободок держит форму</div></div>
+  <div class="mc"><div class="skybox"><svg viewBox="0 0 200 150"><path d="M20 140 Q100 0 180 140" fill="none" stroke="#F09329" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+    <circle cx="70" cy="62" r="22" fill="none" stroke="#fff" stroke-width="2"/><path d="M70 40 A22 22 0 0 1 70 84 A13 22 0 0 0 70 40" fill="#FFFFFF"/>
+    <circle cx="150" cy="95" r="22" fill="none" stroke="#fff" stroke-width="2"/><path d="M150 73 A22 22 0 0 1 150 117 Z" fill="#fff"/></svg></div>
+    <div class="name">М3 · белый контур</div><div class="why">диск прозрачный, видно небо; светлая часть белая — как знак луны в приложении</div></div>
+</div>
+<p class="note"><b>Мой выбор — М2</b>: диск остаётся читаемым на любом небе, тёмная сторона не чёрная. Размер 22 pt вместо 15 (ядро солнца 13 pt). Это шаг 28к.6, вместе со светлой темой. Для ночного неба ничего не меняется.</p>
+</section>
+
+<!-- ============ 8: большой виджет ============ -->
+<section id="large">
+<h2>Большой виджет: купол из приложения</h2>
+<p class="words">Твои слова, со снимком большого виджета (Томск, 14 ноября): <q>вот этот ужас (огромный виджет с вытянутым куполом), можно заменить на купол из приложения, с минимальной переработкой</q>.</p>
+<div class="grid">
+  <div class="col">
+    <h3>Было · дуга тянется на всю высоту плашки</h3>
+    <svg viewBox="0 0 300 330" style="width:100%;max-width:300px;display:block" aria-label="Большой виджет сейчас">
+      <rect width="300" height="330" rx="26" fill="#242321"/>
+      <text x="18" y="30" fill="#9A948A" font-size="13">Суббота, 14 ноября</text><text x="18" y="50" fill="#EDE8DF" font-size="16" font-weight="600">Томск</text>
+      <line x1="16" x2="284" y1="248" y2="248" stroke="#5E594F"/>
+      <path d="M16 248 A134 190 0 0 1 284 248" fill="none" stroke="#6A6660" stroke-width="2"/>
+      <path d="M263 150 A134 190 0 0 1 284 248" fill="none" stroke="#E2A44C" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="16" cy="248" r="6" fill="#8C877F"/>
+      <text x="18" y="272" fill="#9A948A" font-size="12">День 8 ч 17 мин</text>
+      <text x="18" y="304" fill="#EDE8DF" font-size="16">08:56</text><text x="112" y="304" fill="#E2A44C" font-size="16">16:07</text><text x="206" y="304" fill="#EDE8DF" font-size="16">17:12</text>
+    </svg>
+    <p class="note">Дуга эллипса: ширина плашки на высоту плашки (в коде <b>ry = высота − 12</b>), поэтому форма зависит от размера виджета и вытягивается. Сверху пусто, купол не похож на экран «Свет».</p>
+  </div>
+  <div class="col">
+    <span class="tag pick">Станет · купол как на «Свете», пропорции фиксированы</span>
+    <svg viewBox="0 0 300 330" style="width:100%;max-width:300px;display:block" aria-label="Большой виджет с куполом приложения">
+      <defs>
+        <linearGradient id="skyn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101B33"/><stop offset="1" stop-color="#2A3550"/></linearGradient>
+        <linearGradient id="arcg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E2A44C"/><stop offset=".5" stop-color="#8A8A92"/><stop offset="1" stop-color="#E2A44C"/></linearGradient>
+      </defs>
+      <rect width="300" height="330" rx="26" fill="#121110"/>
+      <text x="18" y="30" fill="#9A948A" font-size="13">Суббота, 14 ноября</text><text x="18" y="50" fill="#EDE8DF" font-size="16" font-weight="600">Томск</text>
+      <path d="M22 232 A128 116 0 0 1 278 232 Z" fill="url(#skyn)"/>
+      <path d="M22 232 A128 116 0 0 1 278 232" fill="none" stroke="url(#arcg)" stroke-width="3" stroke-linecap="round"/>
+      <line x1="10" x2="290" y1="232" y2="232" stroke="#3A3732" stroke-dasharray="3 3"/>
+      <circle cx="233" cy="147" r="14" fill="#E2A44C" opacity=".18"/><circle cx="233" cy="147" r="8" fill="#0C0B0A"/><circle cx="233" cy="147" r="5.5" fill="#E2A44C"/>
+      <text x="150" y="150" fill="#EDE8DF" font-size="34" font-weight="200" text-anchor="middle">14:43</text>
+      <text x="150" y="172" fill="#EDE8DF" font-size="11" letter-spacing="1.6" font-weight="600" text-anchor="middle">ВЕЧЕРЕЕТ</text>
+      <text x="22" y="258" fill="#9A948A" font-size="11.5">Рассвет</text><text x="22" y="278" fill="#EDE8DF" font-size="16">08:56</text>
+      <text x="112" y="258" fill="#E2A44C" font-size="11.5">Золотой час</text><text x="112" y="278" fill="#E2A44C" font-size="16">16:07</text>
+      <text x="206" y="258" fill="#9A948A" font-size="11.5">Закат</text><text x="206" y="278" fill="#EDE8DF" font-size="16">17:12</text>
+      <text x="22" y="312" fill="#9A948A" font-size="12">День 8 ч 17 мин</text>
+    </svg>
+    <ul class="pros">
+      <li class="p">те же пропорции, что у купола приложения: 163 × 148, форма не зависит от размера виджета</li>
+      <li class="p">те же вещи: синее небо внутри, дуга латунь → серый → латунь, диск солнца с кольцом, пунктир горизонта; в центре время и слово света</li>
+      <li class="p">«Рассвет · Золотой час · Закат» остаются строкой под куполом</li>
+      <li class="m">без поддержки тёмной ночи (на ночь небо темнее, как в приложении) — переносим только дневной и вечерний вид; ночной — следующим шагом, если нужен</li>
+    </ul>
+    <p class="note">«Минимальная переработка»: данные и строки те же, меняется только рисунок дуги (<b>SunArc</b> в большом виджете). Расширение не видит экранный код купола, поэтому цифры геометрии копируются в виджет, как уже сделано со знаками. Время «14:43» и слово — из того же расчёта света, что на «Свете».</p>
+  </div>
+</div>
+</section>
+
+<div class="q">
+  <h2>Что нужно от тебя</h2>
+  <table class="table">
+    <tr><th>Пункт</th><th>Выбор</th></tr>
+    <tr><td>Экран активности</td><td>окно из четырёх точек — да / нет; фон #2E2A26</td></tr>
+    <tr><td>Поиск</td><td>А (внизу) или Б (из лупы вверху)</td></tr>
+    <tr><td>Карточка и стопки</td><td>А и Б вместе или только А</td></tr>
+    <tr><td>Контур города</td><td>вариант 1 / 2 / 3; какие города важны</td></tr>
+    <tr><td>Луна</td><td>М1 / М2 / М3</td></tr>
+    <tr><td>Большой виджет</td><td>купол как на «Свете»: да / нет; время и слово света в центре — оставить?</td></tr>
+  </table>
+</div>
+</main>
