@@ -1,0 +1,152 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Палитры светлой темы</title>
+<style>
+:root{--page:#DCDDE0;--panel:#F7F7F8;--fg:#17181B;--fg2:#55585F;--line:#C9CBD0;--ok:#1E6B3A;--low:#A12B1B;
+ --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#1B1C1F;--panel:#26272B;--fg:#ECEDEF;--fg2:#A3A6AD;--line:#3A3C42;--ok:#7BD49B;--low:#FF9A86;color-scheme:dark}}
+:root[data-theme="dark"]{--page:#1B1C1F;--panel:#26272B;--fg:#ECEDEF;--fg2:#A3A6AD;--line:#3A3C42;--ok:#7BD49B;--low:#FF9A86;color-scheme:dark}
+body{background:var(--page);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;
+ padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-size:26px;font-weight:650;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.lead{margin:0;color:var(--fg2);max-width:68ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card header{display:flex;flex-direction:column;gap:4px}
+.card h2{font-size:18px;font-weight:650;margin:0}
+.card header p{margin:0;color:var(--fg2);font-size:13.5px}
+.stage{border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
+.block{border-radius:18px;border:1px solid;padding:2px 14px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid;font-size:15px}
+.row.last{border-bottom:0}
+.onbg{margin:0;font-size:15px}
+.btns{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.btn{border-radius:999px;padding:10px 16px;font-weight:600;font-size:15px}
+.round{width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:24px;font-weight:400;line-height:1}
+.chip{border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px}
+.burst{font-size:17px;letter-spacing:2px}
+.squares{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sq{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sq i{display:block;aspect-ratio:1;border-radius:8px;border:1px solid var(--line)}
+.sq b{font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.sq code,.sky code{font-family:var(--mono);font-size:10.5px;color:var(--fg2)}
+.skies{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sky{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0}
+.sky svg{width:100%;height:auto;aspect-ratio:270/130;border-radius:10px;border:1px solid var(--line);display:block}
+.sky figcaption{display:flex;flex-direction:column;gap:1px}
+.sky b{font-size:12px}
+.nums{width:100%;border-collapse:collapse;font-size:13px}
+.nums caption{text-align:left;color:var(--fg2);font-size:12px;padding-bottom:4px}
+.nums td{padding:4px 0;border-top:1px solid var(--line);vertical-align:top}
+.nums td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.num.ok{color:var(--ok)}.num.low{color:var(--low);font-weight:600}
+.notes{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.notes h2{font-size:16px;margin:0 0 6px}.notes ul{margin:0;padding-left:18px;color:var(--fg2);max-width:80ch}.notes li{margin:3px 0}
+</style>
+<div class="wrap">
+<h1>Палитры светлой темы Light Plan</h1>
+<p class="lead">Квадратики до кода: фон, блок на фоне, кнопка, шрифт на фоне, небо днём и ночью с дугой. Первая карточка — то, что стоит в сборке сейчас, дальше четыре варианта. Смотреть лучше на телефоне: цвета на экране Mac и iPhone расходятся.</p>
+<div class="grid"><section class="card" id="p-now">
+<header><h2>Сейчас</h2><p>Сборка 222cff6. Ночью небо растворяется в цвет страницы; «Звёздная ночь» написана цветом луны из тёмной темы; оранжевый стоит на чёрном.</p></header>
+<div class="stage" style="background:#EDEDF0">
+  <div class="block" style="background:#FFFFFF;border-color:#E0E0E4">
+    <div class="row" style="border-color:#E0E0E4"><span style="color:#626267">Условия</span><span style="color:#A8BDD8;font-weight:600">☆ Звёздная ночь</span></div>
+    <div class="row" style="border-color:#E0E0E4"><span style="color:#626267">Золотой час</span><span style="color:#141416">16:36–17:56</span></div>
+    <div class="row last"><span style="color:#626267">Закат</span><span style="color:#B83C00;font-weight:600">через 4 ч 12 м</span></div>
+  </div>
+  <p class="onbg" style="color:#141416">Шрифт на фоне <span style="color:#626267">· вторые чернила</span> <span style="color:#B83C00">· акцент</span></p>
+  <div class="btns">
+    <span class="btn" style="background:#141416;color:#E4570B">Запланировать съёмку</span>
+    <span class="round" style="background:#141416;color:#E4570B" title="Кнопка новой съёмки">+</span>
+    <span class="chip" style="background:#E4570B;color:#141416">Про</span>
+    <span class="burst" style="color:#E4570B" title="Звёзды при выборе «Астро»">✦ ✦ ✦</span>
+  </div>
+</div>
+<div class="squares"><div class="sq"><i style="background:#EDEDF0"></i><b>Фон</b><code>#EDEDF0</code></div><div class="sq"><i style="background:#FFFFFF"></i><b>Блок</b><code>#FFFFFF</code></div><div class="sq"><i style="background:#141416"></i><b>Кнопка</b><code>#141416</code></div><div class="sq"><i style="background:#E4570B"></i><b>Акцент</b><code>#E4570B</code></div><div class="sq"><i style="background:#B83C00"></i><b>Текст акцента</b><code>#B83C00</code></div><div class="sq"><i style="background:#141416"></i><b>Чернила</b><code>#141416</code></div><div class="sq"><i style="background:#626267"></i><b>Вторые</b><code>#626267</code></div><div class="sq"><i style="background:#A8BDD8"></i><b>Ночь в тексте</b><code>#A8BDD8</code></div></div>
+<div class="skies"><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо днём"><defs><linearGradient id="gnow0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CFE1EB"/><stop offset="1" stop-color="#EBF1F0"/></linearGradient></defs><rect width="270" height="130" fill="url(#gnow0)"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#E2A44C" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#E2A44C"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#141416">13:05</text></svg><figcaption><b>Небо днём</b><code>#CFE1EB → #EBF1F0</code></figcaption></figure><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо ночью"><defs><linearGradient id="gnow1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDEDF0"/><stop offset="1" stop-color="#EDEDF0"/></linearGradient></defs><rect width="270" height="130" fill="url(#gnow1)"/><circle cx="22" cy="18" r="1.1" fill="#C9C9CE"/><circle cx="61" cy="30" r="0.8" fill="#C9C9CE"/><circle cx="97" cy="14" r="1.3" fill="#C9C9CE"/><circle cx="140" cy="34" r="0.9" fill="#C9C9CE"/><circle cx="178" cy="20" r="1.1" fill="#C9C9CE"/><circle cx="214" cy="40" r="0.8" fill="#C9C9CE"/><circle cx="246" cy="16" r="1.2" fill="#C9C9CE"/><circle cx="120" cy="52" r="0.7" fill="#C9C9CE"/><circle cx="40" cy="50" r="0.7" fill="#C9C9CE"/><circle cx="200" cy="58" r="0.7" fill="#C9C9CE"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#E2A44C" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#E2A44C"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#141416">0:40</text></svg><figcaption><b>Небо ночью</b><code>#EDEDF0 → #EDEDF0</code></figcaption></figure></div>
+<table class="nums"><caption>Контраст, посчитан по формуле WCAG</caption><tr><td>Чернила на блоке</td><td><span class="num ok">18,4 : 1</span></td></tr><tr><td>Вторые чернила на блоке</td><td><span class="num ok">6,1 : 1</span></td></tr><tr><td>Текст акцента на блоке</td><td><span class="num ok">5,7 : 1</span></td></tr><tr><td>«Звёздная ночь» на блоке</td><td><span class="num low">1,9 : 1 · надо 4,5</span></td></tr><tr><td>Надпись на кнопке</td><td><span class="num ok">5,0 : 1</span></td></tr><tr><td>Знак на тёмном</td><td><span class="num ok">5,0 : 1</span></td></tr><tr><td>Дуга на дневном небе (у горизонта)</td><td><span class="num low">1,9 : 1 · надо 3,0</span></td></tr><tr><td>Дуга на дневном небе (вверху)</td><td><span class="num low">1,6 : 1 · надо 3,0</span></td></tr><tr><td>Дуга на ночном небе</td><td><span class="num low">1,9 : 1 · надо 3,0</span></td></tr><tr><td>Звёзды на ночном небе</td><td><span class="num low">1,4 : 1 · надо 3,0</span></td></tr></table>
+</section><section class="card" id="p-a">
+<header><h2>А · Латунь</h2><p>Акцент — латунь тёмной темы, только глубже. Оранжевого нет вовсе, на тёмном стоит золото. Самая «семейная» с тёмной темой.</p></header>
+<div class="stage" style="background:#EDEDF0">
+  <div class="block" style="background:#FFFFFF;border-color:#E0E0E4">
+    <div class="row" style="border-color:#E0E0E4"><span style="color:#5C5C61">Условия</span><span style="color:#3F5F96;font-weight:600">☆ Звёздная ночь</span></div>
+    <div class="row" style="border-color:#E0E0E4"><span style="color:#5C5C61">Золотой час</span><span style="color:#141416">16:36–17:56</span></div>
+    <div class="row last"><span style="color:#5C5C61">Закат</span><span style="color:#855408;font-weight:600">через 4 ч 12 м</span></div>
+  </div>
+  <p class="onbg" style="color:#141416">Шрифт на фоне <span style="color:#5C5C61">· вторые чернила</span> <span style="color:#855408">· акцент</span></p>
+  <div class="btns">
+    <span class="btn" style="background:#E0A23A;color:#1A1408">Запланировать съёмку</span>
+    <span class="round" style="background:#1D1D21;color:#EDBE6A" title="Кнопка новой съёмки">+</span>
+    <span class="chip" style="background:#D9962E;color:#1A1408">Про</span>
+    <span class="burst" style="color:#141416" title="Звёзды при выборе «Астро»">✦ ✦ ✦</span>
+  </div>
+</div>
+<div class="squares"><div class="sq"><i style="background:#EDEDF0"></i><b>Фон</b><code>#EDEDF0</code></div><div class="sq"><i style="background:#FFFFFF"></i><b>Блок</b><code>#FFFFFF</code></div><div class="sq"><i style="background:#E0A23A"></i><b>Кнопка</b><code>#E0A23A</code></div><div class="sq"><i style="background:#D9962E"></i><b>Акцент</b><code>#D9962E</code></div><div class="sq"><i style="background:#855408"></i><b>Текст акцента</b><code>#855408</code></div><div class="sq"><i style="background:#141416"></i><b>Чернила</b><code>#141416</code></div><div class="sq"><i style="background:#5C5C61"></i><b>Вторые</b><code>#5C5C61</code></div><div class="sq"><i style="background:#3F5F96"></i><b>Ночь в тексте</b><code>#3F5F96</code></div></div>
+<div class="skies"><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо днём"><defs><linearGradient id="ga0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FC0EE"/><stop offset="1" stop-color="#DDEDFA"/></linearGradient></defs><rect width="270" height="130" fill="url(#ga0)"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#B87A14" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#B87A14"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#141416">13:05</text></svg><figcaption><b>Небо днём</b><code>#8FC0EE → #DDEDFA</code></figcaption></figure><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо ночью"><defs><linearGradient id="ga1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B1634"/><stop offset="1" stop-color="#1D3059"/></linearGradient></defs><rect width="270" height="130" fill="url(#ga1)"/><circle cx="22" cy="18" r="1.1" fill="#FFFFFF"/><circle cx="61" cy="30" r="0.8" fill="#FFFFFF"/><circle cx="97" cy="14" r="1.3" fill="#FFFFFF"/><circle cx="140" cy="34" r="0.9" fill="#FFFFFF"/><circle cx="178" cy="20" r="1.1" fill="#FFFFFF"/><circle cx="214" cy="40" r="0.8" fill="#FFFFFF"/><circle cx="246" cy="16" r="1.2" fill="#FFFFFF"/><circle cx="120" cy="52" r="0.7" fill="#FFFFFF"/><circle cx="40" cy="50" r="0.7" fill="#FFFFFF"/><circle cx="200" cy="58" r="0.7" fill="#FFFFFF"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#E8B45A" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#E8B45A"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#EEF2FA">0:40</text></svg><figcaption><b>Небо ночью</b><code>#0B1634 → #1D3059</code></figcaption></figure></div>
+<table class="nums"><caption>Контраст, посчитан по формуле WCAG</caption><tr><td>Чернила на блоке</td><td><span class="num ok">18,4 : 1</span></td></tr><tr><td>Вторые чернила на блоке</td><td><span class="num ok">6,6 : 1</span></td></tr><tr><td>Текст акцента на блоке</td><td><span class="num ok">6,4 : 1</span></td></tr><tr><td>«Звёздная ночь» на блоке</td><td><span class="num ok">6,4 : 1</span></td></tr><tr><td>Надпись на кнопке</td><td><span class="num ok">8,2 : 1</span></td></tr><tr><td>Знак на тёмном</td><td><span class="num ok">9,7 : 1</span></td></tr><tr><td>Дуга на дневном небе (у горизонта)</td><td><span class="num ok">3,0 : 1</span></td></tr><tr><td>Дуга на дневном небе (вверху)</td><td><span class="num low">1,9 : 1 · надо 3,0</span></td></tr><tr><td>Дуга на ночном небе</td><td><span class="num ok">6,9 : 1</span></td></tr><tr><td>Звёзды на ночном небе</td><td><span class="num ok">17,8 : 1</span></td></tr></table>
+</section><section class="card" id="p-b">
+<header><h2>Б · Мандарин</h2><p>Оранжевый остаётся, но желтее и только на светлом. Тёмные элементы — графит с белым знаком, оранжевого на тёмном нет.</p></header>
+<div class="stage" style="background:#EDEDF0">
+  <div class="block" style="background:#FFFFFF;border-color:#E0E0E4">
+    <div class="row" style="border-color:#E0E0E4"><span style="color:#5C5C61">Условия</span><span style="color:#2F5AA8;font-weight:600">☆ Звёздная ночь</span></div>
+    <div class="row" style="border-color:#E0E0E4"><span style="color:#5C5C61">Золотой час</span><span style="color:#141416">16:36–17:56</span></div>
+    <div class="row last"><span style="color:#5C5C61">Закат</span><span style="color:#A04A00;font-weight:600">через 4 ч 12 м</span></div>
+  </div>
+  <p class="onbg" style="color:#141416">Шрифт на фоне <span style="color:#5C5C61">· вторые чернила</span> <span style="color:#A04A00">· акцент</span></p>
+  <div class="btns">
+    <span class="btn" style="background:#F08A1C;color:#1B1206">Запланировать съёмку</span>
+    <span class="round" style="background:#2B2B30;color:#FFFFFF" title="Кнопка новой съёмки">+</span>
+    <span class="chip" style="background:#F08A1C;color:#1B1206">Про</span>
+    <span class="burst" style="color:#141416" title="Звёзды при выборе «Астро»">✦ ✦ ✦</span>
+  </div>
+</div>
+<div class="squares"><div class="sq"><i style="background:#EDEDF0"></i><b>Фон</b><code>#EDEDF0</code></div><div class="sq"><i style="background:#FFFFFF"></i><b>Блок</b><code>#FFFFFF</code></div><div class="sq"><i style="background:#F08A1C"></i><b>Кнопка</b><code>#F08A1C</code></div><div class="sq"><i style="background:#F08A1C"></i><b>Акцент</b><code>#F08A1C</code></div><div class="sq"><i style="background:#A04A00"></i><b>Текст акцента</b><code>#A04A00</code></div><div class="sq"><i style="background:#141416"></i><b>Чернила</b><code>#141416</code></div><div class="sq"><i style="background:#5C5C61"></i><b>Вторые</b><code>#5C5C61</code></div><div class="sq"><i style="background:#2F5AA8"></i><b>Ночь в тексте</b><code>#2F5AA8</code></div></div>
+<div class="skies"><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо днём"><defs><linearGradient id="gb0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DB7EA"/><stop offset="1" stop-color="#D7EAF8"/></linearGradient></defs><rect width="270" height="130" fill="url(#gb0)"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#C2670A" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#C2670A"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#141416">13:05</text></svg><figcaption><b>Небо днём</b><code>#7DB7EA → #D7EAF8</code></figcaption></figure><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо ночью"><defs><linearGradient id="gb1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0D1B3E"/><stop offset="1" stop-color="#22386A"/></linearGradient></defs><rect width="270" height="130" fill="url(#gb1)"/><circle cx="22" cy="18" r="1.1" fill="#FFFFFF"/><circle cx="61" cy="30" r="0.8" fill="#FFFFFF"/><circle cx="97" cy="14" r="1.3" fill="#FFFFFF"/><circle cx="140" cy="34" r="0.9" fill="#FFFFFF"/><circle cx="178" cy="20" r="1.1" fill="#FFFFFF"/><circle cx="214" cy="40" r="0.8" fill="#FFFFFF"/><circle cx="246" cy="16" r="1.2" fill="#FFFFFF"/><circle cx="120" cy="52" r="0.7" fill="#FFFFFF"/><circle cx="40" cy="50" r="0.7" fill="#FFFFFF"/><circle cx="200" cy="58" r="0.7" fill="#FFFFFF"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#F4A23E" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#F4A23E"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#EEF2FA">0:40</text></svg><figcaption><b>Небо ночью</b><code>#0D1B3E → #22386A</code></figcaption></figure></div>
+<table class="nums"><caption>Контраст, посчитан по формуле WCAG</caption><tr><td>Чернила на блоке</td><td><span class="num ok">18,4 : 1</span></td></tr><tr><td>Вторые чернила на блоке</td><td><span class="num ok">6,6 : 1</span></td></tr><tr><td>Текст акцента на блоке</td><td><span class="num ok">6,0 : 1</span></td></tr><tr><td>«Звёздная ночь» на блоке</td><td><span class="num ok">6,7 : 1</span></td></tr><tr><td>Надпись на кнопке</td><td><span class="num ok">7,4 : 1</span></td></tr><tr><td>Знак на тёмном</td><td><span class="num ok">14,1 : 1</span></td></tr><tr><td>Дуга на дневном небе (у горизонта)</td><td><span class="num ok">3,2 : 1</span></td></tr><tr><td>Дуга на дневном небе (вверху)</td><td><span class="num low">1,9 : 1 · надо 3,0</span></td></tr><tr><td>Дуга на ночном небе</td><td><span class="num ok">5,5 : 1</span></td></tr><tr><td>Звёзды на ночном небе</td><td><span class="num ok">16,9 : 1</span></td></tr></table>
+</section><section class="card" id="p-c">
+<header><h2>В · Тёплая бумага</h2><p>Тёплый фон вместо серого, как в светлой теме веба. Кнопка тёмно-коричневая с золотой надписью. Небо чуть мягче.</p></header>
+<div class="stage" style="background:#F2EFE8">
+  <div class="block" style="background:#FFFDF8;border-color:#E4DED2">
+    <div class="row" style="border-color:#E4DED2"><span style="color:#655F53">Условия</span><span style="color:#3F6088;font-weight:600">☆ Звёздная ночь</span></div>
+    <div class="row" style="border-color:#E4DED2"><span style="color:#655F53">Золотой час</span><span style="color:#17150F">16:36–17:56</span></div>
+    <div class="row last"><span style="color:#655F53">Закат</span><span style="color:#845614;font-weight:600">через 4 ч 12 м</span></div>
+  </div>
+  <p class="onbg" style="color:#17150F">Шрифт на фоне <span style="color:#655F53">· вторые чернила</span> <span style="color:#845614">· акцент</span></p>
+  <div class="btns">
+    <span class="btn" style="background:#2A251C;color:#F0C878">Запланировать съёмку</span>
+    <span class="round" style="background:#2A251C;color:#F0C878" title="Кнопка новой съёмки">+</span>
+    <span class="chip" style="background:#D9A441;color:#F0C878">Про</span>
+    <span class="burst" style="color:#17150F" title="Звёзды при выборе «Астро»">✦ ✦ ✦</span>
+  </div>
+</div>
+<div class="squares"><div class="sq"><i style="background:#F2EFE8"></i><b>Фон</b><code>#F2EFE8</code></div><div class="sq"><i style="background:#FFFDF8"></i><b>Блок</b><code>#FFFDF8</code></div><div class="sq"><i style="background:#2A251C"></i><b>Кнопка</b><code>#2A251C</code></div><div class="sq"><i style="background:#D9A441"></i><b>Акцент</b><code>#D9A441</code></div><div class="sq"><i style="background:#845614"></i><b>Текст акцента</b><code>#845614</code></div><div class="sq"><i style="background:#17150F"></i><b>Чернила</b><code>#17150F</code></div><div class="sq"><i style="background:#655F53"></i><b>Вторые</b><code>#655F53</code></div><div class="sq"><i style="background:#3F6088"></i><b>Ночь в тексте</b><code>#3F6088</code></div></div>
+<div class="skies"><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо днём"><defs><linearGradient id="gc0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8DB9DD"/><stop offset="1" stop-color="#E6EEF0"/></linearGradient></defs><rect width="270" height="130" fill="url(#gc0)"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#A9721F" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#A9721F"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#17150F">13:05</text></svg><figcaption><b>Небо днём</b><code>#8DB9DD → #E6EEF0</code></figcaption></figure><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо ночью"><defs><linearGradient id="gc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101B36"/><stop offset="1" stop-color="#263A5E"/></linearGradient></defs><rect width="270" height="130" fill="url(#gc1)"/><circle cx="22" cy="18" r="1.1" fill="#FFF6E0"/><circle cx="61" cy="30" r="0.8" fill="#FFF6E0"/><circle cx="97" cy="14" r="1.3" fill="#FFF6E0"/><circle cx="140" cy="34" r="0.9" fill="#FFF6E0"/><circle cx="178" cy="20" r="1.1" fill="#FFF6E0"/><circle cx="214" cy="40" r="0.8" fill="#FFF6E0"/><circle cx="246" cy="16" r="1.2" fill="#FFF6E0"/><circle cx="120" cy="52" r="0.7" fill="#FFF6E0"/><circle cx="40" cy="50" r="0.7" fill="#FFF6E0"/><circle cx="200" cy="58" r="0.7" fill="#FFF6E0"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#E2A44C" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#E2A44C"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#F1EEE6">0:40</text></svg><figcaption><b>Небо ночью</b><code>#101B36 → #263A5E</code></figcaption></figure></div>
+<table class="nums"><caption>Контраст, посчитан по формуле WCAG</caption><tr><td>Чернила на блоке</td><td><span class="num ok">18,0 : 1</span></td></tr><tr><td>Вторые чернила на блоке</td><td><span class="num ok">6,2 : 1</span></td></tr><tr><td>Текст акцента на блоке</td><td><span class="num ok">6,2 : 1</span></td></tr><tr><td>«Звёздная ночь» на блоке</td><td><span class="num ok">6,4 : 1</span></td></tr><tr><td>Надпись на кнопке</td><td><span class="num ok">9,6 : 1</span></td></tr><tr><td>Знак на тёмном</td><td><span class="num ok">9,6 : 1</span></td></tr><tr><td>Дуга на дневном небе (у горизонта)</td><td><span class="num ok">3,5 : 1</span></td></tr><tr><td>Дуга на дневном небе (вверху)</td><td><span class="num low">2,0 : 1 · надо 3,0</span></td></tr><tr><td>Дуга на ночном небе</td><td><span class="num ok">5,2 : 1</span></td></tr><tr><td>Звёзды на ночном небе</td><td><span class="num ok">15,8 : 1</span></td></tr></table>
+</section><section class="card" id="p-d">
+<header><h2>Г · Синий час</h2><p>Вместо чёрного — тёмно-синий, тот же, что у ночного неба. Кнопка и ночь из одной краски, акцент золотой.</p></header>
+<div class="stage" style="background:#EEF0F4">
+  <div class="block" style="background:#FFFFFF;border-color:#DEE2EA">
+    <div class="row" style="border-color:#DEE2EA"><span style="color:#566074">Условия</span><span style="color:#33508F;font-weight:600">☆ Звёздная ночь</span></div>
+    <div class="row" style="border-color:#DEE2EA"><span style="color:#566074">Золотой час</span><span style="color:#131A2B">16:36–17:56</span></div>
+    <div class="row last"><span style="color:#566074">Закат</span><span style="color:#855408;font-weight:600">через 4 ч 12 м</span></div>
+  </div>
+  <p class="onbg" style="color:#131A2B">Шрифт на фоне <span style="color:#566074">· вторые чернила</span> <span style="color:#855408">· акцент</span></p>
+  <div class="btns">
+    <span class="btn" style="background:#1E2B4A;color:#FFFFFF">Запланировать съёмку</span>
+    <span class="round" style="background:#1E2B4A;color:#F2C56B" title="Кнопка новой съёмки">+</span>
+    <span class="chip" style="background:#E0A23A;color:#FFFFFF">Про</span>
+    <span class="burst" style="color:#131A2B" title="Звёзды при выборе «Астро»">✦ ✦ ✦</span>
+  </div>
+</div>
+<div class="squares"><div class="sq"><i style="background:#EEF0F4"></i><b>Фон</b><code>#EEF0F4</code></div><div class="sq"><i style="background:#FFFFFF"></i><b>Блок</b><code>#FFFFFF</code></div><div class="sq"><i style="background:#1E2B4A"></i><b>Кнопка</b><code>#1E2B4A</code></div><div class="sq"><i style="background:#E0A23A"></i><b>Акцент</b><code>#E0A23A</code></div><div class="sq"><i style="background:#855408"></i><b>Текст акцента</b><code>#855408</code></div><div class="sq"><i style="background:#131A2B"></i><b>Чернила</b><code>#131A2B</code></div><div class="sq"><i style="background:#566074"></i><b>Вторые</b><code>#566074</code></div><div class="sq"><i style="background:#33508F"></i><b>Ночь в тексте</b><code>#33508F</code></div></div>
+<div class="skies"><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо днём"><defs><linearGradient id="gd0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86BAEC"/><stop offset="1" stop-color="#DCEBF9"/></linearGradient></defs><rect width="270" height="130" fill="url(#gd0)"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#B87A14" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#B87A14"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#131A2B">13:05</text></svg><figcaption><b>Небо днём</b><code>#86BAEC → #DCEBF9</code></figcaption></figure><figure class="sky"><svg viewBox="0 0 270 130" preserveAspectRatio="none" role="img" aria-label="Небо ночью"><defs><linearGradient id="gd1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E1A3A"/><stop offset="1" stop-color="#1E2B4A"/></linearGradient></defs><rect width="270" height="130" fill="url(#gd1)"/><circle cx="22" cy="18" r="1.1" fill="#FFFFFF"/><circle cx="61" cy="30" r="0.8" fill="#FFFFFF"/><circle cx="97" cy="14" r="1.3" fill="#FFFFFF"/><circle cx="140" cy="34" r="0.9" fill="#FFFFFF"/><circle cx="178" cy="20" r="1.1" fill="#FFFFFF"/><circle cx="214" cy="40" r="0.8" fill="#FFFFFF"/><circle cx="246" cy="16" r="1.2" fill="#FFFFFF"/><circle cx="120" cy="52" r="0.7" fill="#FFFFFF"/><circle cx="40" cy="50" r="0.7" fill="#FFFFFF"/><circle cx="200" cy="58" r="0.7" fill="#FFFFFF"/><path d="M35 130 A100 92 0 0 1 235 130" fill="none" stroke="#F2C56B" stroke-width="3"/><circle cx="64" cy="76" r="7" fill="#F2C56B"/><text x="135" y="104" text-anchor="middle" font-size="22" font-weight="300" fill="#EEF2FA">0:40</text></svg><figcaption><b>Небо ночью</b><code>#0E1A3A → #1E2B4A</code></figcaption></figure></div>
+<table class="nums"><caption>Контраст, посчитан по формуле WCAG</caption><tr><td>Чернила на блоке</td><td><span class="num ok">17,4 : 1</span></td></tr><tr><td>Вторые чернила на блоке</td><td><span class="num ok">6,3 : 1</span></td></tr><tr><td>Текст акцента на блоке</td><td><span class="num ok">6,4 : 1</span></td></tr><tr><td>«Звёздная ночь» на блоке</td><td><span class="num ok">7,8 : 1</span></td></tr><tr><td>Надпись на кнопке</td><td><span class="num ok">14,0 : 1</span></td></tr><tr><td>Знак на тёмном</td><td><span class="num ok">8,7 : 1</span></td></tr><tr><td>Дуга на дневном небе (у горизонта)</td><td><span class="num low">3,0 : 1 · надо 3,0</span></td></tr><tr><td>Дуга на дневном небе (вверху)</td><td><span class="num low">1,8 : 1 · надо 3,0</span></td></tr><tr><td>Дуга на ночном небе</td><td><span class="num ok">8,7 : 1</span></td></tr><tr><td>Звёзды на ночном небе</td><td><span class="num ok">17,1 : 1</span></td></tr></table>
+</section></div>
+<div class="notes"><h2>Как читать</h2><ul>
+<li>В каждой карточке сверху сцена: блок на фоне, строка шрифта на фоне, кнопка, круглая кнопка новой съёмки, выбранный чип и звёзды «Астро».</li>
+<li>Ночное небо во всех вариантах тёмно-синее, не чёрное и не белое. Звёзды на нём белые.</li>
+<li>Дуга и кружок солнца одного цвета, как ты просил. Днём дуга темнее, ночью светлее: один цвет на голубом и на тёмно-синем сразу не читается.</li>
+<li>Красное число контраста значит «текст такого размера читается плохо»: для текста нужно 4,5 : 1, для знаков и линий 3 : 1.</li>
+<li>Варианты можно смешивать: фон из одного, кнопка из другого, небо из третьего.</li>
+</ul></div>
+</div>
