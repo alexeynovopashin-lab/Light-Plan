@@ -107,6 +107,25 @@ section { border-top: 1px solid var(--rule); padding-top: 22px; margin-top: 34px
 .table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
 .table td, .table th { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
 .table th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 6px 12px; background: #fff; border-radius: 18px; padding: 10px 6px; font-size: 15px; font-weight: 600; text-align: center; }
+.calgrid .we { color: #B5651C; } .calgrid .today { background: #010101; color: #F29230; border-radius: 8px; }
+.btnrow { display: flex; gap: 8px; margin: 10px 12px; }
+.btnrow .cb { flex: 1; }
+.cb { display: grid; place-items: center; height: 40px; border-radius: 14px; background: rgba(255,255,255,.55); border: .5px solid rgba(0,0,0,.08); font-size: 13px; font-weight: 600; color: #000; padding: 0 10px; }
+.cb.dark { background: #010101; color: #fff; }
+.cb.round { width: 40px; padding: 0; border-radius: 50%; flex: none; }
+.mbhead { margin: 18px 16px 0; font-weight: 600; color: var(--d-ink2); }
+.tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; display: flex; justify-content: space-around; align-items: center; font-size: 11px; color: var(--d-ink2); background: rgba(243,243,245,.92); border-top: .5px solid rgba(0,0,0,.1); }
+.tabbar .on { color: #F09329; font-weight: 600; }
+.console { position: absolute; left: 10px; right: 10px; display: flex; gap: 6px; padding: 6px; border-radius: 22px; background: rgba(243,243,245,.62); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.85); box-shadow: 0 6px 22px rgba(0,0,0,.16); }
+.console .cb { flex: 1; } .console .cb.round { flex: none; }
+.console.sm { bottom: 8px; left: 6px; right: 6px; gap: 4px; padding: 4px; border-radius: 16px; }
+.console.sm .cb { height: 30px; font-size: 10px; border-radius: 11px; padding: 0 4px; } .console.sm .cb.round { width: 30px; }
+.console.sm.only { left: auto; right: 8px; border-radius: 50%; }
+.mbf { width: 100%; max-width: 220px; height: 240px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; }
+.tiles i { aspect-ratio: 1; border-radius: 10px; background: linear-gradient(135deg, #C7834E, #D9B27A); display: block; }
+.tiles i:nth-child(2n) { background: linear-gradient(135deg, #CDBFA8, #E5DED2); } .tiles i:nth-child(3n) { background: linear-gradient(135deg, #7C6A9C, #B4889C); }
 .q { background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; margin-top: 26px; }
 .q h2 { font-size: 17px; }
 </style>
@@ -314,6 +333,65 @@ section { border-top: 1px solid var(--rule); padding-top: 22px; margin-top: 34px
 <p class="note"><b>Мой выбор — М2</b>: диск остаётся читаемым на любом небе, тёмная сторона не чёрная. Размер 22 pt вместо 15 (ядро солнца 13 pt). Это шаг 28к.6, вместе со светлой темой. Для ночного неба ничего не меняется.</p>
 </section>
 
+<!-- ============ 9: пульт «Съёмок» ============ -->
+<section id="console">
+<h2>Пульт «Съёмок»: Съёмка · Встреча · Занять · Поиск</h2>
+<p class="words">Твои слова: <q>на экране свет мы приняли супер крутое решение, пульт! Делаем: съемка, встреча, занять, поиск; кнопку поиска переносим сверху в пульт; пульт подобно пульту на экране делаем стеклом подвешенным над интерфейсом, но надо продумать нужен ли он в мудборде</q>.</p>
+<div class="grid">
+  <div class="col">
+    <h3>Было · кнопки внутри ленты, лупа в шапке</h3>
+    <div class="shot cal" style="height:520px">
+      <div class="hd"><span>Ноябрь</span><span style="display:flex;gap:8px"><span class="ic o">+</span><span class="ic"><i class="mag"></i></span></span></div>
+      <div class="calgrid"><span>9</span><span>10</span><span>11</span><span>12</span><span class="today">13</span><span class="we">14</span><span class="we">15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span class="we">21</span><span class="we">22</span></div>
+      <div class="row"><em>12:00</em><b>Анна и Игорь</b></div>
+      <div class="btnrow"><span class="cb dark">Съёмка</span><span class="cb">Встреча</span><span class="cb">Занять</span></div>
+      <div class="mbhead">Мудборд</div>
+      <div class="tabbar"><span>Свет</span><span>Карта</span><span class="on">Съёмки</span><span>Настройки</span></div>
+    </div>
+    <p class="note">Три кнопки уезжают вместе с лентой, при прокрутке их нет под пальцем. Поиск — отдельный значок наверху.</p>
+  </div>
+  <div class="col">
+    <span class="tag pick">Станет · стеклянный пульт над таб-баром</span>
+    <div class="shot cal" style="height:520px">
+      <div class="hd"><span>Ноябрь</span><span style="display:flex;gap:8px"><span class="ic o">+</span></span></div>
+      <div class="calgrid"><span>9</span><span>10</span><span>11</span><span>12</span><span class="today">13</span><span class="we">14</span><span class="we">15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span class="we">21</span><span class="we">22</span></div>
+      <div class="row"><em>12:00</em><b>Анна и Игорь</b></div>
+      <div class="row dim"><em>15:30</em>Лавстори</div>
+      <div class="console" style="bottom:66px"><span class="cb dark">Съёмка</span><span class="cb">Встреча</span><span class="cb">Занять</span><span class="cb round"><i class="mag"></i></span></div>
+      <div class="tabbar"><span>Свет</span><span>Карта</span><span class="on">Съёмки</span><span>Настройки</span></div>
+    </div>
+    <ul class="pros">
+      <li class="p">кнопки всегда под пальцем, лента прокручивается под стеклом — как блок времени на «Свете»</li>
+      <li class="p">лупа уходит из шапки в пульт; нажатие — пульт сам становится плашкой поиска над клавиатурой (выбор «поиск внизу» от 14.11 остаётся, меняется только место кнопки)</li>
+      <li class="m">стекло закрывает нижние ≈ 60 pt ленты; низ ленты получает запас, чтобы последняя строка не пряталась</li>
+    </ul>
+    <p class="note">«Съёмка» — чёрная с белым знаком (палитра Д), остальные — стеклянные. Кнопка «Наверх» встаёт над пультом справа.</p>
+  </div>
+</div>
+<h3 style="margin-top:22px">Нужен ли пульт в мудборде</h3>
+<div class="grid">
+  <div class="col">
+    <span class="tag">А · тот же пульт везде</span>
+    <div class="frame mbf"><div class="tiles"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="console sm"><span class="cb dark">Съёмка</span><span class="cb">Встреча</span><span class="cb">Занять</span><span class="cb round"><i class="mag"></i></span></div></div>
+    <ul class="pros"><li class="p">одно место, ничего не меняется</li><li class="m">кнопки про календарь висят над подборками и закрывают нижний ряд</li></ul>
+  </div>
+  <div class="col">
+    <span class="tag pick">Б · в мудборде пульт сжимается в круг поиска</span>
+    <div class="frame mbf"><div class="tiles"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="console sm only"><span class="cb round"><i class="mag"></i></span></div></div>
+    <ul class="pros"><li class="p">подборки открыты, поиск всегда рядом (как круг поиска в Telegram)</li><li class="p">прокрутил вверх к календарю — пульт раскрылся обратно</li><li class="m">«Съёмку» из мудборда — только после прокрутки вверх или нажатия на круг</li></ul>
+  </div>
+  <div class="col">
+    <span class="tag">В · в мудборде у пульта свои кнопки</span>
+    <div class="frame mbf"><div class="tiles"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="console sm"><span class="cb">Подборка</span><span class="cb">Референс</span><span class="cb round"><i class="mag"></i></span></div></div>
+    <ul class="pros"><li class="p">в мудборде под пальцем то, что там нужно</li><li class="m">кнопки меняются под пальцем при прокрутке; «+ подборка» уже есть плиткой в сетке — дубль</li></ul>
+  </div>
+</div>
+<p class="note"><b>Мой выбор — Б.</b> В мудборде уже есть своя плитка «+», поэтому дела календаря там лишние, а поиск нужен везде.</p>
+</section>
+
 <!-- ============ 8: большой виджет ============ -->
 <section id="large">
 <h2>Большой виджет: купол из приложения</h2>
@@ -374,6 +452,7 @@ section { border-top: 1px solid var(--rule); padding-top: 22px; margin-top: 34px
     <tr><td>Контур города</td><td>вариант 1 / 2 / 3; какие города важны</td></tr>
     <tr><td>Луна</td><td>М1 / М2 / М3</td></tr>
     <tr><td>Большой виджет</td><td>купол как на «Свете»: да / нет; время и слово света в центре — оставить?</td></tr>
+    <tr><td>Пульт в мудборде</td><td>А (тот же) / Б (круг поиска) / В (свои кнопки)</td></tr>
   </table>
 </div>
 </main>
