@@ -20,12 +20,15 @@ def cr(a, b):
     la, lb = lum(a), lum(b)
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 
-def taper(apex, base, power=1.6):
-    """Замкнутый контур дуги переменной толщины: apex у вершины, base у оснований."""
+def legs(body, foot, span, power=1.0, k=1.0):
+    """Замкнутый контур дуги с ножками: толщина body по всей дуге, а на последних span градусах над основанием
+    растёт до foot у самого основания (power: 1 — ровно, больше — круче к низу). k — множитель толщины (жила, ореол)."""
     out, inn = [], []
-    for i in range(0, 181, 3):
+    for i in range(0, 181, 2):
         t = math.radians(180 - i)
-        w = apex + (base - apex) * abs(math.cos(t)) ** power
+        up = min(i, 180 - i)                      # градусов над основанием
+        f = max(0.0, 1 - up / span) ** power
+        w = (body + (foot - body) * f) * k
         out.append((CX + (R + w / 2) * math.cos(t), CY - (R + w / 2) * math.sin(t)))
         inn.append((CX + (R - w / 2) * math.cos(t), CY - (R - w / 2) * math.sin(t)))
     pts = out + inn[::-1]
@@ -52,14 +55,15 @@ def draw(v, night):
         body = s('#FFFFFF', 7) + s(ORANGE, 3)
     elif k == 'light':
         body = (s('url(#along)', 13, 'opacity=".6" filter="url(#blur5)"') + s('url(#along)', 5) + s('#FFFFFF', 1.8))
-    elif k == 'taper':
-        body = (f'<path d="{taper(9, 20)}" fill="{ORANGE}" opacity=".5" filter="url(#blur5)"/>'
-                f'<path d="{taper(3.6, 7.2)}" fill="{ORANGE}"/><path d="{taper(1.4, 2.6)}" fill="#FFFFFF"/>')
+    elif 'legs' in v:
+        b, f, span, pw = v['legs']
+        body = (f'<path d="{legs(b, f, span, pw, 2.6)}" fill="{ORANGE}" opacity=".5" filter="url(#blur5)"/>'
+                f'<path d="{legs(b, f, span, pw)}" fill="{ORANGE}"/><path d="{legs(b, f, span, pw, 0.36)}" fill="#FFFFFF"/>')
     elif k == 'glass':
         body = (s('#FFFFFF', 10, 'opacity=".34"') + s('#0B2A55', 10.8, 'opacity=".10" fill="none" transform="translate(0 1.2)"')
                 + f'<path d="M{CX - R - 3.6:.1f} {CY:.1f} A{R + 3.6:.1f} {R + 3.6:.1f} 0 0 1 {CX + R + 3.6:.1f} {CY:.1f}" fill="none" stroke="#FFFFFF" stroke-width="1.1" opacity=".9"/>'
                 + s(ORANGE, 2.6))
-    kind = {'flat': 'flat', 'core': 'core', 'glow': 'glow', 'rim': 'rim', 'light': 'light', 'taper': 'glow', 'glass': 'rim'}[k]
+    kind = {'flat': 'flat', 'core': 'core', 'glow': 'glow', 'rim': 'rim', 'light': 'light', 'glass': 'rim'}.get(k, 'glow')
     top, bot = NIGHT if night else DAY
     gid = f'sky{int(night)}'
     stars = ''
@@ -92,8 +96,15 @@ V = [
       nums='кант 7, линия 3'),
  dict(id='light', name='4 · Цвет света', what='Моя альтернатива: дуга окрашена светом этого часа. У оснований оранжевая, к полудню белая, жила белая по всей длине.',
       nums='оболочка 5 с переходом, жила 1,8, ореол 13'),
- dict(id='taper', name='5 · Основания шире', what='Вариант 2 с оптической компенсацией: у оснований дуга вдвое толще, чем у вершины.',
-      nums='у вершины 3,6, у оснований 7,2 (в 2 раза); жила 1,4 → 2,6'),
+ dict(id='legsA', name='5а · Как арка моста', legs=(3.4, 10.2, 90, 1.0),
+      what='Дуга ровно расширяется от вершины к основаниям, как арка Живописного моста. Основание втрое шире вершины.',
+      nums='вершина 3,4 → основание 10,2 (в 3 раза), расширение по всей дуге'),
+ dict(id='legsB', name='5б · Ножки на нижней трети', legs=(4.2, 10.5, 34, 1.3),
+      what='Дуга одной толщины, расширяются только ножки: нижняя треть каждой стороны. Основание в 2,5 раза шире дуги.',
+      nums='дуга 4,2, основание 10,5 (в 2,5 раза), расширение на последних 34°'),
+ dict(id='legsC', name='5в · Короткие ножки', legs=(4.2, 12.6, 18, 1.0),
+      what='Дуга одной толщины почти до самого низа, у плашки короткие опоры втрое шире дуги.',
+      nums='дуга 4,2, основание 12,6 (в 3 раза), расширение на последних 18°'),
  dict(id='glass', name='6 · Стекло', what='Стеклянная трубка с оранжевой нитью внутри: полупрозрачное белое тело, блик по верхнему краю, тень снизу.',
       nums='трубка 10, нить 2,6, блик 1,1'),
 ]
@@ -133,7 +144,7 @@ page = f'''<meta name="claude:viewport-fit-sides" content="cover">
 <style>{CSS}</style>
 <div class="wrap">
 <h1>Дуга на дневном небе</h1>
-<p class="lead">Семь способов нарисовать одну и ту же дугу на палитре Д. Сверху крупно день, ниже пара день и ночь: приём должен работать на голубом и не сломать тёмно-синее. Геометрия, небо и оранжевый #F09329 везде одни.</p>
+<p class="lead">Девять способов нарисовать одну и ту же дугу на палитре Д. Сверху крупно день, ниже пара день и ночь: приём должен работать на голубом и не сломать тёмно-синее. Геометрия, небо и оранжевый #F09329 везде одни.</p>
 <div class="grid">{''.join(card(v) for v in V)}</div>
 </div>'''
 
