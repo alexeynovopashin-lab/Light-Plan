@@ -1,0 +1,236 @@
+<title>Рассвет в виджетах — 31.7</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one narrow column of «было → станет» pairs; widget mockups are drawn at their real point width. */
+:root {
+  --bg: #f1efeb; --fg: #1c1b19; --muted: #6b675f; --line: #d9d5cc; --card: #ffffff;
+  --accent: #c7781f; --pick: #2f7d4f; --pickbg: #e6f2ea;
+  --plate: #161616; --plate2: #222222; --ink: #ecebe8; --ink3: #8e8b85; --amber: #f0a33c; --dim: #5d5a55; --red: #d23b2a;
+  --f-display: "Space Grotesk", system-ui, sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121212; --fg: #ecebe8; --muted: #9a968e; --line: #2c2b29; --card: #1b1b1a;
+  --accent: #f0a33c; --pick: #6fcf97; --pickbg: #1d2b22; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121212; --fg: #ecebe8; --muted: #9a968e; --line: #2c2b29; --card: #1b1b1a;
+  --accent: #f0a33c; --pick: #6fcf97; --pickbg: #1d2b22; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
+main { max-width: 760px; margin: 0 auto; display: grid; gap: 36px; }
+h1 { font-family: var(--f-display); font-size: 26px; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-size: 20px; margin: 0 0 6px; text-wrap: balance; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+p { margin: 0; max-width: 65ch; }
+.lead { color: var(--muted); }
+section { display: grid; gap: 14px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.opt { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.opt.pick { border-color: var(--pick); box-shadow: 0 0 0 1px var(--pick) inset; }
+.tag { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.tag.pick { color: var(--pick); }
+.note { font-size: 13px; color: var(--muted); }
+.pro::before { content: "+ "; color: var(--pick); font-weight: 700; }
+.con::before { content: "− "; color: var(--red); font-weight: 700; }
+.verdict { background: var(--pickbg); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+/* widget plates */
+.plate { background: var(--plate); color: var(--ink); border-radius: 22px; padding: 14px 16px; font-variant-numeric: tabular-nums; max-width: 100%; }
+.med { width: 364px; height: 170px; display: grid; grid-template-columns: 138px 1px 1fr; gap: 14px; box-sizing: border-box; }
+.small { width: 170px; height: 170px; box-sizing: border-box; position: relative; padding: 0; }
+.vr { background: #333; }
+.col { display: grid; align-content: start; gap: 5px; min-width: 0; }
+.place { font-size: 12px; color: var(--ink3); }
+.row { display: flex; align-items: baseline; gap: 6px; font-size: 14px; }
+.row .s { width: 16px; text-align: center; color: var(--amber); font-size: 13px; }
+.big { font-size: 22px; font-weight: 600; }
+.d { color: var(--dim); }
+.a { color: var(--amber); }
+.rate { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+.list { display: grid; align-content: start; gap: 4px; font-size: 13px; }
+.list .h { font-size: 12px; color: var(--ink3); margin-bottom: 2px; }
+.lr { display: grid; grid-template-columns: 16px 44px 1fr auto; align-items: baseline; gap: 6px; height: 28px; }
+.lr2 { display: grid; grid-template-columns: 44px 1fr 1fr; align-items: baseline; gap: 6px; height: 28px; }
+.lr .t, .lr2 .t { font-weight: 600; }
+.sc { font-weight: 600; text-align: right; }
+.k { font-size: 11px; color: var(--ink3); }
+.win { position: absolute; left: 14px; top: 114px; width: 142px; height: 42px; background: var(--plate2); border-radius: 8px; display: grid; grid-template-columns: 28px 1fr 1fr 1fr; align-items: center; text-align: center; }
+.win .c { display: grid; line-height: 1.1; }
+.win .wd { font-size: 9px; color: var(--ink3); }
+.win .v { font-size: 15px; font-weight: 600; }
+.win .v2 { font-size: 11px; font-weight: 600; }
+.flag { position: absolute; top: -6px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--red); }
+.hills { position: absolute; left: 0; right: 0; top: 30px; display: flex; justify-content: space-between; padding: 0 12px; font-size: 11px; color: var(--ink3); }
+.hills b { display: block; font-size: 15px; color: var(--ink); }
+.line { font-variant-numeric: tabular-nums; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; overflow-x: auto; white-space: nowrap; }
+.line .sun { color: var(--accent); }
+.ba { display: grid; grid-template-columns: 70px 1fr; gap: 6px 10px; align-items: center; }
+.ba .lab { font-size: 12px; color: var(--muted); }
+.mirror { display: grid; gap: 18px; }
+.mi { display: grid; gap: 8px; }
+.mi p.n { font-size: 13px; color: var(--muted); }
+.clock-dial { width: 76px; height: 76px; border-radius: 50%; border: 4px solid #555; display: grid; place-items: center; font-size: 18px; font-weight: 600; color: var(--ink); background: var(--plate); box-sizing: border-box; }
+.dials { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.dials span { font-size: 12px; color: var(--muted); }
+footer { font-size: 12px; color: var(--muted); }
+@media (max-width: 420px) { .med { transform-origin: left top; } }
+</style>
+
+<main>
+<header style="display:grid;gap:8px">
+  <h1>Рассвет в виджетах и планировщике</h1>
+  <p class="lead">Шаг 31.7. После 31.5 и 31.6 рассвет равен закату везде, кроме этих мест: в виджетах, на экране блокировки, на плашке съёмки и в строках планировщика. Здесь два вопроса и восемь мест, где ответ один. Числа — пример для Томска на 19–22 ноября, не замер.</p>
+</header>
+
+<section>
+  <h2>Вопрос 1. «Три дня вперёд»</h2>
+  <p>Когда на неделе нет съёмок, средний, большой и малый виджеты показывают три следующих дня. Сейчас это только закаты. Одно правило будет у всех трёх виджетов.</p>
+  <div class="opt">
+    <h3>Было · средний виджет</h3>
+    <div class="plate med">
+      <div class="col"><div class="place">Томск</div>
+        <div class="row"><span class="s">↑</span>09:07</div>
+        <div class="row"><span class="s">◐</span>15:57</div>
+        <div class="row"><span class="s">↓</span><span class="big">17:04</span></div>
+        <div class="rate">закат · тёплый</div></div>
+      <div class="vr"></div>
+      <div class="list"><div class="h">до сб 28 съёмок нет</div>
+        <div class="lr"><span class="a">↓</span><span>пт 20</span><span class="t">17:02</span><span class="sc">72</span></div>
+        <div class="lr"><span class="a">↓</span><span>сб 21</span><span class="t">17:00</span><span class="sc">35</span></div>
+        <div class="lr"><span class="a">↓</span><span>вс 22</span><span class="t">16:59</span><span class="sc">64</span></div></div>
+    </div>
+  </div>
+  <div class="pair">
+    <div class="opt pick">
+      <span class="tag pick">А · СОВЕТУЮ</span>
+      <div class="plate med" style="width:100%;max-width:364px;grid-template-columns:0 0 1fr;gap:0">
+        <div></div><div></div>
+        <div class="list"><div class="h">до сб 28 съёмок нет</div>
+          <div class="lr2"><span>пт 20</span><span><span class="k">↑</span> <b>48</b></span><span><span class="k">↓</span> <b>72</b></span></div>
+          <div class="lr2"><span>сб 21</span><span><span class="k">↑</span> <b class="a">81</b></span><span><span class="k">↓</span> <b>35</b></span></div>
+          <div class="lr2"><span>вс 22</span><span><span class="k">↑</span> <b>20</b></span><span><span class="k">↓</span> <b>64</b></span></div></div>
+      </div>
+      <p>Каждый день — две оценки: рассвет и закат. Времени нет: оно сдвигается на минуту в день, а оценка решает, ехать ли.</p>
+      <p class="pro">Сразу видно, какое утро или вечер лучшие на три дня.</p>
+      <p class="con">Время заката из строк уходит (у большого виджета остаётся: ему хватает ширины).</p>
+    </div>
+    <div class="opt">
+      <span class="tag">Б</span>
+      <div class="plate med" style="width:100%;max-width:364px;grid-template-columns:0 0 1fr;gap:0">
+        <div></div><div></div>
+        <div class="list"><div class="h">до сб 28 съёмок нет · утром</div>
+          <div class="lr"><span class="a">↑</span><span>пт 20</span><span class="t">09:09</span><span class="sc">48</span></div>
+          <div class="lr"><span class="a">↑</span><span>сб 21</span><span class="t">09:11</span><span class="sc a">81</span></div>
+          <div class="lr"><span class="a">↑</span><span>вс 22</span><span class="t">09:13</span><span class="sc">20</span></div></div>
+      </div>
+      <p>Строки как сейчас, но до конца утреннего золотого часа — рассветы, потом — закаты. То же правило, что наверху «Света».</p>
+      <p class="pro">Вид прежний, время остаётся.</p>
+      <p class="con">Днём не узнать, хорош ли рассвет послезавтра.</p>
+    </div>
+  </div>
+  <div class="pair">
+    <div class="opt pick">
+      <span class="tag pick">А · малый виджет</span>
+      <div class="plate small">
+        <div class="hills"><span>↑<b>09:07</b>61</span><span style="text-align:right">↓<b>17:04</b>28</span></div>
+        <div class="win">
+          <span class="a" style="font-size:16px">☀︎</span>
+          <span class="c"><span class="wd">пт</span><span class="v2">48 · 72</span></span>
+          <span class="c" style="position:relative"><span class="flag" style="left:calc(50% - 5px)"></span><span class="wd">сб</span><span class="v2"><span class="a">81</span> · 35</span></span>
+          <span class="c"><span class="wd">вс</span><span class="v2">20 · 64</span></span>
+        </div>
+      </div>
+      <p class="note">В окошке пара «рассвет · закат», флажок над лучшим светом из шести.</p>
+    </div>
+    <div class="opt">
+      <span class="tag">Было · малый виджет</span>
+      <div class="plate small">
+        <div class="hills"><span>↑<b>09:07</b>61</span><span style="text-align:right">↓<b>17:04</b>28</span></div>
+        <div class="win">
+          <span class="a" style="font-size:16px">↓</span>
+          <span class="c" style="position:relative"><span class="flag" style="left:calc(50% - 5px)"></span><span class="wd">пт</span><span class="v">72</span></span>
+          <span class="c"><span class="wd">сб</span><span class="v">35</span></span>
+          <span class="c"><span class="wd">вс</span><span class="v">64</span></span>
+        </div>
+      </div>
+      <p class="note">Сейчас окошко — только закаты, флажок над лучшим закатом.</p>
+    </div>
+  </div>
+  <p class="verdict">Совет — А: принцип «рассвет и закат равнозначны» лучше всего виден, когда оба числа стоят рядом.</p>
+</section>
+
+<section>
+  <h2>Вопрос 2. Где место только на один золотой час</h2>
+  <p>Три места показывают одно время золотого часа, и всегда вечернее: строка «◐» среднего виджета (и его барабан во время съёмки), середина подножия большого виджета, «золотой 57 мин» в панели дня месяца.</p>
+  <div class="pair">
+    <div class="opt pick">
+      <span class="tag pick">А · СОВЕТУЮ</span>
+      <div class="line"><span class="sun">◐</span> 08:40 &nbsp;<span class="d">утром, до 10:14</span> &nbsp;→&nbsp; <span class="sun">◐</span> 15:57 &nbsp;<span class="d">дальше</span></div>
+      <p>Золотой час того события, что сейчас наверху «Света»: утром утренний, после его конца — вечерний. В месяце — как значок дня: до полудня утренний, после — вечерний.</p>
+      <p class="pro">Одно правило со «Светом» и с крупной подписью у дуги.</p>
+      <p class="con">Днём не видно, во сколько был утренний.</p>
+    </div>
+    <div class="opt">
+      <span class="tag">Б</span>
+      <div class="line"><span class="sun">◐</span> 08:40 · 15:57 &nbsp;&nbsp;&nbsp; <span class="d">месяц:</span> золотой 1 ч 34 м · 57 мин</div>
+      <p>Всегда оба, где хватает места.</p>
+      <p class="pro">Видно оба сразу.</p>
+      <p class="con">Строка среднего виджета и панель месяца становятся плотнее; в месяце не влезет на узких айфонах — проверка нужна.</p>
+    </div>
+  </div>
+  <p class="verdict">Совет — А: тот же ритм, что вы уже приняли для «Света» в 31.5.</p>
+</section>
+
+<section>
+  <h2>Без вопросов — зеркально закату</h2>
+  <p class="lead">Здесь у заката уже есть ответ, рассвету даём то же самое.</p>
+  <div class="mirror">
+    <div class="mi">
+      <h3>Экран блокировки, круглый виджет</h3>
+      <div class="dials">
+        <div class="ba" style="grid-template-columns:auto auto auto auto;gap:10px">
+          <span class="lab">было, 07:30</span><div class="clock-dial">8:27</div>
+          <span class="lab">станет, 07:30</span><div class="clock-dial">1:10</div>
+        </div>
+      </div>
+      <p class="n">Сейчас отсчёт всегда до вечернего золотого часа. Станет — до ближайшего: утром до 08:40, днём до 15:57.</p>
+    </div>
+    <div class="mi">
+      <h3>Экран блокировки, строка со съёмкой</h3>
+      <div class="ba"><span class="lab">было</span><div class="line"><span class="sun">☀︎</span> съёмка 08:00 &nbsp;<span class="d">(у «Рассвета» золотого часа нет)</span></div>
+        <span class="lab">станет</span><div class="line"><span class="sun">☀︎</span> 08:40 · съёмка 08:00</div></div>
+      <p class="n">Время золотого часа появлялось только при пожелании «Закат». Станет и при «Рассвет» — утреннее.</p>
+    </div>
+    <div class="mi">
+      <h3>Плашка съёмки на экране блокировки</h3>
+      <div class="ba"><span class="lab">было</span><div class="line">08:00 сбор · 08:30 парк · 09:30 кафе</div>
+        <span class="lab">станет</span><div class="line">08:00 сбор · 08:30 парк · <span class="sun">◐ 08:40 Золотой</span> · 09:30 кафе</div></div>
+      <p class="n">Точка «Золотой» и отсчёт «до золотого часа» были только у съёмок с «Закатом». Станет и у утренних с «Рассветом».</p>
+    </div>
+    <div class="mi">
+      <h3>Месяц, панель выбранного дня</h3>
+      <div class="ba"><span class="lab">было</span><div class="line">↑ <span class="d">09:07</span> &nbsp; ↓ <span class="sun">17:04</span> &nbsp; ◐ 57 мин</div>
+        <span class="lab">станет</span><div class="line">↑ <span style="color:var(--pick)">09:07</span> &nbsp; ↓ <span class="sun">17:04</span> &nbsp; ◐ (по вопросу 2)</div></div>
+      <p class="n">Время заката окрашено его оценкой, рассвета — всегда серое. Станет окрашено оценкой рассвета тем же цветом шкалы.</p>
+    </div>
+    <div class="mi">
+      <h3>Месяц, свободный день</h3>
+      <div class="ba"><span class="lab">было</span><div class="line"><span class="sun">◐</span> золотой час с 15:57 до 17:31</div>
+        <span class="lab">станет</span><div class="line"><span class="sun">◐</span> золотой час 08:40–10:14 · 15:57–17:31</div></div>
+    </div>
+    <div class="mi">
+      <h3>Неделя</h3>
+      <div class="ba">
+        <span class="lab">занятый было</span><div class="line"><span class="sun">↓</span> закат 17:04</div>
+        <span class="lab">станет</span><div class="line"><span class="sun">↑</span> 09:07 · <span class="sun">↓</span> 17:04</div>
+        <span class="lab">свободный было</span><div class="line"><span class="sun">◐</span> золотой час 15:57</div>
+        <span class="lab">станет</span><div class="line"><span class="sun">◐</span> золотой 08:40 · 15:57</div>
+        <span class="lab">раскрытый было</span><div class="line">Золотой час 15:57–17:31</div>
+        <span class="lab">станет</span><div class="line">Золотой утром 08:40–10:14 · вечером 15:57–17:31</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>Источник: проверка кода main 19fd637a; список мест — docs/dawn_audit_2026-11-18.md, пункты 10–13. Виджеты нарисованы схемой в настоящую ширину (средний 364 pt, малый 170 pt), цвета и шрифты условные.</footer>
+</main>
