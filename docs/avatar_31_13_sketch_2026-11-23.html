@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аватарка 31.13</title>
+<style>
+:root{--page:#ECECEE;--txt:#111;--mut:#555}
+@media (prefers-color-scheme:dark){:root{--page:#1b1b1d;--txt:#eee;--mut:#aaa}}
+body{margin:0;background:var(--page);color:var(--txt);font:15px/1.45 -apple-system,system-ui,sans-serif;padding:24px 16px}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:32px 0 10px}
+p.lead{max-width:760px;color:var(--mut);margin:0 0 8px}
+.row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:13px;font-weight:600;margin:0 0 6px;max-width:393px}
+.cap small{display:block;font-weight:400;color:var(--mut)}
+/* телефон: токены Palette, светлая = палитра Д, тёмная = как в приложении */
+.ph{width:393px;max-width:100%;border-radius:38px;overflow:hidden;position:relative;font:15px/1.3 -apple-system,system-ui,sans-serif}
+.ph.light{--bg:#E6E6E7;--sheet:#F3F3F5;--ink:#000;--ink3:#5C5C62;--ink4:#626267;--ink7:#86868B;--ink8:#A1A1A6;--brass:#F29230;--deep:#8A5A18;--press:#DBDBDD;--hair:rgba(0,0,0,.07);--av1:#8D8D93;--av2:#5F5F66;--veil:rgba(0,0,0,.35)}
+.ph.dark{--bg:#0F0E0C;--sheet:#17150F;--ink:#EFEAE0;--ink3:#A8A093;--ink4:#8A8478;--ink7:#55504A;--ink8:#4A453E;--brass:#E2A44C;--deep:#C9853F;--press:#221F19;--hair:rgba(255,255,255,.05);--av1:#6F6A5F;--av2:#3D3A33;--veil:rgba(0,0,0,.6)}
+.ph{background:var(--bg);color:var(--ink);padding-bottom:20px}
+.bar{display:flex;align-items:center;height:44px;padding:54px 16px 0}
+.bar .back{color:var(--ink);font-size:17px}
+.bar .t{flex:1;text-align:center;font-weight:600;font-size:17px;margin-right:56px}
+.lab{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink7);padding:24px 32px 7px}
+.lab.first{padding-top:8px}
+.field{margin:0 16px;background:var(--sheet);border-radius:22px;padding:12px 16px;color:var(--ink)}
+.field.ph8{color:var(--ink8)}
+.note{font-size:12px;color:var(--ink4);padding:7px 32px 0}
+.item{margin:0 16px;background:var(--sheet);border-radius:14px;display:flex;align-items:center;padding:13px 16px;gap:8px}
+.item .v{margin-left:auto;color:var(--ink4);font-size:14px}
+.item .chev{color:var(--ink7)}
+.item.danger{color:var(--deep);justify-content:center}
+.av{border-radius:50%;background:linear-gradient(135deg,var(--av1),var(--av2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;position:relative;overflow:hidden}
+.av.photo{background:
+  radial-gradient(circle at 50% 38%,#e9c4a3 0 22%,transparent 23%),
+  radial-gradient(ellipse at 50% 100%,#3b4a5c 0 48%,transparent 49%),
+  linear-gradient(160deg,#9db7cf,#d7c3a8)}
+.avwrap{display:flex;flex-direction:column;align-items:center;padding:8px 0 0}
+.pill{margin-top:10px;font-size:15px;padding:6px 14px;border-radius:999px;background:var(--press);color:var(--ink)}
+.badge{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--sheet);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center}
+.badge svg{width:16px;height:16px;stroke:var(--ink);fill:none;stroke-width:1.6}
+.new{outline:2px dashed var(--brass);outline-offset:4px;border-radius:16px}
+.poster{display:flex;flex-direction:column;align-items:center;padding:8px 24px 16px;position:relative}
+.poster .nm{font-size:22px;font-weight:600;margin-top:10px}
+.poster .ln{font-size:15px;color:var(--ink3);margin-top:2px}
+.poster .ed{position:absolute;right:16px;top:8px;font-size:15px;padding:6px 14px;border-radius:999px;background:var(--press)}
+/* меню и окна */
+.menu{position:absolute;left:50%;transform:translateX(-50%);top:238px;width:250px;border-radius:14px;background:var(--sheet);box-shadow:0 10px 40px rgba(0,0,0,.35);overflow:hidden}
+.menu div{padding:12px 16px;border-top:1px solid var(--hair);display:flex;justify-content:space-between}
+.menu div:first-child{border-top:0}
+.menu .red{color:#FF3B30}
+.veil{position:absolute;inset:0;background:var(--veil)}
+.alert{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:290px;border-radius:22px;background:var(--sheet);padding:20px 18px 14px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.alert b{display:block;font-size:17px;margin-bottom:6px}
+.alert p{margin:0 0 14px;font-size:13px;color:var(--ink3)}
+.alert .btns{display:flex;gap:8px}
+.alert .btns span{flex:1;padding:11px;border-radius:999px;background:var(--press)}
+.alert .btns .red{color:#FF3B30;font-weight:600}
+.crop{background:#000;color:#fff;height:640px;position:relative}
+.crop .img{position:absolute;inset:120px 0 150px;background:
+  radial-gradient(circle at 52% 40%,#e9c4a3 0 16%,transparent 17%),
+  radial-gradient(ellipse at 52% 95%,#3b4a5c 0 38%,transparent 39%),
+  linear-gradient(160deg,#9db7cf,#d7c3a8)}
+.crop .mask{position:absolute;inset:120px 0 150px;background:radial-gradient(circle at 50% 50%,transparent 0 175px,rgba(0,0,0,.55) 176px)}
+.crop .sq{position:absolute;left:21px;top:194px;width:350px;height:350px;border:1px solid rgba(255,255,255,.35)}
+.crop .hint{position:absolute;top:82px;width:100%;text-align:center;font-size:15px;color:#ddd}
+.crop .bot{position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:space-between;padding:0 24px;font-size:17px}
+table{border-collapse:collapse;max-width:900px;font-size:14px;margin-top:8px}
+td,th{border:1px solid rgba(127,127,127,.35);padding:6px 10px;vertical-align:top;text-align:left}
+.q{max-width:820px;background:rgba(127,127,127,.12);border-radius:12px;padding:12px 16px;margin:10px 0}
+.q b{display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+<h1>31.13 · Своя аватарка и «Удалить мои данные» — было → станет</h1>
+<p class="lead">Экран «Профиль» и шапка «Настроек». Телефон шириной 393 pt (iPhone 17 Pro), цвета — из приложения (светлая тема = палитра Д). Пунктиром обведено новое. Сервера пока нет: приложение молча держит фото у себя и отправит его на сервер, когда он появится, — никаких сообщений об ошибке.</p>
+
+<div id="themes"></div>
+
+<h2>Что меняется, по пунктам</h2>
+<table>
+<tr><th>Где</th><th>Было</th><th>Станет</th></tr>
+<tr><td>Шапка «Настроек»</td><td>Серый круг 88 с инициалами</td><td>Тот же круг 88, в нём ваше фото; без фото — инициалы, как сейчас</td></tr>
+<tr><td>«Профиль», верх</td><td>Сразу поле «Имя»</td><td>Над «Имя» — круг 96 и кнопка «Выбрать фото» (с фото — «Изменить»). Нажатие на круг — то же, что на кнопку</td></tr>
+<tr><td>Выбор фото</td><td>—</td><td>Системное окно «Фото» (приложению не нужен доступ ко всей галерее, разрешение не спрашивается) → экран обрезки: двигаете и увеличиваете пальцами, круг показывает, что войдёт → «Готово». Хранится квадрат 512×512, без геометки и данных камеры</td></tr>
+<tr><td>Фото уже есть</td><td>—</td><td>«Изменить» открывает меню: «Выбрать другое фото», «Удалить фото». Старое фото стирается сразу (ваше решение 22.11)</td></tr>
+<tr><td>Подпись под фото</td><td>—</td><td>«Фото видит любой, кто знает ваш номер.» (ваше решение 19.11)</td></tr>
+<tr><td>«Профиль», низ</td><td>Последняя строка — «Контакты»</td><td>Ниже — рубрика «Мои данные» и строка «Удалить мои данные» с пояснением «телефон, фото» → окно подтверждения (Алексей 23.11)</td></tr>
+<tr><td>После «Удалить»</td><td>—</td><td>Телефон забывает пропуск и фото; серверу уходит просьба стереть номер, фото и всё, что он знает о вас (сейчас сервера нет — просьба ждёт). Съёмки, клиенты, номер и ID остаются</td></tr>
+</table>
+
+<h2>Вопросы (по каждому — мой выбор, можно ответить «как предлагаешь»)</h2>
+<div class="q"><b>1. «Удалить мои данные» стирает и фото на телефоне?</b>
+А — да: телефон тоже забывает фото, круг снова с инициалами. Плюс: после кнопки нигде не остаётся вашего лица. Минус: фото придётся выбрать заново, если передумали.<br>
+Б — нет: фото остаётся на телефоне, стирается только на сервере. Плюс: ничего не теряется. Минус: при следующем выборе фото оно снова уйдёт на сервер, и неочевидно, «удалён» ли человек.<br>
+<i>Мой выбор: А</i> — так кнопка значит ровно то, что написано, и не оставляет полу-состояния.</div>
+<div class="q"><b>2. Класть фото в копию на Яндекс.Диске?</b>
+А — да, вместе с остальной копией (если Диск подключён). Плюс: «стирать сразу» становится безопасным — откат есть на Диске, как и написано в решении 22.11. Минус: ещё один файл с лицом в облаке, но это ваш собственный Диск.<br>
+Б — нет, только телефон и сервер. Плюс: меньше мест с фото. Минус: при переезде на новый телефон фото пропадёт.<br>
+<i>Мой выбор: А.</i></div>
+<div class="q"><b>3. Строка «Удалить мои данные» — всегда или только когда сервер вас знает?</b>
+А — всегда видна. Плюс: App Store требует, чтобы удаление было легко найти (для нашего случая не проверено). Минус: у того, кто фото не выбирал, строка лишняя.<br>
+Б — только после того, как вы выбрали фото (тогда телефон и регистрируется на сервере). Плюс: чище экран. Минус: человек, уже удалённый, не найдёт кнопку, чтобы проверить.<br>
+<i>Мой выбор: А.</i></div>
+<p class="lead" style="margin-top:14px">Чего здесь нет и не будет в 31.13: аватарки клиентов («Только своя»), подтверждения номера (после выпуска), строки «Сервер на связи» (это CORE-03, отдельно). В режиме «Просто» шапка тоже показывает фото; сам «Профиль» в «Просто» открывается так же, как сейчас (из шапки).</p>
+
+<template id="tpl">
+<h2 class="th"></h2>
+<div class="row">
+ <div><p class="cap">1. «Профиль» — было</p>
+  <div class="ph">
+   <div class="bar"><span class="back">‹ Настройки</span><span class="t">Профиль</span></div>
+   <div class="lab first">Имя</div><div class="field">Алексей</div>
+   <div class="lab">Мой город</div><div class="field">Томск</div>
+   <div class="note">Город, где вы живёте или сейчас находитесь…</div>
+   <div class="lab">Мой телефон</div><div class="field">+7 ··· ··· ·· ··</div>
+   <div class="lab">ID приложения</div><div class="item">id7··········</div>
+   <div class="note">Номер телефона уже всемирный, уже уникальный…</div>
+   <div class="lab">&nbsp;</div><div class="item">Контакты<span class="v">48</span><span class="chev">›</span></div>
+  </div></div>
+
+ <div><p class="cap">2. Станет — фото ещё нет<small>Круг с инициалами и кнопка; внизу — «Мои данные»</small></p>
+  <div class="ph">
+   <div class="bar"><span class="back">‹ Настройки</span><span class="t">Профиль</span></div>
+   <div class="avwrap new"><div class="av" style="width:96px;height:96px;font-size:34px">А<span class="badge"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span></div>
+    <span class="pill">Выбрать фото</span>
+    <div class="note" style="padding:8px 32px 0;text-align:center">Фото видит любой, кто знает ваш номер.</div></div>
+   <div class="lab">Имя</div><div class="field">Алексей</div>
+   <div class="lab">Мой город</div><div class="field">Томск</div>
+   <div class="lab">Мой телефон</div><div class="field">+7 ··· ··· ·· ··</div>
+   <div class="lab">ID приложения</div><div class="item">id7··········</div>
+   <div class="lab">&nbsp;</div><div class="item">Контакты<span class="v">48</span><span class="chev">›</span></div>
+   <div class="new" style="margin-top:4px;padding-bottom:6px"><div class="lab">Мои данные</div><div class="item danger" style="flex-direction:column;gap:2px">Удалить мои данные<span style="font-size:12px;color:var(--ink4)">телефон, фото</span></div>
+   <div class="note">Стирает с сервера ваш номер телефона и фото. Съёмки и клиенты в приложении остаются.</div></div>
+  </div></div>
+
+ <div><p class="cap">3. Станет — фото выбрано, нажали «Изменить»</p>
+  <div class="ph">
+   <div class="bar"><span class="back">‹ Настройки</span><span class="t">Профиль</span></div>
+   <div class="avwrap"><div class="av photo" style="width:96px;height:96px"></div>
+    <span class="pill">Изменить</span>
+    <div class="note" style="padding:8px 32px 0;text-align:center">Фото видит любой, кто знает ваш номер.</div></div>
+   <div class="lab">Имя</div><div class="field">Алексей</div>
+   <div class="lab">Мой город</div><div class="field">Томск</div>
+   <div class="lab">Мой телефон</div><div class="field">+7 ··· ··· ·· ··</div>
+   <div class="veil"></div>
+   <div class="menu new"><div>Выбрать другое фото<span>📷</span></div><div class="red">Удалить фото<span>🗑</span></div></div>
+  </div></div>
+
+ <div><p class="cap">4. Обрезка после выбора в «Фото»<small>Всегда чёрная (как у системной обрезки), в обеих темах</small></p>
+  <div class="ph"><div class="crop">
+   <div class="hint">Двигайте и увеличивайте</div>
+   <div class="img"></div><div class="mask"></div><div class="sq"></div>
+   <div class="bot"><span>Отмена</span><span style="font-weight:600">Готово</span></div>
+  </div></div></div>
+
+ <div><p class="cap">5. «Удалить мои данные» → подтверждение</p>
+  <div class="ph" style="height:640px">
+   <div class="bar"><span class="back">‹ Настройки</span><span class="t">Профиль</span></div>
+   <div class="avwrap"><div class="av photo" style="width:96px;height:96px"></div><span class="pill">Изменить</span></div>
+   <div class="veil"></div>
+   <div class="alert new"><b>Удалить мои данные?</b>
+    <p>С сервера сотрутся ваш номер телефона и фото. Фото исчезнет и здесь. Съёмки, клиенты и номер в приложении останутся.</p>
+    <div class="btns"><span>Отмена</span><span class="red">Удалить</span></div></div>
+  </div></div>
+
+ <div><p class="cap">6. Шапка «Настроек» — было → станет</p>
+  <div class="ph">
+   <div class="bar"><span class="t" style="margin:0">Настройки</span></div>
+   <div class="poster"><span class="ed">Изм.</span><div class="av" style="width:88px;height:88px;font-size:32px">А</div><div class="nm">Алексей</div><div class="ln">+7 ··· · Томск</div></div>
+   <div style="text-align:center;color:var(--ink7);font-size:20px">↓</div>
+   <div class="poster new"><span class="ed">Изм.</span><div class="av photo" style="width:88px;height:88px"></div><div class="nm">Алексей</div><div class="ln">+7 ··· · Томск</div></div>
+  </div></div>
+</div>
+</template>
+
+<script>
+const tpl=document.getElementById('tpl'), host=document.getElementById('themes');
+for (const [cls,name] of [['light','Светлая тема'],['dark','Тёмная тема']]) {
+  const n=tpl.content.cloneNode(true);
+  n.querySelector('.th').textContent=name;
+  n.querySelectorAll('.ph').forEach(p=>p.classList.add(cls));
+  host.appendChild(n);
+}
+</script>
+</body>
+</html>
